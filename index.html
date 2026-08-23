@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%BE%3C/text%3E%3C/svg%3E">
+  <meta name="theme-color" content="#1a1210">
+  <title>Michi-Neko · 道猫</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1210; font-family: Georgia, 'Times New Roman', serif; touch-action: none; }
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+    
+    /* Japanese Parchment Scroll (Emakimono / Kakemono) */
+    #scroll-wrapper {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 150;
+      user-select: none;
+      pointer-events: auto;
+    }
+    #scroll-toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(180deg, #3a2216 0%, #20120a 100%);
+      color: #e8d0b0;
+      border: 1px solid #7c4c28;
+      border-radius: 4px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.15);
+      transition: all 0.25s;
+      outline: none;
+      letter-spacing: 1px;
+      pointer-events: auto;
+    }
+    #scroll-toggle-btn:hover {
+      background: linear-gradient(180deg, #4d2e1f 0%, #2c190e 100%);
+      border-color: #c8402a;
+      color: #fff;
+      transform: translateY(-1px);
+    }
+    #scroll-toggle-btn:active {
+      transform: translateY(1px);
+    }
+    
+    #scroll-wrapper { perspective: 900px; }
+    #hud-scroll {
+      position: relative;
+      margin-top: 6px;
+      transform-origin: top center;
+      transition:
+        transform 0.7s cubic-bezier(0.30, 1.25, 0.40, 1),
+        opacity 0.45s ease,
+        max-height 0.7s cubic-bezier(0.65, 0, 0.35, 1),
+        filter 0.45s ease;
+      max-height: 520px;
+      opacity: 1;
+      transform: rotateX(0deg);
+      overflow: hidden;
+    }
+    #hud-scroll.collapsed {
+      max-height: 0;
+      opacity: 0;
+      /* paper scroll rolling back up into its cylinder */
+      transform: rotateX(-87deg) translateY(-4px);
+      filter: blur(1.5px);
+      pointer-events: none;
+    }
+
+    .scroll-rod {
+      height: 7px;
+      background: linear-gradient(90deg, #180d06 0%, #4a2d18 35%, #7a4a28 50%, #4a2d18 65%, #180d06 100%);
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    .scroll-rod::before, .scroll-rod::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      width: 8px;
+      height: 11px;
+      background: radial-gradient(circle, #f7ca38 0%, #9e7415 100%);
+      border-radius: 2px;
+      border: 1px solid #5a400c;
+    }
+    .scroll-rod::before { left: -4px; }
+    .scroll-rod::after { right: -4px; }
+
+    #hud {
+      color: #3d2b1f;
+      background: linear-gradient(175deg, #f9f0e2 0%, #f0dec5 45%, #e5cdad 100%);
+      padding: 12px 18px;
+      font-size: 13px;
+      line-height: 1.65;
+      user-select: none;
+      box-shadow: 0 8px 24px rgba(25,12,5,0.45), inset 0 0 25px rgba(160,110,60,0.15);
+      border-left: 2px solid #b84028;
+      border-right: 2px solid #b84028;
+      min-width: 230px;
+    }
+    #hud strong { letter-spacing: 2px; font-size: 15px; }
+    #title-jp { display: block; font-size: 11px; color: #a04030; letter-spacing: 5px; }
+    #vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(35,18,10,0.42) 100%); z-index: 100; }
+    #hud div { margin: 2px 0; }
+    #inventory { margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(120,80,40,0.35); font-size: 12px; display: flex; gap: 8px; }
+    .badge { padding: 2px 8px; border-radius: 12px; background: rgba(80,50,30,0.15); color: #8a7060; font-size: 11px; transition: all 0.4s; }
+    .badge.active { background: #c8402a; color: #fff; box-shadow: 0 2px 8px rgba(200,64,42,0.4); font-weight: bold; }
+    
+    #hud-controls {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px dashed rgba(120,80,40,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .hud-pill-btn {
+      background: #3e281c;
+      color: #f6e8d4;
+      border: 1px solid #7c4c28;
+      border-radius: 12px;
+      padding: 3px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .hud-pill-btn:hover {
+      background: #c8402a;
+      color: #fff;
+      border-color: #e0503a;
+    }
+    .hud-pill-btn.off {
+      background: #6a5a50;
+      color: #d0c8c0;
+      border-color: #8a7a70;
+    }
+
+    .touch-zone { position: absolute; bottom: 24px; width: 110px; height: 110px; border-radius: 50%; background: rgba(246,232,212,0.12); border: 2px solid rgba(246,232,212,0.35); pointer-events: auto; touch-action: none; user-select: none; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; color: #fff; }
+    #toast { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); background: rgba(40,24,14,0.92); color: #f6e8d4; padding: 12px 26px; border-radius: 4px; font-size: 14px; display: none; pointer-events: none; transition: opacity 0.5s; z-index: 300; max-width: 80%; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); border-top: 2px solid #c8402a; letter-spacing: 0.5px; }
+    
+    /* Lowered ACT Hint Prompt */
+    #prompt {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fdf5ea;
+      background: rgba(32, 18, 10, 0.88);
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-size: 13px;
+      display: none;
+      pointer-events: none;
+      z-index: 200;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      border: 1px solid rgba(200,64,42,0.6);
+      border-bottom: 2px solid #c8402a;
+      letter-spacing: 0.5px;
+    }
+
+    #joystick-zone { left: 24px; }
+    #jump-btn { right: 24px; }
+    #act-btn { right: 146px; }
+    #meow-btn { right: 268px; }
+    @media (hover: hover) and (pointer: fine) {
+      .touch-zone { opacity: 0.35; }
+      .touch-zone:hover { opacity: 0.65; transform: scale(1.05); }
+    }
+
+    /* ============ Shared overlay / menu system ============ */
+    .hidden { display: none !important; }
+    .overlay {
+      position: absolute; inset: 0; z-index: 500;
+      display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at center, rgba(26,14,8,0.55) 0%, rgba(12,6,3,0.88) 100%);
+      backdrop-filter: blur(3px);
+      opacity: 1; transition: opacity 0.35s ease;
+    }
+    .panel {
+      background: linear-gradient(175deg, rgba(249,240,226,0.97) 0%, rgba(233,214,186,0.95) 100%);
+      border: 1px solid #7c4c28; border-top: 3px solid #c8402a;
+      border-radius: 8px; padding: 28px 34px; min-width: 300px;
+      box-shadow: 0 24px 70px rgba(0,0,0,0.65), inset 0 0 30px rgba(160,110,60,0.12);
+      display: flex; flex-direction: column; gap: 10px; align-items: stretch;
+      animation: panel-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .panel.wide { min-width: 380px; }
+    @keyframes panel-in { from { transform: translateY(18px) scale(0.97); opacity: 0; } to { transform: none; opacity: 1; } }
+    .panel-title {
+      font-size: 22px; color: #b8321e; letter-spacing: 3px; margin: 0 0 8px 0;
+      text-align: center; font-weight: bold;
+    }
+    .panel-title span { display: block; font-size: 12px; color: #8a684c; letter-spacing: 5px; margin-top: 2px; }
+    .menu-btn {
+      font-family: Georgia, serif; font-size: 15px; font-weight: bold; letter-spacing: 1px;
+      color: #f6e8d4; background: linear-gradient(180deg, #4d2e1f 0%, #2c190e 100%);
+      border: 1px solid #7c4c28; border-radius: 6px; padding: 11px 22px;
+      cursor: pointer; transition: all 0.18s ease; text-align: center;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+    .menu-btn:hover { background: linear-gradient(180deg, #c8402a 0%, #8a2818 100%); border-color: #e0503a; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(200,64,42,0.4); }
+    .menu-btn:active { transform: translateY(1px); }
+    .menu-btn.primary { border-color: #c8402a; box-shadow: 0 3px 14px rgba(200,64,42,0.45), inset 0 1px 0 rgba(255,255,255,0.15); }
+
+    /* ============ Title screen ============ */
+    #title-screen {
+      position: absolute; inset: 0; z-index: 600;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.8s ease;
+    }
+    #title-screen.fade-out { opacity: 0; pointer-events: none; }
+    #title-vignette {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 50% 42%, transparent 30%, rgba(20,10,5,0.55) 100%),
+        linear-gradient(180deg, rgba(20,10,5,0.72) 0%, transparent 32%, transparent 58%, rgba(20,10,5,0.82) 100%);
+    }
+    #title-content { position: relative; text-align: center; user-select: none; }
+    #title-paw { font-size: 44px; margin-bottom: 4px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6)); animation: paw-bob 3.2s ease-in-out infinite; }
+    @keyframes paw-bob { 0%,100% { transform: translateY(0) rotate(-4deg);} 50% { transform: translateY(-8px) rotate(4deg);} }
+    #game-title {
+      font-size: clamp(52px, 9vw, 96px); margin: 0; letter-spacing: 10px; color: #fdf3e0;
+      text-shadow: 0 3px 0 #7c2c18, 0 8px 26px rgba(0,0,0,0.85), 0 0 60px rgba(255,190,120,0.25);
+      font-weight: bold;
+    }
+    #game-subtitle { font-size: clamp(13px, 2vw, 17px); color: #e8c898; letter-spacing: 7px; margin: 10px 0 34px 0; text-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+    #title-menu { display: flex; flex-direction: column; gap: 12px; width: 280px; margin: 0 auto; }
+    #title-hint { margin-top: 30px; font-size: 12px; color: rgba(240,220,190,0.75); letter-spacing: 1.5px; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+    #title-version { margin-top: 8px; font-size: 11px; color: rgba(230,200,160,0.45); letter-spacing: 2px; }
+
+    /* ============ Settings rows ============ */
+    .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 7px 0; border-bottom: 1px dashed rgba(120,80,40,0.25); }
+    .settings-row label { font-size: 13px; color: #3d2b1f; letter-spacing: 0.5px; white-space: nowrap; }
+    .settings-row input[type="range"] { width: 170px; accent-color: #c8402a; cursor: pointer; }
+    .settings-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: #c8402a; cursor: pointer; }
+    .settings-row select {
+      font-family: Georgia, serif; font-size: 13px; padding: 4px 8px; border-radius: 5px;
+      border: 1px solid #7c4c28; background: #f6ecd9; color: #3d2b1f; cursor: pointer;
+    }
+    .settings-value { font-size: 11px; color: #8a684c; min-width: 36px; text-align: right; }
+
+    /* ============ Compass strip ============ */
+    #compass {
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+      width: min(360px, 46vw); height: 30px; z-index: 140; pointer-events: none;
+      background: linear-gradient(180deg, rgba(32,18,10,0.82), rgba(32,18,10,0.62));
+      border: 1px solid rgba(124,76,40,0.7); border-radius: 15px;
+      overflow: hidden; box-shadow: 0 3px 12px rgba(0,0,0,0.45);
+    }
+    #compass::after {
+      content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
+      background: #e8b84a; transform: translateX(-1px); box-shadow: 0 0 6px rgba(232,184,74,0.9);
+    }
+    .compass-item {
+      position: absolute; top: 50%; transform: translate(-50%, -50%);
+      font-size: 12px; font-weight: bold; color: #e8d0b0; letter-spacing: 1px;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8); white-space: nowrap;
+    }
+    .compass-item.cardinal { color: #f6e8d4; }
+    .compass-item.poi { font-size: 13px; }
+
+    /* ============ Toast stack ============ */
+    #toast-stack {
+      position: absolute; top: 54px; left: 50%; transform: translateX(-50%);
+      z-index: 300; display: flex; flex-direction: column; gap: 8px; align-items: center;
+      pointer-events: none; max-width: 82%;
+    }
+    .toast-item {
+      background: linear-gradient(175deg, rgba(48,28,16,0.94), rgba(32,18,10,0.92));
+      color: #f6e8d4; padding: 10px 24px; border-radius: 5px; font-size: 13.5px;
+      border-top: 2px solid #c8402a; box-shadow: 0 6px 22px rgba(0,0,0,0.55);
+      letter-spacing: 0.4px; text-align: center; max-width: 100%;
+      opacity: 0; transform: translateY(-12px);
+      transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .toast-item.show { opacity: 1; transform: translateY(0); }
+    .toast-item.leaving { opacity: 0; transform: translateY(-8px); }
+
+    /* ============ XP bar ============ */
+    #xp-wrap {
+      position: relative; height: 14px; border-radius: 7px; margin-top: 5px;
+      background: rgba(80,50,30,0.22); border: 1px solid rgba(120,80,40,0.4); overflow: hidden;
+    }
+    #xp-fill {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
+      background: linear-gradient(90deg, #d8a038 0%, #f7ca38 100%);
+      border-radius: 7px; transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow: 0 0 8px rgba(247,202,56,0.55);
+    }
+    #xp-label {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 9.5px; color: #4a3018; font-weight: bold; letter-spacing: 1px; text-shadow: 0 1px 0 rgba(255,240,210,0.6);
+    }
+
+    /* ============ Quest card ============ */
+    #quest-card {
+      margin: 4px 0; padding: 7px 10px; border-radius: 6px;
+      background: rgba(200,64,42,0.08); border-left: 3px solid #c8402a;
+    }
+    #quest-name { font-size: 12.5px; color: #5a2c18; font-weight: bold; letter-spacing: 0.4px; }
+    #quest-progress { height: 5px; border-radius: 3px; background: rgba(80,50,30,0.18); margin-top: 5px; overflow: hidden; }
+    #quest-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #c8402a, #e86a4a); border-radius: 3px; transition: width 0.4s ease; }
+
+    /* ============ Debug overlay (F3) ============ */
+    #debug-overlay {
+      position: absolute; bottom: 12px; left: 12px; z-index: 400;
+      background: rgba(12,8,5,0.85); color: #c8e8b0; font-family: Consolas, monospace;
+      font-size: 11px; line-height: 1.55; padding: 10px 14px; border-radius: 6px;
+      border: 1px solid rgba(140,180,110,0.35); pointer-events: none; white-space: pre;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    }
+
+    /* Hide gameplay HUD while on the title screen */
+    body.in-title #scroll-wrapper,
+    body.in-title #compass,
+    body.in-title .touch-zone,
+    body.in-title #toast-stack,
+    body.in-title #edge-arrow,
+    body.in-title .npc-nametag,
+    body.in-title #prompt,
+    body.in-title #debug-overlay { display: none !important; }
+
+    /* Photo mode: hide all gameplay chrome */
+    body.photo-mode #scroll-wrapper,
+    body.photo-mode #compass,
+    body.photo-mode .touch-zone,
+    body.photo-mode #toast-stack,
+    body.photo-mode #edge-arrow,
+    body.photo-mode #debug-overlay,
+    body.photo-mode .npc-nametag,
+    body.photo-mode #prompt { display: none !important; }
+
+    #photo-hint {
+      position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+      z-index: 460; background: rgba(20,10,5,0.78); color: #f6e8d4;
+      padding: 8px 20px; border-radius: 18px; font-size: 12px; letter-spacing: 0.5px;
+      border: 1px solid rgba(200,64,42,0.5); pointer-events: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    #photo-hint.hidden { display: none; }
+    #photo-flash {
+      position: absolute; inset: 0; background: #fff; opacity: 0;
+      pointer-events: none; z-index: 480; transition: opacity 0.35s ease;
+    }
+
+    /* ============ Off-screen objective arrow ============ */
+    #edge-arrow {
+      position: absolute; z-index: 145; pointer-events: none;
+      font-size: 20px; color: #ffd042; text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+      transform-origin: center; filter: drop-shadow(0 0 6px rgba(255,208,66,0.6));
+    }
+    #edge-arrow .arrow-glyph { display: inline-block; }
+    /* ============ Sliding Shoji Door Transition Wipe ============ */
+    #door-wipe {
+      position: absolute; inset: 0; z-index: 550;
+      pointer-events: none; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #door-wipe.hidden { display: none; }
+    .shoji-panel {
+      position: absolute; top: 0; bottom: 0; width: 50.5%;
+      background: #f4ecdc;
+      box-shadow: inset 0 0 40px rgba(120,80,40,0.25), 0 0 25px rgba(0,0,0,0.6);
+      background-image:
+        linear-gradient(90deg, #3a2214 0px, #3a2214 6px, transparent 6px),
+        linear-gradient(0deg, #3a2214 0px, #3a2214 5px, transparent 5px),
+        repeating-linear-gradient(90deg, transparent 0, transparent 42px, rgba(80,50,30,0.45) 42px, rgba(80,50,30,0.45) 44px),
+        repeating-linear-gradient(0deg, transparent 0, transparent 64px, rgba(80,50,30,0.45) 64px, rgba(80,50,30,0.45) 66px);
+      transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .shoji-panel.shoji-left {
+      left: 0; border-right: 6px solid #2a160c;
+      transform: translateX(-101%);
+    }
+    .shoji-panel.shoji-right {
+      right: 0; border-left: 6px solid #2a160c;
+      transform: translateX(101%);
+    }
+    #door-wipe.closed .shoji-panel.shoji-left { transform: translateX(0); }
+    #door-wipe.closed .shoji-panel.shoji-right { transform: translateX(0); }
+    .door-wipe-content {
+      position: relative; z-index: 2; text-align: center;
+      opacity: 0; transform: scale(0.92);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      color: #3a2012; text-shadow: 0 1px 3px rgba(255,255,255,0.8);
+    }
+    #door-wipe.closed .door-wipe-content { opacity: 1; transform: scale(1); }
+    .door-wipe-crest { font-size: 38px; margin-bottom: 6px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2)); }
+    .door-wipe-title { font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #b8321e; }
+    .door-wipe-sub { font-size: 13px; letter-spacing: 4px; color: #6a4830; margin-top: 4px; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body class="in-title">
+  <canvas id="canvas"></canvas>
+  <div id="vignette"></div>
+
+  <!-- Compass strip -->
+  <div id="compass"></div>
+
+  <!-- Stacked toast notifications -->
+  <div id="toast-stack"></div>
+
+  <!-- Debug overlay (F3) -->
+  <div id="debug-overlay" class="hidden"></div>
+
+  <!-- Collapsible Japanese Parchment Scroll HUD -->
+  <div id="scroll-wrapper">
+    <button id="scroll-toggle-btn" aria-label="Toggle Scroll" aria-expanded="true">📜 Menu <span id="scroll-arrow">▲</span></button>
+    <div id="hud-scroll">
+      <div class="scroll-rod"></div>
+      <div id="hud">
+        <div><strong>Michi-Neko</strong><span id="title-jp">Kyoto Edo Valley</span></div>
+        <div id="score">Yarn: 0</div>
+        <div id="rank">Kitten</div>
+        <div id="xp-wrap"><div id="xp-fill"></div><span id="xp-label">XP 0</span></div>
+        <div id="quest-card"><div id="quest-name">No active quest</div><div id="quest-progress"><div id="quest-fill"></div></div></div>
+        <div id="mode">WASD + Space, E: Act, M: Meow, C: Prowl</div>
+        <div id="time-weather">--:-- · Clear</div>
+        <div id="inventory">
+          <span id="badge-key" class="badge">🔑 Key: 0</span>
+          <span id="badge-feather" class="badge">🪶 Feather: 0</span>
+        </div>
+        <div id="hud-controls">
+          <button id="hint-toggle-btn" class="hud-pill-btn">Hints: ON</button>
+        </div>
+      </div>
+      <div class="scroll-rod"></div>
+    </div>
+  </div>
+
+  <div id="prompt"></div>
+  <div id="joystick-zone" class="touch-zone"></div>
+  <div id="jump-btn" class="touch-zone">JUMP</div>
+  <div id="act-btn" class="touch-zone">ACT</div>
+  <div id="meow-btn" class="touch-zone">MEOW</div>
+
+  <!-- Off-screen objective arrow -->
+  <div id="edge-arrow" class="hidden"><span class="arrow-glyph">➤</span> <span id="edge-arrow-icon">🔑</span></div>
+
+  <!-- Sliding Shoji Door Transition Wipe -->
+  <div id="door-wipe" class="hidden">
+    <div class="shoji-panel shoji-left"></div>
+    <div class="shoji-panel shoji-right"></div>
+    <div class="door-wipe-content">
+      <div class="door-wipe-crest">🌸</div>
+      <div class="door-wipe-title">秘奥庵</div>
+      <div class="door-wipe-sub">HISOMU-AN TEA HOUSE</div>
+    </div>
+  </div>
+
+  <!-- Photo mode -->
+  <div id="photo-hint" class="hidden">📷 Photo Mode — drag: orbit · wheel: zoom · Enter: capture · P / Esc: exit</div>
+  <div id="photo-flash"></div>
+
+  <!-- ================= Title Screen ================= -->
+  <div id="title-screen">
+    <div id="title-vignette"></div>
+    <div id="title-content">
+      <div id="title-paw">🐾</div>
+      <h1 id="game-title">Michi-Neko</h1>
+      <div id="game-subtitle">道猫 — 京都江戸の谷</div>
+      <nav id="title-menu">
+        <button id="btn-continue" class="menu-btn primary">▶ Continue</button>
+        <button id="btn-new-game" class="menu-btn">✦ New Game</button>
+        <button id="btn-title-settings" class="menu-btn">⚙ Settings</button>
+      </nav>
+      <div id="title-hint">WASD move · Space jump · E act · M meow · C prowl · Esc pause</div>
+      <div id="title-version">Kyoto Edo Valley · v0.9</div>
+    </div>
+  </div>
+
+  <!-- ================= Pause Menu ================= -->
+  <div id="pause-screen" class="overlay hidden">
+    <div class="panel">
+      <h2 class="panel-title">一時停止<span>PAUSED</span></h2>
+      <button id="btn-resume" class="menu-btn primary">▶ Resume</button>
+      <button id="btn-pause-settings" class="menu-btn">⚙ Settings</button>
+      <button id="btn-save-quit" class="menu-btn">💾 Save & Quit to Title</button>
+    </div>
+  </div>
+
+  <!-- ================= Settings ================= -->
+  <div id="settings-screen" class="overlay hidden">
+    <div class="panel wide">
+      <h2 class="panel-title">設定<span>SETTINGS</span></h2>
+      <div class="settings-row"><label>Master Volume</label><input type="range" id="set-master" min="0" max="100"><span class="settings-value" id="val-master"></span></div>
+      <div class="settings-row"><label>Music Volume</label><input type="range" id="set-music" min="0" max="100"><span class="settings-value" id="val-music"></span></div>
+      <div class="settings-row"><label>SFX Volume</label><input type="range" id="set-sfx" min="0" max="100"><span class="settings-value" id="val-sfx"></span></div>
+      <div class="settings-row"><label>Ambient Volume</label><input type="range" id="set-ambient" min="0" max="100"><span class="settings-value" id="val-ambient"></span></div>
+      <div class="settings-row"><label>Camera Sensitivity</label><input type="range" id="set-sensitivity" min="20" max="200"><span class="settings-value" id="val-sensitivity"></span></div>
+      <div class="settings-row"><label>Invert Look Y</label><input type="checkbox" id="set-inverty"></div>
+      <div class="settings-row"><label>Graphics Quality</label>
+        <select id="set-quality">
+          <option value="auto">Auto-detect</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+      <div class="settings-row"><label>Show Hints</label><input type="checkbox" id="set-hints"></div>
+      <button id="btn-settings-close" class="menu-btn primary" style="margin-top:10px;">✓ Done</button>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js?v=20260823a"></script>
+</body>
+</html>

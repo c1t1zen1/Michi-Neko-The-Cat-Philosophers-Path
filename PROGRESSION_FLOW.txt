@@ -1,0 +1,402 @@
+╔════════════════════════════════════════════════════════════════════════════════════╗
+║                CAT WALK: RECOMMENDED PROGRESSION FLOW (STDOUT)                    ║
+║                      Discovery-Driven Model - Full Walkthrough                     ║
+╚════════════════════════════════════════════════════════════════════════════════════╝
+
+PROGRESSION PHILOSOPHY
+═════════════════════════════════════════════════════════════════════════════════════
+Core Principle: Players progress by EXPLORING, DISCOVERING, and BUILDING RELATIONSHIPS
+              No grinding, no time-gates, organic difficulty scaling
+              Content unlocks naturally through gameplay actions
+
+═════════════════════════════════════════════════════════════════════════════════════
+RANK PROGRESSION OVERVIEW
+═════════════════════════════════════════════════════════════════════════════════════
+
+RANK 1: KITTEN (Starting Rank)
+────────────────────────────────────────────────────────────────────────────────────
+  Unlock Condition: Game start
+  Duration: ~15-20 minutes
+  Key Activities: 
+    • Learn basic controls (walk, jump, meow)
+    • Explore starting area (home & garden)
+    • Collect first 5-10 items
+    • Meet 1-2 friendly NPCs
+
+  Unlocked Abilities:
+    ✓ Walk (3.5 m/s baseline)
+    ✓ Jump v1 (1.5m height)
+    ✓ Basic meow (30m range)
+    ✓ Stalk mode (sneaking)
+    ✓ Sprint (8 m/s, 3 sec duration)
+    ✓ Basic climbing (3m height limit)
+
+  Accessible Areas:
+    📍 Home area (your starting house)
+    📍 Front garden/yard
+    📍 Adjacent neighbor yards (open areas)
+
+  NPCs Met:
+    🐱 Whiskers (friendly neighbor cat)
+    🐱 Shadow (aloof cat - watches from distance)
+    👤 Mrs. Chen (kind human neighbor)
+
+  Story Moments:
+    • Wake up at home
+    • Discover the neighborhood exists
+    • First encounter with another cat
+    • Learn that exploration leads to discovery
+
+
+RANK 2: APPRENTICE
+────────────────────────────────────────────────────────────────────────────────────
+  Unlock Condition: Explore 5 locations + Meet 1 NPC at friendship level 1-2
+  Duration: ~20-30 minutes gameplay time
+  Key Activities:
+    • Explore middle-distance areas (park, residential streets)
+    • Build first relationship to level 2 with one cat
+    • Collect 15-20 items (50 points collectibles)
+    • Successfully complete first challenge (jump over obstacle)
+
+  Unlocked Abilities:
+    ✓ Enhanced jump (1.8m height +0.3m)
+    ✓ Climbing unlock (5m height)
+    ✓ Meow amplification (50m range, more attractive)
+    ✓ Efficient grooming (+5% health restore)
+
+  Accessible Areas:
+    📍 Public park (playground, pond area)
+    📍 Residential avenue (tree-lined street)
+    📍 Backyard gardens (connected properties)
+    📍 Small commercial area (cat-safe parts)
+
+  NPCs Met & Relationships:
+    🐱 Whiskers → Level 2 (close friendship)
+    🐱 Shadow → Level 1 (knows you now)
+    🐱 Patches (mischievous cat - first encounter)
+    👤 Tommy (young boy - wants to pet)
+    👤 Mr. Tanaka (gardener - sometimes feeds cats)
+
+  Story Moments:
+    • Reach the park for first time (sense of freedom/discovery)
+    • Witness first Whiskers greeting (relationship feels real)
+    • Discover hidden food source (garden with fish pond)
+    • Meet Patches and experience personality difference
+
+
+RANK 3: ADEPT
+────────────────────────────────────────────────────────────────────────────────────
+  Unlock Condition: 
+    - Explore 15+ locations 
+    - Befriend 2+ NPCs to level 2-3
+    - Collect 30+ items
+  Duration: ~30-40 minutes gameplay time
+  Key Activities:
+    • Venture into downtown/commercial areas
+    • Build deep relationship (level 3) with 2+ cats
+    • Accomplish parkour challenges (wall jump, multi-jump)
+    • Discover first secret area (hidden from main streets)
+
+  Unlocked Abilities:
+    ✓ Wall jump (bonus 0.3m on vertical surfaces)
+    ✓ Advanced climbing (6m height, smoother movement)
+    ✓ Power meow (commanding voice, NPCs respond urgently)
+    ✓ Object physics upgrade (knock heavier objects)
+    ✓ Extended sprint (4 seconds instead of 3)
+
+  Accessible Areas:
+    📍 Downtown district (shops, crowds, busy streets)
+    📍 Rooftop pathways (over low buildings)
+    📍 Fountain plaza (central gathering point)
+    📍 School grounds (playground, fields)
+    📍 SECRET: Abandoned greenhouse (found behind old barn)
+
+  NPCs Met & Relationships:
+    🐱 Whiskers → Level 3 (close friend, follows you)
+    🐱 Patches → Level 2-3 (playful, steals items)
+    🐱 Luna (wise elder cat - knows area history)
+    🐱 Tiger (territorial male - respects you now)
+    👤 Ms. Lee (elderly woman - feeds cats regularly)
+
+  Story Moments:
+    • First time downtown (overwhelming sensations)
+    • Learning rooftop navigation (new freedom)
+    • Luna shares memory of area's past
+    • Witness conflict between Patches and Tiger (choose side)
+    • Find mysterious old collar in greenhouse
+
+
+RANK 4: SKILLED
+────────────────────────────────────────────────────────────────────────────────────
+  Unlock Condition:
+    - Explore 25+ locations
+    - Befriend 3+ NPCs to level 3+
+    - Collect 50+ items
+    - Complete 3+ parkour challenges
+  Duration: ~40-50 minutes gameplay time
+  Key Activities:
+    • Explore industrial areas and waterfront
+    • Max friendship (level 4) with 2+ cats
+    • Master advanced parkour sequences
+    • Solve location-based puzzles (reach hidden areas)
+
+  Unlocked Abilities:
+    ✓ Jump v3 (2.2m height, maximum standard jump)
+    ✓ Expert climbing (8m height, faster climb speed)
+    ✓ Acrobatic combo (chain 3+ jumps without landing)
+    ✓ Sprint boost (9.5 m/s speed)
+    ✓ Precision striking (knock objects to exact location)
+    ✓ Zen grooming (meditation mode for stress relief)
+
+  Accessible Areas:
+    📍 Industrial zone (warehouses, machinery, complexity)
+    📍 Docks/waterfront (boats, water, new perspective)
+    📍 Rooftop highway (elevated shortcuts across city)
+    📍 Narrow alleyways (skill-required shortcuts)
+    📍 SECRET #2: Underground tunnels (beneath city)
+    📍 SECRET #3: Cargo ship in dock (interior exploration)
+
+  NPCs Met & Relationships:
+    🐱 Whiskers → Level 4 (best friend, extremely loyal)
+    🐱 Patches → Level 4 (trusts you completely)
+    🐱 Luna → Level 3-4 (shares deep stories)
+    🐱 Tiger → Level 3 (respects your skill)
+    🐱 Mochi (playful kitten - looks up to you)
+    👤 Captain (old fisherman - gives stories)
+    👤 Mei (artist - sketches the cats)
+
+  Story Moments:
+    • Industrial zone feels dangerous but navigable
+    • Discover underground tunnel network (major revelation)
+    • Patches and Tiger resolve conflict with your help
+    • Luna reveals the "truth" about the neighborhood
+    • Meet Mochi and feel protective/nurturing
+    • Capture moment: sunset on rooftop with Whiskers
+
+
+RANK 5: EXPERT
+────────────────────────────────────────────────────────────────────────────────────
+  Unlock Condition:
+    - Explore 35+ locations
+    - Befriend 4+ NPCs to level 4+
+    - Collect 75+ items
+    - Complete 5+ advanced parkour challenges
+  Duration: ~50-70 minutes gameplay time
+  Key Activities:
+    • Find remaining secret areas (NPC-specific)
+    • Max friendship (level 5) with 3+ NPCs
+    • Discover lore fragments (story understanding)
+    • Complete advanced skill challenges
+
+  Unlocked Abilities:
+    ✓ Extreme sprint (11 m/s, super fast, massive stamina drain)
+    ✓ Parkour climbing (10m heights, hang from ledges)
+    ✓ Commanding meow (special authority, NPCs obey)
+    ✓ Physics mastery (predict and control object trajectories)
+    ✓ Perfect grooming (+50% health restore, meditation)
+    ✓ Double jump (chain two jumps in air)
+
+  Accessible Areas:
+    📍 All 35+ locations open to free exploration
+    📍 SECRET #4: Lighthouse (top of tallest structure)
+    📍 SECRET #5: Garden maze (complex navigation)
+    📍 SECRET #6: Meditation grove (serene, hidden)
+    📍 Restricted areas now accessible (building interiors)
+
+  NPCs Met & Relationships:
+    🐱 Whiskers → Level 5 (SOUL BONDED - unconditional bond)
+    🐱 Patches → Level 5 (sees you as family)
+    🐱 Luna → Level 5 (shares final wisdom)
+    🐱 Tiger → Level 4-5 (respects your mastery)
+    🐱 Mochi → Level 4 (nearly adult, you're mentor)
+    🐱 Sphinx (mysterious cat - reveals themselves now)
+    👤 Grandmaster Chen (mysterious visitor)
+
+  Story Moments:
+    • Lighthouse climb (physical and emotional journey)
+    • Whiskers reveals personal history/bond
+    • Meet Sphinx and learn about cat history
+    • Luna's final wisdom session
+    • Discover connection between humans and cats
+    • Realization: You belong to this neighborhood
+
+
+RANK 6: MASTER
+────────────────────────────────────────────────────────────────────────────────────
+  Unlock Condition:
+    - All core locations explored (35+)
+    - All primary NPCs at max friendship (level 5)
+    - Collect 90+ items (near-completion)
+    - Discover all lore fragments
+  Duration: ~60-90 minutes final content
+  Key Activities:
+    • Unlock ultimate abilities
+    • Discover final secrets
+    • Experience narrative culmination
+    • Choose player legacy
+
+  Unlocked Abilities:
+    ✓ Ancient meow (world-changing call - special effects)
+    ✓ Reality-bending jump (special physics, new feel)
+    ✓ Infinite climbing (height limits removed)
+    ✓ Mastery mode (all abilities maxed, unlimited stamina)
+    ✓ Time perception (slow-mo mode during jumps)
+    ✓ Spirit form (temporary ghost-like movement)
+
+  Accessible Areas:
+    📍 Secret Sanctuary #1: Whiskers' special place
+    📍 Secret Sanctuary #2: Luna's meditation spot
+    📍 Secret Sanctuary #3: Ancient cat temple (hidden)
+    📍 Secret Sanctuary #4: Rooftop observation deck
+    📍 Secret Sanctuary #5: Sphinx's library of knowledge
+
+  NPCs - Final State:
+    🐱 Whiskers → Level 5 (absolute best friend)
+    🐱 Patches → Level 5 (playful sibling bond)
+    🐱 Luna → Level 5 (wise mentor)
+    🐱 Tiger → Level 5 (respected ally)
+    🐱 Mochi → Level 5 (protected protégé)
+    🐱 Sphinx → Level 5 (mysterious guide)
+    👤 All human NPCs (varied relationships)
+
+  Story Culmination:
+    • Final dialogue with each level-5 friend
+    • Revelation of world's true nature
+    • Choice: Legacy moment (what will you leave behind?)
+    • Epilogue scene (after final unlock)
+    • New Game+ option unlocks
+
+
+═════════════════════════════════════════════════════════════════════════════════════
+DETAILED PROGRESSION TIMELINE (IDEAL PLAYTHROUGH)
+═════════════════════════════════════════════════════════════════════════════════════
+
+MINUTE 0-15: RANK 1 (Kitten Introduction)
+──────────────────────────────────────────────────────────────────────────────────
+  0-2 min:   Wake up at home (intro scene)
+  2-5 min:   Tutorial walking, jumping, meowing
+  5-8 min:   First exploration (home garden)
+  8-10 min:  Collect first items (3-5)
+  10-12 min: Meet Whiskers (first NPC interaction)
+  12-15 min: Reach fence, look toward neighborhood
+  
+  Feeling:   Wonder, curiosity, "what's out there?"
+  Result:    Progression to Rank 2 triggers automatically
+
+
+MINUTE 15-40: RANK 2 (Apprentice Exploration)
+──────────────────────────────────────────────────────────────────────────────────
+  15-20 min: Journey to the park
+  20-25 min: Explore park, meet Patches
+  25-30 min: First major jump challenge (overcome = skill unlock)
+  30-35 min: Build Whiskers friendship to level 2 (greet multiple times)
+  35-40 min: Collect 10-15 items, discover hidden food source
+  
+  Feeling:   Expansion, confidence, "I can go places!"
+  Result:    Progression to Rank 3 triggers (15+ locations explored)
+
+
+MINUTE 40-70: RANK 3 (Adept Challenges)
+──────────────────────────────────────────────────────────────────────────────────
+  40-45 min: First downtown exploration
+  45-50 min: Meet Luna (wise elder cat)
+  50-55 min: First wall-jump (new skill feel)
+  55-60 min: Witness Patches vs Tiger conflict
+  60-65 min: Discover greenhouse secret
+  65-70 min: Build 2nd friendship to level 3
+  
+  Feeling:   Mastery, discovery, "I understand this place"
+  Result:    Progression to Rank 4 triggers
+
+
+MINUTE 70-110: RANK 4 (Skilled Expertise)
+──────────────────────────────────────────────────────────────────────────────────
+  70-75 min: Industrial zone introduction (intimidating)
+  75-80 min: Underground tunnel discovery (major reveal)
+  80-85 min: Rooftop highway first use (new perspective)
+  85-90 min: Complex parkour sequence (demonstrates skill)
+  90-95 min: Meet Mochi (nurturing moment)
+  95-105 min: Build 3+ NPCs to level 4, resolve Patches/Tiger conflict
+  105-110 min: Discover 2nd secret area (cargo ship)
+  
+  Feeling:   Power, understanding, "I'm truly part of this"
+  Result:    Progression to Rank 5 triggers
+
+
+MINUTE 110-180: RANK 5 (Expert Mastery)
+──────────────────────────────────────────────────────────────────────────────────
+  110-120 min: Lore fragment collection begins
+  120-135 min: Max friendship with Whiskers (level 5 reached)
+  135-145 min: Lighthouse exploration (emotional journey)
+  145-155 min: Meet Sphinx (world expansion)
+  155-165 min: Secret garden maze (complex navigation)
+  165-175 min: Build 3+ NPCs to max friendship
+  175-180 min: Final wisdom sessions with Luna, Whiskers
+  
+  Feeling:    Belonging, connection, "this is my home"
+  Result:     Progression to Rank 6 triggers
+
+
+MINUTE 180-240: RANK 6 (Master Revelation)
+──────────────────────────────────────────────────────────────────────────────────
+  180-195 min: Final secret area unlocks (Sanctuary #1)
+  195-210 min: Unlock ancient abilities
+  210-225 min: Dialogue sequences with all max-level NPCs
+  225-240 min: World revelation/story culmination
+  240+ min: New Game+ unlocks, cosmetic challenges available
+  
+  Feeling:    Completion, transcendence, "I understand everything"
+  Result:     End of main progression, beginning of endgame
+
+
+═════════════════════════════════════════════════════════════════════════════════════
+PROGRESSION TRIGGERS & CONDITIONS
+═════════════════════════════════════════════════════════════════════════════════════
+
+AUTOMATIC PROGRESSION (No Player Action Required)
+─────────────────────────────────────────────────────────────────────────────────
+  When condition met → Rank increase occurs automatically
+  Player receives: notification + new ability unlocks + story beat
+
+  ├─ Rank 1→2: [5 locations explored] AND [1 NPC level 1+]
+  ├─ Rank 2→3: [15 locations explored] AND [2 NPCs level 2+]
+  ├─ Rank 3→4: [25 locations explored] AND [3 NPCs level 2+]
+  ├─ Rank 4→5: [35 locations explored] AND [4 NPCs level 3+]
+  └─ Rank 5→6: [All primary areas] AND [5+ NPCs level 4+]
+
+
+═════════════════════════════════════════════════════════════════════════════════════
+ENDGAME PROGRESSION (After Rank 6 Completion)
+═════════════════════════════════════════════════════════════════════════════════════
+
+New Game+ Mode:
+  • Start with cosmetics/profile of completed playthrough
+  • Skip/speedrun familiar content
+  • Discover alternate dialogue paths
+  • New challenge modes unlock
+
+Total Expected Playtime:
+  Casual Completion (Ranks 1-4): 3-4 hours
+  Full Progression (Ranks 1-6): 6-8 hours
+  Completionist (100% content): 10-12 hours
+  Speedrun (optimal path): 1.5-2 hours
+  New Game+ (varied paths): 4-6 hours
+
+═════════════════════════════════════════════════════════════════════════════════════
+KEY PROGRESSION DESIGN PRINCIPLES
+═════════════════════════════════════════════════════════════════════════════════════
+
+1. NO GRINDING: Progress comes from exploration, not time spent
+2. ORGANIC PACING: Every 15 min = new discovery
+3. EARNED PROGRESSION: Demonstrate skill → Unlock ability
+4. RELATIONSHIP MATTERS: NPC bonds unlock content + story
+5. OPTIONAL DEPTH: Can ignore cosmetics/secrets, can go deep
+6. NATURAL DIFFICULTY: Better areas = harder platforming
+7. IMMERSION FIRST: Progression serves story, not vice versa
+8. MULTIPLE PATHS: Different exploration orders work
+9. DISCOVERY REWARDS: Finding secrets feels special
+10. LEGACY CHOICE: Your impact on world is memorable
+
+═════════════════════════════════════════════════════════════════════════════════════
+END OF PROGRESSION FLOW DOCUMENT
+═════════════════════════════════════════════════════════════════════════════════════

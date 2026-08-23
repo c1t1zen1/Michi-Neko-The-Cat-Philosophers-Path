@@ -1,0 +1,2076 @@
+import * as THREE from 'three';
+
+function mulberry32(a) {
+  return function() {
+    let t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const MAT = {
+  grass: new THREE.MeshStandardMaterial({ color: 0x3a5a2c, roughness: 0.95 }),
+  ridge: new THREE.MeshStandardMaterial({ color: 0x2b4522, roughness: 1 }),
+  dirt: new THREE.MeshStandardMaterial({ color: 0xb59a70, roughness: 1 }),
+  water: new THREE.MeshStandardMaterial({ color: 0x4d8a86, roughness: 0.12, metalness: 0.45 }),
+  timberDark: new THREE.MeshStandardMaterial({ color: 0x2e2017, roughness: 0.9 }),
+  timberMedium: new THREE.MeshStandardMaterial({ color: 0x4e3625, roughness: 0.88 }),
+  timberLight: new THREE.MeshStandardMaterial({ color: 0x8a6340, roughness: 0.85 }),
+  timberEngawa: new THREE.MeshStandardMaterial({ color: 0x65472e, roughness: 0.8 }),
+  plaster: new THREE.MeshStandardMaterial({ color: 0xede4d0, roughness: 0.95 }),
+  plasterWarm: new THREE.MeshStandardMaterial({ color: 0xdfd1b5, roughness: 0.95 }),
+  roofTile: new THREE.MeshStandardMaterial({ color: 0x30373f, roughness: 0.55, metalness: 0.2 }),
+  roofRidge: new THREE.MeshStandardMaterial({ color: 0x22272e, roughness: 0.5 }),
+  roofThatch: new THREE.MeshStandardMaterial({ color: 0x8a744a, roughness: 1 }),
+  vermilion: new THREE.MeshStandardMaterial({ color: 0xc8402a, roughness: 0.55 }),
+  stone: new THREE.MeshStandardMaterial({ color: 0x8d8d86, roughness: 0.95 }),
+  stoneDark: new THREE.MeshStandardMaterial({ color: 0x5c5c56, roughness: 0.95 }),
+  stonePlinth: new THREE.MeshStandardMaterial({ color: 0x73736c, roughness: 0.9 }),
+  slabWarm: new THREE.MeshStandardMaterial({ color: 0x9a8f7a, roughness: 0.92 }),
+  gravel: new THREE.MeshStandardMaterial({ color: 0xcdbfa4, roughness: 1 }),
+  shoji: new THREE.MeshStandardMaterial({ color: 0xffe2b8, emissive: 0x3d240e, emissiveIntensity: 0.12, roughness: 0.85 }),
+  shojiOff: new THREE.MeshStandardMaterial({ color: 0xecd9be, roughness: 0.9 }),
+  tatami: new THREE.MeshStandardMaterial({ color: 0x889c56, roughness: 0.95 }),
+  tatamiBorder: new THREE.MeshStandardMaterial({ color: 0x24201b, roughness: 0.9 }),
+  norenIndigo: new THREE.MeshStandardMaterial({ color: 0x223652, roughness: 0.8, side: THREE.DoubleSide }),
+  norenCrimson: new THREE.MeshStandardMaterial({ color: 0x8f2820, roughness: 0.8, side: THREE.DoubleSide }),
+  norenHemp: new THREE.MeshStandardMaterial({ color: 0xd6c5a2, roughness: 0.9, side: THREE.DoubleSide }),
+  lanternPaper: new THREE.MeshStandardMaterial({ color: 0xffe4bc, emissive: 0x5a2d0c, emissiveIntensity: 0.22 }),
+  lanternGlow: new THREE.MeshStandardMaterial({ color: 0xffe0b0, emissive: 0x6e3c10, emissiveIntensity: 0.28 }),
+  bambooGreen: new THREE.MeshStandardMaterial({ color: 0x5c8c3e, roughness: 0.75 }),
+  goldAntique: new THREE.MeshStandardMaterial({ color: 0xf5be38, metalness: 0.85, roughness: 0.25, emissive: 0x8a6008, emissiveIntensity: 0.6 }),
+  spiritualBellBronze: new THREE.MeshStandardMaterial({ color: 0xb88836, metalness: 0.75, roughness: 0.35, emissive: 0x422605, emissiveIntensity: 0.20 }),
+  cushionRed: new THREE.MeshStandardMaterial({ color: 0xb52b22, roughness: 0.7 }),
+  grilledFish: new THREE.MeshStandardMaterial({ color: 0xc87432, roughness: 0.6, emissive: 0x552200, emissiveIntensity: 0.3 }),
+  mountain1: new THREE.MeshStandardMaterial({ color: 0x6b7390, roughness: 1, flatShading: true }),
+  mountain2: new THREE.MeshStandardMaterial({ color: 0x565d7c, roughness: 1, flatShading: true }),
+  yarn: new THREE.MeshStandardMaterial({ color: 0xe04a7a, emissive: 0x701030, emissiveIntensity: 0.5, roughness: 0.7 }),
+  nestTwig: new THREE.MeshStandardMaterial({ color: 0x5a4128, roughness: 1 }),
+  birdEgg: new THREE.MeshStandardMaterial({ color: 0x9be3de, roughness: 0.4, metalness: 0.1 }),
+  featherGold: new THREE.MeshStandardMaterial({ color: 0xffd042, emissive: 0xb38600, emissiveIntensity: 0.8, roughness: 0.3 })
+};
+
+function box(w, h, d, mat, x = 0, y = 0, z = 0) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  return m;
+}
+
+export class Countryside {
+  constructor(scene, options = {}) {
+    this.scene = scene;
+    this.seed = options.seed || 20260729;
+    this.rng = mulberry32(this.seed);
+    this.colliders = [];
+    this.platforms = []; // Climbable / standable surfaces for cat verticality
+    this.collectibles = [];
+    this.animated = [];
+    this.lanterns = [];
+    this.time = 0;
+    this.waterRects = [];
+    this.riverCurve = null;
+    this.riverSamples = [];
+    this.pathSamples = [];
+    this.vegetationExclusions = [];
+    this.ripples = [];
+    this.buildRipplePool();
+
+    // Secret Machiya & Interactive State
+    this.hasSecretKey = false;
+    this.isSecretHouseUnlocked = false;
+    this.secretDoorSlide = 0;
+    this.secretDoorMesh = null;
+    this.secretKeyMesh = null;
+    this.secretKeyCollected = false;
+    this.fishEaten = false;
+    this.fishMesh = null;
+    this.napSpotPos = new THREE.Vector3(20, 0.45, 10);
+    this.nestPos = new THREE.Vector3(-14, 3.85, -4.5);
+    this.nestInteracted = false;
+
+    this.buildGround();
+    this.buildPaddies();
+    this.buildPath();
+    this.buildRiverAndBridge();
+
+    // Authentic Kyoto Edo Machiya Buildings
+    this.buildMachiyaTeaHouse(-14, -6, 0.5);   // Merchant Tea House (Chaya) with rooftop bird nest & climb route
+    this.buildMachiyaResidence(13, -14, -0.9); // Craftsman Machiya with Engawa & Shishi-odoshi
+    this.buildSecretMachiya(20, 10, Math.PI + 0.35); // Locked Mystery Machiya (Hisomu-an) with interior
+    this.buildSecretKey(-23.5, 0.55, -21.5);   // Antique Golden Key: just inside the open field
+    this.buildKeyHidingRock(-23.5, -20.5);     // Conceals the key from the path without blocking pickup
+
+    this.buildTorii(0, -22);
+    this.buildShrine(0, -32);
+    this.buildVillageStreet();
+    this.buildStreetGreenery();
+    this.buildLanterns();
+    this.buildMountains();
+    this.buildYarn();
+    this.boundaryRadius = 44;
+  }
+
+  random() { return this.rng(); }
+
+  addCollider(mesh, pad = 0) {
+    mesh.updateWorldMatrix(true, true);
+    const b = new THREE.Box3().setFromObject(mesh);
+    if (pad) b.expandByScalar(pad);
+    this.colliders.push(b);
+  }
+
+  addPlatform(box3) {
+    this.platforms.push(box3);
+  }
+
+  buildGround() {
+    const geo = new THREE.PlaneGeometry(300, 300, 64, 64);
+    geo.rotateX(-Math.PI / 2);
+    const pos = geo.attributes.position;
+    const colors = new Float32Array(pos.count * 3);
+
+    // Natural painterly ground palette — muted mossy greens with pools of
+    // dark shaded grass, matching the Kyoto village reference painting
+    const colMeadow = new THREE.Color(0x4d7038);   // Muted natural green
+    const colMoss = new THREE.Color(0x33512a);     // Deep mossy shade
+    const colGold = new THREE.Color(0x5f7e3c);     // Soft sun-warmed olive
+    const colEarth = new THREE.Color(0x7a6547);    // Rich loam near paths/settlement
+    const colBank = new THREE.Color(0x46653a);     // Riverbank lush loam
+    const colDark = new THREE.Color(0x243d1f);     // Dark grass shadow pools
+    const c = new THREE.Color();
+
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), z = pos.getZ(i);
+      const d = Math.sqrt(x * x + z * z);
+      const lift = Math.max(0, (d - 55) / 40);
+      const y = lift * lift * 6 + Math.sin(x * 0.08) * Math.cos(z * 0.07) * lift * 2;
+      pos.setY(i, y);
+
+      // Procedural color blend
+      const noise1 = Math.sin(x * 0.09 + z * 0.07) * 0.5 + 0.5;
+      const noise2 = Math.cos(x * 0.22 - z * 0.18) * 0.5 + 0.5;
+      const noise3 = Math.sin(x * 0.045 - z * 0.06) * Math.cos((x + z) * 0.035) * 0.5 + 0.5;
+
+      // Base meadow blend (much less saturated than before)
+      c.copy(colMeadow).lerp(colGold, noise1 * 0.45).lerp(colMoss, noise2 * 0.5);
+
+      // Broad painterly pools of dark shaded grass
+      if (noise3 > 0.62) {
+        c.lerp(colDark, (noise3 - 0.62) / 0.38 * 0.75);
+      }
+
+      // Darker rich earth near river (z ~ 26..32)
+      if (Math.abs(z - 29) < 8) {
+        const bankFactor = 1.0 - THREE.MathUtils.clamp(Math.abs(z - 29) / 8, 0, 1);
+        c.lerp(colBank, bankFactor * 0.7);
+      }
+
+      // Loam soil accents near center path/buildings
+      if (d < 35 && (Math.abs(x) < 5 || (x > 8 && x < 24 && z > -18 && z < 14))) {
+        c.lerp(colEarth, 0.35 + noise2 * 0.25);
+      }
+
+      // Outer hill tones
+      if (d > 60) {
+        c.lerp(colMoss, Math.min(1, (d - 60) / 40));
+      }
+
+      colors[i * 3 + 0] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geo.computeVertexNormals();
+
+    const groundMat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.95
+    });
+    const ground = new THREE.Mesh(geo, groundMat);
+    ground.receiveShadow = true;
+    this.scene.add(ground);
+  }
+
+  buildRipplePool() {
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xf2fbf7,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+    const geo = new THREE.RingGeometry(0.68, 1, 28);
+    for (let i = 0; i < 24; i++) {
+      const ring = new THREE.Mesh(geo, mat.clone());
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.045;
+      ring.visible = false;
+      ring.renderOrder = 2;
+      this.scene.add(ring);
+      this.ripples.push({ mesh: ring, age: 0, life: 0, strength: 1 });
+    }
+  }
+
+  shoreDistance(x, z) {
+    let best = Infinity;
+    for (const [px, pz, w, d] of this.waterRects) {
+      const dx = Math.abs(x - px), dz = Math.abs(z - pz);
+      if (dx < w / 2 && dz < d / 2) {
+        best = Math.min(best, w / 2 - dx, d / 2 - dz);
+      }
+    }
+    if (this.riverSamples.length) {
+      let minD = Infinity;
+      for (let i = 0; i < this.riverSamples.length; i++) {
+        const s = this.riverSamples[i];
+        const ddx = x - s.x, ddz = z - s.z;
+        const dist = Math.sqrt(ddx * ddx + ddz * ddz);
+        if (dist < minD) minD = dist;
+      }
+      if (minD < 3.2) best = Math.min(best, 3.2 - minD);
+    }
+    return best;
+  }
+
+  spawnRipple(x, z, strength = 1) {
+    const shore = this.shoreDistance(x, z);
+    if (shore < 0.15) return;
+    let slot = this.ripples.find(r => r.life <= 0);
+    if (!slot) slot = this.ripples[0];
+    slot.mesh.position.set(x, 0.045, z);
+    slot.mesh.visible = true;
+    slot.age = 0;
+    slot.life = 1.1;
+    slot.strength = strength;
+    slot.maxScale = Math.max(0.3, shore * 1.05);
+  }
+
+  isInWater(x, z, y = 0) {
+    // Ramps are dry approaches; the deck only excludes water while elevated.
+    for (const rect of this.bridgeRampWaterExclusions || []) {
+      if (Math.abs(x - rect.x) < rect.width / 2 && Math.abs(z - rect.z) < rect.depth / 2) return false;
+    }
+    const deck = this.bridgeDeckWaterClearance;
+    if (deck && y > deck.underpassY &&
+        Math.abs(x - deck.x) < deck.width / 2 && Math.abs(z - deck.z) < deck.depth / 2) return false;
+    for (const [px, pz, w, d] of this.waterRects) {
+      if (Math.abs(x - px) < w / 2 && Math.abs(z - pz) < d / 2) return true;
+    }
+    if (this.riverSamples.length) {
+      for (let i = 0; i < this.riverSamples.length; i++) {
+        const s = this.riverSamples[i];
+        const dx = x - s.x, dz = z - s.z;
+        if (dx * dx + dz * dz < 10.2) return true;
+      }
+    }
+    return false;
+  }
+
+  buildPaddies() {
+    const plots = [
+      [-26, 8, 14, 10], [-26, 22, 14, 10],
+      [14, 22, 12, 10], [28, 22, 12, 10], [26, -2, 12, 12]
+    ];
+    this.waterRects = plots;
+    const riceMat = new THREE.MeshStandardMaterial({ color: 0x86b23e, roughness: 0.9 });
+    const riceGeo = new THREE.ConeGeometry(0.05, 0.5, 4);
+    let riceCount = 0;
+    for (const [px, pz, w, d] of plots) riceCount += Math.floor(w * d / 1.6);
+    const rice = new THREE.InstancedMesh(riceGeo, riceMat, riceCount);
+    rice.castShadow = false;
+    let ri = 0;
+    const dummy = new THREE.Object3D();
+
+    for (const [px, pz, w, d] of plots) {
+      const water = new THREE.Mesh(new THREE.PlaneGeometry(w, d), MAT.water);
+      water.rotation.x = -Math.PI / 2;
+      water.position.set(px, 0.02, pz);
+      water.receiveShadow = true;
+      this.scene.add(water);
+
+      const ridgeH = 0.28, ridgeW = 0.5;
+      this.scene.add(box(w + ridgeW * 2, ridgeH, ridgeW, MAT.ridge, px, ridgeH / 2, pz - d / 2 - ridgeW / 2));
+      this.scene.add(box(w + ridgeW * 2, ridgeH, ridgeW, MAT.ridge, px, ridgeH / 2, pz + d / 2 + ridgeW / 2));
+      this.scene.add(box(ridgeW, ridgeH, d, MAT.ridge, px - w / 2 - ridgeW / 2, ridgeH / 2, pz));
+      this.scene.add(box(ridgeW, ridgeH, d, MAT.ridge, px + w / 2 + ridgeW / 2, ridgeH / 2, pz));
+
+      for (let i = 0; i < Math.floor(w * d / 1.6); i++) {
+        dummy.position.set(
+          px + (this.random() - 0.5) * (w - 1.2),
+          0.26,
+          pz + (this.random() - 0.5) * (d - 1.2)
+        );
+        dummy.rotation.y = this.random() * Math.PI;
+        const s = 0.7 + this.random() * 0.6;
+        dummy.scale.set(s, s, s);
+        dummy.updateMatrix();
+        rice.setMatrixAt(ri++, dummy.matrix);
+      }
+    }
+    rice.count = ri;
+    rice.instanceMatrix.needsUpdate = true;
+    this.scene.add(rice);
+  }
+
+  buildPath() {
+    const pts = [
+      new THREE.Vector3(0, 0, 34),
+      new THREE.Vector3(-2, 0, 20),
+      new THREE.Vector3(1.5, 0, 6),
+      new THREE.Vector3(0, 0, -8),
+      new THREE.Vector3(-1, 0, -16),
+      new THREE.Vector3(0, 0, -30)
+    ];
+    const curve = new THREE.CatmullRomCurve3(pts);
+    this.pathSamples = curve.getPoints(100);
+    const steps = 80;
+    const width = 3.8;
+    const verts = [];
+    const indices = [];
+    // Stop the ground-level road at the bridge approaches.
+    const bridgeRoadGap = { x: -1, z: 30.5, width: 3.2, depth: 9.0 };
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const p = curve.getPoint(t);
+      const tan = curve.getTangent(t);
+      const side = new THREE.Vector3(-tan.z, 0, tan.x).normalize();
+      const wobble = Math.sin(t * 40) * 0.15;
+      verts.push(
+        p.x - side.x * (width / 2 + wobble), 0.03, p.z - side.z * (width / 2 + wobble),
+        p.x + side.x * (width / 2 - wobble), 0.03, p.z + side.z * (width / 2 - wobble)
+      );
+      if (i < steps) {
+        const next = curve.getPoint((i + 1) / steps);
+        const mx = (p.x + next.x) / 2;
+        const mz = (p.z + next.z) / 2;
+        const belowBridge = Math.abs(mx - bridgeRoadGap.x) < bridgeRoadGap.width / 2
+          && Math.abs(mz - bridgeRoadGap.z) < bridgeRoadGap.depth / 2;
+        if (!belowBridge) {
+          const a = i * 2;
+          indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+        }
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+    // Ribbon UVs so the cobblestone texture tiles along the road
+    const uvs = [];
+    for (let i = 0; i <= steps; i++) {
+      uvs.push(0, i * 0.6, 1, i * 0.6);
+    }
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    const gravel = new THREE.Mesh(geo, this.getCobbleMaterial());
+    gravel.receiveShadow = true;
+    this.scene.add(gravel);
+
+    this.buildPathBoulders(curve);
+  }
+
+  /** Procedural Japanese cobblestone (isogata) road texture. */
+  getCobbleMaterial() {
+    if (!this._cobbleMat) {
+      const cv = document.createElement('canvas');
+      cv.width = 256; cv.height = 256;
+      const ctx = cv.getContext('2d');
+      // Warm earthen mortar base
+      ctx.fillStyle = '#6e6558';
+      ctx.fillRect(0, 0, 256, 256);
+      // Irregular rounded river stones in warm greys/tans
+      const tones = ['#b3a996', '#a49a89', '#bcb2a0', '#948c7d', '#cabfad', '#a89e8e'];
+      for (let i = 0; i < 130; i++) {
+        const x = Math.random() * 256;
+        const y = Math.random() * 256;
+        const rx = 9 + Math.random() * 14;
+        const ry = 7 + Math.random() * 11;
+        ctx.fillStyle = tones[(Math.random() * tones.length) | 0];
+        ctx.beginPath();
+        ctx.ellipse(x, y, rx, ry, Math.random() * Math.PI, 0, Math.PI * 2);
+        ctx.fill();
+        // Sunlit top highlight + shaded bottom rim
+        ctx.fillStyle = 'rgba(255,244,220,0.22)';
+        ctx.beginPath();
+        ctx.ellipse(x - rx * 0.18, y - ry * 0.28, rx * 0.62, ry * 0.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(30,24,16,0.25)';
+        ctx.beginPath();
+        ctx.ellipse(x + rx * 0.15, y + ry * 0.3, rx * 0.65, ry * 0.45, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const tex = new THREE.CanvasTexture(cv);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      this._cobbleMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95 });
+    }
+    return this._cobbleMat;
+  }
+
+  buildWalkwaySlabs(curve) {
+    const slabMats = [MAT.stone, MAT.stoneDark, MAT.slabWarm];
+    const len = curve.getLength();
+    const rows = Math.floor(len / 0.62);
+    for (let i = 0; i < rows; i++) {
+      const t = i / rows;
+      const p = curve.getPoint(t);
+      const tan = curve.getTangent(t);
+      const side = new THREE.Vector3(-tan.z, 0, tan.x).normalize();
+      const cols = this.random() > 0.4 ? 2 : 1;
+      for (let c = 0; c < cols; c++) {
+        const w = 0.55 + this.random() * 0.45;
+        const d = 0.45 + this.random() * 0.3;
+        const h = 0.06 + this.random() * 0.05;
+        const off = cols === 1 ? (this.random() - 0.5) * 0.3 : (c === 0 ? -0.55 - this.random() * 0.15 : 0.55 + this.random() * 0.15);
+        const slab = new THREE.Mesh(
+          new THREE.BoxGeometry(w, h, d),
+          slabMats[Math.floor(this.random() * slabMats.length)]
+        );
+        slab.position.set(p.x + side.x * off, h / 2 + 0.03, p.z + side.z * off);
+        slab.rotation.y = Math.atan2(tan.x, tan.z) + (this.random() - 0.5) * 0.35;
+        slab.receiveShadow = true;
+        slab.castShadow = true;
+        this.scene.add(slab);
+      }
+    }
+  }
+
+  buildPathBoulders(curve) {
+    const rockGeo = new THREE.DodecahedronGeometry(1, 0);
+    const len = curve.getLength();
+    const count = Math.floor(len / 3.2);
+    for (let i = 0; i < count; i++) {
+      const t = (i + 0.5) / count;
+      const p = curve.getPoint(t);
+      const tan = curve.getTangent(t);
+      const side = new THREE.Vector3(-tan.z, 0, tan.x).normalize();
+      const sideSign = this.random() > 0.5 ? 1 : -1;
+      const dramatic = this.random() > 0.9;
+      const s = dramatic ? 0.55 + this.random() * 0.5 : 0.18 + this.random() * 0.3;
+      const off = sideSign * (2.4 + this.random() * 1.8 + s * 0.5);
+      const rock = new THREE.Mesh(rockGeo, this.random() > 0.5 ? MAT.stone : MAT.stoneDark);
+      rock.position.set(p.x + side.x * off, s * 0.45, p.z + side.z * off);
+      rock.scale.set(s * (0.8 + this.random() * 0.5), s * (0.6 + this.random() * 0.7), s * (0.8 + this.random() * 0.5));
+      rock.rotation.set(this.random() * Math.PI, this.random() * Math.PI, this.random() * Math.PI);
+      rock.castShadow = true;
+      rock.receiveShadow = true;
+      this.scene.add(rock);
+      if (s > 0.5) this.addCollider(rock, -0.05);
+    }
+  }
+
+  buildRiverAndBridge() {
+    const riverPts = [
+      new THREE.Vector3(-60, 0, 26),
+      new THREE.Vector3(-20, 0, 30),
+      new THREE.Vector3(12, 0, 32),
+      new THREE.Vector3(40, 0, 28),
+      new THREE.Vector3(70, 0, 30)
+    ];
+    const curve = new THREE.CatmullRomCurve3(riverPts);
+    this.riverCurve = curve;
+    this.riverSamples = curve.getPoints(60);
+    const steps = 60, halfW = 3.2;
+    const verts = [], indices = [];
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const p = curve.getPoint(t);
+      const tan = curve.getTangent(t);
+      const side = new THREE.Vector3(-tan.z, 0, tan.x).normalize();
+      verts.push(
+        p.x - side.x * halfW, 0.02, p.z - side.z * halfW,
+        p.x + side.x * halfW, 0.02, p.z + side.z * halfW
+      );
+      if (i < steps) {
+        const a = i * 2;
+        indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    const river = new THREE.Mesh(geo, MAT.water);
+    river.receiveShadow = true;
+    this.scene.add(river);
+
+    // Kyoto-style river bridge: flat walkable deck, wide railings usable
+    // as ledge-walk surfaces, stone abutment colliders, and a hidden
+    // golden dango charm secret tucked underneath.
+    const bridge = new THREE.Group();
+    const deckMat = MAT.timberEngawa || MAT.vermilion;
+    const deckY = 1.0;
+
+    // Single flat deck — no per-segment rotation, fully walkable
+    const deck = box(2.6, 0.16, 8.4, deckMat, 0, deckY, 0);
+    bridge.add(deck);
+    // Continue the cobbles on the bridge deck, not on the riverbed below.
+    const cobbleDeck = box(2.38, 0.025, 8.12, this.getCobbleMaterial(), 0, deckY + 0.093, 0);
+    cobbleDeck.receiveShadow = true;
+    bridge.add(cobbleDeck);
+    // Support beam underneath
+    bridge.add(box(2.4, 0.12, 8.2, MAT.timberDark, 0, deckY - 0.14, 0));
+
+    // Railing posts at regular intervals
+    for (let i = 0; i <= 6; i++) {
+      const z = -4.0 + (i / 6) * 8.0;
+      for (const s of [-1, 1]) {
+        bridge.add(box(0.1, 0.6, 0.1, MAT.timberDark, s * 1.22, deckY + 0.35, z));
+      }
+    }
+    // Wide flat-capped railings — walkable as ledge surfaces
+    for (const s of [-1, 1]) {
+      bridge.add(box(0.42, 0.08, 8.4, MAT.timberDark, s * 1.24, deckY + 0.62, 0));
+      bridge.add(box(0.12, 0.5, 8.2, MAT.timberDark, s * 1.24, deckY + 0.36, 0));
+    }
+    // Gradual walk-up ramps at both ends: sloped timber planks (visual)
+    // backed by shallow step platforms the cat simply walks up.
+    const rampLen = 2.6;
+    const rampAngle = Math.atan2(deckY + 0.08, rampLen);
+    for (const sz of [-1, 1]) {
+      const ramp = box(2.6, 0.12, Math.sqrt(rampLen * rampLen + (deckY + 0.08) * (deckY + 0.08)) + 0.2, MAT.timberEngawa, 0, (deckY + 0.08) / 2 - 0.04, sz * (4.2 + rampLen / 2));
+      // The outer edge starts at ground level and rises toward the bridge deck.
+      ramp.rotation.x = sz * rampAngle;
+      bridge.add(ramp);
+      // Low stone kerbs flanking each ramp
+      for (const s of [-1, 1]) {
+        bridge.add(box(0.18, 0.22, rampLen, MAT.stoneDark, s * 1.35, 0.11, sz * (4.2 + rampLen / 2)));
+      }
+    }
+    bridge.position.set(-1, 0, 30.5);
+    this.scene.add(bridge);
+
+    // Grass/reed placement is generated after the bridge. Reserve the full deck
+    // and its approaches so vegetation cannot grow through the timber ramp.
+    this.vegetationExclusions.push({ x: -1, z: 30.5, width: 4.2, depth: 15.2 });
+    this.bridgeDeckWaterClearance = { x: -1, z: 30.5, width: 2.7, depth: 8.5, underpassY: 0.42 };
+    this.bridgeRampWaterExclusions = [
+      { x: -1, z: 25.0, width: 3.0, depth: 2.95 },
+      { x: -1, z: 36.0, width: 3.0, depth: 2.95 }
+    ];
+
+    // Walkable platform: flat deck top surface
+    this.platforms.push(new THREE.Box3(
+      new THREE.Vector3(-1 - 1.3, 0, 30.5 - 4.2),
+      new THREE.Vector3(-1 + 1.3, deckY + 0.08, 30.5 + 4.2)
+    ));
+    // Railing ledge-walk platforms
+    for (const s of [-1, 1]) {
+      this.platforms.push(new THREE.Box3(
+        new THREE.Vector3(-1 + s * 1.24 - 0.21, 0, 30.5 - 4.2),
+        new THREE.Vector3(-1 + s * 1.24 + 0.21, deckY + 0.66, 30.5 + 4.2)
+      ));
+    }
+    // Ramp step platforms: shallow 0.27m risers the cat walks straight up
+    // (well within the grounded 0.55m step-up window) — no more huge step.
+    const stepsPerRamp = 4;
+    for (const sz of [-1, 1]) {
+      for (let i = 0; i < stepsPerRamp; i++) {
+        const t0 = i / stepsPerRamp;
+        const t1 = (i + 1) / stepsPerRamp;
+        const topYStep = (deckY + 0.08) * (1 - (t0 + t1) / 2);
+        const zNear = 30.5 + sz * (4.2 + t0 * rampLen);
+        const zFar = 30.5 + sz * (4.2 + t1 * rampLen);
+        this.platforms.push(new THREE.Box3(
+          new THREE.Vector3(-1 - 1.3, 0, Math.min(zNear, zFar)),
+          new THREE.Vector3(-1 + 1.3, Math.max(0.06, topYStep), Math.max(zNear, zFar))
+        ));
+      }
+    }
+
+    // Hidden secret under the bridge: a glowing golden dango charm
+    const charm = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.14),
+      new THREE.MeshStandardMaterial({ color: 0xf2c14e, emissive: 0xd9a441, emissiveIntensity: 0.6, metalness: 0.7, roughness: 0.35 })
+    );
+    charm.position.set(-1, 0.28, 30.5);
+    charm.userData.id = 90;
+    charm.userData.isCharm = true;
+    charm.castShadow = true;
+    this.scene.add(charm);
+    this.collectibles.push(charm);
+  }
+
+  // --- Kyoto Edo Period Architecture Builders ---
+
+  createKoushi(w, h, count = 8, mat = MAT.timberDark) {
+    const group = new THREE.Group();
+    const frameThick = 0.04;
+    // Outer frame
+    group.add(box(w, frameThick, frameThick * 1.5, mat, 0, h / 2, 0));
+    group.add(box(w, frameThick, frameThick * 1.5, mat, 0, -h / 2, 0));
+    group.add(box(frameThick, h, frameThick * 1.5, mat, -w / 2, 0, 0));
+    group.add(box(frameThick, h, frameThick * 1.5, mat, w / 2, 0, 0));
+    // Vertical slats
+    const slatW = 0.018;
+    const spacing = (w - frameThick * 2) / (count + 1);
+    for (let i = 1; i <= count; i++) {
+      const sx = -w / 2 + frameThick + i * spacing;
+      group.add(box(slatW, h - frameThick * 2, slatW * 1.2, mat, sx, 0, 0));
+    }
+    return group;
+  }
+
+  createKawaraRoof(w, d, ridgeH = 1.2, overhang = 0.6) {
+    const roof = new THREE.Group();
+    const halfD = d / 2 + overhang;
+    const slopeLen = Math.sqrt(halfD * halfD + ridgeH * ridgeH) + 0.1;
+    const angle = Math.atan2(ridgeH, halfD);
+
+    // Front & Back main slopes
+    const slopeF = box(w + overhang * 2, 0.14, slopeLen, MAT.roofTile, 0, ridgeH / 2, halfD / 2);
+    slopeF.rotation.x = angle;
+    const slopeB = box(w + overhang * 2, 0.14, slopeLen, MAT.roofTile, 0, ridgeH / 2, -halfD / 2);
+    slopeB.rotation.x = -angle;
+    roof.add(slopeF, slopeB);
+
+    // Decorative Cylindrical Ridge (Munagawara)
+    const ridgeGeo = new THREE.CylinderGeometry(0.18, 0.18, w + overhang * 2 + 0.2, 8);
+    const ridgeMesh = new THREE.Mesh(ridgeGeo, MAT.roofRidge);
+    ridgeMesh.rotation.z = Math.PI / 2;
+    ridgeMesh.position.set(0, ridgeH + 0.08, 0);
+    roof.add(ridgeMesh);
+
+    // Ridge crest tiles
+    roof.add(box(w + overhang * 2, 0.12, 0.32, MAT.roofTile, 0, ridgeH + 0.18, 0));
+
+    // Gable end cap ornaments (Onigawara)
+    for (const sx of [-1, 1]) {
+      const oni = new THREE.Group();
+      oni.add(box(0.12, 0.42, 0.38, MAT.roofRidge, 0, 0, 0));
+      oni.add(box(0.14, 0.18, 0.48, MAT.vermilion, 0, -0.15, 0));
+      oni.position.set(sx * (w / 2 + overhang + 0.08), ridgeH + 0.12, 0);
+      roof.add(oni);
+    }
+
+    // Solid triangular gable wall panels to eliminate any floating roof gap
+    for (const sx of [-1, 1]) {
+      const gGeo = new THREE.BufferGeometry();
+      const gVerts = new Float32Array([
+        0, 0, -halfD,
+        0, ridgeH, 0,
+        0, 0, halfD
+      ]);
+      gGeo.setAttribute('position', new THREE.BufferAttribute(gVerts, 3));
+      gGeo.computeVertexNormals();
+      const gable = new THREE.Mesh(gGeo, MAT.plasterWarm);
+      gable.material.side = THREE.DoubleSide;
+      gable.position.set(sx * (w / 2), 0, 0);
+      roof.add(gable);
+      // Gable dark timber trim
+      roof.add(box(0.1, ridgeH, 0.1, MAT.timberDark, sx * (w / 2 + 0.02), ridgeH / 2, 0));
+    }
+
+    return roof;
+  }
+
+  createEngawa(w, d, h = 0.38) {
+    const engawa = new THREE.Group();
+    // Raised wooden deck
+    engawa.add(box(w, 0.1, d, MAT.timberEngawa, 0, h - 0.05, 0));
+    // Plinth stones supporting veranda
+    const cols = Math.max(2, Math.floor(w / 1.6));
+    for (let i = 0; i < cols; i++) {
+      const px = -w / 2 + 0.3 + (i / (cols - 1)) * (w - 0.6);
+      engawa.add(box(0.24, h - 0.1, 0.24, MAT.stonePlinth, px, (h - 0.1) / 2, d / 2 - 0.2));
+      engawa.add(box(0.24, h - 0.1, 0.24, MAT.stonePlinth, px, (h - 0.1) / 2, -d / 2 + 0.2));
+    }
+    // Wooden stepping stone (Kutsunugi-ishi)
+    engawa.add(box(0.9, 0.18, 0.5, MAT.stone, 0, 0.09, d / 2 + 0.3));
+    return engawa;
+  }
+
+  createChochinLantern(x, y, z, parentGroup) {
+    const lantern = new THREE.Group();
+    // Suspension cord
+    lantern.add(box(0.015, 0.35, 0.015, MAT.timberDark, 0, 0.18, 0));
+    // Black lacquer top cap
+    lantern.add(box(0.22, 0.04, 0.22, MAT.timberDark, 0, 0, 0));
+    // Paper lantern body
+    const paper = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.45, 10), MAT.lanternPaper);
+    paper.castShadow = true;
+    paper.position.y = -0.24;
+    lantern.add(paper);
+    // Red accent band
+    lantern.add(box(0.33, 0.06, 0.33, MAT.vermilion, 0, -0.24, 0));
+    // Bottom cap & tassel
+    lantern.add(box(0.2, 0.04, 0.2, MAT.timberDark, 0, -0.48, 0));
+    lantern.add(box(0.03, 0.15, 0.03, MAT.vermilion, 0, -0.56, 0));
+
+    lantern.position.set(x, y, z);
+    parentGroup.add(lantern);
+    this.lanterns.push({ group: lantern, baseY: y, phase: this.random() * Math.PI * 2 });
+    return lantern;
+  }
+
+  createClimbCrates(x, y, z, parentGroup, rotY = 0) {
+    const group = new THREE.Group();
+    // Bottom step: 2 heavy wooden crates + 1 sake barrel
+    const c1 = box(0.9, 0.65, 0.9, MAT.timberMedium, -0.5, 0.325, 0);
+    const c2 = box(0.9, 0.65, 0.9, MAT.timberDark, 0.5, 0.325, 0);
+    group.add(c1, c2);
+
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.34, 0.75, 10), MAT.timberMedium);
+    barrel.position.set(0.5, 0.375, 0.9);
+    barrel.castShadow = true;
+    barrel.receiveShadow = true;
+    group.add(barrel);
+
+    // Mid step: 1 crate atop bottom crate
+    const c3 = box(0.85, 0.65, 0.85, MAT.timberLight, -0.45, 0.975, 0);
+    group.add(c3);
+
+    // High step crate
+    const c4 = box(0.75, 0.65, 0.75, MAT.timberMedium, -0.4, 1.625, -0.3);
+    group.add(c4);
+
+    group.position.set(x, y, z);
+    group.rotation.y = rotY;
+    parentGroup.add(group);
+
+    // Register climb platform boxes for cat jumping.
+    // The group lives inside a rotated/translated parent house group, so we
+    // resolve the platform Boxes in WORLD space from the mesh itself once it
+    // is attached (guaranteed correct regardless of house placement).
+    group.updateWorldMatrix(true, true);
+    const registerWorldPlat = (mesh, topY, shrink = 0.05) => {
+      mesh.updateWorldMatrix(true, false);
+      const b = new THREE.Box3().setFromObject(mesh);
+      b.min.y = topY - 0.75;
+      b.max.y = topY;
+      b.expandByScalar(-shrink);
+      this.addPlatform(b);
+    };
+    registerWorldPlat(c1, y + 0.70);
+    registerWorldPlat(c2, y + 0.70);
+    registerWorldPlat(c3, y + 1.33);
+    registerWorldPlat(c4, y + 1.98);
+  }
+
+  // --- 1. Merchant Tea House (Chaya) with Rooftop Bird Nest ---
+  buildMachiyaTeaHouse(x, z, rotY) {
+    const house = new THREE.Group();
+
+    // Ground Floor: 7.6m wide, 5.4m deep, 2.5m high
+    const groundFloor = box(7.6, 2.4, 5.4, MAT.plasterWarm, 0, 1.2, 0);
+    house.add(groundFloor);
+    // Dark timber foundation sill & corner pillars (Hashira)
+    house.add(box(7.8, 0.3, 5.6, MAT.timberDark, 0, 0.15, 0));
+    house.add(box(7.8, 0.2, 5.6, MAT.timberDark, 0, 2.4, 0));
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        house.add(box(0.32, 2.5, 0.32, MAT.timberDark, sx * 3.7, 1.25, sz * 2.6));
+      }
+    }
+
+    // Front Facade: Lattice sliding panels (Koushi) & Indigo Noren
+    const frontLatticeL = this.createKoushi(2.0, 1.7, 9);
+    frontLatticeL.position.set(-2.2, 1.3, 2.72);
+    const frontLatticeR = this.createKoushi(2.0, 1.7, 9);
+    frontLatticeR.position.set(2.2, 1.3, 2.72);
+    house.add(frontLatticeL, frontLatticeR);
+
+    // Traditional Tea House Doorway with warm Shoji backing
+    house.add(box(1.8, 2.1, 0.08, MAT.shoji, 0, 1.15, 2.71));
+    const noren = box(1.9, 0.75, 0.04, MAT.norenIndigo, 0, 2.0, 2.78);
+    house.add(noren);
+
+    // Front Chamise Tea Bench with scarlet red felt cushion (Mosen)
+    const bench = box(2.2, 0.42, 0.9, MAT.cushionRed, -2.2, 0.21, 3.6);
+    house.add(bench);
+    house.add(box(2.25, 0.06, 0.95, MAT.timberDark, -2.2, 0.03, 3.6));
+    this.addPlatform(new THREE.Box3(
+      new THREE.Vector3(x - 3.5, 0, z + 2.8),
+      new THREE.Vector3(x - 0.9, 0.5, z + 4.2)
+    ));
+
+    // Mid-level Overhanging Eaves (Hisashi) between floors
+    const lowerRoof = box(8.6, 0.16, 6.6, MAT.roofTile, 0, 2.55, 0.2);
+    house.add(lowerRoof);
+    this.addPlatform(new THREE.Box3(
+      new THREE.Vector3(x - 4.4, 2.4, z - 3.2),
+      new THREE.Vector3(x + 4.4, 2.8, z + 3.6)
+    ));
+
+    // Upper Floor (2nd story): 6.8m wide, 4.6m deep, 2.0m high
+    const upperFloor = box(6.8, 1.9, 4.6, MAT.plaster, 0, 3.5, 0);
+    house.add(upperFloor);
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        house.add(box(0.28, 2.0, 0.28, MAT.timberDark, sx * 3.3, 3.5, sz * 2.2));
+      }
+    }
+    // Upper fine vertical lattice windows (Mushiko-mado)
+    const upperLatticeF = this.createKoushi(3.2, 1.1, 14, MAT.timberDark);
+    upperLatticeF.position.set(0, 3.6, 2.32);
+    house.add(upperLatticeF);
+
+    // Main Gable/Kawara Upper Roof (Climbable top)
+    const mainRoof = this.createKawaraRoof(7.4, 5.2, 1.5, 0.7);
+    mainRoof.position.y = 4.4;
+    house.add(mainRoof);
+
+    // Roof parkour chain — each hop is a single cat jump:
+    // crates (0.7/1.33/1.98) → lower eave (2.8) → roof edge (4.6) → ridge (5.9)
+    this.addPlatform(new THREE.Box3(
+      new THREE.Vector3(x - 4.2, 3.7, z - 3.2),
+      new THREE.Vector3(x + 4.2, 4.6, z + 3.2)
+    ));
+    this.addPlatform(new THREE.Box3(
+      new THREE.Vector3(x - 4.2, 5.1, z - 1.0),
+      new THREE.Vector3(x + 4.2, 5.9, z + 1.0)
+    ));
+
+    // Suspended Kyoto paper lanterns under front eaves
+    this.createChochinLantern(-2.5, 2.4, 3.1, house);
+    this.createChochinLantern(2.5, 2.4, 3.1, house);
+
+    // Perched Bird's Nest on roof lower eave / gable corner
+    this.buildBirdNest(house, new THREE.Vector3(x, 0, z));
+
+    house.position.set(x, 0, z);
+    house.rotation.y = rotY;
+    this.scene.add(house);
+    // Side climbable crates allowing cat to climb to roof.
+    // Must run AFTER the house is placed so platform boxes resolve in world space.
+    this.createClimbCrates(5.3, 0, 0.5, house, -Math.PI / 2);
+    this.addCollider(groundFloor, 0.2);
+    this.addCollider(upperFloor, 0.1);
+  }
+
+  // --- 2. Kyoto Craftsman Machiya with Engawa & Shishi-odoshi ---
+  buildMachiyaResidence(x, z, rotY) {
+    const house = new THREE.Group();
+
+    // Ground Floor: 8.0m wide, 5.0m deep
+    const groundFloor = box(8.0, 2.4, 5.0, MAT.plasterWarm, 0, 1.2, 0);
+    house.add(groundFloor);
+    house.add(box(8.2, 0.3, 5.2, MAT.timberDark, 0, 0.15, 0));
+    house.add(box(8.2, 0.2, 5.2, MAT.timberDark, 0, 2.4, 0));
+
+    // Corner and mid Hashira posts
+    for (const sx of [-1, 0, 1]) {
+      for (const sz of [-1, 1]) {
+        house.add(box(0.28, 2.5, 0.28, MAT.timberDark, sx * 3.8, 1.25, sz * 2.4));
+      }
+    }
+
+    // Front Sliding Shoji Lattice Doors
+    house.add(box(2.4, 1.8, 0.08, MAT.shoji, -1.8, 1.2, 2.52));
+    const koushiL = this.createKoushi(2.4, 1.8, 11);
+    koushiL.position.set(-1.8, 1.2, 2.54);
+    house.add(koushiL);
+
+    house.add(box(2.4, 1.8, 0.08, MAT.shoji, 1.8, 1.2, 2.52));
+    const koushiR = this.createKoushi(2.4, 1.8, 11);
+    koushiR.position.set(1.8, 1.2, 2.54);
+    house.add(koushiR);
+
+    // Front Engawa Veranda wrapping the garden side
+    const frontEngawa = this.createEngawa(8.2, 1.4, 0.42);
+    frontEngawa.position.set(0, 0, 3.1);
+    house.add(frontEngawa);
+    this.addPlatform(new THREE.Box3(
+      new THREE.Vector3(x - 4.4, 0, z + 2.2),
+      new THREE.Vector3(x + 4.4, 0.55, z + 4.0)
+    ));
+
+    // Upper Floor
+    const upperFloor = box(7.0, 1.8, 4.2, MAT.plaster, 0, 3.3, 0);
+    house.add(upperFloor);
+    const upperLattice = this.createKoushi(4.0, 1.0, 16);
+    upperLattice.position.set(0, 3.4, 2.12);
+    house.add(upperLattice);
+
+    // Lower eave & Main Roof
+    const lowerRoof = box(9.0, 0.16, 6.2, MAT.roofTile, 0, 2.45, 0.2);
+    house.add(lowerRoof);
+
+    const mainRoof = this.createKawaraRoof(7.6, 4.8, 1.4, 0.7);
+    mainRoof.position.y = 4.2;
+    house.add(mainRoof);
+
+    // Roof parkour chain: crates → lower eave ledge → roof edge → ridge
+    this.addPlatform(new THREE.Box3(
+      new THREE.Vector3(x - 4.6, 2.3, z - 3.3),
+      new THREE.Vector3(x + 4.6, 2.62, z + 3.3)
+    ));
+    this.addPlatform(new THREE.Box3(
+      new THREE.Vector3(x - 4.2, 3.9, z - 2.9),
+      new THREE.Vector3(x + 4.2, 4.35, z + 2.9)
+    ));
+    this.addPlatform(new THREE.Box3(
+      new THREE.Vector3(x - 3.6, 5.0, z - 0.9),
+      new THREE.Vector3(x + 3.6, 5.55, z + 0.9)
+    ));
+
+    // Chochin lantern
+    this.createChochinLantern(0, 2.3, 2.9, house);
+
+    // Interactive Shishi-odoshi (Bamboo clacker water fountain) in front garden
+    this.buildShishiOdoshi(2.8, 0, 4.4, house);
+
+    house.position.set(x, 0, z);
+    house.rotation.y = rotY;
+    this.scene.add(house);
+    // Side climbing crates — placed AFTER scene attach so platform boxes
+    // resolve in world space (rotated parent house group).
+    this.createClimbCrates(-5.6, 0, 0, house, Math.PI / 2);
+    this.addCollider(groundFloor, 0.2);
+    this.addCollider(upperFloor, 0.1);
+  }
+
+  // --- 3. Secret Locked Kyoto Machiya (Hisomu-an) with Interior ---
+  buildSecretMachiya(x, z, rotY) {
+    const house = new THREE.Group();
+
+    // Outer Shell with open front entrance
+    // Left Wall
+    const wallL = box(0.3, 2.6, 5.2, MAT.timberDark, -3.8, 1.3, 0);
+    // Right Wall
+    const wallR = box(0.3, 2.6, 5.2, MAT.timberDark, 3.8, 1.3, 0);
+    // Back Wall
+    const wallB = box(7.8, 2.6, 0.3, MAT.plasterWarm, 0, 1.3, -2.5);
+    // Front Wall Left & Right wings (leaves a 2.4m doorway in middle)
+    const wallFL = box(2.7, 2.6, 0.3, MAT.plasterWarm, -2.55, 1.3, 2.5);
+    const wallFR = box(2.7, 2.6, 0.3, MAT.plasterWarm, 2.55, 1.3, 2.5);
+    house.add(wallL, wallR, wallB, wallFL, wallFR);
+
+    // --- INTERIOR DESIGN (Ghibli Cozy Tatami Room) ---
+    // 1. Tatami Mat Floor (6-mat pattern)
+    const tatamiFloor = new THREE.Group();
+    const matW = 1.15, matL = 2.3, matH = 0.08;
+    const matPositions = [
+      [-1.15, 0.04, -1.15, false], [1.15, 0.04, -1.15, false],
+      [-1.15, 0.04, 1.15, false], [1.15, 0.04, 1.15, false],
+      [-2.3, 0.04, 0, true], [2.3, 0.04, 0, true]
+    ];
+    for (const [mx, my, mz, rotated] of matPositions) {
+      const w = rotated ? matL : matW;
+      const d = rotated ? matW : matL;
+      const matMesh = box(w - 0.04, matH, d - 0.04, MAT.tatami, mx, my, mz);
+      const borderMesh = box(w, matH * 0.8, d, MAT.tatamiBorder, mx, my - 0.01, mz);
+      tatamiFloor.add(matMesh, borderMesh);
+    }
+    house.add(tatamiFloor);
+
+    // 2. Low Table (Kotatsu / Chabudai) with ceramic tea set & Grilled Fish Cat Treat
+    const table = new THREE.Group();
+    table.add(box(1.5, 0.08, 1.1, MAT.timberEngawa, 0, 0.42, 0));
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        table.add(box(0.1, 0.38, 0.1, MAT.timberDark, sx * 0.65, 0.19, sz * 0.45));
+      }
+    }
+    // Teapot & Cup
+    const teapot = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.11, 0.14, 8), MAT.stoneDark);
+    teapot.position.set(-0.35, 0.53, -0.2);
+    table.add(teapot);
+    const teacup = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.035, 0.06, 8), MAT.plaster);
+    teacup.position.set(-0.18, 0.49, -0.2);
+    table.add(teacup);
+
+    // Golden Grilled Sea Bream (Fish Snack - interactive food)
+    const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, 0.025, 12), MAT.plasterWarm);
+    plate.position.set(0.2, 0.47, 0.1);
+    table.add(plate);
+
+    const fish = new THREE.Group();
+    const fishBody = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), MAT.grilledFish);
+    fishBody.scale.set(1.4, 0.45, 0.55);
+    fish.add(fishBody);
+    const fishTail = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.14, 4), MAT.grilledFish);
+    fishTail.rotation.z = Math.PI / 2;
+    fishTail.position.x = -0.2;
+    fish.add(fishTail);
+    fish.position.set(0.2, 0.52, 0.1);
+    table.add(fish);
+    this.fishMesh = fish;
+
+    table.position.set(0, 0, -0.4);
+    house.add(table);
+    this.addPlatform(new THREE.Box3(
+      new THREE.Vector3(x - 1.0, 0, z - 1.2),
+      new THREE.Vector3(x + 1.0, 0.55, z + 0.4)
+    ));
+
+    // 3. Cozy Velvet Cat Bed (Zabuton Nap Spot)
+    const cushion = box(0.75, 0.14, 0.75, MAT.cushionRed, -1.8, 0.07, -0.8);
+    cushion.castShadow = true;
+    house.add(cushion);
+    // Gold embroidery tassels
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        cushion.add(box(0.05, 0.03, 0.05, MAT.goldAntique, sx * 0.35, 0, sz * 0.35));
+      }
+    }
+
+    // 4. Traditional Wall Hanging Scroll (Kakejiku) with cat motif
+    const scroll = box(1.0, 1.8, 0.04, MAT.norenHemp, 0, 1.5, -2.32);
+    const scrollArt = box(0.65, 1.1, 0.05, MAT.timberDark, 0, 1.5, -2.31);
+    const scrollRoller = box(1.15, 0.06, 0.06, MAT.timberDark, 0, 0.58, -2.3);
+    house.add(scroll, scrollArt, scrollRoller);
+
+    // 5. Paper Andon Floor Lantern (glowing warm interior lamp)
+    const andon = new THREE.Group();
+    andon.add(box(0.4, 0.05, 0.4, MAT.timberDark, 0, 0.025, 0));
+    andon.add(box(0.32, 0.65, 0.32, MAT.lanternPaper, 0, 0.35, 0));
+    andon.add(box(0.38, 0.04, 0.38, MAT.timberDark, 0, 0.7, 0));
+    andon.position.set(2.4, 0, -1.6);
+    house.add(andon);
+
+    // 6. Antique Chest (Tansu)
+    const tansu = box(1.3, 1.1, 0.65, MAT.timberDark, 2.6, 0.55, 0.6);
+    house.add(tansu);
+
+    // --- FRONT SLIDING DOOR & ANTIQUE LOCK ---
+    const doorFrame = box(2.6, 2.2, 0.15, MAT.timberDark, 0, 1.1, 2.5);
+    house.add(doorFrame);
+
+    const slidingDoor = new THREE.Group();
+    slidingDoor.add(box(2.35, 2.05, 0.08, MAT.shoji, 0, 1.05, 0));
+    const doorLattice = this.createKoushi(2.35, 2.05, 11);
+    doorLattice.position.z = 0.05;
+    slidingDoor.add(doorLattice);
+
+    // Antique Brass Padlock Emblem on the door handle
+    this.lockPlate = new THREE.Group();
+    this.lockPlate.add(box(0.24, 0.3, 0.06, MAT.goldAntique, 0, 1.05, 0.1));
+    const shackle = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.025, 6, 12, Math.PI), MAT.goldAntique);
+    shackle.position.set(0, 1.2, 0.1);
+    this.lockPlate.add(shackle);
+    slidingDoor.add(this.lockPlate);
+
+    slidingDoor.position.set(0, 0, 2.52);
+    house.add(slidingDoor);
+    this.secretDoorMesh = slidingDoor;
+
+    // Roof & Eaves
+    const mainRoof = this.createKawaraRoof(7.6, 4.8, 1.4, 0.7);
+    mainRoof.position.y = 2.45;
+    house.add(mainRoof);
+
+    // Climbable Roof Platform Box
+    this.addPlatform(new THREE.Box3(
+      new THREE.Vector3(x - 4.2, 2.3, z - 2.8),
+      new THREE.Vector3(x + 4.2, 4.0, z + 2.8)
+    ));
+
+    // Front Hanging Chochin Lanterns
+    this.createChochinLantern(-1.8, 2.45, 3.1, house);
+    this.createChochinLantern(1.8, 2.45, 3.1, house);
+
+    // Noren above doorway
+    const secretNoren = box(2.4, 0.55, 0.04, MAT.norenCrimson, 0, 2.2, 2.65);
+    house.add(secretNoren);
+
+    house.position.set(x, 0, z);
+    house.rotation.y = rotY;
+    this.scene.add(house);
+
+    // Outer colliders (leaves doorway passable when opened)
+    this.addCollider(wallL, 0.1);
+    this.addCollider(wallR, 0.1);
+    this.addCollider(wallB, 0.1);
+    this.addCollider(wallFL, 0.1);
+    this.addCollider(wallFR, 0.1);
+    this.addCollider(table, 0.1);
+    this.addCollider(tansu, 0.1);
+
+    // Door collider — computed from actual world-space mesh bounds after
+    // house rotation so the solid wall is correctly positioned.
+    this.addCollider(slidingDoor, 0.1);
+    this.doorCollider = this.colliders[this.colliders.length - 1];
+
+    // Store actual door world position and outward spawn point for the
+    // shoji transition (context_actions + InteriorManager use these).
+    const doorWorld = new THREE.Vector3();
+    slidingDoor.getWorldPosition(doorWorld);
+    this.secretDoorWorldPos = doorWorld.clone();
+    const outDir = new THREE.Vector3(Math.sin(rotY), 0, Math.cos(rotY));
+    this.secretDoorSpawnPos = doorWorld.clone().addScaledVector(outDir, 2.5);
+    this.secretDoorOutHeading = Math.atan2(outDir.x, outDir.z);
+  }
+
+  // --- 4. Interactive Bird Nest on Machiya Rooftop ---
+  buildBirdNest(houseGroup, worldPos) {
+    const nestGroup = new THREE.Group();
+
+    // Twig nest bowl
+    const nestBowl = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.14, 8, 16), MAT.nestTwig);
+    nestBowl.rotation.x = Math.PI / 2;
+    nestGroup.add(nestBowl);
+
+    const nestBottom = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.25, 0.08, 10), MAT.nestTwig);
+    nestBottom.position.y = -0.05;
+    nestGroup.add(nestBottom);
+
+    // 3 Speckled blue bird eggs
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2;
+      const egg = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), MAT.birdEgg);
+      egg.scale.set(1, 1.35, 1);
+      egg.position.set(Math.cos(a) * 0.14, 0.04, Math.sin(a) * 0.14);
+      egg.rotation.z = (Math.random() - 0.5) * 0.4;
+      nestGroup.add(egg);
+    }
+
+    // Glowing Golden "Guardian's Feather" Trophy in the nest
+    const feather = new THREE.Group();
+    const featherQuill = box(0.015, 0.35, 0.01, MAT.featherGold, 0, 0, 0);
+    const featherVane = box(0.12, 0.26, 0.01, MAT.featherGold, 0, 0.04, 0);
+    feather.add(featherQuill, featherVane);
+    feather.rotation.z = 0.4;
+    feather.rotation.x = 0.3;
+    feather.position.set(0, 0.12, 0);
+    nestGroup.add(feather);
+    this.nestFeatherMesh = feather;
+
+    // Perch nest securely on the upper roof ridge eave
+    nestGroup.position.set(2.4, 4.45, 1.8);
+    houseGroup.add(nestGroup);
+    this.nestMesh = nestGroup;
+  }
+
+  // --- 5. Antique Golden Key Collectible ---
+  buildSecretKey(x, y, z) {
+    const keyGroup = new THREE.Group();
+
+    // Antique Japanese Key (Key ring, stem, bit teeth)
+    const bow = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.035, 8, 16), MAT.goldAntique);
+    bow.position.y = 0.28;
+    keyGroup.add(bow);
+
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.42, 8), MAT.goldAntique);
+    stem.position.y = 0.08;
+    keyGroup.add(stem);
+
+    // Key bits / wards
+    keyGroup.add(box(0.12, 0.05, 0.03, MAT.goldAntique, 0.06, -0.06, 0));
+    keyGroup.add(box(0.09, 0.05, 0.03, MAT.goldAntique, 0.05, 0.02, 0));
+
+    // Sparkling Aura halo
+    const haloMat = new THREE.MeshBasicMaterial({ color: 0xffe680, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+    const halo = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.38, 16), haloMat);
+    keyGroup.add(halo);
+
+    keyGroup.position.set(x, y, z);
+    keyGroup.userData = { isSecretKey: true, id: 999 };
+    this.scene.add(keyGroup);
+    this.secretKeyMesh = keyGroup;
+    this.secretKeyPos = new THREE.Vector3(x, y, z);
+  }
+
+  buildKeyHidingRock(x, z) {
+    const rockGroup = new THREE.Group();
+    const rockGeo = new THREE.DodecahedronGeometry(0.78, 1);
+    const mainRock = new THREE.Mesh(rockGeo, MAT.stoneDark);
+    mainRock.scale.set(1.35, 1.0, 0.9);
+    mainRock.rotation.set(0.12, 0.38, -0.08);
+    mainRock.position.set(0, 0.58, 0);
+    rockGroup.add(mainRock);
+
+    // Small companion stones ground the cover rock and make the hiding place
+    // read as a deliberate field-side rock cluster rather than a lone prop.
+    for (const [ox, oz, s] of [[-0.68, 0.28, 0.3], [0.55, 0.35, 0.24]]) {
+      const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 0), MAT.stone);
+      stone.position.set(ox, s * 0.55, oz);
+      stone.rotation.set(0.18, this.random() * Math.PI, 0.1);
+      rockGroup.add(stone);
+    }
+
+    rockGroup.position.set(x, 0, z);
+    rockGroup.traverse((mesh) => {
+      if (mesh.isMesh) {
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+      }
+    });
+    this.scene.add(rockGroup);
+    rockGroup.updateMatrixWorld(true);
+    this.addCollider(mainRock, 0.08);
+  }
+
+  // --- 6. Interactive Shishi-Odoshi (Bamboo Clacker) ---
+  buildShishiOdoshi(x, y, z, parentGroup) {
+    const shishi = new THREE.Group();
+
+    // Stone Water Basin (Tsukubai)
+    const basin = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.3, 0.45, 10), MAT.stoneDark);
+    basin.position.set(0, 0.225, 0);
+    shishi.add(basin);
+    // Basin water surface
+    const water = new THREE.Mesh(new THREE.CircleGeometry(0.28, 12), MAT.water);
+    water.rotation.x = -Math.PI / 2;
+    water.position.set(0, 0.42, 0);
+    shishi.add(water);
+
+    // Bamboo feeder spout
+    const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.8, 8), MAT.bambooGreen);
+    spout.rotation.z = -0.5;
+    spout.position.set(-0.35, 0.65, 0);
+    shishi.add(spout);
+
+    // Rocker pivot support posts
+    for (const sz of [-1, 1]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.6, 6), MAT.timberDark);
+      post.position.set(0.15, 0.3, sz * 0.16);
+      shishi.add(post);
+    }
+
+    // Animated Rocker Tube
+    const rocker = new THREE.Group();
+    const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.65, 8), MAT.bambooGreen);
+    tube.rotation.z = Math.PI / 2;
+    rocker.add(tube);
+    rocker.position.set(0.15, 0.48, 0);
+    shishi.add(rocker);
+    this.shishiRocker = rocker;
+
+    shishi.position.set(x, y, z);
+    parentGroup.add(shishi);
+  }
+
+  unlockSecretHouse() {
+    this.isSecretHouseUnlocked = true;
+    if (this.lockPlate) this.lockPlate.visible = false;
+    // NOTE: the sliding-door collider intentionally REMAINS in place —
+    // the physical doorway is a solid wall; entering the tea house happens
+    // through the automatic shoji screen transition instead.
+  }
+
+  eatFish() {
+    this.fishEaten = true;
+    if (this.fishMesh) this.fishMesh.visible = false;
+  }
+
+  // --- Lush Edo Village Street: rows of townhouses flanking the road ---
+  buildVillageStreet() {
+    const spots = [
+      { x: -5.8, z: 27, r: Math.PI / 2 + 0.06 },
+      { x: 5.9, z: 23, r: -Math.PI / 2 - 0.08 },
+      { x: -6.1, z: 12, r: Math.PI / 2 + 0.15 },
+      { x: 6.0, z: 8, r: -Math.PI / 2 - 0.1 },
+      { x: -5.7, z: -3, r: Math.PI / 2 - 0.12 },
+      { x: 6.2, z: -7, r: -Math.PI / 2 + 0.05 },
+      { x: -6.0, z: -14, r: Math.PI / 2 + 0.1 },
+      { x: 5.8, z: -19, r: -Math.PI / 2 + 0.14 }
+    ];
+    for (const s of spots) this.buildVillageHouse(s.x, s.z, s.r);
+  }
+
+  buildVillageHouse(x, z, rot) {
+    const house = new THREE.Group();
+    const wallMat = this.random() > 0.5 ? MAT.plasterWarm : MAT.plaster;
+    const w = 4.4 + this.random() * 1.2;   // width along street
+    const d = 3.2 + this.random() * 0.6;   // depth
+
+    // Base volume + dark sill
+    const base = box(w, 2.1, d, wallMat, 0, 1.05, 0);
+    house.add(base);
+    house.add(box(w + 0.2, 0.26, d + 0.2, MAT.timberDark, 0, 0.13, 0));
+
+    // Corner posts
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        house.add(box(0.24, 2.15, 0.24, MAT.timberDark, sx * (w / 2 - 0.1), 1.1, sz * (d / 2 - 0.1)));
+      }
+    }
+
+    // Street-facing facade: shoji panel + koushi lattice + tiny noren
+    house.add(box(1.5, 1.6, 0.07, MAT.shojiOff, 0, 1.05, d / 2 + 0.03));
+    const lattice = this.createKoushi(1.7, 1.7, 8);
+    lattice.position.set(0, 1.1, d / 2 + 0.07);
+    house.add(lattice);
+    const norenMats = [MAT.norenIndigo, MAT.norenCrimson, MAT.norenHemp];
+    const noren = box(1.6, 0.45, 0.04, norenMats[(this.random() * norenMats.length) | 0], 0, 1.85, d / 2 + 0.09);
+    house.add(noren);
+
+    // Low front engawa step
+    house.add(box(w * 0.8, 0.16, 0.7, MAT.timberEngawa, 0, 0.08, d / 2 + 0.35));
+
+    // Tiled roof with gentle ridge
+    const roof = this.createKawaraRoof(w + 0.6, d + 0.4, 0.95, 0.5);
+    roof.position.y = 2.1;
+    house.add(roof);
+
+    // Warm chochin lantern beside the door
+    if (this.random() > 0.4) this.createChochinLantern(w * 0.32, 2.0, d / 2 + 0.3, house);
+
+    house.position.set(x, 0, z);
+    house.rotation.y = rot;
+    this.scene.add(house);
+    this.addCollider(base, 0.15);
+
+    // Village rooftop parkour: eave-edge ring then the ridge line. The cat
+    // reaches these by hopping up from a nearby tōrō lantern cap or gliding
+    // across from another rooftop — real cat exploration routes.
+    const cosR = Math.abs(Math.cos(rot));
+    const sinR = Math.abs(Math.sin(rot));
+    const hw = w / 2 + 0.5, hd = d / 2 + 0.5;
+    const hx = cosR * hw + sinR * hd;
+    const hz = sinR * hw + cosR * hd;
+    this.addPlatform(new THREE.Box3(
+      new THREE.Vector3(x - hx, 1.9, z - hz),
+      new THREE.Vector3(x + hx, 2.32, z + hz)
+    ));
+    const rxr = cosR * hw + sinR * 0.55;
+    const rzr = sinR * hw + cosR * 0.55;
+    this.addPlatform(new THREE.Box3(
+      new THREE.Vector3(x - rxr, 2.7, z - rzr),
+      new THREE.Vector3(x + rxr, 3.25, z + rzr)
+    ));
+  }
+
+  // --- Street greenery: bushes, moss, bamboo fences & tōrō stone lanterns ---
+  buildStreetGreenery() {
+    const bushMats = [0x40632b, 0x4d7434, 0x59813d, 0x395a26].map(
+      (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 1, flatShading: true })
+    );
+    const bushGeo = new THREE.SphereGeometry(1, 7, 5);
+    const dummy = new THREE.Object3D();
+    const count = 90;
+    // Grass-like wind sway baked into the shared bush material (vertex wobble
+    // grows toward the top of each bush; amplitude pulses near the player)
+    const swayMat = bushMats[0];
+    swayMat.userData.uSwayTime = { value: 0 };
+    swayMat.userData.uSwayBoost = { value: 0 };
+    swayMat.onBeforeCompile = (shader) => {
+      shader.uniforms.uSwayTime = swayMat.userData.uSwayTime;
+      shader.uniforms.uSwayBoost = swayMat.userData.uSwayBoost;
+      shader.vertexShader = 'uniform float uSwayTime;\nuniform float uSwayBoost;\n' +
+        shader.vertexShader.replace('#include <begin_vertex>',
+          `#include <begin_vertex>
+          vec4 wp = instanceMatrix * vec4(position, 1.0);
+          float phase = wp.x * 1.7 + wp.z * 2.3;
+          float topW = max(position.y + 0.6, 0.0);
+          transformed.x += sin(uSwayTime * 2.1 + phase) * 0.055 * topW * (1.0 + uSwayBoost * 2.5);
+          transformed.z += cos(uSwayTime * 1.6 + phase * 1.3) * 0.04 * topW * (1.0 + uSwayBoost * 2.5);`);
+    };
+    const bushes = new THREE.InstancedMesh(bushGeo, swayMat, count);
+    this.bushMat = swayMat;
+    this.bushColliderSpots = [];
+    let bi = 0;
+    for (let z = 30; z > -27 && bi < count; z -= 3.2) {
+      for (const side of [-1, 1]) {
+        if (this.random() < 0.28 || bi >= count) continue;
+        const x = side * (2.6 + this.random() * 1.3);
+        const s = 0.35 + this.random() * 0.55;
+        dummy.position.set(x, s * 0.5, z + (this.random() - 0.5) * 1.6);
+        dummy.scale.set(s * (1 + this.random() * 0.5), s * 0.75, s * (1 + this.random() * 0.5));
+        dummy.rotation.y = this.random() * Math.PI;
+        dummy.updateMatrix();
+        bushes.setMatrixAt(bi++, dummy.matrix);
+        this.bushColliderSpots.push([x, z, s]);
+      }
+    }
+    for (const [bx_, bz_, bs_] of this.bushColliderSpots) {
+      this.colliders.push(new THREE.Box3(
+        new THREE.Vector3(bx_ - bs_ * 0.55, 0, bz_ - bs_ * 0.55),
+        new THREE.Vector3(bx_ + bs_ * 0.55, Math.max(0.8, bs_), bz_ + bs_ * 0.55)
+      ));
+    }
+    bushes.count = bi;
+    bushes.instanceMatrix.needsUpdate = true;
+    // Random per-bush tint via instance colors
+    const col = new THREE.Color();
+    for (let i = 0; i < bi; i++) {
+      bushes.setColorAt(i, col.setHex(bushMats[(this.random() * bushMats.length) | 0].color.getHex()));
+    }
+    if (bushes.instanceColor) bushes.instanceColor.needsUpdate = true;
+    bushes.castShadow = true;
+    this.scene.add(bushes);
+
+    // Moss / grass patches hugging the road edges
+    const mossMat = new THREE.MeshStandardMaterial({ color: 0x48682f, roughness: 1 });
+    const mossGeo = new THREE.CircleGeometry(1, 8);
+    const moss = new THREE.InstancedMesh(mossGeo, mossMat, 70);
+    let mi = 0;
+    for (let z = 32; z > -29 && mi < 70; z -= 2.6) {
+      for (const side of [-1, 1]) {
+        if (this.random() < 0.3 || mi >= 70) continue;
+        dummy.position.set(side * (1.9 + this.random() * 0.7), 0.045, z + (this.random() - 0.5) * 1.2);
+        dummy.scale.set(0.4 + this.random() * 0.7, 1, 0.3 + this.random() * 0.6);
+        dummy.rotation.set(-Math.PI / 2, 0, this.random() * Math.PI);
+        dummy.updateMatrix();
+        moss.setMatrixAt(mi++, dummy.matrix);
+      }
+    }
+    moss.count = mi;
+    moss.instanceMatrix.needsUpdate = true;
+    moss.receiveShadow = true;
+    this.scene.add(moss);
+
+    // Bamboo fences (takegaki) filling gaps between village houses
+    for (let i = 0; i < 10; i++) {
+      const side = i % 2 === 0 ? -1 : 1;
+      const z = 24 - i * 5.4 + (this.random() - 0.5) * 1.5;
+      this.buildBambooFence(side * (4.4 + this.random() * 0.9), z, side > 0 ? -Math.PI / 2 : Math.PI / 2);
+    }
+
+    // Tōrō stone lanterns spaced along the street
+    const toroZ = [22, 14, 4, -2, -11, -21];
+    toroZ.forEach((z, i) => {
+      const side = i % 2 === 0 ? -1 : 1;
+      this.buildToroLantern(side * 2.5, z);
+    });
+  }
+
+  buildBambooFence(x, z, rot) {
+    const fence = new THREE.Group();
+    const len = 2.6 + this.random() * 1.6;
+    for (const ry of [0.25, 0.65]) {
+      const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, len, 6), MAT.bambooGreen);
+      rail.rotation.z = Math.PI / 2;
+      rail.position.y = ry;
+      fence.add(rail);
+    }
+    const n = Math.floor(len / 0.16);
+    for (let i = 0; i <= n; i++) {
+      const sx = -len / 2 + i * (len / n);
+      const slat = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.85, 5), MAT.timberMedium);
+      slat.position.set(sx, 0.42, 0);
+      slat.rotation.x = (this.random() - 0.5) * 0.06;
+      fence.add(slat);
+    }
+    fence.position.set(x, 0, z);
+    fence.rotation.y = rot + (this.random() - 0.5) * 0.2;
+    this.scene.add(fence);
+    // Low jumpable-over collider (cat can hop it, but it still blocks walking)
+    const hl = len / 2;
+    const alongZ = Math.abs(Math.sin(rot)) > 0.5;
+    this.colliders.push(alongZ
+      ? new THREE.Box3(new THREE.Vector3(x - 0.22, 0, z - hl), new THREE.Vector3(x + 0.22, 0.95, z + hl))
+      : new THREE.Box3(new THREE.Vector3(x - hl, 0, z - 0.22), new THREE.Vector3(x + hl, 0.95, z + 0.22)));
+  }
+
+  buildToroLantern(x, z) {
+    const t = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.34, 0.18, 8), MAT.stoneDark);
+    base.position.y = 0.09;
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.62, 7), MAT.stone);
+    post.position.y = 0.49;
+    const box_ = box(0.34, 0.3, 0.34, MAT.stone, 0, 0.95, 0);
+    // Warm glowing light window
+    const win = box(0.36, 0.16, 0.36, MAT.lanternGlow, 0, 0.95, 0);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.38, 0.22, 8), MAT.stoneDark);
+    cap.position.y = 1.2;
+    t.add(base, post, box_, win, cap);
+    t.position.set(x, 0, z);
+    t.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    this.scene.add(t);
+    // Perchable lantern cap — first hop of the street rooftop parkour route
+    this.addPlatform(new THREE.Box3(
+      new THREE.Vector3(x - 0.34, 0.8, z - 0.34),
+      new THREE.Vector3(x + 0.34, 1.31, z + 0.34)
+    ));
+  }
+
+  buildTorii(x, z) {
+    const torii = new THREE.Group();
+    const pillarGeo = new THREE.CylinderGeometry(0.22, 0.28, 4.6, 10);
+    for (const s of [-1, 1]) {
+      const p = new THREE.Mesh(pillarGeo, MAT.vermilion);
+      p.position.set(s * 1.8, 2.3, 0);
+      p.castShadow = true;
+      torii.add(p);
+      this.colliders.push(new THREE.Box3(
+        new THREE.Vector3(x + s * 1.8 - 0.3, 0, z - 0.3),
+        new THREE.Vector3(x + s * 1.8 + 0.3, 4.6, z + 0.3)
+      ));
+    }
+    torii.add(box(5.6, 0.32, 0.4, MAT.vermilion, 0, 4.75, 0));
+    const topLintel = box(6.2, 0.28, 0.5, MAT.vermilion, 0, 5.15, 0);
+    torii.add(topLintel);
+    torii.add(box(0.9, 0.3, 0.3, MAT.vermilion, 0, 4.45, 0));
+    torii.add(box(6.3, 0.1, 0.52, MAT.stoneDark, 0, 5.34, 0));
+
+    torii.position.set(x, 0, z);
+    this.scene.add(torii);
+  }
+
+  buildShrine(x, z) {
+    const shrine = new THREE.Group();
+    // Stepped stone foundation (Dan)
+    shrine.add(box(3.8, 0.35, 3.0, MAT.stoneDark, 0, 0.175, 0));
+    shrine.add(box(3.2, 0.35, 2.4, MAT.stone, 0, 0.525, 0));
+
+    // Wooden Sanctuary Hall (Honden / Zushi)
+    const hall = box(2.2, 1.8, 1.8, MAT.timberMedium, 0, 1.75, 0);
+    shrine.add(hall);
+
+    // Warm shoji inner lattice with gentle candle backdrop
+    shrine.add(box(1.1, 1.2, 0.08, MAT.shoji, 0, 1.7, 0.92));
+
+    // Deep-eaved kawara gable roof. This replaces the two disconnected slabs
+    // with a proper shrine silhouette: eaves, tiled slopes, gable end caps,
+    // raised ridge, chigi cross-beams, and katsuogi ridge logs.
+    const roof = this.createKawaraRoof(2.9, 2.35, 1.12, 0.78);
+    roof.position.y = 2.62;
+    shrine.add(roof);
+
+    // Dark wooden eave fascia makes the roof feel structurally supported.
+    shrine.add(box(4.45, 0.16, 0.14, MAT.timberDark, 0, 2.7, 1.93));
+    shrine.add(box(4.45, 0.16, 0.14, MAT.timberDark, 0, 2.7, -1.93));
+
+    // Chigi: the crossed forked timbers characteristic of a Shinto shrine.
+    for (const sx of [-1, 1]) {
+      const chigi = box(0.13, 1.05, 0.16, MAT.timberLight, sx * 0.78, 4.05, 0);
+      chigi.rotation.z = sx * 0.43;
+      shrine.add(chigi);
+    }
+    // Katsuogi: short horizontal logs seated on the ridge.
+    for (const rx of [-0.72, 0, 0.72]) {
+      const katsuogi = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.54, 8), MAT.timberLight);
+      katsuogi.rotation.z = Math.PI / 2;
+      katsuogi.position.set(rx, 3.91, 0);
+      shrine.add(katsuogi);
+    }
+
+    // Sacred Shimenawa Straw Rope with paper Shide zigzags
+    const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.8, 8), new THREE.MeshStandardMaterial({ color: 0xd6c085, roughness: 1 }));
+    rope.rotation.z = Math.PI / 2;
+    rope.position.set(0, 2.42, 0.96);
+    shrine.add(rope);
+
+    // Sacred Buddha / Shrine Spiritual Bell (Suzu / Bonsho) with warm sublime bronze warmth
+    const bellGroup = new THREE.Group();
+    bellGroup.position.set(0, 2.05, 0.96);
+    const bellBody = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 10), MAT.spiritualBellBronze);
+    bellBody.scale.set(1.0, 1.25, 1.0);
+    const bellRim = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.022, 8, 16), MAT.spiritualBellBronze);
+    bellRim.rotation.x = Math.PI / 2;
+    bellRim.position.y = -0.12;
+    bellGroup.add(bellBody, bellRim);
+
+    // Braided crimson/gold cords hanging from the bell
+    const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.65, 6), MAT.norenCrimson);
+    cord.position.set(0, -0.42, 0);
+    bellGroup.add(cord);
+    shrine.add(bellGroup);
+
+    // Saisen-bako wooden offering box
+    const saisen = box(0.8, 0.45, 0.5, MAT.timberDark, 0, 0.925, 0.95);
+    shrine.add(saisen);
+
+    shrine.position.set(x, 0, z);
+    this.scene.add(shrine);
+    this.addCollider(hall, 0.4);
+  }
+
+  buildLanterns() {
+    const spots = [
+      [-2.6, -18], [2.6, -18], [-2.8, -26], [2.8, -26],
+      [-3, -4], [3.2, 2], [-2.8, 14]
+    ];
+    for (const [x, z] of spots) {
+      const l = new THREE.Group();
+      l.add(box(0.5, 0.25, 0.5, MAT.stone, 0, 0.125, 0));
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 0.9, 8), MAT.stone);
+      post.position.y = 0.7;
+      post.castShadow = true;
+      l.add(post);
+      l.add(box(0.44, 0.14, 0.44, MAT.stone, 0, 1.22, 0));
+      l.add(box(0.3, 0.3, 0.3, MAT.lanternGlow, 0, 1.45, 0));
+      const cap = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.3, 4), MAT.stoneDark);
+      cap.position.y = 1.75;
+      cap.rotation.y = Math.PI / 4;
+      cap.castShadow = true;
+      l.add(cap);
+      l.position.set(x, 0, z);
+      this.scene.add(l);
+      this.addCollider(l.children[1], 0.15);
+    }
+  }
+
+  buildMountains() {
+    // Canyon-forest feel: layered green ridges pulled in closer and taller,
+    // so the valley reads as a lush gorge ringed by forested walls.
+    const matNear = new THREE.MeshStandardMaterial({ color: 0x4a7a34, roughness: 1, flatShading: true });
+    const matMid = new THREE.MeshStandardMaterial({ color: 0x3d6a2c, roughness: 1, flatShading: true });
+    const matFar = new THREE.MeshStandardMaterial({ color: 0x5f8a48, roughness: 1, flatShading: true });
+    const ridgeNear = [
+      [-70, -95, 55, 46], [-24, -110, 70, 56], [44, -102, 60, 50], [100, -88, 55, 42],
+      [-92, 30, 52, 44], [96, 40, 56, 46], [-58, 82, 48, 38], [62, 90, 52, 42]
+    ];
+    const ridgeFar = [
+      [-120, -90, 45, 34], [90, -100, 50, 36], [-140, 40, 48, 32], [130, 60, 52, 36],
+      [-70, 130, 40, 28], [75, 140, 46, 30]
+    ];
+    for (const [x, z, r, h] of ridgeFar) {
+      const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 6), matFar);
+      m.position.set(x, h / 2 - 2, z);
+      m.rotation.y = this.random() * Math.PI;
+      this.scene.add(m);
+    }
+    for (const [x, z, r, h] of ridgeNear) {
+      const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), Math.random() > 0.5 ? matNear : matMid);
+      m.position.set(x, h / 2 - 2, z);
+      m.rotation.y = this.random() * Math.PI;
+      this.scene.add(m);
+    }
+    this.buildEdgeForest();
+    this.buildDistantPagoda(12, 56);
+    this.buildVillage();
+    this.buildMistRing();
+  }
+
+  /**
+   * Distant five-story Kyoto pagoda landmark. It deliberately sits beyond the
+   * forest boundary, has no collision/platform registration, and is sized to
+   * remain readable above the canopy from the bridge and village pathways.
+   */
+  buildDistantPagoda(x, z) {
+    const pagoda = new THREE.Group();
+    const roofTileDark = new THREE.MeshStandardMaterial({
+      color: 0x202a2d,
+      roughness: 0.62,
+      metalness: 0.14,
+      flatShading: true
+    });
+    const roofEdgeMat = new THREE.MeshStandardMaterial({ color: 0x151b1c, roughness: 0.58 });
+    const warmWallMat = new THREE.MeshStandardMaterial({ color: 0x5a2e22, roughness: 0.9 });
+    const finialMat = new THREE.MeshStandardMaterial({ color: 0x5d5140, metalness: 0.72, roughness: 0.3 });
+
+    // A low stone dais is mostly hidden by the distant forest, grounding the
+    // structure while allowing the upper stories to tower over the canopy.
+    pagoda.add(box(5.6, 0.6, 5.6, MAT.stoneDark, 0, 0.3, 0));
+    pagoda.add(box(4.9, 0.32, 4.9, MAT.stone, 0, 0.76, 0));
+
+    const tierWidths = [4.55, 4.05, 3.58, 3.12, 2.68];
+    const tierHeights = [2.2, 2.05, 1.9, 1.78, 1.64];
+    let baseY = 0.92;
+
+    for (let tier = 0; tier < 5; tier++) {
+      const width = tierWidths[tier];
+      const storyH = tierHeights[tier];
+      const isGroundTier = tier === 0;
+      const bodyW = width * (isGroundTier ? 0.68 : 0.62);
+      const bodyD = width * (isGroundTier ? 0.68 : 0.62);
+      const bodyY = baseY + storyH / 2;
+
+      // Vermilion posts frame each dark enclosed story, matching the pagoda's
+      // stacked red silhouette in the supplied Kyoto reference.
+      const body = box(bodyW, storyH, bodyD, warmWallMat, 0, bodyY, 0);
+      pagoda.add(body);
+      for (const sx of [-1, 1]) {
+        for (const sz of [-1, 1]) {
+          pagoda.add(box(
+            0.18,
+            storyH + 0.22,
+            0.18,
+            MAT.vermilion,
+            sx * (bodyW / 2 - 0.06),
+            bodyY,
+            sz * (bodyD / 2 - 0.06)
+          ));
+        }
+      }
+      // Dark timber rails and a bright vermilion band give each story a
+      // legible architectural rhythm at landmark distance.
+      pagoda.add(box(bodyW + 0.24, 0.16, bodyD + 0.24, MAT.timberDark, 0, baseY + 0.18, 0));
+      pagoda.add(box(bodyW + 0.34, 0.16, bodyD + 0.34, MAT.vermilion, 0, baseY + storyH - 0.14, 0));
+
+      // Broad hipped kawara roof. A shallow four-sided roof reads more like
+      // the reference pagoda than a sharp cone, while its oversized eaves
+      // create the familiar tiered silhouette.
+      const roofSpan = width + 0.72;
+      const roofH = 0.72 - tier * 0.045;
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(roofSpan / Math.SQRT2, roofH, 4), roofTileDark);
+      roof.position.y = baseY + storyH + roofH / 2 - 0.05;
+      roof.rotation.y = Math.PI / 4;
+      roof.scale.set(1, 1, 0.9);
+      roof.castShadow = true;
+      roof.receiveShadow = true;
+      pagoda.add(roof);
+
+      // Heavy eave edge plus small lifted corners approximate the curved,
+      // upturned tile lines visible in the reference image.
+      const eaveY = baseY + storyH + 0.04;
+      for (const s of [-1, 1]) {
+        pagoda.add(box(roofSpan, 0.1, 0.14, roofEdgeMat, 0, eaveY, s * roofSpan * 0.36));
+        pagoda.add(box(0.14, 0.1, roofSpan * 0.72, roofEdgeMat, s * roofSpan * 0.5, eaveY, 0));
+      }
+      for (const sx of [-1, 1]) {
+        for (const sz of [-1, 1]) {
+          const upturnedCorner = box(0.13, 0.42, 0.13, roofEdgeMat, sx * roofSpan * 0.5, eaveY + 0.16, sz * roofSpan * 0.36);
+          upturnedCorner.rotation.z = sx * 0.42;
+          upturnedCorner.rotation.x = -sz * 0.42;
+          pagoda.add(upturnedCorner);
+        }
+      }
+
+      baseY += storyH + roofH * 0.62;
+    }
+
+    // Sōrin finial: stacked metal discs, a central shaft, and a pointed cap.
+    const finialBaseY = baseY - 0.1;
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 2.6, 8), finialMat);
+    shaft.position.y = finialBaseY + 1.3;
+    shaft.castShadow = true;
+    pagoda.add(shaft);
+    for (let i = 0; i < 8; i++) {
+      const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.28 - i * 0.014, 0.28 - i * 0.014, 0.065, 12), finialMat);
+      disc.position.y = finialBaseY + 0.42 + i * 0.22;
+      disc.castShadow = true;
+      pagoda.add(disc);
+    }
+    const jewel = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 8), finialMat);
+    jewel.position.y = finialBaseY + 2.72;
+    jewel.castShadow = true;
+    pagoda.add(jewel);
+    const finialTip = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.58, 8), finialMat);
+    finialTip.position.y = finialBaseY + 3.08;
+    finialTip.castShadow = true;
+    pagoda.add(finialTip);
+
+    pagoda.position.set(x, 0, z);
+    // Keep the stone dais at ground level while making the landmark 12% more
+    // prominent over the forest canopy.
+    pagoda.scale.setScalar(1.12);
+    pagoda.traverse((node) => {
+      if (node.isMesh) {
+        node.castShadow = true;
+        node.receiveShadow = true;
+      }
+    });
+    this.scene.add(pagoda);
+  }
+
+  buildEdgeForest() {
+    // Dense impassable tree wall ringing the playfield just inside the
+    // hard boundary radius. Each tree is built from TWO layered irregular
+    // leafy masses (dark shaded underlayer + lighter sunlit crown) so the
+    // forest reads as painterly foliage instead of smooth cones.
+    const tuftGeo = new THREE.IcosahedronGeometry(1, 1);
+    const trunkGeo = new THREE.CylinderGeometry(0.12, 0.18, 1.2, 5);
+    const canopyMats = [
+      new THREE.MeshStandardMaterial({ color: 0x2e5524, roughness: 1, flatShading: true }),
+      new THREE.MeshStandardMaterial({ color: 0x39682b, roughness: 1, flatShading: true }),
+      new THREE.MeshStandardMaterial({ color: 0x25481e, roughness: 1, flatShading: true })
+    ];
+    const count = 260;
+    const lower = new THREE.InstancedMesh(tuftGeo, canopyMats[2], count);
+    const upper = new THREE.InstancedMesh(tuftGeo, canopyMats[1], count);
+    const trunks = new THREE.InstancedMesh(trunkGeo, new THREE.MeshStandardMaterial({ color: 0x3d2b1c, roughness: 1 }), count);
+    const dummy = new THREE.Object3D();
+    const col = new THREE.Color();
+    const pagodaBearing = Math.atan2(56, 12);
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2 + this.random() * 0.09;
+      const r = 37 + this.random() * 7;
+      const x = Math.cos(a) * r;
+      const z = Math.sin(a) * r;
+      const s = 1.8 + this.random() * 2.4;
+      // Lower only the tree crowns in the pagoda's narrow sightline by 12%.
+      // Their horizontal footprint and collision wall remain untouched.
+      const angleDelta = Math.atan2(Math.sin(a - pagodaBearing), Math.cos(a - pagodaBearing));
+      const sightlineHeight = Math.abs(angleDelta) < 0.24 ? 0.88 : 1;
+      // Wide dark shaded under-canopy
+      dummy.position.set(x, s * 0.95 * sightlineHeight, z);
+      dummy.scale.set(s * (0.85 + this.random() * 0.3), s * 0.8 * sightlineHeight, s * (0.85 + this.random() * 0.3));
+      dummy.rotation.set(this.random() * 0.5, this.random() * Math.PI, this.random() * 0.5);
+      dummy.updateMatrix();
+      lower.setMatrixAt(i, dummy.matrix);
+      col.copy(canopyMats[2].color).offsetHSL(0, (this.random() - 0.5) * 0.05, (this.random() - 0.5) * 0.05);
+      lower.setColorAt(i, col);
+      // Narrower sunlit crown, offset slightly for irregular silhouette
+      dummy.position.set(x + (this.random() - 0.5) * s * 0.4, s * 1.55 * sightlineHeight, z + (this.random() - 0.5) * s * 0.4);
+      dummy.scale.set(s * (0.55 + this.random() * 0.25), s * 0.65 * sightlineHeight, s * (0.55 + this.random() * 0.25));
+      dummy.rotation.set(this.random() * 0.5, this.random() * Math.PI, this.random() * 0.5);
+      dummy.updateMatrix();
+      upper.setMatrixAt(i, dummy.matrix);
+      col.copy(canopyMats[Math.floor(this.random() * canopyMats.length)].color)
+        .offsetHSL(0, 0, 0.02 + this.random() * 0.05);
+      upper.setColorAt(i, col);
+      dummy.position.set(x, 0.6 * s * sightlineHeight, z);
+      dummy.scale.set(s, s * sightlineHeight, s);
+      dummy.rotation.set(0, this.random() * Math.PI, 0);
+      dummy.updateMatrix();
+      trunks.setMatrixAt(i, dummy.matrix);
+      // Impassable wall collider
+      this.colliders.push(new THREE.Box3(
+        new THREE.Vector3(x - s * 0.35, 0, z - s * 0.35),
+        new THREE.Vector3(x + s * 0.35, s * 2.2, z + s * 0.35)
+      ));
+    }
+    lower.instanceMatrix.needsUpdate = true;
+    upper.instanceMatrix.needsUpdate = true;
+    trunks.instanceMatrix.needsUpdate = true;
+    if (lower.instanceColor) lower.instanceColor.needsUpdate = true;
+    if (upper.instanceColor) upper.instanceColor.needsUpdate = true;
+    lower.castShadow = true;
+    upper.castShadow = true;
+    this.scene.add(lower);
+    this.scene.add(upper);
+    this.scene.add(trunks);
+
+    // Undergrowth bushes thickening the wall between trees
+    const bushGeo = new THREE.SphereGeometry(1, 6, 4);
+    const bushMat = new THREE.MeshStandardMaterial({ color: 0x274a1e, roughness: 1, flatShading: true });
+    const bushes = new THREE.InstancedMesh(bushGeo, bushMat, 160);
+    for (let i = 0; i < 160; i++) {
+      const a = this.random() * Math.PI * 2;
+      const r = 35.5 + this.random() * 8;
+      const s = 0.9 + this.random() * 1.6;
+      const x = Math.cos(a) * r;
+      const z = Math.sin(a) * r;
+      dummy.position.set(x, s * 0.5, z);
+      dummy.scale.set(s * 1.2, s * 0.8, s * 1.2);
+      dummy.rotation.set(0, this.random() * Math.PI, 0);
+      dummy.updateMatrix();
+      bushes.setMatrixAt(i, dummy.matrix);
+      if (r < 41) {
+        this.colliders.push(new THREE.Box3(
+          new THREE.Vector3(x - s * 0.6, 0, z - s * 0.6),
+          new THREE.Vector3(x + s * 0.6, Math.max(0.9, s), z + s * 0.6)
+        ));
+      }
+    }
+    bushes.instanceMatrix.needsUpdate = true;
+    bushes.castShadow = true;
+    this.scene.add(bushes);
+  }
+
+  buildVillage() {
+    const pastelWalls = [0xf5e6c8, 0xf2b8c6, 0xfdf3e0, 0xe8d8f0];
+    const pastelRoofs = [0x7a8aa8, 0xc87888, 0x88a890, 0x9a86b0, 0xd8a878];
+    const clusters = [
+      [-62, -78, 9], [18, -88, 12], [78, -70, 8], [-95, -35, 6], [95, -20, 7], [40, -96, 6]
+    ];
+    const wallMats = pastelWalls.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95 }));
+    const roofMats = pastelRoofs.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 }));
+    for (const [cx, cz, n] of clusters) {
+      for (let i = 0; i < n; i++) {
+        const hx = cx + (this.random() - 0.5) * 26;
+        const hz = cz + (this.random() - 0.5) * 18;
+        const s = 1.4 + this.random() * 1.6;
+        const house = new THREE.Group();
+        const wall = box(2.6 * s, 1.6 * s, 2.0 * s, wallMats[Math.floor(this.random() * wallMats.length)], 0, 0.8 * s, 0);
+        house.add(wall);
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(2.0 * s, 1.1 * s, 4), roofMats[Math.floor(this.random() * roofMats.length)]);
+        roof.position.y = 1.6 * s + 0.55 * s;
+        roof.rotation.y = Math.PI / 4;
+        house.add(roof);
+        house.position.set(hx, 0, hz);
+        house.rotation.y = this.random() * Math.PI;
+        this.scene.add(house);
+      }
+    }
+
+    const treeGeo = new THREE.IcosahedronGeometry(1.15, 0);
+    const treeMat = new THREE.MeshStandardMaterial({ color: 0x44604a, roughness: 1, flatShading: true });
+    const treeCount = 320;
+    const trees = new THREE.InstancedMesh(treeGeo, treeMat, treeCount);
+    const dummy = new THREE.Object3D();
+    const color = new THREE.Color();
+    const slopes = [
+      [-90, -120, 55], [-30, -140, 70], [50, -130, 60], [120, -110, 55],
+      [-120, -90, 45], [90, -100, 50], [-140, 40, 48], [130, 60, 52]
+    ];
+    for (let i = 0; i < treeCount; i++) {
+      const [mx, mz, mr] = slopes[Math.floor(this.random() * slopes.length)];
+      const a = this.random() * Math.PI * 2;
+      const r = mr * (0.35 + this.random() * 0.55);
+      const s = 1.2 + this.random() * 2.2;
+      dummy.position.set(mx + Math.cos(a) * r, s * 0.9, mz + Math.sin(a) * r);
+      dummy.scale.setScalar(s);
+      dummy.rotation.y = this.random() * Math.PI;
+      dummy.updateMatrix();
+      trees.setMatrixAt(i, dummy.matrix);
+      color.setHSL(0.33 + this.random() * 0.06, 0.3, 0.24 + this.random() * 0.12);
+      trees.setColorAt(i, color);
+    }
+    trees.instanceMatrix.needsUpdate = true;
+    if (trees.instanceColor) trees.instanceColor.needsUpdate = true;
+    this.scene.add(trees);
+  }
+
+  mistTexture() {
+    const c = document.createElement('canvas');
+    c.width = 128;
+    c.height = 128;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(64, 64, 8, 64, 64, 62);
+    g.addColorStop(0, 'rgba(244, 236, 224, 0.5)');
+    g.addColorStop(0.55, 'rgba(244, 236, 224, 0.28)');
+    g.addColorStop(1, 'rgba(244, 236, 224, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(c);
+  }
+
+  buildMistRing() {
+    const tex = this.mistTexture();
+    this.mists = [];
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2 + this.random() * 0.3;
+      const r = 58 + this.random() * 14;
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.75, depthWrite: false });
+      const spr = new THREE.Sprite(mat);
+      spr.position.set(Math.cos(a) * r, 2.5 + this.random() * 5, Math.sin(a) * r);
+      spr.scale.set(28 + this.random() * 22, 10 + this.random() * 8, 1);
+      this.scene.add(spr);
+      this.mists.push({ spr, baseX: spr.position.x, phase: this.random() * 6, speed: 0.03 + this.random() * 0.04 });
+    }
+  }
+
+  buildYarn() {
+    let id = 0;
+    const yarnSpots = [
+      [-20, 14], [12, 20], [24, 4], [-4, -12], [2.5, -24],
+      [-10, 28], [18, -10], [-26, -2], [8, 30], [-16, -18]
+    ];
+    for (const [x, z] of yarnSpots) {
+      const yarn = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), MAT.yarn);
+      yarn.position.set(x, 0.35, z);
+      yarn.castShadow = true;
+      yarn.userData.id = id++;
+      yarn.userData.isCollectible = true;
+      yarn.userData.velocity = new THREE.Vector3();
+      yarn.userData.batted = false;
+
+      const wrapMat = new THREE.MeshStandardMaterial({ color: 0xf27a9f, roughness: 0.7 });
+      const wrap = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 6, 16), wrapMat);
+      wrap.rotation.x = this.random() * Math.PI;
+      wrap.rotation.y = this.random() * Math.PI;
+      yarn.add(wrap);
+
+      this.scene.add(yarn);
+      this.collectibles.push(yarn);
+    }
+  }
+
+  update(dt, playerPos = null, sky = null) {
+    this.time += dt;
+
+    // Lanterns glow at night, dim by day
+    if (sky) {
+      const sunUp = Math.max(0, sky.sunDir.y);
+      const nightness = Math.max(0, 1 - sunUp * 5);
+      MAT.lanternGlow.emissiveIntensity = 0.15 + nightness * 2.2;
+      MAT.lanternPaper.emissiveIntensity = 0.4 + nightness * 1.8;
+      MAT.shoji.emissiveIntensity = 0.2 + nightness * 0.7;
+    }
+
+    // Sway hanging Kyoto Chochin lanterns
+    const windSpeed = (sky && sky.weather === 'rain') ? 3.5 : 2.0;
+    const windAngle = (sky && sky.weather === 'rain') ? 0.12 : 0.05;
+    for (const l of this.lanterns) {
+      l.group.rotation.z = Math.sin(this.time * windSpeed + l.phase) * windAngle;
+      l.group.rotation.x = Math.cos(this.time * windSpeed * 0.8 + l.phase) * (windAngle * 0.6);
+    }
+
+    // Shishi-odoshi bamboo clacker cycle
+    if (this.shishiRocker) {
+      const cycle = (this.time * 0.4) % (Math.PI * 2);
+      let tilt = 0;
+      if (cycle < 4.8) {
+        // Slowly filling with water
+        tilt = (cycle / 4.8) * 0.38;
+      } else if (cycle < 5.3) {
+        // Tipping over and pouring water
+        const p = (cycle - 4.8) / 0.5;
+        tilt = 0.38 + p * 0.45;
+      } else {
+        // Snapping back and hitting the rock (clack!)
+        const p = (cycle - 5.3) / (Math.PI * 2 - 5.3);
+        tilt = 0.83 * (1 - p);
+      }
+      this.shishiRocker.rotation.z = Math.PI / 2 + tilt;
+    }
+
+    // Secret Key spin & bob
+    if (this.secretKeyMesh && !this.secretKeyCollected) {
+      this.secretKeyMesh.rotation.y += dt * 2.2;
+      this.secretKeyMesh.position.y = this.secretKeyPos.y + Math.sin(this.time * 3.5) * 0.12;
+      if (playerPos) {
+        const d2 = this.secretKeyMesh.position.distanceToSquared(playerPos);
+        MAT.goldAntique.emissiveIntensity = d2 < 16 ? 0.9 + 0.4 * Math.sin(this.time * 8) : 0.6;
+      }
+    }
+
+    // Secret Machiya door stays permanently closed — entry is via the shoji
+    // transition cutscene (InteriorManager.transitionToInterior) once the
+    // cat has the key. No physical pass-through into the shell interior.
+
+    // Bush sway wind tick (grass-like flutter; boosts when the cat is close)
+    if (this.bushMat && this.bushMat.userData.uSwayTime) {
+      this.bushMat.userData.uSwayTime.value = this.time;
+      let boost = 0;
+      if (playerPos) {
+        let nearest = 999;
+        for (const [bx_, bz_] of this.bushColliderSpots) {
+          const d = Math.hypot(playerPos.x - bx_, playerPos.z - bz_);
+          if (d < nearest) nearest = d;
+        }
+        boost = Math.max(0, 1 - nearest / 2.5);
+      }
+      this.bushMat.userData.uSwayBoost.value +=
+        (boost - this.bushMat.userData.uSwayBoost.value) * Math.min(1, dt * 6);
+    }
+
+    // Nest golden feather shimmer
+    if (this.nestFeatherMesh) {
+      this.nestFeatherMesh.rotation.y = Math.sin(this.time * 2.0) * 0.25;
+      MAT.featherGold.emissiveIntensity = 0.7 + Math.sin(this.time * 4) * 0.35;
+    }
+
+    // Mist rolls in during misty weather
+    const mistStrength = (sky && sky.weather === 'mist') ? Math.max(0, sky.weatherBlend * 2 - 0.4) : 0;
+
+    for (const item of this.collectibles) {
+      item.rotation.y += dt * 2;
+      const baseY = 0.35 + Math.sin(this.time * 3 + item.userData.id) * 0.08;
+
+      // Yarn physics when batted
+      if (item.userData.batted) {
+        item.position.addScaledVector(item.userData.velocity, dt);
+        item.userData.velocity.y -= 9.8 * dt; // gravity
+        if (item.position.y < 0.2) {
+          item.position.y = 0.2;
+          item.userData.velocity.y *= -0.55;
+          item.userData.velocity.x *= 0.85;
+          item.userData.velocity.z *= 0.85;
+        }
+        if (item.userData.velocity.lengthSq() < 0.05) {
+          item.userData.batted = false;
+          item.userData.velocity.set(0, 0, 0);
+        }
+      } else {
+        item.position.y = baseY;
+      }
+
+      // Proximity glow pulse
+      if (playerPos) {
+        const d2 = item.position.distanceToSquared(playerPos);
+        const pulse = d2 < 9 ? 0.5 + 0.5 * Math.sin(this.time * 4 + item.userData.id) : 0;
+        const base = 0.5;
+        item.material.emissiveIntensity = base + pulse;
+      }
+    }
+    for (const m of this.mists || []) {
+      const mistMul = 1 + mistStrength * 2.5;
+      m.spr.position.x = m.baseX + Math.sin(this.time * m.speed * 4 + m.phase) * 3 * mistMul;
+      m.spr.position.y = 0.6 - mistStrength * 0.4;
+      m.spr.material.opacity = (0.6 + Math.sin(this.time * m.speed * 6 + m.phase) * 0.15) * (1 + mistStrength * 0.8);
+    }
+    for (const r of this.ripples) {
+      if (r.life <= 0) continue;
+      r.age += dt;
+      r.life -= dt;
+      const t = r.age / 1.1;
+      const cap = r.maxScale || 3.3;
+      const raw = (0.3 + t * 3.0) * r.strength;
+      const hitAge = ((cap / r.strength) - 0.3) / 3.0 * 1.1;
+      const hitShore = raw >= cap;
+      r.mesh.scale.setScalar(Math.min(raw, cap));
+      let fade = 1 - t;
+      if (hitShore) fade = Math.max(0, 1 - (r.age - hitAge) / 0.35);
+      r.mesh.material.opacity = Math.max(0, 0.5 * fade) * Math.min(r.strength, 1);
+      if (r.life <= 0 || (hitShore && fade <= 0)) { r.mesh.visible = false; r.life = 0; }
+    }
+  }
+}

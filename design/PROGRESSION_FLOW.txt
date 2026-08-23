@@ -1,0 +1,874 @@
+================================================================================
+CAT WALK: RECOMMENDED PROGRESSION FLOW
+================================================================================
+Version: 1.0
+Date: 2026-07-10
+Strategy: Hybrid (Story-driven narrative with Discovery mechanics + Challenge endgame)
+Target: 60+ hours for full completion, 20-30 hours for main story
+
+================================================================================
+PHASE 1: ONBOARDING & TUTORIAL (Hours 0-2, Levels 1-2)
+================================================================================
+
+STORY FRAME: "Waking Up"
+The player wakes up confused in Downtown, disoriented. Luna (first NPC) greets
+the player warmly and explains the situation: "You've wandered away from home.
+Let me help you find your way."
+
+LOCATION: Downtown (Central Commercial District)
+ACCESS: All Downtown locations unlocked from start
+
+PLAYER PROGRESSION:
+└─ Progress: 0% → 10%
+
+MECHANICS INTRODUCED (One per 15 minutes):
+  ✓ Movement (walk/run) - First 5 minutes
+  ✓ Jumping - Minutes 5-10
+  ✓ Camera/Look controls - Minutes 5-15
+  ✓ Knockable objects - Minutes 15-20
+  ✓ Basic climbing (trees) - Minutes 20-25
+  ✓ NPC interaction (meowing) - Minutes 20-30
+  ✓ UI/HUD explanation - Throughout
+
+QUESTS:
+  1. STORY: "Find Home" - Explore Downtown, meet Luna
+     └─ Reward: +100 XP, Downtown 25% explored
+  2. ACTIVITY: "Knock 10 Objects" - Practice with light knockables
+     └─ Reward: +50 XP, Satisfaction +10%
+  3. ACTIVITY: "Climb First Tree" - Reach 5m height
+     └─ Reward: +75 XP, Confidence +5%
+
+NPC INTERACTIONS:
+  └─ Luna: Friendly greeting, explains situation, offers guidance
+
+SKILLS UNLOCKED:
+  ├─ Walking (default)
+  ├─ Running (tutorial teaches at 1:30)
+  ├─ Jumping (tutorial teaches at 5:00)
+  └─ Basic Knock (automatic on first object hit)
+
+COLLECTIBLES DISCOVERED:
+  ├─ Yarn Ball (red, downtown plaza) - Teaching item
+  └─ Tutorial Item: Fish Treat (free item from Luna)
+
+COMPLETION CONDITION: Reach "Your Home" location in residential zone
+  └─ Cutscene: Luna shows you to a cozy spot, explains she lives nearby
+
+DIFFICULTY SCALING:
+  └─ All challenges tuned to teach, not challenge
+  └─ Auto-aim assists enabled by default
+  └─ Generous stamina pool for tutorial
+
+END CONDITION: Player wakes up in home location, ready to explore
+
+
+================================================================================
+PHASE 2: EXPLORATION & DISCOVERY (Hours 2-10, Levels 3-7)
+================================================================================
+
+STORY FRAME: "Getting Oriented"
+Player explores their new neighborhood, making friends, learning the lay of
+the land. Luna suggests exploring nearby areas and introduces the concept of
+building relationships.
+
+LOCATION: Residential + Parks (open world, ~1 km²)
+ACCESS: Downtown always accessible. Parks unlock at 15-minute mark.
+GATING: Soft gates - NPCs suggest areas but don't prevent exploration
+
+PLAYER PROGRESSION:
+└─ Progress: 10% → 35%
+
+PACING: 45 minutes per major location (3 locations × 2 hours)
+
+PHASE 2A: RESIDENTIAL ZONE (Hours 2-4)
+─────────────────────────────────────
+First neighborhood exploration. Friendly zone with moderate challenges.
+
+QUESTS (Choose 3 of 5):
+  1. "Meet the Neighborhood" - Visit 5 houses, meow at each
+     └─ Reward: +150 XP, +1 relationship to each NPC
+  2. "Garden Exploration" - Collect 10 items from gardens
+     └─ Reward: +100 XP, inventory expansion +5
+  3. "Roof Tour" - Climb 3 houses and reach roofs
+     └─ Reward: +125 XP, climbing confidence +10%
+  4. "Knockable Training" - Knock over 20 objects
+     └─ Reward: +75 XP, satisfaction +15%
+  5. "First Friendship" - Build +20 relationship with any cat
+     └─ Reward: +100 XP, first friend badge
+
+NPC ENCOUNTERS:
+  ├─ Luna (again, in garden) - Relationship building
+  ├─ Whiskers (curious young cat) - Friendly, wants to play
+  ├─ Mittens (family cat, shy) - Neutral, warms up quickly
+  └─ Scarecrow NPC (human) - Shoos you away but not aggressively
+
+SKILLS UNLOCKED (Optional - auto-trigger on use):
+  ├─ Sprint Boost: Hold run button longer (stamina cost: 5/sec)
+  ├─ Climbing Basics: Can climb wooden fences
+  └─ Friendly Meow: NPCs get +5 starting relationship
+
+COLLECTIBLES:
+  ├─ Yarn Ball (red, blue) - 5 total in residential
+  ├─ Fish Treat - 3 hidden spots
+  └─ Feather - 2 floating in wind
+
+CHALLENGES (Optional):
+  └─ "Race to the Mailbox" - 60-second navigation challenge
+     └─ Reward: +50 XP, time tracked for speedrun
+
+DIFFICULTY RAMPING:
+  ├─ Jumps get slightly higher requirement
+  ├─ Some climbs require 2+ attempts
+  └─ NPCs mention harder areas exist (psychological prep)
+
+
+PHASE 2B: PARKS ZONE (Hours 4-7)
+─────────────────────────────────
+Larger open area with more collectibles and NPCs. Introduction to
+intermediate challenges.
+
+UNLOCK TRIGGER: Complete 1 residential quest OR explore for 30 minutes
+  └─ Luna mentions: "There's a beautiful park not far from here!"
+
+QUESTS (Choose 4 of 6):
+  1. "Park Exploration" - Visit all 4 park locations
+     └─ Reward: +200 XP, area 40% unlocked
+  2. "Bird Watching" - Spot 10 birds, feather collectible reward
+     └─ Reward: +100 XP, feathers x3
+  3. "Friends Gathering" - Build +30 relationship with 2 NPCs
+     └─ Reward: +150 XP, social skill +5%
+  4. "Obstacle Course" - Complete 3-jump parkour sequence
+     └─ Reward: +125 XP, parkour confidence +15%
+  5. "Chaos Unleashed" - Knock 30 objects in the park
+     └─ Reward: +100 XP, satisfaction +25%
+  6. "Hidden Cache" - Find secret spot with 5 collectibles
+     └─ Reward: +175 XP, treasure finder badge
+
+NPC ENCOUNTERS:
+  ├─ Luna (frequent mentor) - Always friendly, gives hints
+  ├─ Whiskers (new friendship) - Play invitations
+  ├─ Tiger (active, athletic cat) - Suggests challenges
+  ├─ Small Children (human NPCs) - Want to play, generous gifts
+  └─ Park Vendor (human) - Offers small trades
+
+SKILLS UNLOCKED (On use):
+  ├─ Power Knock: Heavier knockables move farther
+  ├─ Persuasion: NPC relationship gains +25%
+  └─ Stamina Recovery: Rest regenerates stamina 50% faster
+
+COLLECTIBLES:
+  ├─ Yarn Ball (yellow, purple, green) - 8 total
+  ├─ Fish Treat - 5 hidden
+  ├─ Feather - 10 scattered
+  └─ Secret: Golden Yarn Ball x1 (legendary collectible)
+
+CHALLENGES:
+  ├─ "Park Parkour" - 5-jump sequence under 45 seconds
+  ├─ "Shadow Chase" - Catch Tiger in playtime game
+  └─ "Knockdown Championship" - Speedrun knocking objects
+
+DIFFICULTY RAMPING:
+  ├─ Double-jump hints emerge (not yet unlocked)
+  ├─ Some areas require sprint to reach
+  ├─ First time seeing territorial cat (foreshadowing)
+  └─ Weather can affect gameplay (rain = slippery surfaces)
+
+
+PHASE 2C: INDUSTRIAL PREVIEW (Hours 7-10)
+──────────────────────────────────────────
+Optional early exploration of harder area. No quests, just discovery.
+Sets up curiosity for Act 2.
+
+UNLOCK TRIGGER: Complete 4+ park/residential quests OR 2+ hours of exploration
+  └─ Shadow (territorial cat) mentions: "Beyond the market is another world..."
+
+QUESTS: NONE (Free exploration)
+OPTIONAL: Navigation challenges, collectible hunting
+
+NPC ENCOUNTERS:
+  ├─ Shadow (first territorial cat) - Cool, not hostile
+  ├─ Sage (mysterious elder cat) - Very aloof, barely acknowledges you
+  └─ Workers (human NPCs) - Busy, ignore you mostly
+
+VIBE: Hints at danger, mystery, growth
+EXPLORATION REWARD: Finding items here gives 2x XP (rare location bonus)
+
+PROGRESSION GATE: Encourage return later with better skills
+  └─ Some areas blocked (tall fences, tough climbs) = "You need more practice"
+
+
+PHASE 2 END CONDITION:
+─────────────────────
+- Complete 5+ quests from Residential/Parks
+- Build +20 relationship with at least 2 NPCs
+- Discover 30+ collectible items
+- Reach Level 7 (XP threshold)
+- Unlock at least 1 skill beyond starting mechanics
+
+PHASE 2 OUTCOME:
+├─ Player comfort with: Movement, jumping, basic climbing, NPC interaction
+├─ Player discovery of: Knockables, relationship system, skill unlocks
+├─ Player curiosity about: Industrial zone, mysterious NPCs, story hooks
+└─ Player stats: 35% exploration, 5+ relationships, 30+ collectibles
+
+
+================================================================================
+PHASE 3: ADVENTURE & CHALLENGE (Hours 10-25, Levels 8-14)
+================================================================================
+
+STORY FRAME: "The Mystery Deepens"
+Player builds on early relationships and discovers a larger mystery. Industrial
+zone opens up. The concept of "The Gateway" is introduced through NPC dialogue.
+Player becomes more skilled and attempts harder challenges.
+
+LOCATION: Industrial Zone + Waterfront + Return to previous areas
+ACCESS: Industrial and Waterfront unlock. All previous zones accessible.
+GATING: Story quests unlock industrial areas. Waterfront accessible after
+        building relationship with specific NPCs.
+
+PLAYER PROGRESSION:
+└─ Progress: 35% → 70%
+
+PHASE 3A: INDUSTRIAL ZONE (Hours 10-16)
+────────────────────────────────────────
+Dangerous, complex area. First real challenge zone. Introduces combat/parkour.
+
+UNLOCK: Complete "Industrial Rumor" quest from Shadow or Sage
+STORY: Sage hints that industrial zone holds secrets about The Gateway
+
+QUESTS (Primary Story - Must Complete):
+  1. "Industrial Secrets" - Gather 3 artifact tokens from industrial zone
+     └─ Reward: +300 XP, major story progression
+  2. "Warehouse Raid" - Navigate complex warehouse, parkour section
+     └─ Reward: +250 XP, unlock climbing skill boost
+  3. "Shadow's Challenge" - Defeat Shadow in competitive game (playtime)
+     └─ Reward: +200 XP, +50 relationship with Shadow, unlock zone
+
+QUESTS (Optional):
+  4. "Destruction Derby" - Knock down 50 objects in industrial yard
+     └─ Reward: +150 XP, satisfaction +50%
+  5. "Height Challenge" - Climb tallest building in industrial zone
+     └─ Reward: +175 XP, climbing confidence +25%
+  6. "Parkour Gauntlet" - Complete 10-section parkour course under 3 minutes
+     └─ Reward: +200 XP, parkour skill unlock
+
+NPC ENCOUNTERS:
+  ├─ Shadow (again, mentor figure) - Becomes ally, teaches skills
+  ├─ Sage (mysterious elder) - Reveals partial story about prophecy
+  ├─ Dock Workers (human) - Neutral, talk about supplies
+  ├─ Factory Manager (human) - Blocks access to some areas
+  └─ Scarlet (dangerous cat) - First real antagonist, territorial
+
+SKILLS UNLOCKED (Major):
+  ├─ Agility I: +0.5m jump height, +20% climbing speed
+  ├─ Wall Run: Slide down walls, parkour essential skill
+  ├─ Power Knock Advanced: Break ceramic objects
+  ├─ Stealth: Crouch and move quietly
+  └─ Locator Sense: Highlights nearby collectibles
+
+COLLECTIBLES:
+  ├─ Story Artifacts (3 total) - Required for progression
+  ├─ Yarn Ball (8 different colors) - 10+ scattered
+  ├─ Feather - 15 hidden
+  ├─ Special: Factory Parts - Craft-able items
+  └─ Rare: Ancient Coins - Trade for special items
+
+CHALLENGES:
+  ├─ "Industrial Speedrun" - Navigate zone in <8 minutes
+  ├─ "Parkour Master Trial" - Complete complex wall-run sequence
+  └─ "Destruction Challenge" - Cause >$50,000 in virtual damage
+
+DIFFICULTY:
+  ├─ First NPCs that can defeat player
+  ├─ Falls are actually dangerous (damage system introduced)
+  ├─ Time pressure on some challenges
+  ├─ Climbs require actual skill (not just button mashing)
+  └─ Multiple paths to achieve goals (player agency)
+
+WORLD EVENTS:
+  ├─ Day 1: Quiet, exploratory
+  ├─ Day 2: Workers arrive, area busier, harder to navigate
+  ├─ Day 3: Storm warning (weather mechanic introduced)
+  └─ Day 4: Complete industrial section, unlock next area
+
+
+PHASE 3B: WATERFRONT ZONE (Hours 16-21)
+────────────────────────────────────────
+Beautiful, mysterious water area. Introduces water mechanics and fishing.
+Continues story of The Gateway.
+
+UNLOCK: Complete industrial main quest OR build +40 relationship with any NPC
+STORY: Sage reveals that Gateway is "at the convergence of land and water"
+
+QUESTS (Primary Story):
+  1. "Harbor Secrets" - Explore waterfront, find 2 story artifacts
+     └─ Reward: +300 XP, major story progression
+  2. "Fishing Expedition" - Catch 5 fish using new mechanics
+     └─ Reward: +200 XP, unlock new food source
+  3. "Sage's Wisdom" - Build +50 relationship with Sage, unlock dialogue
+     └─ Reward: +250 XP, story revelation
+
+QUESTS (Optional):
+  4. "Boat Exploration" - Climb boats, find hidden spots
+     └─ Reward: +150 XP, navigation unlock
+  5. "Water's Edge" - Master swimming/water mechanics
+     └─ Reward: +175 XP, water confidence +30%
+  6. "Lighthouse Climb" - Reach top of lighthouse (highest point yet)
+     └─ Reward: +200 XP, victory view unlock
+
+NPC ENCOUNTERS:
+  ├─ Sage (mentor figure, reveals more) - Major story dialogue
+  ├─ Fisherman (human) - Teaches fishing, trades supplies
+  ├─ Marina Workers (humans) - Various trades
+  ├─ Seagulls (animal NPCs) - Antagonistic, comedic
+  └─ Dolphin (rare encounter) - Secret, magical moment
+
+SKILLS UNLOCKED:
+  ├─ Swimming: Navigate water at 2 m/s
+  ├─ Fishing: Catch fish using timing mini-game
+  ├─ Diving: Hold breath, explore underwater (limited)
+  ├─ Water Resistance: Rain/wet doesn't slow you down
+  └─ Boat Mastery: Climb and traverse boats safely
+
+COLLECTIBLES:
+  ├─ Fish (5 types, can eat)
+  ├─ Shells (decorative, tradeable)
+  ├─ Story Artifacts (2 total)
+  ├─ Pearls (rare, legendary)
+  └─ Fishing Trophies: Catch records
+
+CHALLENGES:
+  ├─ "Fishing Competition" - Catch most fish in 10 minutes
+  ├─ "Lighthouse Speed Run" - Climb to top in <4 minutes
+  └─ "Ocean Explorer" - Visit 15 water locations
+
+DIFFICULTY:
+  ├─ Water mechanics introduce new challenge
+  ├─ Fishing is skill-based mini-game
+  ├─ Some locations require specific skills
+  └─ Story revelations build stakes
+
+PACING: Slower, more contemplative than industrial zone
+
+
+PHASE 3C: SUBURBS UNLOCK (Hours 21-25)
+───────────────────────────────────────
+Peaceful residential area accessed after industrial + waterfront.
+More exploration, fewer combat challenges.
+
+UNLOCK: Complete industrial + waterfront main quests
+STORY: "You're getting closer to understanding The Gateway..."
+
+QUESTS (Optional, no main story):
+  1. "Suburb Exploration" - Visit all 6 suburban neighborhoods
+  2. "Quiet Life" - Build relationships with 5 new NPCs
+  3. "Perfect Homes" - Explore 10 houses completely
+
+NPC ENCOUNTERS:
+  ├─ Domestic cats - More friendly, less territorial
+  ├─ Families - Humans with children
+  └─ Retirees - Wise elders with stories
+
+VIBE: Peaceful, warm, reflective
+PROGRESSION: Not required for story, but essential for 100% completion
+
+PHASE 3 END CONDITION:
+──────────────────────
+- Complete main quests: Industrial + Waterfront
+- Build +50 relationship with Sage and Shadow
+- Discover 4+ story artifacts
+- Reach Level 14 (XP threshold)
+- Unlock 5+ advanced skills
+
+PHASE 3 OUTCOME:
+├─ Player understanding: Larger story, world depth, advanced mechanics
+├─ Player discovery: The Gateway mystery, NPC backstories
+├─ Player ability: Advanced parkour, combat skills, water mastery
+├─ Player stats: 70% exploration, 10+ relationships, 100+ collectibles
+
+
+================================================================================
+PHASE 4: CLIMAX & REVELATION (Hours 25-35, Levels 15-18)
+================================================================================
+
+STORY FRAME: "The Gateway Revealed"
+The mystery comes to a head. Player discovers The Gateway location. Major
+story revelations. Preparation for final challenge.
+
+LOCATION: Secret Areas + Return to key locations
+ACCESS: Unlocks hidden areas not accessible before
+GATING: Story gates enforce order of discovery
+
+PLAYER PROGRESSION:
+└─ Progress: 70% → 90%
+
+PHASE 4A: SECRET AREAS DISCOVERED (Hours 25-30)
+─────────────────────────────────────────────────
+Hidden locations that exist in parallel to main world.
+
+UNLOCK: Build +75 relationship with Sage
+TRIGGER: Sage reveals secret location in cryptic dialogue
+
+QUESTS:
+  1. "Hidden Garden" - Explore secret garden area, collect rare items
+  2. "Underground Tunnels" - Navigate mysterious tunnel system
+  3. "The Convergence" - Find The Gateway location
+  4. "Final Ritual" - Gather 5 sacred tokens from across world
+
+STORY BEATS:
+  ├─ Sage explains ancient prophecy about The Gateway
+  ├─ Revelation: Player is descendant of legendary cat explorer
+  ├─ Discovery: The Gateway is not physical, it's spiritual
+  └─ Challenge: Must prove worthiness through trials
+
+SKILLS UNLOCKED (Master Tier):
+  ├─ Agility II: Double-jump, +50% climb speed
+  ├─ Predator Vision: See hidden paths and secrets
+  ├─ Master Meow: Cats from across city come to your aid
+  └─ Legendary Presence: All NPCs start at +50 relationship in new games
+
+COLLECTIBLES:
+  ├─ Ancient Artifacts (5, crucial for story)
+  ├─ Legendary Items (hidden, legendary tier)
+  └─ Easter Eggs (secret references, unlocks cosmetics)
+
+DIFFICULTY:
+  ├─ Puzzles introduce element-based challenges
+  ├─ Some require creative use of mechanics
+  ├─ NPCs test your skills through competitive games
+  └─ Emotional stakes increase
+
+ZONE FEELS:
+  ├─ Hidden Garden: Peaceful, beautiful, magical
+  ├─ Tunnels: Dark, mysterious, slightly scary
+  ├─ The Convergence: Epic, grand, awe-inspiring
+
+
+PHASE 4B: THE GATEWAY TRIAL (Hours 30-35)
+──────────────────────────────────────────
+Final challenge before endgame. Culmination of all learned skills.
+
+UNLOCK: Find The Gateway location + gather all 5 sacred tokens
+
+MAIN QUEST: "Gateway Trial"
+├─ Stage 1: Prove Agility (parkour gauntlet, 3 minutes)
+├─ Stage 2: Prove Wisdom (solve 3 environmental puzzles)
+├─ Stage 3: Prove Kindness (complete NPC tasks without failing)
+├─ Stage 4: Prove Courage (face fears, survive challenges)
+└─ Final: Face The Guardian (boss encounter, skill check)
+
+BOSS ENCOUNTER: The Guardian
+├─ Not a combat boss, more a skill demonstration
+├─ Requires creative use of all learned mechanics
+├─ Multiple solutions, player agency in approach
+├─ Defeat triggers ending sequence
+
+STORY CLIMAX:
+├─ Reveal nature of The Gateway
+├─ Player becomes Legend status
+├─ All NPCs acknowledge your achievement
+├─ Unlock epilogue content
+
+REWARDS:
+├─ +500 XP (largest reward in game)
+├─ Legendary Badge
+├─ New Game+ unlock
+├─ All cosmetics unlock
+└─ Credits roll, epilogue begins
+
+PHASE 4 END CONDITION:
+──────────────────────
+- Complete Gateway Trial
+- Reach Legend status
+- Defeat The Guardian
+- Reach Level 18
+
+PHASE 4 OUTCOME:
+├─ Story complete
+├─ Main world 90% explored
+├─ All NPCs at Legendary relationship
+├─ Player satisfied with narrative arc
+
+
+================================================================================
+PHASE 5: ENDGAME & MASTERY (Hours 35+, Levels 19-20+)
+================================================================================
+
+STORY FRAME: "After The Gateway"
+Post-game content. Player returns to world with new perspective. Challenge
+system unlocks for skill-based progression.
+
+LOCATION: All areas now fully accessible with no gates
+ACCESS: 100% free roaming, all mechanics available
+
+PLAYER PROGRESSION:
+└─ Progress: 90% → 100%+ (infinite progression)
+
+ENDGAME CONTENT:
+
+1. PERFECT COMPLETION (15+ hours)
+   ├─ Collect all 150+ collectibles
+   ├─ Build Legendary relationship with all 20+ NPCs
+   ├─ Complete all 40+ optional quests
+   ├─ Achieve all 30 badges
+   └─ Reward: Platinum Trophy, exclusive cosmetic
+
+2. CHALLENGE TIERS (20+ hours)
+   ├─ Tier 1-3: Easy progression challenges
+   ├─ Tier 4: Master-level challenges (extreme parkour, speedruns)
+   ├─ Tier 5: Impossible challenges (speedrun <10 minutes, no damage)
+   └─ Reward: Leaderboard rankings, cosmetics
+
+3. NEW GAME+ (Variable hours)
+   ├─ Start with all skills unlocked
+   ├─ Increased difficulty scaling
+   ├─ New cosmetic items earned through play
+   ├─ Speedrun mode (time tracking)
+   └─ Reward: Multiple playthroughs, mastery of systems
+
+4. SANDBOX MODE (Infinite)
+   ├─ Turn off story gates
+   ├─ Create custom challenges
+   ├─ Photography mode (free movement)
+   ├─ Creative destruction mode
+   └─ Reward: Self-directed fun
+
+5. SEASONAL EVENTS (Content update loop)
+   ├─ Monthly new NPCs/quests
+   ├─ Holiday-specific cosmetics
+   ├─ Limited-time challenges
+   ├─ Community events
+   └─ Reward: Fresh content, cosmetics
+
+MASTERY PATHS:
+├─ Speedrunner: Complete game in <15 minutes
+├─ Collector: Gather all 150+ items
+├─ Socialite: Reach Legendary with all 20+ NPCs
+├─ Demolisher: Destroy $500,000+ in virtual property
+├─ Adventurer: Discover all 100+ secrets
+└─ Master: Complete 5+ of above simultaneously
+
+PROGRESSION CAP: Level 20 (but infinite challenge progression)
+COMPLETION CONDITION: Player decides (no hard end)
+
+ENDGAME OUTCOME:
+├─ Infinite replayability
+├─ Multiple mastery paths
+├─ Community competition
+├─ Cosmetic rewards
+└─ Self-directed challenge creation
+
+
+================================================================================
+RECOMMENDED PLAYER PACING GUIDE
+================================================================================
+
+CASUAL PLAYER (3 hours/week):
+  Week 1: Phase 1-2A (Onboarding + Residential)
+  Week 2-3: Phase 2B-2C (Parks + Industrial preview)
+  Week 4-6: Phase 3A (Industrial zone fully)
+  Week 7-10: Phase 3B-4 (Waterfront + Secrets)
+  Week 11: Phase 4B (Gateway Trial + Ending)
+  └─ Total: 12-14 weeks, 36-42 hours
+
+STANDARD PLAYER (5 hours/week):
+  Week 1: Phase 1-2 (Onboarding + Exploration)
+  Week 2-3: Phase 3A (Industrial zone)
+  Week 4: Phase 3B (Waterfront)
+  Week 5: Phase 3C (Suburbs)
+  Week 6: Phase 4A (Secrets)
+  Week 7: Phase 4B (Gateway Trial + Ending)
+  └─ Total: 7-8 weeks, 35-40 hours
+
+HARDCORE PLAYER (10+ hours/week):
+  Day 1: Phase 1-2A (4 hours)
+  Day 2-3: Phase 2B-3A (10 hours)
+  Day 4-5: Phase 3B-4A (10 hours)
+  Day 6: Phase 4B + Endgame (5+ hours)
+  └─ Total: 6 days, 30-40 hours, then endless endgame
+
+SPEEDRUNNER (Challenge-focused):
+  Session 1: Learn paths (3-4 hours)
+  Session 2-10: Speedrun attempts (1 hour each)
+  └─ Target: <15 minutes after 10 sessions
+
+
+================================================================================
+DIFFICULTY SCALING THROUGHOUT PROGRESSION
+================================================================================
+
+DIFFICULTY CURVE (1-5 Scale):
+  Phase 1: 1 (Tutorial, teaching)
+  Phase 2: 1.5 (Gentle, exploration)
+  Phase 3A: 2.5-3 (Challenge introduced)
+  Phase 3B: 2 (Easier, story-driven)
+  Phase 3C: 1.5 (Peaceful, optional)
+  Phase 4A: 3-3.5 (Mystery, puzzle-solving)
+  Phase 4B: 4-4.5 (Skill check, climactic)
+  Endgame: 1.5-5 (Player-selectable)
+
+STAMINA/HEALTH SYSTEM:
+  ├─ Phase 1-2: High stamina, no real danger
+  ├─ Phase 3: Moderate stamina, damage taken
+  ├─ Phase 4: Low stamina, high stakes
+  └─ Endgame: Hardcore modes available
+
+OPTIONAL DIFFICULTY ASSISTS:
+  ├─ Auto-aim jump targets
+  ├─ Stamina regeneration speed adjustment
+  ├─ Fall damage reduction
+  ├─ NPC difficulty scaling
+  └─ Time pressure adjustment
+
+HARD MODE (Must unlock after beating game once):
+  ├─ 50% stamina reduction
+  ├─ Increased fall damage
+  ├─ NPCs start at 0 relationship (harder to befriend)
+  ├─ Fewer collectible hints
+  └─ Speedrun-friendly settings
+
+
+================================================================================
+SKILL UNLOCK PROGRESSION TIMELINE
+================================================================================
+
+UNLOCKED AT START:
+  └─ Walking, Jumping, Basic Interaction
+
+UNLOCK BY HOUR 1:
+  ├─ Running
+  ├─ Basic Meowing
+  └─ Knockable Basics
+
+UNLOCK BY HOUR 5:
+  ├─ Sprint Boost
+  ├─ Climbing (wooden surfaces)
+  ├─ Friendly Meow
+  └─ Rest/Grooming mechanics
+
+UNLOCK BY HOUR 10:
+  ├─ Power Knock
+  ├─ Climbing (brick/stone)
+  ├─ Persuasion
+  └─ Stamina Recovery
+
+UNLOCK BY HOUR 15:
+  ├─ Agility I (higher jumps)
+  ├─ Wall Run
+  ├─ Stealth Movement
+  └─ Leadership
+
+UNLOCK BY HOUR 20:
+  ├─ Power Knock Advanced (destruction)
+  ├─ Climbing (any surface)
+  ├─ Swimming
+  └─ Legendary Sense
+
+UNLOCK BY HOUR 25:
+  ├─ Agility II (double-jump)
+  ├─ Predator Vision
+  ├─ Master Meow
+  └─ Chaos Control
+
+UNLOCK BY HOUR 30:
+  └─ All abilities available, mastery through use
+
+
+================================================================================
+NPC RELATIONSHIP PROGRESSION EXAMPLE: SAGE (Mysterious Elder)
+================================================================================
+
+HOUR 0-5: NOT MET
+  └─ Status: Unknown
+
+HOUR 5-10: FIRST ENCOUNTER (Industrial preview)
+  └─ Sage ignores player, very aloof
+  └─ Relationship: -10 (distant)
+
+HOUR 10-15: CASUAL ENCOUNTERS
+  └─ Sage acknowledges player's presence
+  └─ Brief dialogue: "You're getting braver..."
+  └─ Relationship: -5 (neutral/distant)
+
+HOUR 15-20: BUILDING RESPECT
+  └─ Sage approaches player after defeating Shadow
+  └─ Dialogue: "I see potential in you..."
+  └─ Relationship: +15 (warming up)
+
+HOUR 20-25: MENTORSHIP BEGINS
+  └─ Sage offers quest: "Find my lost meditation spot"
+  └─ Dialogue: Personal stories, hints about Gateway
+  └─ Relationship: +40 (friendly mentor)
+
+HOUR 25-30: CONSPIRACY REVEALED
+  └─ Sage reveals Gateway mystery
+  └─ Dialogue: Ancient prophecy, player's destiny
+  └─ Relationship: +70 (trusted confidant)
+
+HOUR 30-35: CLIMAX
+  └─ Sage guides player through final trials
+  └─ Dialogue: "You are the one we've been waiting for..."
+  └─ Relationship: +100 (legend status)
+
+HOUR 35+: EPILOGUE
+  └─ Sage appears in endgame content
+  └─ New dialogue reflecting on journey
+  └─ Relationship: +150 (eternal bond)
+
+
+================================================================================
+CONTENT CHECKLIST: WHAT UNLOCKS WHEN
+================================================================================
+
+HOUR 0-2:
+  ☐ Tutorial complete
+  ☐ Movement mechanics learned
+  ☐ First NPC (Luna) befriended
+  ☐ Home location found
+  ☐ 3-5 collectibles gathered
+
+HOUR 2-5:
+  ☐ Downtown 100% explored
+  ☐ Residential zone introduced
+  ☐ 2 skill unlocks (Sprint, Climb)
+  ☐ First relationship builds
+  ☐ 10 collectibles gathered
+
+HOUR 5-10:
+  ☐ Parks zone discovered
+  ☐ Industrial zone preview
+  ☐ 4 NPCs in active relationships
+  ☐ 3-4 skill unlocks
+  ☐ 30 collectibles gathered
+
+HOUR 10-15:
+  ☐ Industrial zone main quests available
+  ☐ Shadow befriended
+  ☐ Waterfront zone unlocked
+  ☐ 6-7 skill unlocks
+  ☐ 50+ collectibles gathered
+
+HOUR 15-20:
+  ☐ Industrial zone 80% complete
+  ☐ Waterfront zone main quests
+  ☐ Sage becomes mentor figure
+  ☐ 8-9 skill unlocks
+  ☐ 75+ collectibles gathered
+
+HOUR 20-25:
+  ☐ Waterfront zone 100% complete
+  ☐ Suburbs zone discovered
+  ☐ 8+ NPCs at Legendary relationship
+  ☐ 10 skill unlocks (near-complete)
+  ☐ 100+ collectibles gathered
+
+HOUR 25-30:
+  ☐ Secret areas discovered
+  ☐ Sage reveals Gateway location
+  ☐ All story artifacts found (4/5)
+  ☐ All major skill unlocks
+  ☐ 125+ collectibles gathered
+
+HOUR 30-35:
+  ☐ Gateway location reached
+  ☐ Gateway Trial begun
+  ☐ All story artifacts found (5/5)
+  ☐ Legend status achieved
+  ☐ Game ending sequence
+  ☐ 140+ collectibles gathered
+
+HOUR 35+:
+  ☐ New Game+ available
+  ☐ Challenge Tiers available
+  ☐ Endgame cosmetics unlocking
+  ☐ Speedrun leaderboards active
+  ☐ Seasonal events available
+
+
+================================================================================
+RECOMMENDED DESIGN PRIORITY
+================================================================================
+
+WEEK 1: FOUNDATION
+  ├─ Player controller (movement, jumping, physics)
+  ├─ Camera system
+  ├─ Basic HUD
+  └─ Downtown tutorial zone
+
+WEEK 2: EXPLORATION MECHANICS
+  ├─ Knockable object system
+  ├─ Climbing mechanics (basic trees)
+  ├─ Collectible system
+  └─ Residential zone
+
+WEEK 3: NPC SYSTEM
+  ├─ NPC spawning and routines
+  ├─ Dialogue system
+  ├─ Relationship tracking
+  └─ Parks zone + first NPCs
+
+WEEK 4: ADVANCED MECHANICS
+  ├─ Advanced climbing (walls, parkour)
+  ├─ Skill unlock system
+  ├─ Story quest framework
+  └─ Industrial zone
+
+WEEK 5: COMPLETE STORY
+  ├─ Waterfront zone
+  ├─ Story progression gates
+  ├─ Sage's dialogue trees
+  ├─ Secret areas
+  └─ Gateway location
+
+WEEK 6: POLISH & ENDGAME
+  ├─ Challenge tier system
+  ├─ Balance and difficulty scaling
+  ├─ Cosmetics/cosmetic unlocks
+  ├─ New Game+ setup
+  └─ Speedrun mode
+
+WEEK 7: FINAL PASS
+  ├─ Bug fixes
+  ├─ Performance optimization
+  ├─ Content review
+  ├─ Balance tweaks
+  └─ Release candidate build
+
+
+================================================================================
+SUCCESS CRITERIA
+================================================================================
+
+PHASE 1 (Tutorial): Player understands core mechanics
+  └─ 95%+ completion rate of tutorial quests
+
+PHASE 2 (Exploration): Player discovers autonomously
+  └─ 70%+ of players explore beyond guided areas
+
+PHASE 3 (Adventure): Player invests in relationships
+  └─ Average 5+ NPC relationships formed
+
+PHASE 4 (Climax): Player emotionally engaged
+  └─ 85%+ of players complete main story
+
+PHASE 5 (Endgame): Player continues playing after beating
+  └─ 40%+ of players attempt challenge modes
+  └─ Average 50+ hours played across all completionists
+
+OVERALL:
+  └─ Average session length: 2-3 hours
+  └─ Average total playtime: 45-60 hours
+  └─ Replay rate: 30%+ attempt New Game+
+  └─ Speedrun community engagement
+
+
+================================================================================
+END OF PROGRESSION FLOW
+================================================================================
+
+Total Game Duration: 35-80 hours (depending on engagement level)
+Recommended Playstyle: Discovery-First with Story framework
+Difficulty Curve: Gentle → Challenging → Epic → Infinite
+
+Last Updated: 2026-07-10
+Design Status: COMPLETE - Ready for Implementation

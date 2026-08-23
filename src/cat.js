@@ -1,0 +1,882 @@
+import * as THREE from 'three';
+
+// 3-step toon ramp texture for Studio Ghibli cel shading
+let toonGradientTexture = null;
+function getToonGradient() {
+  if (!toonGradientTexture) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 4;
+    canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.createImageData(4, 1);
+    // 4 sharp discrete brightness steps for anime cel-shading
+    const steps = [100, 160, 215, 255];
+    for (let i = 0; i < 4; i++) {
+      imgData.data[i * 4 + 0] = steps[i];
+      imgData.data[i * 4 + 1] = steps[i];
+      imgData.data[i * 4 + 2] = steps[i];
+      imgData.data[i * 4 + 3] = 255;
+    }
+    ctx.putImageData(imgData, 0, 0);
+    toonGradientTexture = new THREE.CanvasTexture(canvas);
+    toonGradientTexture.minFilter = THREE.NearestFilter;
+    toonGradientTexture.magFilter = THREE.NearestFilter;
+    toonGradientTexture.generateMipmaps = false;
+  }
+  return toonGradientTexture;
+}
+
+function toonMat(color, opts = {}) {
+  return new THREE.MeshToonMaterial({
+    color,
+    gradientMap: getToonGradient(),
+    ...opts
+  });
+}
+
+// Thin animation-cell ink outline (inverted hull) for the Ghibli cel look.
+// A slightly enlarged back-faced copy of the mesh creates a hairline contour.
+let _outlineMat = null;
+function getOutlineMaterial() {
+  if (!_outlineMat) {
+    _outlineMat = new THREE.MeshBasicMaterial({ color: 0x241308, side: THREE.BackSide });
+  }
+  return _outlineMat;
+}
+function addOutline(mesh, k = 1.05) {
+  const o = new THREE.Mesh(mesh.geometry, getOutlineMaterial());
+  o.scale.setScalar(k);
+  mesh.add(o);
+  return mesh;
+}
+
+function capsule(r, len, mat, sx = 1, sy = 1, sz = 1) {
+  const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 8, 14), mat);
+  m.scale.set(sx, sy, sz);
+  m.castShadow = true;
+  return m;
+}
+
+function ball(r, mat, sx = 1, sy = 1, sz = 1, w = 18, h = 14) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, w, h), mat);
+  m.scale.set(sx, sy, sz);
+  m.castShadow = true;
+  return m;
+}
+
+export class Cat {
+  constructor(options = {}) {
+    // Exact Studio Ghibli brown tabby palette from reference images
+    const fur = options.fur ?? 0x7a5b48;          // Warm taupe-brown base
+    const belly = options.belly ?? 0xebdcc8;      // Cream/buff chest bib & muzzle
+    const accent = options.accent ?? 0x3a2820;    // Dark chocolate brown mackerel tabby stripes
+    const eyeColor = options.eyeColor ?? 0xebb02a;// Golden-amber anime eyes
+    const ribbonColor = options.ribbonColor ?? 0xd63228;
+
+    this.matFur = toonMat(fur);
+    this.matBelly = toonMat(belly);
+    this.matAccent = toonMat(accent);
+    this.matPink = toonMat(0xcca0a7);
+    this.matNose = toonMat(0xcb757e);
+    this.matEyeLiner = toonMat(0x221712);
+    this.matEye = toonMat(eyeColor);
+    this.matPupil = toonMat(0x140e0a);
+    this.matGlint = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    this.matPawPad = toonMat(0xd8959d);
+    this.matGoldBell = toonMat(0xf7ca38, { emissive: 0x5a3e04, emissiveIntensity: 0.3 });
+    this.matRibbon = toonMat(ribbonColor);
+
+    this.group = new THREE.Group();
+    this.body = new THREE.Group();
+    this.group.add(this.body);
+
+    this.isMeowing = false;
+    this.meowTimer = 0;
+    this.isProwling = false;
+
+    this.buildTorso();
+    this.buildHead();
+    this.buildLegs();
+    this.buildTail();
+
+    this.time = Math.random() * 10;
+    this.phase = 0;
+    this.speedBlend = 0;
+    this.blinkTimer = 2 + Math.random() * 4;
+    this.blink = 0;
+    this.earTwitch = 0;
+    this.earTwitchTimer = 3 + Math.random() * 5;
+    this.purr = 0;
+
+    // Audio + mood / idle / action state
+    this.audio = options.audio || null;
+    this.mood = 'calm';
+    this.moodTimer = 0;
+    this.moodPriority = 0;
+    this.state = 'idle';
+    this.idleTimer = 0;
+    this.idleAction = null;
+    this.idleActionTimer = 0;
+    this.idleActionDuration = 0;
+    // Cat stands alert/calm and only sits down after prolonged stillness
+    this.nextIdleTime = 18.0 + Math.random() * 14.0;
+    this.jumpTime = 0;
+    this.landTime = 0;
+    this.yawnOpen = 0;
+    this.isSprinting = false;
+    this.isTurning = false;
+    this.inWater = false;
+
+    // Neutral base transforms for idle poses and resets
+    this.base = {
+      bodyY: this.body.position.y,
+      chestY: this.chest.position.y,
+      hipsY: this.hips.position.y,
+      headY: this.head.position.y,
+      bodyRotX: 0,
+      bodyRotZ: 0,
+      headRotX: 0,
+      headRotY: 0,
+      neckX: 0,
+      tailRootX: 0.85,
+      legRootX: [0, 0, 0, 0],
+      legKneeX: [0, 0, 0, 0],
+      earX: [-0.12, -0.12]
+    };
+  }
+
+  buildTorso() {
+    this.hips = new THREE.Group();
+    this.hips.position.set(0, 0.43, -0.12);
+    this.body.add(this.hips);
+
+    this.chest = new THREE.Group();
+    this.chest.position.set(0, 0.45, 0.13);
+    this.body.add(this.chest);
+
+    const hipMesh = ball(0.15, this.matFur, 0.95, 0.95, 1.2);
+    addOutline(hipMesh, 1.055);
+    this.hips.add(hipMesh);
+
+    const chestMesh = ball(0.16, this.matFur, 0.92, 1, 1.3);
+    addOutline(chestMesh, 1.055);
+    this.chest.add(chestMesh);
+
+    // Cream chest ruff: broad where it tucks under the neck, then tapering
+    // naturally into a small triangular tuft instead of a round chest patch.
+    const bibVerts = [
+      -0.072,  0.070, 0.147,
+       0.072,  0.070, 0.147,
+       0.052,  0.015, 0.190,
+       0.000, -0.105, 0.160,
+      -0.052,  0.015, 0.190
+    ];
+    const bibGeo = new THREE.BufferGeometry();
+    bibGeo.setAttribute('position', new THREE.Float32BufferAttribute(bibVerts, 3));
+    bibGeo.setIndex([0, 1, 2, 0, 2, 4, 4, 2, 3]);
+    bibGeo.computeVertexNormals();
+    const bibMesh = new THREE.Mesh(bibGeo, this.matBelly);
+    bibMesh.castShadow = false;
+    this.chest.add(bibMesh);
+
+    // Subtle cream belly line kept low along the underside
+    const bellyMesh = ball(0.115, this.matBelly, 0.6, 0.5, 1.35);
+    bellyMesh.position.set(0, -0.105, -0.06);
+    this.chest.add(bellyMesh);
+
+    const spine = capsule(0.14, 0.22, this.matFur, 0.88, 1, 1);
+    spine.rotation.x = Math.PI / 2;
+    spine.position.set(0, 0.44, 0.005);
+    addOutline(spine, 1.04);
+    this.body.add(spine);
+
+    // Broad tabby coat patches: filled markings that conform to the torso,
+    // rather than separate rope or tube geometry. They sit only 0.0015 above
+    // the coat to prevent z-fighting while staying visually flush.
+    const bandDefs = [
+      // [z along body, width across the spine, width at the flanks]
+      [0.175, 0.046, 0.022],
+      [0.065, 0.056, 0.030],
+      [-0.055, 0.056, 0.030],
+      [-0.165, 0.046, 0.022]
+    ];
+    const stripeXs = [-0.13, -0.095, -0.055, 0, 0.055, 0.095, 0.13];
+    for (const [bz, centerWidth, flankWidth] of bandDefs) {
+      const verts = [];
+      const indices = [];
+      for (let i = 0; i < stripeXs.length; i++) {
+        const x = stripeXs[i];
+        const flankAmount = Math.abs(x) / 0.13;
+        const halfWidth = THREE.MathUtils.lerp(centerWidth, flankWidth, flankAmount);
+        // The forward band spans the higher shoulder volume. Lift it over that
+        // silhouette so its dark edge remains visible beside the neck/chest.
+        const shoulderLift = bz > 0.13 ? 0.035 : 0;
+        const y = 0.44 + Math.sqrt(Math.max(0, 0.14 * 0.14 - x * x)) + shoulderLift + 0.0015;
+        verts.push(x, y, bz - halfWidth, x, y, bz + halfWidth);
+      }
+      for (let i = 0; i < stripeXs.length - 1; i++) {
+        const a = i * 2;
+        // Wind upward/outward so the top-facing coat pattern is visible.
+        indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+      const band = new THREE.Mesh(geo, this.matAccent);
+      band.castShadow = false;
+      this.body.add(band);
+    }
+
+    const blobCanvas = document.createElement('canvas');
+    blobCanvas.width = 64;
+    blobCanvas.height = 64;
+    const bctx = blobCanvas.getContext('2d');
+    const bgrad = bctx.createRadialGradient(32, 32, 4, 32, 32, 31);
+    bgrad.addColorStop(0, 'rgba(20, 12, 6, 0.42)');
+    bgrad.addColorStop(0.6, 'rgba(20, 12, 6, 0.18)');
+    bgrad.addColorStop(1, 'rgba(20, 12, 6, 0)');
+    bctx.fillStyle = bgrad;
+    bctx.fillRect(0, 0, 64, 64);
+    this.blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.42, 24),
+      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(blobCanvas), transparent: true, depthWrite: false })
+    );
+    this.blob.rotation.x = -Math.PI / 2;
+    this.blob.position.y = 0.025;
+    this.blob.renderOrder = 1;
+    this.group.add(this.blob);
+  }
+
+  updateShadow(heightAboveGround) {
+    if (!this.blob) return;
+    this.blob.position.y = 0.025 - heightAboveGround;
+    const k = THREE.MathUtils.clamp(1 - heightAboveGround * 0.45, 0.35, 1);
+    this.blob.scale.setScalar(k);
+    this.blob.material.opacity = k;
+  }
+
+  buildHead() {
+    this.neck = new THREE.Group();
+    this.neck.position.set(0, 0.08, 0.14);
+    this.chest.add(this.neck);
+
+    // Fur bridge so the head connects seamlessly to the body (no gap/neck hole)
+    const neckFur = capsule(0.058, 0.10, this.matFur);
+    neckFur.rotation.x = Math.PI / 2.6;
+    neckFur.position.set(0, 0.05, 0.045);
+    addOutline(neckFur, 1.08);
+    this.neck.add(neckFur);
+
+    this.head = new THREE.Group();
+    this.head.position.set(0, 0.125, 0.055);
+    this.head.scale.setScalar(1.06);
+    this.neck.add(this.head);
+
+    // Studio Ghibli rounded feline head
+    const skull = ball(0.104, this.matFur, 1.05, 0.96, 1.05);
+    addOutline(skull, 1.05);
+    this.head.add(skull);
+
+    // Fluffy cheek ruffs
+    const cheekL = ball(0.062, this.matFur, 1.15, 0.82, 0.95);
+    cheekL.position.set(-0.048, -0.022, 0.022);
+    const cheekR = ball(0.062, this.matFur, 1.15, 0.82, 0.95);
+    cheekR.position.set(0.048, -0.022, 0.022);
+    this.head.add(cheekL, cheekR);
+
+    // Dark cheek tabby stripes (iconic horizontal marks below eyes from reference)
+    for (const side of [-1, 1]) {
+      const cheekMark = ball(0.022, this.matAccent, 1.4, 0.35, 0.8);
+      cheekMark.position.set(side * 0.072, -0.012, 0.052);
+      cheekMark.rotation.y = side * 0.35;
+      cheekMark.rotation.z = side * 0.12;
+      this.head.add(cheekMark);
+    }
+
+    // Forehead M-shaped tabby crest & brow stripes from reference images
+    const browMarkL = ball(0.018, this.matAccent, 0.45, 1.6, 0.6);
+    browMarkL.position.set(-0.022, 0.066, 0.072);
+    browMarkL.rotation.z = -0.22;
+    const browMarkR = ball(0.018, this.matAccent, 0.45, 1.6, 0.6);
+    browMarkR.position.set(0.022, 0.066, 0.072);
+    browMarkR.rotation.z = 0.22;
+    const browCenter = ball(0.018, this.matAccent, 0.5, 1.8, 0.6);
+    browCenter.position.set(0, 0.076, 0.07);
+    this.head.add(browMarkL, browMarkR, browCenter);
+
+    // Cream snout bridge & rounded whisker pads
+    const snoutBridge = ball(0.042, this.matBelly, 0.9, 0.78, 1.15);
+    snoutBridge.position.set(0, -0.008, 0.082);
+    this.head.add(snoutBridge);
+
+    const padL = ball(0.028, this.matBelly, 1.12, 0.86, 0.96);
+    padL.position.set(-0.024, -0.024, 0.116);
+    const padR = ball(0.028, this.matBelly, 1.12, 0.86, 0.96);
+    padR.position.set(0.024, -0.024, 0.116);
+    this.head.add(padL, padR);
+    this.muzzle = snoutBridge;
+
+    // Small rounded lower chin (cream)
+    const chin = ball(0.022, this.matBelly, 0.95, 0.72, 0.9);
+    chin.position.set(0, -0.044, 0.096);
+    this.head.add(chin);
+
+    // Soft coral pink nose leather
+    const nose = ball(0.014, this.matNose, 1.15, 0.82, 0.75, 10, 8);
+    nose.position.set(0, -0.014, 0.134);
+    this.head.add(nose);
+
+    // Large, round, expressive Ghibli anime eyes
+    this.eyes = [];
+    this.pupils = [];
+    this.glints = [];
+
+    for (const side of [-1, 1]) {
+      const eyeGroup = new THREE.Group();
+      eyeGroup.position.set(side * 0.045, 0.020, 0.088);
+      eyeGroup.rotation.y = side * 0.18;
+      // Almond tilt: outer corners raised like the reference art
+      eyeGroup.rotation.z = side * -0.14;
+
+      // Dark anime eye contour / eyeliner — wide almond shape
+      const eyeLiner = ball(0.028, this.matEyeLiner, 1.28, 1.15, 0.45, 16, 12);
+      eyeGroup.add(eyeLiner);
+
+      // Warm glowing golden-amber iris (almond)
+      const iris = ball(0.024, this.matEye, 1.16, 1.06, 0.52, 16, 12);
+      iris.position.set(0, 0, 0.004);
+      eyeGroup.add(iris);
+
+      // Large rounded dark pupil
+      const pupil = ball(0.014, this.matPupil, 0.88, 1.05, 0.65, 10, 10);
+      pupil.position.set(0, 0, 0.008);
+      eyeGroup.add(pupil);
+
+      // Bright white anime highlight catchlight
+      const glint = ball(0.0055, this.matGlint, 1, 1, 0.4, 6, 6);
+      glint.position.set(side * -0.006, 0.007, 0.012);
+      eyeGroup.add(glint);
+
+      const glintSmall = ball(0.0028, this.matGlint, 1, 1, 0.4, 4, 4);
+      glintSmall.position.set(side * 0.005, -0.006, 0.012);
+      eyeGroup.add(glintSmall);
+
+      this.head.add(eyeGroup);
+      this.eyes.push(eyeGroup);
+      this.pupils.push(pupil);
+    }
+
+    // Triangular Ghibli cat ears with warm pink inner ear
+    this.ears = [];
+    for (const side of [-1, 1]) {
+      const ear = new THREE.Group();
+      ear.position.set(side * 0.062, 0.095, 0.008);
+
+      const outer = new THREE.Mesh(new THREE.ConeGeometry(0.042, 0.086, 4), this.matFur);
+      outer.rotation.y = Math.PI / 4;
+      outer.castShadow = true;
+
+      const inner = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.058, 4), this.matPink);
+      inner.rotation.y = Math.PI / 4;
+      inner.position.set(0, -0.006, 0.012);
+
+      const tuft = ball(0.018, this.matBelly, 0.85, 1.0, 0.8, 8, 6);
+      tuft.position.set(side * -0.004, -0.022, 0.014);
+
+      ear.add(outer, inner, tuft);
+      ear.rotation.z = side * -0.22;
+      ear.rotation.x = -0.08;
+      ear.rotation.y = side * 0.12;
+      this.head.add(ear);
+      this.ears.push(ear);
+    }
+
+    // Clean, expressive dark anime whiskers
+    const whiskerMat = new THREE.LineBasicMaterial({ color: 0x221712, transparent: true, opacity: 0.75, linewidth: 2 });
+    for (const side of [-1, 1]) {
+      const whiskerAngles = [0.10, -0.02, -0.14];
+      for (let i = 0; i < whiskerAngles.length; i++) {
+        const y = -0.019 - i * 0.006;
+        const ang = whiskerAngles[i];
+        const pts = [
+          new THREE.Vector3(side * 0.026, y, 0.118),
+          new THREE.Vector3(side * 0.070, y + ang * 0.03, 0.124),
+          new THREE.Vector3(side * 0.125, y + ang * 0.07 - 0.008, 0.114)
+        ];
+        const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), whiskerMat);
+        this.head.add(line);
+      }
+    }
+  }
+
+  buildLegs() {
+    this.legs = [];
+    const defs = [
+      { parent: this.chest, x: -0.075, z: 0.05, front: true },
+      { parent: this.chest, x: 0.075, z: 0.05, front: true },
+      { parent: this.hips, x: -0.075, z: -0.04, front: false },
+      { parent: this.hips, x: 0.075, z: -0.04, front: false }
+    ];
+    for (const d of defs) {
+      const root = new THREE.Group();
+      root.position.set(d.x, -0.05, d.z);
+      d.parent.add(root);
+
+      const upperLen = d.front ? 0.13 : 0.15;
+      const upper = capsule(d.front ? 0.035 : 0.048, upperLen, this.matFur, 0.85, 1, 0.85);
+      upper.position.y = -upperLen / 2 - 0.02;
+      addOutline(upper, 1.10);
+      root.add(upper);
+
+      const knee = new THREE.Group();
+      knee.position.y = -upperLen - 0.04;
+      root.add(knee);
+
+      const lowerLen = 0.13;
+      const lower = capsule(0.026, lowerLen, this.matFur, 0.85, 1, 0.85);
+      lower.position.y = -lowerLen / 2 - 0.015;
+      addOutline(lower, 1.14);
+      knee.add(lower);
+
+      // Dark tabby band stripe on leg
+      const legStripe = ball(0.028, this.matAccent, 0.9, 0.4, 0.9);
+      legStripe.position.set(0, -lowerLen * 0.5, 0);
+      knee.add(legStripe);
+
+      // Cream white paws / socks from reference images
+      const paw = new THREE.Group();
+      const pawBall = ball(0.034, this.matBelly, 1, 0.65, 1.35);
+      paw.add(pawBall);
+
+      // Pink paw beans / pads
+      const mainPad = ball(0.014, this.matPawPad, 1.1, 0.4, 1.0, 8, 6);
+      mainPad.position.set(0, -0.022, 0.005);
+      paw.add(mainPad);
+      for (let t = -1; t <= 1; t++) {
+        const toe = ball(0.007, this.matPawPad, 1, 0.4, 1, 6, 6);
+        toe.position.set(t * 0.014, -0.022, 0.024);
+        paw.add(toe);
+      }
+
+      paw.position.set(0, -lowerLen - 0.058, 0.014);
+      knee.add(paw);
+
+      this.legs.push({ root, knee, front: d.front, upperLen, lowerLen, paw });
+    }
+  }
+
+  buildTail() {
+    this.tailSegs = [];
+    let parent = this.hips;
+    let segLen = 0.09;
+    const root = new THREE.Group();
+    root.position.set(0, 0.05, -0.14);
+    parent.add(root);
+    let cur = root;
+    for (let i = 0; i < 5; i++) {
+      const seg = new THREE.Group();
+      if (i > 0) seg.position.z = -segLen * 0.82;
+      const r = 0.034 - i * 0.003;
+      // Five alternating tabby sections: dark at the body connection, then
+      // fur/dark/fur/dark through the dark tip, matching the reference tail.
+      const mat = (i % 2 === 0) ? this.matAccent : this.matFur;
+      const mesh = capsule(r, segLen, mat);
+      mesh.rotation.x = Math.PI / 2;
+      mesh.position.z = -segLen / 2;
+      addOutline(mesh, 1.12);
+      seg.add(mesh);
+      cur.add(seg);
+      this.tailSegs.push(seg);
+      cur = seg;
+    }
+    root.rotation.x = 0.85;
+    this.tailRoot = root;
+  }
+
+  update(dt, moveSpeed = 0, grounded = true, isSprinting = false, isTurning = false, inWater = false, nearObject = null) {
+    this.time += dt;
+    const time = this.time;
+    this.isSprinting = isSprinting;
+    this.isTurning = isTurning;
+    this.inWater = inWater;
+
+    const cfg = this.getMoodConfig();
+    if (this.moodTimer > 0) {
+      this.moodTimer -= dt;
+      if (this.moodTimer <= 0) this.setMood('calm', -1);
+    }
+
+    if (inWater) this.setMood('cautious', 0.3, 1);
+    if (nearObject === 'yarn') this.setMood('playful', 0.4, 1);
+    if (nearObject === 'npc') this.setMood('curious', 0.4, 1);
+    if (isSprinting) this.setMood('alert', 0.4, 1);
+
+    const target = THREE.MathUtils.clamp(moveSpeed / 6, 0, 1.4);
+    this.speedBlend += (target - this.speedBlend) * Math.min(1, dt * 8);
+    const sb = this.speedBlend;
+
+    if (this.jumpTime > 0) this.jumpTime -= dt;
+    if (this.landTime > 0) this.landTime -= dt;
+
+    let state = 'idle';
+    if (!grounded) state = 'jump';
+    else if (this.landTime > 0) state = 'land';
+    else if (isSprinting && moveSpeed > 0.5) state = 'run';
+    else if (moveSpeed > 0.1) state = 'walk';
+    else if (isTurning) state = 'turn';
+    this.state = state;
+
+    if (state === 'idle') {
+      this.idleTimer += dt;
+      if (!this.idleAction && this.idleTimer >= this.nextIdleTime) {
+        this.beginIdleAction();
+      }
+    } else {
+      this.idleTimer = 0;
+      if (this.idleAction) this.endIdleAction();
+    }
+
+    if (this.idleAction) {
+      this.applyIdleAction(dt);
+    } else {
+      this.animateLocomotion(dt, time, sb, grounded, isSprinting, isTurning);
+    }
+
+    this.applyMood(dt, time, cfg);
+  }
+
+  getMoodConfig() {
+    const map = {
+      calm:       { earTwitchBase: 1.5, blinkBase: 1.0, pupilScale: 1.0, tailSpeed: 1.0, tailLift: 0.0,  headScan: 1.0 },
+      curious:    { earTwitchBase: 1.0, blinkBase: 0.9, pupilScale: 1.08, tailSpeed: 0.9, tailLift: 0.10, headScan: 1.4 },
+      playful:    { earTwitchBase: 0.6, blinkBase: 0.85, pupilScale: 1.15, tailSpeed: 1.6, tailLift: 0.35, headScan: 1.8 },
+      sleepy:     { earTwitchBase: 3.0, blinkBase: 1.8, pupilScale: 0.90, tailSpeed: 0.4, tailLift: -0.05, headScan: 0.4 },
+      startled:   { earTwitchBase: 0.2, blinkBase: 0.15, pupilScale: 1.25, tailSpeed: 2.2, tailLift: 0.55, headScan: 2.5 },
+      alert:      { earTwitchBase: 0.7, blinkBase: 0.7, pupilScale: 1.10, tailSpeed: 1.3, tailLift: 0.20, headScan: 1.3 },
+      cautious:   { earTwitchBase: 1.2, blinkBase: 1.0, pupilScale: 1.0, tailSpeed: 0.7, tailLift: -0.10, headScan: 0.8 }
+    };
+    return map[this.mood] || map.calm;
+  }
+
+  setMood(name, duration = 2.0, priority = 0) {
+    if (priority < this.moodPriority && this.moodTimer > 0 && name !== 'calm') return;
+    if (name === 'calm') priority = 0;
+    this.mood = name;
+    this.moodTimer = Math.max(duration, 0);
+    this.moodPriority = priority;
+    if (this.audio) {
+      if (name === 'playful' && this.canPlaySound('trill')) this.audio.playTrill();
+      else if (name === 'startled' && this.canPlaySound('hiss')) this.audio.playHiss();
+      else if (name === 'curious' && this.canPlaySound('chirp')) this.audio.playChirp();
+    }
+  }
+
+  canPlaySound(type, cooldown = 1.5) {
+    const now = performance.now() / 1000;
+    this.soundCooldowns = this.soundCooldowns || {};
+    if (now - (this.soundCooldowns[type] || 0) < cooldown) return false;
+    this.soundCooldowns[type] = now;
+    return true;
+  }
+
+  onJump() {
+    this.jumpTime = 0.35;
+    this.setMood('alert', 0.6, 2);
+  }
+
+  onLand() {
+    this.landTime = 0.18;
+  }
+
+  onSprint(active) {
+    if (active) this.setMood('alert', 0.4, 1);
+  }
+
+  beginIdleAction() {
+    // Balanced idle repertoire (gentle stretches, yawns, occasional grooming/sitting)
+    const actions = ['stretch', 'yawn', 'groom', 'sit'];
+    const weights = [0.35, 0.30, 0.20, 0.15];
+    const r = Math.random();
+    let choice = 'stretch';
+    let c = 0;
+    for (let i = 0; i < actions.length; i++) {
+      c += weights[i];
+      if (r <= c) { choice = actions[i]; break; }
+    }
+    this.idleAction = choice;
+    this.idleActionTimer = 0;
+    this.idleActionDuration = choice === 'sit' ? 4 + Math.random() * 2 : choice === 'groom' ? 2.5 + Math.random() * 1.5 : choice === 'stretch' ? 2.2 + Math.random() : 1.6 + Math.random();
+    this.yawnOpen = 0;
+    if (this.audio && choice === 'sit' && Math.random() > 0.6) this.audio.playPurr(this.idleActionDuration);
+  }
+
+  endIdleAction() {
+    this.idleAction = null;
+    this.idleActionTimer = 0;
+    this.idleTimer = 0;
+    this.nextIdleTime = 18.0 + Math.random() * 14.0;
+    this.yawnOpen = 0;
+    if (this.muzzle) this.muzzle.scale.set(1, 1, 1);
+  }
+
+  applyIdleAction(dt) {
+    this.idleActionTimer += dt;
+    const d = this.idleActionDuration;
+    const p = this.idleActionTimer / d;
+
+    let blend;
+    if (p < 0.2) blend = p / 0.2;
+    else if (p < 0.65) blend = 1.0;
+    else blend = Math.max(0, 1 - (p - 0.65) / 0.35);
+    blend = blend * blend * (3 - 2 * blend);
+
+    const pose = this.getIdlePose(this.idleAction);
+    this.yawnOpen = (this.idleAction === 'yawn') ? blend : 0;
+
+    this.body.position.y = THREE.MathUtils.lerp(this.base.bodyY, pose.bodyY, blend);
+    this.body.rotation.x = THREE.MathUtils.lerp(this.base.bodyRotX, pose.bodyRotX, blend);
+    this.body.rotation.z = THREE.MathUtils.lerp(this.base.bodyRotZ, pose.bodyRotZ, blend);
+    this.chest.position.y = THREE.MathUtils.lerp(this.base.chestY, pose.chestY, blend);
+    this.hips.position.y = THREE.MathUtils.lerp(this.base.hipsY, pose.hipsY, blend);
+    this.head.position.y = THREE.MathUtils.lerp(this.base.headY, pose.headY, blend);
+    this.head.rotation.x = THREE.MathUtils.lerp(this.base.headRotX, pose.headRotX, blend);
+    this.head.rotation.y = THREE.MathUtils.lerp(this.base.headRotY, pose.headRotY, blend);
+    this.neck.rotation.x = THREE.MathUtils.lerp(this.base.neckX, pose.neckX, blend);
+    this.tailRoot.rotation.x = THREE.MathUtils.lerp(this.base.tailRootX, pose.tailRootX, blend);
+    for (let i = 0; i < 4; i++) {
+      this.legs[i].root.rotation.x = THREE.MathUtils.lerp(this.base.legRootX[i], pose.legRootX[i], blend);
+      this.legs[i].knee.rotation.x = THREE.MathUtils.lerp(this.base.legKneeX[i], pose.legKneeX[i], blend);
+    }
+    this.ears[0].rotation.x = THREE.MathUtils.lerp(this.base.earX[0], pose.earX[0], blend);
+    this.ears[1].rotation.x = THREE.MathUtils.lerp(this.base.earX[1], pose.earX[1], blend);
+
+    if (this.muzzle && pose.muzzleScaleY) {
+      this.muzzle.scale.set(1, THREE.MathUtils.lerp(1, pose.muzzleScaleY, blend), 1);
+    }
+
+    if (this.idleActionTimer >= d) this.endIdleAction();
+  }
+
+  getIdlePose(name) {
+    const pose = {
+      bodyY: 0, bodyRotX: 0, bodyRotZ: 0,
+      chestY: this.base.chestY, hipsY: this.base.hipsY, headY: this.base.headY,
+      headRotX: 0, headRotY: 0, neckX: 0, tailRootX: this.base.tailRootX,
+      legRootX: [0, 0, 0, 0], legKneeX: [0, 0, 0, 0],
+      earX: [-0.12, -0.12]
+    };
+    if (name === 'sit') {
+      pose.bodyY = -0.10;
+      pose.chestY = 0.41;
+      pose.hipsY = 0.39;
+      pose.headY = 0.14;
+      pose.headRotX = 0.05;
+      pose.tailRootX = 0.55;
+      pose.legRootX = [-0.6, -0.6, 0.75, 0.75];
+      pose.legKneeX = [-0.9, -0.9, 0.85, 0.85];
+    } else if (name === 'groom') {
+      pose.bodyY = -0.06;
+      pose.chestY = 0.43;
+      pose.hipsY = 0.41;
+      pose.headRotX = 0.45;
+      pose.headRotY = 0.28;
+      pose.neckX = 0.35;
+      pose.legRootX[2] = -0.9;
+      pose.legKneeX[2] = -1.4;
+      pose.legRootX[0] = 0.15;
+      pose.legKneeX[0] = -0.15;
+    } else if (name === 'stretch') {
+      pose.bodyY = -0.12;
+      pose.chestY = 0.43;
+      pose.hipsY = 0.41;
+      pose.headRotX = -0.20;
+      pose.tailRootX = 0.30;
+      pose.legRootX[0] = 0.75;
+      pose.legKneeX[0] = 0.1;
+      pose.legRootX[1] = 0.75;
+      pose.legKneeX[1] = 0.1;
+      pose.legRootX[2] = 0.35;
+      pose.legKneeX[2] = -0.25;
+      pose.legRootX[3] = 0.35;
+      pose.legKneeX[3] = -0.25;
+    } else if (name === 'yawn') {
+      pose.bodyRotX = -0.06;
+      pose.headRotX = -0.4;
+      pose.headRotY = 0.08;
+      pose.earX = [-0.20, -0.20];
+      pose.muzzleScaleY = 1.5;
+    }
+    return pose;
+  }
+
+  triggerMeow() {
+    this.isMeowing = true;
+    this.meowTimer = 0.55;
+    this.setMood('playful', 1.0, 2);
+    if (this.audio) this.audio.playMeow();
+  }
+
+  setProwling(prowl) {
+    this.isProwling = prowl;
+    if (prowl) this.setMood('alert', 0.8, 1);
+  }
+
+  animateLocomotion(dt, time, sb, grounded, isSprinting, isTurning) {
+    const state = this.state;
+    const run = state === 'run';
+    const turn = state === 'turn';
+    const prowl = this.isProwling;
+    const strideFreq = (run ? 6.2 : (prowl ? 2.8 : 4.2)) + sb * (run ? 6.0 : (prowl ? 3.0 : 4.5));
+    this.phase += dt * strideFreq * Math.min(sb, 1);
+    const p = this.phase * Math.PI * 2;
+
+    for (let i = 0; i < 4; i++) {
+      const leg = this.legs[i];
+      const phaseOffset = (i === 0 || i === 3) ? 0 : Math.PI;
+      const lp = p + phaseOffset;
+      const swing = Math.sin(lp);
+      const lift = Math.max(0, Math.sin(lp + Math.PI / 2));
+      let amp = (prowl ? 0.35 : 0.55) * Math.min(sb, 1);
+
+      if (state === 'jump') {
+        // Dynamic feline leap pose: front paws stretch forward, rear legs kick back
+        leg.root.rotation.x = leg.front ? -0.85 : 0.95;
+        leg.knee.rotation.x = leg.front ? -1.15 : 0.75;
+      } else if (state === 'land') {
+        leg.root.rotation.x = leg.front ? -0.20 : 0.12;
+        leg.knee.rotation.x = leg.front ? -0.50 : -0.20;
+      } else if (!grounded) {
+        leg.root.rotation.x = leg.front ? -0.75 : 0.80;
+        leg.knee.rotation.x = leg.front ? -1.0 : 0.65;
+      } else if (turn) {
+        const shuffle = Math.sin(time * 6 + i * Math.PI) * 0.08;
+        leg.root.rotation.x = shuffle + (i % 2 === 0 ? 0.1 : -0.1);
+        leg.knee.rotation.x = -0.15;
+      } else {
+        leg.root.rotation.x = swing * amp * (leg.front ? 1 : 0.9);
+        // Front carpus folds forward (negative), hind hock folds the
+        // OPPOSITE way (positive) — real cat hind-limb anatomy.
+        const kneeDir = leg.front ? -1 : 1;
+        leg.knee.rotation.x = (lift * amp * 1.4 + sb * 0.1) * kneeDir;
+      }
+    }
+
+    const bob = Math.sin(p * 2) * (prowl ? 0.008 : 0.018) * sb;
+    const breathe = Math.sin(time * 2.2) * 0.008 * (1 - sb);
+    let bodyY = bob + breathe - (prowl ? 0.08 : 0);
+    let bodyRotX = prowl ? 0.06 : 0;
+    let bodyRotZ = Math.sin(p) * 0.03 * sb;
+
+    if (state === 'jump') {
+      bodyY = 0.08;
+      bodyRotX = -0.22;
+      bodyRotZ = 0;
+    } else if (state === 'land') {
+      bodyY = -0.07;
+      bodyRotX = 0.04;
+      bodyRotZ = 0;
+    } else if (!grounded) {
+      bodyRotX = -0.18;
+    }
+
+    this.body.position.y = bodyY;
+    this.body.rotation.x = bodyRotX;
+    this.body.rotation.z = bodyRotZ;
+
+    if (state === 'jump') {
+      this.chest.rotation.x = 0.12;
+      this.hips.rotation.x = -0.25;
+      this.neck.rotation.x = 0.20;
+    } else if (state === 'land') {
+      this.chest.rotation.x = -0.08;
+      this.hips.rotation.x = 0.08;
+      this.neck.rotation.x = -0.05;
+    } else {
+      this.chest.rotation.x = Math.sin(p * 2) * 0.025 * sb + (grounded ? 0 : -0.15);
+      this.hips.rotation.x = -Math.sin(p * 2) * 0.03 * sb + (grounded ? 0 : 0.2);
+      this.neck.rotation.x = Math.sin(p * 2 + 0.9) * 0.04 * sb - 0.05 + (grounded ? 0 : 0.25);
+    }
+
+    this.head.rotation.y = Math.sin(time * 0.45) * 0.22 * (1 - sb);
+    this.head.rotation.x = Math.sin(time * 0.7) * 0.06 * (1 - sb) + (prowl ? -0.12 : 0);
+
+    // Meow vocalization mouth & head tilt
+    if (this.isMeowing) {
+      this.meowTimer -= dt;
+      const meowProgress = this.meowTimer / 0.55;
+      const meowOpen = Math.sin((1 - meowProgress) * Math.PI);
+      if (this.muzzle) this.muzzle.scale.set(1.1, 1 + meowOpen * 0.6, 1.1);
+      this.head.rotation.x -= meowOpen * 0.18;
+      if (this.meowTimer <= 0) {
+        this.isMeowing = false;
+        if (this.muzzle) this.muzzle.scale.set(1, 1, 1);
+      }
+    }
+
+    // Ghibli expressive tail
+    const cfg = this.getMoodConfig();
+    const tailSpeed = cfg.tailSpeed;
+    const tailLift = cfg.tailLift;
+    for (let i = 0; i < this.tailSegs.length; i++) {
+      const seg = this.tailSegs[i];
+      const wave = Math.sin(time * (2.2 * tailSpeed + sb * 3) - i * 0.7);
+      const lift = Math.sin(time * 1.6 - i * 0.5);
+
+      const curl = (i >= 3 && !prowl) ? 0.20 * (i - 2) : 0;
+      seg.rotation.y = wave * (0.14 + sb * 0.1);
+      seg.rotation.x = (i === 0 ? lift * 0.08 : lift * 0.05 - 0.06) + curl;
+    }
+
+    let trBase = prowl ? 0.35 : 0.95;
+    if (state === 'jump') trBase = 1.35;
+    else if (state === 'land') trBase = 0.55;
+    else if (run) trBase = 1.15;
+    this.tailRoot.rotation.x = trBase + Math.sin(time * 1.6) * 0.08 + sb * 0.25 + (grounded ? 0 : -0.2) + tailLift;
+  }
+
+  applyMood(dt, time, cfg) {
+    this.earTwitchTimer -= dt;
+    if (this.earTwitchTimer <= 0) {
+      this.earTwitch = 0.25;
+      this.earTwitchTimer = (2.5 + Math.random() * 5) * cfg.earTwitchBase;
+    }
+    if (this.earTwitch > 0) {
+      this.earTwitch -= dt;
+      const k = Math.sin(this.earTwitch * 40) * this.earTwitch * 1.2;
+      this.ears[0].rotation.x = this.base.earX[0] + k + ((this.mood === 'alert' || this.mood === 'startled') ? 0.25 : 0);
+      this.ears[1].rotation.x = this.base.earX[1] + Math.sin(time * 1.1) * 0.03 + ((this.mood === 'alert' || this.mood === 'startled') ? 0.25 : 0);
+    } else {
+      this.ears[0].rotation.x = this.base.earX[0];
+      this.ears[1].rotation.x = this.base.earX[1] + Math.sin(time * 1.1) * 0.03;
+    }
+    if (this.isSprinting) {
+      this.ears[0].rotation.x -= 0.12;
+      this.ears[1].rotation.x -= 0.12;
+    }
+
+    this.blinkTimer -= dt;
+    if (this.blinkTimer <= 0) {
+      this.blink = 0.16;
+      this.blinkTimer = (2 + Math.random() * 4) * cfg.blinkBase;
+    }
+    let blinkSquint = 1;
+    if (this.blink > 0) {
+      this.blink -= dt;
+      const k = this.blink > 0.08 ? (0.16 - this.blink) / 0.08 : this.blink / 0.08;
+      blinkSquint = 1 - k * 0.92;
+    }
+    const squint = blinkSquint * (1 - this.yawnOpen * 0.55);
+    const pupilScale = cfg.pupilScale;
+    // Almond baseline (y squashed) preserved through blinks
+    for (const eye of this.eyes) eye.scale.y = 0.74 * squint;
+    for (const pupil of this.pupils) pupil.scale.y = 1.0 * squint * pupilScale;
+
+    if (!this.idleAction) {
+      const scan = cfg.headScan;
+      this.head.rotation.y += Math.sin(time * 0.45) * 0.1 * (scan - 1);
+      this.head.rotation.x += Math.sin(time * 0.7) * 0.03 * (scan - 1);
+    }
+  }
+}
+
