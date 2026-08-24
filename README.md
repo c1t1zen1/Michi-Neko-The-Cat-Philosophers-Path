@@ -6,7 +6,8 @@
 
 ### A Third-Person Cat Exploration Game set in a Kyoto-Inspired Valley
 
-> **▶ [Play Michi-Neko in your browser](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/)** — free, no download, no install. Just click and stroll.
+[![Play Michi-Neko in your browser](https://img.shields.io/badge/%E2%96%B6%20PLAY%20MICHI--NEKO-in%20your%20browser-2ea44f?style=for-the-badge&logo=googlechrome&logoColor=white&labelColor=1a1a1a)](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/)
+*Free &middot; No download &middot; No install &middot; Just click and stroll.*
 
 > **Status:** Very Early Alpha · Built with vibe coding and several SOTA AI models  
 > **Inspiration:** Studio Ghibli films and a honeymoon trip to Kyoto, Japan  
