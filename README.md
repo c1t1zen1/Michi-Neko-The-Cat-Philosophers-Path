@@ -1,5 +1,9 @@
 # 🐾 Michi-Neko The Cat Philosopher's Path — 道猫
 
+<p align="center">
+  <img src="docs/images/cat-rooftop-pagoda-sunset.jpg" width="72%" alt="Inspiration art: Michi-Neko prowling a tiled rooftop at sunset, a five-story pagoda rising over the Kyoto skyline behind him"/>
+</p>
+
 ### A Third-Person Cat Exploration Game set in a Kyoto-Inspired Valley
 
 > **▶ [Play Michi-Neko in your browser](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/)** — free, no download, no install. Just click and stroll.
@@ -25,10 +29,6 @@ The game was created as an experimental art piece — built primarily through **
 
 <p align="center">
   <img src="docs/images/title-screen.jpg" width="72%" alt="Inspiration art: the Michi-Neko title screen over the Kyoto valley — machiya rooftops, cherry blossoms, and a pagoda glowing at golden hour"/>
-</p>
-
-<p align="center">
-  <img src="docs/images/cat-rooftop-pagoda-sunset.jpg" width="72%" alt="Inspiration art: Michi-Neko prowling a tiled rooftop at sunset, a five-story pagoda rising over the Kyoto skyline behind him"/>
 </p>
 
 ### Inspirations
