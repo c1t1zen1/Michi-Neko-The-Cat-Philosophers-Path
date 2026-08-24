@@ -134,7 +134,7 @@ export class Controls {
     if (!joystickZone || !jumpBtn) return;
 
     this.knob = document.createElement('div');
-    this.knob.style.cssText = 'position:absolute;left:50%;top:50%;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.5);transform:translate(-50%,-50%);pointer-events:none;';
+    this.knob.className = 'joystick-knob';
     joystickZone.appendChild(this.knob);
 
     joystickZone.addEventListener('touchstart', (e) => {
@@ -152,7 +152,7 @@ export class Controls {
       e.preventDefault();
       const t = this.findTouch(e.changedTouches, this.joystick.id);
       if (!t || !this.joystick.active) return;
-      const maxRadius = 50;
+      const maxRadius = Math.max(16, (joystickZone.clientWidth - this.knob.offsetWidth) / 2 - 4);
       const dx = t.clientX - this.joystick.origin.x;
       const dy = t.clientY - this.joystick.origin.y;
       const dist = Math.sqrt(dx * dx + dy * dy);

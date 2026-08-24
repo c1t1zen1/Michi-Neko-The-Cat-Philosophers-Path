@@ -142,6 +142,7 @@
     }
 
     .touch-zone { position: absolute; bottom: 24px; width: 110px; height: 110px; border-radius: 50%; background: rgba(246,232,212,0.12); border: 2px solid rgba(246,232,212,0.35); pointer-events: auto; touch-action: none; user-select: none; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; color: #fff; }
+    .joystick-knob { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,0.5); transform: translate(-50%,-50%); pointer-events: none; }
     #toast { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); background: rgba(40,24,14,0.92); color: #f6e8d4; padding: 12px 26px; border-radius: 4px; font-size: 14px; display: none; pointer-events: none; transition: opacity 0.5s; z-index: 300; max-width: 80%; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); border-top: 2px solid #c8402a; letter-spacing: 0.5px; }
     
     /* Lowered ACT Hint Prompt */
@@ -168,6 +169,43 @@
     #jump-btn { right: 24px; }
     #act-btn { right: 146px; }
     #meow-btn { right: 268px; }
+
+    /* Compact portrait touch HUD: keep Walk, Meow, Act, and Jump fully separated. */
+    @media (max-width: 600px) and (pointer: coarse) {
+      :root {
+        --touch-control-edge: 12px;
+        --touch-control-gap: 12px;
+        --touch-control-size: clamp(56px, calc((100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 60px) / 4), 88px);
+      }
+
+      .touch-zone {
+        bottom: max(16px, calc(env(safe-area-inset-bottom) + 12px));
+        width: var(--touch-control-size);
+        height: var(--touch-control-size);
+        font-size: clamp(11px, 3.2vw, 14px);
+      }
+      .joystick-knob {
+        width: clamp(32px, 9vw, 40px);
+        height: clamp(32px, 9vw, 40px);
+      }
+
+      #joystick-zone {
+        left: calc(env(safe-area-inset-left) + var(--touch-control-edge));
+      }
+      #meow-btn {
+        left: calc(env(safe-area-inset-left) + var(--touch-control-edge) + var(--touch-control-size) + var(--touch-control-gap));
+        right: auto;
+      }
+      #act-btn {
+        left: calc(env(safe-area-inset-left) + var(--touch-control-edge) + var(--touch-control-size) + var(--touch-control-gap) + var(--touch-control-size) + var(--touch-control-gap));
+        right: auto;
+      }
+      #jump-btn {
+        left: calc(env(safe-area-inset-left) + var(--touch-control-edge) + var(--touch-control-size) + var(--touch-control-gap) + var(--touch-control-size) + var(--touch-control-gap) + var(--touch-control-size) + var(--touch-control-gap));
+        right: auto;
+      }
+    }
+
     @media (hover: hover) and (pointer: fine) {
       .touch-zone { opacity: 0.35; }
       .touch-zone:hover { opacity: 0.65; transform: scale(1.05); }

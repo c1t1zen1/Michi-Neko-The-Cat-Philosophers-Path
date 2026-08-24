@@ -36,6 +36,13 @@ export class UI {
     const hudScroll = document.getElementById('hud-scroll');
     const scrollArrow = document.getElementById('scroll-arrow');
     if (scrollBtn && hudScroll) {
+      const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      if (isMobile) {
+        hudScroll.classList.add('collapsed');
+        if (scrollArrow) scrollArrow.textContent = '▼';
+        scrollBtn.setAttribute('aria-expanded', 'false');
+      }
+
       scrollBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const collapsed = hudScroll.classList.toggle('collapsed');
