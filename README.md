@@ -27,6 +27,10 @@ The game was created as an experimental art piece — built primarily through **
   <img src="docs/images/title-screen.jpg" width="72%" alt="Inspiration art: the Michi-Neko title screen over the Kyoto valley — machiya rooftops, cherry blossoms, and a pagoda glowing at golden hour"/>
 </p>
 
+<p align="center">
+  <img src="docs/images/cat-rooftop-pagoda-sunset.jpg" width="72%" alt="Inspiration art: Michi-Neko prowling a tiled rooftop at sunset, a five-story pagoda rising over the Kyoto skyline behind him"/>
+</p>
+
 ### Inspirations
 
 - **Studio Ghibli** — the warm, hand-painted aesthetic of films like *The Cat Returns* and *Spirited Away*
@@ -45,8 +49,7 @@ The game was created as an experimental art piece — built primarily through **
 - **Bloom post-processing** — UnrealBloomPass for warm lantern glow and golden hour magic
 
 <p align="center">
-  <img src="docs/images/cat-at-torii-gate-golden-hour.jpg" width="49%" alt="Inspiration art: Michi-Neko on a stone wall before the vermilion torii gate at golden hour, a shrine bell and stone lanterns close by"/>
-  <img src="docs/images/lantern-lit-village-path-dusk.jpg" width="49%" alt="Inspiration art: a lantern-lit stone path winding through the village at dusk, cherry petals drifting past machiya townhouses"/>
+  <img src="docs/images/lantern-lit-village-path-dusk.jpg" width="72%" alt="Inspiration art: a lantern-lit stone path winding through the village at dusk, cherry petals drifting past machiya townhouses"/>
 </p>
 
 ### The Cat
@@ -54,10 +57,6 @@ The game was created as an experimental art piece — built primarily through **
 - **Cat animations** — walk, sprint, jump (with anticipation squash), land (with impact dust), idle sit, meow, prowl stance, tail swish, ear twitch, mood-based expressions (curious, playful, cautious, alert, sleepy)
 - **Prowl mode** — crouch low and move quietly at reduced speed (press C)
 - **Scent trail** — warm particle wisps drift up behind the cat as it moves, fading from gold to amber
-
-<p align="center">
-  <img src="docs/images/cat-rooftop-pagoda-sunset.jpg" width="72%" alt="Inspiration art: Michi-Neko prowling a tiled rooftop at sunset, a five-story pagoda rising over the Kyoto skyline behind him"/>
-</p>
 
 ### Gameplay
 - **Yarn ball collectibles** — scattered throughout the valley, each gives XP and triggers a satisfying chime
@@ -72,7 +71,7 @@ The game was created as an experimental art piece — built primarily through **
 - **Photo mode** — press P to enter a free-camera photo mode, orbit/zoom, and capture PNG screenshots
 
 <p align="center">
-  <img src="docs/images/tea-ceremony-room.jpg" width="72%" alt="Inspiration art: the hidden tea house interior — tatami mats, hanging scroll, bonsai, warm lantern light, and a grilled sea bream waiting on the low table"/>
+  <img src="docs/images/cat-at-torii-gate-golden-hour.jpg" width="72%" alt="Inspiration art: Michi-Neko on a stone wall before the vermilion torii gate at golden hour, a shrine bell and stone lanterns close by"/>
 </p>
 
 ### Audio
@@ -226,6 +225,10 @@ Michi-Neko-The-Cat-Philosophers-Path/
 Michi-Neko was built primarily through **vibe coding** — a collaborative process where human creative direction meets AI code generation. Several state-of-the-art large language models contributed to different parts of the codebase, guided by a human who provided the artistic vision, design decisions, and Kyoto inspiration.
 
 The result is a game that no single developer could have produced this quickly — a testament to the new creative workflows emerging at the intersection of human taste and AI capability. It's rough, it's alpha, and it's made with love.
+
+<p align="center">
+  <img src="docs/images/tea-ceremony-room.jpg" width="72%" alt="Inspiration art: the hidden tea house interior — tatami mats, hanging scroll, bonsai, warm lantern light, and a grilled sea bream waiting on the low table"/>
+</p>
 
 ---
 
