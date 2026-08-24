@@ -161,7 +161,9 @@ export class Controls {
         this.joystick.origin.x + dx * scale,
         this.joystick.origin.y + dy * scale
       );
-      this.rawInput.set(dx * scale / maxRadius, -dy * scale / maxRadius);
+      // The camera-relative movement basis uses positive X for left, so invert
+      // only the touch joystick's horizontal displacement to match the thumb.
+      this.rawInput.set(-dx * scale / maxRadius, -dy * scale / maxRadius);
       this.updateKnob(dx * scale, dy * scale);
     }, { passive: false });
 
