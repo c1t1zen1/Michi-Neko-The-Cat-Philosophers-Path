@@ -11,17 +11,9 @@
 
 ---
 
-## 📸 Screenshots
+## 🎨 Art & Design Vision
 
-<p align="center">
-  <img src="docs/images/title-screen.jpg" width="49%" alt="The Michi-Neko title screen over the Kyoto valley at golden hour"/>
-  <img src="docs/images/temple-village-dusk.jpg" width="49%" alt="A lantern-lit stone path through the temple village at dusk"/>
-  <br/>
-  <img src="docs/images/cat-at-shrine-gate.jpg" width="49%" alt="Michi-Neko the tabby cat at the vermilion torii gate"/>
-  <img src="docs/images/tatami-tea-room.jpg" width="49%" alt="Inside the hidden tea house"/>
-  <br/>
-  <img src="docs/images/tea-ceremony-room.jpg" width="49%" alt="The tea ceremony room with scroll, bonsai, and lanterns"/>
-</p>
+> **✏️ Note on the images in this README:** Michi-Neko is in **very early alpha**. The artwork sprinkled through the sections below is **inspiration art** — it shows the scenery, mood, and style the game's design plans to grow into, not current in-game captures. The playable build already has the heart and the vibe; this is the look it is growing toward.
 
 ---
 
@@ -30,6 +22,10 @@
 **Michi-Neko** is a meditative third-person exploration game where you play as a small tabby cat wandering a stylized Kyoto valley. There are no enemies, no timers, and no fail states. You explore a hand-crafted countryside dotted with machiya townhouses, a vermilion torii shrine, a flowing river with koi, bamboo groves, and a hidden tea house waiting to be discovered.
 
 The game was created as an experimental art piece — built primarily through **vibe coding** with several state-of-the-art AI language models. It is very early alpha: the core loop works, the world is beautiful, but much remains to be built. We're sharing it early because we think the vibe is already worth experiencing.
+
+<p align="center">
+  <img src="docs/images/title-screen.jpg" width="72%" alt="Inspiration art: the Michi-Neko title screen over the Kyoto valley — machiya rooftops, cherry blossoms, and a pagoda glowing at golden hour"/>
+</p>
 
 ### Inspirations
 
@@ -48,11 +44,20 @@ The game was created as an experimental art piece — built primarily through **
 - **Studio Ghibli cel-shading** — the cat avatar uses a custom 3-step toon gradient ramp for anime-style shading
 - **Bloom post-processing** — UnrealBloomPass for warm lantern glow and golden hour magic
 
+<p align="center">
+  <img src="docs/images/cat-at-torii-gate-golden-hour.jpg" width="49%" alt="Inspiration art: Michi-Neko on a stone wall before the vermilion torii gate at golden hour, a shrine bell and stone lanterns close by"/>
+  <img src="docs/images/lantern-lit-village-path-dusk.jpg" width="49%" alt="Inspiration art: a lantern-lit stone path winding through the village at dusk, cherry petals drifting past machiya townhouses"/>
+</p>
+
 ### The Cat
 - **Fully articulated cat avatar** — segmented body with head, ears, tail, legs, and expressive golden-amber eyes that track objects of interest
 - **Cat animations** — walk, sprint, jump (with anticipation squash), land (with impact dust), idle sit, meow, prowl stance, tail swish, ear twitch, mood-based expressions (curious, playful, cautious, alert, sleepy)
 - **Prowl mode** — crouch low and move quietly at reduced speed (press C)
 - **Scent trail** — warm particle wisps drift up behind the cat as it moves, fading from gold to amber
+
+<p align="center">
+  <img src="docs/images/cat-rooftop-pagoda-sunset.jpg" width="72%" alt="Inspiration art: Michi-Neko prowling a tiled rooftop at sunset, a five-story pagoda rising over the Kyoto skyline behind him"/>
+</p>
 
 ### Gameplay
 - **Yarn ball collectibles** — scattered throughout the valley, each gives XP and triggers a satisfying chime
@@ -65,6 +70,10 @@ The game was created as an experimental art piece — built primarily through **
 - **Shrine bell** — ring the sacred bronze bell at the torii gate for blessings
 - **Koi pond** — wade into the river to paw at swimming koi fish or drink fresh water
 - **Photo mode** — press P to enter a free-camera photo mode, orbit/zoom, and capture PNG screenshots
+
+<p align="center">
+  <img src="docs/images/tea-ceremony-room.jpg" width="72%" alt="Inspiration art: the hidden tea house interior — tatami mats, hanging scroll, bonsai, warm lantern light, and a grilled sea bream waiting on the low table"/>
+</p>
 
 ### Audio
 - **Generative day-phase music** — a real-time music director that layers a warm pad drone with sparse koto-style plucks, shifting key and mood across dawn, day, dusk, and night
