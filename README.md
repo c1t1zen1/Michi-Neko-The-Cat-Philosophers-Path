@@ -6,8 +6,11 @@
 
 ### A Third-Person Cat Exploration Game set in a Kyoto-Inspired Valley
 
-[![Play Michi-Neko in your browser](https://img.shields.io/badge/%E2%96%B6%20PLAY%20MICHI--NEKO-in%20your%20browser-2ea44f?style=for-the-badge&logo=googlechrome&logoColor=white&labelColor=1a1a1a)](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/)
-*Free &middot; No download &middot; No install &middot; Just click and stroll.*
+**🐾 Ready to explore Kyoto? Play now — free, instant, no install:**
+
+[<img src="https://img.shields.io/badge/%E2%96%B6%20PLAY%20MICHI--NEKO-in%20your%20browser-2ea44f?style=for-the-badge&logo=googlechrome&logoColor=white&labelColor=1a1a1a" height="64" alt="Play Michi-Neko in your browser"/>](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/)
+
+*Free · No download · No install · Just click and stroll.*
 
 > **Status:** Very Early Alpha · Built with vibe coding and several SOTA AI models  
 > **Inspiration:** Studio Ghibli films and a honeymoon trip to Kyoto, Japan  
@@ -29,7 +32,7 @@
 The game was created as an experimental art piece — built primarily through **vibe coding** with several state-of-the-art AI language models. It is very early alpha: the core loop works, the world is beautiful, but much remains to be built. We're sharing it early because we think the vibe is already worth experiencing.
 
 <p align="center">
-  <img src="docs/images/title-screen.jpg" width="72%" alt="Inspiration art: the Michi-Neko title screen over the Kyoto valley — machiya rooftops, cherry blossoms, and a pagoda glowing at golden hour"/>
+  <a href="https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/"><img src="docs/images/title-screen.jpg" width="72%" alt="Inspiration art: the Michi-Neko title screen over the Kyoto valley — machiya rooftops, cherry blossoms, and a pagoda glowing at golden hour. Click to play!"/></a>
 </p>
 
 ### Inspirations
@@ -103,7 +106,7 @@ The game was created as an experimental art piece — built primarily through **
 
 **Michi-Neko** is free to play in your browser — no install needed:
 
-> **▶ [Play on GitHub Pages](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/)**
+[<img src="https://img.shields.io/badge/%E2%96%B6%20PLAY%20MICHI--NEKO-in%20your%20browser-2ea44f?style=for-the-badge&logo=googlechrome&logoColor=white&labelColor=1a1a1a" height="56" alt="Play Michi-Neko in your browser"/>](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/)
 
 Prefer to run it locally? You just need a local web server (ES modules require it).
 
@@ -247,5 +250,9 @@ MIT License — see [LICENSE](LICENSE) for details.
 - **Cat avatar:** Custom procedural mesh with Ghibli-style toon shading
 
 ---
+
+**🐾 Made it to the end? Go say hello to Michi-Neko:**
+
+[<img src="https://img.shields.io/badge/%E2%96%B6%20PLAY%20MICHI--NEKO-in%20your%20browser-2ea44f?style=for-the-badge&logo=googlechrome&logoColor=white&labelColor=1a1a1a" height="56" alt="Play Michi-Neko in your browser"/>](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/)
 
 *猫の散歩 — A cat's stroll through Kyoto. Take your time. There's nowhere you need to be.*
