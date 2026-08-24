@@ -1,6 +1,8 @@
-# 🐾 Cat Walk — 猫の散歩
+# 🐾 Michi-Neko The Cat Philosopher's Path — 道猫
 
 ### A Third-Person Cat Exploration Game set in a Kyoto-Inspired Valley
+
+> **▶ [Play Michi-Neko in your browser](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/)** — free, no download, no install. Just click and stroll.
 
 > **Status:** Very Early Alpha · Built with vibe coding and several SOTA AI models  
 > **Inspiration:** Studio Ghibli films and a honeymoon trip to Kyoto, Japan  
@@ -9,9 +11,23 @@
 
 ---
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="docs/images/title-screen.jpg" width="49%" alt="The Michi-Neko title screen over the Kyoto valley at golden hour"/>
+  <img src="docs/images/temple-village-dusk.jpg" width="49%" alt="A lantern-lit stone path through the temple village at dusk"/>
+  <br/>
+  <img src="docs/images/cat-at-shrine-gate.jpg" width="49%" alt="Michi-Neko the tabby cat at the vermilion torii gate"/>
+  <img src="docs/images/tatami-tea-room.jpg" width="49%" alt="Inside the hidden tea house"/>
+  <br/>
+  <img src="docs/images/tea-ceremony-room.jpg" width="49%" alt="The tea ceremony room with scroll, bonsai, and lanterns"/>
+</p>
+
+---
+
 ## ✨ About
 
-**Cat Walk** is a meditative third-person exploration game where you play as a small tabby cat wandering a stylized Kyoto valley. There are no enemies, no timers, and no fail states. You explore a hand-crafted countryside dotted with machiya townhouses, a vermilion torii shrine, a flowing river with koi, bamboo groves, and a hidden tea house waiting to be discovered.
+**Michi-Neko** is a meditative third-person exploration game where you play as a small tabby cat wandering a stylized Kyoto valley. There are no enemies, no timers, and no fail states. You explore a hand-crafted countryside dotted with machiya townhouses, a vermilion torii shrine, a flowing river with koi, bamboo groves, and a hidden tea house waiting to be discovered.
 
 The game was created as an experimental art piece — built primarily through **vibe coding** with several state-of-the-art AI language models. It is very early alpha: the core loop works, the world is beautiful, but much remains to be built. We're sharing it early because we think the vibe is already worth experiencing.
 
@@ -76,7 +92,11 @@ The game was created as an experimental art piece — built primarily through **
 
 ## 🚀 Quick Start
 
-Cat Walk runs entirely in the browser. You just need a local web server (ES modules require it).
+**Michi-Neko** is free to play in your browser — no install needed:
+
+> **▶ [Play on GitHub Pages](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/)**
+
+Prefer to run it locally? You just need a local web server (ES modules require it).
 
 ```bash
 # Python 3 (built-in on most systems)
@@ -124,7 +144,7 @@ Then open **http://127.0.0.1:8080** in your browser.
 ## 📁 Project Structure
 
 ```
-Cat_Walk/
+Michi-Neko-The-Cat-Philosophers-Path/
 ├── index.html                  # Entry point — HTML, CSS, UI overlays
 ├── README.md                   # This file
 ├── INSTALL.md                  # Installation & setup guide
@@ -194,7 +214,7 @@ Cat_Walk/
 
 ## 🧠 How This Was Made
 
-Cat Walk was built primarily through **vibe coding** — a collaborative process where human creative direction meets AI code generation. Several state-of-the-art large language models contributed to different parts of the codebase, guided by a human who provided the artistic vision, design decisions, and Kyoto inspiration.
+Michi-Neko was built primarily through **vibe coding** — a collaborative process where human creative direction meets AI code generation. Several state-of-the-art large language models contributed to different parts of the codebase, guided by a human who provided the artistic vision, design decisions, and Kyoto inspiration.
 
 The result is a game that no single developer could have produced this quickly — a testament to the new creative workflows emerging at the intersection of human taste and AI capability. It's rough, it's alpha, and it's made with love.
 
