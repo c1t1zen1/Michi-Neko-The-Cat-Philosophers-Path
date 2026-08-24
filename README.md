@@ -1,7 +1,7 @@
 # 🐾 Michi-Neko The Cat Philosopher's Path — 道猫
 
 <p align="center">
-  <img src="docs/images/cat-rooftop-pagoda-sunset.jpg" width="72%" alt="Inspiration art: Michi-Neko prowling a tiled rooftop at sunset, a five-story pagoda rising over the Kyoto skyline behind him"/>
+  <img src="docs/images/cat-rooftop-pagoda-sunset.jpg" width="90%" alt="Inspiration art: Michi-Neko prowling a tiled rooftop at sunset, a five-story pagoda rising over the Kyoto skyline behind him"/>
 </p>
 
 ### A Third-Person Cat Exploration Game set in a Kyoto-Inspired Valley
@@ -32,7 +32,7 @@
 The game was created as an experimental art piece — built primarily through **vibe coding** with several state-of-the-art AI language models. It is very early alpha: the core loop works, the world is beautiful, but much remains to be built. We're sharing it early because we think the vibe is already worth experiencing.
 
 <p align="center">
-  <a href="https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/"><img src="docs/images/title-screen.jpg" width="72%" alt="Inspiration art: the Michi-Neko title screen over the Kyoto valley — machiya rooftops, cherry blossoms, and a pagoda glowing at golden hour. Click to play!"/></a>
+  <a href="https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/"><img src="docs/images/title-screen.jpg" width="90%" alt="Inspiration art: the Michi-Neko title screen over the Kyoto valley — machiya rooftops, cherry blossoms, and a pagoda glowing at golden hour. Click to play!"/></a>
 </p>
 
 ### Inspirations
@@ -53,7 +53,7 @@ The game was created as an experimental art piece — built primarily through **
 - **Bloom post-processing** — UnrealBloomPass for warm lantern glow and golden hour magic
 
 <p align="center">
-  <img src="docs/images/lantern-lit-village-path-dusk.jpg" width="72%" alt="Inspiration art: a lantern-lit stone path winding through the village at dusk, cherry petals drifting past machiya townhouses"/>
+  <img src="docs/images/lantern-lit-village-path-dusk.jpg" width="90%" alt="Inspiration art: a lantern-lit stone path winding through the village at dusk, cherry petals drifting past machiya townhouses"/>
 </p>
 
 ### The Cat
@@ -75,7 +75,7 @@ The game was created as an experimental art piece — built primarily through **
 - **Photo mode** — press P to enter a free-camera photo mode, orbit/zoom, and capture PNG screenshots
 
 <p align="center">
-  <img src="docs/images/cat-at-torii-gate-golden-hour.jpg" width="72%" alt="Inspiration art: Michi-Neko on a stone wall before the vermilion torii gate at golden hour, a shrine bell and stone lanterns close by"/>
+  <img src="docs/images/cat-at-torii-gate-golden-hour.jpg" width="90%" alt="Inspiration art: Michi-Neko on a stone wall before the vermilion torii gate at golden hour, a shrine bell and stone lanterns close by"/>
 </p>
 
 ### Audio
@@ -231,7 +231,7 @@ Michi-Neko was built primarily through **vibe coding** — a collaborative proce
 The result is a game that no single developer could have produced this quickly — a testament to the new creative workflows emerging at the intersection of human taste and AI capability. It's rough, it's alpha, and it's made with love.
 
 <p align="center">
-  <img src="docs/images/tea-ceremony-room.jpg" width="72%" alt="Inspiration art: the hidden tea house interior — tatami mats, hanging scroll, bonsai, warm lantern light, and a grilled sea bream waiting on the low table"/>
+  <img src="docs/images/tea-ceremony-room.jpg" width="90%" alt="Inspiration art: the hidden tea house interior — tatami mats, hanging scroll, bonsai, warm lantern light, and a grilled sea bream waiting on the low table"/>
 </p>
 
 ---
