@@ -14,7 +14,7 @@ import { UI } from './ui.js?v=20260823a';
 import { NPC } from './npc.js?v=20260823a';
 import { Dialogue } from './dialogue.js?v=20260823a';
 import { QuestManager } from './quest.js?v=20260823a';
-import { AudioManager } from './audio.js?v=20260825c';
+import { AudioManager } from './audio.js?v=20260825e';
 import { ProgressionManager } from './progression.js?v=20260823a';
 import { ContextActionManager } from './context_actions.js?v=20260823a';
 import { InteriorManager } from './interior.js?v=20260823a';
@@ -178,14 +178,17 @@ class Game {
 
     this.loadGame();
 
-    // A reload is used to reset the world for a new game. Do not autostart it:
-    // a new page has a new AudioContext and must be enabled from a fresh click.
+    // A reload is used to reset the world for a new game. Starting the game
+    // must never depend on audio being enabled first.
     this.pendingNewGame = sessionStorage.getItem(AUTOSTART_KEY) === 'new';
     if (this.pendingNewGame) {
       sessionStorage.removeItem(AUTOSTART_KEY);
-      this.setAudioEnableButtonState(false, 'Turn on audio and start game');
+      this.pendingNewGame = false;
+      this.menu.startGame();
+      this.controls.enabled = true;
+    } else {
+      this.controls.enabled = false; // title screen active
     }
-    this.controls.enabled = false; // title screen active
 
     // iOS Safari can interrupt an AudioContext after the browser is
     // backgrounded. Surface the same explicit recovery control on return.
@@ -345,28 +348,25 @@ class Game {
   /** Explicitly enable audio from the top-right mobile control. */
   installAudioEnableButton() {
     this.audioEnableButton = document.getElementById('btn-enable-audio');
-    this.audioEnableButton.addEventListener('click', async () => {
+    this.audioEnableButton.addEventListener('click', () => {
       // resumeOnGesture() creates and resumes the context directly inside this
       // user action, which is required by mobile Safari and Chrome.
       this.audioEnableButton.disabled = true;
-      const running = await this.audio.resumeOnGesture();
-      this.audioEnableButton.disabled = false;
-      if (!running) {
-        this.setAudioEnableButtonState(false, 'Audio was blocked — tap to try again');
-        return;
-      }
-
+      const resume = this.audio.resumeOnGesture();
+      // Keep source creation in this same user gesture rather than awaiting
+      // the resume promise, which can lose user-activation on mobile Safari.
       this.audio.start();
       this.music.start();
       this.applySettings();
       this.audio.playBell();
-      this.setAudioEnableButtonState(true, 'Audio is on');
 
-      if (this.pendingNewGame) {
-        this.pendingNewGame = false;
-        this.menu.startGame();
-        this.controls.enabled = true;
-      }
+      Promise.resolve(resume).then((running) => {
+        this.audioEnableButton.disabled = false;
+        this.setAudioEnableButtonState(
+          running,
+          running ? 'Audio is on' : 'Audio was blocked — tap to try again'
+        );
+      });
     });
   }
 

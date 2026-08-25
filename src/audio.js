@@ -50,6 +50,15 @@ export class AudioManager {
     this.init();
     if (!this.ctx) return Promise.resolve(false);
     if (this.ctx.state === 'running') return Promise.resolve(true);
+    // Prime the output with a zero-volume source while the gesture is still
+    // active. This works around mobile WebKit instances that do not fully
+    // unlock an AudioContext until a source has been started.
+    const oscillator = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0, this.ctx.currentTime);
+    oscillator.connect(gain).connect(this.ctx.destination);
+    oscillator.start();
+    oscillator.stop(this.ctx.currentTime + 0.02);
     return this.ctx.resume()
       .then(() => this.ctx.state === 'running')
       .catch(() => false);
