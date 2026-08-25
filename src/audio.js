@@ -9,6 +9,7 @@ export class AudioManager {
     this.initialized = false;
     this.started = false;
     this.stateChangeHandler = null;
+    this.lappingTimer = null;
   }
 
   init() {
@@ -365,6 +366,18 @@ export class AudioManager {
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
     source.connect(filter).connect(gain).connect(this.master);
     source.start(t);
+  }
+
+  startLapping() {
+    if (!this.initialized || this.lappingTimer) return;
+    this.playLap();
+    this.lappingTimer = setInterval(() => this.playLap(), 430);
+  }
+
+  stopLapping() {
+    if (!this.lappingTimer) return;
+    clearInterval(this.lappingTimer);
+    this.lappingTimer = null;
   }
 
   playBell() {

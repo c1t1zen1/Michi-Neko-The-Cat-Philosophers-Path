@@ -3,20 +3,20 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { Player } from './player.js?v=20260825i';
-import { Countryside } from './countryside.js?v=20260825i';
+import { Player } from './player.js?v=20260825j';
+import { Countryside } from './countryside.js?v=20260825j';
 import { Sky } from './sky.js?v=20260823a';
 import { Vegetation } from './vegetation.js?v=20260823a';
 import { Particles } from './particles.js?v=20260823a';
 import { AmbientLife } from './ambient_life.js?v=20260823a';
 import { Controls } from './controls.js?v=20260825b';
 import { UI } from './ui.js?v=20260825h';
-import { NPC } from './npc.js?v=20260825i';
+import { NPC } from './npc.js?v=20260825j';
 import { Dialogue } from './dialogue.js?v=20260823a';
 import { QuestManager } from './quest.js?v=20260825i';
-import { AudioManager } from './audio.js?v=20260825g';
+import { AudioManager } from './audio.js?v=20260825j';
 import { ProgressionManager } from './progression.js?v=20260823a';
-import { ContextActionManager } from './context_actions.js?v=20260825i';
+import { ContextActionManager } from './context_actions.js?v=20260825j';
 import { InteriorManager } from './interior.js?v=20260823a';
 import { SaveManager } from './save.js?v=20260823a';
 import { ScentTrail } from './scent.js?v=20260823a';
@@ -141,6 +141,9 @@ class Game {
       this.quest,
       this.interior
     );
+    this.drinkCount = 0;
+    this.freshWaterAchievement = false;
+    this.contextActions.onDrinkComplete = () => this.completeDrink();
     this.controls = new Controls(this.player, this.ui, this.audio, this.contextActions, this.dialogue);
 
     this.collectibles = this.city.collectibles;
@@ -554,6 +557,8 @@ class Game {
     if (data.corralRewardCollected || this.collectedIds.has(91)) {
       this.city.setCorralRewardCollected(true);
     }
+    this.drinkCount = data.drinkCount || 0;
+    this.freshWaterAchievement = !!data.freshWaterAchievement;
 
     // Remove already-collected yarn
     for (let i = this.collectibles.length - 1; i >= 0; i--) {
@@ -587,7 +592,9 @@ class Game {
       isSecretHouseUnlocked: this.city.isSecretHouseUnlocked,
       fishEaten: this.city.fishEaten,
       nestInteracted: this.city.nestInteracted,
-      corralRewardCollected: this.city.corralRewardCollected
+      corralRewardCollected: this.city.corralRewardCollected,
+      drinkCount: this.drinkCount,
+      freshWaterAchievement: this.freshWaterAchievement
     };
     this.saveManager.save(data);
   }
@@ -631,6 +638,7 @@ class Game {
         this.saveGame();
       }
     } else {
+      if (this.contextActions.drinkTimer > 0) this.contextActions.cancelDrinking();
       // Title/pause: keep the cat idling in place (no input, no camera takeover)
       const savedInput = this.player.moveInput.clone();
       this.player.moveInput.set(0, 0);
@@ -703,6 +711,19 @@ Quality  ${this.settings.resolveQuality()}`;
   }
 
   capitalise(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  completeDrink() {
+    this.drinkCount++;
+    if (this.drinkCount >= 10 && !this.freshWaterAchievement) {
+      this.freshWaterAchievement = true;
+      this.progression.addXP(40, 'Fresh Water Connoisseur achievement');
+      this.ui.showToast('🏅 Fresh Water Connoisseur — completed 10 refreshing drinks!');
+      if (this.audio) this.audio.playDreamChime();
+    } else {
+      this.ui.showToast(`Fresh water enjoyed · ${Math.min(this.drinkCount, 10)}/10`);
+    }
+    this.saveGame();
+  }
 
   updateDialogue() {
     if (this.dialogue.active) {

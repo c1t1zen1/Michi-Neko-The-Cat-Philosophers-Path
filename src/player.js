@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20260823a';
+import { Cat } from './cat.js?v=20260825j';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -33,6 +33,7 @@ export class Player {
     this.isTurning = false;
     this.npc = null;
     this.nearObject = null;
+    this.actionLocked = false;
 
     this.inWater = false;
     this.wasInWater = false;
@@ -168,7 +169,7 @@ export class Player {
     };
     const prevX = this.mesh.position.x;
     const prevZ = this.mesh.position.z;
-    if (this.moveInput.lengthSq() > 0) {
+    if (!this.actionLocked && this.moveInput.lengthSq() > 0) {
       let currentSpeed = (this.sprint && this.canSprint) ? this.speed * this.sprintMultiplier : this.speed;
       currentSpeed *= speedBonus;
       if (inWater) currentSpeed *= 0.55;
@@ -215,7 +216,7 @@ export class Player {
     // Coyote time & jump buffer
     this.coyoteTimer = this.isGrounded ? this.coyoteTime : Math.max(0, this.coyoteTimer - dt);
     this.jumpBufferTimer = Math.max(0, this.jumpBufferTimer - dt);
-    if (this.jumpBufferTimer > 0 && (this.isGrounded || this.coyoteTimer > 0)) {
+    if (!this.actionLocked && this.jumpBufferTimer > 0 && (this.isGrounded || this.coyoteTimer > 0)) {
       this.jumpBufferTimer = 0;
       this.coyoteTimer = 0;
       this.velocity.y = this.jumpForce;

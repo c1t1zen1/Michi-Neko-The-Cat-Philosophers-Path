@@ -15,6 +15,9 @@ export class ContextActionManager {
     this.interior = interior;
     this.cooldown = 0;
     this.activeAction = null;
+    this.drinkTimer = 0;
+    this.drinkDuration = 3.0;
+    this.onDrinkComplete = null;
     this.shrinePoint = new THREE.Vector3(0, 0, -31.05);
     this.wasGrounded = false;
     this.landDust = [];
@@ -38,6 +41,14 @@ export class ContextActionManager {
 
   update(dt) {
     if (this.cooldown > 0) this.cooldown -= dt;
+
+    if (this.drinkTimer > 0) {
+      this.updateDrinking(dt);
+      this.activeAction = null;
+      this.ui.hidePrompt();
+      this.updateDust(dt);
+      return;
+    }
 
     // Automatic Tea House door transitions (no button press needed)
     this.updateDoorProximity();
@@ -156,7 +167,7 @@ export class ContextActionManager {
   }
 
   trigger() {
-    if (!this.activeAction || this.cooldown > 0) return;
+    if (!this.activeAction || this.cooldown > 0 || this.drinkTimer > 0) return;
     const action = this.activeAction;
     this.cooldown = 0.6;
 
@@ -291,10 +302,53 @@ export class ContextActionManager {
   }
 
   drink() {
-    if (this.audio) this.audio.playLap();
-    if (this.progression) this.progression.addXP(2, 'Drank water');
-    this.player.cat.setMood('cautious', 0.3, 1);
-    this.player.cat.head.rotation.x += 0.25;
+    this.drinkTimer = this.drinkDuration;
+    this.cooldown = this.drinkDuration + 0.35;
+    this.player.actionLocked = true;
+    this.player.moveInput.set(0, 0);
+    this.player.sprint = false;
+    this.player.jumpBufferTimer = 0;
+    this.player.jumpHeld = false;
+    this.player.cat.setMood('cautious', this.drinkDuration, 2);
+    this.player.cat.setDrinking(true);
+    if (this.audio) this.audio.startLapping();
+  }
+
+  updateDrinking(dt) {
+    if (this.drinkTimer <= 0) return;
+    this.drinkTimer = Math.max(0, this.drinkTimer - dt);
+    this.player.actionLocked = true;
+    this.player.moveInput.set(0, 0);
+    this.player.sprint = false;
+    this.player.jumpBufferTimer = 0;
+    this.player.jumpHeld = false;
+    if (this.world && this.world.spawnRipple) {
+      this.drinkRippleTimer = (this.drinkRippleTimer || 0) - dt;
+      if (this.drinkRippleTimer <= 0) {
+        const forward = new THREE.Vector3(0, 0, 0.45).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.player.heading);
+        this.world.spawnRipple(
+          this.player.mesh.position.x + forward.x,
+          this.player.mesh.position.z + forward.z,
+          0.45
+        );
+        this.drinkRippleTimer = 0.65;
+      }
+    }
+    if (this.drinkTimer > 0) return;
+
+    this.player.actionLocked = false;
+    this.player.cat.setDrinking(false);
+    if (this.audio) this.audio.stopLapping();
+    if (this.progression) this.progression.addXP(2, 'Drank fresh water');
+    if (this.onDrinkComplete) this.onDrinkComplete();
+  }
+
+  cancelDrinking() {
+    if (this.drinkTimer <= 0 && !this.player.actionLocked) return;
+    this.drinkTimer = 0;
+    this.player.actionLocked = false;
+    this.player.cat.setDrinking(false);
+    if (this.audio) this.audio.stopLapping();
   }
 
   greet(npc) {

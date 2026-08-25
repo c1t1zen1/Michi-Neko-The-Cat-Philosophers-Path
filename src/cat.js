@@ -93,6 +93,7 @@ export class Cat {
     this.isMeowing = false;
     this.meowTimer = 0;
     this.isProwling = false;
+    this.isDrinking = false;
 
     this.buildTorso();
     this.buildHead();
@@ -537,7 +538,11 @@ export class Cat {
       if (this.idleAction) this.endIdleAction();
     }
 
-    if (this.idleAction) {
+    if (this.isDrinking) {
+      if (this.idleAction) this.endIdleAction();
+      this.state = 'drink';
+      this.applyDrinkingPose(time);
+    } else if (this.idleAction) {
       this.applyIdleAction(dt);
     } else {
       this.animateLocomotion(dt, time, sb, grounded, isSprinting, isTurning);
@@ -591,6 +596,31 @@ export class Cat {
 
   onSprint(active) {
     if (active) this.setMood('alert', 0.4, 1);
+  }
+
+  setDrinking(active) {
+    this.isDrinking = !!active;
+    if (this.isDrinking && this.idleAction) this.endIdleAction();
+    if (!this.isDrinking && this.muzzle) this.muzzle.scale.set(1, 1, 1);
+  }
+
+  applyDrinkingPose(time) {
+    const lap = Math.max(0, Math.sin(time * 13));
+    this.body.position.y = -0.075;
+    this.body.rotation.x = 0.12;
+    this.body.rotation.z = 0;
+    this.chest.position.y = this.base.chestY - 0.055;
+    this.hips.position.y = this.base.hipsY - 0.025;
+    this.head.position.y = this.base.headY - 0.11;
+    this.head.rotation.x = 0.72 + lap * 0.035;
+    this.head.rotation.y = 0;
+    this.neck.rotation.x = 0.48;
+    this.tailRoot.rotation.x = 0.72 + Math.sin(time * 1.8) * 0.04;
+    for (let i = 0; i < 4; i++) {
+      this.legs[i].root.rotation.x = i < 2 ? 0.18 : -0.08;
+      this.legs[i].knee.rotation.x = i < 2 ? -0.2 : 0.1;
+    }
+    if (this.muzzle) this.muzzle.scale.set(1, 1 + lap * 0.08, 1);
   }
 
   beginIdleAction() {

@@ -65,6 +65,8 @@ export class Countryside {
     this.seed = options.seed || 20260729;
     this.rng = mulberry32(this.seed);
     this.colliders = [];
+    this.bambooFences = [];
+    this.villageHouseColliders = { left: [], right: [] };
     this.platforms = []; // Climbable / standable surfaces for cat verticality
     this.collectibles = [];
     this.animated = [];
@@ -123,6 +125,7 @@ export class Countryside {
     const b = new THREE.Box3().setFromObject(mesh);
     if (pad) b.expandByScalar(pad);
     this.colliders.push(b);
+    return b;
   }
 
   addPlatform(box3) {
@@ -274,7 +277,9 @@ export class Countryside {
 
   buildPaddies() {
     const plots = [
-      [-26, 8, 14, 10], [-26, 22, 14, 10],
+      // The former (-26, 8) paddy overlapped the turtle corral. Removing this
+      // one plot clears its water, rice instances, and enclosing ridges only.
+      [-26, 22, 14, 10],
       [14, 22, 12, 10], [28, 22, 12, 10], [26, -2, 12, 12]
     ];
     this.waterRects = plots;
@@ -1261,10 +1266,10 @@ export class Countryside {
       { x: -6.0, z: -14, r: Math.PI / 2 + 0.1 },
       { x: 5.8, z: -19, r: -Math.PI / 2 + 0.14 }
     ];
-    for (const s of spots) this.buildVillageHouse(s.x, s.z, s.r);
+    for (const s of spots) this.buildVillageHouse(s.x, s.z, s.r, s.x < 0 ? 'left' : 'right');
   }
 
-  buildVillageHouse(x, z, rot) {
+  buildVillageHouse(x, z, rot, side = null) {
     const house = new THREE.Group();
     const wallMat = this.random() > 0.5 ? MAT.plasterWarm : MAT.plaster;
     const w = 4.4 + this.random() * 1.2;   // width along street
@@ -1305,7 +1310,8 @@ export class Countryside {
     house.position.set(x, 0, z);
     house.rotation.y = rot;
     this.scene.add(house);
-    this.addCollider(base, 0.15);
+    const houseCollider = this.addCollider(base, 0.15);
+    if (side && this.villageHouseColliders[side]) this.villageHouseColliders[side].push(houseCollider);
 
     // Village rooftop parkour: eave-edge ring then the ridge line. The cat
     // reaches these by hopping up from a nearby tōrō lantern cap or gliding
@@ -1406,11 +1412,34 @@ export class Countryside {
     moss.receiveShadow = true;
     this.scene.add(moss);
 
-    // Bamboo fences (takegaki) filling gaps between village houses
-    for (let i = 0; i < 10; i++) {
-      const side = i % 2 === 0 ? -1 : 1;
-      const z = 24 - i * 5.4 + (this.random() - 0.5) * 1.5;
-      this.buildBambooFence(side * (4.4 + this.random() * 0.9), z, side > 0 ? -Math.PI / 2 : Math.PI / 2);
+    // Continuous takegaki runs bridge the exact world-space gaps between
+    // neighboring townhouses. Each fence overlaps both building colliders so
+    // there is no side seam the cat can walk through.
+    for (const sideName of ['left', 'right']) {
+      const houses = [...this.villageHouseColliders[sideName]].sort((a, b) => b.max.z - a.max.z);
+      for (let i = 0; i < houses.length - 1; i++) {
+        const northHouse = houses[i];
+        const southHouse = houses[i + 1];
+        const northEnd = northHouse.min.z;
+        const southEnd = southHouse.max.z;
+        const gap = northEnd - southEnd;
+        if (gap <= 0) continue;
+        const overlap = 0.45;
+        const length = gap + overlap * 2;
+        const z = (northEnd + southEnd) / 2;
+        const sharedMinX = Math.max(northHouse.min.x, southHouse.min.x);
+        const sharedMaxX = Math.min(northHouse.max.x, southHouse.max.x);
+        if (sharedMinX >= sharedMaxX) continue;
+        // Choose the street-facing edge of the houses' shared X footprint, so
+        // the fence physically enters both building colliders at its ends.
+        const x = sideName === 'left' ? sharedMaxX - 0.12 : sharedMinX + 0.12;
+        this.buildBambooFence(x, z, Math.PI / 2, {
+          length,
+          rotationJitter: false,
+          role: 'village-gap',
+          connects: [northHouse, southHouse]
+        });
+      }
     }
 
     // Tōrō stone lanterns spaced along the street
@@ -1453,6 +1482,7 @@ export class Countryside {
     collider.max.y = options.colliderHeight || 1.45;
     collider.expandByVector(new THREE.Vector3(0.08, 0, 0.08));
     this.colliders.push(collider);
+    this.bambooFences.push({ mesh: fence, collider, role: options.role || 'decorative', connects: options.connects || [] });
     return fence;
   }
 
