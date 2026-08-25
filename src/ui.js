@@ -14,6 +14,7 @@ export class UI {
     this.debugOverlay = document.getElementById('debug-overlay');
 
     this.hintsEnabled = true;
+    this.onHintsChange = null;
     this.debugVisible = false;
     this.fpsAccum = 0;
     this.fpsFrames = 0;
@@ -24,10 +25,9 @@ export class UI {
     const hintBtn = document.getElementById('hint-toggle-btn');
     if (hintBtn) {
       hintBtn.addEventListener('click', () => {
-        this.hintsEnabled = !this.hintsEnabled;
-        hintBtn.textContent = `Hints: ${this.hintsEnabled ? 'ON' : 'OFF'}`;
-        hintBtn.classList.toggle('off', !this.hintsEnabled);
-        this.modeEl.style.display = this.hintsEnabled ? '' : 'none';
+        const enabled = !this.hintsEnabled;
+        this.setHints(enabled);
+        if (this.onHintsChange) this.onHintsChange(enabled);
       });
     }
 
@@ -36,12 +36,13 @@ export class UI {
     const hudScroll = document.getElementById('hud-scroll');
     const scrollArrow = document.getElementById('scroll-arrow');
     if (scrollBtn && hudScroll) {
-      const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      if (isMobile) {
-        hudScroll.classList.add('collapsed');
-        if (scrollArrow) scrollArrow.textContent = '▼';
-        scrollBtn.setAttribute('aria-expanded', 'false');
-      }
+      const mobilePointer = window.matchMedia &&
+        window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+      const mobileUserAgent = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      const collapsed = mobilePointer || mobileUserAgent;
+      hudScroll.classList.toggle('collapsed', collapsed);
+      if (scrollArrow) scrollArrow.textContent = collapsed ? '▼' : '▲';
+      scrollBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
 
       scrollBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -62,13 +63,14 @@ export class UI {
   }
 
   setHints(enabled) {
-    this.hintsEnabled = enabled;
+    this.hintsEnabled = !!enabled;
     const btn = document.getElementById('hint-toggle-btn');
     if (btn) {
-      btn.textContent = `Hints: ${enabled ? 'ON' : 'OFF'}`;
-      btn.classList.toggle('off', !enabled);
+      btn.textContent = `Hints: ${this.hintsEnabled ? 'ON' : 'OFF'}`;
+      btn.classList.toggle('off', !this.hintsEnabled);
     }
-    this.modeEl.style.display = enabled ? '' : 'none';
+    this.modeEl.style.display = this.hintsEnabled ? '' : 'none';
+    if (!this.hintsEnabled) this.hidePrompt();
   }
 
   setScore(score) { this.scoreEl.textContent = `Yarn: ${score}`; }
@@ -121,6 +123,10 @@ export class UI {
   }
 
   showPrompt(text) {
+    if (!this.hintsEnabled) {
+      this.hidePrompt();
+      return;
+    }
     const p = document.getElementById('prompt');
     p.textContent = text;
     p.style.display = 'block';

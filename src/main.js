@@ -10,7 +10,7 @@ import { Vegetation } from './vegetation.js?v=20260823a';
 import { Particles } from './particles.js?v=20260823a';
 import { AmbientLife } from './ambient_life.js?v=20260823a';
 import { Controls } from './controls.js?v=20260825b';
-import { UI } from './ui.js?v=20260823a';
+import { UI } from './ui.js?v=20260825h';
 import { NPC } from './npc.js?v=20260823a';
 import { Dialogue } from './dialogue.js?v=20260823a';
 import { QuestManager } from './quest.js?v=20260823a';
@@ -20,10 +20,10 @@ import { ContextActionManager } from './context_actions.js?v=20260823a';
 import { InteriorManager } from './interior.js?v=20260823a';
 import { SaveManager } from './save.js?v=20260823a';
 import { ScentTrail } from './scent.js?v=20260823a';
-import { SettingsManager } from './settings.js';
+import { SettingsManager } from './settings.js?v=20260825h';
 import { MenuSystem } from './menus.js?v=20260825d';
 import { WaypointSystem, Compass } from './waypoints.js?v=20260823a';
-import { MusicDirector } from './music.js';
+import { MusicDirector } from './music.js?v=20260825h';
 
 const AUTOSTART_KEY = 'catwalk_autostart';
 
@@ -160,6 +160,11 @@ class Game {
 
     // Settings + menus
     this.settings = new SettingsManager();
+    this.ui.onHintsChange = (enabled) => {
+      this.settings.set('hints', enabled);
+      const hintsInput = document.getElementById('set-hints');
+      if (hintsInput) hintsInput.checked = enabled;
+    };
     this.menu = new MenuSystem({
       settings: this.settings,
       audio: this.audio,
