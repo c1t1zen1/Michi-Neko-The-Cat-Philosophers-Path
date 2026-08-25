@@ -6,6 +6,8 @@ export class NPC {
     this.scene = scene;
     this.name = name;
     this.dialogue = dialogueLines || [];
+    this.dialogueProvider = options.dialogueProvider || null;
+    this.onDialogueComplete = options.onDialogueComplete || null;
     this.baseY = position.y;
     this.hasGreeted = false;
 
@@ -139,5 +141,14 @@ export class NPC {
     const dx = playerPos.x - this.mesh.position.x;
     const dz = playerPos.z - this.mesh.position.z;
     return Math.sqrt(dx * dx + dz * dz);
+  }
+
+  getDialogueLines() {
+    if (this.dialogueProvider) return this.dialogueProvider(this);
+    return this.dialogue;
+  }
+
+  finishDialogue() {
+    if (this.onDialogueComplete) this.onDialogueComplete(this);
   }
 }

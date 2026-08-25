@@ -140,6 +140,7 @@ export class ContextActionManager {
     // 6. Bat yarn
     if (world && world.collectibles) {
       for (const item of world.collectibles) {
+        if (item.userData.isCharm || item.userData.isCorralReward) continue;
         if (item.position.distanceToSquared(pos) < 1.8) {
           return { type: 'batYarn', label: 'bat yarn ball', target: item };
         }
@@ -302,19 +303,21 @@ export class ContextActionManager {
     if (npc && npc.cat) {
       npc.cat.setMood('playful', 0.8, 1);
     }
-    if (npc && !npc.greeted) {
-      npc.greeted = true;
-      if (this.progression) this.progression.addXP(15, 'Greeted Luna');
+    if (npc && !npc.hasGreeted) {
+      npc.hasGreeted = true;
+      if (this.progression) this.progression.addXP(5, 'Made a friend');
     }
-
     if (this.dialogue) {
-      const lines = npc && npc.dialogue && npc.dialogue.length > 0 ? npc.dialogue : [
+      const dynamicLines = npc && npc.getDialogueLines ? npc.getDialogueLines() : null;
+      const lines = dynamicLines && dynamicLines.length > 0 ? dynamicLines : [
         'Nyaa~ Hello there, little traveler!',
         'I am Luna (月). The Kyoto spirits tell me ancient golden yarn and secret keys are hidden throughout the Machiya townhouses.',
         'Could you collect 3 yarn balls for me? 🐾'
       ];
       this.dialogue.show(npc ? npc.name : 'Luna', lines, () => {
-        if (this.quest && !this.quest.active) {
+        if (npc && npc.finishDialogue) {
+          npc.finishDialogue();
+        } else if (this.quest && !this.quest.active) {
           this.quest.start({ name: "Luna's Yarn Hunt", type: 'yarn', target: 3 });
         }
       });

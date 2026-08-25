@@ -90,6 +90,8 @@ export class Countryside {
     this.napSpotPos = new THREE.Vector3(20, 0.45, 10);
     this.nestPos = new THREE.Vector3(-14, 3.85, -4.5);
     this.nestInteracted = false;
+    this.corralRewardCollected = false;
+    this.corralGuardian = null;
 
     this.buildGround();
     this.buildPaddies();
@@ -107,6 +109,7 @@ export class Countryside {
     this.buildShrine(0, -32);
     this.buildVillageStreet();
     this.buildStreetGreenery();
+    this.buildBambooCorral(-31, 9);
     this.buildLanterns();
     this.buildMountains();
     this.buildYarn();
@@ -1418,10 +1421,12 @@ export class Countryside {
     });
   }
 
-  buildBambooFence(x, z, rot) {
+  buildBambooFence(x, z, rot, options = {}) {
     const fence = new THREE.Group();
-    const len = 2.6 + this.random() * 1.6;
-    for (const ry of [0.25, 0.65]) {
+    const len = options.length || (2.6 + this.random() * 1.6);
+    const fenceHeight = options.height || 1.35;
+    const rotationJitter = options.rotationJitter === false ? 0 : (this.random() - 0.5) * 0.2;
+    for (const ry of [0.32, 0.82]) {
       const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, len, 6), MAT.bambooGreen);
       rail.rotation.z = Math.PI / 2;
       rail.position.y = ry;
@@ -1430,20 +1435,159 @@ export class Countryside {
     const n = Math.floor(len / 0.16);
     for (let i = 0; i <= n; i++) {
       const sx = -len / 2 + i * (len / n);
-      const slat = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.85, 5), MAT.timberMedium);
-      slat.position.set(sx, 0.42, 0);
+      const slat = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, fenceHeight, 5), MAT.timberMedium);
+      slat.position.set(sx, fenceHeight / 2, 0);
       slat.rotation.x = (this.random() - 0.5) * 0.06;
       fence.add(slat);
     }
     fence.position.set(x, 0, z);
-    fence.rotation.y = rot + (this.random() - 0.5) * 0.2;
+    fence.rotation.y = rot + rotationJitter;
+    fence.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     this.scene.add(fence);
-    // Low jumpable-over collider (cat can hop it, but it still blocks walking)
-    const hl = len / 2;
-    const alongZ = Math.abs(Math.sin(rot)) > 0.5;
-    this.colliders.push(alongZ
-      ? new THREE.Box3(new THREE.Vector3(x - 0.22, 0, z - hl), new THREE.Vector3(x + 0.22, 0.95, z + hl))
-      : new THREE.Box3(new THREE.Vector3(x - hl, 0, z - 0.22), new THREE.Vector3(x + hl, 0.95, z + 0.22)));
+    // The 1.45m collision top is above the base jump apex (~1.30m), but below
+    // the rank-2 boosted apex (~1.81m). Swept player collision prevents thin
+    // pickets from being tunneled through during a low-FPS sprint frame.
+    fence.updateWorldMatrix(true, true);
+    const collider = new THREE.Box3().setFromObject(fence);
+    collider.min.y = 0;
+    collider.max.y = options.colliderHeight || 1.45;
+    collider.expandByVector(new THREE.Vector3(0.08, 0, 0.08));
+    this.colliders.push(collider);
+    return fence;
+  }
+
+  buildBambooCorral(x, z) {
+    const width = 7.2;
+    const depth = 6.2;
+    this.vegetationExclusions.push({ x, z, width: width + 2, depth: depth + 2 });
+
+    this.buildBambooFence(x, z - depth / 2, 0, { length: width, rotationJitter: false });
+    this.buildBambooFence(x, z + depth / 2, 0, { length: width, rotationJitter: false });
+    this.buildBambooFence(x - width / 2, z, Math.PI / 2, { length: depth, rotationJitter: false });
+    this.buildBambooFence(x + width / 2, z, Math.PI / 2, { length: depth, rotationJitter: false });
+
+    const marker = new THREE.Group();
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 1.7, 7), MAT.timberDark);
+    post.position.y = 0.85;
+    const board = box(2.2, 0.5, 0.12, MAT.timberLight, 0, 1.45, 0);
+    marker.add(post, board);
+    marker.position.set(x, 0, z - depth / 2 - 0.35);
+    marker.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    this.scene.add(marker);
+
+    const rewardMat = new THREE.MeshStandardMaterial({
+      color: 0x76c7a1,
+      emissive: 0x245c48,
+      emissiveIntensity: 0.75,
+      metalness: 0.45,
+      roughness: 0.3
+    });
+    const reward = new THREE.Mesh(new THREE.IcosahedronGeometry(0.23, 1), rewardMat);
+    reward.position.set(x, 0.42, z);
+    reward.castShadow = true;
+    reward.userData.id = 91;
+    reward.userData.isCollectible = true;
+    reward.userData.isCorralReward = true;
+    reward.userData.velocity = new THREE.Vector3();
+    reward.userData.batted = false;
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.035, 6, 18), MAT.goldAntique);
+    ring.rotation.x = Math.PI / 2;
+    reward.add(ring);
+    this.scene.add(reward);
+    this.collectibles.push(reward);
+    this.corralRewardMesh = reward;
+
+    const turtle = new THREE.Group();
+    const shellMat = new THREE.MeshStandardMaterial({ color: 0x5f7e42, roughness: 0.78, flatShading: true });
+    const shellLight = new THREE.MeshStandardMaterial({ color: 0x8da85c, roughness: 0.82, flatShading: true });
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0x9aaa68, roughness: 0.9, flatShading: true });
+    const shell = new THREE.Mesh(new THREE.SphereGeometry(0.52, 10, 7), shellMat);
+    shell.scale.set(1.15, 0.48, 0.9);
+    shell.position.y = 0.32;
+    turtle.add(shell);
+    const shellPatch = new THREE.Mesh(new THREE.IcosahedronGeometry(0.38, 1), shellLight);
+    shellPatch.scale.set(1.15, 0.35, 0.86);
+    shellPatch.position.y = 0.5;
+    turtle.add(shellPatch);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 8, 6), skinMat);
+    head.position.set(0, 0.25, 0.58);
+    turtle.add(head);
+    for (const [lx, lz] of [[-0.42, -0.35], [0.42, -0.35], [-0.42, 0.34], [0.42, 0.34]]) {
+      const foot = new THREE.Mesh(new THREE.SphereGeometry(0.13, 7, 5), skinMat);
+      foot.scale.set(1.25, 0.45, 0.75);
+      foot.position.set(lx, 0.1, lz);
+      turtle.add(foot);
+    }
+    turtle.position.set(x, 0, z);
+    turtle.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    this.scene.add(turtle);
+    this.corralGuardian = {
+      mesh: turtle,
+      home: new THREE.Vector3(x, 0, z),
+      // Keep enough clearance that a full contact push cannot place the cat
+      // inside or through a fence at the edge of the chase area.
+      bounds: { minX: x - width / 2 + 1.35, maxX: x + width / 2 - 1.35, minZ: z - depth / 2 + 1.35, maxZ: z + depth / 2 - 1.35 },
+      alerted: false,
+      hasBeenAlerted: false,
+      alertTimer: 0,
+      speed: 1.05,
+      radius: 0.72
+    };
+  }
+
+  updateCorralGuardian(dt, player) {
+    const guardian = this.corralGuardian;
+    if (!guardian || !player || this.corralRewardCollected) return null;
+    const turtlePos = guardian.mesh.position;
+    const playerPos = player.mesh.position;
+    const dx = playerPos.x - turtlePos.x;
+    const dz = playerPos.z - turtlePos.z;
+    const dist = Math.hypot(dx, dz);
+    const collisionDistance = guardian.radius + 0.42;
+    let event = null;
+    let justAlerted = false;
+
+    if (playerPos.y < 0.62 && dist < collisionDistance) {
+      if (!guardian.alerted) event = 'alerted';
+      guardian.alerted = true;
+      guardian.hasBeenAlerted = true;
+      guardian.alertTimer = 12;
+      justAlerted = true;
+      const nx = dist > 0.001 ? dx / dist : 1;
+      const nz = dist > 0.001 ? dz / dist : 0;
+      playerPos.x = turtlePos.x + nx * collisionDistance;
+      playerPos.z = turtlePos.z + nz * collisionDistance;
+    }
+
+    let target = guardian.home;
+    let speed = 0.5;
+    if (guardian.alerted) {
+      guardian.alertTimer -= dt;
+      target = playerPos;
+      speed = guardian.speed;
+      if (guardian.alertTimer <= 0) guardian.alerted = false;
+    }
+
+    const tx = target.x - turtlePos.x;
+    const tz = target.z - turtlePos.z;
+    const targetDistance = Math.hypot(tx, tz);
+    if (!justAlerted && targetDistance > 0.08) {
+      const step = Math.min(targetDistance, speed * dt);
+      turtlePos.x = THREE.MathUtils.clamp(turtlePos.x + tx / targetDistance * step, guardian.bounds.minX, guardian.bounds.maxX);
+      turtlePos.z = THREE.MathUtils.clamp(turtlePos.z + tz / targetDistance * step, guardian.bounds.minZ, guardian.bounds.maxZ);
+      guardian.mesh.rotation.y = Math.atan2(tx, tz);
+      guardian.mesh.position.y = Math.sin(this.time * 10) * 0.018;
+    }
+    return event;
+  }
+
+  setCorralRewardCollected(collected) {
+    this.corralRewardCollected = !!collected;
+    if (this.corralRewardMesh) this.corralRewardMesh.visible = !this.corralRewardCollected;
+    if (this.corralGuardian) {
+      this.corralGuardian.alerted = false;
+      this.corralGuardian.alertTimer = 0;
+    }
   }
 
   buildToroLantern(x, z) {

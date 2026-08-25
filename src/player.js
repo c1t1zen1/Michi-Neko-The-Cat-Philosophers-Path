@@ -268,8 +268,15 @@ export class Player {
       new THREE.Vector3(-0.25, 0, -0.4),
       new THREE.Vector3(0.25, 0.7, 0.45)
     ).translate(this.mesh.position);
+    const previousCenter = new THREE.Vector3(prevX, this.mesh.position.y + 0.35, prevZ);
+    const currentCenter = catBox.getCenter(new THREE.Vector3());
 
     for (const c of activeColliders || []) {
+      const verticalOverlap = catBox.max.y > c.min.y && catBox.min.y < c.max.y;
+      const expanded = c.clone().expandByVector(new THREE.Vector3(0.25, 0, 0.45));
+      const crossedCollider = verticalOverlap && !expanded.containsPoint(previousCenter) &&
+        this.segmentIntersectsBoxXZ(previousCenter, currentCenter, expanded);
+
       if (catBox.intersectsBox(c)) {
         const catCenter = catBox.getCenter(new THREE.Vector3());
         const cCenter = c.getCenter(new THREE.Vector3());
@@ -283,6 +290,11 @@ export class Player {
         } else {
           this.mesh.position.z += dz > 0 ? overlapZ : -overlapZ;
         }
+      } else if (crossedCollider) {
+        // Thin obstacles such as bamboo pickets can be crossed in a single
+        // low-FPS sprint frame. Restore the pre-move horizontal position.
+        this.mesh.position.x = prevX;
+        this.mesh.position.z = prevZ;
       }
     }
 
@@ -378,6 +390,26 @@ export class Player {
     this.fovCurrent += (fov - this.fovCurrent) * Math.min(1, dt * 8);
     this.camera.fov = this.fovCurrent;
     this.camera.updateProjectionMatrix();
+  }
+
+  segmentIntersectsBoxXZ(start, end, box) {
+    let tMin = 0;
+    let tMax = 1;
+    for (const axis of ['x', 'z']) {
+      const delta = end[axis] - start[axis];
+      if (Math.abs(delta) < 1e-8) {
+        if (start[axis] < box.min[axis] || start[axis] > box.max[axis]) return false;
+        continue;
+      }
+      const inv = 1 / delta;
+      let t1 = (box.min[axis] - start[axis]) * inv;
+      let t2 = (box.max[axis] - start[axis]) * inv;
+      if (t1 > t2) [t1, t2] = [t2, t1];
+      tMin = Math.max(tMin, t1);
+      tMax = Math.min(tMax, t2);
+      if (tMin > tMax) return false;
+    }
+    return tMax >= 0 && tMin <= 1;
   }
 
   /** Splash droplets erupt upward/outward from the water surface. */

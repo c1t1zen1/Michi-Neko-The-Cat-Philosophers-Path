@@ -3,20 +3,20 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { Player } from './player.js?v=20260825b';
-import { Countryside } from './countryside.js?v=20260823a';
+import { Player } from './player.js?v=20260825i';
+import { Countryside } from './countryside.js?v=20260825i';
 import { Sky } from './sky.js?v=20260823a';
 import { Vegetation } from './vegetation.js?v=20260823a';
 import { Particles } from './particles.js?v=20260823a';
 import { AmbientLife } from './ambient_life.js?v=20260823a';
 import { Controls } from './controls.js?v=20260825b';
 import { UI } from './ui.js?v=20260825h';
-import { NPC } from './npc.js?v=20260823a';
+import { NPC } from './npc.js?v=20260825i';
 import { Dialogue } from './dialogue.js?v=20260823a';
-import { QuestManager } from './quest.js?v=20260823a';
+import { QuestManager } from './quest.js?v=20260825i';
 import { AudioManager } from './audio.js?v=20260825g';
 import { ProgressionManager } from './progression.js?v=20260823a';
-import { ContextActionManager } from './context_actions.js?v=20260823a';
+import { ContextActionManager } from './context_actions.js?v=20260825i';
 import { InteriorManager } from './interior.js?v=20260823a';
 import { SaveManager } from './save.js?v=20260823a';
 import { ScentTrail } from './scent.js?v=20260823a';
@@ -98,6 +98,8 @@ class Game {
       ],
       { wanderRadius: 3 }
     );
+    this.luna.dialogueProvider = () => this.getLunaDialogue();
+    this.luna.onDialogueComplete = () => this.finishLunaDialogue();
 
     // Additional wandering villagers
     this.mochi = new NPC(
@@ -462,6 +464,9 @@ class Game {
     if (this.city.nestFeatherMesh && this.city.nestFeatherMesh.visible) {
       pois.push({ icon: '🪶', pos: this.city.nestFeatherMesh.position });
     }
+    if (this.city.corralRewardMesh && this.city.corralRewardMesh.visible) {
+      pois.push({ icon: '🐢', pos: this.city.corralRewardMesh.position });
+    }
     this.compass.setPois(pois);
   }
 
@@ -475,6 +480,9 @@ class Game {
     }
     if (c.isSecretHouseUnlocked && !c.nestInteracted && c.nestFeatherMesh && c.nestFeatherMesh.visible) {
       targets.push({ id: 'nest', icon: '🪶', pos: c.nestFeatherMesh.position });
+    }
+    if (this.progression.rank >= 2 && c.corralRewardMesh && c.corralRewardMesh.visible) {
+      targets.push({ id: 'corral', icon: '🐢', pos: c.corralRewardMesh.position });
     }
     if (this.quest.active && this.quest.active.type === 'yarn') {
       let best = null;
@@ -543,6 +551,9 @@ class Game {
       this.city.nestInteracted = true;
       if (this.city.nestFeatherMesh) this.city.nestFeatherMesh.visible = false;
     }
+    if (data.corralRewardCollected || this.collectedIds.has(91)) {
+      this.city.setCorralRewardCollected(true);
+    }
 
     // Remove already-collected yarn
     for (let i = this.collectibles.length - 1; i >= 0; i--) {
@@ -575,7 +586,8 @@ class Game {
       hasSecretKey: this.city.hasSecretKey,
       isSecretHouseUnlocked: this.city.isSecretHouseUnlocked,
       fishEaten: this.city.fishEaten,
-      nestInteracted: this.city.nestInteracted
+      nestInteracted: this.city.nestInteracted,
+      corralRewardCollected: this.city.corralRewardCollected
     };
     this.saveManager.save(data);
   }
@@ -596,6 +608,11 @@ class Game {
 
     if (playing) {
       this.player.update(dt, this.city.colliders, this.city, this.luna);
+      const corralEvent = this.city.updateCorralGuardian(dt, this.player);
+      if (corralEvent === 'alerted') {
+        this.ui.showToast('🐢 The corral guardian spotted you — run for the Jade Paw!');
+        this.player.cat.setMood('alert', 1.2, 2);
+      }
       this.contextActions.update(dt);
       this.dialogue.update(dt);
       this.updateDialogue();
@@ -697,15 +714,53 @@ Quality  ${this.settings.resolveQuality()}`;
     for (const n of this.npcs) {
       if (!n.hasGreeted && n.distanceTo(this.player.mesh.position) < 2.5) {
         n.hasGreeted = true;
-        const isFirst = n === this.luna;
-        this.dialogue.show(n.name, n.dialogue, () => {
-          if (isFirst && !this.quest.active) {
-            this.quest.start({ name: "Luna's Yarn Hunt", type: 'yarn', target: 3 });
-          }
+        const lines = n.getDialogueLines ? n.getDialogueLines() : n.dialogue;
+        this.dialogue.show(n.name, lines, () => {
+          if (n.finishDialogue) n.finishDialogue();
           this.progression.addXP(5, 'Made a friend');
         });
         break;
       }
+    }
+  }
+
+  getLunaDialogue() {
+    if (this.quest.hasPendingReward('yarn')) {
+      return [
+        'You found all three! Even the moonlight looks warmer around you.',
+        'Here is your reward: Luna’s Leap lesson. Your paws can spring much higher now!',
+        'Try it at the bamboo corral west of the village. A stubborn turtle guards a Jade Paw inside.'
+      ];
+    }
+    if (this.quest.active && this.quest.active.type === 'yarn') {
+      const remaining = Math.max(0, this.quest.active.target - this.quest.active.current);
+      return remaining === 1
+        ? ['Only one yarn ball remains. I can almost hear it rolling through the grass!']
+        : [`You have found ${this.quest.active.current} of 3 yarn balls. ${remaining} still hide in the valley.`];
+    }
+    if (this.quest.hasCompleted('yarn')) {
+      return [
+        'Your new leap suits you, little wanderer.',
+        'The turtle is slow but determined. Let it chase you, then spring past and claim the Jade Paw!'
+      ];
+    }
+    return this.luna.dialogue;
+  }
+
+  finishLunaDialogue() {
+    if (this.quest.hasPendingReward('yarn')) {
+      const reward = this.quest.claimReward('yarn');
+      if (reward) {
+        this.ui.showToast(reward.granted
+          ? 'Luna’s reward: Jump boost unlocked! Find the turtle corral.'
+          : 'Luna points you toward the turtle corral and its hidden Jade Paw.');
+        if (this.audio) this.audio.playKeyChime();
+        this.saveGame();
+      }
+      return;
+    }
+    if (!this.quest.active && !this.quest.hasCompleted('yarn')) {
+      this.quest.start({ name: "Luna's Yarn Hunt", type: 'yarn', target: 3 });
     }
   }
 
@@ -715,6 +770,10 @@ Quality  ${this.settings.resolveQuality()}`;
       const item = this.collectibles[i];
       // The river-spirit charm is intentionally collected from below the deck.
       if (item.userData.isCharm && !this.player.inWater) continue;
+      // The Jade Paw challenge begins only after the cat bumps the turtle and
+      // draws it away from its guarding position.
+      if (item.userData.isCorralReward &&
+          (!this.city.corralGuardian || !this.city.corralGuardian.hasBeenAlerted)) continue;
       if (item.position.distanceTo(pos) < 1.0) {
         this.scene.remove(item);
         this.collectibles.splice(i, 1);
@@ -727,6 +786,13 @@ Quality  ${this.settings.resolveQuality()}`;
           this.ui.showToast('✦ Golden Dango Charm! Speed blessed by the river spirit ✦');
           this.player.speedBuffTimer = 20;
           if (this.audio) this.audio.playBell();
+        } else if (item.userData.isCorralReward) {
+          this.city.setCorralRewardCollected(true);
+          this.progression.addXP(75, 'Claimed the Jade Paw from the turtle corral');
+          this.ui.showToast('✦ Jade Paw claimed! You outsmarted the turtle guardian! ✦');
+          this.player.cat.setMood('playful', 1.8, 2);
+          if (this.audio) this.audio.playKeyChime();
+          this.saveGame();
         } else {
           this.progression.addXP(10, 'Yarn collected');
           this.quest.onCollect('yarn');

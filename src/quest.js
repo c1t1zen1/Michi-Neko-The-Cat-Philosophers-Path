@@ -22,8 +22,27 @@ export class QuestManager {
 
   complete(quest) {
     this.active = null;
-    this.completed.push(quest);
+    this.completed.push({ ...quest, rewardClaimed: false });
     this.ui.setQuest('Quest complete! Talk to Luna.');
-    if (this.onComplete) this.onComplete(quest);
+  }
+
+  hasCompleted(type) {
+    return this.completed.some((quest) => quest.type === type);
+  }
+
+  hasPendingReward(type) {
+    return this.completed.some((quest) => quest.type === type && !quest.rewardClaimed);
+  }
+
+  claimReward(type) {
+    const quest = this.completed.find((entry) => entry.type === type && !entry.rewardClaimed);
+    if (!quest) return false;
+    // Saves from builds before the Luna turn-in flow have no rewardClaimed
+    // field because their 50 XP was granted immediately on quest completion.
+    const shouldGrantReward = quest.rewardClaimed === false;
+    quest.rewardClaimed = true;
+    this.ui.setQuest('Luna rewarded you! Explore the bamboo corral.');
+    if (shouldGrantReward && this.onComplete) this.onComplete(quest);
+    return { quest, granted: shouldGrantReward };
   }
 }
