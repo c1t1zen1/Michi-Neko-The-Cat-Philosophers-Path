@@ -14,7 +14,7 @@ import { UI } from './ui.js?v=20260823a';
 import { NPC } from './npc.js?v=20260823a';
 import { Dialogue } from './dialogue.js?v=20260823a';
 import { QuestManager } from './quest.js?v=20260823a';
-import { AudioManager } from './audio.js?v=20260825a';
+import { AudioManager } from './audio.js?v=20260825c';
 import { ProgressionManager } from './progression.js?v=20260823a';
 import { ContextActionManager } from './context_actions.js?v=20260823a';
 import { InteriorManager } from './interior.js?v=20260823a';
@@ -69,7 +69,6 @@ class Game {
 
     this.clock = new THREE.Clock();
     this.audio = new AudioManager();
-    this.installAudioGestureUnlock();
     this.sky = new Sky(this.scene);
     this.city = new Countryside(this.scene);
     this.interior = new InteriorManager(this);
@@ -175,23 +174,26 @@ class Game {
       }
     });
     this.applySettings();
+    this.installAudioEnableButton();
 
     this.loadGame();
 
-    // Autostart after "New Game" reset
-    if (sessionStorage.getItem(AUTOSTART_KEY) === 'new') {
+    // A reload is used to reset the world for a new game. Do not autostart it:
+    // a new page has a new AudioContext and must be enabled from a fresh click.
+    this.pendingNewGame = sessionStorage.getItem(AUTOSTART_KEY) === 'new';
+    if (this.pendingNewGame) {
       sessionStorage.removeItem(AUTOSTART_KEY);
-      this.menu.startGame();
-      this.controls.enabled = true;
-      this.audio.start();
-      this.music.start();
-    } else {
-      this.controls.enabled = false; // title screen active
+      this.audioEnableButton.textContent = '🔊 Turn On Audio & Start Game';
     }
+    this.controls.enabled = false; // title screen active
 
-    // Safari may suspend Web Audio after the app is backgrounded.
+    // iOS Safari can interrupt an AudioContext after the browser is
+    // backgrounded. Surface the same explicit recovery control on return.
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && this.menu.isPlaying) this.audio.resumeOnGesture();
+      if (!document.hidden && this.audio.ctx && this.audio.ctx.state !== 'running') {
+        this.audioEnableButton.classList.remove('hidden');
+        this.audioEnableButton.textContent = '🔊 Turn Audio Back On';
+      }
     });
 
     // ---- Photo mode ----
@@ -341,15 +343,31 @@ class Game {
 
   /* ---------------- Game flow ---------------- */
 
-  /** Unlock Web Audio from the first genuine input, including iOS touch-look. */
-  installAudioGestureUnlock() {
-    const unlock = () => {
-      this.audio.resumeOnGesture();
-      if (this.menu?.isPlaying) this.audio.start();
-    };
-    window.addEventListener('pointerdown', unlock, true);
-    window.addEventListener('touchstart', unlock, true);
-    window.addEventListener('keydown', unlock, true);
+  /** Explicitly enable audio from the title-screen button for mobile browsers. */
+  installAudioEnableButton() {
+    this.audioEnableButton = document.getElementById('btn-enable-audio');
+    this.audioEnableButton.addEventListener('click', () => {
+      // Keep initialization, resume, source creation, and the confirmation cue
+      // inside this click handler; Safari and Chrome treat this as user intent.
+      const enabled = this.audio.resumeOnGesture();
+      this.audio.start();
+      this.music.start();
+      this.applySettings();
+      this.audio.playBell();
+
+      Promise.resolve(enabled).then((running) => {
+        if (!running) {
+          this.audioEnableButton.textContent = '🔊 Audio Blocked — Tap to Try Again';
+          return;
+        }
+        this.audioEnableButton.classList.add('hidden');
+        if (this.pendingNewGame) {
+          this.pendingNewGame = false;
+          this.menu.startGame();
+          this.controls.enabled = true;
+        }
+      });
+    });
   }
 
   startNewGame() {

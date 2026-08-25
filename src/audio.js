@@ -46,13 +46,13 @@ export class AudioManager {
   }
 
   resumeOnGesture() {
-    // iOS only permits creating/resuming Web Audio during a real user gesture.
-    // Create the context here rather than waiting for a later game callback.
+    // Must be called directly by an explicit user action such as a button click.
     this.init();
-    if (this.ctx && this.ctx.state !== 'running') {
-      const resume = this.ctx.resume();
-      if (resume && typeof resume.catch === 'function') resume.catch(() => {});
-    }
+    if (!this.ctx) return Promise.resolve(false);
+    if (this.ctx.state === 'running') return Promise.resolve(true);
+    return this.ctx.resume()
+      .then(() => this.ctx.state === 'running')
+      .catch(() => false);
   }
 
   /** Sync the WebAudio listener with the camera for positional sound. */
