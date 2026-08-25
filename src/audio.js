@@ -8,6 +8,7 @@ export class AudioManager {
     this.lastFootstep = 0;
     this.initialized = false;
     this.started = false;
+    this.stateChangeHandler = null;
   }
 
   init() {
@@ -33,6 +34,18 @@ export class AudioManager {
     // Legacy default routing: one-shots land on the SFX bus
     this.master = this.buses.sfx;
     this.initialized = true;
+    this.ctx.addEventListener('statechange', () => {
+      if (this.stateChangeHandler) this.stateChangeHandler(this.ctx.state);
+    });
+  }
+
+  get isRunning() {
+    return !!this.ctx && this.ctx.state === 'running';
+  }
+
+  onStateChange(handler) {
+    this.stateChangeHandler = handler;
+    if (handler && this.ctx) handler(this.ctx.state);
   }
 
   /** Apply persisted settings volumes (0..1 range). */
@@ -50,6 +63,9 @@ export class AudioManager {
     this.init();
     if (!this.ctx) return Promise.resolve(false);
     if (this.ctx.state === 'running') return Promise.resolve(true);
+    const resume = this.ctx.resume()
+      .then(() => this.ctx.state === 'running')
+      .catch(() => false);
     // Prime the output with a zero-volume source while the gesture is still
     // active. This works around mobile WebKit instances that do not fully
     // unlock an AudioContext until a source has been started.
@@ -59,9 +75,29 @@ export class AudioManager {
     oscillator.connect(gain).connect(this.ctx.destination);
     oscillator.start();
     oscillator.stop(this.ctx.currentTime + 0.02);
-    return this.ctx.resume()
+
+    // Some WebKit versions can leave resume() pending indefinitely after an
+    // interruption. Do not leave the UI disabled forever; a later gesture can
+    // safely retry the same operation.
+    return Promise.race([
+      resume,
+      new Promise((resolve) => setTimeout(() => resolve(this.isRunning), 1500))
+    ]);
+  }
+
+  /** Best-effort startup for browsers/origins where audible autoplay is allowed. */
+  attemptAutoplay() {
+    this.init();
+    this.start();
+    if (!this.ctx) return Promise.resolve(false);
+    if (this.ctx.state === 'running') return Promise.resolve(true);
+    const resume = this.ctx.resume()
       .then(() => this.ctx.state === 'running')
       .catch(() => false);
+    return Promise.race([
+      resume,
+      new Promise((resolve) => setTimeout(() => resolve(this.isRunning), 1500))
+    ]);
   }
 
   /** Sync the WebAudio listener with the camera for positional sound. */
@@ -92,11 +128,14 @@ export class AudioManager {
   start() {
     if (this.started) return;
     this.init();
+    if (!this.initialized) return;
+    // Set this before installing delayed ambience callbacks so every callback
+    // observes a fully started manager, even on unusually fast test clocks.
+    this.started = true;
     this.startAmbient();
     this.startWindChimes();
     this.startBirds();
     this.startRain();
-    this.started = true;
   }
 
   setMasterVolume(v) {

@@ -14,7 +14,7 @@ import { UI } from './ui.js?v=20260823a';
 import { NPC } from './npc.js?v=20260823a';
 import { Dialogue } from './dialogue.js?v=20260823a';
 import { QuestManager } from './quest.js?v=20260823a';
-import { AudioManager } from './audio.js?v=20260825e';
+import { AudioManager } from './audio.js?v=20260825f';
 import { ProgressionManager } from './progression.js?v=20260823a';
 import { ContextActionManager } from './context_actions.js?v=20260823a';
 import { InteriorManager } from './interior.js?v=20260823a';
@@ -175,6 +175,7 @@ class Game {
     });
     this.applySettings();
     this.installAudioEnableButton();
+    this.startTitleAudio();
 
     this.loadGame();
 
@@ -191,10 +192,13 @@ class Game {
     }
 
     // iOS Safari can interrupt an AudioContext after the browser is
-    // backgrounded. Surface the same explicit recovery control on return.
+    // backgrounded. Attempt recovery and surface the explicit control if the
+    // browser requires another user gesture.
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && this.audio.ctx && this.audio.ctx.state !== 'running') {
-        this.setAudioEnableButtonState(false, 'Turn audio back on');
+      if (!document.hidden && this.audio.ctx && !this.audio.isRunning) {
+        this.audio.attemptAutoplay().then((running) => {
+          this.updateAudioEnableButton(running);
+        });
       }
     });
 
@@ -345,29 +349,56 @@ class Game {
 
   /* ---------------- Game flow ---------------- */
 
-  /** Explicitly enable audio from the top-right mobile control. */
+  /** Start title ambience immediately where autoplay policy permits it. */
+  startTitleAudio() {
+    this.audio.start();
+    this.music.start();
+    this.applySettings();
+    this.audio.attemptAutoplay().then((running) => {
+      this.updateAudioEnableButton(running);
+    });
+  }
+
+  /** Install one shared audio unlock path for menus, controls, and the speaker. */
   installAudioEnableButton() {
     this.audioEnableButton = document.getElementById('btn-enable-audio');
-    this.audioEnableButton.addEventListener('click', () => {
-      // resumeOnGesture() creates and resumes the context directly inside this
-      // user action, which is required by mobile Safari and Chrome.
-      this.audioEnableButton.disabled = true;
-      const resume = this.audio.resumeOnGesture();
-      // Keep source creation in this same user gesture rather than awaiting
-      // the resume promise, which can lose user-activation on mobile Safari.
-      this.audio.start();
-      this.music.start();
-      this.applySettings();
-      this.audio.playBell();
+    this.audio.onStateChange((state) => this.updateAudioEnableButton(state === 'running'));
 
-      Promise.resolve(resume).then((running) => {
-        this.audioEnableButton.disabled = false;
-        this.setAudioEnableButtonState(
-          running,
-          running ? 'Audio is on' : 'Audio was blocked — tap to try again'
-        );
-      });
+    const unlock = (event) => {
+      if (event.type === 'keydown' && (event.metaKey || event.ctrlKey || event.altKey)) return;
+      // Let the final click provide audible confirmation; earlier pointer/touch
+      // events are used only to unlock as early as each browser permits.
+      const confirm = event.type === 'click' && event.target === this.audioEnableButton;
+      this.unlockAudioFromGesture(confirm);
+    };
+
+    // Capture phase is intentional: resume/create/start executes before menu
+    // click handlers, touch controls, or a New Game navigation can consume the
+    // activation. touchend/click remain as WebKit-compatible fallbacks.
+    window.addEventListener('pointerdown', unlock, { capture: true, passive: true });
+    window.addEventListener('touchend', unlock, { capture: true, passive: true });
+    window.addEventListener('click', unlock, { capture: true, passive: true });
+    window.addEventListener('keydown', unlock, { capture: true });
+  }
+
+  unlockAudioFromGesture(confirm = false) {
+    const resume = this.audio.resumeOnGesture();
+    // Source creation remains in the trusted event call stack for Chrome's
+    // Web Audio game heuristic and mobile Safari's user-activation rule.
+    this.audio.start();
+    this.music.start();
+    this.applySettings();
+
+    Promise.resolve(resume).then((running) => {
+      this.updateAudioEnableButton(running);
+      if (running && confirm) this.audio.playBell();
     });
+  }
+
+  updateAudioEnableButton(running) {
+    const label = running ? 'Audio is on' : 'Turn on audio';
+    document.body.classList.toggle('audio-blocked', !running);
+    this.setAudioEnableButtonState(running, label);
   }
 
   setAudioEnableButtonState(enabled, label) {
