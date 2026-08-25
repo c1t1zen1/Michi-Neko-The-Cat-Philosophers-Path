@@ -20,8 +20,8 @@ export class MenuSystem {
     this.pauseEl = $('pause-screen');
     this.settingsEl = $('settings-screen');
 
-    $('btn-new-game').addEventListener('click', () => { this.audio.resumeOnGesture(); this.cb.onStartNewGame(); });
-    $('btn-continue').addEventListener('click', () => { this.audio.resumeOnGesture(); this.cb.onContinue(); });
+    $('btn-new-game').addEventListener('click', () => this.cb.onStartNewGame());
+    $('btn-continue').addEventListener('click', () => this.cb.onContinue());
     $('btn-title-settings').addEventListener('click', () => this.openSettings('title'));
     $('btn-resume').addEventListener('click', () => this.resume());
     $('btn-pause-settings').addEventListener('click', () => this.openSettings('paused'));

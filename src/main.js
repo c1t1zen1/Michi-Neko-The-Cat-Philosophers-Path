@@ -21,7 +21,7 @@ import { InteriorManager } from './interior.js?v=20260823a';
 import { SaveManager } from './save.js?v=20260823a';
 import { ScentTrail } from './scent.js?v=20260823a';
 import { SettingsManager } from './settings.js';
-import { MenuSystem } from './menus.js';
+import { MenuSystem } from './menus.js?v=20260825d';
 import { WaypointSystem, Compass } from './waypoints.js?v=20260823a';
 import { MusicDirector } from './music.js';
 
@@ -183,7 +183,7 @@ class Game {
     this.pendingNewGame = sessionStorage.getItem(AUTOSTART_KEY) === 'new';
     if (this.pendingNewGame) {
       sessionStorage.removeItem(AUTOSTART_KEY);
-      this.audioEnableButton.textContent = '🔊 Turn On Audio & Start Game';
+      this.setAudioEnableButtonState(false, 'Turn on audio and start game');
     }
     this.controls.enabled = false; // title screen active
 
@@ -191,8 +191,7 @@ class Game {
     // backgrounded. Surface the same explicit recovery control on return.
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && this.audio.ctx && this.audio.ctx.state !== 'running') {
-        this.audioEnableButton.classList.remove('hidden');
-        this.audioEnableButton.textContent = '🔊 Turn Audio Back On';
+        this.setAudioEnableButtonState(false, 'Turn audio back on');
       }
     });
 
@@ -343,31 +342,40 @@ class Game {
 
   /* ---------------- Game flow ---------------- */
 
-  /** Explicitly enable audio from the title-screen button for mobile browsers. */
+  /** Explicitly enable audio from the top-right mobile control. */
   installAudioEnableButton() {
     this.audioEnableButton = document.getElementById('btn-enable-audio');
-    this.audioEnableButton.addEventListener('click', () => {
-      // Keep initialization, resume, source creation, and the confirmation cue
-      // inside this click handler; Safari and Chrome treat this as user intent.
-      const enabled = this.audio.resumeOnGesture();
+    this.audioEnableButton.addEventListener('click', async () => {
+      // resumeOnGesture() creates and resumes the context directly inside this
+      // user action, which is required by mobile Safari and Chrome.
+      this.audioEnableButton.disabled = true;
+      const running = await this.audio.resumeOnGesture();
+      this.audioEnableButton.disabled = false;
+      if (!running) {
+        this.setAudioEnableButtonState(false, 'Audio was blocked — tap to try again');
+        return;
+      }
+
       this.audio.start();
       this.music.start();
       this.applySettings();
       this.audio.playBell();
+      this.setAudioEnableButtonState(true, 'Audio is on');
 
-      Promise.resolve(enabled).then((running) => {
-        if (!running) {
-          this.audioEnableButton.textContent = '🔊 Audio Blocked — Tap to Try Again';
-          return;
-        }
-        this.audioEnableButton.classList.add('hidden');
-        if (this.pendingNewGame) {
-          this.pendingNewGame = false;
-          this.menu.startGame();
-          this.controls.enabled = true;
-        }
-      });
+      if (this.pendingNewGame) {
+        this.pendingNewGame = false;
+        this.menu.startGame();
+        this.controls.enabled = true;
+      }
     });
+  }
+
+  setAudioEnableButtonState(enabled, label) {
+    this.audioEnableButton.textContent = enabled ? '🔊' : '🔇';
+    this.audioEnableButton.classList.toggle('audio-on', enabled);
+    this.audioEnableButton.setAttribute('aria-pressed', String(enabled));
+    this.audioEnableButton.setAttribute('aria-label', label);
+    this.audioEnableButton.title = label;
   }
 
   startNewGame() {

@@ -187,10 +187,11 @@
       #compass {
         top: max(10px, env(safe-area-inset-top));
         left: calc(env(safe-area-inset-left) + 124px);
-        right: calc(env(safe-area-inset-right) + 12px);
+        right: calc(env(safe-area-inset-right) + 64px);
         width: auto;
         transform: none;
       }
+      #btn-enable-audio { display: block; }
 
       .touch-zone {
         bottom: max(16px, calc(env(safe-area-inset-bottom) + 12px));
@@ -265,7 +266,29 @@
     .menu-btn:hover { background: linear-gradient(180deg, #c8402a 0%, #8a2818 100%); border-color: #e0503a; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(200,64,42,0.4); }
     .menu-btn:active { transform: translateY(1px); }
     .menu-btn.primary { border-color: #c8402a; box-shadow: 0 3px 14px rgba(200,64,42,0.45), inset 0 1px 0 rgba(255,255,255,0.15); }
-    #btn-enable-audio { border-color: #e8b84a; color: #fff4d6; }
+    #btn-enable-audio {
+      display: none;
+      position: absolute;
+      top: max(12px, env(safe-area-inset-top));
+      right: calc(env(safe-area-inset-right) + 12px);
+      z-index: 650;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      border: 1px solid #e8b84a;
+      border-radius: 50%;
+      color: #fff4d6;
+      background: linear-gradient(180deg, #4d2e1f 0%, #2c190e 100%);
+      box-shadow: 0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.14);
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    #btn-enable-audio.audio-on { border-color: #7cb85a; color: #e4ffd4; }
+    #btn-enable-audio:disabled { opacity: 0.7; }
+    @media (hover: none) and (pointer: coarse) {
+      #btn-enable-audio { display: block; }
+    }
 
     /* ============ Title screen ============ */
     #title-screen {
@@ -470,6 +493,9 @@
   <!-- Compass strip -->
   <div id="compass"></div>
 
+  <!-- Mobile browsers require an explicit user action before Web Audio can play. -->
+  <button id="btn-enable-audio" type="button" aria-label="Turn on audio" aria-pressed="false" title="Turn on audio">🔇</button>
+
   <!-- Stacked toast notifications -->
   <div id="toast-stack"></div>
 
@@ -535,7 +561,6 @@
       <nav id="title-menu">
         <button id="btn-continue" class="menu-btn primary">▶ Continue</button>
         <button id="btn-new-game" class="menu-btn">✦ New Game</button>
-        <button id="btn-enable-audio" class="menu-btn">🔊 Turn On Audio</button>
         <button id="btn-title-settings" class="menu-btn">⚙ Settings</button>
       </nav>
       <div id="title-hint">WASD move · Space jump · E act · M meow · C prowl · Esc pause</div>
@@ -576,6 +601,6 @@
     </div>
   </div>
 
-  <script type="module" src="src/main.js?v=20260825c"></script>
+  <script type="module" src="src/main.js?v=20260825d"></script>
 </body>
 </html>
