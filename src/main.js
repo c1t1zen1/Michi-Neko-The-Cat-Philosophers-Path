@@ -14,7 +14,7 @@ import { UI } from './ui.js?v=20260823a';
 import { NPC } from './npc.js?v=20260823a';
 import { Dialogue } from './dialogue.js?v=20260823a';
 import { QuestManager } from './quest.js?v=20260823a';
-import { AudioManager } from './audio.js?v=20260825f';
+import { AudioManager } from './audio.js?v=20260825g';
 import { ProgressionManager } from './progression.js?v=20260823a';
 import { ContextActionManager } from './context_actions.js?v=20260823a';
 import { InteriorManager } from './interior.js?v=20260823a';
@@ -351,6 +351,16 @@ class Game {
 
   /** Start title ambience immediately where autoplay policy permits it. */
   startTitleAudio() {
+    const mobilePointer = window.matchMedia &&
+      window.matchMedia('(pointer: coarse) and (hover: none)').matches;
+    const mobileUserAgent = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    if (mobilePointer || mobileUserAgent) {
+      // Do not construct AudioContext before the first valid touch activation.
+      // Real iOS Safari is substantially more reliable when construction,
+      // resume, source startup, and the first audible tone share one event.
+      this.updateAudioEnableButton(false);
+      return;
+    }
     this.audio.start();
     this.music.start();
     this.applySettings();
@@ -366,16 +376,19 @@ class Game {
 
     const unlock = (event) => {
       if (event.type === 'keydown' && (event.metaKey || event.ctrlKey || event.altKey)) return;
-      // Let the final click provide audible confirmation; earlier pointer/touch
-      // events are used only to unlock as early as each browser permits.
+      // WebKit only grants touch activation on pointerup/touchend/click. Never
+      // create the context from touch pointerdown.
+      if (event.type === 'pointerdown' && event.pointerType !== 'mouse') return;
+      if (event.type === 'pointerup' && event.pointerType === 'mouse') return;
       const confirm = event.type === 'click' && event.target === this.audioEnableButton;
       this.unlockAudioFromGesture(confirm);
     };
 
-    // Capture phase is intentional: resume/create/start executes before menu
-    // click handlers, touch controls, or a New Game navigation can consume the
-    // activation. touchend/click remain as WebKit-compatible fallbacks.
+    // Capture phase is intentional: unlock before menu navigation. Mouse uses
+    // pointerdown; touch/pen uses pointerup, with touchend/click fallbacks for
+    // older iOS Safari versions.
     window.addEventListener('pointerdown', unlock, { capture: true, passive: true });
+    window.addEventListener('pointerup', unlock, { capture: true, passive: true });
     window.addEventListener('touchend', unlock, { capture: true, passive: true });
     window.addEventListener('click', unlock, { capture: true, passive: true });
     window.addEventListener('keydown', unlock, { capture: true });
@@ -388,10 +401,10 @@ class Game {
     this.audio.start();
     this.music.start();
     this.applySettings();
+    if (confirm) this.audio.playUnlockChime();
 
     Promise.resolve(resume).then((running) => {
       this.updateAudioEnableButton(running);
-      if (running && confirm) this.audio.playBell();
     });
   }
 

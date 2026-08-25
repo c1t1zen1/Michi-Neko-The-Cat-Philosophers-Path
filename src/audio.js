@@ -59,22 +59,23 @@ export class AudioManager {
   }
 
   resumeOnGesture() {
-    // Must be called directly by an explicit user action such as a button click.
+    // Must be called directly by an activation event. On touch WebKit that
+    // means pointerup/touchend/click, not touch pointerdown.
     this.init();
     if (!this.ctx) return Promise.resolve(false);
-    if (this.ctx.state === 'running') return Promise.resolve(true);
-    const resume = this.ctx.resume()
-      .then(() => this.ctx.state === 'running')
-      .catch(() => false);
-    // Prime the output with a zero-volume source while the gesture is still
-    // active. This works around mobile WebKit instances that do not fully
-    // unlock an AudioContext until a source has been started.
-    const oscillator = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0, this.ctx.currentTime);
-    oscillator.connect(gain).connect(this.ctx.destination);
-    oscillator.start();
-    oscillator.stop(this.ctx.currentTime + 0.02);
+    const resume = this.ctx.state === 'running'
+      ? Promise.resolve(true)
+      : this.ctx.resume()
+        .then(() => this.ctx.state === 'running')
+        .catch(() => false);
+
+    // Starting an attached source during the same activation is Chrome's
+    // documented Web Audio game unlock path and also primes mobile WebKit.
+    const buffer = this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
+    const source = this.ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(this.ctx.destination);
+    source.start(0);
 
     // Some WebKit versions can leave resume() pending indefinitely after an
     // interruption. Do not leave the UI disabled forever; a later gesture can
@@ -83,6 +84,26 @@ export class AudioManager {
       resume,
       new Promise((resolve) => setTimeout(() => resolve(this.isRunning), 1500))
     ]);
+  }
+
+  /** Audible confirmation scheduled synchronously inside the speaker gesture. */
+  playUnlockChime() {
+    if (!this.initialized || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    [660, 990].forEach((frequency, index) => {
+      const oscillator = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.value = frequency;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(index === 0 ? 0.12 : 0.07, t + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+      // Bypass persisted mix levels for this one confirmation. Pressing the
+      // speaker is an explicit request to prove that device audio is enabled.
+      oscillator.connect(gain).connect(this.ctx.destination);
+      oscillator.start(t);
+      oscillator.stop(t + 0.5);
+    });
   }
 
   /** Best-effort startup for browsers/origins where audible autoplay is allowed. */
