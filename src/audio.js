@@ -46,7 +46,13 @@ export class AudioManager {
   }
 
   resumeOnGesture() {
-    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+    // iOS only permits creating/resuming Web Audio during a real user gesture.
+    // Create the context here rather than waiting for a later game callback.
+    this.init();
+    if (this.ctx && this.ctx.state !== 'running') {
+      const resume = this.ctx.resume();
+      if (resume && typeof resume.catch === 'function') resume.catch(() => {});
+    }
   }
 
   /** Sync the WebAudio listener with the camera for positional sound. */

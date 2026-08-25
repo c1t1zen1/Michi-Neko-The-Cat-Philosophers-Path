@@ -173,6 +173,10 @@ export class Player {
       currentSpeed *= speedBonus;
       if (inWater) currentSpeed *= 0.55;
       if (this.isProwling) currentSpeed *= 0.45;
+      // Preserve virtual joystick distance so mobile players can choose a
+      // slower pace instead of every deflection moving at maximum speed.
+      const inputStrength = Math.min(1, this.moveInput.length());
+      currentSpeed *= inputStrength;
       const input = this.moveInput.clone().normalize().multiplyScalar(currentSpeed * dt);
       const forward = new THREE.Vector3(0, 0, 1).applyAxisAngle(Y_UP, this.yaw);
       const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(Y_UP, this.yaw);

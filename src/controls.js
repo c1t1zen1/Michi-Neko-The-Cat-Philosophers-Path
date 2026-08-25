@@ -16,6 +16,8 @@ export class Controls {
     this.joystick = { active: false, origin: new THREE.Vector2(), current: new THREE.Vector2(), id: null };
     this.input = new THREE.Vector2();
     this.rawInput = new THREE.Vector2();
+    this.mobileSpeedScale = 1;
+    this.lastJoystickTapAt = 0;
 
     this.isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     if (this.isMobile) this.ui.setMode('mobile');
@@ -140,6 +142,15 @@ export class Controls {
     joystickZone.addEventListener('touchstart', (e) => {
       if (this.audio) { this.audio.resumeOnGesture(); this.audio.start(); }
       e.preventDefault();
+      const now = performance.now();
+      if (now - this.lastJoystickTapAt <= 320) {
+        this.mobileSpeedScale = this.mobileSpeedScale === 1 ? 0.55 : 1;
+        this.lastJoystickTapAt = 0;
+        const mode = this.mobileSpeedScale < 1 ? 'Careful pace ON' : 'Full pace ON';
+        this.ui.showToast(`${mode} · double-tap the walk pad to switch`);
+      } else {
+        this.lastJoystickTapAt = now;
+      }
       const t = e.changedTouches[0];
       this.joystick.active = true;
       this.joystick.id = t.identifier;
@@ -163,7 +174,10 @@ export class Controls {
       );
       // The camera-relative movement basis uses positive X for left, so invert
       // only the touch joystick's horizontal displacement to match the thumb.
-      this.rawInput.set(-dx * scale / maxRadius, -dy * scale / maxRadius);
+      this.rawInput.set(
+        -dx * scale / maxRadius * this.mobileSpeedScale,
+        -dy * scale / maxRadius * this.mobileSpeedScale
+      );
       this.updateKnob(dx * scale, dy * scale);
     }, { passive: false });
 
@@ -242,6 +256,6 @@ export class Controls {
     this.player.moveInput.copy(this.input);
     this.player.jumpHeld = !!this.keys['Space'];
     this.player.sprint = (this.keys['ShiftLeft'] || this.keys['ShiftRight']) ||
-      (this.joystick.active && this.rawInput.length() > 0.95);
+      (this.joystick.active && this.mobileSpeedScale === 1 && this.rawInput.length() > 0.95);
   }
 }

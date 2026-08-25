@@ -3,18 +3,18 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { Player } from './player.js?v=20260823a';
+import { Player } from './player.js?v=20260825b';
 import { Countryside } from './countryside.js?v=20260823a';
 import { Sky } from './sky.js?v=20260823a';
 import { Vegetation } from './vegetation.js?v=20260823a';
 import { Particles } from './particles.js?v=20260823a';
 import { AmbientLife } from './ambient_life.js?v=20260823a';
-import { Controls } from './controls.js?v=20260823a';
+import { Controls } from './controls.js?v=20260825b';
 import { UI } from './ui.js?v=20260823a';
 import { NPC } from './npc.js?v=20260823a';
 import { Dialogue } from './dialogue.js?v=20260823a';
 import { QuestManager } from './quest.js?v=20260823a';
-import { AudioManager } from './audio.js?v=20260823a';
+import { AudioManager } from './audio.js?v=20260825a';
 import { ProgressionManager } from './progression.js?v=20260823a';
 import { ContextActionManager } from './context_actions.js?v=20260823a';
 import { InteriorManager } from './interior.js?v=20260823a';
@@ -69,6 +69,7 @@ class Game {
 
     this.clock = new THREE.Clock();
     this.audio = new AudioManager();
+    this.installAudioGestureUnlock();
     this.sky = new Sky(this.scene);
     this.city = new Countryside(this.scene);
     this.interior = new InteriorManager(this);
@@ -187,6 +188,11 @@ class Game {
     } else {
       this.controls.enabled = false; // title screen active
     }
+
+    // Safari may suspend Web Audio after the app is backgrounded.
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && this.menu.isPlaying) this.audio.resumeOnGesture();
+    });
 
     // ---- Photo mode ----
     this.photoMode = false;
@@ -334,6 +340,17 @@ class Game {
   }
 
   /* ---------------- Game flow ---------------- */
+
+  /** Unlock Web Audio from the first genuine input, including iOS touch-look. */
+  installAudioGestureUnlock() {
+    const unlock = () => {
+      this.audio.resumeOnGesture();
+      if (this.menu?.isPlaying) this.audio.start();
+    };
+    window.addEventListener('pointerdown', unlock, true);
+    window.addEventListener('touchstart', unlock, true);
+    window.addEventListener('keydown', unlock, true);
+  }
 
   startNewGame() {
     this.saveManager.clear();
