@@ -3,12 +3,12 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { Player } from './player.js?v=20260825j';
-import { Countryside } from './countryside.js?v=20260825j';
+import { Player } from './player.js?v=20260827a';
+import { Countryside } from './countryside.js?v=20260827a';
 import { Sky } from './sky.js?v=20260823a';
-import { Vegetation } from './vegetation.js?v=20260823a';
+import { Vegetation } from './vegetation.js?v=20260827a';
 import { Particles } from './particles.js?v=20260823a';
-import { AmbientLife } from './ambient_life.js?v=20260823a';
+import { AmbientLife } from './ambient_life.js?v=20260827a';
 import { Controls } from './controls.js?v=20260825b';
 import { UI } from './ui.js?v=20260825h';
 import { NPC } from './npc.js?v=20260825j';
@@ -79,7 +79,7 @@ class Game {
       exclusionRects: this.city.vegetationExclusions
     });
     this.particles = new Particles(this.scene);
-    this.ambientLife = new AmbientLife(this.scene, this.audio);
+    this.ambientLife = new AmbientLife(this.scene, this.audio, this.city.nestPos);
     this.scent = new ScentTrail(this.scene);
     this.player = new Player(this.scene, this.camera, this.audio);
     this.dialogue = new Dialogue();
@@ -153,6 +153,7 @@ class Game {
     this.saveTimer = 5;
     this.doorPos = new THREE.Vector3(20, 0, 12.5);
     this.poiRefreshTimer = 0;
+    this.toriiMessageSeen = false;
 
     // Generative day-phase music
     this.music = new MusicDirector(this.audio);
@@ -465,7 +466,7 @@ class Game {
       pois.push({ icon: '🔑', pos: this.city.secretKeyMesh.position });
     }
     if (this.city.nestFeatherMesh && this.city.nestFeatherMesh.visible) {
-      pois.push({ icon: '🪶', pos: this.city.nestFeatherMesh.position });
+      pois.push({ icon: '🪶', pos: this.city.nestPos });
     }
     if (this.city.corralRewardMesh && this.city.corralRewardMesh.visible) {
       pois.push({ icon: '🐢', pos: this.city.corralRewardMesh.position });
@@ -481,10 +482,11 @@ class Game {
     } else if (!c.isSecretHouseUnlocked) {
       targets.push({ id: 'door', icon: '🏮', pos: this.doorPos });
     }
-    if (c.isSecretHouseUnlocked && !c.nestInteracted && c.nestFeatherMesh && c.nestFeatherMesh.visible) {
-      targets.push({ id: 'nest', icon: '🪶', pos: c.nestFeatherMesh.position });
+    if (!c.nestInteracted && c.nestFeatherMesh && c.nestFeatherMesh.visible) {
+      targets.push({ id: 'nest', icon: '🪶', pos: c.nestPos });
     }
-    if (this.progression.rank >= 2 && c.corralRewardMesh && c.corralRewardMesh.visible) {
+    const larryReady = this.quest.hasCompleted('yarn') && !this.quest.hasPendingReward('yarn');
+    if (larryReady && c.corralRewardMesh && c.corralRewardMesh.visible) {
       targets.push({ id: 'corral', icon: '🐢', pos: c.corralRewardMesh.position });
     }
     if (this.quest.active && this.quest.active.type === 'yarn') {
@@ -556,7 +558,9 @@ class Game {
     }
     if (data.corralRewardCollected || this.collectedIds.has(91)) {
       this.city.setCorralRewardCollected(true);
+      this.player.canWalkFences = true;
     }
+    this.toriiMessageSeen = !!data.toriiMessageSeen;
     this.drinkCount = data.drinkCount || 0;
     this.freshWaterAchievement = !!data.freshWaterAchievement;
 
@@ -593,6 +597,7 @@ class Game {
       fishEaten: this.city.fishEaten,
       nestInteracted: this.city.nestInteracted,
       corralRewardCollected: this.city.corralRewardCollected,
+      toriiMessageSeen: this.toriiMessageSeen,
       drinkCount: this.drinkCount,
       freshWaterAchievement: this.freshWaterAchievement
     };
@@ -615,22 +620,33 @@ class Game {
 
     if (playing) {
       this.player.update(dt, this.city.colliders, this.city, this.luna);
-      const corralEvent = this.city.updateCorralGuardian(dt, this.player);
+      const yarnFinished = this.quest.hasCompleted('yarn') && !this.quest.hasPendingReward('yarn');
+      const corralEvent = this.city.updateCorralGuardian(dt, this.player, yarnFinished);
       if (corralEvent === 'alerted') {
-        this.ui.showToast('🐢 The corral guardian spotted you — run for the Jade Paw!');
+        this.ui.showToast('🐢 Larry spotted you — run for the Jade Paw!');
         this.player.cat.setMood('alert', 1.2, 2);
       }
       this.contextActions.update(dt);
       this.dialogue.update(dt);
       this.updateDialogue();
       this.checkCollectibles();
+      if (!this.toriiMessageSeen && this.progression.rank >= 4 && this.city.toriiTopPos &&
+          this.player.mesh.position.y > 5.05 &&
+          this.player.mesh.position.distanceToSquared(this.city.toriiTopPos) < 5.5) {
+        this.toriiMessageSeen = true;
+        this.ui.showToast("I can see beyond this valley, I wonder what's out there?", 5200);
+        this.saveGame();
+      }
 
       // Interior simulation (knockable table objects)
       this.interior.update(dt);
 
       // Valley collectibles are hidden while inside the Tea House
       const insideNow = this.interior.isInside;
-      for (const item of this.collectibles) item.visible = !insideNow;
+      for (const item of this.collectibles) {
+        if (!item.userData.isCorralReward) item.visible = !insideNow;
+      }
+      this.city.setCorralChallengeActive(yarnFinished, !insideNow);
 
       this.saveTimer -= dt;
       if (this.saveTimer <= 0) {
@@ -651,7 +667,7 @@ class Game {
     this.sky.update(dt, this.player.mesh.position);
     this.vegetation.update(dt, this.player.mesh.position, this.sky);
     this.particles.update(dt, this.player.mesh.position, this.sky);
-    this.ambientLife.update(dt, this.player.mesh.position, this.sky, this.player.cat);
+    this.ambientLife.update(dt, this.player.mesh.position, this.sky, this.player.cat, this.player, this.city);
     this.scent.update(dt, this.player.mesh.position, playing ? this.player.currentSpeed : 0);
     this.audio.setWeatherTransition(this.sky.getWeatherTransition());
     this.audio.updateListener(this.camera);
@@ -794,7 +810,8 @@ Quality  ${this.settings.resolveQuality()}`;
       // The Jade Paw challenge begins only after the cat bumps the turtle and
       // draws it away from its guarding position.
       if (item.userData.isCorralReward &&
-          (!this.city.corralGuardian || !this.city.corralGuardian.hasBeenAlerted)) continue;
+          (!this.quest.hasCompleted('yarn') || this.quest.hasPendingReward('yarn') ||
+           !this.city.corralGuardian || !this.city.corralGuardian.hasBeenAlerted)) continue;
       if (item.position.distanceTo(pos) < 1.0) {
         this.scene.remove(item);
         this.collectibles.splice(i, 1);
@@ -809,8 +826,9 @@ Quality  ${this.settings.resolveQuality()}`;
           if (this.audio) this.audio.playBell();
         } else if (item.userData.isCorralReward) {
           this.city.setCorralRewardCollected(true);
+          this.player.canWalkFences = true;
           this.progression.addXP(75, 'Claimed the Jade Paw from the turtle corral');
-          this.ui.showToast('✦ Jade Paw claimed! You outsmarted the turtle guardian! ✦');
+          this.ui.showToast('✦ Jade Paw claimed! Larry taught you to balance on fence tops! ✦');
           this.player.cat.setMood('playful', 1.8, 2);
           if (this.audio) this.audio.playKeyChime();
           this.saveGame();

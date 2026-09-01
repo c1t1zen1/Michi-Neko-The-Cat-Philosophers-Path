@@ -9,6 +9,33 @@ function mulberry32(a) {
   };
 }
 
+function barkTexture(base, dark, seedOffset = 0) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 96;
+  canvas.height = 192;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = dark;
+  for (let i = 0; i < 34; i++) {
+    const x = ((i * 29 + seedOffset * 17) % 104) - 4;
+    const y = (i * 47 + seedOffset * 23) % 205;
+    ctx.globalAlpha = 0.28 + (i % 4) * 0.1;
+    ctx.lineWidth = 1 + (i % 3);
+    ctx.beginPath();
+    ctx.moveTo(x, y - 18);
+    ctx.bezierCurveTo(x + 7, y - 5, x - 5, y + 8, x + 2, y + 25);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, 4);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 export class Vegetation {
   constructor(scene, colliders, options = {}) {
     this.scene = scene;
@@ -22,7 +49,15 @@ export class Vegetation {
     this.exclusionRects = options.exclusionRects || [];
     this.bambooSwayables = [];
 
-    this.matTrunk = new THREE.MeshStandardMaterial({ color: 0x4f3a2c, roughness: 0.95 });
+    const barkA = barkTexture('#654b39', '#2d1d15', 1);
+    const barkB = barkTexture('#74604a', '#38291d', 2);
+    const barkC = barkTexture('#4a3b31', '#1f1813', 3);
+    this.matTrunks = [
+      new THREE.MeshStandardMaterial({ color: 0x7a5a43, map: barkA, bumpMap: barkA, bumpScale: 0.08, roughness: 0.96 }),
+      new THREE.MeshStandardMaterial({ color: 0x806b52, map: barkB, bumpMap: barkB, bumpScale: 0.06, roughness: 0.94 }),
+      new THREE.MeshStandardMaterial({ color: 0x5b493c, map: barkC, bumpMap: barkC, bumpScale: 0.09, roughness: 0.98 })
+    ];
+    this.matTrunk = this.matTrunks[0];
     this.matSakura = new THREE.MeshStandardMaterial({ color: 0xefa5b8, roughness: 0.9, flatShading: true });
     this.matSakuraDeep = new THREE.MeshStandardMaterial({ color: 0xd97e99, roughness: 0.9, flatShading: true });
     this.matLeafGreen = new THREE.MeshStandardMaterial({ color: 0x4c7433, roughness: 0.95, flatShading: true });
@@ -92,9 +127,10 @@ export class Vegetation {
 
   sakuraTree(x, z, scale = 1) {
     const tree = new THREE.Group();
+    const trunkMat = this.matTrunks[Math.abs(Math.floor(x + z)) % this.matTrunks.length];
 
     const trunkGeo = new THREE.CylinderGeometry(0.14 * scale, 0.24 * scale, 2.4 * scale, 7);
-    const trunk = new THREE.Mesh(trunkGeo, this.matTrunk);
+    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
     trunk.position.y = 1.2 * scale;
     trunk.rotation.z = (this.random() - 0.5) * 0.15;
     trunk.castShadow = true;
@@ -102,7 +138,7 @@ export class Vegetation {
 
     const branchGeo = new THREE.CylinderGeometry(0.05 * scale, 0.1 * scale, 1.2 * scale, 5);
     for (let i = 0; i < 4; i++) {
-      const b = new THREE.Mesh(branchGeo, this.matTrunk);
+      const b = new THREE.Mesh(branchGeo, trunkMat);
       const a = this.random() * Math.PI * 2;
       b.position.set(Math.cos(a) * 0.5 * scale, (2.2 + this.random() * 0.5) * scale, Math.sin(a) * 0.5 * scale);
       b.rotation.z = Math.cos(a) * 0.9;
@@ -238,7 +274,8 @@ export class Vegetation {
 
   mapleTree(x, z, scale = 1) {
     const tree = new THREE.Group();
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * scale, 0.2 * scale, 2 * scale, 7), this.matTrunk);
+    const trunkMat = this.matTrunks[(Math.abs(Math.floor(x - z)) + 1) % this.matTrunks.length];
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * scale, 0.2 * scale, 2 * scale, 7), trunkMat);
     trunk.position.y = scale;
     trunk.castShadow = true;
     tree.add(trunk);
@@ -256,7 +293,8 @@ export class Vegetation {
 
   pineTree(x, z, scale = 1) {
     const tree = new THREE.Group();
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * scale, 0.16 * scale, 1.6 * scale, 6), this.matTrunk);
+    const trunkMat = this.matTrunks[(Math.abs(Math.floor(x * 0.5 + z)) + 2) % this.matTrunks.length];
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * scale, 0.16 * scale, 1.6 * scale, 6), trunkMat);
     trunk.position.y = 0.8 * scale;
     trunk.castShadow = true;
     tree.add(trunk);

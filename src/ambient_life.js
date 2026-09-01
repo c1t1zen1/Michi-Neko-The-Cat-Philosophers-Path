@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 
 export class AmbientLife {
-  constructor(scene, audio = null) {
+  constructor(scene, audio = null, nestPos = null) {
     this.scene = scene;
     this.audio = audio;
     this.time = 0;
-    this.nestPos = new THREE.Vector3(-14, 3.85, -4.5);
+    this.nestPos = nestPos ? nestPos.clone() : new THREE.Vector3(-12.55, 4.9, -3.55);
     this.buildBirds();
     this.buildGuardianBirds();
     this.buildButterflies();
@@ -92,7 +92,8 @@ export class AmbientLife {
         swoopTarget: new THREE.Vector3(),
         swoopTimer: 2.5 + i * 2.0,
         swoopCount: 0,
-        isAggro: false
+        isAggro: false,
+        didNudge: false
       });
     }
   }
@@ -136,6 +137,7 @@ export class AmbientLife {
             gb.swoopProgress = 0;
             gb.swoopStart.copy(gb.mesh.position);
             gb.swoopTarget.copy(playerPos).add(new THREE.Vector3(0, 0.4, 0));
+            gb.didNudge = false;
             gb.swoopTimer = 3.5 + Math.random() * 2.0;
             if (this.audio) this.audio.playSquawk();
           }
@@ -152,6 +154,13 @@ export class AmbientLife {
             if (p > 0.42 && playerPos && gb.mesh.position.distanceTo(playerPos) < 1.1) {
               if (playerCat && playerCat.mood !== 'startled') {
                 playerCat.setMood('startled', 0.8, 3);
+              }
+              if (!gb.didNudge && this.playerController && this.world) {
+                gb.didNudge = true;
+                const dx = playerPos.x - gb.mesh.position.x;
+                const dz = playerPos.z - gb.mesh.position.z;
+                const len = Math.hypot(dx, dz) || 1;
+                this.playerController.applyBalanceNudge(dx / len * 0.16, dz / len * 0.16, this.world);
               }
             }
           } else if (p < 1.0) {
@@ -372,8 +381,10 @@ export class AmbientLife {
     }
   }
 
-  update(dt, playerPos, sky = null, playerCat = null) {
+  update(dt, playerPos, sky = null, playerCat = null, playerController = null, world = null) {
     this.time += dt;
+    this.playerController = playerController;
+    this.world = world;
     const t = this.time;
     this.updateBirds(dt, t, sky);
     this.updateGuardianBirds(dt, t, playerPos, playerCat);

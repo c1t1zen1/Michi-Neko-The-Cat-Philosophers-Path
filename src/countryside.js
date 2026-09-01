@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+const Y_UP = new THREE.Vector3(0, 1, 0);
+
 function mulberry32(a) {
   return function() {
     let t = a += 0x6D2B79F5;
@@ -8,6 +10,47 @@ function mulberry32(a) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+
+function makeCanvasTexture(draw, size = 128, repeatX = 1, repeatY = 1) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  draw(ctx, size);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(repeatX, repeatY);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  return texture;
+}
+
+const KAWARA_TEXTURE = makeCanvasTexture((ctx, size) => {
+  ctx.fillStyle = '#303943';
+  ctx.fillRect(0, 0, size, size);
+  ctx.strokeStyle = '#161d24';
+  ctx.lineWidth = 5;
+  const tileW = size / 4;
+  const tileH = size / 4;
+  for (let row = -1; row < 5; row++) {
+    const offset = (row & 1) ? tileW / 2 : 0;
+    for (let col = -1; col < 5; col++) {
+      const x = col * tileW + offset;
+      const y = row * tileH;
+      ctx.beginPath();
+      ctx.arc(x + tileW / 2, y + tileH * 0.16, tileW * 0.47, 0.08 * Math.PI, 0.92 * Math.PI);
+      ctx.stroke();
+      ctx.strokeStyle = '#66717a';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(x + tileW / 2, y + tileH * 0.18, tileW * 0.37, 0.12 * Math.PI, 0.88 * Math.PI);
+      ctx.stroke();
+      ctx.strokeStyle = '#161d24';
+      ctx.lineWidth = 5;
+    }
+  }
+}, 128, 4, 4);
 
 const MAT = {
   grass: new THREE.MeshStandardMaterial({ color: 0x3a5a2c, roughness: 0.95 }),
@@ -20,7 +63,7 @@ const MAT = {
   timberEngawa: new THREE.MeshStandardMaterial({ color: 0x65472e, roughness: 0.8 }),
   plaster: new THREE.MeshStandardMaterial({ color: 0xede4d0, roughness: 0.95 }),
   plasterWarm: new THREE.MeshStandardMaterial({ color: 0xdfd1b5, roughness: 0.95 }),
-  roofTile: new THREE.MeshStandardMaterial({ color: 0x30373f, roughness: 0.55, metalness: 0.2 }),
+  roofTile: new THREE.MeshStandardMaterial({ color: 0x75808a, map: KAWARA_TEXTURE, bumpMap: KAWARA_TEXTURE, bumpScale: 0.055, roughness: 0.62, metalness: 0.12 }),
   roofRidge: new THREE.MeshStandardMaterial({ color: 0x22272e, roughness: 0.5 }),
   roofThatch: new THREE.MeshStandardMaterial({ color: 0x8a744a, roughness: 1 }),
   vermilion: new THREE.MeshStandardMaterial({ color: 0xc8402a, roughness: 0.55 }),
@@ -78,6 +121,7 @@ export class Countryside {
     this.pathSamples = [];
     this.vegetationExclusions = [];
     this.ripples = [];
+    this.paddyWaterMaterials = [];
     this.buildRipplePool();
 
     // Secret Machiya & Interactive State
@@ -90,9 +134,10 @@ export class Countryside {
     this.fishEaten = false;
     this.fishMesh = null;
     this.napSpotPos = new THREE.Vector3(20, 0.45, 10);
-    this.nestPos = new THREE.Vector3(-14, 3.85, -4.5);
+    this.nestPos = new THREE.Vector3(-12.25, 5.45, -2.85);
     this.nestInteracted = false;
     this.corralRewardCollected = false;
+    this.corralChallengeActive = false;
     this.corralGuardian = null;
 
     this.buildGround();
@@ -128,8 +173,81 @@ export class Countryside {
     return b;
   }
 
+  addBuildingWallColliders(parent, w, d, height, baseY = 0, thickness = 0.18) {
+    parent.updateWorldMatrix(true, true);
+    const definitions = [
+      { x: 0, z: d / 2, w, d: thickness },
+      { x: 0, z: -d / 2, w, d: thickness },
+      { x: w / 2, z: 0, w: thickness, d },
+      { x: -w / 2, z: 0, w: thickness, d }
+    ];
+    const aggregate = new THREE.Box3();
+    for (const wall of definitions) {
+      const local = new THREE.Box3(
+        new THREE.Vector3(wall.x - wall.w / 2, baseY, wall.z - wall.d / 2),
+        new THREE.Vector3(wall.x + wall.w / 2, baseY + height, wall.z + wall.d / 2)
+      );
+      const points = [];
+      for (const px of [local.min.x, local.max.x]) {
+        for (const py of [local.min.y, local.max.y]) {
+          for (const pz of [local.min.z, local.max.z]) {
+            points.push(new THREE.Vector3(px, py, pz).applyMatrix4(parent.matrixWorld));
+          }
+        }
+      }
+      const collider = new THREE.Box3().setFromPoints(points);
+      this.colliders.push(collider);
+      aggregate.union(collider);
+    }
+    return aggregate;
+  }
+
   addPlatform(box3) {
     this.platforms.push(box3);
+  }
+
+  addOrientedPlatform(parent, bounds, topY, options = {}) {
+    parent.updateWorldMatrix(true, true);
+    const inverse = parent.matrixWorld.clone().invert();
+    const local = new THREE.Vector3();
+    const platform = {
+      requiredAbility: options.requiredAbility,
+      requiredRank: options.requiredRank,
+      getHeightAt: (x, z, margin = 0) => {
+        local.set(x, 0, z).applyMatrix4(inverse);
+        if (local.x < bounds.minX - margin || local.x > bounds.maxX + margin ||
+            local.z < bounds.minZ - margin || local.z > bounds.maxZ + margin) return null;
+        return topY;
+      },
+      getNormalAt: () => Y_UP.clone()
+    };
+    this.addPlatform(platform);
+    return platform;
+  }
+
+  addSlopedRoofPlatforms(parent, roofY, w, d, ridgeH, overhang, options = {}) {
+    parent.updateWorldMatrix(true, true);
+    const inverse = parent.matrixWorld.clone().invert();
+    const rotation = new THREE.Quaternion().setFromRotationMatrix(parent.matrixWorld);
+    const halfW = w / 2 + overhang;
+    const halfD = d / 2 + overhang;
+    const scratch = new THREE.Vector3();
+    for (const side of [-1, 1]) {
+      const platform = {
+        requiredAbility: options.requiredAbility,
+        requiredRank: options.requiredRank,
+        getHeightAt: (x, z, margin = 0) => {
+          scratch.set(x, 0, z).applyMatrix4(inverse);
+          if (scratch.x < -halfW - margin || scratch.x > halfW + margin) return null;
+          if (side > 0 && (scratch.z < -margin || scratch.z > halfD + margin)) return null;
+          if (side < 0 && (scratch.z > margin || scratch.z < -halfD - margin)) return null;
+          const rise = ridgeH * (1 - Math.min(1, Math.abs(scratch.z) / halfD));
+          return roofY + rise + 0.08;
+        },
+        getNormalAt: () => new THREE.Vector3(0, 1, side * ridgeH / halfD).applyQuaternion(rotation).normalize()
+      };
+      this.addPlatform(platform);
+    }
   }
 
   buildGround() {
@@ -293,7 +411,32 @@ export class Countryside {
     const dummy = new THREE.Object3D();
 
     for (const [px, pz, w, d] of plots) {
-      const water = new THREE.Mesh(new THREE.PlaneGeometry(w, d), MAT.water);
+      const rippleTexture = makeCanvasTexture((ctx, size) => {
+        ctx.fillStyle = '#4d8a86';
+        ctx.fillRect(0, 0, size, size);
+        ctx.strokeStyle = 'rgba(210,242,232,0.42)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 9; i++) {
+          const y = 8 + i * 14;
+          ctx.beginPath();
+          ctx.moveTo(-12, y);
+          ctx.bezierCurveTo(size * 0.2, y - 5, size * 0.35, y + 5, size * 0.55, y);
+          ctx.bezierCurveTo(size * 0.72, y - 4, size * 0.88, y + 4, size + 12, y - 1);
+          ctx.stroke();
+        }
+      }, 128, Math.max(2, w / 3), Math.max(2, d / 3));
+      const waterMat = new THREE.MeshStandardMaterial({
+        color: 0x6ca7a0,
+        map: rippleTexture,
+        bumpMap: rippleTexture,
+        bumpScale: 0.025,
+        roughness: 0.2,
+        metalness: 0.22,
+        transparent: true,
+        opacity: 0.88
+      });
+      this.paddyWaterMaterials.push({ material: waterMat, phase: this.random() * Math.PI * 2, speed: 0.018 + this.random() * 0.012 });
+      const water = new THREE.Mesh(new THREE.PlaneGeometry(w, d), waterMat);
       water.rotation.x = -Math.PI / 2;
       water.position.set(px, 0.02, pz);
       water.receiveShadow = true;
@@ -789,18 +932,20 @@ export class Countryside {
     const bench = box(2.2, 0.42, 0.9, MAT.cushionRed, -2.2, 0.21, 3.6);
     house.add(bench);
     house.add(box(2.25, 0.06, 0.95, MAT.timberDark, -2.2, 0.03, 3.6));
-    this.addPlatform(new THREE.Box3(
-      new THREE.Vector3(x - 3.5, 0, z + 2.8),
-      new THREE.Vector3(x - 0.9, 0.5, z + 4.2)
-    ));
 
     // Mid-level Overhanging Eaves (Hisashi) between floors
     const lowerRoof = box(8.6, 0.16, 6.6, MAT.roofTile, 0, 2.55, 0.2);
     house.add(lowerRoof);
-    this.addPlatform(new THREE.Box3(
-      new THREE.Vector3(x - 4.4, 2.4, z - 3.2),
-      new THREE.Vector3(x + 4.4, 2.8, z + 3.6)
-    ));
+    // Broad, forgiving middle-house ledge. A shallow raised inner lip makes
+    // the route readable while the player controller's ledge guard prevents
+    // accidental falls unless the cat deliberately jumps down.
+    const ledgeFront = box(8.7, 0.18, 1.0, MAT.roofTile, 0, 2.56, 3.05);
+    const ledgeBack = box(8.7, 0.18, 1.0, MAT.roofTile, 0, 2.56, -3.05);
+    const ledgeLeft = box(1.0, 0.18, 5.2, MAT.roofTile, -3.85, 2.56, 0);
+    const ledgeRight = box(1.0, 0.18, 5.2, MAT.roofTile, 3.85, 2.56, 0);
+    house.add(ledgeFront, ledgeBack, ledgeLeft, ledgeRight);
+    house.add(box(8.0, 0.16, 0.12, MAT.roofRidge, 0, 2.72, 2.62));
+    house.add(box(8.0, 0.16, 0.12, MAT.roofRidge, 0, 2.72, -2.62));
 
     // Upper Floor (2nd story): 6.8m wide, 4.6m deep, 2.0m high
     const upperFloor = box(6.8, 1.9, 4.6, MAT.plaster, 0, 3.5, 0);
@@ -820,16 +965,12 @@ export class Countryside {
     mainRoof.position.y = 4.4;
     house.add(mainRoof);
 
-    // Roof parkour chain — each hop is a single cat jump:
-    // crates (0.7/1.33/1.98) → lower eave (2.8) → roof edge (4.6) → ridge (5.9)
-    this.addPlatform(new THREE.Box3(
-      new THREE.Vector3(x - 4.2, 3.7, z - 3.2),
-      new THREE.Vector3(x + 4.2, 4.6, z + 3.2)
-    ));
-    this.addPlatform(new THREE.Box3(
-      new THREE.Vector3(x - 4.2, 5.1, z - 1.0),
-      new THREE.Vector3(x + 4.2, 5.9, z + 1.0)
-    ));
+    // Tree-side lower kawara lip: visually part of the roof, but low and broad
+    // enough for the tutorial jump from the wraparound ledge. From here the cat
+    // makes one more short hop onto the real sloped roof surface.
+    const tutorialRoofLip = box(3.1, 0.18, 1.0, MAT.roofTile, 1.9, 3.48, 2.72);
+    tutorialRoofLip.rotation.z = -0.08;
+    house.add(tutorialRoofLip);
 
     // Suspended Kyoto paper lanterns under front eaves
     this.createChochinLantern(-2.5, 2.4, 3.1, house);
@@ -841,11 +982,22 @@ export class Countryside {
     house.position.set(x, 0, z);
     house.rotation.y = rotY;
     this.scene.add(house);
+    this.addOrientedPlatform(house, { minX: -3.5, maxX: -0.9, minZ: 2.8, maxZ: 4.2 }, 0.5);
+    this.addOrientedPlatform(house, { minX: -4.35, maxX: 4.35, minZ: 2.55, maxZ: 3.55 }, 2.65);
+    this.addOrientedPlatform(house, { minX: -4.35, maxX: 4.35, minZ: -3.55, maxZ: -2.55 }, 2.65);
+    this.addOrientedPlatform(house, { minX: -4.35, maxX: -3.35, minZ: -2.65, maxZ: 2.65 }, 2.65);
+    this.addOrientedPlatform(house, { minX: 3.35, maxX: 4.35, minZ: -2.65, maxZ: 2.65 }, 2.65);
+    this.addOrientedPlatform(house, { minX: 0.35, maxX: 3.45, minZ: 2.2, maxZ: 3.25 }, 3.58);
+    this.addSlopedRoofPlatforms(house, 4.4, 7.4, 5.2, 1.5, 0.7);
     // Side climbable crates allowing cat to climb to roof.
     // Must run AFTER the house is placed so platform boxes resolve in world space.
-    this.createClimbCrates(5.3, 0, 0.5, house, -Math.PI / 2);
-    this.addCollider(groundFloor, 0.2);
-    this.addCollider(upperFloor, 0.1);
+    this.createClimbCrates(4.65, 0, 1.45, house, -Math.PI / 2);
+    // Visible walls are the barriers: no extra collision padding outside them.
+    this.addBuildingWallColliders(house, 7.6, 5.4, 2.4, 0);
+    this.addBuildingWallColliders(house, 6.8, 4.6, 1.9, 2.55);
+
+    this.nestMesh.updateWorldMatrix(true, true);
+    this.nestMesh.getWorldPosition(this.nestPos);
   }
 
   // --- 2. Kyoto Craftsman Machiya with Engawa & Shishi-odoshi ---
@@ -900,20 +1052,6 @@ export class Countryside {
     mainRoof.position.y = 4.2;
     house.add(mainRoof);
 
-    // Roof parkour chain: crates → lower eave ledge → roof edge → ridge
-    this.addPlatform(new THREE.Box3(
-      new THREE.Vector3(x - 4.6, 2.3, z - 3.3),
-      new THREE.Vector3(x + 4.6, 2.62, z + 3.3)
-    ));
-    this.addPlatform(new THREE.Box3(
-      new THREE.Vector3(x - 4.2, 3.9, z - 2.9),
-      new THREE.Vector3(x + 4.2, 4.35, z + 2.9)
-    ));
-    this.addPlatform(new THREE.Box3(
-      new THREE.Vector3(x - 3.6, 5.0, z - 0.9),
-      new THREE.Vector3(x + 3.6, 5.55, z + 0.9)
-    ));
-
     // Chochin lantern
     this.createChochinLantern(0, 2.3, 2.9, house);
 
@@ -923,11 +1061,13 @@ export class Countryside {
     house.position.set(x, 0, z);
     house.rotation.y = rotY;
     this.scene.add(house);
+    this.addOrientedPlatform(house, { minX: -4.5, maxX: 4.5, minZ: -3.1, maxZ: 3.3 }, 2.53);
+    this.addSlopedRoofPlatforms(house, 4.2, 7.6, 4.8, 1.4, 0.7);
     // Side climbing crates — placed AFTER scene attach so platform boxes
     // resolve in world space (rotated parent house group).
     this.createClimbCrates(-5.6, 0, 0, house, Math.PI / 2);
-    this.addCollider(groundFloor, 0.2);
-    this.addCollider(upperFloor, 0.1);
+    this.addBuildingWallColliders(house, 8.0, 5.0, 2.4, 0);
+    this.addBuildingWallColliders(house, 7.0, 4.2, 1.8, 2.4);
   }
 
   // --- 3. Secret Locked Kyoto Machiya (Hisomu-an) with Interior ---
@@ -1060,12 +1200,6 @@ export class Countryside {
     mainRoof.position.y = 2.45;
     house.add(mainRoof);
 
-    // Climbable Roof Platform Box
-    this.addPlatform(new THREE.Box3(
-      new THREE.Vector3(x - 4.2, 2.3, z - 2.8),
-      new THREE.Vector3(x + 4.2, 4.0, z + 2.8)
-    ));
-
     // Front Hanging Chochin Lanterns
     this.createChochinLantern(-1.8, 2.45, 3.1, house);
     this.createChochinLantern(1.8, 2.45, 3.1, house);
@@ -1077,19 +1211,20 @@ export class Countryside {
     house.position.set(x, 0, z);
     house.rotation.y = rotY;
     this.scene.add(house);
+    this.addSlopedRoofPlatforms(house, 2.45, 7.6, 4.8, 1.4, 0.7);
 
     // Outer colliders (leaves doorway passable when opened)
-    this.addCollider(wallL, 0.1);
-    this.addCollider(wallR, 0.1);
-    this.addCollider(wallB, 0.1);
-    this.addCollider(wallFL, 0.1);
-    this.addCollider(wallFR, 0.1);
-    this.addCollider(table, 0.1);
-    this.addCollider(tansu, 0.1);
+    this.addCollider(wallL, 0);
+    this.addCollider(wallR, 0);
+    this.addCollider(wallB, 0);
+    this.addCollider(wallFL, 0);
+    this.addCollider(wallFR, 0);
+    this.addCollider(table, 0);
+    this.addCollider(tansu, 0);
 
     // Door collider — computed from actual world-space mesh bounds after
     // house rotation so the solid wall is correctly positioned.
-    this.addCollider(slidingDoor, 0.1);
+    this.addCollider(slidingDoor, 0);
     this.doorCollider = this.colliders[this.colliders.length - 1];
 
     // Store actual door world position and outward spawn point for the
@@ -1136,8 +1271,9 @@ export class Countryside {
     nestGroup.add(feather);
     this.nestFeatherMesh = feather;
 
-    // Perch nest securely on the upper roof ridge eave
-    nestGroup.position.set(2.4, 4.45, 1.8);
+    // Tree-facing roof edge: visible from the wraparound ledge and reachable
+    // with one friendly jump from the eave onto the actual sloped tiles.
+    nestGroup.position.set(0.15, 4.9, 2.72);
     houseGroup.add(nestGroup);
     this.nestMesh = nestGroup;
   }
@@ -1310,27 +1446,13 @@ export class Countryside {
     house.position.set(x, 0, z);
     house.rotation.y = rot;
     this.scene.add(house);
-    const houseCollider = this.addCollider(base, 0.15);
+    const houseCollider = this.addBuildingWallColliders(house, w, d, 2.1, 0);
     if (side && this.villageHouseColliders[side]) this.villageHouseColliders[side].push(houseCollider);
 
     // Village rooftop parkour: eave-edge ring then the ridge line. The cat
     // reaches these by hopping up from a nearby tōrō lantern cap or gliding
     // across from another rooftop — real cat exploration routes.
-    const cosR = Math.abs(Math.cos(rot));
-    const sinR = Math.abs(Math.sin(rot));
-    const hw = w / 2 + 0.5, hd = d / 2 + 0.5;
-    const hx = cosR * hw + sinR * hd;
-    const hz = sinR * hw + cosR * hd;
-    this.addPlatform(new THREE.Box3(
-      new THREE.Vector3(x - hx, 1.9, z - hz),
-      new THREE.Vector3(x + hx, 2.32, z + hz)
-    ));
-    const rxr = cosR * hw + sinR * 0.55;
-    const rzr = sinR * hw + cosR * 0.55;
-    this.addPlatform(new THREE.Box3(
-      new THREE.Vector3(x - rxr, 2.7, z - rzr),
-      new THREE.Vector3(x + rxr, 3.25, z + rzr)
-    ));
+    this.addSlopedRoofPlatforms(house, 2.1, w + 0.6, d + 0.4, 0.95, 0.5);
   }
 
   // --- Street greenery: bushes, moss, bamboo fences & tōrō stone lanterns ---
@@ -1453,9 +1575,9 @@ export class Countryside {
   buildBambooFence(x, z, rot, options = {}) {
     const fence = new THREE.Group();
     const len = options.length || (2.6 + this.random() * 1.6);
-    const fenceHeight = options.height || 1.35;
+    const fenceHeight = options.height || 1.12;
     const rotationJitter = options.rotationJitter === false ? 0 : (this.random() - 0.5) * 0.2;
-    for (const ry of [0.32, 0.82]) {
+    for (const ry of [0.3, 0.72]) {
       const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, len, 6), MAT.bambooGreen);
       rail.rotation.z = Math.PI / 2;
       rail.position.y = ry;
@@ -1473,15 +1595,20 @@ export class Countryside {
     fence.rotation.y = rot + rotationJitter;
     fence.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     this.scene.add(fence);
-    // The 1.45m collision top is above the base jump apex (~1.30m), but below
-    // the rank-2 boosted apex (~1.81m). Swept player collision prevents thin
-    // pickets from being tunneled through during a low-FPS sprint frame.
+    // A continuous, slightly thick barrier prevents tunnelling through the
+    // visual gaps while remaining short enough for the boosted jump to clear.
     fence.updateWorldMatrix(true, true);
     const collider = new THREE.Box3().setFromObject(fence);
     collider.min.y = 0;
-    collider.max.y = options.colliderHeight || 1.45;
-    collider.expandByVector(new THREE.Vector3(0.08, 0, 0.08));
+    collider.max.y = options.colliderHeight || fenceHeight;
+    collider.expandByVector(new THREE.Vector3(0.04, 0, 0.12));
     this.colliders.push(collider);
+    this.addOrientedPlatform(fence, {
+      minX: -len / 2 - 0.08,
+      maxX: len / 2 + 0.08,
+      minZ: -0.18,
+      maxZ: 0.18
+    }, fenceHeight + 0.05, { requiredAbility: 'fenceWalk' });
     this.bambooFences.push({ mesh: fence, collider, role: options.role || 'decorative', connects: options.connects || [] });
     return fence;
   }
@@ -1499,8 +1626,31 @@ export class Countryside {
     const marker = new THREE.Group();
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 1.7, 7), MAT.timberDark);
     post.position.y = 0.85;
-    const board = box(2.2, 0.5, 0.12, MAT.timberLight, 0, 1.45, 0);
+    const board = box(1.65, 0.4, 0.1, MAT.timberLight, 0, 1.3, 0);
     marker.add(post, board);
+    const signCanvas = document.createElement('canvas');
+    signCanvas.width = 512;
+    signCanvas.height = 160;
+    const signCtx = signCanvas.getContext('2d');
+    signCtx.fillStyle = '#e7d0a4';
+    signCtx.fillRect(0, 0, signCanvas.width, signCanvas.height);
+    signCtx.strokeStyle = '#5a311d';
+    signCtx.lineWidth = 12;
+    signCtx.strokeRect(6, 6, signCanvas.width - 12, signCanvas.height - 12);
+    signCtx.fillStyle = '#7b2018';
+    signCtx.font = 'bold 52px sans-serif';
+    signCtx.textAlign = 'center';
+    signCtx.textBaseline = 'middle';
+    signCtx.fillText('警告・凶暴な亀', signCanvas.width / 2, signCanvas.height / 2);
+    const signTexture = new THREE.CanvasTexture(signCanvas);
+    signTexture.colorSpace = THREE.SRGBColorSpace;
+    const signFace = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.5, 0.34),
+      new THREE.MeshBasicMaterial({ map: signTexture, transparent: true })
+    );
+    signFace.position.set(0, 1.3, -0.056);
+    signFace.rotation.y = Math.PI;
+    marker.add(signFace);
     marker.position.set(x, 0, z - depth / 2 - 0.35);
     marker.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     this.scene.add(marker);
@@ -1520,6 +1670,7 @@ export class Countryside {
     reward.userData.isCorralReward = true;
     reward.userData.velocity = new THREE.Vector3();
     reward.userData.batted = false;
+    reward.visible = false;
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.035, 6, 18), MAT.goldAntique);
     ring.rotation.x = Math.PI / 2;
     reward.add(ring);
@@ -1552,6 +1703,7 @@ export class Countryside {
     turtle.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     this.scene.add(turtle);
     this.corralGuardian = {
+      name: 'Larry',
       mesh: turtle,
       home: new THREE.Vector3(x, 0, z),
       // Keep enough clearance that a full contact push cannot place the cat
@@ -1565,9 +1717,9 @@ export class Countryside {
     };
   }
 
-  updateCorralGuardian(dt, player) {
+  updateCorralGuardian(dt, player, challengeActive = false) {
     const guardian = this.corralGuardian;
-    if (!guardian || !player || this.corralRewardCollected) return null;
+    if (!guardian || !player) return null;
     const turtlePos = guardian.mesh.position;
     const playerPos = player.mesh.position;
     const dx = playerPos.x - turtlePos.x;
@@ -1577,7 +1729,7 @@ export class Countryside {
     let event = null;
     let justAlerted = false;
 
-    if (playerPos.y < 0.62 && dist < collisionDistance) {
+    if (challengeActive && !this.corralRewardCollected && playerPos.y < 0.62 && dist < collisionDistance) {
       if (!guardian.alerted) event = 'alerted';
       guardian.alerted = true;
       guardian.hasBeenAlerted = true;
@@ -1591,11 +1743,21 @@ export class Countryside {
 
     let target = guardian.home;
     let speed = 0.5;
-    if (guardian.alerted) {
+    if (guardian.alerted && challengeActive && !this.corralRewardCollected) {
       guardian.alertTimer -= dt;
       target = playerPos;
       speed = guardian.speed;
       if (guardian.alertTimer <= 0) guardian.alerted = false;
+    } else if (this.corralRewardCollected) {
+      // Larry remains alive and active after the challenge, calmly patrolling
+      // the corral rather than disappearing or freezing at his home point.
+      const wanderAngle = this.time * 0.24;
+      target = new THREE.Vector3(
+        guardian.home.x + Math.cos(wanderAngle) * 1.25,
+        0,
+        guardian.home.z + Math.sin(wanderAngle * 0.83) * 1.0
+      );
+      speed = 0.42;
     }
 
     const tx = target.x - turtlePos.x;
@@ -1613,10 +1775,17 @@ export class Countryside {
 
   setCorralRewardCollected(collected) {
     this.corralRewardCollected = !!collected;
-    if (this.corralRewardMesh) this.corralRewardMesh.visible = !this.corralRewardCollected;
+    if (this.corralRewardMesh) this.corralRewardMesh.visible = this.corralChallengeActive && !this.corralRewardCollected;
     if (this.corralGuardian) {
       this.corralGuardian.alerted = false;
       this.corralGuardian.alertTimer = 0;
+    }
+  }
+
+  setCorralChallengeActive(active, exteriorVisible = true) {
+    this.corralChallengeActive = !!active;
+    if (this.corralRewardMesh) {
+      this.corralRewardMesh.visible = this.corralChallengeActive && exteriorVisible && !this.corralRewardCollected;
     }
   }
 
@@ -1655,7 +1824,8 @@ export class Countryside {
         new THREE.Vector3(x + s * 1.8 + 0.3, 4.6, z + 0.3)
       ));
     }
-    torii.add(box(5.6, 0.32, 0.4, MAT.vermilion, 0, 4.75, 0));
+    const midLintel = box(5.6, 0.32, 0.4, MAT.vermilion, 0, 4.75, 0);
+    torii.add(midLintel);
     const topLintel = box(6.2, 0.28, 0.5, MAT.vermilion, 0, 5.15, 0);
     torii.add(topLintel);
     torii.add(box(0.9, 0.3, 0.3, MAT.vermilion, 0, 4.45, 0));
@@ -1663,6 +1833,18 @@ export class Countryside {
 
     torii.position.set(x, 0, z);
     this.scene.add(torii);
+    // Discreet shrine joinery blocks form a late-game climbing route. They are
+    // physical supports only at City Legend rank, after every jump upgrade.
+    for (const [sx, sy] of [[-1.8, 1.35], [-1.8, 2.55], [1.8, 3.65]]) {
+      const peg = box(0.72, 0.16, 0.72, MAT.vermilion, sx, sy, 0);
+      torii.add(peg);
+      this.addOrientedPlatform(torii, {
+        minX: sx - 0.36, maxX: sx + 0.36, minZ: -0.36, maxZ: 0.36
+      }, sy + 0.08, { requiredRank: 4 });
+    }
+    this.addOrientedPlatform(torii, { minX: -2.8, maxX: 2.8, minZ: -0.24, maxZ: 0.24 }, 4.91, { requiredRank: 4 });
+    this.addOrientedPlatform(torii, { minX: -3.1, maxX: 3.1, minZ: -0.28, maxZ: 0.28 }, 5.29, { requiredRank: 4 });
+    this.toriiTopPos = new THREE.Vector3(x, 5.29, z);
   }
 
   buildShrine(x, z) {
@@ -2127,6 +2309,15 @@ export class Countryside {
       MAT.lanternGlow.emissiveIntensity = 0.15 + nightness * 2.2;
       MAT.lanternPaper.emissiveIntensity = 0.4 + nightness * 1.8;
       MAT.shoji.emissiveIntensity = 0.2 + nightness * 0.7;
+    }
+
+    // Paddy water ripples drift in slow, irregular breeze pulses. UV motion is
+    // intentionally subtle so the paddies feel alive without reading as a river.
+    for (const paddy of this.paddyWaterMaterials) {
+      const gust = 0.35 + Math.max(0, Math.sin(this.time * 0.42 + paddy.phase)) * 0.65;
+      paddy.material.map.offset.x = (paddy.material.map.offset.x + dt * paddy.speed * gust) % 1;
+      paddy.material.map.offset.y = Math.sin(this.time * 0.18 + paddy.phase) * 0.035;
+      paddy.material.bumpScale = 0.012 + gust * 0.025;
     }
 
     // Sway hanging Kyoto Chochin lanterns

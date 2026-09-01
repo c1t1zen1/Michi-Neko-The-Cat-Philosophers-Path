@@ -23,6 +23,7 @@ export class Player {
     this.speed = 4.5;
     this.sprintMultiplier = 1.7;
     this.canSprint = false;
+    this.canWalkFences = false;
     this.sprint = false;
     this.jumpForce = 7.2;
     this.gravity = -20;
@@ -102,8 +103,8 @@ export class Player {
       const py = this.mesh.position.y;
       const falling = this.velocity.y <= 0.01;
       for (const plat of world.platforms) {
-        if (px < plat.min.x || px > plat.max.x || pz < plat.min.z || pz > plat.max.z) continue;
-        const top = plat.max.y;
+        const top = this.getPlatformHeight(plat, px, pz);
+        if (top == null) continue;
         // Assisted climbing: generous magnet window while descending — the cat
         // snaps onto crates/ledges/roofs/railings instead of clipping past them
         const canLand = falling && py >= top - 0.85;
@@ -158,11 +159,8 @@ export class Player {
       let top = 0;
       if (!isInside && world && world.platforms) {
         for (const plat of world.platforms) {
-          if (x >= plat.min.x - 0.12 && x <= plat.max.x + 0.12 &&
-              z >= plat.min.z - 0.12 && z <= plat.max.z + 0.12 &&
-              plat.max.y > top && plat.max.y <= this.mesh.position.y + 0.6) {
-            top = plat.max.y;
-          }
+          const height = this.getPlatformHeight(plat, x, z, 0.12);
+          if (height != null && height > top && height <= this.mesh.position.y + 0.6) top = height;
         }
       }
       return top;
@@ -246,6 +244,14 @@ export class Player {
     this.wasGrounded = this.isGrounded;
 
     this.cat.update(dt, this.currentSpeed, this.isGrounded, isSprint, this.isTurning, inWater, this.nearObject);
+    const groundNormal = (!isInside && world)
+      ? this.getPlatformNormal(world, this.mesh.position.x, this.mesh.position.z, groundY)
+      : Y_UP;
+    const localNormal = groundNormal.clone().applyAxisAngle(Y_UP, -this.heading);
+    const targetPitch = Math.atan2(localNormal.z, Math.max(0.001, localNormal.y));
+    const targetRoll = -Math.atan2(localNormal.x, Math.max(0.001, localNormal.y));
+    this.cat.group.rotation.x += (targetPitch - this.cat.group.rotation.x) * Math.min(1, dt * 10);
+    this.cat.group.rotation.z += (targetRoll - this.cat.group.rotation.z) * Math.min(1, dt * 10);
     this.cat.updateShadow(Math.max(0, this.mesh.position.y - groundY));
 
     // Map boundary (exterior only)
@@ -391,6 +397,65 @@ export class Player {
     this.fovCurrent += (fov - this.fovCurrent) * Math.min(1, dt * 8);
     this.camera.fov = this.fovCurrent;
     this.camera.updateProjectionMatrix();
+  }
+
+  platformEnabled(platform) {
+    if (!platform) return false;
+    if (platform.requiredAbility === 'fenceWalk' && !this.canWalkFences) return false;
+    if (platform.requiredRank != null) {
+      const rank = window.game && window.game.progression ? window.game.progression.rank : 0;
+      if (rank < platform.requiredRank) return false;
+    }
+    return !platform.enabled || platform.enabled(this);
+  }
+
+  getPlatformHeight(platform, x, z, margin = 0) {
+    if (!this.platformEnabled(platform)) return null;
+    if (platform.getHeightAt) return platform.getHeightAt(x, z, margin, this);
+    if (!platform.min || !platform.max) return null;
+    if (x < platform.min.x - margin || x > platform.max.x + margin ||
+        z < platform.min.z - margin || z > platform.max.z + margin) return null;
+    return platform.max.y;
+  }
+
+  getPlatformNormal(world, x, z, groundY) {
+    if (!world || !world.platforms || groundY <= 0.05) return Y_UP;
+    let best = null;
+    let bestDelta = 0.16;
+    for (const platform of world.platforms) {
+      const height = this.getPlatformHeight(platform, x, z, 0.04);
+      if (height == null) continue;
+      const delta = Math.abs(height - groundY);
+      if (delta < bestDelta) {
+        bestDelta = delta;
+        best = platform;
+      }
+    }
+    if (best && best.getNormalAt) return best.getNormalAt(x, z).clone().normalize();
+    return Y_UP;
+  }
+
+  /** Mild external balance disturbance that cannot knock the cat off a platform. */
+  applyBalanceNudge(dx, dz, world) {
+    if (!world || !world.platforms) return;
+    const oldX = this.mesh.position.x;
+    const oldZ = this.mesh.position.z;
+    let oldTop = 0;
+    for (const platform of world.platforms) {
+      const top = this.getPlatformHeight(platform, oldX, oldZ, 0.04);
+      if (top != null && top <= this.mesh.position.y + 0.6) oldTop = Math.max(oldTop, top);
+    }
+    const nextX = oldX + dx;
+    const nextZ = oldZ + dz;
+    let nextTop = 0;
+    for (const platform of world.platforms) {
+      const top = this.getPlatformHeight(platform, nextX, nextZ, 0.04);
+      if (top != null && top <= this.mesh.position.y + 0.6) nextTop = Math.max(nextTop, top);
+    }
+    if (oldTop <= 0.05 || nextTop >= oldTop - 0.12) {
+      this.mesh.position.x = nextX;
+      this.mesh.position.z = nextZ;
+    }
   }
 
   segmentIntersectsBoxXZ(start, end, box) {
