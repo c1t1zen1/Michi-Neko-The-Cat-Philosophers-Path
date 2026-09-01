@@ -676,14 +676,18 @@ export class Countryside {
       bridge.add(box(0.42, 0.08, 8.4, MAT.timberDark, s * 1.24, deckY + 0.62, 0));
       bridge.add(box(0.12, 0.5, 8.2, MAT.timberDark, s * 1.24, deckY + 0.36, 0));
     }
-    // Gradual walk-up ramps at both ends: sloped timber planks (visual)
-    // backed by shallow step platforms the cat simply walks up.
+    // Gradual walk-up ramps at both ends. A timber base supports the same
+    // cobblestone surface as the main pathway so the route reads continuously.
     const rampLen = 2.6;
     const rampAngle = Math.atan2(deckY + 0.08, rampLen);
     for (const sz of [-1, 1]) {
-      const ramp = box(2.6, 0.12, Math.sqrt(rampLen * rampLen + (deckY + 0.08) * (deckY + 0.08)) + 0.2, MAT.timberEngawa, 0, (deckY + 0.08) / 2 - 0.04, sz * (4.2 + rampLen / 2));
+      const slopeLength = Math.sqrt(rampLen * rampLen + (deckY + 0.08) * (deckY + 0.08)) + 0.2;
+      const ramp = box(2.6, 0.12, slopeLength, MAT.timberEngawa, 0, (deckY + 0.08) / 2 - 0.04, sz * (4.2 + rampLen / 2));
       // The outer edge starts at ground level and rises toward the bridge deck.
       ramp.rotation.x = sz * rampAngle;
+      const cobbleRamp = box(2.38, 0.025, slopeLength - 0.12, this.getCobbleMaterial(), 0, 0.075, 0);
+      cobbleRamp.receiveShadow = true;
+      ramp.add(cobbleRamp);
       bridge.add(ramp);
       // Low stone kerbs flanking each ramp
       for (const s of [-1, 1]) {
@@ -714,21 +718,19 @@ export class Countryside {
         new THREE.Vector3(-1 + s * 1.24 + 0.21, deckY + 0.66, 30.5 + 4.2)
       ));
     }
-    // Ramp step platforms: shallow 0.27m risers the cat walks straight up
-    // (well within the grounded 0.55m step-up window) — no more huge step.
-    const stepsPerRamp = 4;
+    // Continuous sloped platform math matches the visible ramps in both
+    // directions, avoiding stair seams and making walking down reliable.
+    const bridgeTop = deckY + 0.08;
     for (const sz of [-1, 1]) {
-      for (let i = 0; i < stepsPerRamp; i++) {
-        const t0 = i / stepsPerRamp;
-        const t1 = (i + 1) / stepsPerRamp;
-        const topYStep = (deckY + 0.08) * (1 - (t0 + t1) / 2);
-        const zNear = 30.5 + sz * (4.2 + t0 * rampLen);
-        const zFar = 30.5 + sz * (4.2 + t1 * rampLen);
-        this.platforms.push(new THREE.Box3(
-          new THREE.Vector3(-1 - 1.3, 0, Math.min(zNear, zFar)),
-          new THREE.Vector3(-1 + 1.3, Math.max(0.06, topYStep), Math.max(zNear, zFar))
-        ));
-      }
+      this.addPlatform({
+        getHeightAt: (x, z, margin = 0) => {
+          if (x < -1 - 1.3 - margin || x > -1 + 1.3 + margin) return null;
+          const outward = sz * (z - 30.5) - 4.2;
+          if (outward < -margin || outward > rampLen + margin) return null;
+          return Math.max(0.03, bridgeTop * (1 - THREE.MathUtils.clamp(outward / rampLen, 0, 1)));
+        },
+        getNormalAt: () => new THREE.Vector3(0, 1, sz * bridgeTop / rampLen).normalize()
+      });
     }
 
     // Hidden secret under the bridge: a glowing golden dango charm
@@ -1575,9 +1577,9 @@ export class Countryside {
   buildBambooFence(x, z, rot, options = {}) {
     const fence = new THREE.Group();
     const len = options.length || (2.6 + this.random() * 1.6);
-    const fenceHeight = options.height || 1.12;
+    const fenceHeight = options.height || 1.35;
     const rotationJitter = options.rotationJitter === false ? 0 : (this.random() - 0.5) * 0.2;
-    for (const ry of [0.3, 0.72]) {
+    for (const ry of [0.32, 0.82]) {
       const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, len, 6), MAT.bambooGreen);
       rail.rotation.z = Math.PI / 2;
       rail.position.y = ry;
@@ -1600,15 +1602,17 @@ export class Countryside {
     fence.updateWorldMatrix(true, true);
     const collider = new THREE.Box3().setFromObject(fence);
     collider.min.y = 0;
-    collider.max.y = options.colliderHeight || fenceHeight;
-    collider.expandByVector(new THREE.Vector3(0.04, 0, 0.12));
+    // The standard jump apex cannot clear this barrier, while Luna's rank-2
+    // jump boost can. This restores fences as real progression gates.
+    collider.max.y = options.colliderHeight || 1.4;
+    collider.expandByVector(new THREE.Vector3(0.08, 0, 0.12));
     this.colliders.push(collider);
     this.addOrientedPlatform(fence, {
       minX: -len / 2 - 0.08,
       maxX: len / 2 + 0.08,
       minZ: -0.18,
       maxZ: 0.18
-    }, fenceHeight + 0.05, { requiredAbility: 'fenceWalk' });
+    }, collider.max.y + 0.05, { requiredAbility: 'fenceWalk' });
     this.bambooFences.push({ mesh: fence, collider, role: options.role || 'decorative', connects: options.connects || [] });
     return fence;
   }
@@ -1763,13 +1767,17 @@ export class Countryside {
     const tx = target.x - turtlePos.x;
     const tz = target.z - turtlePos.z;
     const targetDistance = Math.hypot(tx, tz);
-    if (!justAlerted && targetDistance > 0.08) {
+    const moving = !justAlerted && targetDistance > 0.08;
+    if (moving) {
       const step = Math.min(targetDistance, speed * dt);
       turtlePos.x = THREE.MathUtils.clamp(turtlePos.x + tx / targetDistance * step, guardian.bounds.minX, guardian.bounds.maxX);
       turtlePos.z = THREE.MathUtils.clamp(turtlePos.z + tz / targetDistance * step, guardian.bounds.minZ, guardian.bounds.maxZ);
       guardian.mesh.rotation.y = Math.atan2(tx, tz);
-      guardian.mesh.position.y = Math.sin(this.time * 10) * 0.018;
     }
+    // Larry always breathes and shifts his weight, including after the Jade
+    // Paw is collected and while briefly pausing at a patrol turnaround.
+    guardian.mesh.position.y = Math.sin(this.time * (moving ? 10 : 3.5)) * (moving ? 0.018 : 0.01);
+    guardian.mesh.rotation.z = Math.sin(this.time * 2.2) * 0.012;
     return event;
   }
 

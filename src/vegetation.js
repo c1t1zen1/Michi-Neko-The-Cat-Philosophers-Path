@@ -192,9 +192,12 @@ export class Vegetation {
 
   buildBambooGrove(cx, cz, radius) {
     const count = Math.floor(radius * radius * 1.6);
-    const stalkGeo = new THREE.CylinderGeometry(0.06, 0.075, 7, 6);
-    const stalks = new THREE.InstancedMesh(stalkGeo, this.matBamboo, count);
-    stalks.castShadow = true;
+    const lowerStalkGeo = new THREE.CylinderGeometry(0.065, 0.075, 7, 6);
+    const upperStalkGeo = new THREE.CylinderGeometry(0.055, 0.065, 7, 6);
+    const lowerStalks = new THREE.InstancedMesh(lowerStalkGeo, this.matBamboo, count);
+    const upperStalks = new THREE.InstancedMesh(upperStalkGeo, this.matBamboo, count);
+    lowerStalks.castShadow = true;
+    upperStalks.castShadow = true;
     const leafGeo = this.bladeGeometry();
     const leavesPerStalk = 72;
     const leaves = new THREE.InstancedMesh(leafGeo, this.matBambooLeaf, count * leavesPerStalk);
@@ -214,7 +217,7 @@ export class Vegetation {
       const plant = { x, z, height, yaw, phase: this.random() * Math.PI * 2 };
       plantData.push(plant);
 
-      this.setBambooStalkMatrix(stalks, i, plant, 0);
+      this.setBambooStalkMatrices(lowerStalks, upperStalks, i, plant, 0);
 
       // Dense, top-heavy foliage hides upper culms while leaving the base open.
       for (let j = 0; j < leavesPerStalk; j++) {
@@ -235,38 +238,59 @@ export class Vegetation {
         this.setBambooLeafMatrix(leaves, leafIndex++, leaf, 0);
       }
     }
-    stalks.instanceMatrix.needsUpdate = true;
+    lowerStalks.instanceMatrix.needsUpdate = true;
+    upperStalks.instanceMatrix.needsUpdate = true;
     leaves.instanceMatrix.needsUpdate = true;
-    this.scene.add(stalks);
+    this.scene.add(lowerStalks);
+    this.scene.add(upperStalks);
     this.scene.add(leaves);
-    this.bambooSwayables.push({ stalks, leaves, plantData, leafData, leafCount: leafIndex });
+    this.bambooSwayables.push({ lowerStalks, upperStalks, leaves, plantData, leafData, leafCount: leafIndex });
     this.addCollider(cx, cz, radius * 0.7);
   }
 
-  setBambooStalkMatrix(mesh, index, plant, time) {
-    const sway = Math.sin(time * 0.75 + plant.phase) * 0.085;
-    const dummy = new THREE.Object3D();
-    dummy.position.set(plant.x, plant.height / 2, plant.z);
-    dummy.rotation.set(sway * 0.55, plant.yaw, sway);
-    dummy.scale.set(1, plant.height / 7, 1);
-    dummy.updateMatrix();
-    mesh.setMatrixAt(index, dummy.matrix);
+  getBambooBend(plant, time) {
+    return {
+      x: Math.cos(time * 0.62 + plant.phase * 1.17) * 0.032,
+      z: Math.sin(time * 0.75 + plant.phase) * 0.085
+    };
+  }
+
+  setBambooStalkMatrices(lowerMesh, upperMesh, index, plant, time) {
+    const bendStart = plant.height * 0.64;
+    const upperHeight = plant.height - bendStart;
+    const lower = new THREE.Object3D();
+    lower.position.set(plant.x, bendStart / 2, plant.z);
+    lower.rotation.y = plant.yaw;
+    lower.scale.set(1, bendStart / 7, 1);
+    lower.updateMatrix();
+    lowerMesh.setMatrixAt(index, lower.matrix);
+
+    const bend = this.getBambooBend(plant, time);
+    const upper = new THREE.Object3D();
+    upper.rotation.set(bend.x, plant.yaw, bend.z);
+    const centerOffset = new THREE.Vector3(0, upperHeight / 2, 0).applyEuler(upper.rotation);
+    upper.position.set(plant.x + centerOffset.x, bendStart + centerOffset.y, plant.z + centerOffset.z);
+    upper.scale.set(1, upperHeight / 7, 1);
+    upper.updateMatrix();
+    upperMesh.setMatrixAt(index, upper.matrix);
   }
 
   setBambooLeafMatrix(mesh, index, leaf, time) {
     const { plant } = leaf;
-    const sway = Math.sin(time * 0.75 + plant.phase) * 0.085;
+    const bend = this.getBambooBend(plant, time);
     const swayY = Math.cos(time * 0.62 + leaf.phase) * 0.06;
     const h = plant.height * leaf.heightRatio;
-    const leanX = sway * h * 0.33;
-    const leanZ = swayY * h * 0.22;
+    const bendStart = plant.height * 0.64;
+    const bendHeight = Math.max(0, h - bendStart);
+    const bentOffset = new THREE.Vector3(0, bendHeight, 0).applyEuler(new THREE.Euler(bend.x, plant.yaw, bend.z));
     const dummy = new THREE.Object3D();
     dummy.position.set(
-      plant.x + leanX + Math.cos(leaf.angle) * leaf.branchLength,
-      h,
-      plant.z + leanZ + Math.sin(leaf.angle) * leaf.branchLength
+      plant.x + bentOffset.x + Math.cos(leaf.angle) * leaf.branchLength,
+      Math.min(h, bendStart) + bentOffset.y,
+      plant.z + bentOffset.z + Math.sin(leaf.angle) * leaf.branchLength
     );
-    dummy.rotation.set(0.72 + swayY, leaf.angle + Math.PI / 2, -0.95 + sway + leaf.roll);
+    const heightWeight = THREE.MathUtils.smoothstep(leaf.heightRatio, 0.45, 1);
+    dummy.rotation.set(0.72 + swayY * heightWeight, leaf.angle + Math.PI / 2, -0.95 + bend.z * heightWeight + leaf.roll);
     dummy.scale.set(leaf.width, leaf.length, leaf.width);
     dummy.updateMatrix();
     mesh.setMatrixAt(index, dummy.matrix);
@@ -747,12 +771,13 @@ export class Vegetation {
     }
     for (const bamboo of this.bambooSwayables) {
       for (let i = 0; i < bamboo.plantData.length; i++) {
-        this.setBambooStalkMatrix(bamboo.stalks, i, bamboo.plantData[i], this.time);
+        this.setBambooStalkMatrices(bamboo.lowerStalks, bamboo.upperStalks, i, bamboo.plantData[i], this.time);
       }
       for (let i = 0; i < bamboo.leafCount; i++) {
         this.setBambooLeafMatrix(bamboo.leaves, i, bamboo.leafData[i], this.time);
       }
-      bamboo.stalks.instanceMatrix.needsUpdate = true;
+      bamboo.lowerStalks.instanceMatrix.needsUpdate = true;
+      bamboo.upperStalks.instanceMatrix.needsUpdate = true;
       bamboo.leaves.instanceMatrix.needsUpdate = true;
     }
   }

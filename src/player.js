@@ -202,7 +202,9 @@ export class Player {
       if (this.wasGrounded && this.jumpBufferTimer <= 0 && !inWater) {
         const oldSup = supAt(prevX, prevZ);
         const newSup = supAt(this.mesh.position.x, this.mesh.position.z);
-        if (oldSup > 0.05 && newSup < oldSup - 0.05) {
+        // Allow ordinary stairs and smooth ramps to descend naturally. Only
+        // cancel a move when it would be a real ledge-sized drop.
+        if (oldSup > 0.05 && newSup < oldSup - 0.55) {
           this.mesh.position.x = prevX;
           this.mesh.position.z = prevZ;
         }
@@ -271,20 +273,41 @@ export class Player {
     const activeColliders = isInside ? interior.colliders : colliders;
 
     // Building collisions
-    const catBox = new THREE.Box3(
-      new THREE.Vector3(-0.25, 0, -0.4),
-      new THREE.Vector3(0.25, 0.7, 0.45)
-    ).translate(this.mesh.position);
+    const catLocalMin = new THREE.Vector3(-0.25, 0, -0.4);
+    const catLocalMax = new THREE.Vector3(0.25, 0.7, 0.45);
+    const makeCatBox = () => new THREE.Box3(
+      catLocalMin.clone().add(this.mesh.position),
+      catLocalMax.clone().add(this.mesh.position)
+    );
+    let catBox = makeCatBox();
     const previousCenter = new THREE.Vector3(prevX, this.mesh.position.y + 0.35, prevZ);
-    const currentCenter = catBox.getCenter(new THREE.Vector3());
+    let movementBlocked = false;
 
-    for (const c of activeColliders || []) {
-      const verticalOverlap = catBox.max.y > c.min.y && catBox.min.y < c.max.y;
-      const expanded = c.clone().expandByVector(new THREE.Vector3(0.25, 0, 0.45));
-      const crossedCollider = verticalOverlap && !expanded.containsPoint(previousCenter) &&
-        this.segmentIntersectsBoxXZ(previousCenter, currentCenter, expanded);
+    // Resolve more than once because pushing out of one wall can place the cat
+    // against a neighboring fence or corner. Rebuilding the cat box after each
+    // correction prevents stale bounds from allowing a second barrier through.
+    for (let pass = 0; pass < 3 && !movementBlocked; pass++) {
+      let corrected = false;
+      for (const c of activeColliders || []) {
+        catBox = makeCatBox();
+        const verticalOverlap = catBox.max.y > c.min.y && catBox.min.y < c.max.y;
+        if (!verticalOverlap) continue;
 
-      if (catBox.intersectsBox(c)) {
+        const currentCenter = catBox.getCenter(new THREE.Vector3());
+        const expanded = c.clone().expandByVector(new THREE.Vector3(0.25, 0, 0.45));
+        const crossedCollider = !expanded.containsPoint(previousCenter) &&
+          this.segmentIntersectsBoxXZ(previousCenter, currentCenter, expanded);
+
+        if (crossedCollider && !catBox.intersectsBox(c)) {
+          // Thin walls and fence runs can otherwise be crossed in one low-FPS
+          // sprint frame. Return to the last known clear horizontal position.
+          this.mesh.position.x = prevX;
+          this.mesh.position.z = prevZ;
+          movementBlocked = true;
+          break;
+        }
+
+        if (!catBox.intersectsBox(c)) continue;
         const catCenter = catBox.getCenter(new THREE.Vector3());
         const cCenter = c.getCenter(new THREE.Vector3());
         const dx = catCenter.x - cCenter.x;
@@ -293,16 +316,13 @@ export class Player {
         const overlapZ = Math.min(catBox.max.z, c.max.z) - Math.max(catBox.min.z, c.min.z);
 
         if (overlapX < overlapZ) {
-          this.mesh.position.x += dx > 0 ? overlapX : -overlapX;
+          this.mesh.position.x += dx >= 0 ? overlapX : -overlapX;
         } else {
-          this.mesh.position.z += dz > 0 ? overlapZ : -overlapZ;
+          this.mesh.position.z += dz >= 0 ? overlapZ : -overlapZ;
         }
-      } else if (crossedCollider) {
-        // Thin obstacles such as bamboo pickets can be crossed in a single
-        // low-FPS sprint frame. Restore the pre-move horizontal position.
-        this.mesh.position.x = prevX;
-        this.mesh.position.z = prevZ;
+        corrected = true;
       }
+      if (!corrected) break;
     }
 
     // Auto-follow: when walking and the player hasn't touched the camera
