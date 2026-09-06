@@ -10,6 +10,79 @@ export class Particles {
     this.buildRiverPetals();
     this.buildSnow();
     this.buildRain();
+    this.buildGodRays();
+  }
+
+  /**
+   * Volumetric-feeling god ray shafts: tall faint gradient cards angled with
+   * the sun, dotted through the treeline and shrine grove. Opacity rises in
+   * golden hour and misty weather so light feels like it's pouring through
+   * the canopy rather than sitting flat on it.
+   */
+  buildGodRays() {
+    const c = document.createElement('canvas');
+    c.width = 32;
+    c.height = 128;
+    const ctx = c.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 0, 128);
+    g.addColorStop(0, 'rgba(255, 214, 150, 0.55)');
+    g.addColorStop(0.5, 'rgba(255, 200, 130, 0.22)');
+    g.addColorStop(1, 'rgba(255, 190, 120, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 32, 128);
+    // Feather the horizontal edges so the shaft has no hard borders
+    const edge = ctx.createLinearGradient(0, 0, 32, 0);
+    edge.addColorStop(0, 'rgba(0,0,0,1)');
+    edge.addColorStop(0.25, 'rgba(0,0,0,0)');
+    edge.addColorStop(0.75, 'rgba(0,0,0,0)');
+    edge.addColorStop(1, 'rgba(0,0,0,1)');
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = edge;
+    ctx.fillRect(0, 0, 32, 128);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+
+    // [x, z, height, width] around groves, torii approach, and river willows
+    const spots = [
+      [2.2, -19.5, 12, 3.2], [-9.5, -25, 11, 2.6], [8.5, -28, 12, 3.0],
+      [-11.5, -3.5, 9, 2.2], [6, 11, 9, 2.4], [-7, 9, 8, 2.0],
+      [29, -19, 13, 3.6], [31, -22, 11, 2.8], [-31, -13, 12, 3.2],
+      [24, 13.5, 9, 2.2], [-7, 31, 8, 2.6], [15, 31.5, 9, 2.4]
+    ];
+    this.godRays = [];
+    for (const [x, z, h, w] of spots) {
+      const mat = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        fog: false
+      });
+      const card = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+      card.position.set(x, h * 0.5, z);
+      card.rotation.y = Math.random() * Math.PI;
+      card.renderOrder = 3;
+      this.scene.add(card);
+      this.godRays.push({ mesh: card, baseX: x, phase: Math.random() * 6.28, w });
+    }
+  }
+
+  updateGodRays(dt, sky, playerPos) {
+    if (!this.godRays) return;
+    const sunUp = sky ? Math.max(0, sky.sunDir.y) : 1;
+    const golden = sky ? sunUp * Math.exp(-Math.max(0, sky.sunDir.y) * 2.8) : 0;
+    const misty = sky && (sky.weather === 'mist' || sky.weather === 'cloudy') ? sky.weatherBlend * 0.5 : 0;
+    const strength = Math.min(0.42, golden * 0.55 + misty * 0.35);
+    const sunYaw = sky ? Math.atan2(sky.sunDir.x, sky.sunDir.z) : 0;
+    for (const ray of this.godRays) {
+      // Lean shafts away from the sun azimuth and gently breathe
+      ray.mesh.rotation.y = sunYaw + Math.PI * 0.5 + Math.sin(this.time * 0.22 + ray.phase) * 0.07;
+      ray.mesh.rotation.z = 0.24 + Math.sin(this.time * 0.17 + ray.phase) * 0.02;
+      ray.mesh.position.x = ray.baseX + Math.sin(this.time * 0.12 + ray.phase) * 0.4;
+      ray.mesh.material.opacity = strength * (0.75 + Math.sin(this.time * 0.5 + ray.phase) * 0.25);
+    }
   }
 
   /** Rain streaks: vertical line segments that follow the player. */
@@ -303,6 +376,7 @@ export class Particles {
 
     this.updateSnow(dt, playerPos, sky);
     this.updateRain(dt, playerPos, sky);
+    this.updateGodRays(dt, sky, playerPos);
 
     const sunUp = sky ? Math.max(0, sky.sunDir.y) : 1;
     const raining = sky && sky.weather === 'rain';

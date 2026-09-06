@@ -49,8 +49,15 @@ The game was created as an experimental art piece — built primarily through **
 - **Procedural Kyoto valley** — machiya townhouses, torii shrine gate, stone paths, river with water physics, bamboo groves, cherry trees, and surrounding mountains
 - **Dynamic day/night cycle** — a full 24-hour loop compressed to 60 minutes, with sunrise, golden hour, sunset, and night each bringing unique lighting moods
 - **Living weather system** — clear, cloudy, rain, snow, and mist states that transition smoothly and affect fog, lighting, and audio
-- **Studio Ghibli cel-shading** — the cat avatar uses a custom 3-step toon gradient ramp for anime-style shading
-- **Bloom post-processing** — UnrealBloomPass for warm lantern glow and golden hour magic
+- **Procedural PBR materials** — every surface is painted at load time: lime plaster with sill grime, grained timber, staggered kawara roof tiles, glowing shoji lattice, woven tatami, river-stone cobbles and fissured bark, each with a matching normal map, so walls and roofs catch light with real relief
+- **Curved Kyoto rooflines** — roof slopes carry the concave *sori* lift toward the eaves, with rows of round end-tiles and rafter tails under every eave
+- **Painterly foliage shader** — one shared shader for sakura, maples, pines, street bushes and the forest wall: lumpy noise-displaced canopies with leaf-clump relief, top-lit crowns, cool violet undersides, sun translucency and wind sway; bushes rustle when the cat brushes through
+- **Shadow-receiving meadow** — 70k instanced grass blades that darken under trees and eaves, bend under the cat's paws and glow when the low sun shines through them; petalled wildflowers grow in drifts
+- **Ridged mountain walls** — a noise-driven height field carries the valley floor into wooded foothills and blue-hazed peaks instead of cone silhouettes
+- **Living river** — a fresnel water shader with sun-tracking specular, drifting sparkle, lapping bank foam and molten dusk tones
+- **Cinematic post stack** — depth-based ambient occlusion, exponential height fog with sun in-scatter, screen-space crepuscular light shafts, bloom, ACES tone mapping and a filmic grade (split-toning, vignette, grain)
+- **Image-based lighting** — the sky dome is re-baked into a prefiltered environment map as the day cycles, so tiles, lacquer, water and bronze reflect the real sky and sun
+- **Night lanterns that light the street** — a pool of point lights hops between the lanterns nearest the cat, flickering warm pools onto the cobbles after dusk
 
 <p align="center">
   <img src="docs/images/lantern-lit-village-path-dusk.jpg" width="90%" alt="Inspiration art: a lantern-lit stone path winding through the village at dusk, cherry petals drifting past machiya townhouses"/>
@@ -58,6 +65,7 @@ The game was created as an experimental art piece — built primarily through **
 
 ### The Cat
 - **Fully articulated cat avatar** — segmented body with head, ears, tail, legs, and expressive golden-amber eyes that track objects of interest
+- **Procedural tabby fur shader** — the mackerel coat (flank stripes, spine line, forehead "M", cheek marks, leg and tail rings, cream bib, belly and socks) is painted in baked body space so it flows across every part and rides the animation; soft three-band toon ramp, painterly fur grain, warm sun-keyed rim light and textured amber irises with catchlights
 - **Cat animations** — walk, sprint, jump (with anticipation squash), land (with impact dust), idle sit, meow, prowl stance, tail swish, ear twitch, mood-based expressions (curious, playful, cautious, alert, sleepy)
 - **Prowl mode** — crouch low and move quietly at reduced speed (press C)
 - **Scent trail** — warm particle wisps drift up behind the cat as it moves, fading from gold to amber
@@ -94,6 +102,7 @@ The game was created as an experimental art piece — built primarily through **
 
 ### Technical
 - **Adaptive resolution** — dynamically scales pixel ratio based on measured FPS to maintain smooth performance
+- **Graphics quality tiers** — Low: 1024 shadow map, height fog only; Medium: 2048 shadows, half-resolution ambient occlusion (8 samples), light shafts, bloom; High: 4096 shadows, 14-sample AO, full light shafts, chromatic fringe. MSAA (4x) is kept through the post chain via a multisampled HDR target with a resolved depth attachment
 - **Camera collision** — soft raycast camera collision prevents clipping through walls
 - **Platformer physics** — coyote time, jump buffering, and variable jump height for responsive platforming
 - **Save/load** — auto-saves every 12 seconds to localStorage (position, score, XP, quest state, collected items, world state, time of day, weather)
@@ -167,7 +176,10 @@ Michi-Neko-The-Cat-Philosophers-Path/
 │   ├── cat.js                  # Cat avatar model, toon shading, animations
 │   ├── controls.js             # Keyboard, mouse, touch input handling
 │   ├── countryside.js          # Procedural Kyoto valley world generation
-│   ├── sky.js                  # Sky dome shader, day/night, weather system
+│   ├── textures.js             # Procedural PBR textures (plaster, timber, tiles, cobbles…) + normal maps
+│   ├── foliage.js              # Shared painterly foliage shader & lumpy canopy geometry
+│   ├── postfx.js               # Ambient occlusion, height fog / light shafts, film grade passes
+│   ├── sky.js                  # Sky dome shader, day/night, weather, environment map
 │   ├── vegetation.js           # Trees, bamboo, grass, flowers, foliage
 │   ├── particles.js            # Rain, snow, petals, fireflies, dust
 │   ├── ambient_life.js         # Birds, butterflies, koi fish, guardian crows

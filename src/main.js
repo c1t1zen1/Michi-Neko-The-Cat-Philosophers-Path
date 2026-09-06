@@ -3,27 +3,30 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { Player } from './player.js?v=20260831a';
-import { Countryside } from './countryside.js?v=20260831a';
-import { Sky } from './sky.js?v=20260823a';
-import { Vegetation } from './vegetation.js?v=20260831a';
-import { Particles } from './particles.js?v=20260823a';
-import { AmbientLife } from './ambient_life.js?v=20260827a';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { AOPass, AtmospherePass, GradeShader } from './postfx.js?v=20260907a';
+import { Player } from './player.js?v=20260907a';
+import { Countryside } from './countryside.js?v=20260907a';
+import { Sky } from './sky.js?v=20260907a';
+import { Vegetation } from './vegetation.js?v=20260907a';
+import { Particles } from './particles.js?v=20260907a';
+import { AmbientLife } from './ambient_life.js?v=20260907a';
 import { Controls } from './controls.js?v=20260825b';
 import { UI } from './ui.js?v=20260825h';
-import { NPC } from './npc.js?v=20260825j';
+import { NPC } from './npc.js?v=20260907a';
 import { Dialogue } from './dialogue.js?v=20260823a';
 import { QuestManager } from './quest.js?v=20260825i';
 import { AudioManager } from './audio.js?v=20260825j';
 import { ProgressionManager } from './progression.js?v=20260823a';
 import { ContextActionManager } from './context_actions.js?v=20260825j';
-import { InteriorManager } from './interior.js?v=20260823a';
+import { InteriorManager } from './interior.js?v=20260907a';
 import { SaveManager } from './save.js?v=20260823a';
 import { ScentTrail } from './scent.js?v=20260823a';
 import { SettingsManager } from './settings.js?v=20260825h';
 import { MenuSystem } from './menus.js?v=20260825d';
 import { WaypointSystem, Compass } from './waypoints.js?v=20260823a';
 import { MusicDirector } from './music.js?v=20260825h';
+import { catRimUniforms } from './cat.js?v=20260907a';
 
 const AUTOSTART_KEY = 'catwalk_autostart';
 
@@ -34,7 +37,9 @@ class Game {
 
     this.scene = new THREE.Scene();
 
-    this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
+    // Far plane reaches past the outer mountain ring so the ridges are never
+    // clipped and the depth-based haze can still grade them
+    this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 700);
     this.camera.position.set(0, 4, -6);
 
     this.renderer = new THREE.WebGLRenderer({
@@ -47,29 +52,50 @@ class Game {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.28;
+    this.renderer.toneMappingExposure = 1.32;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     window.game = this;
 
-    // Multisampled HDR target: keeps MSAA anti-aliasing through the post chain
+    // Multisampled HDR target with a resolved depth attachment: MSAA edges
+    // survive the post chain, and the depth buffer feeds the screen-space
+    // ambient occlusion, height fog and light-shaft passes.
     const rtSize = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    const makeDepth = () => {
+      const d = new THREE.DepthTexture(rtSize.width, rtSize.height, THREE.UnsignedIntType);
+      d.format = THREE.DepthFormat;
+      d.minFilter = THREE.NearestFilter;
+      d.magFilter = THREE.NearestFilter;
+      return d;
+    };
     const renderTarget = new THREE.WebGLRenderTarget(rtSize.width, rtSize.height, {
       samples: 4,
-      type: THREE.HalfFloatType
+      type: THREE.HalfFloatType,
+      depthTexture: makeDepth()
     });
     this.composer = new EffectComposer(this.renderer, renderTarget);
+    // Each ping-pong buffer needs its own depth attachment so the scene depth
+    // read by the post passes is never a stale copy from the other buffer.
+    this.composer.renderTarget2.depthTexture = makeDepth();
     this.composer.addPass(new RenderPass(this.scene, this.camera));
+    this.aoPass = new AOPass(this.camera, rtSize.width, rtSize.height, { scale: 0.5, samples: 12 });
+    this.composer.addPass(this.aoPass);
+    this.atmosphere = new AtmospherePass(this.camera, rtSize.width, rtSize.height);
+    this.atmosphere.aoPass = this.aoPass;
+    this.composer.addPass(this.atmosphere);
     this.bloom = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.42, 0.7, 0.82
+      0.38, 0.85, 0.82
     );
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
+    this.gradePass = new ShaderPass(GradeShader);
+    this.composer.addPass(this.gradePass);
 
     this.clock = new THREE.Clock();
     this.audio = new AudioManager();
     this.sky = new Sky(this.scene);
+    this.sky.attachRenderer(this.renderer);
     this.city = new Countryside(this.scene);
     this.interior = new InteriorManager(this);
     this.vegetation = new Vegetation(this.scene, this.city.colliders, {
@@ -347,7 +373,7 @@ class Game {
     this.renderer.setPixelRatio(Math.min(dpr, cap));
     this.onResize();
 
-    const shadowSize = q === 'low' ? 1024 : 2048;
+    const shadowSize = q === 'low' ? 1024 : q === 'medium' ? 2048 : 4096;
     if (this.sky.sun.shadow.mapSize.x !== shadowSize) {
       this.sky.sun.shadow.mapSize.set(shadowSize, shadowSize);
       if (this.sky.sun.shadow.map) {
@@ -356,6 +382,14 @@ class Game {
       }
     }
     this.bloom.enabled = q !== 'low';
+    // Screen-space AO and light shafts scale with the tier; low keeps only
+    // the cheap height fog.
+    this.aoPass.enabled = q !== 'low';
+    this.aoPass.setSamples(q === 'high' ? 14 : 8);
+    this.postStrengths = q === 'low'
+      ? { ao: 0, shafts: 0 }
+      : q === 'medium' ? { ao: 0.85, shafts: 0.7 } : { ao: 1, shafts: 1 };
+    this.gradePass.uniforms.uFringe.value = q === 'high' ? 0.0012 : 0.0;
   }
 
   /* ---------------- Game flow ---------------- */
@@ -665,6 +699,16 @@ class Game {
     // World simulation always runs (living background on title screen)
     this.city.update(dt, this.player.mesh.position, this.sky);
     this.sky.update(dt, this.player.mesh.position);
+    this.atmosphere.updateFromSky(this.sky, this.camera, this.postStrengths || { ao: 1, shafts: 1 });
+    // Golden-hour rim light on the cat follows the sun palette
+    {
+      const pal = this.sky.resolvePalette();
+      catRimUniforms.uRimColor.value.copy(pal.warm || pal.sun);
+      catRimUniforms.uRimDir.value.copy(this.sky.sunDir);
+      const sunY = Math.max(0, this.sky.sunDir.y);
+      const golden = Math.min(1, Math.max(0, (0.42 - sunY) / 0.42)) * Math.min(1, sunY / 0.06);
+      catRimUniforms.uRimStrength.value = 0.14 + golden * 0.7;
+    }
     this.vegetation.update(dt, this.player.mesh.position, this.sky);
     this.particles.update(dt, this.player.mesh.position, this.sky);
     this.ambientLife.update(dt, this.player.mesh.position, this.sky, this.player.cat, this.player, this.city);
@@ -847,6 +891,7 @@ Quality  ${this.settings.resolveQuality()}`;
       this.update(dt);
       this.updateAdaptiveResolution(dt);
     }
+    this.gradePass.uniforms.uTime.value = this.clock.elapsedTime;
     this.composer.render();
     if (this.captureRequested) {
       this.captureRequested = false;

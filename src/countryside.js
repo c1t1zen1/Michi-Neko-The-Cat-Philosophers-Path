@@ -1,4 +1,10 @@
 import * as THREE from 'three';
+import {
+  plasterTextures, woodTextures, kawaraTextures, shojiTextures, tatamiTextures,
+  cobbleTextures, stoneTextures, groundTextures, dirtTextures, strawTextures,
+  metalTextures, texturedMaterial, worldScaleBoxUVs, worldNoise
+} from './textures.js?v=20260907a';
+import { createFoliageMaterial, lumpyTuftGeometry } from './foliage.js?v=20260907a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -26,80 +32,83 @@ function makeCanvasTexture(draw, size = 128, repeatX = 1, repeatY = 1) {
   return texture;
 }
 
-const KAWARA_TEXTURE = makeCanvasTexture((ctx, size) => {
-  ctx.fillStyle = '#303943';
-  ctx.fillRect(0, 0, size, size);
-  ctx.strokeStyle = '#161d24';
-  ctx.lineWidth = 5;
-  const tileW = size / 4;
-  const tileH = size / 4;
-  for (let row = -1; row < 5; row++) {
-    const offset = (row & 1) ? tileW / 2 : 0;
-    for (let col = -1; col < 5; col++) {
-      const x = col * tileW + offset;
-      const y = row * tileH;
-      ctx.beginPath();
-      ctx.arc(x + tileW / 2, y + tileH * 0.16, tileW * 0.47, 0.08 * Math.PI, 0.92 * Math.PI);
-      ctx.stroke();
-      ctx.strokeStyle = '#66717a';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.arc(x + tileW / 2, y + tileH * 0.18, tileW * 0.37, 0.12 * Math.PI, 0.88 * Math.PI);
-      ctx.stroke();
-      ctx.strokeStyle = '#161d24';
-      ctx.lineWidth = 5;
-    }
-  }
-}, 128, 4, 4);
+// Procedural PBR surface sets shared by every structure in the valley
+const TEX = {
+  plaster: plasterTextures(0xf3ebda, 1),
+  plasterWarm: plasterTextures(0xe6d7ba, 2),
+  woodDark: woodTextures(0x3b2819, 0x1b100a, 2),
+  woodMedium: woodTextures(0x5e4029, 0x2c1b10, 3),
+  woodLight: woodTextures(0x9a744c, 0x5a3c22, 4),
+  woodEngawa: woodTextures(0x7d5736, 0x3f2a18, 5),
+  kawara: kawaraTextures(0x6f7a85, 3),
+  shoji: shojiTextures(4, 6),
+  tatami: tatamiTextures(0xa9b476),
+  cobble: cobbleTextures(4),
+  stone: stoneTextures(0x939389, 5),
+  stoneDark: stoneTextures(0x62625b, 6),
+  dirt: dirtTextures(7),
+  straw: strawTextures(0xd0b070),
+  gold: metalTextures(0xd9ad4c),
+  bronze: metalTextures(0xb28538)
+};
+
+// Materials whose textures are laid out per panel (lattice frames, mats)
+// must keep 0..1 UVs instead of world-scaled tiling.
+function panelMaterial(mat) { mat.userData.uvPanel = true; return mat; }
 
 const MAT = {
-  grass: new THREE.MeshStandardMaterial({ color: 0x3a5a2c, roughness: 0.95 }),
-  ridge: new THREE.MeshStandardMaterial({ color: 0x2b4522, roughness: 1 }),
-  dirt: new THREE.MeshStandardMaterial({ color: 0xb59a70, roughness: 1 }),
+  grass: texturedMaterial(TEX.dirt, { color: 0x6e8a52, roughness: 0.95 }),
+  ridge: texturedMaterial(TEX.dirt, { color: 0x77835a, roughness: 1 }),
+  dirt: texturedMaterial(TEX.dirt, { color: 0xc9b08a, roughness: 1 }),
   water: new THREE.MeshStandardMaterial({ color: 0x4d8a86, roughness: 0.12, metalness: 0.45 }),
-  timberDark: new THREE.MeshStandardMaterial({ color: 0x2e2017, roughness: 0.9 }),
-  timberMedium: new THREE.MeshStandardMaterial({ color: 0x4e3625, roughness: 0.88 }),
-  timberLight: new THREE.MeshStandardMaterial({ color: 0x8a6340, roughness: 0.85 }),
-  timberEngawa: new THREE.MeshStandardMaterial({ color: 0x65472e, roughness: 0.8 }),
-  plaster: new THREE.MeshStandardMaterial({ color: 0xede4d0, roughness: 0.95 }),
-  plasterWarm: new THREE.MeshStandardMaterial({ color: 0xdfd1b5, roughness: 0.95 }),
-  roofTile: new THREE.MeshStandardMaterial({ color: 0x75808a, map: KAWARA_TEXTURE, bumpMap: KAWARA_TEXTURE, bumpScale: 0.055, roughness: 0.62, metalness: 0.12 }),
-  roofRidge: new THREE.MeshStandardMaterial({ color: 0x22272e, roughness: 0.5 }),
-  roofThatch: new THREE.MeshStandardMaterial({ color: 0x8a744a, roughness: 1 }),
-  vermilion: new THREE.MeshStandardMaterial({ color: 0xc8402a, roughness: 0.55 }),
-  stone: new THREE.MeshStandardMaterial({ color: 0x8d8d86, roughness: 0.95 }),
-  stoneDark: new THREE.MeshStandardMaterial({ color: 0x5c5c56, roughness: 0.95 }),
-  stonePlinth: new THREE.MeshStandardMaterial({ color: 0x73736c, roughness: 0.9 }),
-  slabWarm: new THREE.MeshStandardMaterial({ color: 0x9a8f7a, roughness: 0.92 }),
-  gravel: new THREE.MeshStandardMaterial({ color: 0xcdbfa4, roughness: 1 }),
-  shoji: new THREE.MeshStandardMaterial({ color: 0xffe2b8, emissive: 0x3d240e, emissiveIntensity: 0.12, roughness: 0.85 }),
-  shojiOff: new THREE.MeshStandardMaterial({ color: 0xecd9be, roughness: 0.9 }),
-  tatami: new THREE.MeshStandardMaterial({ color: 0x889c56, roughness: 0.95 }),
-  tatamiBorder: new THREE.MeshStandardMaterial({ color: 0x24201b, roughness: 0.9 }),
-  norenIndigo: new THREE.MeshStandardMaterial({ color: 0x223652, roughness: 0.8, side: THREE.DoubleSide }),
-  norenCrimson: new THREE.MeshStandardMaterial({ color: 0x8f2820, roughness: 0.8, side: THREE.DoubleSide }),
-  norenHemp: new THREE.MeshStandardMaterial({ color: 0xd6c5a2, roughness: 0.9, side: THREE.DoubleSide }),
-  lanternPaper: new THREE.MeshStandardMaterial({ color: 0xffe4bc, emissive: 0x5a2d0c, emissiveIntensity: 0.22 }),
-  lanternGlow: new THREE.MeshStandardMaterial({ color: 0xffe0b0, emissive: 0x6e3c10, emissiveIntensity: 0.28 }),
-  bambooGreen: new THREE.MeshStandardMaterial({ color: 0x5c8c3e, roughness: 0.75 }),
-  goldAntique: new THREE.MeshStandardMaterial({ color: 0xf5be38, metalness: 0.85, roughness: 0.25, emissive: 0x8a6008, emissiveIntensity: 0.6 }),
-  spiritualBellBronze: new THREE.MeshStandardMaterial({ color: 0xb88836, metalness: 0.75, roughness: 0.35, emissive: 0x422605, emissiveIntensity: 0.20 }),
-  cushionRed: new THREE.MeshStandardMaterial({ color: 0xb52b22, roughness: 0.7 }),
+  timberDark: texturedMaterial(TEX.woodDark, { roughness: 0.82, normalScale: 0.8 }),
+  timberMedium: texturedMaterial(TEX.woodMedium, { roughness: 0.8, normalScale: 0.8 }),
+  timberLight: texturedMaterial(TEX.woodLight, { roughness: 0.78, normalScale: 0.8 }),
+  timberEngawa: texturedMaterial(TEX.woodEngawa, { roughness: 0.55, normalScale: 0.6 }),
+  plaster: texturedMaterial(TEX.plaster, { roughness: 0.96, normalScale: 0.9 }),
+  plasterWarm: texturedMaterial(TEX.plasterWarm, { roughness: 0.96, normalScale: 0.9 }),
+  roofTile: texturedMaterial(TEX.kawara, { color: 0xd4d5d4, roughness: 0.5, metalness: 0.05, normalScale: 0.5, envMapIntensity: 0.85 }),
+  roofRidge: texturedMaterial(TEX.stoneDark, { color: 0x3a4149, roughness: 0.5, normalScale: 0.5 }),
+  roofThatch: texturedMaterial(TEX.straw, { color: 0x9a8352, roughness: 1 }),
+  vermilion: texturedMaterial({ normalMap: TEX.woodMedium.normalMap }, { color: 0xd8482c, roughness: 0.42, normalScale: 0.3, envMapIntensity: 0.5 }),
+  stone: texturedMaterial(TEX.stone, { roughness: 0.92, normalScale: 0.9 }),
+  stoneDark: texturedMaterial(TEX.stoneDark, { roughness: 0.94, normalScale: 0.9 }),
+  stonePlinth: texturedMaterial(TEX.stone, { color: 0xbdbdb4, roughness: 0.9 }),
+  slabWarm: texturedMaterial(TEX.stone, { color: 0xcfc1a6, roughness: 0.92 }),
+  gravel: texturedMaterial(TEX.dirt, { color: 0xdccfb2, roughness: 1 }),
+  shoji: panelMaterial(texturedMaterial(TEX.shoji, { emissive: 0xffb264, emissiveIntensity: 0.12, roughness: 0.85, normalScale: 0.6 })),
+  shojiOff: panelMaterial(texturedMaterial(TEX.shoji, { color: 0xe6dac4, roughness: 0.9, normalScale: 0.6 })),
+  tatami: panelMaterial(texturedMaterial(TEX.tatami, { roughness: 0.95, normalScale: 0.6 })),
+  tatamiBorder: texturedMaterial(TEX.woodDark, { color: 0x2a2620, roughness: 0.9 }),
+  norenIndigo: new THREE.MeshStandardMaterial({ color: 0x223652, roughness: 0.9, side: THREE.DoubleSide }),
+  norenCrimson: new THREE.MeshStandardMaterial({ color: 0x8f2820, roughness: 0.9, side: THREE.DoubleSide }),
+  norenHemp: texturedMaterial(TEX.straw, { color: 0xd6c5a2, roughness: 0.95, side: THREE.DoubleSide, normalScale: 0.4 }),
+  lanternPaper: panelMaterial(new THREE.MeshStandardMaterial({ color: 0xffe4bc, emissive: 0x5a2d0c, emissiveIntensity: 0.22, roughness: 0.9 })),
+  lanternGlow: panelMaterial(new THREE.MeshStandardMaterial({ color: 0xffe0b0, emissive: 0x6e3c10, emissiveIntensity: 0.28, roughness: 0.9 })),
+  bambooGreen: texturedMaterial({ normalMap: TEX.woodLight.normalMap }, { color: 0x6a9a44, roughness: 0.55, normalScale: 0.3 }),
+  goldAntique: texturedMaterial(TEX.gold, { metalness: 0.9, roughness: 0.32, emissive: 0x8a6008, emissiveIntensity: 0.5 }),
+  spiritualBellBronze: texturedMaterial(TEX.bronze, { metalness: 0.85, roughness: 0.42, emissive: 0x422605, emissiveIntensity: 0.2 }),
+  cushionRed: new THREE.MeshStandardMaterial({ color: 0xb52b22, roughness: 0.85 }),
   grilledFish: new THREE.MeshStandardMaterial({ color: 0xc87432, roughness: 0.6, emissive: 0x552200, emissiveIntensity: 0.3 }),
-  mountain1: new THREE.MeshStandardMaterial({ color: 0x6b7390, roughness: 1, flatShading: true }),
-  mountain2: new THREE.MeshStandardMaterial({ color: 0x565d7c, roughness: 1, flatShading: true }),
   yarn: new THREE.MeshStandardMaterial({ color: 0xe04a7a, emissive: 0x701030, emissiveIntensity: 0.5, roughness: 0.7 }),
-  nestTwig: new THREE.MeshStandardMaterial({ color: 0x5a4128, roughness: 1 }),
+  nestTwig: texturedMaterial(TEX.straw, { color: 0x6a4a2c, roughness: 1 }),
   birdEgg: new THREE.MeshStandardMaterial({ color: 0x9be3de, roughness: 0.4, metalness: 0.1 }),
   featherGold: new THREE.MeshStandardMaterial({ color: 0xffd042, emissive: 0xb38600, emissiveIntensity: 0.8, roughness: 0.3 })
 };
 
 function box(w, h, d, mat, x = 0, y = 0, z = 0) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  const geo = new THREE.BoxGeometry(w, h, d);
+  if (!(mat && mat.userData && mat.userData.uvPanel)) worldScaleBoxUVs(geo, 1);
+  const m = new THREE.Mesh(geo, mat);
   m.position.set(x, y, z);
   m.castShadow = true;
   m.receiveShadow = true;
   return m;
+}
+
+function smoothstep(edge0, edge1, x) {
+  const t = THREE.MathUtils.clamp((x - edge0) / (edge1 - edge0), 0, 1);
+  return t * t * (3 - 2 * t);
 }
 
 export class Countryside {
@@ -122,6 +131,8 @@ export class Countryside {
     this.vegetationExclusions = [];
     this.ripples = [];
     this.paddyWaterMaterials = [];
+    this.lanternHalos = [];
+    this.lanternHaloTex = this.makeGlowBallTexture();
     this.buildRipplePool();
 
     // Secret Machiya & Interactive State
@@ -250,41 +261,62 @@ export class Countryside {
     }
   }
 
+  /**
+   * World height field. The playable valley floor (r < 55) is flat; beyond
+   * it the ground lifts into forested foothills and then noise-ridged
+   * mountain walls, replacing the old cone silhouettes.
+   */
+  terrainHeight(x, z) {
+    const d = Math.sqrt(x * x + z * z);
+    const lift = Math.max(0, (d - 55) / 40);
+    let y = lift * lift * 6 + Math.sin(x * 0.08) * Math.cos(z * 0.07) * lift * 2;
+    const foot = smoothstep(68, 150, d);
+    if (foot > 0) {
+      const n1 = worldNoise(x, z, 0.021, 4, 11);
+      y += foot * (5 + n1 * 28);
+    }
+    const high = smoothstep(135, 330, d);
+    if (high > 0) {
+      const n2 = worldNoise(x, z, 0.0085, 4, 23);
+      const ridged = 1 - Math.abs(n2 * 2 - 1);
+      const n3 = worldNoise(x, z, 0.03, 3, 29);
+      y += high * (34 + Math.pow(ridged, 1.7) * 110 + n3 * 14);
+    }
+    return y;
+  }
+
   buildGround() {
-    const geo = new THREE.PlaneGeometry(300, 300, 64, 64);
+    const size = 260;
+    const geo = new THREE.PlaneGeometry(size, size, 150, 150);
     geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position;
     const colors = new Float32Array(pos.count * 3);
 
     // Natural painterly ground palette — muted mossy greens with pools of
     // dark shaded grass, matching the Kyoto village reference painting
-    const colMeadow = new THREE.Color(0x4d7038);   // Muted natural green
-    const colMoss = new THREE.Color(0x33512a);     // Deep mossy shade
-    const colGold = new THREE.Color(0x5f7e3c);     // Soft sun-warmed olive
-    const colEarth = new THREE.Color(0x7a6547);    // Rich loam near paths/settlement
-    const colBank = new THREE.Color(0x46653a);     // Riverbank lush loam
-    const colDark = new THREE.Color(0x243d1f);     // Dark grass shadow pools
+    const colMeadow = new THREE.Color(0x5d8442);   // Fresh meadow green
+    const colMoss = new THREE.Color(0x3d6030);     // Deep mossy shade
+    const colGold = new THREE.Color(0x7a9448);     // Soft sun-warmed olive
+    const colEarth = new THREE.Color(0x8a7452);    // Rich loam near paths/settlement
+    const colBank = new THREE.Color(0x4f7440);     // Riverbank lush loam
+    const colDark = new THREE.Color(0x2c4a26);     // Dark grass shadow pools
+    const colForest = new THREE.Color(0x2f4f2a);   // Foothill forest floor
     const c = new THREE.Color();
 
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), z = pos.getZ(i);
       const d = Math.sqrt(x * x + z * z);
-      const lift = Math.max(0, (d - 55) / 40);
-      const y = lift * lift * 6 + Math.sin(x * 0.08) * Math.cos(z * 0.07) * lift * 2;
-      pos.setY(i, y);
+      pos.setY(i, this.terrainHeight(x, z));
 
       // Procedural color blend
-      const noise1 = Math.sin(x * 0.09 + z * 0.07) * 0.5 + 0.5;
-      const noise2 = Math.cos(x * 0.22 - z * 0.18) * 0.5 + 0.5;
-      const noise3 = Math.sin(x * 0.045 - z * 0.06) * Math.cos((x + z) * 0.035) * 0.5 + 0.5;
+      const noise1 = worldNoise(x, z, 0.05, 3, 3);
+      const noise2 = worldNoise(x, z, 0.14, 2, 5);
+      const noise3 = worldNoise(x, z, 0.028, 3, 7);
 
-      // Base meadow blend (much less saturated than before)
-      c.copy(colMeadow).lerp(colGold, noise1 * 0.45).lerp(colMoss, noise2 * 0.5);
+      c.copy(colMeadow).lerp(colGold, noise1 * 0.7).lerp(colMoss, noise2 * 0.45);
 
       // Broad painterly pools of dark shaded grass
-      if (noise3 > 0.62) {
-        c.lerp(colDark, (noise3 - 0.62) / 0.38 * 0.75);
-      }
+      if (noise3 > 0.58) c.lerp(colDark, (noise3 - 0.58) / 0.42 * 0.7);
 
       // Darker rich earth near river (z ~ 26..32)
       if (Math.abs(z - 29) < 8) {
@@ -294,28 +326,99 @@ export class Countryside {
 
       // Loam soil accents near center path/buildings
       if (d < 35 && (Math.abs(x) < 5 || (x > 8 && x < 24 && z > -18 && z < 14))) {
-        c.lerp(colEarth, 0.35 + noise2 * 0.25);
+        c.lerp(colEarth, 0.3 + noise2 * 0.25);
       }
 
-      // Outer hill tones
-      if (d > 60) {
-        c.lerp(colMoss, Math.min(1, (d - 60) / 40));
-      }
+      // Outer forest tones darken toward the treeline and foothills
+      if (d > 48) c.lerp(colForest, Math.min(1, (d - 48) / 40));
 
-      colors[i * 3 + 0] = c.r;
-      colors[i * 3 + 1] = c.g;
-      colors[i * 3 + 2] = c.b;
+      // The vertex colour is a TINT over the detail texture, so normalise it
+      // around unit luminance instead of multiplying two dark colours.
+      const lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+      const k = 1 / Math.max(0.05, lum) * 0.5;
+      colors[i * 3 + 0] = c.r * k;
+      colors[i * 3 + 1] = c.g * k;
+      colors[i * 3 + 2] = c.b * k;
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     geo.computeVertexNormals();
 
-    const groundMat = new THREE.MeshStandardMaterial({
-      vertexColors: true,
-      roughness: 0.95
-    });
-    const ground = new THREE.Mesh(geo, groundMat);
+    // Tiling moss/grass detail under the blade instances; the vertex colour
+    // pass above breaks up the tile repetition with broad painterly patches.
+    const ground = new THREE.Mesh(geo, texturedMaterial(groundTextures(6), {
+      roughness: 0.96, normalScale: 0.7, repeat: [size / 3.2, size / 3.2]
+    }));
+    ground.material.vertexColors = true;
+    ground.material.color.setHex(0xffffff);
     ground.receiveShadow = true;
     this.scene.add(ground);
+    this.groundMesh = ground;
+
+    // Soft earthen shoulders either side of the cobbled road so the pavement
+    // fades into the meadow rather than ending in a hard seam.
+    this.buildPathShoulders();
+  }
+
+  buildPathShoulders() {
+    if (!this.pathSamplesPreview) {
+      const pts = [
+        new THREE.Vector3(0, 0, 34), new THREE.Vector3(-2, 0, 20), new THREE.Vector3(1.5, 0, 6),
+        new THREE.Vector3(0, 0, -8), new THREE.Vector3(-1, 0, -16), new THREE.Vector3(0, 0, -30)
+      ];
+      this.pathSamplesPreview = new THREE.CatmullRomCurve3(pts);
+    }
+    const curve = this.pathSamplesPreview;
+    const steps = 80, width = 6.4;
+    const verts = [], uvs = [], indices = [], alpha = [];
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const p = curve.getPoint(t);
+      const tan = curve.getTangent(t);
+      const side = new THREE.Vector3(-tan.z, 0, tan.x).normalize();
+      const wobble = Math.sin(t * 27) * 0.35 + Math.sin(t * 61) * 0.2;
+      verts.push(
+        p.x - side.x * (width / 2 + wobble), 0.018, p.z - side.z * (width / 2 + wobble),
+        p.x + side.x * (width / 2 - wobble), 0.018, p.z + side.z * (width / 2 - wobble)
+      );
+      uvs.push(0, i * 0.8, 1, i * 0.8);
+      if (i < steps) {
+        const a = i * 2;
+        indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    const mat = texturedMaterial(dirtTextures(7), { color: 0xb9a37c, roughness: 1, transparent: true, normalScale: 0.6 });
+    // Fade the shoulder out across its width via a UV-driven alpha
+    mat.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader.replace('#include <uv_vertex>', '#include <uv_vertex>\n vShoulderU = uv.x;')
+        .replace('void main() {', 'varying float vShoulderU;\nvoid main() {');
+      shader.fragmentShader = shader.fragmentShader.replace('void main() {', 'varying float vShoulderU;\nvoid main() {')
+        .replace('#include <alphatest_fragment>', '#include <alphatest_fragment>\n diffuseColor.a *= smoothstep(0.0, 0.42, vShoulderU) * smoothstep(1.0, 0.58, vShoulderU) * 0.9;');
+    };
+    const shoulder = new THREE.Mesh(geo, mat);
+    shoulder.receiveShadow = true;
+    shoulder.renderOrder = -1;
+    this.scene.add(shoulder);
+  }
+
+  makeGlowBallTexture() {
+    const c = document.createElement('canvas');
+    c.width = 64;
+    c.height = 64;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(32, 32, 2, 32, 32, 31);
+    g.addColorStop(0, 'rgba(255, 216, 152, 1)');
+    g.addColorStop(0.35, 'rgba(255, 176, 102, 0.5)');
+    g.addColorStop(1, 'rgba(255, 148, 74, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 64, 64);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
   }
 
   buildRipplePool() {
@@ -426,14 +529,15 @@ export class Countryside {
         }
       }, 128, Math.max(2, w / 3), Math.max(2, d / 3));
       const waterMat = new THREE.MeshStandardMaterial({
-        color: 0x6ca7a0,
+        color: 0x4f8a86,
         map: rippleTexture,
         bumpMap: rippleTexture,
         bumpScale: 0.025,
-        roughness: 0.2,
-        metalness: 0.22,
+        roughness: 0.32,
+        metalness: 0.08,
+        envMapIntensity: 0.4,
         transparent: true,
-        opacity: 0.88
+        opacity: 0.9
       });
       this.paddyWaterMaterials.push({ material: waterMat, phase: this.random() * Math.PI * 2, speed: 0.018 + this.random() * 0.012 });
       const water = new THREE.Mesh(new THREE.PlaneGeometry(w, d), waterMat);
@@ -522,40 +626,21 @@ export class Countryside {
     this.buildPathBoulders(curve);
   }
 
-  /** Procedural Japanese cobblestone (isogata) road texture. */
-  getCobbleMaterial() {
-    if (!this._cobbleMat) {
-      const cv = document.createElement('canvas');
-      cv.width = 256; cv.height = 256;
-      const ctx = cv.getContext('2d');
-      // Warm earthen mortar base
-      ctx.fillStyle = '#6e6558';
-      ctx.fillRect(0, 0, 256, 256);
-      // Irregular rounded river stones in warm greys/tans
-      const tones = ['#b3a996', '#a49a89', '#bcb2a0', '#948c7d', '#cabfad', '#a89e8e'];
-      for (let i = 0; i < 130; i++) {
-        const x = Math.random() * 256;
-        const y = Math.random() * 256;
-        const rx = 9 + Math.random() * 14;
-        const ry = 7 + Math.random() * 11;
-        ctx.fillStyle = tones[(Math.random() * tones.length) | 0];
-        ctx.beginPath();
-        ctx.ellipse(x, y, rx, ry, Math.random() * Math.PI, 0, Math.PI * 2);
-        ctx.fill();
-        // Sunlit top highlight + shaded bottom rim
-        ctx.fillStyle = 'rgba(255,244,220,0.22)';
-        ctx.beginPath();
-        ctx.ellipse(x - rx * 0.18, y - ry * 0.28, rx * 0.62, ry * 0.5, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(30,24,16,0.25)';
-        ctx.beginPath();
-        ctx.ellipse(x + rx * 0.15, y + ry * 0.3, rx * 0.65, ry * 0.45, 0, 0, Math.PI * 2);
-        ctx.fill();
+  /**
+   * Japanese river-stone cobbles (isogata) with a relief normal map. The
+   * default variant tiles across the road ribbon's 0..1 UVs; `worldScaled`
+   * returns a variant for boxes whose UVs are in metres (bridge deck, ramps).
+   */
+  getCobbleMaterial(worldScaled = false) {
+    if (worldScaled) {
+      if (!this._cobbleWorldMat) {
+        this._cobbleWorldMat = texturedMaterial(TEX.cobble, { color: 0xe4dccc, roughness: 0.84, normalScale: 0.9, repeat: [0.65, 0.65] });
       }
-      const tex = new THREE.CanvasTexture(cv);
-      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-      tex.colorSpace = THREE.SRGBColorSpace;
-      this._cobbleMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95 });
+      return this._cobbleWorldMat;
+    }
+    if (!this._cobbleMat) {
+      this._cobbleMat = texturedMaterial(TEX.cobble, { color: 0xe4dccc, roughness: 0.84, normalScale: 0.9, repeat: [2.4, 2.0] });
+      this._cobbleMat.userData.uvPanel = true;
     }
     return this._cobbleMat;
   }
@@ -623,8 +708,8 @@ export class Countryside {
     const curve = new THREE.CatmullRomCurve3(riverPts);
     this.riverCurve = curve;
     this.riverSamples = curve.getPoints(60);
-    const steps = 60, halfW = 3.2;
-    const verts = [], indices = [];
+    const steps = 60, halfW = 3.4;
+    const verts = [], indices = [], uvs = [];
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
       const p = curve.getPoint(t);
@@ -634,6 +719,8 @@ export class Countryside {
         p.x - side.x * halfW, 0.02, p.z - side.z * halfW,
         p.x + side.x * halfW, 0.02, p.z + side.z * halfW
       );
+      // u = across the channel (banks at 0 and 1), v = downstream distance
+      uvs.push(0, t * 40, 1, t * 40);
       if (i < steps) {
         const a = i * 2;
         indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
@@ -641,9 +728,11 @@ export class Countryside {
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     geo.setIndex(indices);
     geo.computeVertexNormals();
-    const river = new THREE.Mesh(geo, MAT.water);
+    this.riverMat = this.createRiverWaterMaterial();
+    const river = new THREE.Mesh(geo, this.riverMat);
     river.receiveShadow = true;
     this.scene.add(river);
 
@@ -658,7 +747,7 @@ export class Countryside {
     const deck = box(2.6, 0.16, 8.4, deckMat, 0, deckY, 0);
     bridge.add(deck);
     // Continue the cobbles on the bridge deck, not on the riverbed below.
-    const cobbleDeck = box(2.38, 0.025, 8.12, this.getCobbleMaterial(), 0, deckY + 0.093, 0);
+    const cobbleDeck = box(2.38, 0.025, 8.12, this.getCobbleMaterial(true), 0, deckY + 0.093, 0);
     cobbleDeck.receiveShadow = true;
     bridge.add(cobbleDeck);
     // Support beam underneath
@@ -685,7 +774,7 @@ export class Countryside {
       const ramp = box(2.6, 0.12, slopeLength, MAT.timberEngawa, 0, (deckY + 0.08) / 2 - 0.04, sz * (4.2 + rampLen / 2));
       // The outer edge starts at ground level and rises toward the bridge deck.
       ramp.rotation.x = sz * rampAngle;
-      const cobbleRamp = box(2.38, 0.025, slopeLength - 0.12, this.getCobbleMaterial(), 0, 0.075, 0);
+      const cobbleRamp = box(2.38, 0.025, slopeLength - 0.12, this.getCobbleMaterial(true), 0, 0.075, 0);
       cobbleRamp.receiveShadow = true;
       ramp.add(cobbleRamp);
       bridge.add(ramp);
@@ -746,6 +835,120 @@ export class Countryside {
     this.collectibles.push(charm);
   }
 
+  /**
+   * Animated painterly river water: layered moving ripple rings, directional
+   * flow streaks, and a sharp golden sun sparkle lane that slides with the
+   * sun's position. Pure shader — no textures — tinted each frame from the
+   * sky palette so sunset turns the river to molten gold.
+   */
+  createRiverWaterMaterial() {
+    this.riverUniforms = {
+      uTime: { value: 0 },
+      uSunDir: { value: new THREE.Vector3(-0.55, 0.28, -0.79) },
+      uSunColor: { value: new THREE.Color(0xffe6b8) },
+      uDeep: { value: new THREE.Color(0x224c5a) },
+      uShallow: { value: new THREE.Color(0x4f8f8c) },
+      uSky: { value: new THREE.Color(0xffc98a) },
+      uWarm: { value: new THREE.Color(0xffb264) },
+      uDusk: { value: 0 },
+      uDay: { value: 1 }
+    };
+    this.riverUniforms.uTop = { value: new THREE.Color(0x4a6a9e) };
+    return new THREE.ShaderMaterial({
+      uniforms: this.riverUniforms,
+      transparent: true,
+      vertexShader: `
+        varying vec3 vWorld;
+        varying vec2 vUv;
+        void main() {
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorld = wp.xyz;
+          vUv = uv;
+          gl_Position = projectionMatrix * viewMatrix * wp;
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        uniform vec3 uSunDir;
+        uniform vec3 uSunColor;
+        uniform vec3 uDeep;
+        uniform vec3 uShallow;
+        uniform vec3 uSky;
+        uniform vec3 uTop;
+        uniform float uDusk;
+        uniform float uDay;
+        varying vec3 vWorld;
+        varying vec2 vUv;
+
+        float waveHash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+        }
+        float waveNoise(vec2 p) {
+          vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(waveHash(i), waveHash(i + vec2(1.0, 0.0)), f.x),
+                     mix(waveHash(i + vec2(0.0, 1.0)), waveHash(i + vec2(1.0, 1.0)), f.x), f.y);
+        }
+        // Layered surface height: two crossing ripple trains plus fine chop
+        float waveH(vec2 p, float t) {
+          float r1 = sin(p.x * 2.1 - t * 1.4 + sin(p.y * 3.0 + t * 0.7) * 0.8);
+          float r2 = sin(p.y * 3.4 + p.x * 0.6 - t * 2.1);
+          float r3 = sin((p.x + p.y) * 6.5 - t * 3.1) * 0.35 + (waveNoise(p * 3.0 + vec2(t * 0.8, 0.0)) - 0.5) * 0.8;
+          return r1 * 0.5 + r2 * 0.35 + r3 * 0.25;
+        }
+
+        void main() {
+          vec2 p = vWorld.xz;
+          float t = uTime;
+
+          // Surface normal from the height field for real specular response
+          float e = 0.06;
+          float h0 = waveH(p, t);
+          float hx = waveH(p + vec2(e, 0.0), t) - waveH(p - vec2(e, 0.0), t);
+          float hz = waveH(p + vec2(0.0, e), t) - waveH(p - vec2(0.0, e), t);
+          vec3 n = normalize(vec3(-hx * 0.9, 1.0, -hz * 0.9));
+          float rip = h0;
+
+          vec3 V = normalize(cameraPosition - vWorld);
+          vec3 L = normalize(uSunDir);
+          vec3 H = normalize(L + V);
+          float sunUp = clamp(uSunDir.y * 4.0, 0.0, 1.0);
+
+          // Body colour: deep channel centre, shallower tint near the banks
+          float bank = min(vUv.x, 1.0 - vUv.x);
+          vec3 col = mix(uDeep, uShallow, 0.3 + rip * 0.15 + smoothstep(0.35, 0.0, bank) * 0.35);
+
+          // Fresnel sky reflection: glancing views mirror the sky dome
+          float fres = 0.04 + 0.5 * pow(1.0 - max(dot(n, V), 0.0), 4.5);
+          vec3 skyRefl = mix(uSky, uTop, clamp(n.y * V.y * 1.4, 0.0, 1.0)) * 0.55;
+          col = mix(col, skyRefl, clamp(fres, 0.0, 0.5));
+
+          // Sun specular: tight hot highlight plus a broad soft sheen
+          float spec = pow(max(dot(n, H), 0.0), 260.0) * 1.1 + pow(max(dot(n, H), 0.0), 18.0) * 0.05;
+          col += uSunColor * spec * sunUp * (0.5 + uDusk * 0.8);
+
+          // Sparse sparkle cells drifting downstream on the crests
+          vec2 cell = floor(vec2(p.x * 10.0 - t * 3.2, p.y * 10.0));
+          float sparkle = step(0.992, waveHash(cell + floor(t * 9.0) * 0.17));
+          sparkle *= smoothstep(0.35, 0.9, rip * 0.5 + 0.5);
+          col += uSunColor * sparkle * 0.6 * sunUp;
+
+          // Foam and lapping along both banks
+          float foamN = waveNoise(vec2(vUv.y * 6.0 - t * 0.6, vUv.x * 30.0));
+          float foam = smoothstep(0.14, 0.0, bank) * smoothstep(0.5, 0.85, foamN + rip * 0.15);
+          col = mix(col, vec3(0.85, 0.9, 0.9), foam * 0.45 * (0.4 + 0.6 * uDay));
+
+          // Day/night master dim: molten gold at dusk, near-black at night
+          col *= (0.22 + 0.78 * uDay);
+          col = min(col, vec3(1.3));
+
+          // Feather the water into the banks
+          float alpha = 0.94 * smoothstep(0.0, 0.08, bank) + 0.05;
+          gl_FragColor = vec4(col, alpha);
+        }
+      `
+    });
+  }
+
   // --- Kyoto Edo Period Architecture Builders ---
 
   createKoushi(w, h, count = 8, mat = MAT.timberDark) {
@@ -766,28 +969,91 @@ export class Countryside {
     return group;
   }
 
+  /**
+   * A roof slope slab with the gentle concave "sori" lift toward the eave
+   * that defines Kyoto rooflines. `eaveSign` says which local Z end is the
+   * eave. Returns a mesh whose local +Y is the tile surface.
+   */
+  createCurvedSlope(w, thick, len, eaveSign, lift = 0.16) {
+    const geo = new THREE.BoxGeometry(w, thick, len, 1, 1, 10);
+    worldScaleBoxUVs(geo, 1);
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const z = pos.getZ(i);
+      const t = THREE.MathUtils.clamp((eaveSign * z + len / 2) / len, 0, 1); // 0 ridge → 1 eave
+      const curve = Math.pow(smoothstep(0.45, 1.0, t), 2.0) * lift;
+      pos.setY(i, pos.getY(i) + curve);
+    }
+    geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, MAT.roofTile);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    return m;
+  }
+
   createKawaraRoof(w, d, ridgeH = 1.2, overhang = 0.6) {
     const roof = new THREE.Group();
     const halfD = d / 2 + overhang;
     const slopeLen = Math.sqrt(halfD * halfD + ridgeH * ridgeH) + 0.1;
     const angle = Math.atan2(ridgeH, halfD);
+    const fullW = w + overhang * 2;
 
-    // Front & Back main slopes
-    const slopeF = box(w + overhang * 2, 0.14, slopeLen, MAT.roofTile, 0, ridgeH / 2, halfD / 2);
+    // Front & Back main slopes with upturned eaves
+    const slopeF = this.createCurvedSlope(fullW, 0.14, slopeLen, 1);
+    slopeF.position.set(0, ridgeH / 2, halfD / 2);
     slopeF.rotation.x = angle;
-    const slopeB = box(w + overhang * 2, 0.14, slopeLen, MAT.roofTile, 0, ridgeH / 2, -halfD / 2);
+    const slopeB = this.createCurvedSlope(fullW, 0.14, slopeLen, -1);
+    slopeB.position.set(0, ridgeH / 2, -halfD / 2);
     slopeB.rotation.x = -angle;
     roof.add(slopeF, slopeB);
 
+    // Eave detail: a row of round-faced end tiles (nokigawara) along each
+    // eave and rafter tails underneath — the details that make a tiled roof
+    // read as tiled from the street.
+    const tileGeo = new THREE.CylinderGeometry(0.075, 0.075, 0.13, 10, 1, false, 0, Math.PI);
+    tileGeo.rotateZ(Math.PI / 2);
+    const rafterGeo = new THREE.BoxGeometry(0.07, 0.09, overhang + 0.35);
+    worldScaleBoxUVs(rafterGeo, 1);
+    const tileCount = Math.max(2, Math.floor(fullW / 0.24));
+    const rafterCount = Math.max(2, Math.floor(fullW / 0.55));
+    const dummy = new THREE.Object3D();
+    for (const sz of [1, -1]) {
+      const eaveTiles = new THREE.InstancedMesh(tileGeo, MAT.roofRidge, tileCount);
+      const rafters = new THREE.InstancedMesh(rafterGeo, MAT.timberDark, rafterCount);
+      // Eave edge in roof-local space: end of the slope, lifted by the sori
+      const eaveY = -0.03 + 0.16 * Math.cos(angle);
+      const eaveZ = sz * (halfD + 0.02);
+      for (let i = 0; i < tileCount; i++) {
+        const x = -fullW / 2 + 0.12 + (i / (tileCount - 1)) * (fullW - 0.24);
+        dummy.position.set(x, eaveY + 0.02, eaveZ);
+        dummy.rotation.set(sz > 0 ? 0 : Math.PI, 0, 0);
+        dummy.updateMatrix();
+        eaveTiles.setMatrixAt(i, dummy.matrix);
+      }
+      for (let i = 0; i < rafterCount; i++) {
+        const x = -fullW / 2 + 0.3 + (i / (rafterCount - 1)) * (fullW - 0.6);
+        dummy.position.set(x, eaveY - 0.1, sz * (halfD - overhang * 0.5 - 0.1));
+        dummy.rotation.set(sz * angle * 0.6, 0, 0);
+        dummy.updateMatrix();
+        rafters.setMatrixAt(i, dummy.matrix);
+      }
+      eaveTiles.instanceMatrix.needsUpdate = true;
+      rafters.instanceMatrix.needsUpdate = true;
+      eaveTiles.castShadow = true;
+      rafters.castShadow = true;
+      roof.add(eaveTiles, rafters);
+    }
+
     // Decorative Cylindrical Ridge (Munagawara)
-    const ridgeGeo = new THREE.CylinderGeometry(0.18, 0.18, w + overhang * 2 + 0.2, 8);
+    const ridgeGeo = new THREE.CylinderGeometry(0.18, 0.18, fullW + 0.2, 10);
     const ridgeMesh = new THREE.Mesh(ridgeGeo, MAT.roofRidge);
     ridgeMesh.rotation.z = Math.PI / 2;
     ridgeMesh.position.set(0, ridgeH + 0.08, 0);
+    ridgeMesh.castShadow = true;
     roof.add(ridgeMesh);
 
     // Ridge crest tiles
-    roof.add(box(w + overhang * 2, 0.12, 0.32, MAT.roofTile, 0, ridgeH + 0.18, 0));
+    roof.add(box(fullW, 0.12, 0.32, MAT.roofTile, 0, ridgeH + 0.18, 0));
 
     // Gable end cap ornaments (Onigawara)
     for (const sx of [-1, 1]) {
@@ -1459,29 +1725,13 @@ export class Countryside {
 
   // --- Street greenery: bushes, moss, bamboo fences & tōrō stone lanterns ---
   buildStreetGreenery() {
-    const bushMats = [0x40632b, 0x4d7434, 0x59813d, 0x395a26].map(
-      (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 1, flatShading: true })
-    );
-    const bushGeo = new THREE.SphereGeometry(1, 7, 5);
+    const bushTints = [0x46702f, 0x54803a, 0x628f44, 0x3d6529];
+    const bushGeo = lumpyTuftGeometry(2, 9, 0.32);
     const dummy = new THREE.Object3D();
     const count = 90;
-    // Grass-like wind sway baked into the shared bush material (vertex wobble
-    // grows toward the top of each bush; amplitude pulses near the player)
-    const swayMat = bushMats[0];
-    swayMat.userData.uSwayTime = { value: 0 };
-    swayMat.userData.uSwayBoost = { value: 0 };
-    swayMat.onBeforeCompile = (shader) => {
-      shader.uniforms.uSwayTime = swayMat.userData.uSwayTime;
-      shader.uniforms.uSwayBoost = swayMat.userData.uSwayBoost;
-      shader.vertexShader = 'uniform float uSwayTime;\nuniform float uSwayBoost;\n' +
-        shader.vertexShader.replace('#include <begin_vertex>',
-          `#include <begin_vertex>
-          vec4 wp = instanceMatrix * vec4(position, 1.0);
-          float phase = wp.x * 1.7 + wp.z * 2.3;
-          float topW = max(position.y + 0.6, 0.0);
-          transformed.x += sin(uSwayTime * 2.1 + phase) * 0.055 * topW * (1.0 + uSwayBoost * 2.5);
-          transformed.z += cos(uSwayTime * 1.6 + phase * 1.3) * 0.04 * topW * (1.0 + uSwayBoost * 2.5);`);
-    };
+    // Street bushes rustle when the cat brushes through them (foliage shader
+    // reacts to the shared player position uniform)
+    const swayMat = createFoliageMaterial({ sss: 0.3, wind: 0.9, rustle: 1.0, mottle: 0.28, vertexColors: false });
     const bushes = new THREE.InstancedMesh(bushGeo, swayMat, count);
     this.bushMat = swayMat;
     this.bushColliderSpots = [];
@@ -1510,10 +1760,11 @@ export class Countryside {
     // Random per-bush tint via instance colors
     const col = new THREE.Color();
     for (let i = 0; i < bi; i++) {
-      bushes.setColorAt(i, col.setHex(bushMats[(this.random() * bushMats.length) | 0].color.getHex()));
+      bushes.setColorAt(i, col.setHex(bushTints[(this.random() * bushTints.length) | 0]).offsetHSL(0, 0, (this.random() - 0.5) * 0.06));
     }
     if (bushes.instanceColor) bushes.instanceColor.needsUpdate = true;
     bushes.castShadow = true;
+    bushes.receiveShadow = true;
     this.scene.add(bushes);
 
     // Moss / grass patches hugging the road edges
@@ -1809,9 +2060,22 @@ export class Countryside {
     const cap = new THREE.Mesh(new THREE.ConeGeometry(0.38, 0.22, 8), MAT.stoneDark);
     cap.position.y = 1.2;
     t.add(base, post, box_, win, cap);
+    // Soft halo sprite so the lantern flame blooms warmly at dusk
+    if (this.lanternHaloTex) {
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: this.lanternHaloTex, color: 0xffc878, transparent: true, opacity: 0.0,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      }));
+      halo.position.y = 0.95;
+      halo.scale.set(1.4, 1.4, 1);
+      t.add(halo);
+      this.lanternHalos.push(halo.material);
+    }
     t.position.set(x, 0, z);
     t.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     this.scene.add(t);
+    if (!this.toroSpots) this.toroSpots = [];
+    this.toroSpots.push(new THREE.Vector3(x, 0.95, z));
     // Perchable lantern cap — first hop of the street rooftop parkour route
     this.addPlatform(new THREE.Box3(
       new THREE.Vector3(x - 0.34, 0.8, z - 0.34),
@@ -1950,31 +2214,43 @@ export class Countryside {
   }
 
   buildMountains() {
-    // Canyon-forest feel: layered green ridges pulled in closer and taller,
-    // so the valley reads as a lush gorge ringed by forested walls.
-    const matNear = new THREE.MeshStandardMaterial({ color: 0x4a7a34, roughness: 1, flatShading: true });
-    const matMid = new THREE.MeshStandardMaterial({ color: 0x3d6a2c, roughness: 1, flatShading: true });
-    const matFar = new THREE.MeshStandardMaterial({ color: 0x5f8a48, roughness: 1, flatShading: true });
-    const ridgeNear = [
-      [-70, -95, 55, 46], [-24, -110, 70, 56], [44, -102, 60, 50], [100, -88, 55, 42],
-      [-92, 30, 52, 44], [96, 40, 56, 46], [-58, 82, 48, 38], [62, 90, 52, 42]
-    ];
-    const ridgeFar = [
-      [-120, -90, 45, 34], [90, -100, 50, 36], [-140, 40, 48, 32], [130, 60, 52, 36],
-      [-70, 130, 40, 28], [75, 140, 46, 30]
-    ];
-    for (const [x, z, r, h] of ridgeFar) {
-      const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 6), matFar);
-      m.position.set(x, h / 2 - 2, z);
-      m.rotation.y = this.random() * Math.PI;
-      this.scene.add(m);
+    // Far ring: noise-ridged mountain walls carrying the valley's height
+    // field out to the horizon. Forested green at the foot, drifting to
+    // dusty blue-violet with altitude and distance; the material colour is
+    // tinted each frame by the sky so sunsets bleed across the ridges.
+    const size = 900;
+    const geo = new THREE.PlaneGeometry(size, size, 170, 170);
+    geo.rotateX(-Math.PI / 2);
+    const pos = geo.attributes.position;
+    const colors = new Float32Array(pos.count * 3);
+    const forest = new THREE.Color(0x2c4a28);
+    const forestLight = new THREE.Color(0x4a6e3a);
+    const rock = new THREE.Color(0x6a6a70);
+    const haze = new THREE.Color(0x8d90b4);
+    const c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), z = pos.getZ(i);
+      const inner = Math.abs(x) < 126 && Math.abs(z) < 126;
+      const h = this.terrainHeight(x, z);
+      pos.setY(i, inner ? h - 4 : h);
+      const d = Math.sqrt(x * x + z * z);
+      const n = worldNoise(x, z, 0.04, 3, 17);
+      c.copy(forest).lerp(forestLight, n * 0.8);
+      // Bare rock on the steepest high slopes
+      const rocky = smoothstep(70, 130, h) * (0.4 + n * 0.6);
+      c.lerp(rock, rocky * 0.7);
+      // Atmospheric depth baked into the far peaks
+      c.lerp(haze, smoothstep(170, 420, d) * 0.85);
+      colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
     }
-    for (const [x, z, r, h] of ridgeNear) {
-      const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), Math.random() > 0.5 ? matNear : matMid);
-      m.position.set(x, h / 2 - 2, z);
-      m.rotation.y = this.random() * Math.PI;
-      this.scene.add(m);
-    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geo.computeVertexNormals();
+    this.matHazeFar = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 });
+    this.matHazeMid = this.matHazeFar;
+    const far = new THREE.Mesh(geo, this.matHazeFar);
+    far.receiveShadow = false;
+    this.scene.add(far);
+
     this.buildEdgeForest();
     this.buildDistantPagoda(12, 56);
     this.buildVillage();
@@ -2108,17 +2384,19 @@ export class Countryside {
     // hard boundary radius. Each tree is built from TWO layered irregular
     // leafy masses (dark shaded underlayer + lighter sunlit crown) so the
     // forest reads as painterly foliage instead of smooth cones.
-    const tuftGeo = new THREE.IcosahedronGeometry(1, 1);
-    const trunkGeo = new THREE.CylinderGeometry(0.12, 0.18, 1.2, 5);
+    const tuftGeo = lumpyTuftGeometry(2, 5, 0.46);
+    const tuftGeoB = lumpyTuftGeometry(2, 6, 0.42);
+    const tuftGeoC = lumpyTuftGeometry(2, 10, 0.48);
+    const trunkGeo = new THREE.CylinderGeometry(0.12, 0.2, 1.2, 7);
     const canopyMats = [
-      new THREE.MeshStandardMaterial({ color: 0x2e5524, roughness: 1, flatShading: true }),
-      new THREE.MeshStandardMaterial({ color: 0x39682b, roughness: 1, flatShading: true }),
-      new THREE.MeshStandardMaterial({ color: 0x25481e, roughness: 1, flatShading: true })
+      new THREE.Color(0x2e5524), new THREE.Color(0x3b6a2e), new THREE.Color(0x25481e)
     ];
+    const forestMat = createFoliageMaterial({ sss: 0.24, wind: 0.75, mottle: 0.38, vertexColors: false });
     const count = 260;
-    const lower = new THREE.InstancedMesh(tuftGeo, canopyMats[2], count);
-    const upper = new THREE.InstancedMesh(tuftGeo, canopyMats[1], count);
-    const trunks = new THREE.InstancedMesh(trunkGeo, new THREE.MeshStandardMaterial({ color: 0x3d2b1c, roughness: 1 }), count);
+    const lower = new THREE.InstancedMesh(tuftGeo, forestMat, count);
+    const mid = new THREE.InstancedMesh(tuftGeoC, forestMat, count);
+    const upper = new THREE.InstancedMesh(tuftGeoB, forestMat, count);
+    const trunks = new THREE.InstancedMesh(trunkGeo, texturedMaterial(TEX.woodDark, { color: 0x6a5a48, roughness: 1 }), count);
     const dummy = new THREE.Object3D();
     const col = new THREE.Color();
     const pagodaBearing = Math.atan2(56, 12);
@@ -2138,15 +2416,23 @@ export class Countryside {
       dummy.rotation.set(this.random() * 0.5, this.random() * Math.PI, this.random() * 0.5);
       dummy.updateMatrix();
       lower.setMatrixAt(i, dummy.matrix);
-      col.copy(canopyMats[2].color).offsetHSL(0, (this.random() - 0.5) * 0.05, (this.random() - 0.5) * 0.05);
+      col.copy(canopyMats[2]).offsetHSL(0, (this.random() - 0.5) * 0.05, (this.random() - 0.5) * 0.05);
       lower.setColorAt(i, col);
+      // Side clump breaking the outline
+      dummy.position.set(x + (this.random() - 0.5) * s * 0.9, s * (1.15 + this.random() * 0.3) * sightlineHeight, z + (this.random() - 0.5) * s * 0.9);
+      dummy.scale.set(s * (0.45 + this.random() * 0.25), s * (0.45 + this.random() * 0.2) * sightlineHeight, s * (0.45 + this.random() * 0.25));
+      dummy.rotation.set(this.random() * 0.6, this.random() * Math.PI, this.random() * 0.6);
+      dummy.updateMatrix();
+      mid.setMatrixAt(i, dummy.matrix);
+      col.copy(canopyMats[Math.floor(this.random() * canopyMats.length)]).offsetHSL(0, 0, (this.random() - 0.5) * 0.06);
+      mid.setColorAt(i, col);
       // Narrower sunlit crown, offset slightly for irregular silhouette
       dummy.position.set(x + (this.random() - 0.5) * s * 0.4, s * 1.55 * sightlineHeight, z + (this.random() - 0.5) * s * 0.4);
       dummy.scale.set(s * (0.55 + this.random() * 0.25), s * 0.65 * sightlineHeight, s * (0.55 + this.random() * 0.25));
       dummy.rotation.set(this.random() * 0.5, this.random() * Math.PI, this.random() * 0.5);
       dummy.updateMatrix();
       upper.setMatrixAt(i, dummy.matrix);
-      col.copy(canopyMats[Math.floor(this.random() * canopyMats.length)].color)
+      col.copy(canopyMats[Math.floor(this.random() * canopyMats.length)])
         .offsetHSL(0, 0, 0.02 + this.random() * 0.05);
       upper.setColorAt(i, col);
       dummy.position.set(x, 0.6 * s * sightlineHeight, z);
@@ -2161,20 +2447,24 @@ export class Countryside {
       ));
     }
     lower.instanceMatrix.needsUpdate = true;
+    mid.instanceMatrix.needsUpdate = true;
     upper.instanceMatrix.needsUpdate = true;
     trunks.instanceMatrix.needsUpdate = true;
     if (lower.instanceColor) lower.instanceColor.needsUpdate = true;
+    if (mid.instanceColor) mid.instanceColor.needsUpdate = true;
     if (upper.instanceColor) upper.instanceColor.needsUpdate = true;
-    lower.castShadow = true;
-    upper.castShadow = true;
-    this.scene.add(lower);
-    this.scene.add(upper);
+    for (const m of [lower, mid, upper]) {
+      m.castShadow = true;
+      m.receiveShadow = true;
+      this.scene.add(m);
+    }
     this.scene.add(trunks);
 
     // Undergrowth bushes thickening the wall between trees
-    const bushGeo = new THREE.SphereGeometry(1, 6, 4);
-    const bushMat = new THREE.MeshStandardMaterial({ color: 0x274a1e, roughness: 1, flatShading: true });
+    const bushGeo = lumpyTuftGeometry(1, 7, 0.3);
+    const bushMat = createFoliageMaterial({ sss: 0.2, wind: 0.6, mottle: 0.3, vertexColors: false });
     const bushes = new THREE.InstancedMesh(bushGeo, bushMat, 160);
+    const bushCol = new THREE.Color();
     for (let i = 0; i < 160; i++) {
       const a = this.random() * Math.PI * 2;
       const r = 35.5 + this.random() * 8;
@@ -2186,6 +2476,7 @@ export class Countryside {
       dummy.rotation.set(0, this.random() * Math.PI, 0);
       dummy.updateMatrix();
       bushes.setMatrixAt(i, dummy.matrix);
+      bushes.setColorAt(i, bushCol.setHex(0x2c5222).offsetHSL((this.random() - 0.5) * 0.03, 0, (this.random() - 0.5) * 0.08));
       if (r < 41) {
         this.colliders.push(new THREE.Box3(
           new THREE.Vector3(x - s * 0.6, 0, z - s * 0.6),
@@ -2194,7 +2485,9 @@ export class Countryside {
       }
     }
     bushes.instanceMatrix.needsUpdate = true;
+    if (bushes.instanceColor) bushes.instanceColor.needsUpdate = true;
     bushes.castShadow = true;
+    bushes.receiveShadow = true;
     this.scene.add(bushes);
   }
 
@@ -2206,6 +2499,14 @@ export class Countryside {
     ];
     const wallMats = pastelWalls.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95 }));
     const roofMats = pastelRoofs.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 }));
+    // Warm hearth-window glow shared by every distant house; kindles at dusk
+    this.villageWindowMat = new THREE.MeshStandardMaterial({
+      color: 0x8a5a30,
+      emissive: 0xffb45e,
+      emissiveIntensity: 0.1,
+      roughness: 0.6
+    });
+    const winGeo = new THREE.PlaneGeometry(0.34, 0.42);
     for (const [cx, cz, n] of clusters) {
       for (let i = 0; i < n; i++) {
         const hx = cx + (this.random() - 0.5) * 26;
@@ -2218,33 +2519,45 @@ export class Countryside {
         roof.position.y = 1.6 * s + 0.55 * s;
         roof.rotation.y = Math.PI / 4;
         house.add(roof);
-        house.position.set(hx, 0, hz);
+        // 1-3 warm windows on the out-facing walls of distant townhouses
+        const winCount = 1 + Math.floor(this.random() * 3);
+        for (let wnd = 0; wnd < winCount; wnd++) {
+          const win = new THREE.Mesh(winGeo, this.villageWindowMat);
+          const side = this.random() < 0.5 ? 1 : -1;
+          win.position.set(
+            (this.random() - 0.5) * 1.8 * s,
+            (0.6 + this.random() * 0.7) * s,
+            side * (1.002 * s)
+          );
+          if (side === -1) win.rotation.y = Math.PI;
+          house.add(win);
+        }
+        house.position.set(hx, this.terrainHeight(hx, hz) - 0.3, hz);
         house.rotation.y = this.random() * Math.PI;
         this.scene.add(house);
       }
     }
 
-    const treeGeo = new THREE.IcosahedronGeometry(1.15, 0);
-    const treeMat = new THREE.MeshStandardMaterial({ color: 0x44604a, roughness: 1, flatShading: true });
-    const treeCount = 320;
+    // Foothill forest: dense instanced canopies carpeting the slopes so the
+    // ridges read as wooded rather than bare geometry.
+    const treeGeo = lumpyTuftGeometry(2, 8, 0.36);
+    const treeMat = createFoliageMaterial({ sss: 0.15, wind: 0.5, mottle: 0.3, vertexColors: false });
+    const treeCount = 2600;
     const trees = new THREE.InstancedMesh(treeGeo, treeMat, treeCount);
     const dummy = new THREE.Object3D();
     const color = new THREE.Color();
-    const slopes = [
-      [-90, -120, 55], [-30, -140, 70], [50, -130, 60], [120, -110, 55],
-      [-120, -90, 45], [90, -100, 50], [-140, 40, 48], [130, 60, 52]
-    ];
     for (let i = 0; i < treeCount; i++) {
-      const [mx, mz, mr] = slopes[Math.floor(this.random() * slopes.length)];
       const a = this.random() * Math.PI * 2;
-      const r = mr * (0.35 + this.random() * 0.55);
+      const r = 60 + Math.pow(this.random(), 0.75) * 130;
+      const x = Math.cos(a) * r, z = Math.sin(a) * r;
+      // Smaller, denser crowns so the slopes read as woodland, not boulders
       const s = 1.2 + this.random() * 2.2;
-      dummy.position.set(mx + Math.cos(a) * r, s * 0.9, mz + Math.sin(a) * r);
-      dummy.scale.setScalar(s);
-      dummy.rotation.y = this.random() * Math.PI;
+      dummy.position.set(x, this.terrainHeight(x, z) + s * 0.5, z);
+      dummy.scale.set(s * (0.8 + this.random() * 0.5), s * 1.15, s * (0.8 + this.random() * 0.5));
+      dummy.rotation.set(this.random() * 0.4, this.random() * Math.PI, this.random() * 0.4);
       dummy.updateMatrix();
       trees.setMatrixAt(i, dummy.matrix);
-      color.setHSL(0.33 + this.random() * 0.06, 0.3, 0.24 + this.random() * 0.12);
+      color.setHSL(0.27 + this.random() * 0.08, 0.28 + this.random() * 0.14, 0.15 + this.random() * 0.1);
       trees.setColorAt(i, color);
     }
     trees.instanceMatrix.needsUpdate = true;
@@ -2274,10 +2587,12 @@ export class Countryside {
       const r = 58 + this.random() * 14;
       const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.75, depthWrite: false });
       const spr = new THREE.Sprite(mat);
-      spr.position.set(Math.cos(a) * r, 2.5 + this.random() * 5, Math.sin(a) * r);
+      const mx = Math.cos(a) * r, mz = Math.sin(a) * r;
+      const baseY = this.terrainHeight(mx, mz) + 2.0 + this.random() * 4;
+      spr.position.set(mx, baseY, mz);
       spr.scale.set(28 + this.random() * 22, 10 + this.random() * 8, 1);
       this.scene.add(spr);
-      this.mists.push({ spr, baseX: spr.position.x, phase: this.random() * 6, speed: 0.03 + this.random() * 0.04 });
+      this.mists.push({ spr, baseX: spr.position.x, baseY, phase: this.random() * 6, speed: 0.03 + this.random() * 0.04 });
     }
   }
 
@@ -2307,6 +2622,49 @@ export class Countryside {
     }
   }
 
+  /**
+   * A small pool of real point lights hops between the lanterns nearest the
+   * cat so paper and stone lanterns actually throw warm light on the street
+   * at night, instead of only glowing themselves.
+   */
+  updateLanternLights(dt, playerPos, nightness) {
+    if (!this.lanternLights) {
+      this.lanternLights = [];
+      for (let i = 0; i < 4; i++) {
+        const light = new THREE.PointLight(0xffb469, 0, 11, 2);
+        this.scene.add(light);
+        this.lanternLights.push(light);
+      }
+      // Resolve every lantern's world position once the houses are placed
+      this.lightSpots = [];
+      const p = new THREE.Vector3();
+      for (const l of this.lanterns) {
+        l.group.getWorldPosition(p);
+        this.lightSpots.push(new THREE.Vector3(p.x, p.y - 0.25, p.z));
+      }
+      for (const s of this.toroSpots || []) this.lightSpots.push(s.clone());
+    }
+    if (nightness < 0.02 || !playerPos) {
+      for (const l of this.lanternLights) l.intensity = 0;
+      return;
+    }
+    // Pick the four nearest lanterns
+    const best = [];
+    for (const s of this.lightSpots) {
+      const d2 = s.distanceToSquared(playerPos);
+      if (best.length < 4) { best.push({ s, d2 }); best.sort((a, b) => a.d2 - b.d2); }
+      else if (d2 < best[3].d2) { best[3] = { s, d2 }; best.sort((a, b) => a.d2 - b.d2); }
+    }
+    for (let i = 0; i < this.lanternLights.length; i++) {
+      const light = this.lanternLights[i];
+      const pick = best[i];
+      if (!pick) { light.intensity = 0; continue; }
+      light.position.copy(pick.s);
+      const flicker = 0.9 + Math.sin(this.time * 9 + i * 2.1) * 0.06 + Math.sin(this.time * 23 + i) * 0.04;
+      light.intensity = nightness * 9 * flicker;
+    }
+  }
+
   update(dt, playerPos = null, sky = null) {
     this.time += dt;
 
@@ -2317,6 +2675,42 @@ export class Countryside {
       MAT.lanternGlow.emissiveIntensity = 0.15 + nightness * 2.2;
       MAT.lanternPaper.emissiveIntensity = 0.4 + nightness * 1.8;
       MAT.shoji.emissiveIntensity = 0.2 + nightness * 0.7;
+      if (this.villageWindowMat) {
+        // Village windows kindle at dusk like the reference Kyoto skyline
+        this.villageWindowMat.emissiveIntensity = 0.1 + nightness * 2.6;
+      }
+      // Lantern halo sprites breathe with dusk; a slow warm flicker
+      for (let i = 0; i < this.lanternHalos.length; i++) {
+        const flicker = 0.85 + Math.sin(this.time * 7.5 + i * 1.7) * 0.15;
+        this.lanternHalos[i].opacity = nightness * 0.55 * flicker;
+      }
+      // Far ridges wash toward sky colors so sunsets bleed across them
+      if (this.matHazeFar) {
+        const p = sky.resolvePalette();
+        const dayness = Math.min(1, Math.max(0, sky.sunDir.y + 0.25) / 0.5);
+        const tint = new THREE.Color(0x4a5478).lerp(new THREE.Color(0xffffff), dayness);
+        const golden = Math.max(0, sky.sunDir.y) * Math.exp(-Math.max(0, sky.sunDir.y) * 3.0);
+        tint.lerp(p.warm, golden * 0.3);
+        this.matHazeFar.color.copy(tint);
+      }
+      this.updateLanternLights(dt, playerPos, nightness);
+    }
+
+    // River shader follows time-of-day sun and palette
+    if (this.riverUniforms) {
+      this.riverUniforms.uTime.value = this.time;
+      if (sky) {
+        const p = sky.resolvePalette();
+        this.riverUniforms.uSunDir.value.copy(sky.sunDir);
+        this.riverUniforms.uSunColor.value.copy(p.sun);
+        this.riverUniforms.uSky.value.copy(p.horizon);
+        this.riverUniforms.uTop.value.copy(p.top);
+        const sunY = Math.max(0, sky.sunDir.y);
+        // Same low-sun band as the sky: full gold while the sun rides low
+        this.riverUniforms.uDusk.value = Math.min(1, Math.max(0, (0.42 - sunY) / 0.42)) * Math.min(1, sunY / 0.06);
+        // Broad brightness window: stays lit through golden hour, fades at night
+        this.riverUniforms.uDay.value = Math.min(1, Math.max(0, sky.sunDir.y + 0.18) * 2.2);
+      }
     }
 
     // Paddy water ripples drift in slow, irregular breeze pulses. UV motion is
@@ -2427,7 +2821,7 @@ export class Countryside {
     for (const m of this.mists || []) {
       const mistMul = 1 + mistStrength * 2.5;
       m.spr.position.x = m.baseX + Math.sin(this.time * m.speed * 4 + m.phase) * 3 * mistMul;
-      m.spr.position.y = 0.6 - mistStrength * 0.4;
+      m.spr.position.y = m.baseY + 0.6 - mistStrength * 0.4;
       m.spr.material.opacity = (0.6 + Math.sin(this.time * m.speed * 6 + m.phase) * 0.15) * (1 + mistStrength * 0.8);
     }
     for (const r of this.ripples) {

@@ -1,25 +1,32 @@
 import * as THREE from 'three';
+import {
+  plasterTextures, woodTextures, shojiTextures, tatamiTextures, stoneTextures,
+  strawTextures, metalTextures, texturedMaterial, worldScaleBoxUVs
+} from './textures.js?v=20260907a';
 
+const panel = (m) => { m.userData.uvPanel = true; return m; };
 const MAT = {
-  plasterWarm: new THREE.MeshStandardMaterial({ color: 0xf5ebd9, roughness: 0.9 }),
-  timberDark: new THREE.MeshStandardMaterial({ color: 0x3d2516, roughness: 0.85 }),
-  timberEngawa: new THREE.MeshStandardMaterial({ color: 0x8a5a36, roughness: 0.75 }),
-  tatami: new THREE.MeshStandardMaterial({ color: 0xbed39f, roughness: 0.95 }),
-  tatamiBorder: new THREE.MeshStandardMaterial({ color: 0x2d3a24, roughness: 0.7 }),
-  shoji: new THREE.MeshStandardMaterial({ color: 0xfbf7ed, roughness: 0.9, transparent: true, opacity: 0.92 }),
-  fusumaPaper: new THREE.MeshStandardMaterial({ color: 0xede0c8, roughness: 0.88 }),
-  cushionRed: new THREE.MeshStandardMaterial({ color: 0xa8241e, roughness: 0.65 }),
-  goldAntique: new THREE.MeshStandardMaterial({ color: 0xcca040, metalness: 0.75, roughness: 0.3 }),
+  plasterWarm: texturedMaterial(plasterTextures(0xf3e8d4, 4), { roughness: 0.94, normalScale: 0.8 }),
+  timberDark: texturedMaterial(woodTextures(0x3f2818, 0x1c110a, 6), { roughness: 0.8, normalScale: 0.8 }),
+  timberEngawa: texturedMaterial(woodTextures(0x8a5f3a, 0x4a2f1a, 7), { roughness: 0.5, normalScale: 0.6 }),
+  tatami: panel(texturedMaterial(tatamiTextures(0xb9c98e), { roughness: 0.95, normalScale: 0.6 })),
+  tatamiBorder: texturedMaterial(woodTextures(0x2d3a24, 0x151c12, 8), { roughness: 0.7 }),
+  shoji: panel(texturedMaterial(shojiTextures(4, 6), { roughness: 0.9, emissive: 0xffd9a6, emissiveIntensity: 0.28, normalScale: 0.5 })),
+  fusumaPaper: texturedMaterial(strawTextures(0xede0c8), { roughness: 0.9, normalScale: 0.25 }),
+  cushionRed: new THREE.MeshStandardMaterial({ color: 0xa8241e, roughness: 0.85 }),
+  goldAntique: texturedMaterial(metalTextures(0xd9ad4c), { metalness: 0.85, roughness: 0.32 }),
   grilledFish: new THREE.MeshStandardMaterial({ color: 0xd97c38, roughness: 0.55 }),
-  lanternPaper: new THREE.MeshStandardMaterial({ color: 0xffe2a4, emissive: 0xffaa33, emissiveIntensity: 0.85, roughness: 0.6 }),
-  stoneToro: new THREE.MeshStandardMaterial({ color: 0x6e7570, roughness: 0.9 }),
-  bamboo: new THREE.MeshStandardMaterial({ color: 0x5e8c45, roughness: 0.7 }),
-  ceramicWhite: new THREE.MeshStandardMaterial({ color: 0xf3ede2, roughness: 0.4 }),
-  ceramicBlue: new THREE.MeshStandardMaterial({ color: 0x3e6b8a, roughness: 0.5 })
+  lanternPaper: panel(new THREE.MeshStandardMaterial({ color: 0xffe2a4, emissive: 0xffaa33, emissiveIntensity: 0.85, roughness: 0.6 })),
+  stoneToro: texturedMaterial(stoneTextures(0x76807a, 9), { roughness: 0.9, normalScale: 0.9 }),
+  bamboo: new THREE.MeshStandardMaterial({ color: 0x5e8c45, roughness: 0.6 }),
+  ceramicWhite: new THREE.MeshStandardMaterial({ color: 0xf3ede2, roughness: 0.35, envMapIntensity: 0.8 }),
+  ceramicBlue: new THREE.MeshStandardMaterial({ color: 0x3e6b8a, roughness: 0.4, envMapIntensity: 0.8 })
 };
 
 function box(w, h, d, mat, x = 0, y = 0, z = 0) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  const geo = new THREE.BoxGeometry(w, h, d);
+  if (!(mat && mat.userData && mat.userData.uvPanel)) worldScaleBoxUVs(geo, 1);
+  const m = new THREE.Mesh(geo, mat);
   m.position.set(x, y, z);
   m.castShadow = true;
   m.receiveShadow = true;
@@ -244,11 +251,12 @@ export class InteriorManager {
     root.add(andon);
 
     // Warm indoor point light
-    const indoorLight = new THREE.PointLight(0xffb855, 1.8, 12, 1.2);
+    // Warm andon glow plus a soft ceiling fill (candela-scale intensities)
+    const indoorLight = new THREE.PointLight(0xffb855, 7.5, 12, 1.4);
     indoorLight.position.set(2.8, 1.2, -2.2);
     root.add(indoorLight);
 
-    const ambientRoomLight = new THREE.PointLight(0xffdfa8, 1.2, 14, 1.0);
+    const ambientRoomLight = new THREE.PointLight(0xffdfa8, 4.5, 14, 1.2);
     ambientRoomLight.position.set(0, 2.6, 0);
     root.add(ambientRoomLight);
 

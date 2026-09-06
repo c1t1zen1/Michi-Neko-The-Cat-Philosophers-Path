@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20260825j';
+import { Cat } from './cat.js?v=20260907a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -10,7 +10,7 @@ export class Player {
     this.audio = audio;
 
     // Tan coat with light-brown mackerel tabby stripes (Ghibli reference palette)
-    this.cat = new Cat({ fur: 0xc99c63, belly: 0xf3e7d0, accent: 0x9a6b3a, audio });
+    this.cat = new Cat({ fur: 0xc4915a, belly: 0xf3e7d0, accent: 0x6e4424, audio });
     this.mesh = new THREE.Group();
     this.mesh.add(this.cat.group);
     this.scene.add(this.mesh);

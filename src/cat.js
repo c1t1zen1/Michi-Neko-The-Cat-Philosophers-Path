@@ -1,86 +1,333 @@
 import * as THREE from 'three';
 
-// 3-step toon ramp texture for Studio Ghibli cel shading
+/**
+ * The cat.
+ *
+ * Geometry is still a hand-built hierarchy of smooth primitives (so every
+ * existing animation rig — chest, hips, neck, head, legs, tail, ears — is
+ * unchanged), but the coat is now painted by a fur shader:
+ *
+ *  - every fur mesh bakes a body-space coordinate + part id into its
+ *    vertices, so a single procedural mackerel-tabby pattern (flank stripes,
+ *    spine line, forehead "M", cheek marks, leg rings, tail rings, cream
+ *    belly / bib / socks) flows continuously across separate meshes and
+ *    moves with the animation
+ *  - a soft three-band toon ramp with painterly fur noise, warm rim light
+ *    keyed to the sun, and a subtle cool shadow tint
+ *  - textured amber irises with limbal rings and catchlights
+ */
+
+// Soft toon ramp: three bands with feathered transitions — cel shading that
+// still reads as painted rather than hard-edged.
 let toonGradientTexture = null;
 function getToonGradient() {
   if (!toonGradientTexture) {
+    const w = 256;
     const canvas = document.createElement('canvas');
-    canvas.width = 4;
+    canvas.width = w;
     canvas.height = 1;
     const ctx = canvas.getContext('2d');
-    const imgData = ctx.createImageData(4, 1);
-    // 4 sharp discrete brightness steps for anime cel-shading
-    const steps = [100, 160, 215, 255];
-    for (let i = 0; i < 4; i++) {
-      imgData.data[i * 4 + 0] = steps[i];
-      imgData.data[i * 4 + 1] = steps[i];
-      imgData.data[i * 4 + 2] = steps[i];
-      imgData.data[i * 4 + 3] = 255;
+    const img = ctx.createImageData(w, 1);
+    const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+    for (let i = 0; i < w; i++) {
+      const x = i / (w - 1);
+      let v = 0.42;
+      v += smooth(0.32, 0.46, x) * 0.33;
+      v += smooth(0.52, 0.72, x) * 0.25;
+      const b = Math.round(v * 255);
+      img.data[i * 4] = b; img.data[i * 4 + 1] = b; img.data[i * 4 + 2] = b; img.data[i * 4 + 3] = 255;
     }
-    ctx.putImageData(imgData, 0, 0);
+    ctx.putImageData(img, 0, 0);
     toonGradientTexture = new THREE.CanvasTexture(canvas);
-    toonGradientTexture.minFilter = THREE.NearestFilter;
-    toonGradientTexture.magFilter = THREE.NearestFilter;
+    toonGradientTexture.minFilter = THREE.LinearFilter;
+    toonGradientTexture.magFilter = THREE.LinearFilter;
     toonGradientTexture.generateMipmaps = false;
   }
   return toonGradientTexture;
 }
 
+// Shared rim-light uniforms so the whole scene's time-of-day can warm the
+// cat's silhouette edges from one place.
+export const catRimUniforms = {
+  uRimColor: { value: new THREE.Color(0xffb264) },
+  uRimDir: { value: new THREE.Vector3(-0.55, 0.28, -0.79) },
+  uRimStrength: { value: 0.55 }
+};
+
+const FUR_KIND = { torso: 0, head: 1, leg: 2, tail: 3, ear: 4 };
+
+const RIM_PARS = /* glsl */`
+  uniform vec3 uRimColor;
+  uniform vec3 uRimDir;
+  uniform float uRimStrength;
+`;
+const RIM_APPLY = /* glsl */`
+  {
+    vec3 rimView = normalize(vViewPosition);
+    float fres = pow(clamp(1.0 + dot(rimView, normal), 0.0, 1.0), 2.6);
+    vec3 rimDirV = normalize((viewMatrix * vec4(uRimDir, 0.0)).xyz);
+    float sunSide = clamp(dot(normal, rimDirV) * 0.5 + 0.5, 0.0, 1.0);
+    outgoingLight += uRimColor * fres * (0.25 + sunSide * 0.75) * uRimStrength;
+  }
+`;
+
+/** Plain toon material (cream parts, nose, pads) with the shared rim light. */
 function toonMat(color, opts = {}) {
-  return new THREE.MeshToonMaterial({
+  const { noRim, ...matOpts } = opts;
+  const mat = new THREE.MeshToonMaterial({
     color,
     gradientMap: getToonGradient(),
-    ...opts
+    ...matOpts
   });
+  if (noRim) return mat;
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uRimColor = catRimUniforms.uRimColor;
+    shader.uniforms.uRimDir = catRimUniforms.uRimDir;
+    shader.uniforms.uRimStrength = catRimUniforms.uRimStrength;
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <lights_toon_pars_fragment>', '#include <lights_toon_pars_fragment>\n' + RIM_PARS)
+      .replace('#include <opaque_fragment>', RIM_APPLY + '\n#include <opaque_fragment>');
+  };
+  mat.customProgramCacheKey = () => 'cat-toon-rim';
+  return mat;
+}
+
+/**
+ * Fur shader: procedural tabby coat evaluated in baked body space.
+ * `palette` = { fur, belly, stripe } THREE.Color values.
+ */
+function furMat(palette) {
+  const mat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: getToonGradient() });
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uRimColor = catRimUniforms.uRimColor;
+    shader.uniforms.uRimDir = catRimUniforms.uRimDir;
+    shader.uniforms.uRimStrength = catRimUniforms.uRimStrength;
+    shader.uniforms.uFur = { value: palette.fur };
+    shader.uniforms.uBelly = { value: palette.belly };
+    shader.uniforms.uStripe = { value: palette.stripe };
+    shader.uniforms.uStripeAmount = { value: palette.stripeAmount };
+
+    shader.vertexShader = `
+      attribute vec3 aBody;
+      attribute float aKind;
+      varying vec3 vBody;
+      varying float vKind;
+    ` + shader.vertexShader.replace('#include <begin_vertex>', `
+      #include <begin_vertex>
+      vBody = aBody;
+      vKind = aKind;
+    `);
+
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <lights_toon_pars_fragment>', `#include <lights_toon_pars_fragment>
+        ${RIM_PARS}
+        uniform vec3 uFur;
+        uniform vec3 uBelly;
+        uniform vec3 uStripe;
+        uniform float uStripeAmount;
+        varying vec3 vBody;
+        varying float vKind;
+
+        float furHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float furNoise(vec2 p) {
+          vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(furHash(i), furHash(i + vec2(1.0, 0.0)), f.x),
+                     mix(furHash(i + vec2(0.0, 1.0)), furHash(i + vec2(1.0, 1.0)), f.x), f.y);
+        }
+        float ellipseMask(vec3 p, vec3 c, vec3 r, float soft) {
+          vec3 d = (p - c) / r;
+          return 1.0 - smoothstep(1.0 - soft, 1.0 + soft, length(d));
+        }
+        float stripeWave(float x, float n) {
+          return smoothstep(0.05, 0.62, sin(x + n));
+        }
+
+        vec3 furPattern(vec3 p, float kind) {
+          vec3 col = uFur;
+          float n = furNoise(p.xy * 9.0 + p.z * 4.0) * 2.4;
+          float grain = furNoise(p.xz * 70.0) * 0.5 + furNoise(p.yz * 95.0 + 3.7) * 0.5;
+          float stripe = 0.0;
+          float cream = 0.0;
+
+          if (kind < 0.5) {
+            // ---- torso ----
+            float belly = smoothstep(0.405, 0.315, p.y);
+            float bib = ellipseMask(p, vec3(0.0, 0.43, 0.30), vec3(0.085, 0.11, 0.13), 0.35);
+            cream = max(belly, bib * 0.85);
+            float top = smoothstep(0.34, 0.50, p.y) * (1.0 - cream);
+            float span = smoothstep(-0.30, -0.22, p.z) * smoothstep(0.30, 0.20, p.z);
+            stripe = stripeWave(p.z * 38.0 + abs(p.x) * 6.0, n) * top * span;
+            // Flank stripes break into shorter dashes lower down
+            stripe *= 0.75 + 0.25 * smoothstep(0.35, 0.55, p.y);
+            stripe = max(stripe, smoothstep(0.045, 0.0, abs(p.x)) * top * span * 0.65);
+            // Coat darkens slightly along the back
+            col = mix(col, uStripe, smoothstep(0.42, 0.62, p.y) * 0.18);
+          } else if (kind < 1.5) {
+            // ---- head ----
+            float muzzle = ellipseMask(p, vec3(0.0, 0.628, 0.405), vec3(0.078, 0.052, 0.07), 0.35);
+            float chin = ellipseMask(p, vec3(0.0, 0.59, 0.385), vec3(0.06, 0.05, 0.06), 0.4);
+            float throat = smoothstep(0.62, 0.56, p.y) * smoothstep(0.24, 0.32, p.z);
+            cream = max(max(muzzle, chin), throat * 0.9);
+            // Forehead "M": three short vertical marks between the ears
+            float crownZone = smoothstep(0.695, 0.725, p.y) * smoothstep(0.32, 0.37, p.z) * smoothstep(0.10, 0.06, abs(p.x));
+            float mMarks = smoothstep(0.45, 0.85, abs(sin(p.x * 68.0))) * smoothstep(0.02, 0.05, abs(p.x) + 0.02);
+            stripe = max(stripe, mMarks * crownZone * 0.85);
+            // Brow stripes sweeping back over the skull
+            float skullTop = smoothstep(0.70, 0.74, p.y) * smoothstep(0.34, 0.26, p.z);
+            stripe = max(stripe, stripeWave(p.z * 46.0, n) * skullTop * 0.7);
+            // Eye-corner marks running back toward the cheeks
+            float cheekLine = smoothstep(0.010, 0.0, abs(p.y - 0.665 + (abs(p.x) - 0.08) * 0.35))
+              * smoothstep(0.08, 0.095, abs(p.x)) * smoothstep(0.31, 0.35, p.z) * smoothstep(0.42, 0.38, p.z);
+            stripe = max(stripe, cheekLine * 0.45);
+            // Lighter cheek ruffs
+            float cheek = ellipseMask(p, vec3(0.0, 0.62, 0.35), vec3(0.14, 0.05, 0.08), 0.5) * smoothstep(0.06, 0.1, abs(p.x));
+            col = mix(col, uBelly, cheek * 0.35);
+          } else if (kind < 2.5) {
+            // ---- legs ----
+            float sock = smoothstep(0.135, 0.085, p.y);
+            cream = sock;
+            float mid = smoothstep(0.12, 0.2, p.y) * smoothstep(0.40, 0.30, p.y);
+            stripe = stripeWave(p.y * 44.0, n * 0.6) * mid * 0.8;
+          } else if (kind < 3.5) {
+            // ---- tail: p.y is the 0..1 distance along the tail ----
+            float t = p.y;
+            stripe = stripeWave(t * 33.0 + 1.2, n * 0.4) * smoothstep(0.02, 0.12, t) * 0.9;
+            stripe = max(stripe, smoothstep(0.84, 0.94, t));
+          } else {
+            // ---- ear backs ----
+            stripe = 0.55;
+          }
+
+          col = mix(col, uBelly, cream);
+          col = mix(col, uStripe, stripe * uStripeAmount * (1.0 - cream));
+          col *= 0.93 + grain * 0.14;
+          return col;
+        }
+      `)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        diffuseColor.rgb = furPattern(vBody, vKind);
+      `)
+      .replace('#include <opaque_fragment>', `
+        {
+          // Cool blue-violet lift in the shadow side, warm rim on the sun side
+          vec3 rimView = normalize(vViewPosition);
+          vec3 rimDirV = normalize((viewMatrix * vec4(uRimDir, 0.0)).xyz);
+          float shade = 1.0 - clamp(dot(normal, rimDirV) * 0.5 + 0.5, 0.0, 1.0);
+          outgoingLight = mix(outgoingLight, outgoingLight * vec3(0.9, 0.94, 1.12), shade * 0.35);
+          float fres = pow(clamp(1.0 + dot(rimView, normal), 0.0, 1.0), 3.0);
+          float sunSide = clamp(dot(normal, rimDirV) * 0.5 + 0.5, 0.0, 1.0);
+          outgoingLight += uRimColor * fres * (0.15 + sunSide * 0.85) * uRimStrength * 0.6;
+          // Fine fur sheen along the silhouette
+          outgoingLight += diffuseColor.rgb * fres * 0.1;
+        }
+        #include <opaque_fragment>
+      `);
+  };
+  mat.customProgramCacheKey = () => 'cat-fur-v2';
+  return mat;
 }
 
 // Thin animation-cell ink outline (inverted hull) for the Ghibli cel look.
-// A slightly enlarged back-faced copy of the mesh creates a hairline contour.
 let _outlineMat = null;
 function getOutlineMaterial() {
   if (!_outlineMat) {
-    _outlineMat = new THREE.MeshBasicMaterial({ color: 0x241308, side: THREE.BackSide });
+    _outlineMat = new THREE.MeshBasicMaterial({ color: 0x3a2214, side: THREE.BackSide });
   }
   return _outlineMat;
 }
-function addOutline(mesh, k = 1.05) {
+function addOutline(mesh, k = 1.04) {
   const o = new THREE.Mesh(mesh.geometry, getOutlineMaterial());
   o.scale.setScalar(k);
   mesh.add(o);
   return mesh;
 }
 
-function capsule(r, len, mat, sx = 1, sy = 1, sz = 1) {
-  const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 8, 14), mat);
+function capsule(r, len, mat, sx = 1, sy = 1, sz = 1, kind) {
+  const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 12, 24), mat);
   m.scale.set(sx, sy, sz);
   m.castShadow = true;
+  if (kind !== undefined) m.userData.furKind = kind;
   return m;
 }
 
-function ball(r, mat, sx = 1, sy = 1, sz = 1, w = 18, h = 14) {
+function ball(r, mat, sx = 1, sy = 1, sz = 1, w = 26, h = 20, kind) {
   const m = new THREE.Mesh(new THREE.SphereGeometry(r, w, h), mat);
   m.scale.set(sx, sy, sz);
   m.castShadow = true;
+  if (kind !== undefined) m.userData.furKind = kind;
   return m;
+}
+
+/**
+ * Amber anime iris as an equirectangular map for a sphere whose +Y pole
+ * faces forward: rows are polar angle (iris centre at the top edge, limbal
+ * ring part way down, dark sclera beyond), columns are azimuth (fibres).
+ */
+function makeIrisTexture(hex) {
+  const c = new THREE.Color(hex);
+  const w = 128, h = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(w, h);
+  const d = img.data;
+  const lerp = (a, b, t) => a + (b - a) * t;
+  for (let y = 0; y < h; y++) {
+    // v = 1 at the top row = the forward pole (canvas flipY)
+    const theta = (y / (h - 1)) * Math.PI; // polar angle from the front pole
+    const t = theta / 0.95;                 // 0 centre → 1 iris edge
+    for (let x = 0; x < w; x++) {
+      let r, g, b;
+      if (t < 1.0) {
+        // Bright centre, deeper toward the edge, with radial fibres
+        const fibre = 0.9 + 0.2 * Math.abs(Math.sin(x * 0.55 + Math.sin(x * 0.13) * 2.0));
+        const k = lerp(1.35, 0.7, t * t) * fibre;
+        const ring = Math.max(0, 1 - Math.abs(t - 0.92) / 0.09);
+        r = c.r * k * (1 - ring * 0.7); g = c.g * k * (1 - ring * 0.75); b = c.b * k * (1 - ring * 0.8);
+      } else {
+        // Sclera / liner behind the iris: near-black warm brown
+        r = 0.13; g = 0.09; b = 0.07;
+      }
+      const i = (y * w + x) * 4;
+      d[i] = Math.min(255, r * 255); d[i + 1] = Math.min(255, g * 255); d[i + 2] = Math.min(255, b * 255); d[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
 }
 
 export class Cat {
   constructor(options = {}) {
-    // Exact Studio Ghibli brown tabby palette from reference images
-    const fur = options.fur ?? 0x7a5b48;          // Warm taupe-brown base
-    const belly = options.belly ?? 0xebdcc8;      // Cream/buff chest bib & muzzle
-    const accent = options.accent ?? 0x3a2820;    // Dark chocolate brown mackerel tabby stripes
-    const eyeColor = options.eyeColor ?? 0xebb02a;// Golden-amber anime eyes
+    // Warm tabby palette (reference: golden-tan coat, chocolate mackerel
+    // stripes, cream bib / muzzle / socks, amber eyes)
+    const fur = options.fur ?? 0xc4915a;
+    const belly = options.belly ?? 0xf3e7d0;
+    const accent = options.accent ?? 0x6e4424;
+    const eyeColor = options.eyeColor ?? 0xebb02a;
     const ribbonColor = options.ribbonColor ?? 0xd63228;
 
-    this.matFur = toonMat(fur);
+    this.palette = {
+      fur: new THREE.Color(fur),
+      belly: new THREE.Color(belly),
+      stripe: new THREE.Color(accent),
+      stripeAmount: options.stripeAmount ?? 1.0
+    };
+    this.matFur = furMat(this.palette);
     this.matBelly = toonMat(belly);
     this.matAccent = toonMat(accent);
-    this.matPink = toonMat(0xcca0a7);
-    this.matNose = toonMat(0xcb757e);
-    this.matEyeLiner = toonMat(0x221712);
-    this.matEye = toonMat(eyeColor);
-    this.matPupil = toonMat(0x140e0a);
+    this.matPink = toonMat(0xd9a5ab);
+    this.matNose = toonMat(0xd07a80);
+    this.matEyeLiner = toonMat(0x221712, { noRim: true });
+    // Textured iris with a soft glow so eyes stay bright at dusk
+    const irisTex = makeIrisTexture(eyeColor);
+    this.matEye = new THREE.MeshStandardMaterial({
+      map: irisTex, emissive: new THREE.Color(0xffffff), emissiveMap: irisTex, emissiveIntensity: 0.45,
+      roughness: 0.2, metalness: 0
+    });
+    this.matPupil = toonMat(0x120c08, { noRim: true });
     this.matGlint = new THREE.MeshBasicMaterial({ color: 0xffffff });
     this.matPawPad = toonMat(0xd8959d);
     this.matGoldBell = toonMat(0xf7ca38, { emissive: 0x5a3e04, emissiveIntensity: 0.3 });
@@ -99,6 +346,7 @@ export class Cat {
     this.buildHead();
     this.buildLegs();
     this.buildTail();
+    this.bakeFurCoordinates();
 
     this.time = Math.random() * 10;
     this.phase = 0;
@@ -146,6 +394,37 @@ export class Cat {
     };
   }
 
+  /**
+   * Bake body-space coordinates and a part id into every fur mesh so the
+   * coat pattern is continuous across meshes and rides the animation.
+   */
+  bakeFurCoordinates() {
+    this.group.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(this.body.matrixWorld).invert();
+    const v = new THREE.Vector3();
+    const m = new THREE.Matrix4();
+    this.body.traverse((o) => {
+      if (!o.isMesh || o.userData.furKind === undefined) return;
+      const geo = o.geometry;
+      const pos = geo.attributes.position;
+      const body = new Float32Array(pos.count * 3);
+      const kind = new Float32Array(pos.count).fill(o.userData.furKind);
+      m.multiplyMatrices(inv, o.matrixWorld);
+      for (let i = 0; i < pos.count; i++) {
+        if (o.userData.furKind === FUR_KIND.tail) {
+          // Tail: store the normalised distance along the tail in y
+          const t = (o.userData.tailIndex + (0.5 - pos.getY(i) / o.userData.tailSegLen)) / o.userData.tailSegs;
+          body[i * 3] = pos.getX(i); body[i * 3 + 1] = t; body[i * 3 + 2] = pos.getZ(i);
+        } else {
+          v.fromBufferAttribute(pos, i).applyMatrix4(m);
+          body[i * 3] = v.x; body[i * 3 + 1] = v.y; body[i * 3 + 2] = v.z;
+        }
+      }
+      geo.setAttribute('aBody', new THREE.BufferAttribute(body, 3));
+      geo.setAttribute('aKind', new THREE.BufferAttribute(kind, 1));
+    });
+  }
+
   buildTorso() {
     this.hips = new THREE.Group();
     this.hips.position.set(0, 0.43, -0.12);
@@ -155,16 +434,27 @@ export class Cat {
     this.chest.position.set(0, 0.45, 0.13);
     this.body.add(this.chest);
 
-    const hipMesh = ball(0.15, this.matFur, 0.95, 0.95, 1.2);
-    addOutline(hipMesh, 1.055);
+    // Haunches: broader rear mass reads as a real cat rump
+    const hipMesh = ball(0.155, this.matFur, 1.0, 0.98, 1.22, 26, 20, FUR_KIND.torso);
+    addOutline(hipMesh, 1.035);
     this.hips.add(hipMesh);
+    for (const side of [-1, 1]) {
+      const thigh = ball(0.085, this.matFur, 0.9, 1.1, 1.05, 18, 14, FUR_KIND.torso);
+      thigh.position.set(side * 0.085, -0.06, -0.03);
+      this.hips.add(thigh);
+    }
 
-    const chestMesh = ball(0.16, this.matFur, 0.92, 1, 1.3);
-    addOutline(chestMesh, 1.055);
+    const chestMesh = ball(0.162, this.matFur, 0.94, 1.0, 1.3, 26, 20, FUR_KIND.torso);
+    addOutline(chestMesh, 1.035);
     this.chest.add(chestMesh);
+    for (const side of [-1, 1]) {
+      const shoulder = ball(0.075, this.matFur, 0.9, 1.05, 1.0, 18, 14, FUR_KIND.torso);
+      shoulder.position.set(side * 0.085, -0.04, 0.05);
+      this.chest.add(shoulder);
+    }
 
     // Cream chest ruff: broad where it tucks under the neck, then tapering
-    // naturally into a small triangular tuft instead of a round chest patch.
+    // naturally into a small triangular tuft.
     const bibVerts = [
       -0.072,  0.070, 0.147,
        0.072,  0.070, 0.147,
@@ -181,53 +471,15 @@ export class Cat {
     this.chest.add(bibMesh);
 
     // Subtle cream belly line kept low along the underside
-    const bellyMesh = ball(0.115, this.matBelly, 0.6, 0.5, 1.35);
+    const bellyMesh = ball(0.115, this.matBelly, 0.62, 0.5, 1.35, 18, 14);
     bellyMesh.position.set(0, -0.105, -0.06);
     this.chest.add(bellyMesh);
 
-    const spine = capsule(0.14, 0.22, this.matFur, 0.88, 1, 1);
+    const spine = capsule(0.145, 0.24, this.matFur, 0.9, 1, 1, FUR_KIND.torso);
     spine.rotation.x = Math.PI / 2;
-    spine.position.set(0, 0.44, 0.005);
-    addOutline(spine, 1.04);
+    spine.position.set(0, 0.445, 0.005);
+    addOutline(spine, 1.03);
     this.body.add(spine);
-
-    // Broad tabby coat patches: filled markings that conform to the torso,
-    // rather than separate rope or tube geometry. They sit only 0.0015 above
-    // the coat to prevent z-fighting while staying visually flush.
-    const bandDefs = [
-      // [z along body, width across the spine, width at the flanks]
-      [0.175, 0.046, 0.022],
-      [0.065, 0.056, 0.030],
-      [-0.055, 0.056, 0.030],
-      [-0.165, 0.046, 0.022]
-    ];
-    const stripeXs = [-0.13, -0.095, -0.055, 0, 0.055, 0.095, 0.13];
-    for (const [bz, centerWidth, flankWidth] of bandDefs) {
-      const verts = [];
-      const indices = [];
-      for (let i = 0; i < stripeXs.length; i++) {
-        const x = stripeXs[i];
-        const flankAmount = Math.abs(x) / 0.13;
-        const halfWidth = THREE.MathUtils.lerp(centerWidth, flankWidth, flankAmount);
-        // The forward band spans the higher shoulder volume. Lift it over that
-        // silhouette so its dark edge remains visible beside the neck/chest.
-        const shoulderLift = bz > 0.13 ? 0.035 : 0;
-        const y = 0.44 + Math.sqrt(Math.max(0, 0.14 * 0.14 - x * x)) + shoulderLift + 0.0015;
-        verts.push(x, y, bz - halfWidth, x, y, bz + halfWidth);
-      }
-      for (let i = 0; i < stripeXs.length - 1; i++) {
-        const a = i * 2;
-        // Wind upward/outward so the top-facing coat pattern is visible.
-        indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
-      }
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
-      geo.setIndex(indices);
-      geo.computeVertexNormals();
-      const band = new THREE.Mesh(geo, this.matAccent);
-      band.castShadow = false;
-      this.body.add(band);
-    }
 
     const blobCanvas = document.createElement('canvas');
     blobCanvas.width = 64;
@@ -263,10 +515,10 @@ export class Cat {
     this.chest.add(this.neck);
 
     // Fur bridge so the head connects seamlessly to the body (no gap/neck hole)
-    const neckFur = capsule(0.058, 0.10, this.matFur);
+    const neckFur = capsule(0.062, 0.10, this.matFur, 1, 1, 1, FUR_KIND.torso);
     neckFur.rotation.x = Math.PI / 2.6;
     neckFur.position.set(0, 0.05, 0.045);
-    addOutline(neckFur, 1.08);
+    addOutline(neckFur, 1.05);
     this.neck.add(neckFur);
 
     this.head = new THREE.Group();
@@ -274,61 +526,41 @@ export class Cat {
     this.head.scale.setScalar(1.06);
     this.neck.add(this.head);
 
-    // Studio Ghibli rounded feline head
-    const skull = ball(0.104, this.matFur, 1.05, 0.96, 1.05);
-    addOutline(skull, 1.05);
+    // Rounded feline skull, slightly broader than tall
+    const skull = ball(0.104, this.matFur, 1.08, 0.97, 1.05, 30, 24, FUR_KIND.head);
+    addOutline(skull, 1.04);
     this.head.add(skull);
 
     // Fluffy cheek ruffs
-    const cheekL = ball(0.062, this.matFur, 1.15, 0.82, 0.95);
-    cheekL.position.set(-0.048, -0.022, 0.022);
-    const cheekR = ball(0.062, this.matFur, 1.15, 0.82, 0.95);
-    cheekR.position.set(0.048, -0.022, 0.022);
+    const cheekL = ball(0.064, this.matFur, 1.18, 0.84, 0.95, 22, 16, FUR_KIND.head);
+    cheekL.position.set(-0.05, -0.024, 0.024);
+    const cheekR = ball(0.064, this.matFur, 1.18, 0.84, 0.95, 22, 16, FUR_KIND.head);
+    cheekR.position.set(0.05, -0.024, 0.024);
     this.head.add(cheekL, cheekR);
 
-    // Dark cheek tabby stripes (iconic horizontal marks below eyes from reference)
-    for (const side of [-1, 1]) {
-      const cheekMark = ball(0.022, this.matAccent, 1.4, 0.35, 0.8);
-      cheekMark.position.set(side * 0.072, -0.012, 0.052);
-      cheekMark.rotation.y = side * 0.35;
-      cheekMark.rotation.z = side * 0.12;
-      this.head.add(cheekMark);
-    }
-
-    // Forehead M-shaped tabby crest & brow stripes from reference images
-    const browMarkL = ball(0.018, this.matAccent, 0.45, 1.6, 0.6);
-    browMarkL.position.set(-0.022, 0.066, 0.072);
-    browMarkL.rotation.z = -0.22;
-    const browMarkR = ball(0.018, this.matAccent, 0.45, 1.6, 0.6);
-    browMarkR.position.set(0.022, 0.066, 0.072);
-    browMarkR.rotation.z = 0.22;
-    const browCenter = ball(0.018, this.matAccent, 0.5, 1.8, 0.6);
-    browCenter.position.set(0, 0.076, 0.07);
-    this.head.add(browMarkL, browMarkR, browCenter);
-
     // Cream snout bridge & rounded whisker pads
-    const snoutBridge = ball(0.042, this.matBelly, 0.9, 0.78, 1.15);
+    const snoutBridge = ball(0.042, this.matBelly, 0.92, 0.78, 1.15, 20, 14);
     snoutBridge.position.set(0, -0.008, 0.082);
     this.head.add(snoutBridge);
 
-    const padL = ball(0.028, this.matBelly, 1.12, 0.86, 0.96);
+    const padL = ball(0.028, this.matBelly, 1.12, 0.86, 0.96, 18, 12);
     padL.position.set(-0.024, -0.024, 0.116);
-    const padR = ball(0.028, this.matBelly, 1.12, 0.86, 0.96);
+    const padR = ball(0.028, this.matBelly, 1.12, 0.86, 0.96, 18, 12);
     padR.position.set(0.024, -0.024, 0.116);
     this.head.add(padL, padR);
     this.muzzle = snoutBridge;
 
     // Small rounded lower chin (cream)
-    const chin = ball(0.022, this.matBelly, 0.95, 0.72, 0.9);
+    const chin = ball(0.022, this.matBelly, 0.95, 0.72, 0.9, 16, 12);
     chin.position.set(0, -0.044, 0.096);
     this.head.add(chin);
 
     // Soft coral pink nose leather
-    const nose = ball(0.014, this.matNose, 1.15, 0.82, 0.75, 10, 8);
+    const nose = ball(0.014, this.matNose, 1.15, 0.82, 0.75, 12, 10);
     nose.position.set(0, -0.014, 0.134);
     this.head.add(nose);
 
-    // Large, round, expressive Ghibli anime eyes
+    // Large, round, expressive anime eyes
     this.eyes = [];
     this.pupils = [];
     this.glints = [];
@@ -340,27 +572,30 @@ export class Cat {
       // Almond tilt: outer corners raised like the reference art
       eyeGroup.rotation.z = side * -0.14;
 
-      // Dark anime eye contour / eyeliner — wide almond shape
-      const eyeLiner = ball(0.028, this.matEyeLiner, 1.28, 1.15, 0.45, 16, 12);
+      // Dark eye contour / eyeliner — wide almond shape
+      const eyeLiner = ball(0.028, this.matEyeLiner, 1.28, 1.15, 0.45, 20, 14);
       eyeGroup.add(eyeLiner);
 
-      // Warm glowing golden-amber iris (almond)
-      const iris = ball(0.024, this.matEye, 1.16, 1.06, 0.52, 16, 12);
+      // Textured amber iris (almond). The geometry itself is turned so the
+      // sphere's pole faces forward (+Z) and the iris map reads as a disc;
+      // the mesh scale then flattens it front-to-back, not top-to-bottom.
+      const iris = ball(0.024, this.matEye, 1.16, 1.06, 0.52, 24, 18);
+      iris.geometry.rotateX(Math.PI / 2);
       iris.position.set(0, 0, 0.004);
       eyeGroup.add(iris);
 
       // Large rounded dark pupil
-      const pupil = ball(0.014, this.matPupil, 0.88, 1.05, 0.65, 10, 10);
-      pupil.position.set(0, 0, 0.008);
+      const pupil = ball(0.0135, this.matPupil, 0.88, 1.05, 0.65, 12, 12);
+      pupil.position.set(0, 0, 0.0085);
       eyeGroup.add(pupil);
 
-      // Bright white anime highlight catchlight
-      const glint = ball(0.0055, this.matGlint, 1, 1, 0.4, 6, 6);
-      glint.position.set(side * -0.006, 0.007, 0.012);
+      // Bright anime highlight catchlights
+      const glint = ball(0.0055, this.matGlint, 1, 1, 0.4, 8, 8);
+      glint.position.set(side * -0.006, 0.007, 0.0125);
       eyeGroup.add(glint);
 
-      const glintSmall = ball(0.0028, this.matGlint, 1, 1, 0.4, 4, 4);
-      glintSmall.position.set(side * 0.005, -0.006, 0.012);
+      const glintSmall = ball(0.0028, this.matGlint, 1, 1, 0.4, 6, 6);
+      glintSmall.position.set(side * 0.005, -0.006, 0.0125);
       eyeGroup.add(glintSmall);
 
       this.head.add(eyeGroup);
@@ -368,21 +603,22 @@ export class Cat {
       this.pupils.push(pupil);
     }
 
-    // Triangular Ghibli cat ears with warm pink inner ear
+    // Triangular ears with warm pink inner ear and a cream tuft
     this.ears = [];
     for (const side of [-1, 1]) {
       const ear = new THREE.Group();
       ear.position.set(side * 0.062, 0.095, 0.008);
 
-      const outer = new THREE.Mesh(new THREE.ConeGeometry(0.042, 0.086, 4), this.matFur);
-      outer.rotation.y = Math.PI / 4;
+      const outer = new THREE.Mesh(new THREE.ConeGeometry(0.042, 0.088, 10), this.matFur);
+      outer.scale.set(1, 1, 0.6);
       outer.castShadow = true;
+      outer.userData.furKind = FUR_KIND.ear;
 
-      const inner = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.058, 4), this.matPink);
-      inner.rotation.y = Math.PI / 4;
+      const inner = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.06, 10), this.matPink);
+      inner.scale.set(1, 1, 0.45);
       inner.position.set(0, -0.006, 0.012);
 
-      const tuft = ball(0.018, this.matBelly, 0.85, 1.0, 0.8, 8, 6);
+      const tuft = ball(0.018, this.matBelly, 0.85, 1.0, 0.8, 10, 8);
       tuft.position.set(side * -0.004, -0.022, 0.014);
 
       ear.add(outer, inner, tuft);
@@ -393,8 +629,8 @@ export class Cat {
       this.ears.push(ear);
     }
 
-    // Clean, expressive dark anime whiskers
-    const whiskerMat = new THREE.LineBasicMaterial({ color: 0x221712, transparent: true, opacity: 0.75, linewidth: 2 });
+    // Fine whiskers
+    const whiskerMat = new THREE.LineBasicMaterial({ color: 0x3a2a20, transparent: true, opacity: 0.55 });
     for (const side of [-1, 1]) {
       const whiskerAngles = [0.10, -0.02, -0.14];
       for (let i = 0; i < whiskerAngles.length; i++) {
@@ -425,9 +661,9 @@ export class Cat {
       d.parent.add(root);
 
       const upperLen = d.front ? 0.13 : 0.15;
-      const upper = capsule(d.front ? 0.035 : 0.048, upperLen, this.matFur, 0.85, 1, 0.85);
+      const upper = capsule(d.front ? 0.037 : 0.05, upperLen, this.matFur, 0.88, 1, 0.88, FUR_KIND.leg);
       upper.position.y = -upperLen / 2 - 0.02;
-      addOutline(upper, 1.10);
+      addOutline(upper, 1.06);
       root.add(upper);
 
       const knee = new THREE.Group();
@@ -435,27 +671,22 @@ export class Cat {
       root.add(knee);
 
       const lowerLen = 0.13;
-      const lower = capsule(0.026, lowerLen, this.matFur, 0.85, 1, 0.85);
+      const lower = capsule(0.027, lowerLen, this.matFur, 0.88, 1, 0.88, FUR_KIND.leg);
       lower.position.y = -lowerLen / 2 - 0.015;
-      addOutline(lower, 1.14);
+      addOutline(lower, 1.07);
       knee.add(lower);
 
-      // Dark tabby band stripe on leg
-      const legStripe = ball(0.028, this.matAccent, 0.9, 0.4, 0.9);
-      legStripe.position.set(0, -lowerLen * 0.5, 0);
-      knee.add(legStripe);
-
-      // Cream white paws / socks from reference images
+      // Cream paws / socks
       const paw = new THREE.Group();
-      const pawBall = ball(0.034, this.matBelly, 1, 0.65, 1.35);
+      const pawBall = ball(0.034, this.matBelly, 1, 0.65, 1.35, 18, 12);
       paw.add(pawBall);
 
       // Pink paw beans / pads
-      const mainPad = ball(0.014, this.matPawPad, 1.1, 0.4, 1.0, 8, 6);
+      const mainPad = ball(0.014, this.matPawPad, 1.1, 0.4, 1.0, 10, 8);
       mainPad.position.set(0, -0.022, 0.005);
       paw.add(mainPad);
       for (let t = -1; t <= 1; t++) {
-        const toe = ball(0.007, this.matPawPad, 1, 0.4, 1, 6, 6);
+        const toe = ball(0.007, this.matPawPad, 1, 0.4, 1, 8, 6);
         toe.position.set(t * 0.014, -0.022, 0.024);
         paw.add(toe);
       }
@@ -475,17 +706,18 @@ export class Cat {
     root.position.set(0, 0.05, -0.14);
     parent.add(root);
     let cur = root;
-    for (let i = 0; i < 5; i++) {
+    const segCount = 5;
+    for (let i = 0; i < segCount; i++) {
       const seg = new THREE.Group();
       if (i > 0) seg.position.z = -segLen * 0.82;
       const r = 0.034 - i * 0.003;
-      // Five alternating tabby sections: dark at the body connection, then
-      // fur/dark/fur/dark through the dark tip, matching the reference tail.
-      const mat = (i % 2 === 0) ? this.matAccent : this.matFur;
-      const mesh = capsule(r, segLen, mat);
+      const mesh = capsule(r, segLen, this.matFur, 1, 1, 1, FUR_KIND.tail);
+      mesh.userData.tailIndex = i;
+      mesh.userData.tailSegs = segCount;
+      mesh.userData.tailSegLen = segLen;
       mesh.rotation.x = Math.PI / 2;
       mesh.position.z = -segLen / 2;
-      addOutline(mesh, 1.12);
+      addOutline(mesh, 1.07);
       seg.add(mesh);
       cur.add(seg);
       this.tailSegs.push(seg);
@@ -844,7 +1076,7 @@ export class Cat {
       }
     }
 
-    // Ghibli expressive tail
+    // Expressive tail
     const cfg = this.getMoodConfig();
     const tailSpeed = cfg.tailSpeed;
     const tailLift = cfg.tailLift;
@@ -909,4 +1141,3 @@ export class Cat {
     }
   }
 }
-
