@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <meta name="theme-color" content="#11171d">
+  <title>cadJS · Michi-Neko Three.js CAD</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar panel-glass">
+      <div class="brand"><span class="brand-mark">C<span>Δ</span>D</span><small>JS / MICHI-NEKO</small></div>
+      <nav id="menu-bar" aria-label="Application menu">
+        <button data-menu="file">FILE</button><button data-menu="edit">EDIT</button><button data-menu="object">OBJECT</button>
+        <button data-menu="view">VIEW</button><button data-menu="agent">AI AGENT</button><button data-menu="info">INFO</button>
+      </nav>
+      <div class="top-actions">
+        <select id="catalog-select" aria-label="Discovered objects"><option>Scanning game…</option></select>
+        <button id="refresh-catalog" title="Rescan source and assets">↻ SCAN</button>
+        <button id="mode-toggle" class="accent" title="Switch editor/game view (Tab)">GAME / TAB</button>
+      </div>
+    </header>
+
+    <div id="menu-popover" class="menu-popover hidden"></div>
+
+    <aside class="tool-rail panel-glass" aria-label="CAD tools">
+      <button class="tool active" data-tool="select" title="Select (Q)">⌁<span>SELECT</span></button>
+      <button class="tool" data-tool="translate" title="Move (W)">✣<span>MOVE</span></button>
+      <button class="tool" data-tool="rotate" title="Rotate (E)">⟳<span>ROTATE</span></button>
+      <button class="tool" data-tool="scale" title="Scale (R)">↗<span>SCALE</span></button>
+      <button class="tool" data-tool="orbit" title="Orbit camera">◉<span>ORBIT</span></button>
+      <button class="tool" data-action="agent" title="Open AI design agent (A)">✦<span>AI AGENT</span></button>
+      <div class="rail-rule"></div>
+      <button class="tool" data-action="focus" title="Frame selected (F)">⌖<span>FRAME</span></button>
+      <button class="tool" data-action="isolate" title="Isolate selected (I)">◇<span>ISOLATE</span></button>
+      <button class="tool" data-action="duplicate" title="Duplicate (Ctrl+D)">▣<span>CLONE</span></button>
+      <button class="tool" data-action="delete" title="Remove (Delete)">×<span>REMOVE</span></button>
+      <div class="rail-rule"></div>
+      <button class="tool" data-add="BoxGeometry">□<span>BOX</span></button>
+      <button class="tool" data-add="SphereGeometry">○<span>SPHERE</span></button>
+      <button class="tool" data-add="CylinderGeometry">⬡<span>CYLINDER</span></button>
+      <button class="tool" data-add="ConeGeometry">△<span>CONE</span></button>
+      <button class="tool" data-add="TorusGeometry">◎<span>TORUS</span></button>
+      <button class="tool" data-add="CapsuleGeometry">◐<span>CAPSULE</span></button>
+      <button class="tool" data-add="DirectionalLight">☼<span>LIGHT</span></button>
+      <button class="tool" data-add="PerspectiveCamera">◩<span>CAMERA</span></button>
+    </aside>
+
+    <main id="workspace">
+      <section id="editor-view" class="viewport active">
+        <canvas id="editor-canvas"></canvas>
+        <div class="viewport-toolbar panel-glass">
+          <button data-view="perspective" class="active">PERSP</button><button data-view="front">FRONT</button>
+          <button data-view="side">RIGHT</button><button data-view="top">TOP</button>
+          <button id="wire-toggle">WIREFRAME</button><button id="grid-toggle" class="active">GRID</button>
+          <button id="snap-toggle">SNAP 0.1</button>
+        </div>
+        <div id="viewport-label"><b>ISOLATION</b><span>WORLD / LOCAL</span></div>
+        <div id="selection-box" class="selection-readout">NO SELECTION</div>
+      </section>
+      <section id="game-view" class="viewport">
+        <iframe id="game-frame" src="../" title="Michi-Neko live game environment"></iframe>
+        <div class="game-overlay panel-glass">
+          <b>LIVE ENVIRONMENT</b><span id="bridge-state">Loading game scene…</span>
+          <button id="scan-runtime">SCAN RUNTIME</button>
+        </div>
+      </section>
+    </main>
+
+    <aside class="right-panel panel-glass">
+      <div class="panel-tabs"><button class="active" data-panel="scene">SCENE</button><button data-panel="assets">CATALOG</button></div>
+      <section id="scene-panel" class="panel-page active">
+        <div class="filter-row"><input id="tree-filter" placeholder="FILTER OBJECTS" autocomplete="off"><button id="runtime-source" title="Toggle editor/runtime tree">EDITOR</button></div>
+        <div id="scene-tree" class="scene-tree"></div>
+      </section>
+      <section id="assets-panel" class="panel-page">
+        <div class="filter-row"><input id="asset-filter" placeholder="FILTER CATALOG" autocomplete="off"></div>
+        <div id="asset-list" class="asset-list"></div>
+      </section>
+
+      <div class="panel-tabs inspector-tabs"><button class="active">INSPECTOR</button></div>
+      <section id="inspector" class="inspector">
+        <div class="empty-state"><b>SELECT AN OBJECT</b><span>Click a mesh, hierarchy row, or scan the live game.</span></div>
+      </section>
+    </aside>
+
+    <aside id="agent-panel" class="agent-panel panel-glass" aria-label="AI design agent">
+      <header><div><b>AI DESIGN AGENT</b><small>CONSTRAINED CAD ACTION HARNESS</small></div><button id="agent-close" title="Close">×</button></header>
+      <div class="agent-scroll">
+        <section class="agent-block">
+          <h3>PROVIDER</h3>
+          <div class="agent-grid two"><label>Service<select id="agent-provider"><option value="local">Local / llama-server</option><option value="mcp">MCP / custom gateway</option><option value="openai">OpenAI</option><option value="openrouter">OpenRouter</option><option value="anthropic">Anthropic</option></select></label><label>Model<input id="agent-model"></label></div>
+          <label>Base URL<input id="agent-base-url" spellcheck="false"></label>
+          <label>API key<input id="agent-api-key" type="password" autocomplete="off" placeholder="Kept in this browser session only"></label>
+          <div class="agent-grid four"><label>Temperature<input id="agent-temperature" type="number" min="0" max="2" step="0.05"></label><label>Top P<input id="agent-top-p" type="number" min="0.01" max="1" step="0.05"></label><label>Max tokens<input id="agent-max-tokens" type="number" min="128" max="32000" step="128"></label><label>Reasoning<select id="agent-reasoning"><option>none</option><option>low</option><option selected>medium</option><option>high</option></select></label></div>
+          <div class="agent-grid two"><label>Execution<select id="agent-autonomy"><option value="plan">Plan only</option><option value="confirm" selected>Confirm before run</option><option value="auto">Auto-run valid plans</option></select></label><label>Context<select id="agent-context"><option value="selection">Selection + nearby scene</option><option value="character">Whole selected character/group</option><option value="workspace">Whole workspace</option></select></label></div>
+        </section>
+        <section class="agent-block">
+          <h3>REFERENCE IMAGES</h3>
+          <div id="agent-references" class="reference-strip"><span>Drop or upload PNG/JPEG/WebP references.</span></div>
+          <div class="button-grid"><button id="agent-upload">UPLOAD IMAGES</button><button id="agent-clear-images">CLEAR</button></div>
+        </section>
+        <section class="agent-block grow">
+          <h3>NATURAL-LANGUAGE TASK</h3>
+          <textarea id="agent-prompt" placeholder="Example: Redesign the selected cat from the references. Make the head rounder, enlarge the eyes, add warm striped textures, and keep the silhouette game-ready."></textarea>
+          <div class="agent-actions"><button id="agent-send" class="primary">GENERATE PLAN</button><button id="agent-stop">STOP</button></div>
+          <div id="agent-state" class="agent-state">Ready. Model output is validated before any scene change.</div>
+        </section>
+        <section class="agent-block">
+          <h3>PLAN PREVIEW</h3>
+          <div id="agent-plan" class="agent-plan"><span>No plan generated.</span></div>
+          <div class="agent-actions"><button id="agent-run" class="primary" disabled>RUN PLAN</button><button id="agent-undo">UNDO LAST</button><button id="agent-export-plan">EXPORT</button></div>
+        </section>
+        <section class="agent-block"><h3>ACTIVITY</h3><div id="agent-log" class="agent-log"></div></section>
+      </div>
+    </aside>
+
+    <footer class="statusbar panel-glass">
+      <span id="status-message">READY</span><span id="object-stats">0 OBJECTS</span><span id="render-stats">0 FPS</span>
+      <span class="status-spacer"></span><span>X RED</span><span>Y GREEN</span><span>Z BLUE</span>
+    </footer>
+  </div>
+  <input id="file-input" type="file" accept=".json,.glb,.gltf,.obj,.fbx,.stl" hidden>
+  <input id="texture-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+  <input id="agent-image-input" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+  <script type="module" src="./src/app.mjs"></script>
+</body>
+</html>

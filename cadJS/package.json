@@ -1,0 +1,12 @@
+{
+  "name": "michi-neko-cadjs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone, non-destructive Three.js CAD editor for Michi-Neko.",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node tests/catalog.test.mjs",
+    "check": "set CADJS_VALIDATE=1&& node -e \"Promise.all([import('./server.mjs'),import('./src/catalog.mjs'),import('./src/agent-protocol.mjs')]).then(() => console.log('server/catalog/agent modules: ok'))\" && node tests/catalog.test.mjs"
+  }
+}
