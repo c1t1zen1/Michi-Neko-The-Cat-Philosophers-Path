@@ -8,6 +8,10 @@ import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
 import { fingerprintDescriptor, splitLabel } from './catalog.mjs';
 import { AgentPanel } from './agent-panel.mjs';
+import {
+  ASSET_PACKAGE_FORMAT, changedObjectComponents, createAssetPackage, evaluateAssetCompatibility,
+  hashValue, normalizeAssetId, validateAssetPackage
+} from './asset-package.mjs';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -111,6 +115,120 @@ function applySnapshot(object, data) {
   }
 }
 
+function semanticSegment(value, fallback = 'object') {
+  return normalizeAssetId(value, fallback).replace(/\./g, '-');
+}
+
+function arrayType(name) {
+  return {
+    Float32Array, Float64Array, Int8Array, Uint8Array, Uint8ClampedArray, Int16Array, Uint16Array,
+    Int32Array, Uint32Array
+  }[name] || Float32Array;
+}
+
+function attributeValues(attribute) {
+  if (!attribute?.isInterleavedBufferAttribute) return Array.from(attribute?.array || []);
+  const values = [];
+  for (let index = 0; index < attribute.count; index++) {
+    for (let component = 0; component < attribute.itemSize; component++) {
+      values.push(attribute.data.array[index * attribute.data.stride + attribute.offset + component]);
+    }
+  }
+  return values;
+}
+
+function serializeAttribute(attribute) {
+  if (!attribute) return null;
+  const source = attribute.isInterleavedBufferAttribute ? attribute.data.array : attribute.array;
+  return { itemSize:attribute.itemSize, normalized:!!attribute.normalized, arrayType:source?.constructor?.name || 'Float32Array', values:attributeValues(attribute) };
+}
+
+function serializeGeometry(geometry) {
+  if (!geometry) return null;
+  const attributes = {};
+  for (const [name, attribute] of Object.entries(geometry.attributes || {})) attributes[name] = serializeAttribute(attribute);
+  const morphAttributes = {};
+  for (const [name, list] of Object.entries(geometry.morphAttributes || {})) morphAttributes[name] = list.map(serializeAttribute);
+  return {
+    type:geometry.type, name:geometry.name || '', userData:geometry.userData || {}, index:serializeAttribute(geometry.index), attributes,
+    morphAttributes, morphTargetsRelative:!!geometry.morphTargetsRelative, groups:(geometry.groups || []).map((group) => ({ ...group })),
+    drawRange:{ start:geometry.drawRange?.start || 0, count:Number.isFinite(geometry.drawRange?.count) ? geometry.drawRange.count : null }
+  };
+}
+
+function parseAttribute(data) {
+  if (!data) return null;
+  return new THREE.BufferAttribute(new (arrayType(data.arrayType))(data.values || []), Number(data.itemSize || 1), !!data.normalized);
+}
+
+function parseGeometry(data) {
+  if (!data) return null;
+  const geometry = new THREE.BufferGeometry(); geometry.type = data.type || 'BufferGeometry'; geometry.name = data.name || ''; geometry.userData = data.userData || {};
+  if (data.index) geometry.setIndex(parseAttribute(data.index));
+  for (const [name, attribute] of Object.entries(data.attributes || {})) geometry.setAttribute(name, parseAttribute(attribute));
+  for (const [name, list] of Object.entries(data.morphAttributes || {})) geometry.morphAttributes[name] = list.map(parseAttribute);
+  geometry.morphTargetsRelative = !!data.morphTargetsRelative;
+  for (const group of data.groups || []) geometry.addGroup(group.start, group.count, group.materialIndex || 0);
+  if (data.drawRange) geometry.setDrawRange(data.drawRange.start || 0, data.drawRange.count == null ? Infinity : data.drawRange.count);
+  geometry.computeBoundingBox(); geometry.computeBoundingSphere(); return geometry;
+}
+
+function serializeTexture(texture) {
+  const dataUrl = texture?.userData?.dataUrl;
+  if (!texture || !dataUrl) return null;
+  return {
+    dataUrl, name:texture.name || texture.userData?.fileName || '', colorSpace:texture.colorSpace,
+    repeat:texture.repeat?.toArray(), offset:texture.offset?.toArray(), center:texture.center?.toArray(), rotation:texture.rotation || 0,
+    wrapS:texture.wrapS, wrapT:texture.wrapT, flipY:texture.flipY
+  };
+}
+
+function serializeMaterial(material) {
+  if (!material) return null;
+  const state = { type:material.type, name:material.name || '' };
+  for (const key of ['roughness','metalness','opacity','transparent','wireframe','flatShading','emissiveIntensity','side','depthWrite','depthTest','alphaTest']) if (key in material) state[key] = material[key];
+  if (material.color) state.color = material.color.getHex();
+  if (material.emissive) state.emissive = material.emissive.getHex();
+  state.map = serializeTexture(material.map);
+  return state;
+}
+
+function serializeAssetObject(object) {
+  return {
+    type:object.type,
+    transform:{ position:object.position?.toArray(), rotation:object.rotation ? [object.rotation.x, object.rotation.y, object.rotation.z, object.rotation.order] : null, scale:object.scale?.toArray() },
+    properties:{ visible:object.visible, name:object.name, renderOrder:object.renderOrder, castShadow:object.castShadow, receiveShadow:object.receiveShadow, frustumCulled:object.frustumCulled },
+    geometry:serializeGeometry(object.geometry),
+    materials:(Array.isArray(object.material) ? object.material : [object.material]).filter(Boolean).map(serializeMaterial)
+  };
+}
+
+async function applyMaterialState(material, state, textureLoader) {
+  if (!material || !state) return;
+  if (state.color !== undefined && material.color) material.color.setHex(state.color);
+  if (state.emissive !== undefined && material.emissive) material.emissive.setHex(state.emissive);
+  for (const key of ['roughness','metalness','opacity','transparent','wireframe','flatShading','emissiveIntensity','side','depthWrite','depthTest','alphaTest']) if (state[key] !== undefined && key in material) material[key] = state[key];
+  if (state.map?.dataUrl) {
+    const texture = await textureLoader.loadAsync(state.map.dataUrl); texture.name = state.map.name || '';
+    texture.userData = { ...texture.userData, dataUrl:state.map.dataUrl, fileName:state.map.name || '' };
+    if (state.map.repeat) texture.repeat.fromArray(state.map.repeat); if (state.map.offset) texture.offset.fromArray(state.map.offset); if (state.map.center) texture.center.fromArray(state.map.center);
+    texture.rotation = state.map.rotation || 0; texture.wrapS = state.map.wrapS; texture.wrapT = state.map.wrapT; texture.flipY = state.map.flipY; texture.colorSpace = state.map.colorSpace; texture.needsUpdate = true; material.map = texture;
+  } else if (state.map === null) material.map = null;
+  material.needsUpdate = true;
+}
+
+async function applyAssetObjectState(object, state, textureLoader) {
+  if (!object || !state) return;
+  const transform = state.transform || {};
+  if (transform.position && object.position) object.position.fromArray(transform.position);
+  if (transform.rotation && object.rotation) object.rotation.set(transform.rotation[0], transform.rotation[1], transform.rotation[2], transform.rotation[3] || 'XYZ');
+  if (transform.scale && object.scale) object.scale.fromArray(transform.scale);
+  for (const [key, value] of Object.entries(state.properties || {})) if (value !== undefined && key in object) object[key] = value;
+  if (state.geometry && object.geometry) object.geometry = parseGeometry(state.geometry);
+  const materials = Array.isArray(object.material) ? object.material : [object.material];
+  for (let index = 0; index < Math.min(materials.length, state.materials?.length || 0); index++) await applyMaterialState(materials[index], state.materials[index], textureLoader);
+}
+
 class History {
   constructor(onChange) { this.undoStack = []; this.redoStack = []; this.onChange = onChange; }
   push(label, undo, redo) { this.undoStack.push({ label, undo, redo }); this.redoStack.length = 0; this.onChange?.(); }
@@ -131,6 +249,8 @@ class CadApp {
     this.expanded = new Set();
     this.isolated = null;
     this.runtimeOverrides = new Map();
+    this.assetBaselines = new Map();
+    this.lastAssetPackage = null;
     this.originalGeometries = new WeakMap();
     this.textureLoader = new THREE.TextureLoader();
     this.shapeSettings = { amount: .65, axis: 'y', frequency: 3, seed: 1 };
@@ -192,7 +312,9 @@ class CadApp {
       const { Cat } = await import('../../src/cat.js');
       const cat = new Cat({ fur: 0xc99c63, belly: 0xf3e7d0, accent: 0x6b4429, eyeColor: 0xebb02a, ribbonColor: 0x315d80 });
       cat.group.name = 'Michi-Neko Character'; cat.group.userData.cadLabel = 'Michi-Neko Character'; cat.group.userData.sourceModule = 'src/cat.js';
-      this.labelCatParts(cat); this.root.add(cat.group); this.catAdapter = cat; this.focusObject(cat.group); this.rebuildTree();
+      this.labelCatParts(cat); this.root.add(cat.group); this.catAdapter = cat;
+      this.registerAsset(cat.group, { assetId:'character.michi-neko', assetType:'procedural-transform-rig', sourceModule:'src/cat.js', sourceSymbol:'Cat' });
+      this.focusObject(cat.group); this.rebuildTree();
       this.status('PROCEDURAL CAT LOADED');
     } catch (error) { this.status(`CAT ADAPTER: ${error.message}`, true); }
   }
@@ -203,6 +325,115 @@ class CadApp {
     for (const key of ['eyes', 'pupils', 'ears', 'legs', 'tailSegs']) (cat[key] || []).forEach((object, index) => {
       const target = object.root || object; target.name ||= `${splitLabel(key)} ${index + 1}`; target.userData.characterPart = `${key}.${index}`;
     });
+  }
+
+  assignSemanticIds(root, assetId) {
+    const used = new Set();
+    const explicit = (object) => {
+      const part = object.userData?.characterPart;
+      if (!part) return null;
+      const mapped = String(part)
+        .replace(/^tailRoot$/, 'tail.root').replace(/^tailSegs\.(\d+)$/, 'tail.$1')
+        .replace(/^ears\.0$/, 'ear.left').replace(/^ears\.1$/, 'ear.right')
+        .replace(/^eyes\.0$/, 'eye.left').replace(/^eyes\.1$/, 'eye.right')
+        .replace(/^pupils\.0$/, 'pupil.left').replace(/^pupils\.1$/, 'pupil.right')
+        .replace(/^legs\.0$/, 'leg.front.left').replace(/^legs\.1$/, 'leg.front.right')
+        .replace(/^legs\.2$/, 'leg.rear.left').replace(/^legs\.3$/, 'leg.rear.right');
+      return `${assetId}.${mapped}`;
+    };
+    const walk = (object, parentId) => {
+      const existing = object.userData?.cadSemanticId;
+      let semanticId = object === root ? assetId : explicit(object) || (existing?.startsWith(`${assetId}.`) ? existing : null);
+      if (!semanticId) {
+        const base = `${parentId}.${semanticSegment(object.name || object.geometry?.type || object.type)}`;
+        semanticId = base; let suffix = 2; while (used.has(semanticId)) semanticId = `${base}-${suffix++}`;
+      }
+      if (used.has(semanticId)) {
+        const base = semanticId; let suffix = 2; while (used.has(semanticId)) semanticId = `${base}-${suffix++}`;
+      }
+      used.add(semanticId); object.userData.cadSemanticId = semanticId;
+      for (const child of object.children || []) walk(child, semanticId);
+    };
+    walk(root, assetId); return used.size;
+  }
+
+  assetObjects(root) {
+    const objects = {};
+    root?.traverse?.((object) => { const id = object.userData?.cadSemanticId; if (id) objects[id] = object; });
+    return objects;
+  }
+
+  assetStates(root) {
+    const states = {};
+    for (const [id, object] of Object.entries(this.assetObjects(root))) states[id] = serializeAssetObject(object);
+    return states;
+  }
+
+  assetHierarchy(root) {
+    return Object.entries(this.assetObjects(root)).map(([id, object]) => ({ id, type:object.type, parent:object.parent?.userData?.cadSemanticId || null })).sort((a, b) => a.id.localeCompare(b.id));
+  }
+
+  registerAsset(root, options = {}) {
+    if (!root) throw new Error('Select an asset before registering it');
+    const assetId = normalizeAssetId(options.assetId || root.userData?.cadAssetId || objectLabel(root));
+    root.userData.cadAssetId = assetId; root.userData.cadAssetType = options.assetType || root.userData.cadAssetType || 'three-object';
+    root.userData.cadSourceModule = options.sourceModule ?? root.userData.cadSourceModule ?? root.userData.sourceModule ?? '';
+    root.userData.cadSourceSymbol = options.sourceSymbol ?? root.userData.cadSourceSymbol ?? '';
+    this.assignSemanticIds(root, assetId);
+    const states = this.assetStates(root); const hierarchy = this.assetHierarchy(root);
+    const baselineFingerprint = hashValue({ assetId, hierarchy, states });
+    root.userData.cadBaselineFingerprint = baselineFingerprint;
+    this.assetBaselines.set(assetId, { assetId, hierarchy, states, baselineFingerprint });
+    return root;
+  }
+
+  assetRootFor(object = this.selected) {
+    let node = object;
+    while (node && node !== this.root) { if (node.userData?.cadAssetId) return node; node = node.parent; }
+    if (object && this.isEditorObject(object)) {
+      node = object; while (node.parent && node.parent !== this.root) node = node.parent;
+      return node !== this.root ? node : null;
+    }
+    return null;
+  }
+
+  ensureAssetRoot(object = this.selected) {
+    let root = this.assetRootFor(object); if (!root) throw new Error('Select an editor asset first');
+    if (!root.userData?.cadAssetId) root = this.registerAsset(root);
+    if (!this.assetBaselines.has(root.userData.cadAssetId)) this.registerAsset(root, { assetId:root.userData.cadAssetId, assetType:root.userData.cadAssetType, sourceModule:root.userData.cadSourceModule, sourceSymbol:root.userData.cadSourceSymbol });
+    return root;
+  }
+
+  packageChanges(root) {
+    const assetId = root.userData.cadAssetId; this.assignSemanticIds(root, assetId);
+    const baseline = this.assetBaselines.get(assetId); const current = this.assetStates(root); const changes = {};
+    const baselineIds = Object.keys(baseline?.states || {}).sort(); const currentIds = Object.keys(current).sort();
+    if (hashValue(baselineIds) !== hashValue(currentIds)) throw new Error('Structural asset changes are not package-safe yet; restore added or removed parts before export');
+    for (const [id, state] of Object.entries(current)) { const change = changedObjectComponents(baseline?.states?.[id], state); if (change) changes[id] = change; }
+    return changes;
+  }
+
+  findAssetRoot(assetId) {
+    let found = null;
+    this.root.traverse((object) => { if (!found && object.userData?.cadAssetId === assetId) found = object; });
+    return found;
+  }
+
+  assetPackageSection(object) {
+    const root = this.assetRootFor(object); if (!root) return '';
+    const assetId = root.userData.cadAssetId;
+    if (!assetId) return this.section('ASSET PACKAGE', `
+      <div class="property-row"><span>Status</span><input value="Unregistered CAD asset" disabled></div>
+      <button class="wide-button" data-inspector-action="register-asset">REGISTER + CAPTURE BASELINE</button>
+    `);
+    const baseline = this.assetBaselines.get(assetId);
+    let changed = 0; try { changed = Object.keys(this.packageChanges(root)).length; } catch { changed = -1; }
+    return this.section('ASSET PACKAGE', `
+      <div class="property-row"><span>Asset ID</span><input value="${escapeHtml(assetId)}" disabled></div>
+      <div class="property-row"><span>Baseline</span><input value="${escapeHtml(baseline?.baselineFingerprint || 'Not captured')}" disabled></div>
+      <div class="property-row"><span>Changes</span><input value="${changed < 0 ? 'Structural change detected' : `${changed} semantic objects`}" disabled></div>
+      <div class="button-grid"><button data-inspector-action="export-asset-package">EXPORT PACKAGE</button><button data-inspector-action="rebase-asset">CAPTURE NEW BASELINE</button></div>
+    `);
   }
 
   setupUi() {
@@ -391,6 +622,7 @@ class CadApp {
       ${object.isLight ? this.lightSection(object) : ''}
       ${object.isCamera ? this.cameraSection(object) : ''}
       ${object.isInstancedMesh ? this.instanceSection(object) : ''}
+      ${this.assetPackageSection(object)}
       ${this.section('METADATA', `<div class="property-row"><span>Path</span><input value="${escapeHtml(pathForObject(object))}" disabled></div><div class="property-row"><span>Children</span><input value="${object.children?.length || 0}" disabled></div>`)}
     `;
     this.bindInspector(object, material);
@@ -668,6 +900,9 @@ class CadApp {
       const materials = Array.isArray(this.selected.material) ? this.selected.material : [this.selected.material]; materials.forEach((material) => { if (material.map) { material.map.repeat.set(1,1); material.map.offset.set(0,0); material.map.center.set(.5,.5); material.map.rotation = 0; material.map.needsUpdate = true; } }); this.refreshInspector();
     }
     if (action === 'extract-instance') this.extractInstance();
+    if (action === 'export-asset-package') this.exportAssetPackage();
+    if (action === 'rebase-asset') this.rebaseAsset();
+    if (action === 'register-asset') this.registerSelectedAsset();
   }
 
   addObject(type) {
@@ -744,7 +979,7 @@ class CadApp {
 
   showMenu(name, anchor) {
     const menus = {
-      file: [['New project','new'],['Open project…','open'],['Save browser project','save'],['Export project JSON','export-project'],['Export selected GLB','export-glb'],['Export selected OBJ','export-obj'],['Export game overrides','export-overrides'],['Viewport PNG','screenshot']],
+      file: [['New project','new'],['Open project / package…','open'],['Save browser project','save'],['Export project JSON','export-project'],['Export versioned asset package','export-asset-package'],['Export selected GLB','export-glb'],['Export selected OBJ','export-obj'],['Export game overrides','export-overrides'],['Viewport PNG','screenshot']],
       edit: [['Undo','undo','Ctrl+Z'],['Redo','redo','Ctrl+Y'],['Duplicate','duplicate','Ctrl+D'],['Remove','delete','Delete'],['Reset transform','reset-transform']],
       object: [['Add box','add-box'],['Add sphere','add-sphere'],['Add cylinder','add-cylinder'],['Add directional light','add-light'],['Isolate selection','isolate','I'],['Frame selection','focus','F']],
       view: [['CAD / game environment','toggle-view','Tab'],['Perspective','view-persp','1'],['Front','view-front','2'],['Right','view-side','3'],['Top','view-top','4'],['Grid','grid','G'],['Wireframe','wireframe','X']],
@@ -760,7 +995,7 @@ class CadApp {
     const map = { undo: () => this.history.undo(), redo: () => this.history.redo(), duplicate: () => this.duplicateSelected(), delete: () => this.deleteSelected(), 'reset-transform': () => this.action('reset-transform'), isolate: () => this.toggleIsolation(), focus: () => this.focusObject(this.selected),
       'add-box': () => this.addObject('BoxGeometry'), 'add-sphere': () => this.addObject('SphereGeometry'), 'add-cylinder': () => this.addObject('CylinderGeometry'), 'add-light': () => this.addObject('DirectionalLight'),
       'toggle-view': () => this.toggleView(), 'view-persp': () => this.setCameraView('perspective'), 'view-front': () => this.setCameraView('front'), 'view-side': () => this.setCameraView('side'), 'view-top': () => this.setCameraView('top'),
-      grid: () => $('#grid-toggle').click(), wireframe: () => this.toggleWireframe(), save: () => this.saveProject(), open: () => $('#file-input').click(), 'export-project': () => this.exportProject(), 'export-overrides': () => this.exportOverrides(),
+      grid: () => $('#grid-toggle').click(), wireframe: () => this.toggleWireframe(), save: () => this.saveProject(), open: () => $('#file-input').click(), 'export-project': () => this.exportProject(), 'export-asset-package': () => this.exportAssetPackage(), 'export-overrides': () => this.exportOverrides(),
       'export-glb': () => this.exportGlb(), 'export-obj': () => this.exportObj(), screenshot: () => this.screenshot(), rescan: () => this.loadCatalog(true), 'reload-game': () => { this.frame.contentWindow.location.reload(); },
       'agent-open': () => this.agentPanel.open(), 'agent-local': () => this.setAgentProvider('local'), 'agent-mcp': () => this.setAgentProvider('mcp'), 'agent-openai': () => this.setAgentProvider('openai'), 'agent-openrouter': () => this.setAgentProvider('openrouter'), 'agent-anthropic': () => this.setAgentProvider('anthropic'),
       new: () => this.newProject(), about: () => alert('cadJS\nStandalone Three.js CAD workspace for Michi-Neko.\nAll editor files and saved data remain separate from the game source.') };
@@ -804,7 +1039,7 @@ class CadApp {
       format: 'cadJS-project', version: 1, savedAt: new Date().toISOString(),
       scene: this.root.toJSON(), camera: { position: this.camera.position.toArray(), target: this.orbit.target.toArray() },
       settings: { background: `#${this.scene.background.getHexString()}`, grid: this.grid.visible, snap: !!this.snap },
-      runtimeOverrides: [...this.runtimeOverrides.values()]
+      runtimeOverrides: [...this.runtimeOverrides.values()], assetBaselines: Object.fromEntries(this.assetBaselines), lastAssetPackage: this.lastAssetPackage
     };
   }
 
@@ -812,10 +1047,67 @@ class CadApp {
   exportProject() { download(`michi-neko-${Date.now()}.cadjs.json`, JSON.stringify(this.serializeProject(), null, 2)); }
   exportOverrides() { download(`michi-neko-${Date.now()}.overrides.json`, JSON.stringify({ format: 'cadJS-overrides', version: 1, overrides: [...this.runtimeOverrides.values()] }, null, 2)); }
 
+  exportAssetPackage() {
+    try {
+      const root = this.ensureAssetRoot(); const assetId = root.userData.cadAssetId; const baseline = this.assetBaselines.get(assetId);
+      const packageVersion = prompt('Asset package version (semantic versioning)', this.lastAssetPackage?.assetId === assetId ? this.lastAssetPackage.packageVersion : '0.1.0');
+      if (packageVersion == null) return;
+      const notes = prompt('Describe this asset revision', '') ?? '';
+      const changes = this.packageChanges(root);
+      const assetPackage = createAssetPackage({
+        assetId, packageVersion, assetType:root.userData.cadAssetType,
+        source:{ module:root.userData.cadSourceModule || root.userData.sourceModule || '', symbol:root.userData.cadSourceSymbol || '', baselineFingerprint:baseline.baselineFingerprint },
+        parentPackage:this.lastAssetPackage?.assetId === assetId ? { version:this.lastAssetPackage.packageVersion, checksum:this.lastAssetPackage.checksum } : null,
+        changes:{ objects:changes }, metadata:{ notes }
+      });
+      validateAssetPackage(assetPackage); this.lastAssetPackage = { assetId, packageVersion:assetPackage.packageVersion, checksum:assetPackage.checksum };
+      download(`${assetId}-${assetPackage.packageVersion}.cadasset.json`, JSON.stringify(assetPackage, null, 2));
+      this.status(`ASSET PACKAGE ${assetPackage.packageVersion}: ${Object.keys(changes).length} OBJECT CHANGES`); this.refreshInspector();
+    } catch (error) { this.status(`ASSET PACKAGE: ${error.message}`, true); }
+  }
+
+  rebaseAsset() {
+    try {
+      const root = this.ensureAssetRoot();
+      if (!confirm(`Capture the current ${root.userData.cadAssetId} design as a new package baseline?\n\nExisting packages from the old baseline will become incompatible.`)) return;
+      this.registerAsset(root, { assetId:root.userData.cadAssetId, assetType:root.userData.cadAssetType, sourceModule:root.userData.cadSourceModule, sourceSymbol:root.userData.cadSourceSymbol });
+      this.lastAssetPackage = null; this.refreshInspector(); this.status('NEW ASSET BASELINE CAPTURED');
+    } catch (error) { this.status(`ASSET BASELINE: ${error.message}`, true); }
+  }
+
+  registerSelectedAsset() {
+    try {
+      const root = this.assetRootFor(this.selected); if (!root) throw new Error('Select an editor asset first');
+      const suggested = normalizeAssetId(`asset.${objectLabel(root)}`);
+      const assetId = prompt('Stable asset ID', suggested); if (assetId == null) return;
+      this.registerAsset(root, { assetId }); this.select(root); this.status(`ASSET REGISTERED: ${root.userData.cadAssetId}`);
+    } catch (error) { this.status(`ASSET REGISTRATION: ${error.message}`, true); }
+  }
+
+  async loadAssetPackage(input) {
+    const assetPackage = validateAssetPackage(input); const root = this.findAssetRoot(assetPackage.assetId);
+    const baseline = root ? this.assetBaselines.get(assetPackage.assetId) : null;
+    const compatibility = evaluateAssetCompatibility(assetPackage, { assetId:root?.userData?.cadAssetId, baselineFingerprint:baseline?.baselineFingerprint });
+    if (!compatibility.compatible) throw new Error(compatibility.issues.join('; '));
+    const objects = this.assetObjects(root); const missing = Object.keys(assetPackage.changes.objects).filter((id) => !objects[id]);
+    if (missing.length) throw new Error(`Package objects are missing from the loaded asset: ${missing.slice(0, 3).join(', ')}`);
+    const typeMismatches = Object.entries(assetPackage.changes.objects).filter(([id, state]) => state.type && state.type !== objects[id].type).map(([id]) => id);
+    if (typeMismatches.length) throw new Error(`Package object types do not match the loaded asset: ${typeMismatches.slice(0, 3).join(', ')}`);
+    const count = compatibility.objectCount;
+    if (!confirm(`Apply ${assetPackage.assetId} package ${assetPackage.packageVersion}?\n\n${count} semantic object change${count === 1 ? '' : 's'}\nChecksum: ${assetPackage.checksum}\n\nThis is reversible with Undo.`)) return;
+    const before = {}; for (const id of Object.keys(assetPackage.changes.objects)) before[id] = serializeAssetObject(objects[id]);
+    for (const [id, state] of Object.entries(assetPackage.changes.objects)) await applyAssetObjectState(objects[id], state, this.textureLoader);
+    const after = {}; for (const id of Object.keys(assetPackage.changes.objects)) after[id] = serializeAssetObject(objects[id]);
+    const applyStates = async (states) => { for (const [id, state] of Object.entries(states)) await applyAssetObjectState(objects[id], state, this.textureLoader); this.refreshInspector(); this.rebuildTree(); };
+    this.history.push(`Asset ${assetPackage.packageVersion}`, () => applyStates(before), () => applyStates(after));
+    this.lastAssetPackage = { assetId:assetPackage.assetId, packageVersion:assetPackage.packageVersion, checksum:assetPackage.checksum };
+    this.select(root); this.status(`ASSET PACKAGE ${assetPackage.packageVersion} APPLIED: ${count} OBJECTS`);
+  }
+
   async openFile(file) {
     if (!file) return;
     const ext = file.name.split('.').pop().toLowerCase();
-    if (ext === 'json') { try { this.loadProject(JSON.parse(await file.text())); } catch (error) { this.status(`OPEN: ${error.message}`, true); } }
+    if (ext === 'json') { try { const data = JSON.parse(await file.text()); if (data.format === ASSET_PACKAGE_FORMAT) await this.loadAssetPackage(data); else this.loadProject(data); } catch (error) { this.status(`OPEN: ${error.message}`, true); } }
     else this.loadModelFile(file);
     $('#file-input').value = '';
   }
@@ -828,10 +1120,12 @@ class CadApp {
     for (const child of [...loaded.children]) this.root.add(child);
     if (project.camera?.position) this.camera.position.fromArray(project.camera.position); if (project.camera?.target) this.orbit.target.fromArray(project.camera.target);
     this.grid.visible = project.settings?.grid !== false; this.runtimeOverrides = new Map((project.runtimeOverrides || []).map((item) => [fingerprintDescriptor({ source:'game', path:item.path }), item]));
+    this.assetBaselines = new Map(Object.entries(project.assetBaselines || {})); this.lastAssetPackage = project.lastAssetPackage || null;
+    if (!this.assetBaselines.size) this.root.children.filter((child) => child.userData?.cadAssetId).forEach((child) => this.registerAsset(child, { assetId:child.userData.cadAssetId, assetType:child.userData.cadAssetType, sourceModule:child.userData.cadSourceModule, sourceSymbol:child.userData.cadSourceSymbol }));
     this.select(null); this.rebuildTree(); this.status('PROJECT LOADED');
   }
 
-  newProject() { if (!confirm('Clear the current CAD workspace?')) return; this.transform.detach(); while (this.root.children.length) this.root.remove(this.root.children[0]); this.runtimeOverrides.clear(); this.addStarterScene(); this.rebuildTree(); }
+  newProject() { if (!confirm('Clear the current CAD workspace?')) return; this.transform.detach(); while (this.root.children.length) this.root.remove(this.root.children[0]); this.runtimeOverrides.clear(); this.assetBaselines.clear(); this.lastAssetPackage = null; this.addStarterScene(); this.rebuildTree(); }
 
   applyRuntimeOverrides() {
     const root = this.runtimeGame?.scene; if (!root) return this.status('GAME SCENE NOT READY', true);

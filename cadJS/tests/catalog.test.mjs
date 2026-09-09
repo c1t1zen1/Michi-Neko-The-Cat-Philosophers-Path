@@ -5,6 +5,10 @@ import {
 import {
   createProviderRequest, extractJson, extractProviderText, normalizeAgentSettings, validateAgentPlan
 } from '../src/agent-protocol.mjs';
+import {
+  changedObjectComponents, changedObjectStates, createAssetPackage, evaluateAssetCompatibility, hashValue, normalizeAssetId,
+  stableStringify, validateAssetPackage
+} from '../src/asset-package.mjs';
 
 const tests = [];
 const test = (name, callback) => tests.push({ name, callback });
@@ -78,6 +82,41 @@ test('builds Anthropic image requests and extracts provider text', () => {
   assert.equal(request.body.thinking.budget_tokens, 1920);
   assert.equal(extractProviderText('anthropic', { content: [{ type:'text', text:'{"actions":[]}' }] }), '{"actions":[]}');
   assert.equal(extractProviderText('openai', { choices:[{ message:{ content:'ok' } }] }), 'ok');
+});
+
+test('creates deterministic asset package hashes and semantic identifiers', () => {
+  assert.equal(stableStringify({ z:1, a:{ y:2, x:3 } }), '{"a":{"x":3,"y":2},"z":1}');
+  assert.equal(hashValue({ a:1, b:2 }), hashValue({ b:2, a:1 }));
+  assert.equal(normalizeAssetId(' Character / Michi Neko '), 'character.michi-neko');
+});
+
+test('creates, validates, and detects tampering in versioned asset packages', () => {
+  const assetPackage = createAssetPackage({
+    assetId: 'character.michi-neko', packageVersion: '0.2.0', assetType: 'procedural-transform-rig',
+    source: { module:'src/cat.js', symbol:'Cat', baselineFingerprint:'fnv1a32-12345678' },
+    changes: { objects: { 'character.michi-neko.head': { position:[0,1,0] } } },
+    metadata: { notes:'Rounder head' }
+  });
+  assert.equal(validateAssetPackage(assetPackage).packageVersion, '0.2.0');
+  assert.throws(() => validateAssetPackage({ ...assetPackage, packageVersion:'0.2.1' }), /checksum/);
+  assert.throws(() => createAssetPackage({ packageVersion:'version two' }), /semantic versioning/);
+});
+
+test('reports package baseline compatibility and extracts incremental changes', () => {
+  const baseline = { 'character.cat.head': hashValue({ scale:[1,1,1] }) };
+  const states = { 'character.cat.head': { scale:[1.2,1,1] }, 'character.cat.body': { visible:true } };
+  const changes = changedObjectStates(baseline, states);
+  assert.deepEqual(Object.keys(changes).sort(), ['character.cat.body', 'character.cat.head']);
+  const assetPackage = createAssetPackage({ assetId:'character.cat', source:{ baselineFingerprint:'base-1' }, changes:{ objects:changes } });
+  assert.equal(evaluateAssetCompatibility(assetPackage, { assetId:'character.cat', baselineFingerprint:'base-1' }).compatible, true);
+  assert.match(evaluateAssetCompatibility(assetPackage, { assetId:'character.cat', baselineFingerprint:'base-2' }).issues[0], /different asset baseline/);
+});
+
+test('emits sparse object components instead of duplicating unchanged geometry', () => {
+  const baseline = { type:'Mesh', transform:{ position:[0,0,0] }, properties:{ visible:true }, geometry:{ attributes:{ position:[1,2,3] } }, materials:[{ color:1 }] };
+  const current = { ...baseline, transform:{ position:[0,1,0] } };
+  assert.deepEqual(changedObjectComponents(baseline, current), { type:'Mesh', transform:{ position:[0,1,0] } });
+  assert.equal(changedObjectComponents(baseline, { ...baseline }), null);
 });
 
 let failures = 0;
