@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%88%E2%80%8D%E2%AC%9B%3C/text%3E%3C/svg%3E">
+  <meta name="theme-color" content="#0a0f1c">
+  <title>dawCAT · Web Audio Studio</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ======================= TOP BAR ======================= -->
+  <header id="topbar">
+    <div class="logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 21c-4.5 0-8-2.6-8-6.4 0-2.1 1.2-3.6 2.6-4.6C5.4 12.9 6 11 6 9c0-2.5 1.6-4 3.2-2.6.9.8 1.6 2 2 3.3.7-.2 1.3-.3 2-.3s1.3.1 2 .3c.4-1.3 1.1-2.5 2-3.3C17.6 5 19.2 6.5 19.2 9c0 2 .6 3.9 2 5.2 1.4 1 2 2.5 2 4.4" stroke="#5aa2ff" stroke-width="0" /><path d="M4.5 10.5c0-2.2 1.3-3.6 2.7-2.4.8.7 1.4 1.9 1.8 3.1M19.5 10.5c0-2.2-1.3-3.6-2.7-2.4-.8.7-1.4 1.9-1.8 3.1M9.5 7.2C9.3 5 10.4 3.4 11.7 4.4c.6.5 1 1.5 1.3 2.6M12 20.5c-3.9 0-7-2.2-7-5.5 0-1.9 1.1-3.3 2.4-4.2C8.7 9.9 9.4 8 9.4 6.2c0-1.9 1.4-3 2.6-1.9.7.6 1.2 1.6 1.5 2.7" stroke="#5aa2ff" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <div class="logo-text"><strong>dawCAT</strong><span>Web Audio Studio v1.0.0</span></div>
+    </div>
+    <nav id="menus"></nav>
+    <div id="transport">
+      <button id="btn-rewind" class="tbtn" title="Return to start (Home)">⏮</button>
+      <button id="btn-play" class="tbtn" title="Play / Pause (Space)">▶</button>
+      <button id="btn-stop" class="tbtn" title="Stop">■</button>
+      <button id="btn-record" class="tbtn rec" title="Record (musical typing into selected clip)">●</button>
+      <button id="btn-loop" class="tbtn" title="Toggle loop region">🔁</button>
+      <button id="btn-metronome" class="tbtn" title="Metronome">🔔</button>
+    </div>
+    <div class="tfield" title="Tempo (BPM) — click to edit"><span id="tempo-val">128.00</span></div>
+    <div class="tfield sig"><span id="sig-val">4 / 4</span></div>
+    <div class="tfield pos"><span id="pos-val">1 . 1 . 1</span></div>
+    <div id="sysmeters">
+      <div class="sysrow"><span>CPU</span><div class="meter"><div id="cpu-bar"></div></div><span id="cpu-val">0%</span></div>
+      <div class="sysrow"><span>VOX</span><div class="meter"><div id="vox-bar"></div></div><span id="vox-val">0</span></div>
+    </div>
+    <div id="online-dot"><span class="dot"></span> Online</div>
+    <button id="btn-enable-audio" class="enable-audio hidden">🔊 Enable Audio</button>
+  </header>
+
+  <!-- ======================= MAIN ======================= -->
+  <div id="main">
+
+    <!-- Browser -->
+    <aside id="browser">
+      <div class="panel-head">
+        <span class="ph-tab active" data-bt="browser">Browser</span>
+        <span class="ph-tab" data-bt="search">Search</span>
+        <button id="btn-rescan" class="mini-btn" title="Rescan game code for music cues">⟳ Rescan</button>
+      </div>
+      <div id="browser-search-row" class="hidden"><input id="browser-search" type="text" placeholder="Search library…"></div>
+      <div id="browser-tree"></div>
+    </aside>
+
+    <!-- CENTER -->
+    <section id="center">
+      <div id="tabs">
+        <div class="tab active" data-tab="arrangement">Arrangement</div>
+        <div class="tab" data-tab="mix">Mix</div>
+        <div class="tab" data-tab="pianoroll">Piano Roll</div>
+        <div class="tab" data-tab="clip">Clip</div>
+        <div class="tab-spacer"></div>
+        <label class="snap-label">Snap:
+          <select id="snap-select">
+            <option value="bar">Bar</option>
+            <option value="beat" selected>Beat</option>
+            <option value="1/8">1/8</option>
+            <option value="1/16">1/16</option>
+            <option value="off">Off</option>
+          </select>
+        </span>
+        <div class="zoom-ctl">Zoom:
+          <button id="zoom-out">−</button>
+          <input type="range" id="zoom-range" min="16" max="160" value="48">
+          <button id="zoom-in">+</button>
+        </div>
+      </div>
+
+      <div id="views">
+        <div id="view-arrangement" class="view active">
+          <canvas id="arr-canvas"></canvas>
+        </div>
+        <div id="view-mix" class="view"><div id="mixer"></div></div>
+        <div id="view-pianoroll" class="view"><canvas id="pr-canvas"></canvas></div>
+        <div id="view-clip" class="view"><div id="clip-editor"></div></div>
+      </div>
+    </section>
+
+    <!-- INSPECTOR -->
+    <aside id="inspector">
+      <div class="panel-head">
+        <span class="ph-tab active">Inspector</span>
+        <span class="ph-tab">Mixer</span>
+        <span class="ph-tab">Plugins</span>
+        <span class="ph-tab">Metadata</span>
+      </div>
+      <div id="insp-body"></div>
+    </aside>
+  </div>
+
+  <!-- ======================= DEVICE CHAIN ======================= -->
+  <section id="devicechain">
+    <div id="devices-left">
+      <div class="panel-head"><span>Device Chain</span><span id="dc-track-name" class="dc-track"></span></div>
+      <div id="device-list"></div>
+      <div id="device-add">
+        <select id="device-add-select">
+          <option value="">+ Add Device…</option>
+          <option value="analog">Analog (Synth)</option>
+          <option value="eq8">EQ Eight</option>
+          <option value="comp">Compressor</option>
+          <option value="delay">Delay</option>
+          <option value="reverb">Reverb</option>
+          <option value="filter">Auto Filter</option>
+          <option value="chorus">Chorus-Ensemble</option>
+          <option value="utility">Utility (Gain)</option>
+        </select>
+      </div>
+    </div>
+    <div id="device-editor"></div>
+  </section>
+</div>
+
+<div id="toasts"></div>
+<div id="modal-root"></div>
+<div id="ctx-menu" class="hidden"></div>
+<input type="file" id="file-input" accept=".json" hidden>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
