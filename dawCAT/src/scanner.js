@@ -84,7 +84,7 @@ function scanText(file, text, out) {
     const hz = hzAll(arrays, freqs);
     const isAmbient = m[0].startsWith('start');
     const hasContent = oscTypes.length > 0 || hz.length > 0 || /createBuffer|createOscillator/.test(body);
-    if (!isAmbient && !oscTypes.length && !hz.length) continue;
+    if (!hasContent) continue;
     out.push({
       id: `m:${file}:${m[2]}:${lineOf(lines, text, m[0])}`,
       kind: isAmbient ? 'ambient' : 'sfx',
