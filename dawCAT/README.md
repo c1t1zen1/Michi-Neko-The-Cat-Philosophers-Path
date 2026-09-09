@@ -73,9 +73,21 @@ Both the hot-swap snippet and `music.js` carry each track's full **device chain*
 
 ## AI composition agent
 
-Click **✦ AI Agent** in the top bar (or **AI Agent ▸ Open AI Composition Agent**). Describe a melody, rhythm, or idea in plain language; the agent turns it into a constrained JSON plan of DAW actions — new tracks, clips (notes or drum steps), presets, FX, mix levels, tempo/key/scale/swing — that dawCAT validates and applies. It cannot execute arbitrary JavaScript, touch game or project files, or do anything outside the action list below. Same harness shape as cadJS's design agent, adapted for music instead of geometry.
+Click the **✦ AI** tab next to Arrangement/Mix/Piano Roll/Clip (or **AI Agent ▸ Open AI Composition Agent**). It opens as a floating panel, not a view swap — the tab underneath keeps whatever you were looking at, and the agent panel floats on top. **Closing the panel doesn't stop a request in flight** — it keeps generating in the background; click the AI tab again to reopen and see where it's at.
+
+Describe a melody, rhythm, or idea in plain language; the agent turns it into a constrained JSON plan of DAW actions — new or reworked tracks, clips (notes or drum steps), presets, FX, mix levels, tempo/key/scale/swing, the master fader — that dawCAT validates and **applies automatically the moment the full response comes back**, no separate confirm step. It cannot execute arbitrary JavaScript, touch game or project files, or do anything outside the action list below. `Ctrl+Z` or **Undo Last** reverts the whole plan in one step if you don't like the result. Same harness shape as cadJS's design agent, adapted for music instead of geometry.
 
 Requires the Node server (`npm start` in `dawCAT/`, see [Run it](#run-it)) — the agent panel proxies through `/api/agent` so the browser never has to fight CORS or expose your API key to a third-party origin directly. Without it, every other part of dawCAT works fine; the panel just reports that the agent server isn't running.
+
+### Remix / Write / Free Mode
+
+Three buttons above the prompt box pick how the request is framed — all three see the same full context (every track's real clip content, not just a count), so any of them can act on what's already in the project:
+
+| Mode | What it tells the model |
+|---|---|
+| **Remix** | Rework the existing composition — prefer altering what's there (swap a clip's content, retune a preset, tweak a device, adjust mix) over piling on unrelated new tracks. |
+| **Write** | Compose something new — prefer adding fresh tracks/clips, only touching existing ones if the request needs it. |
+| **Free Mode** | Follow the request exactly as given, whether that's a one-line tweak, a full remix, a new composition, or all of the above. |
 
 ### Providers
 
@@ -97,19 +109,11 @@ llama-server -m C:\models\your-model.gguf --host 127.0.0.1
 
 ### Context sent to the model
 
-The whole project's musical shape, not the audio itself: tempo/key/scale/swing/time signature, every track (id, name, kind, preset, drum kit, clip count), the current selection, and up to 12 of the scanned Game Cues' phase data (scene, time of day, root Hz, chord, scale) — so a prompt like *"match the dusk cue's mood"* has something real to work from.
-
-### Execution modes
-
-| Mode | Behavior |
-|---|---|
-| Plan only | Displays the plan; **RUN PLAN** disabled |
-| Confirm before run | Waits for **RUN PLAN** |
-| Auto-run valid plans | Runs immediately after protocol validation |
+The whole project's actual musical content, not just a summary: tempo/key/scale/swing/time signature, the master fader, and every track (id, name, kind, preset or drum kit, volume/pan/mute/solo, device list) **with its real clips** — id, timing, and the full note list or drum-step pattern — plus up to 12 of the scanned Game Cues' phase data (scene, time of day, root Hz, chord, scale). That's what lets Remix mode meaningfully rework a clip that's already there instead of only ever bolting new material on, and lets any mode match a Game Cue's mood on request.
 
 ### Supported actions
 
-`addTrack` (synth or drum, with a preset/kit), `renameTrack`, `deleteTrack`, `setTrackMix` (volume/pan/mute/solo/sends), `setTrackPreset`, `addDevice` (EQ/comp/delay/reverb/filter/chorus/utility), `addClip` (note melody on a synth track, or a 16-step rhythm on a drum track), `deleteClip`, `setTempo`, `setKeyScale`, `setSwing`. Plans are limited to 40 actions and applied as **one undoable transaction** (`Ctrl+Z` or **Undo Last** reverts the whole plan in one step) — a plan that fails partway rolls the project back completely rather than leaving a half-applied mess.
+`addTrack` (synth or drum, with a preset/kit), `renameTrack`, `deleteTrack`, `setTrackMix` (volume/pan/mute/solo/sends), `setTrackPreset`, `addDevice` (EQ/comp/delay/reverb/filter/chorus/utility), `setDeviceParams` (tweaks the first device of a given type already on the track, adding one if it's missing — no duplicate stacking), `addClip` (note melody on a synth track, or a 16-step rhythm on a drum track — pairing `deleteClip` + `addClip` on the same track is how a remix replaces a clip's content), `deleteClip`, `setTempo`, `setKeyScale`, `setSwing`, `setMaster` (master fader). Plans are limited to 40 actions and applied as **one undoable transaction** — a plan that fails partway rolls the project back completely rather than leaving a half-applied mess.
 
 ### Example prompt
 

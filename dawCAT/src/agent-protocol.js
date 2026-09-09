@@ -8,7 +8,7 @@ export const AGENT_PROTOCOL_VERSION = 1;
 
 export const SUPPORTED_AGENT_ACTIONS = new Set([
   'addTrack', 'renameTrack', 'deleteTrack', 'setTrackMix', 'setTrackPreset',
-  'addDevice', 'addClip', 'deleteClip', 'setTempo', 'setKeyScale', 'setSwing'
+  'addDevice', 'setDeviceParams', 'addClip', 'deleteClip', 'setTempo', 'setKeyScale', 'setSwing', 'setMaster'
 ]);
 
 export function agentProtocolSchema() {
@@ -20,7 +20,7 @@ export function agentProtocolSchema() {
 }
 
 const SYSTEM_PROMPT = `You are the dawCAT music composition agent for the Michi-Neko game soundtrack. Return JSON only.
-Create a small, musically coherent plan of DAW actions the browser editor can execute directly. Never return audio data, JavaScript, shell commands, markdown, or unsupported actions.
+Create a small, musically coherent plan of DAW actions the browser editor can execute directly and automatically the moment you respond — there is no separate confirmation step, so only include actions you actually intend to happen. Never return audio data, JavaScript, shell commands, markdown, or unsupported actions.
 The response must match:
 {"summary":"short explanation","actions":[{"type":"supported action","target":"selection|track id|trackId:clipId","params":{}}],"caveats":["optional caveat"]}
 Supported actions and params:
@@ -29,13 +29,21 @@ Supported actions and params:
 - deleteTrack {}
 - setTrackMix { volume?:0..1, pan?:-1..1, mute?:boolean, solo?:boolean, sends?:{a?:0..1,b?:0..1} }
 - setTrackPreset { preset:"pluck|pad|lead|bass|keys|chime", patch?:{cutoff?:20..12000,res?:0..8,attack?:0..4,decay?:0..4,sustain?:0..1,release?:0..6,detune?:0..50,gain?:0..1} } (synth tracks only)
-- addDevice { type:"eq8|comp|delay|reverb|filter|chorus|utility" }
-- addClip { name?, start:bars, length:bars, loop?:boolean, loopLen?:beats, notes?:[{midi:0-127,start:beats,len:beats,vel:0-1}], steps?:{"kick|snare|clap|hatC|hatO|tom|rim|perc":[[stepIndex 0-15, velocity 0-1], ...]} } — use \`notes\` for a synth track's melody, \`steps\` for a drum track's rhythm, never both.
+- addDevice { type:"eq8|comp|delay|reverb|filter|chorus|utility" } — adds a new device even if the track already has one of this type.
+- setDeviceParams { type:"eq8|comp|delay|reverb|filter|chorus|utility", params:{...device-specific params, any subset} } — adjusts the FIRST device of this type already on the track; adds one with these params if none exists yet. Use this to tweak an existing effect instead of stacking duplicates.
+- addClip { name?, start:bars, length:bars, loop?:boolean, loopLen?:beats, notes?:[{midi:0-127,start:beats,len:beats,vel:0-1}], steps?:{"kick|snare|clap|hatC|hatO|tom|rim|perc":[[stepIndex 0-15, velocity 0-1], ...]} } — use \`notes\` for a synth track's melody, \`steps\` for a drum track's rhythm, never both. To REPLACE an existing clip's content (remix), pair a deleteClip of the old "trackId:clipId" with an addClip of the new content on the same track — addClip never overwrites in place.
 - deleteClip {} — target must be "trackId:clipId"
 - setTempo { bpm:40..220 }
 - setKeyScale { key:"C|C#|D|D#|E|F|F#|G|G#|A|A#|B", scale:"major|minor|dorian|pentatonic minor|pentatonic major|hirajoshi|in sen|chromatic" }
 - setSwing { swing:0..1 }
-"selection" (the default target) means the most recently created/targeted track earlier in this same plan, or the editor's current selection if this is the first action to need one. Reference an existing track from CONTEXT by its id. Prefer a handful of coherent tracks/clips over a wall of actions. Do not delete a track or clip unless explicitly asked to. When the request references the game's mood (e.g. "dawn", "dusk", a Game Cue name) or CONTEXT lists matching gameCues, match their root/scale/chord so the result fits the game's own musical DNA.`;
+- setMaster { volume:0..1 } — target ignored, applies to the master fader
+"selection" (the default target) means the most recently created/targeted track earlier in this same plan, or the editor's current selection if this is the first action to need one. Reference an existing track/clip from DAW CONTEXT by its real id — CONTEXT lists every track's clips with their ids and full note/step content so you can reason about and rework what's already there. Prefer a handful of coherent tracks/clips over a wall of actions. Do not delete a track or clip unless explicitly asked to (remixing an existing clip via delete+add on the SAME track doesn't count as an unrequested deletion). When the request references the game's mood (e.g. "dawn", "dusk", a Game Cue name) or CONTEXT lists matching gameCues, match their root/scale/chord so the result fits the game's own musical DNA.`;
+
+const MODE_GUIDANCE = {
+  remix: 'MODE: Remix — the user wants you to rework the EXISTING composition described in DAW CONTEXT below. Prefer altering what is already there (setTrackPreset, setTrackMix, setDeviceParams, and delete+add to replace clip content) over piling on unrelated new tracks, unless the request clearly asks for something additional.',
+  write: 'MODE: Write — the user wants a NEW composition. Prefer addTrack + addClip to build fresh tracks; only touch existing tracks/clips if the request asks for it or they conflict (e.g. reuse the same key/tempo/scale already in CONTEXT unless told to change it).',
+  free: 'MODE: Free — follow the request exactly as given. It may be one small targeted tweak, a full remix, a brand-new composition, or any mix of these.'
+};
 
 function finiteNumber(value, fallback, min = -Infinity, max = Infinity) {
   const number = Number(value);
@@ -59,13 +67,13 @@ export function normalizeAgentSettings(input = {}) {
     temperature: finiteNumber(input.temperature, 0.4, 0, 2),
     topP: finiteNumber(input.topP, 0.9, 0.01, 1),
     maxTokens: Math.round(finiteNumber(input.maxTokens, 3000, 128, 32000)),
-    reasoning: ['none', 'low', 'medium', 'high'].includes(input.reasoning) ? input.reasoning : 'medium',
-    autonomy: ['plan', 'confirm', 'auto'].includes(input.autonomy) ? input.autonomy : 'confirm'
+    reasoning: ['none', 'low', 'medium', 'high'].includes(input.reasoning) ? input.reasoning : 'medium'
   };
 }
 
-export function buildAgentPrompt({ instruction, context }) {
-  return `${SYSTEM_PROMPT}\n\nUSER REQUEST:\n${String(instruction || '').trim()}\n\nDAW CONTEXT:\n${JSON.stringify(context)}`;
+export function buildAgentPrompt({ instruction, context, mode }) {
+  const guidance = MODE_GUIDANCE[mode] || MODE_GUIDANCE.free;
+  return `${SYSTEM_PROMPT}\n\n${guidance}\n\nUSER REQUEST:\n${String(instruction || '').trim()}\n\nDAW CONTEXT:\n${JSON.stringify(context)}`;
 }
 
 export function extractJson(text) {

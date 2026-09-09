@@ -1,7 +1,11 @@
-/* dawCAT — AI composition agent panel. Mirrors cadJS's src/agent-panel.mjs:
-   a settings form (provider/model/keys/sampling), a prompt box, a validated
-   plan preview, and Run/Undo/Export. No reference-image support here — dawCAT
-   always sends the whole project as context, there's no CAD scene to scope. */
+/* dawCAT — AI composition agent panel. Mirrors cadJS's src/agent-panel.mjs
+   (settings form, prompt box, validated plan preview), adapted for dawCAT's
+   own UX: no reference images (a DAW prompt doesn't need one), a Remix/Write/
+   Free Mode selector above the prompt, and automatic apply — the plan runs
+   the instant a full, validated response comes back, no separate confirm
+   step. Lives as a floating panel toggled from the "✦ AI" tab; closing it
+   does not cancel an in-flight request, so generation keeps running in the
+   background and the panel just shows whatever state it's in when reopened. */
 import { normalizeAgentSettings } from '../agent-protocol.js';
 
 const SETTINGS_KEY = 'michi-neko-dawcat-agent-settings-v1';
@@ -23,6 +27,7 @@ export class AgentPanel {
     this.callbacks = callbacks;
     this.plan = null;
     this.controller = null;
+    this.mode = 'free';
     this.bind();
     this.loadSettings();
     this.log('Agent harness initialized');
@@ -31,21 +36,26 @@ export class AgentPanel {
   bind() {
     $('#agent-close').addEventListener('click', () => this.close());
     $('#agent-provider').addEventListener('change', () => { const preset = PRESETS[$('#agent-provider').value]; $('#agent-base-url').value = preset.baseUrl; $('#agent-model').value = preset.model; this.saveSettings(); });
-    for (const id of ['agent-base-url', 'agent-model', 'agent-api-key', 'agent-temperature', 'agent-top-p', 'agent-max-tokens', 'agent-reasoning', 'agent-autonomy']) $(`#${id}`).addEventListener('change', () => this.saveSettings());
-    $('#agent-autonomy').addEventListener('change', () => this.renderPlan());
+    for (const id of ['agent-base-url', 'agent-model', 'agent-api-key', 'agent-temperature', 'agent-top-p', 'agent-max-tokens', 'agent-reasoning']) $(`#${id}`).addEventListener('change', () => this.saveSettings());
+    document.querySelectorAll('.agent-modes button[data-mode]').forEach((button) => {
+      button.addEventListener('click', () => {
+        this.mode = button.dataset.mode;
+        document.querySelectorAll('.agent-modes button[data-mode]').forEach((b) => b.classList.toggle('active', b === button));
+      });
+    });
     $('#agent-send').addEventListener('click', () => this.generate());
     $('#agent-stop').addEventListener('click', () => this.stop());
-    $('#agent-run').addEventListener('click', () => this.run());
     $('#agent-undo').addEventListener('click', () => this.callbacks.undo?.());
     $('#agent-export-plan').addEventListener('click', () => this.plan && download(`dawcat-agent-plan-${Date.now()}.json`, JSON.stringify(this.plan, null, 2)));
   }
 
-  open() { $('#agent-panel').classList.add('open'); $('#agent-prompt').focus(); }
-  close() { $('#agent-panel').classList.remove('open'); }
+  open() { $('#agent-panel').classList.add('open'); $('#agent-prompt').focus(); this.callbacks.onToggle?.(true); }
+  close() { $('#agent-panel').classList.remove('open'); this.callbacks.onToggle?.(false); }
   toggle() { $('#agent-panel').classList.contains('open') ? this.close() : this.open(); }
+  isOpen() { return $('#agent-panel').classList.contains('open'); }
 
   settings() {
-    return normalizeAgentSettings({ provider: $('#agent-provider').value, baseUrl: $('#agent-base-url').value, model: $('#agent-model').value, apiKey: $('#agent-api-key').value, temperature: $('#agent-temperature').value, topP: $('#agent-top-p').value, maxTokens: $('#agent-max-tokens').value, reasoning: $('#agent-reasoning').value, autonomy: $('#agent-autonomy').value });
+    return normalizeAgentSettings({ provider: $('#agent-provider').value, baseUrl: $('#agent-base-url').value, model: $('#agent-model').value, apiKey: $('#agent-api-key').value, temperature: $('#agent-temperature').value, topP: $('#agent-top-p').value, maxTokens: $('#agent-max-tokens').value, reasoning: $('#agent-reasoning').value });
   }
 
   saveSettings() {
@@ -57,22 +67,26 @@ export class AgentPanel {
     let saved = {}; try { saved = JSON.parse(sessionStorage.getItem(SETTINGS_KEY) || '{}'); } catch {}
     const settings = normalizeAgentSettings(saved);
     $('#agent-provider').value = settings.provider; $('#agent-base-url').value = settings.baseUrl; $('#agent-model').value = settings.model; $('#agent-api-key').value = settings.apiKey;
-    $('#agent-temperature').value = settings.temperature; $('#agent-top-p').value = settings.topP; $('#agent-max-tokens').value = settings.maxTokens; $('#agent-reasoning').value = settings.reasoning; $('#agent-autonomy').value = settings.autonomy;
+    $('#agent-temperature').value = settings.temperature; $('#agent-top-p').value = settings.topP; $('#agent-max-tokens').value = settings.maxTokens; $('#agent-reasoning').value = settings.reasoning;
   }
 
   async generate() {
     const instruction = $('#agent-prompt').value.trim();
     if (!instruction) return this.state('Describe the melody, rhythm, or idea first.', 'error');
-    this.stop(); this.controller = new AbortController(); this.state('Building context and contacting model…', 'busy'); $('#agent-send').disabled = true;
+    this.stop(); this.controller = new AbortController(); this.state(`Building context and contacting model (${this.mode})…`, 'busy'); $('#agent-send').disabled = true;
     try {
       const settings = this.settings(); this.saveSettings();
-      const response = await fetch('/api/agent', { method: 'POST', headers: { 'content-type': 'application/json' }, signal: this.controller.signal, body: JSON.stringify({ settings, instruction, context: this.callbacks.getContext() }) });
+      const response = await fetch('/api/agent', { method: 'POST', headers: { 'content-type': 'application/json' }, signal: this.controller.signal, body: JSON.stringify({ settings, instruction, mode: this.mode, context: this.callbacks.getContext() }) });
       let data;
       try { data = await response.json(); }
       catch { throw new Error('No agent server responded — run `npm start` in dawCAT/ (see README) to enable the AI agent.'); }
       if (!response.ok) throw new Error(data.error || `Agent HTTP ${response.status}`);
-      this.plan = data.plan; this.renderPlan(); this.state(`Plan ready: ${this.plan.actions.length} validated action(s).`); this.log(`${data.provider}/${data.model}: ${this.plan.summary}`);
-      if (settings.autonomy === 'auto') await this.run();
+      this.plan = data.plan;
+      this.log(`${data.provider}/${data.model} [${this.mode}]: ${this.plan.summary}`);
+      // Apply automatically — no confirmation step. A bad plan rolls the
+      // project back completely (see AppState.applyBatch), so this can't
+      // half-apply and leave a mess.
+      await this.run();
     } catch (error) { if (error.name !== 'AbortError') this.state(error.message, 'error'); else this.state('Request stopped.'); }
     finally { this.controller = null; $('#agent-send').disabled = false; }
   }
@@ -80,15 +94,22 @@ export class AgentPanel {
   stop() { this.controller?.abort(); }
 
   renderPlan() {
-    const host = $('#agent-plan'); $('#agent-run').disabled = !this.plan?.actions?.length || this.settings().autonomy === 'plan';
-    if (!this.plan) { host.innerHTML = '<span>No plan generated.</span>'; return; }
+    const host = $('#agent-plan');
+    if (!this.plan) { host.innerHTML = '<span>No plan yet.</span>'; return; }
     host.innerHTML = `<div class="plan-summary">${escapeHtml(this.plan.summary)}</div>${this.plan.actions.map((action, index) => `<div class="plan-action"><b>${index + 1}. ${escapeHtml(action.type)}</b> → ${escapeHtml(action.target)}<br>${escapeHtml(JSON.stringify(action.params))}</div>`).join('')}${this.plan.caveats.map((note) => `<div>NOTE: ${escapeHtml(note)}</div>`).join('')}`;
   }
 
   async run() {
     if (!this.plan) return;
-    try { const count = await this.callbacks.executePlan(this.plan); this.state(`Applied ${count} action(s). Use Undo Last or Ctrl+Z to revert.`); this.log(`Executed plan with ${count} action(s)`); }
-    catch (error) { this.state(error.message, 'error'); }
+    try {
+      const count = await this.callbacks.executePlan(this.plan);
+      this.renderPlan();
+      this.state(`Applied ${count} action(s). Use Undo Last or Ctrl+Z to revert.`);
+      this.log(`Executed plan with ${count} action(s)`);
+    } catch (error) {
+      this.renderPlan();
+      this.state(`Plan failed and was rolled back: ${error.message}`, 'error');
+    }
   }
 
   state(message, mode = '') { const node = $('#agent-state'); node.textContent = message; node.className = `agent-state ${mode}`.trim(); }

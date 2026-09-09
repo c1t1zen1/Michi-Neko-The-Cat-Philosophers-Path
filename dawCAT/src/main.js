@@ -55,6 +55,19 @@ function buildStepsFromPattern(pattern) {
   return steps;
 }
 
+// Inverse of buildStepsFromPattern — reduces a full 8-lane, 16-step drum grid
+// down to only its non-zero hits, in the same shorthand the addClip action
+// schema expects, so it can be sent as context and handed straight back in a
+// remix plan without the model having to reconstruct 128 mostly-zero values.
+function compactSteps(steps) {
+  const out = {};
+  for (const [lane, arr] of Object.entries(steps)) {
+    const hits = arr.map((v, i) => (v ? [i, v] : null)).filter(Boolean);
+    if (hits.length) out[lane] = hits;
+  }
+  return out;
+}
+
 class App {
   constructor() {
     this.state = new AppState();
@@ -82,17 +95,23 @@ class App {
     this.mixer = new Mixer(this);
     this.inspector = new Inspector(this);
     this.devices = new Devices(this);
+    const tabAi = document.getElementById('tab-ai');
     this.agentPanel = new AgentPanel({
       getContext: () => this.getAgentContext(),
       executePlan: (plan) => this.executeAgentPlan(plan),
-      undo: () => this.state.undo()
+      undo: () => this.state.undo(),
+      onToggle: (open) => tabAi.classList.toggle('active', open)
     });
+    // The AI tab isn't part of the Arrangement/Mix/Piano Roll/Clip view-switcher
+    // (no data-tab attribute — wireTabs() only wires elements that have one):
+    // it toggles the floating agent panel instead, leaving whichever view is
+    // showing untouched underneath.
+    tabAi.addEventListener('click', () => this.agentPanel.toggle());
 
     this.wireTabs();
     this.wireSnapZoom();
     this.wireShortcuts();
     this.wireAudioButton();
-    document.getElementById('btn-agent').addEventListener('click', () => this.agentPanel.toggle());
 
     this.state.addEventListener('project', () => this.onProjectChanged());
     this.state.addEventListener('chain', () => {
@@ -466,16 +485,37 @@ class App {
     const gameCues = ((p.cueScan && p.cueScan.cues) || [])
       .filter((c) => c.kind === 'phase')
       .map((c) => ({ scene: c.scene, timeOfDay: c.timeOfDay, name: c.name, rootHz: c.rootHz, chord: c.chord, scale: c.scale }));
+    // Full clip content (not just a count) so Remix mode has real material to
+    // rework — actual note/step data, capped generously so a normal project
+    // never truncates but a pathological one can't blow up the request.
+    const tracksTruncated = p.tracks.length > 24;
+    const tracks = p.tracks.slice(0, 24).map((t) => {
+      const clipsTruncated = t.clips.length > 16;
+      return {
+        id: t.id, name: t.name, kind: t.kind,
+        preset: t.kind === 'synth' ? t.preset.kind : null,
+        drumKit: t.kind === 'drum' ? t.drumKit : null,
+        volume: t.volume, pan: t.pan, mute: t.mute, solo: t.solo,
+        devices: t.devices.map((d) => d.type),
+        clips: t.clips.slice(0, 16).map((c) => {
+          const notesTruncated = !!(c.notes && c.notes.length > 64);
+          return {
+            id: c.id, name: c.name, start: c.start, length: c.length, loop: c.loop, loopLen: c.loopLen,
+            notes: c.notes && c.notes.length ? c.notes.slice(0, 64).map((n) => ({ midi: n.midi, start: n.start, len: n.len, vel: n.vel })) : undefined,
+            notesTruncated: notesTruncated || undefined,
+            steps: c.steps ? compactSteps(c.steps) : undefined,
+            sample: c.sample || undefined
+          };
+        }),
+        clipsTruncated: clipsTruncated || undefined
+      };
+    });
     return {
       editor: 'dawCAT',
       tempo: p.tempo, key: p.key, scale: p.scale, swing: p.swing, timeSig: `${p.timeSigNum}/${p.timeSigDen}`,
       selection: this.state.selection.trackId,
-      tracks: p.tracks.map((t) => ({
-        id: t.id, name: t.name, kind: t.kind,
-        preset: t.kind === 'synth' ? t.preset.kind : null,
-        drumKit: t.kind === 'drum' ? t.drumKit : null,
-        clips: t.clips.length
-      })),
+      master: { volume: p.master.volume },
+      tracks, tracksTruncated: tracksTruncated || undefined,
       gameCues: gameCues.slice(0, 12),
       constraints: { maxActions: 40, reversible: true }
     };
@@ -508,6 +548,18 @@ class App {
       st.removeClip(trackId, clipId);
       return;
     }
+    // Project-level actions need no track at all — must run before the
+    // findAgentTrack requirement below, or a plan containing only one of
+    // these (nothing selected yet) would wrongly fail to resolve "selection".
+    if (action.type === 'setTempo') { st.project.tempo = clampRange(Number(p.bpm), 40, 220); st.emit('project'); return; }
+    if (action.type === 'setKeyScale') {
+      if (p.key) st.project.key = String(p.key);
+      if (p.scale && SCALES[p.scale]) st.project.scale = p.scale;
+      st.emit('project');
+      return;
+    }
+    if (action.type === 'setSwing') { st.project.swing = clampRange(Number(p.swing), 0, 1); st.emit('project'); return; }
+    if (action.type === 'setMaster') { st.project.master.volume = clampRange(Number(p.volume), 0, 1); st.emit('project'); return; }
     const t = this.findAgentTrack(action.target);
     if (!t) throw new Error(`Agent target track not found: ${action.target}`);
     if (action.type === 'renameTrack') { st.updateTrack(t.id, { name: String(p.name || t.name) }); return; }
@@ -535,6 +587,15 @@ class App {
       st.addDevice(t.id, type);
       return;
     }
+    if (action.type === 'setDeviceParams') {
+      const type = ['eq8', 'comp', 'delay', 'reverb', 'filter', 'chorus', 'utility'].includes(p.type) ? p.type : null;
+      if (!type) throw new Error(`Unknown device type: ${p.type}`);
+      let dev = t.devices.find((d) => d.type === type);
+      if (!dev) dev = st.addDevice(t.id, type);
+      const params = Object.assign({}, dev.params, p.params && typeof p.params === 'object' ? p.params : {});
+      st.updateDevice(t.id, dev.id, { params });
+      return;
+    }
     if (action.type === 'addClip') {
       const length = Math.max(0.25, Number(p.length ?? 4));
       const patch = {
@@ -560,14 +621,6 @@ class App {
       st.select(t.id, clip.id);
       return;
     }
-    if (action.type === 'setTempo') { st.project.tempo = clampRange(Number(p.bpm), 40, 220); st.emit('project'); return; }
-    if (action.type === 'setKeyScale') {
-      if (p.key) st.project.key = String(p.key);
-      if (p.scale && SCALES[p.scale]) st.project.scale = p.scale;
-      st.emit('project');
-      return;
-    }
-    if (action.type === 'setSwing') { st.project.swing = clampRange(Number(p.swing), 0, 1); st.emit('project'); return; }
   }
 
   async executeAgentPlan(plan) {
