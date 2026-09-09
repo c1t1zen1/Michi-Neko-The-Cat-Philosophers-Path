@@ -3,10 +3,22 @@ import {
   plasterTextures, woodTextures, kawaraTextures, shojiTextures, tatamiTextures,
   cobbleTextures, stoneTextures, groundTextures, dirtTextures, strawTextures,
   metalTextures, texturedMaterial, worldScaleBoxUVs, worldNoise
-} from './textures.js?v=20260907a';
-import { createFoliageMaterial, lumpyTuftGeometry } from './foliage.js?v=20260907a';
+} from './textures.js?v=20260909a';
+import {
+  createFoliageMaterial, createFoliageDepthMaterial, lumpyTuftGeometry, lumpyConeGeometry,
+  leafCardTexture, buildCanopy
+} from './foliage.js?v=20260909a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
+
+// River centreline, shared by the ground carve and the water ribbon
+const RIVER_POINTS = [
+  new THREE.Vector3(-60, 0, 26),
+  new THREE.Vector3(-20, 0, 30),
+  new THREE.Vector3(12, 0, 32),
+  new THREE.Vector3(40, 0, 28),
+  new THREE.Vector3(70, 0, 30)
+];
 
 function mulberry32(a) {
   return function() {
@@ -59,6 +71,7 @@ function panelMaterial(mat) { mat.userData.uvPanel = true; return mat; }
 const MAT = {
   grass: texturedMaterial(TEX.dirt, { color: 0x6e8a52, roughness: 0.95 }),
   ridge: texturedMaterial(TEX.dirt, { color: 0x77835a, roughness: 1 }),
+  paddyMud: texturedMaterial(TEX.dirt, { color: 0x4d4634, roughness: 1 }),
   dirt: texturedMaterial(TEX.dirt, { color: 0xc9b08a, roughness: 1 }),
   water: new THREE.MeshStandardMaterial({ color: 0x4d8a86, roughness: 0.12, metalness: 0.45 }),
   timberDark: texturedMaterial(TEX.woodDark, { roughness: 0.82, normalScale: 0.8 }),
@@ -262,27 +275,60 @@ export class Countryside {
   }
 
   /**
-   * World height field. The playable valley floor (r < 55) is flat; beyond
-   * it the ground lifts into forested foothills and then noise-ridged
-   * mountain walls, replacing the old cone silhouettes.
+   * Which way the backdrop faces. The valley is a canyon, not a bowl:
+   * `wall` is 1 at the canyon head behind the shrine (-z), eases to ~0.3
+   * on the east and west flanks, and is 0 across the whole southern cone
+   * behind the pagoda. `opening` is the complement: 1 straight behind the
+   * pagoda where the land falls away into a hazy lowland.
+   */
+  terrainSector(x, z) {
+    const d = Math.sqrt(x * x + z * z);
+    const toward = d > 1 ? -z / d : 0; // +1 toward the shrine, -1 toward the pagoda
+    const wall = Math.pow(smoothstep(-0.98, 0.95, toward), 1.4);
+    const opening = smoothstep(0.2, -0.75, toward);
+    return { wall, opening, d };
+  }
+
+  /**
+   * World height field. The playable valley floor (r < 55) is flat. Behind
+   * the shrine the ground climbs through forested foothills into tall
+   * noise-ridged mountain walls; along the flanks those walls ease down to
+   * rolling hills; and toward the pagoda the land opens out and slides
+   * away below the tower's dais, so the pagoda always stands against sky.
    */
   terrainHeight(x, z) {
-    const d = Math.sqrt(x * x + z * z);
-    const lift = Math.max(0, (d - 55) / 40);
-    let y = lift * lift * 6 + Math.sin(x * 0.08) * Math.cos(z * 0.07) * lift * 2;
-    const foot = smoothstep(68, 150, d);
-    if (foot > 0) {
-      const n1 = worldNoise(x, z, 0.021, 4, 11);
-      y += foot * (5 + n1 * 28);
-    }
-    const high = smoothstep(135, 330, d);
-    if (high > 0) {
-      const n2 = worldNoise(x, z, 0.0085, 4, 23);
-      const ridged = 1 - Math.abs(n2 * 2 - 1);
-      const n3 = worldNoise(x, z, 0.03, 3, 29);
-      y += high * (34 + Math.pow(ridged, 1.7) * 110 + n3 * 14);
-    }
-    return y;
+    const { wall, opening, d } = this.terrainSector(x, z);
+    if (d < 55) return 0;
+    // Three separate ranges, not one wall: near wooded hills, a mid ridge
+    // and far craggy peaks. Each range's distance wanders with bearing so
+    // some hills push close to the valley while others recede, and each
+    // farther range climbs higher than the one before it so their
+    // silhouettes layer through the haze.
+    const ux = x / d, uz = z / d;
+    const wander = (seed) => worldNoise(ux * 90 + 500, uz * 90 + 500, 0.02, 2, seed) * 2 - 1;
+    const ridge = (centre, width, height) => {
+      const t = (d - centre) / width;
+      return height * Math.exp(-t * t);
+    };
+    const w1 = wander(51), w2 = wander(52), w3 = wander(53);
+    const nearH = 9 + worldNoise(x, z, 0.03, 3, 11) * 13;
+    const midH = 28 + worldNoise(x, z, 0.012, 3, 23) * 30;
+    const n2 = worldNoise(x, z, 0.0085, 4, 29);
+    const ridged = 1 - Math.abs(n2 * 2 - 1);
+    const farH = 80 + Math.pow(ridged, 1.6) * 62 + worldNoise(x, z, 0.03, 3, 31) * 12;
+    const rim = smoothstep(55, 76, d); // ease off the flat valley floor
+    let hills = ridge(90 + w1 * 18, 21 + w2 * 5, nearH) * rim * (0.3 + 0.7 * wall)
+      + ridge(172 + w2 * 34, 44, midH) * (0.14 + 0.86 * wall)
+      + ridge(310 + w3 * 48, 100, farH) * wall;
+    // Gentle base rise so the valleys between ranges never fall back to the
+    // floor, plus a fine roll across every slope
+    hills += smoothstep(55, 130, d) * 7 * (0.3 + 0.7 * wall);
+    hills += (worldNoise(x, z, 0.06, 2, 7) - 0.5) * 3 * smoothstep(57, 80, d);
+    if (opening <= 0.001) return hills;
+    // Open lowland: a gentle roll that falls well below the valley floor
+    const roll = worldNoise(x, z, 0.018, 3, 41) - 0.5;
+    const lowland = -smoothstep(58, 175, d) * 32 + roll * 7 * smoothstep(56, 84, d);
+    return hills + (lowland - hills) * opening;
   }
 
   buildGround() {
@@ -301,12 +347,19 @@ export class Countryside {
     const colBank = new THREE.Color(0x4f7440);     // Riverbank lush loam
     const colDark = new THREE.Color(0x2c4a26);     // Dark grass shadow pools
     const colForest = new THREE.Color(0x2f4f2a);   // Foothill forest floor
+    const colLowland = new THREE.Color(0x7d9a4e);  // Sunlit open lowland
+    const colMud = new THREE.Color(0x4a4030);      // Riverbed silt
     const c = new THREE.Color();
+    const riverBed = this.riverBedSamples();
 
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), z = pos.getZ(i);
       const d = Math.sqrt(x * x + z * z);
-      pos.setY(i, this.terrainHeight(x, z));
+      let y = this.terrainHeight(x, z);
+      // Carve the river channel so the water has real depth for the koi
+      const bed = Math.abs(z - 29) < 9 ? this.riverBedDepth(x, z, riverBed) : 0;
+      y -= bed;
+      pos.setY(i, y);
 
       // Procedural color blend
       const noise1 = worldNoise(x, z, 0.05, 3, 3);
@@ -329,8 +382,14 @@ export class Countryside {
         c.lerp(colEarth, 0.3 + noise2 * 0.25);
       }
 
-      // Outer forest tones darken toward the treeline and foothills
-      if (d > 48) c.lerp(colForest, Math.min(1, (d - 48) / 40));
+      // Outer forest tones darken toward the treeline and foothills; the
+      // open lowland behind the pagoda stays sunlit meadow instead.
+      if (d > 48) {
+        const { opening } = this.terrainSector(x, z);
+        c.lerp(colForest, Math.min(1, (d - 48) / 40) * (1 - opening * 0.85));
+        c.lerp(colLowland, Math.min(1, (d - 48) / 30) * opening * 0.6);
+      }
+      if (bed > 0.02) c.lerp(colMud, Math.min(1, bed / 0.55));
 
       // The vertex colour is a TINT over the detail texture, so normalise it
       // around unit luminance instead of multiplying two dark colours.
@@ -513,38 +572,23 @@ export class Countryside {
     let ri = 0;
     const dummy = new THREE.Object3D();
 
+    // Still shader water, sharing the river's sun/sky uniforms: mirror-like
+    // sheets that catch the sky, breathe with wind cat's-paws, and show the
+    // silty bed and seedling shadows through the surface.
+    if (!this.riverUniforms) this.createRiverUniforms();
     for (const [px, pz, w, d] of plots) {
-      const rippleTexture = makeCanvasTexture((ctx, size) => {
-        ctx.fillStyle = '#4d8a86';
-        ctx.fillRect(0, 0, size, size);
-        ctx.strokeStyle = 'rgba(210,242,232,0.42)';
-        ctx.lineWidth = 2;
-        for (let i = 0; i < 9; i++) {
-          const y = 8 + i * 14;
-          ctx.beginPath();
-          ctx.moveTo(-12, y);
-          ctx.bezierCurveTo(size * 0.2, y - 5, size * 0.35, y + 5, size * 0.55, y);
-          ctx.bezierCurveTo(size * 0.72, y - 4, size * 0.88, y + 4, size + 12, y - 1);
-          ctx.stroke();
-        }
-      }, 128, Math.max(2, w / 3), Math.max(2, d / 3));
-      const waterMat = new THREE.MeshStandardMaterial({
-        color: 0x4f8a86,
-        map: rippleTexture,
-        bumpMap: rippleTexture,
-        bumpScale: 0.025,
-        roughness: 0.32,
-        metalness: 0.08,
-        envMapIntensity: 0.4,
-        transparent: true,
-        opacity: 0.9
-      });
-      this.paddyWaterMaterials.push({ material: waterMat, phase: this.random() * Math.PI * 2, speed: 0.018 + this.random() * 0.012 });
-      const water = new THREE.Mesh(new THREE.PlaneGeometry(w, d), waterMat);
+      const waterMat = this.createPaddyWaterMaterial(w, d);
+      this.paddyWaterMaterials.push({ material: waterMat });
+      const water = new THREE.Mesh(new THREE.PlaneGeometry(w, d, 1, 1), waterMat);
       water.rotation.x = -Math.PI / 2;
       water.position.set(px, 0.02, pz);
-      water.receiveShadow = true;
       this.scene.add(water);
+      // Silty paddy floor just under the sheet so the water reads as depth
+      const bed = new THREE.Mesh(new THREE.PlaneGeometry(w, d), MAT.paddyMud);
+      bed.rotation.x = -Math.PI / 2;
+      bed.position.set(px, 0.008, pz);
+      bed.receiveShadow = true;
+      this.scene.add(bed);
 
       const ridgeH = 0.28, ridgeW = 0.5;
       this.scene.add(box(w + ridgeW * 2, ridgeH, ridgeW, MAT.ridge, px, ridgeH / 2, pz - d / 2 - ridgeW / 2));
@@ -697,14 +741,35 @@ export class Countryside {
     }
   }
 
+  /** Dense centreline samples of the river, used to carve the bed. */
+  riverBedSamples() {
+    if (!this._riverBed) {
+      this._riverBed = new THREE.CatmullRomCurve3(RIVER_POINTS.map(p => p.clone())).getPoints(160);
+    }
+    return this._riverBed;
+  }
+
+  /** How far the cat's feet sink when wading: paw-deep at the banks, chest-deep mid-river. */
+  wadeDepthAt(x, z) {
+    return -Math.min(0.3, 0.09 + this.riverBedDepth(x, z) * 0.6);
+  }
+
+  /** Channel depth below the valley floor at (x, z): ~0.85 m mid-stream, feathering to the banks. */
+  riverBedDepth(x, z, samples = this.riverBedSamples()) {
+    let best = Infinity;
+    for (let i = 0; i < samples.length; i++) {
+      const s = samples[i];
+      const dx = x - s.x, dz = z - s.z;
+      const d2 = dx * dx + dz * dz;
+      if (d2 < best) best = d2;
+    }
+    const dist = Math.sqrt(best);
+    const profile = smoothstep(3.8, 1.2, dist);
+    return profile * profile * 0.85;
+  }
+
   buildRiverAndBridge() {
-    const riverPts = [
-      new THREE.Vector3(-60, 0, 26),
-      new THREE.Vector3(-20, 0, 30),
-      new THREE.Vector3(12, 0, 32),
-      new THREE.Vector3(40, 0, 28),
-      new THREE.Vector3(70, 0, 30)
-    ];
+    const riverPts = RIVER_POINTS.map(p => p.clone());
     const curve = new THREE.CatmullRomCurve3(riverPts);
     this.riverCurve = curve;
     this.riverSamples = curve.getPoints(60);
@@ -841,7 +906,7 @@ export class Countryside {
    * sun's position. Pure shader — no textures — tinted each frame from the
    * sky palette so sunset turns the river to molten gold.
    */
-  createRiverWaterMaterial() {
+  createRiverUniforms() {
     this.riverUniforms = {
       uTime: { value: 0 },
       uSunDir: { value: new THREE.Vector3(-0.55, 0.28, -0.79) },
@@ -854,6 +919,128 @@ export class Countryside {
       uDay: { value: 1 }
     };
     this.riverUniforms.uTop = { value: new THREE.Color(0x4a6a9e) };
+    return this.riverUniforms;
+  }
+
+  /**
+   * Rice paddy water: a still, glassy sheet. Fresnel mirrors the sky dome
+   * (looking straight down shows the silty bed instead), slow standing
+   * ripples and drifting wind cat's-paws break the mirror, the sun lays a
+   * soft glitter road, and a thin duckweed film gathers along the bunds.
+   */
+  createPaddyWaterMaterial(w, d) {
+    if (!this.riverUniforms) this.createRiverUniforms();
+    const uniforms = Object.assign({}, this.riverUniforms, {
+      uPlot: { value: new THREE.Vector2(w, d) },
+      uMud: { value: new THREE.Color(0x4a5a3c) },
+      uMudDeep: { value: new THREE.Color(0x2f3a2a) },
+      uFilm: { value: new THREE.Color(0x6f9a3f) }
+    });
+    return new THREE.ShaderMaterial({
+      uniforms,
+      transparent: true,
+      depthWrite: false,
+      vertexShader: `
+        varying vec3 vWorld;
+        varying vec2 vUv;
+        void main() {
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorld = wp.xyz;
+          vUv = uv;
+          gl_Position = projectionMatrix * viewMatrix * wp;
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        uniform vec3 uSunDir;
+        uniform vec3 uSunColor;
+        uniform vec3 uSky;
+        uniform vec3 uTop;
+        uniform vec3 uWarm;
+        uniform vec3 uDeep;
+        uniform vec3 uShallow;
+        uniform vec3 uMud;
+        uniform vec3 uMudDeep;
+        uniform vec3 uFilm;
+        uniform vec2 uPlot;
+        uniform float uDusk;
+        uniform float uDay;
+        varying vec3 vWorld;
+        varying vec2 vUv;
+
+        float pHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float pNoise(vec2 p) {
+          vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(pHash(i), pHash(i + vec2(1.0, 0.0)), f.x),
+                     mix(pHash(i + vec2(0.0, 1.0)), pHash(i + vec2(1.0, 1.0)), f.x), f.y);
+        }
+        // Very gentle standing ripples, amplified inside slow wind cat's-paws
+        float paddyH(vec2 p, float t, float gust) {
+          float r1 = sin(p.x * 1.6 + p.y * 0.4 - t * 0.55) * 0.5;
+          float r2 = sin(p.y * 2.3 - p.x * 0.7 + t * 0.42) * 0.35;
+          float r3 = (pNoise(p * 2.6 + vec2(t * 0.25, -t * 0.18)) - 0.5) * 1.2;
+          float chop = sin((p.x + p.y * 0.6) * 9.0 + t * 2.6) * 0.5 + sin((p.y - p.x * 0.4) * 11.0 - t * 2.1) * 0.5;
+          return (r1 + r2 + r3) * (0.25 + gust * 0.75) + chop * gust * 0.5;
+        }
+
+        void main() {
+          vec2 p = vWorld.xz;
+          float t = uTime;
+          // Wind cat's-paws: dark, textured patches drifting across the sheet
+          float gust = smoothstep(0.42, 0.78, pNoise(p * 0.11 + vec2(t * 0.045, t * 0.02)) * 0.7
+                                              + pNoise(p * 0.3 - vec2(t * 0.03, t * 0.05)) * 0.3);
+
+          float e = 0.08;
+          float hx = paddyH(p + vec2(e, 0.0), t, gust) - paddyH(p - vec2(e, 0.0), t, gust);
+          float hz = paddyH(p + vec2(0.0, e), t, gust) - paddyH(p - vec2(0.0, e), t, gust);
+          vec3 n = normalize(vec3(-hx * 0.35, 1.0, -hz * 0.35));
+
+          vec3 V = normalize(cameraPosition - vWorld);
+          vec3 L = normalize(uSunDir);
+          vec3 H = normalize(L + V);
+          float sunUp = clamp(uSunDir.y * 4.0, 0.0, 1.0);
+          float NdV = max(dot(n, V), 0.0);
+
+          // Bed seen through the water: silt with faint seedling-row shadows
+          float rows = 0.5 + 0.5 * sin(vUv.x * uPlot.x * 4.2) * sin(vUv.y * uPlot.y * 4.2);
+          float silt = pNoise(p * 0.9) * 0.6 + pNoise(p * 3.4) * 0.4;
+          vec3 bed = mix(uMudDeep, uMud, silt) * (0.82 + rows * 0.18);
+          // Shallow water column tints the silt toward the river's teal
+          bed = mix(bed, mix(uDeep, uShallow, 0.5), 0.42);
+
+          // Still water is a mirror at any grazing angle; only a plunging
+          // view reaches the bed
+          float fres = 0.06 + 0.9 * pow(1.0 - NdV, 2.6);
+          vec3 skyRefl = mix(uSky, uTop, clamp(0.25 + n.y * V.y * 1.2, 0.0, 1.0)) * 0.66;
+          skyRefl = mix(skyRefl, uWarm, uDusk * 0.35);
+          vec3 col = mix(bed, skyRefl, clamp(fres, 0.0, 0.72));
+          // Cat's-paws scatter the reflection into a darker, rougher tone
+          col = mix(col, mix(bed, skyRefl * 0.7, 0.55), gust * 0.35);
+
+          // Soft sun glitter road plus a broad sheen
+          float spec = pow(max(dot(n, H), 0.0), 180.0) * 0.9 + pow(max(dot(n, H), 0.0), 14.0) * 0.08;
+          col += uSunColor * spec * sunUp * (0.55 + uDusk * 0.8);
+          // Sparse glints where ripples crest inside a gust
+          vec2 cell = floor(p * 14.0 + vec2(t * 0.6, 0.0));
+          float glint = step(0.994, pHash(cell + floor(t * 4.0) * 0.31)) * gust;
+          col += uSunColor * glint * 0.5 * sunUp;
+
+          // Duckweed film hugging the bunds
+          float edge = min(min(vUv.x, 1.0 - vUv.x) * uPlot.x, min(vUv.y, 1.0 - vUv.y) * uPlot.y);
+          float film = smoothstep(1.6, 0.0, edge) * smoothstep(0.45, 0.8, pNoise(p * 1.7 + 3.0));
+          col = mix(col, uFilm * (0.6 + 0.4 * uDay), film * 0.55);
+
+          col *= (0.22 + 0.78 * uDay);
+          col = min(col, vec3(1.3));
+          float alpha = 0.78 + 0.2 * clamp(fres, 0.0, 1.0);
+          gl_FragColor = vec4(col, alpha);
+        }
+      `
+    });
+  }
+
+  createRiverWaterMaterial() {
+    if (!this.riverUniforms) this.createRiverUniforms();
     return new THREE.ShaderMaterial({
       uniforms: this.riverUniforms,
       transparent: true,
@@ -913,9 +1100,15 @@ export class Countryside {
           vec3 H = normalize(L + V);
           float sunUp = clamp(uSunDir.y * 4.0, 0.0, 1.0);
 
-          // Body colour: deep channel centre, shallower tint near the banks
+          // Body colour: deep channel centre, shallower tint near the banks.
+          // A silty, pebble-flecked bed shows through the shallows so the
+          // water reads as real depth rather than a flat tinted sheet.
           float bank = min(vUv.x, 1.0 - vUv.x);
-          vec3 col = mix(uDeep, uShallow, 0.3 + rip * 0.15 + smoothstep(0.35, 0.0, bank) * 0.35);
+          float shallowness = 0.3 + rip * 0.15 + smoothstep(0.35, 0.0, bank) * 0.35;
+          float silt = waveNoise(p * 0.8 + 4.0) * 0.6 + waveNoise(p * 3.1 + 9.0) * 0.4;
+          float pebble = smoothstep(0.6, 0.92, waveNoise(p * 6.5 + 15.0));
+          vec3 bedCol = mix(uDeep * 0.82, uShallow * 1.08, silt) * (1.0 - pebble * 0.16);
+          vec3 col = mix(uDeep, mix(uShallow, bedCol, 0.6), shallowness);
 
           // Fresnel sky reflection: glancing views mirror the sky dome
           float fres = 0.04 + 0.5 * pow(1.0 - max(dot(n, V), 0.0), 4.5);
@@ -932,17 +1125,26 @@ export class Countryside {
           sparkle *= smoothstep(0.35, 0.9, rip * 0.5 + 0.5);
           col += uSunColor * sparkle * 0.6 * sunUp;
 
-          // Foam and lapping along both banks
+          // Drifting caustic shimmer dappling the shallow bed near the banks
+          float caustic = pow(waveNoise(p * 4.5 - vec2(t * 0.35, t * 0.22)), 3.0)
+                         * pow(waveNoise(p * 2.1 + vec2(t * 0.15, -t * 0.1) + 7.0), 2.0);
+          col += uSunColor * caustic * 0.2 * sunUp * smoothstep(0.42, 0.0, bank);
+
+          // Foam and lapping along both banks — two turbulence scales so the
+          // froth breaks up instead of reading as a single soft band
           float foamN = waveNoise(vec2(vUv.y * 6.0 - t * 0.6, vUv.x * 30.0));
-          float foam = smoothstep(0.14, 0.0, bank) * smoothstep(0.5, 0.85, foamN + rip * 0.15);
+          float foamN2 = waveNoise(vec2(vUv.y * 15.0 - t * 0.95, vUv.x * 58.0 + 3.0));
+          float foam = smoothstep(0.14, 0.0, bank) * smoothstep(0.5, 0.85, foamN * 0.7 + foamN2 * 0.3 + rip * 0.15);
           col = mix(col, vec3(0.85, 0.9, 0.9), foam * 0.45 * (0.4 + 0.6 * uDay));
 
           // Day/night master dim: molten gold at dusk, near-black at night
           col *= (0.22 + 0.78 * uDay);
           col = min(col, vec3(1.3));
 
-          // Feather the water into the banks
-          float alpha = 0.94 * smoothstep(0.0, 0.08, bank) + 0.05;
+          // Feather the water into the banks; a touch clearer mid-stream so
+          // the carved bed and the koi read through the surface
+          float clarity = 0.6 + 0.36 * clamp(fres * 2.0, 0.0, 1.0);
+          float alpha = clarity * smoothstep(0.0, 0.08, bank) + 0.05;
           gl_FragColor = vec4(col, alpha);
         }
       `
@@ -2227,6 +2429,8 @@ export class Countryside {
     const forestLight = new THREE.Color(0x4a6e3a);
     const rock = new THREE.Color(0x6a6a70);
     const haze = new THREE.Color(0x8d90b4);
+    const lowland = new THREE.Color(0x8aa257);
+    const lowlandFar = new THREE.Color(0xa9b7a4);
     const c = new THREE.Color();
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), z = pos.getZ(i);
@@ -2239,8 +2443,14 @@ export class Countryside {
       // Bare rock on the steepest high slopes
       const rocky = smoothstep(70, 130, h) * (0.4 + n * 0.6);
       c.lerp(rock, rocky * 0.7);
+      // Open lowland behind the pagoda: sunlit fields paling into distance
+      const { opening } = this.terrainSector(x, z);
+      if (opening > 0) {
+        c.lerp(lowland, opening * 0.8);
+        c.lerp(lowlandFar, opening * smoothstep(120, 320, d) * 0.7);
+      }
       // Atmospheric depth baked into the far peaks
-      c.lerp(haze, smoothstep(170, 420, d) * 0.85);
+      c.lerp(haze, smoothstep(105, 380, d) * 0.88);
       colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
@@ -2366,10 +2576,10 @@ export class Countryside {
     finialTip.castShadow = true;
     pagoda.add(finialTip);
 
-    pagoda.position.set(x, 0, z);
-    // Keep the stone dais at ground level while making the landmark 12% more
-    // prominent over the forest canopy.
-    pagoda.scale.setScalar(1.12);
+    pagoda.position.set(x, Math.min(0, this.terrainHeight(x, z)), z);
+    // Keep the stone dais at ground level while making the landmark stand
+    // well clear of the forest canopy (1.12 base prominence, +10% on top).
+    pagoda.scale.setScalar(1.12 * 1.1);
     pagoda.traverse((node) => {
       if (node.isMesh) {
         node.castShadow = true;
@@ -2381,22 +2591,45 @@ export class Countryside {
 
   buildEdgeForest() {
     // Dense impassable tree wall ringing the playfield just inside the
-    // hard boundary radius. Each tree is built from TWO layered irregular
-    // leafy masses (dark shaded underlayer + lighter sunlit crown) so the
-    // forest reads as painterly foliage instead of smooth cones.
-    const tuftGeo = lumpyTuftGeometry(2, 5, 0.46);
-    const tuftGeoB = lumpyTuftGeometry(2, 6, 0.42);
-    const tuftGeoC = lumpyTuftGeometry(2, 10, 0.48);
-    const trunkGeo = new THREE.CylinderGeometry(0.12, 0.2, 1.2, 7);
-    const canopyMats = [
-      new THREE.Color(0x2e5524), new THREE.Color(0x3b6a2e), new THREE.Color(0x25481e)
-    ];
-    const forestMat = createFoliageMaterial({ sss: 0.24, wind: 0.75, mottle: 0.38, vertexColors: false });
+    // hard boundary radius. Four hand-built broadleaf variants (branching
+    // limbs carrying leaf clumps fringed with alpha-cut leaf sprays) are
+    // instanced around the ring, so the wall reads as real trees with
+    // leafy, broken silhouettes instead of stacked smooth blobs.
     const count = 260;
-    const lower = new THREE.InstancedMesh(tuftGeo, forestMat, count);
-    const mid = new THREE.InstancedMesh(tuftGeoC, forestMat, count);
-    const upper = new THREE.InstancedMesh(tuftGeoB, forestMat, count);
-    const trunks = new THREE.InstancedMesh(trunkGeo, texturedMaterial(TEX.woodDark, { color: 0x6a5a48, roughness: 1 }), count);
+    const variantCount = 4;
+    const forestGreens = [0x22441a, 0x2e5823, 0x3e7030, 0x558a3b];
+    const forestMat = createFoliageMaterial({ sss: 0.24, wind: 0.75, mottle: 0.34, vertexColors: true });
+    const cardTex = leafCardTexture('broadleaf');
+    const cardMat = createFoliageMaterial({
+      sss: 0.32, wind: 0.85, mottle: 0.14, bump: 0.3, vertexColors: true, map: cardTex, alphaTest: 0.5, side: THREE.DoubleSide
+    });
+    const cardDepth = createFoliageDepthMaterial(cardTex, 0.5);
+    const barkMat = texturedMaterial(TEX.woodDark, { color: 0x6a5a48, roughness: 1 });
+    const trunkGeo = new THREE.CylinderGeometry(0.12, 0.2, 1.2, 7);
+
+    // Decide each tree's variant first so every instanced mesh is sized exactly
+    const assign = [];
+    const perVariant = new Array(variantCount).fill(0);
+    for (let i = 0; i < count; i++) {
+      const v = Math.floor(this.random() * variantCount);
+      assign.push(v);
+      perVariant[v]++;
+    }
+    const sets = [];
+    for (let v = 0; v < variantCount; v++) {
+      const built = buildCanopy(this.rng, {
+        scale: 1, trunkH: 1.15, trunkR: 0.14, primaries: 5, tilt: 0.76 + v * 0.06, tiltVar: 0.22,
+        droop: -0.02, bend: 0.12, branchLen: 0.78, secondaries: 2, twigs: false, crownFill: 3,
+        colors: forestGreens, clumpR: 0.28, tuftsPerClump: [2, 2, 1], cardsPerClump: [10, 9, 6],
+        cardSize: 0.56, tuftFlat: 0.72, lump: 0.36, seed: 50 + v * 7
+      });
+      const tufts = new THREE.InstancedMesh(built.tufts, forestMat, perVariant[v]);
+      const cards = new THREE.InstancedMesh(built.cards, cardMat, perVariant[v]);
+      cards.customDepthMaterial = cardDepth;
+      const branches = new THREE.InstancedMesh(built.branches, barkMat, perVariant[v]);
+      sets.push({ tufts, cards, branches, next: 0 });
+    }
+    const trunks = new THREE.InstancedMesh(trunkGeo, barkMat, count);
     const dummy = new THREE.Object3D();
     const col = new THREE.Color();
     const pagodaBearing = Math.atan2(56, 12);
@@ -2406,35 +2639,24 @@ export class Countryside {
       const x = Math.cos(a) * r;
       const z = Math.sin(a) * r;
       const s = 1.8 + this.random() * 2.4;
-      // Lower only the tree crowns in the pagoda's narrow sightline by 12%.
-      // Their horizontal footprint and collision wall remain untouched.
+      // Lower only the tree crowns in the pagoda's sightline (12%, then a
+      // further 10%) so the tower's stories clear the canopy from the
+      // village. Their horizontal footprint and collision wall remain untouched.
       const angleDelta = Math.atan2(Math.sin(a - pagodaBearing), Math.cos(a - pagodaBearing));
-      const sightlineHeight = Math.abs(angleDelta) < 0.24 ? 0.88 : 1;
-      // Wide dark shaded under-canopy
-      dummy.position.set(x, s * 0.95 * sightlineHeight, z);
-      dummy.scale.set(s * (0.85 + this.random() * 0.3), s * 0.8 * sightlineHeight, s * (0.85 + this.random() * 0.3));
-      dummy.rotation.set(this.random() * 0.5, this.random() * Math.PI, this.random() * 0.5);
+      const sightlineHeight = Math.abs(angleDelta) < 0.3 ? 0.88 * 0.9 : 1;
+      const set = sets[assign[i]];
+      const idx = set.next++;
+      dummy.position.set(x, 0, z);
+      dummy.rotation.set(0, this.random() * Math.PI * 2, 0);
+      dummy.scale.set(s * (0.9 + this.random() * 0.2), s * sightlineHeight, s * (0.9 + this.random() * 0.2));
       dummy.updateMatrix();
-      lower.setMatrixAt(i, dummy.matrix);
-      col.copy(canopyMats[2]).offsetHSL(0, (this.random() - 0.5) * 0.05, (this.random() - 0.5) * 0.05);
-      lower.setColorAt(i, col);
-      // Side clump breaking the outline
-      dummy.position.set(x + (this.random() - 0.5) * s * 0.9, s * (1.15 + this.random() * 0.3) * sightlineHeight, z + (this.random() - 0.5) * s * 0.9);
-      dummy.scale.set(s * (0.45 + this.random() * 0.25), s * (0.45 + this.random() * 0.2) * sightlineHeight, s * (0.45 + this.random() * 0.25));
-      dummy.rotation.set(this.random() * 0.6, this.random() * Math.PI, this.random() * 0.6);
-      dummy.updateMatrix();
-      mid.setMatrixAt(i, dummy.matrix);
-      col.copy(canopyMats[Math.floor(this.random() * canopyMats.length)]).offsetHSL(0, 0, (this.random() - 0.5) * 0.06);
-      mid.setColorAt(i, col);
-      // Narrower sunlit crown, offset slightly for irregular silhouette
-      dummy.position.set(x + (this.random() - 0.5) * s * 0.4, s * 1.55 * sightlineHeight, z + (this.random() - 0.5) * s * 0.4);
-      dummy.scale.set(s * (0.55 + this.random() * 0.25), s * 0.65 * sightlineHeight, s * (0.55 + this.random() * 0.25));
-      dummy.rotation.set(this.random() * 0.5, this.random() * Math.PI, this.random() * 0.5);
-      dummy.updateMatrix();
-      upper.setMatrixAt(i, dummy.matrix);
-      col.copy(canopyMats[Math.floor(this.random() * canopyMats.length)])
-        .offsetHSL(0, 0, 0.02 + this.random() * 0.05);
-      upper.setColorAt(i, col);
+      set.tufts.setMatrixAt(idx, dummy.matrix);
+      set.cards.setMatrixAt(idx, dummy.matrix);
+      set.branches.setMatrixAt(idx, dummy.matrix);
+      // Per-tree tint rides on top of the baked crown gradient
+      col.setRGB(0.88 + this.random() * 0.24, 0.9 + this.random() * 0.2, 0.84 + this.random() * 0.22);
+      set.tufts.setColorAt(idx, col);
+      set.cards.setColorAt(idx, col);
       dummy.position.set(x, 0.6 * s * sightlineHeight, z);
       dummy.scale.set(s, s * sightlineHeight, s);
       dummy.rotation.set(0, this.random() * Math.PI, 0);
@@ -2446,18 +2668,17 @@ export class Countryside {
         new THREE.Vector3(x + s * 0.35, s * 2.2, z + s * 0.35)
       ));
     }
-    lower.instanceMatrix.needsUpdate = true;
-    mid.instanceMatrix.needsUpdate = true;
-    upper.instanceMatrix.needsUpdate = true;
-    trunks.instanceMatrix.needsUpdate = true;
-    if (lower.instanceColor) lower.instanceColor.needsUpdate = true;
-    if (mid.instanceColor) mid.instanceColor.needsUpdate = true;
-    if (upper.instanceColor) upper.instanceColor.needsUpdate = true;
-    for (const m of [lower, mid, upper]) {
-      m.castShadow = true;
-      m.receiveShadow = true;
-      this.scene.add(m);
+    for (const set of sets) {
+      for (const m of [set.tufts, set.cards, set.branches]) {
+        m.instanceMatrix.needsUpdate = true;
+        if (m.instanceColor) m.instanceColor.needsUpdate = true;
+        m.castShadow = true;
+        m.receiveShadow = true;
+        this.scene.add(m);
+      }
     }
+    trunks.instanceMatrix.needsUpdate = true;
+    trunks.castShadow = true;
     this.scene.add(trunks);
 
     // Undergrowth bushes thickening the wall between trees
@@ -2538,31 +2759,58 @@ export class Countryside {
       }
     }
 
-    // Foothill forest: dense instanced canopies carpeting the slopes so the
-    // ridges read as wooded rather than bare geometry.
-    const treeGeo = lumpyTuftGeometry(2, 8, 0.36);
+    // Foothill forest: dense instanced sugi-cedar spires with rounded
+    // broadleaf crowns on the lower slopes, packed tightly so the ridges
+    // read as a wooded carpet rather than a field of green boulders.
+    const cedarGeo = lumpyConeGeometry(1, 8, 0.3);
+    const cedarGeoB = lumpyConeGeometry(1, 12, 0.34);
+    const roundGeo = lumpyTuftGeometry(1, 8, 0.36);
     const treeMat = createFoliageMaterial({ sss: 0.15, wind: 0.5, mottle: 0.3, vertexColors: false });
-    const treeCount = 2600;
-    const trees = new THREE.InstancedMesh(treeGeo, treeMat, treeCount);
+    const treeCount = 3800;
+    const meshes = [
+      new THREE.InstancedMesh(cedarGeo, treeMat, treeCount),
+      new THREE.InstancedMesh(cedarGeoB, treeMat, treeCount),
+      new THREE.InstancedMesh(roundGeo, treeMat, treeCount)
+    ];
     const dummy = new THREE.Object3D();
     const color = new THREE.Color();
+    const placed = [0, 0, 0];
     for (let i = 0; i < treeCount; i++) {
       const a = this.random() * Math.PI * 2;
       const r = 60 + Math.pow(this.random(), 0.75) * 130;
       const x = Math.cos(a) * r, z = Math.sin(a) * r;
-      // Smaller, denser crowns so the slopes read as woodland, not boulders
-      const s = 1.2 + this.random() * 2.2;
-      dummy.position.set(x, this.terrainHeight(x, z) + s * 0.5, z);
-      dummy.scale.set(s * (0.8 + this.random() * 0.5), s * 1.15, s * (0.8 + this.random() * 0.5));
-      dummy.rotation.set(this.random() * 0.4, this.random() * Math.PI, this.random() * 0.4);
+      // The open lowland behind the pagoda is farmland, not forest: only a
+      // few scattered copses so the tower keeps clear sky behind it.
+      const { opening } = this.terrainSector(x, z);
+      if (this.random() < opening * 0.93) continue;
+      // Cedar stands dominate the high slopes; broadleaf crowns gather lower
+      const cedarChance = r < 95 ? 0.5 : 0.78;
+      const kind = this.random() < cedarChance ? (this.random() < 0.5 ? 0 : 1) : 2;
+      const y = this.terrainHeight(x, z);
+      if (kind === 2) {
+        const s = 1.1 + this.random() * 1.7;
+        dummy.position.set(x, y + s * 0.45, z);
+        dummy.scale.set(s * (0.8 + this.random() * 0.5), s * 1.1, s * (0.8 + this.random() * 0.5));
+        dummy.rotation.set(this.random() * 0.3, this.random() * Math.PI, this.random() * 0.3);
+        color.setHSL(0.24 + this.random() * 0.08, 0.32 + this.random() * 0.14, 0.17 + this.random() * 0.1);
+      } else {
+        const s = 0.9 + this.random() * 1.4;
+        dummy.position.set(x, y - 0.2, z);
+        dummy.scale.set(s * (0.85 + this.random() * 0.3), s * (1.0 + this.random() * 0.5), s * (0.85 + this.random() * 0.3));
+        dummy.rotation.set((this.random() - 0.5) * 0.12, this.random() * Math.PI, (this.random() - 0.5) * 0.12);
+        color.setHSL(0.33 + this.random() * 0.07, 0.26 + this.random() * 0.14, 0.13 + this.random() * 0.09);
+      }
       dummy.updateMatrix();
-      trees.setMatrixAt(i, dummy.matrix);
-      color.setHSL(0.27 + this.random() * 0.08, 0.28 + this.random() * 0.14, 0.15 + this.random() * 0.1);
-      trees.setColorAt(i, color);
+      meshes[kind].setMatrixAt(placed[kind], dummy.matrix);
+      meshes[kind].setColorAt(placed[kind], color);
+      placed[kind]++;
     }
-    trees.instanceMatrix.needsUpdate = true;
-    if (trees.instanceColor) trees.instanceColor.needsUpdate = true;
-    this.scene.add(trees);
+    for (let k = 0; k < meshes.length; k++) {
+      meshes[k].count = placed[k];
+      meshes[k].instanceMatrix.needsUpdate = true;
+      if (meshes[k].instanceColor) meshes[k].instanceColor.needsUpdate = true;
+      this.scene.add(meshes[k]);
+    }
   }
 
   mistTexture() {
@@ -2711,15 +2959,6 @@ export class Countryside {
         // Broad brightness window: stays lit through golden hour, fades at night
         this.riverUniforms.uDay.value = Math.min(1, Math.max(0, sky.sunDir.y + 0.18) * 2.2);
       }
-    }
-
-    // Paddy water ripples drift in slow, irregular breeze pulses. UV motion is
-    // intentionally subtle so the paddies feel alive without reading as a river.
-    for (const paddy of this.paddyWaterMaterials) {
-      const gust = 0.35 + Math.max(0, Math.sin(this.time * 0.42 + paddy.phase)) * 0.65;
-      paddy.material.map.offset.x = (paddy.material.map.offset.x + dt * paddy.speed * gust) % 1;
-      paddy.material.map.offset.y = Math.sin(this.time * 0.18 + paddy.phase) * 0.035;
-      paddy.material.bumpScale = 0.012 + gust * 0.025;
     }
 
     // Sway hanging Kyoto Chochin lanterns

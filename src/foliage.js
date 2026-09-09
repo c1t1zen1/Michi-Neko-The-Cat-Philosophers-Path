@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+import { mergeVertices, mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 /**
  * Shared painterly foliage system.
@@ -8,6 +8,9 @@ import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
  * street bushes, the edge forest and the foothill woods) draws through one
  * MeshStandardMaterial extension that adds:
  *   - lumpy, cauliflower-like tuft geometry with smooth normals
+ *   - alpha-cut leaf-spray cards that fringe every clump with real leaves
+ *   - a branching canopy builder (tapered curved limbs carrying dense
+ *     clumps) so crowns read as leafy branches rather than smooth blobs
  *   - a top-lit crown gradient with cool blue-violet shadow sides
  *   - fine world-space mottling so large canopies never read as flat blobs
  *   - sun translucency (leaves glow when the sun is behind them)
@@ -91,10 +94,16 @@ const GLSL_NOISE = /* glsl */`
  * Build the shared foliage material. `sss` scales sun translucency,
  * `wind` scales canopy sway, `rustle` enables the cat-brush response.
  */
-export function createFoliageMaterial({ sss = 0.32, wind = 1.0, rustle = 0.0, roughness = 0.92, mottle = 0.26, bump = 0.7, vertexColors = true } = {}) {
+export function createFoliageMaterial({ sss = 0.32, wind = 1.0, rustle = 0.0, roughness = 0.92, mottle = 0.26, bump = 0.7, vertexColors = true, map = null, alphaTest = 0, side = THREE.FrontSide } = {}) {
   // Instanced meshes colour through instanceColor and must NOT declare
-  // vertexColors (a missing colour attribute would read as black).
-  const mat = new THREE.MeshStandardMaterial({ vertexColors, roughness, metalness: 0, envMapIntensity: 0.35 });
+  // vertexColors unless their geometry carries a colour attribute (a
+  // missing attribute would read as black). Leaf cards pass an alpha-cut
+  // `map` and render double-sided.
+  const mat = new THREE.MeshStandardMaterial({ vertexColors, roughness, metalness: 0, envMapIntensity: 0.35, side });
+  if (map) {
+    mat.map = map;
+    mat.alphaTest = alphaTest;
+  }
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uTime = foliageUniforms.uTime;
     shader.uniforms.uSunDir = foliageUniforms.uSunDir;
@@ -202,8 +211,434 @@ export function createFoliageMaterial({ sss = 0.32, wind = 1.0, rustle = 0.0, ro
         #include <opaque_fragment>
       `);
   };
-  mat.customProgramCacheKey = () => 'foliage_' + sss + '_' + wind + '_' + rustle + '_' + mottle + '_' + bump + '_' + (vertexColors ? 'vc' : 'ic');
+  mat.customProgramCacheKey = () => 'foliage_' + sss + '_' + wind + '_' + rustle + '_' + mottle + '_' + bump + '_' + (vertexColors ? 'vc' : 'ic') + (map ? '_map' : '');
   return mat;
+}
+
+/** Shadow-map depth material that honours a leaf card's alpha cut-out. */
+export function createFoliageDepthMaterial(map, alphaTest = 0.5) {
+  return new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map, alphaTest, side: THREE.DoubleSide });
+}
+
+/* ------------------------------------------------------------------ */
+/*  Leaf-spray cards                                                   */
+/* ------------------------------------------------------------------ */
+
+const cardTexCache = new Map();
+
+/**
+ * Procedural leaf-spray textures for alpha-cut foliage cards, painted in
+ * pale greys (blossoms in cream) so the vertex tint supplies the hue and
+ * the same painterly crown gradient applies. Kinds: broadleaf, maple,
+ * sakura, needle.
+ */
+export function leafCardTexture(kind = 'broadleaf') {
+  if (cardTexCache.has(kind)) return cardTexCache.get(kind);
+  const size = 256;
+  const c = document.createElement('canvas');
+  c.width = size;
+  c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, size, size);
+  let s = 4241 + kind.length * 977;
+  const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+  const grey = (v) => `rgb(${v | 0},${v | 0},${v | 0})`;
+  const cx = size / 2, cy = size / 2;
+
+  const leaf = (x, y, ang, len, wid, shade) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(ang);
+    const g = ctx.createLinearGradient(0, 0, len, 0);
+    g.addColorStop(0, grey(shade * 0.66));
+    g.addColorStop(0.5, grey(shade * 0.9));
+    g.addColorStop(1, grey(shade));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(len * 0.42, -wid, len, 0);
+    ctx.quadraticCurveTo(len * 0.42, wid, 0, 0);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(${shade * 0.5 | 0},${shade * 0.5 | 0},${shade * 0.5 | 0},0.65)`;
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(len * 0.9, 0);
+    ctx.stroke();
+    // Fine side veins branching off the midrib for real leaf texture
+    ctx.strokeStyle = `rgba(${shade * 0.55 | 0},${shade * 0.55 | 0},${shade * 0.55 | 0},0.4)`;
+    ctx.lineWidth = 0.7;
+    for (let vk = 1; vk < 5; vk++) {
+      const vt = vk / 5;
+      const vx = len * 0.82 * vt;
+      const vy = wid * Math.sin(vt * Math.PI) * 0.78;
+      ctx.beginPath();
+      ctx.moveTo(vx, 0);
+      ctx.lineTo(vx + len * 0.05, vy);
+      ctx.moveTo(vx, 0);
+      ctx.lineTo(vx + len * 0.05, -vy);
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+  const maple = (x, y, ang, r, shade) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(ang);
+    const g = ctx.createRadialGradient(0, 0, r * 0.1, 0, 0, r);
+    g.addColorStop(0, grey(shade * 0.72));
+    g.addColorStop(1, grey(shade));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    const lobes = 5;
+    for (let i = 0; i < lobes * 2; i++) {
+      const a = (i / (lobes * 2)) * Math.PI * 2 - Math.PI / 2;
+      const rr = i % 2 === 0 ? r : r * 0.42;
+      const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = `rgba(${shade * 0.5 | 0},${shade * 0.5 | 0},${shade * 0.5 | 0},0.5)`;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < lobes; i++) {
+      const a = (i / lobes) * Math.PI * 2 - Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a) * r * 0.85, Math.sin(a) * r * 0.85);
+      ctx.stroke();
+      // Fine offshoot veinlets along each lobe rib
+      ctx.lineWidth = 0.5;
+      for (const vt of [0.4, 0.65]) {
+        const bx = Math.cos(a) * r * 0.85 * vt, by = Math.sin(a) * r * 0.85 * vt;
+        const perp = a + Math.PI / 2;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx + Math.cos(perp) * r * 0.12, by + Math.sin(perp) * r * 0.12);
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx - Math.cos(perp) * r * 0.12, by - Math.sin(perp) * r * 0.12);
+        ctx.stroke();
+      }
+      ctx.lineWidth = 1;
+    }
+    ctx.restore();
+  };
+  const blossom = (x, y, r, shade) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rnd() * Math.PI * 2);
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      const g = ctx.createRadialGradient(0, 0, r * 0.15, Math.cos(a) * r * 0.6, Math.sin(a) * r * 0.6, r * 0.75);
+      g.addColorStop(0, grey(shade * 0.84));
+      g.addColorStop(1, grey(shade));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55, r * 0.5, r * 0.34, a, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = grey(shade * 0.62);
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.16, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+  const whorl = (x, y, ang, shade) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(ang);
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 16; i++) {
+      const a = (rnd() - 0.5) * 1.9;
+      const len = 34 + rnd() * 38;
+      ctx.strokeStyle = grey(shade * (0.7 + rnd() * 0.3));
+      ctx.lineWidth = 2.2 + rnd() * 1.4;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len);
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+
+  if (kind === 'maple') {
+    for (let i = 0; i < 11; i++) {
+      const a = rnd() * Math.PI * 2, d = Math.pow(rnd(), 0.6) * 70;
+      maple(cx + Math.cos(a) * d, cy + Math.sin(a) * d, rnd() * Math.PI * 2, 30 + rnd() * 16, 175 + rnd() * 80);
+    }
+  } else if (kind === 'sakura') {
+    for (let i = 0; i < 26; i++) {
+      const a = rnd() * Math.PI * 2, d = Math.pow(rnd(), 0.55) * 82;
+      blossom(cx + Math.cos(a) * d, cy + Math.sin(a) * d, 15 + rnd() * 10, 200 + rnd() * 55);
+    }
+    // Tight buds between the open flowers
+    for (let i = 0; i < 14; i++) {
+      const a = rnd() * Math.PI * 2, d = rnd() * 95;
+      ctx.fillStyle = grey(150 + rnd() * 40);
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d, 4 + rnd() * 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (kind === 'needle') {
+    for (let i = 0; i < 9; i++) {
+      const a = rnd() * Math.PI * 2, d = Math.pow(rnd(), 0.7) * 60;
+      whorl(cx + Math.cos(a) * d, cy + Math.sin(a) * d, rnd() * Math.PI * 2, 170 + rnd() * 85);
+    }
+  } else {
+    // Broadleaf spray: big leaves radiating from the centre, smaller ones on top
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * Math.PI * 2 + rnd() * 0.6;
+      const bx = cx + (rnd() - 0.5) * 50, by = cy + (rnd() - 0.5) * 50;
+      leaf(bx, by, a, 58 + rnd() * 40, 13 + rnd() * 9, 165 + rnd() * 75);
+    }
+    for (let i = 0; i < 10; i++) {
+      const a = rnd() * Math.PI * 2;
+      leaf(cx + (rnd() - 0.5) * 70, cy + (rnd() - 0.5) * 70, a, 34 + rnd() * 26, 9 + rnd() * 6, 200 + rnd() * 55);
+    }
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  cardTexCache.set(kind, tex);
+  return tex;
+}
+
+let cardGeo = null;
+/** Unit leaf card: a 1×1 quad with a shallow centre crease so sprays catch light from the side. */
+export function leafCardGeometry() {
+  if (cardGeo) return cardGeo;
+  const geo = new THREE.PlaneGeometry(1, 1, 2, 1);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) if (Math.abs(pos.getX(i)) < 0.01) pos.setZ(i, 0.09);
+  geo.computeVertexNormals();
+  cardGeo = geo;
+  return geo;
+}
+
+/**
+ * Lumpy cedar/cypress silhouette for distant hillside forests: a noise-
+ * pushed icosphere stretched tall and tapered to a tip.
+ */
+const coneCache = new Map();
+export function lumpyConeGeometry(detail = 1, seed = 0, lump = 0.3) {
+  const key = detail + '_' + seed + '_' + lump;
+  if (coneCache.has(key)) return coneCache.get(key);
+  const geo = lumpyTuftGeometry(detail, seed, lump).clone();
+  const pos = geo.attributes.position;
+  const p = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    p.fromBufferAttribute(pos, i);
+    const t = THREE.MathUtils.clamp((p.y + 1) * 0.5, 0, 1);
+    const taper = 1.05 - t * 0.78;
+    pos.setXYZ(i, p.x * taper, p.y * 1.9 + 0.9, p.z * taper);
+  }
+  geo.computeVertexNormals();
+  geo.computeBoundingSphere();
+  coneCache.set(key, geo);
+  return geo;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Branching canopy builder                                           */
+/* ------------------------------------------------------------------ */
+
+/** Tube along `curve` whose radius tapers from r0 to r1. */
+function taperedTube(curve, r0, r1, segs = 6, radial = 6) {
+  const geo = new THREE.TubeGeometry(curve, segs, 1, radial, false);
+  const pos = geo.attributes.position;
+  const ring = radial + 1;
+  const c = new THREE.Vector3();
+  const v = new THREE.Vector3();
+  for (let j = 0; j <= segs; j++) {
+    const t = j / segs;
+    curve.getPointAt(t, c);
+    const r = r0 + (r1 - r0) * t;
+    for (let i = 0; i < ring; i++) {
+      const idx = j * ring + i;
+      v.fromBufferAttribute(pos, idx).sub(c).multiplyScalar(r).add(c);
+      pos.setXYZ(idx, v.x, v.y, v.z);
+    }
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+function bakeColor(geo, color) {
+  const n = geo.attributes.position.count;
+  const col = new Float32Array(n * 3);
+  for (let v = 0; v < n; v++) {
+    col[v * 3] = color.r; col[v * 3 + 1] = color.g; col[v * 3 + 2] = color.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return geo;
+}
+
+/**
+ * Build a realistic canopy in tree-local space (trunk base at the origin,
+ * everything already multiplied by `scale`). A branching skeleton of
+ * tapered, gently arcing primaries with secondaries and twigs carries a
+ * leaf clump at every tip and along the outer limbs; each clump is a few
+ * lumpy tuft cores fringed by alpha-cut leaf-spray cards. Vertex tints
+ * grade from deep shade inside/below to the sunlit crown on top.
+ *
+ * Returns { branches, tufts, cards, top, radius } — three merged
+ * geometries (tufts and cards carry a `color` attribute) plus the crown
+ * extents for colliders and sway.
+ */
+export function buildCanopy(rng, {
+  scale = 1,
+  trunkH = 2.4,          // height at which the primaries fan out from
+  trunkR = 0.12,         // trunk radius at the fork (limbs start inside it)
+  primaries = 6,
+  tilt = 0.8,            // primary angle from vertical (rad)
+  tiltVar = 0.22,
+  droop = 0,             // limb-end lift (+) or droop (−) as a fraction of length
+  bend = 0.12,           // mid-limb upward arc
+  branchLen = 1.4,
+  secondaries = 2,
+  twigs = true,
+  crownFill = 3,
+  colors = [0x35561f, 0x4c7433, 0x6f9440],
+  clumpR = 0.42,
+  tuftsPerClump = [3, 3, 2],
+  cardsPerClump = [10, 9, 6],
+  cardSize = 0.68,
+  tuftFlat = 0.72,       // vertical squash of tuft cores (pads use ~0.4)
+  pad = false,           // flat needle pads: cards lie horizontal
+  tuftDetail = 1,
+  lump = 0.34,
+  seed = 1
+} = {}) {
+  const up = new THREE.Vector3(0, 1, 0);
+  const tips = [];
+  const branchGeos = [];
+
+  const addLimb = (start, dir, len, r0, r1, level) => {
+    const end = start.clone().addScaledVector(dir, len);
+    end.y += droop * len * (level === 0 ? 1 : 0.6);
+    const mid = start.clone().addScaledVector(dir, len * 0.5);
+    mid.y += bend * len * (level === 0 ? 1 : 0.5);
+    const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+    branchGeos.push(taperedTube(curve, r0, r1, level === 0 ? 7 : 5, level === 0 ? 7 : 5));
+    return { curve, end, tangent: curve.getTangent(1).normalize() };
+  };
+
+  for (let i = 0; i < primaries; i++) {
+    const a = (i / primaries) * Math.PI * 2 + rng() * (Math.PI * 2 / primaries) * 0.7;
+    const t = tilt + (rng() - 0.5) * 2 * tiltVar;
+    const dir = new THREE.Vector3(Math.sin(t) * Math.cos(a), Math.cos(t), Math.sin(t) * Math.sin(a));
+    const h = trunkH * (0.68 + rng() * 0.28);
+    const start = new THREE.Vector3(Math.cos(a) * trunkR * 0.5, h, Math.sin(a) * trunkR * 0.5);
+    const len = branchLen * (0.8 + rng() * 0.45);
+    const limb = addLimb(start, dir, len, trunkR * 0.55, trunkR * 0.2, 0);
+    tips.push({ p: limb.end, dir: limb.tangent, level: 0 });
+    tips.push({ p: limb.curve.getPoint(0.6), dir: limb.curve.getTangent(0.6).normalize(), level: 1, inner: true });
+    for (let j = 0; j < secondaries; j++) {
+      const tj = 0.42 + (j / secondaries) * 0.45 + rng() * 0.1;
+      const base = limb.curve.getPoint(tj);
+      const tan = limb.curve.getTangent(tj).normalize();
+      const side = (j % 2 === 0 ? 1 : -1) * (0.55 + rng() * 0.5);
+      const sdir = tan.clone().applyAxisAngle(up, side);
+      sdir.y += 0.2 + rng() * 0.3;
+      sdir.normalize();
+      const slen = len * (0.42 + rng() * 0.25);
+      const sec = addLimb(base, sdir, slen, trunkR * 0.24, trunkR * 0.09, 1);
+      tips.push({ p: sec.end, dir: sec.tangent, level: 1 });
+      if (twigs) {
+        for (let k = 0; k < 2; k++) {
+          const tdir = sec.tangent.clone().applyAxisAngle(up, (k ? 1 : -1) * (0.6 + rng() * 0.5));
+          tdir.y += 0.25;
+          tdir.normalize();
+          const twig = addLimb(sec.end.clone(), tdir, slen * 0.42, trunkR * 0.09, trunkR * 0.035, 2);
+          tips.push({ p: twig.end, dir: twig.tangent, level: 2 });
+        }
+      }
+    }
+  }
+  for (let i = 0; i < crownFill; i++) {
+    const a = rng() * Math.PI * 2;
+    tips.push({
+      p: new THREE.Vector3(Math.cos(a) * trunkR * 2.5, trunkH * (0.98 + rng() * 0.22), Math.sin(a) * trunkR * 2.5),
+      dir: up.clone(), level: 1, inner: true
+    });
+  }
+
+  // Crown extents for the light gradient
+  let minY = Infinity, maxY = -Infinity, maxR = 0;
+  for (const tip of tips) {
+    minY = Math.min(minY, tip.p.y);
+    maxY = Math.max(maxY, tip.p.y);
+    maxR = Math.max(maxR, Math.hypot(tip.p.x, tip.p.z));
+  }
+
+  const tuftGeos = [];
+  const cardGeos = [];
+  const card = leafCardGeometry();
+  const tmpColor = new THREE.Color();
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), qRoll = new THREE.Quaternion();
+  const e = new THREE.Euler(), sc = new THREE.Vector3(), p = new THREE.Vector3(), nrm = new THREE.Vector3();
+  const zAxis = new THREE.Vector3(0, 0, 1);
+  const pick = (light, jitter) => {
+    const ci = Math.min(colors.length - 1, Math.max(0, Math.floor(light * colors.length)));
+    return tmpColor.setHex(colors[ci]).offsetHSL((rng() - 0.5) * 0.02, (rng() - 0.5) * 0.08, (rng() - 0.5) * jitter);
+  };
+
+  for (const tip of tips) {
+    const hNorm = maxY > minY ? (tip.p.y - minY) / (maxY - minY) : 0.5;
+    const rNorm = maxR > 0 ? Math.hypot(tip.p.x, tip.p.z) / maxR : 0.5;
+    let light = 0.12 + hNorm * 0.55 + rNorm * 0.4 - (tip.inner ? 0.3 : 0) + (tip.level === 2 ? 0.08 : 0);
+    light = THREE.MathUtils.clamp(light, 0, 0.999);
+    const R = clumpR * (tip.level === 0 ? 1.1 : tip.level === 1 ? 0.95 : 0.7) * (0.85 + rng() * 0.3);
+    const centre = tip.p.clone().addScaledVector(tip.dir, R * 0.35);
+    const lvl = Math.min(2, tip.level);
+
+    for (let n = 0; n < tuftsPerClump[lvl]; n++) {
+      p.set(rng() - 0.5, (rng() - 0.5) * (pad ? 0.3 : 1), rng() - 0.5).multiplyScalar(R * 0.8).add(centre);
+      const r = R * (0.75 + rng() * 0.35);
+      sc.set(r * (0.9 + rng() * 0.3), r * tuftFlat * (0.9 + rng() * 0.2), r * (0.9 + rng() * 0.3));
+      e.set(pad ? (rng() - 0.5) * 0.3 : rng() * Math.PI, rng() * Math.PI, pad ? (rng() - 0.5) * 0.3 : rng() * Math.PI);
+      q.setFromEuler(e);
+      m.compose(p, q, sc);
+      const geo = lumpyTuftGeometry(tuftDetail, seed + n, lump).clone().applyMatrix4(m);
+      const col = pick(light - 0.1, 0.06);
+      col.multiplyScalar(0.82 + light * 0.18);
+      tuftGeos.push(bakeColor(geo, col));
+    }
+
+    for (let n = 0; n < cardsPerClump[lvl]; n++) {
+      nrm.set(rng() - 0.5, rng() - 0.5, rng() - 0.5).normalize();
+      if (pad) nrm.y = Math.abs(nrm.y) * 0.35 + 0.65; else nrm.y += 0.22;
+      nrm.normalize();
+      p.copy(centre).addScaledVector(nrm, R * (0.7 + rng() * 0.5));
+      if (pad) p.y = centre.y + (rng() - 0.5) * R * 0.25;
+      // Face outward/upward with a random roll about the normal
+      const face = pad
+        ? new THREE.Vector3((rng() - 0.5) * 0.5, 1, (rng() - 0.5) * 0.5).normalize()
+        : nrm.clone().multiplyScalar(0.8).addScaledVector(up, 0.18).add(new THREE.Vector3(rng() - 0.5, rng() - 0.5, rng() - 0.5).multiplyScalar(0.4)).normalize();
+      q.setFromUnitVectors(zAxis, face);
+      qRoll.setFromAxisAngle(zAxis, rng() * Math.PI * 2);
+      q.multiply(qRoll);
+      const size = cardSize * (0.8 + rng() * 0.45) * (tip.level === 2 ? 0.85 : 1);
+      sc.set(size, size, size);
+      m.compose(p, q, sc);
+      const geo = card.clone().applyMatrix4(m);
+      const col = pick(Math.min(0.999, light + 0.12 + rng() * 0.1), 0.08);
+      cardGeos.push(bakeColor(geo, col));
+    }
+  }
+
+  const branches = mergeGeometries(branchGeos, false);
+  const tufts = mergeGeometries(tuftGeos, false);
+  const cards = mergeGeometries(cardGeos, false);
+  for (const g of branchGeos) g.dispose();
+  for (const g of tuftGeos) g.dispose();
+  for (const g of cardGeos) g.dispose();
+  if (scale !== 1) {
+    branches.scale(scale, scale, scale);
+    tufts.scale(scale, scale, scale);
+    cards.scale(scale, scale, scale);
+  }
+  return { branches, tufts, cards, top: (maxY + clumpR * 1.5) * scale, radius: (maxR + clumpR) * scale };
 }
 
 /** Update the shared uniforms once per frame. */
