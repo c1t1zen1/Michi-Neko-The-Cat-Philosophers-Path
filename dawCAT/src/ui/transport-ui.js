@@ -25,6 +25,9 @@ function buildMenus(app) {
         { label: 'Export WAV…', onClick: () => app.exportWav() },
         { label: 'Export Project JSON', onClick: () => app.exportProjectJSON() },
         'sep',
+        { label: 'Import MIDI (.mid)…', onClick: () => app.importMidiDialog() },
+        { label: 'Export MIDI (.mid)', onClick: () => app.exportMidi() },
+        'sep',
         { label: 'Export to Game…', onClick: () => app.exportToGameDialog() },
         'sep',
         { label: 'Rescan Game Cues', onClick: () => app.rescanCues() }

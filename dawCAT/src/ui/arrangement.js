@@ -2,6 +2,8 @@
 import { el, toast, ctxMenu, hideCtxMenu, showModal, closeModal } from './common.js';
 import { SNAP_VALUES, TRACK_COLORS, uid } from '../state.js';
 import { cueToClipSpec } from './browser.js';
+import { AUTOMATABLE_PARAMS, DEVICE_LABELS, normalizeAuto, denormalizeAuto } from '../engine/automatable.js';
+import { putAsset, decodeAndCache, getCachedPeaks } from '../engine/assets.js';
 
 const HEADER_W = 170;
 const RULER_H = 28;
@@ -42,7 +44,7 @@ export class Arrangement {
     return s ? Math.max(0, Math.round(beat / s) * s) : Math.max(0, beat);
   }
   contentW() { return this.project.bars * this.pxPerBar; }
-  contentH() { return RULER_H + this.project.tracks.length * LANE_H + 3 * AUTO_LANE_H; }
+  contentH() { return RULER_H + this.project.tracks.length * LANE_H + this.autoLanes().length * AUTO_LANE_H; }
 
   autoLanes() {
     const sel = this.app.state.selectedTrack();
@@ -50,17 +52,26 @@ export class Arrangement {
     if (sel) {
       lanes.push({ owner: sel.id, param: 'volume', label: `${sel.name} · Volume` });
       lanes.push({ owner: sel.id, param: 'pan', label: `${sel.name} · Pan` });
+      for (const d of sel.devices || []) {
+        if (!d.on) continue;
+        const table = AUTOMATABLE_PARAMS[d.type];
+        if (!table) continue;
+        const devName = DEVICE_LABELS[d.type] || d.type;
+        for (const key in table) {
+          lanes.push({
+            owner: sel.id, param: key, deviceId: d.id, range: table[key],
+            label: `${sel.name} · ${devName} · ${table[key].label}`
+          });
+        }
+      }
     }
     lanes.push({ owner: 'master', param: 'volume', label: 'Master · Volume' });
     return lanes;
   }
 
   autoLaneIndex(lane) {
-    const sel = this.app.state.selectedTrack();
-    const keys = [];
-    if (sel) { keys.push(sel.id + ':volume'); keys.push(sel.id + ':pan'); }
-    keys.push('master:volume');
-    return keys.indexOf(lane.owner + ':' + lane.param);
+    const lanes = this.autoLanes();
+    return lanes.findIndex((l) => l.owner === lane.owner && l.param === lane.param && l.deviceId === lane.deviceId);
   }
 
   autoLaneTop(lane) {
@@ -145,6 +156,17 @@ export class Arrangement {
       g.fillText('Drag an instrument from the browser here — or double-click an empty lane to add a clip', W / 2, H / 2);
       g.textAlign = 'left';
     }
+
+    if (this.drag && this.drag.mode === 'marquee') {
+      const d = this.drag;
+      const rx = Math.min(d.x0, d.x1), ry = Math.min(d.y0, d.y1);
+      const rw = Math.abs(d.x1 - d.x0), rh = Math.abs(d.y1 - d.y0);
+      g.fillStyle = 'rgba(90,162,255,.15)';
+      g.fillRect(rx, ry, rw, rh);
+      g.strokeStyle = '#5aa2ff';
+      g.lineWidth = 1;
+      g.strokeRect(rx + 0.5, ry + 0.5, rw, rh);
+    }
   }
 
   drawRuler(g, W) {
@@ -220,10 +242,10 @@ export class Arrangement {
     g.fillRect(0, y, 5, LANE_H);
     g.fillStyle = '#dbe6f8';
     g.font = 'bold 12px system-ui';
-    g.fillText(t.name, 12, y + 20);
+    g.fillText((t.frozenActive ? '❄ ' : '') + t.name, 12, y + 20);
     g.fillStyle = '#5c6f8f';
     g.font = '10px system-ui';
-    g.fillText(t.kind === 'drum' ? `drum · ${t.drumKit}` : (t.preset && t.preset.kind) || 'synth', 12, y + 36);
+    g.fillText(t.frozenActive ? 'frozen · right-click to unfreeze' : (t.kind === 'drum' ? `drum · ${t.drumKit}` : (t.preset && t.preset.kind) || 'synth'), 12, y + 36);
 
     const btn = (bx, label, on, color) => {
       g.fillStyle = on ? color : '#1a2236';
@@ -263,9 +285,14 @@ export class Arrangement {
     g.fill();
     g.fillStyle = 'rgba(0,0,0,.25)';
     g.fillRect(x0 + 1, y + h - 12, w - 2, 12);
-    g.strokeStyle = this.app.state.selection.clipId === c.id ? '#ffffff' : 'rgba(0,0,0,.4)';
+    const sel = this.app.state.selection;
+    const isPrimary = sel.clipId === c.id;
+    const inMulti = (sel.selectedClipIds || []).includes(c.id);
+    g.strokeStyle = isPrimary ? '#ffffff' : inMulti ? '#5aa2ff' : 'rgba(0,0,0,.4)';
+    g.lineWidth = inMulti && !isPrimary ? 2 : 1;
     roundRect(g, x0, y, w, h, 5);
     g.stroke();
+    g.lineWidth = 1;
 
     g.save();
     roundRect(g, x0, y, w, h, 5);
@@ -288,6 +315,22 @@ export class Arrangement {
           }
         }
       });
+    } else if (c.audio && c.audio.assetId) {
+      const peaks = getCachedPeaks(c.audio.assetId);
+      const midY = y + h / 2 + 4;
+      g.fillStyle = 'rgba(255,255,255,.55)';
+      if (peaks && peaks.length) {
+        const bw = Math.max(1, (w - 12) / peaks.length);
+        for (let i = 0; i < peaks.length; i++) {
+          const bx = x0 + 6 + i * bw;
+          const bh = Math.max(1, peaks[i] * (h - 22));
+          g.fillRect(bx, midY - bh / 2, Math.max(1, bw - 0.5), bh);
+        }
+      } else {
+        // Asset not decoded in this session yet (e.g. reloaded project) —
+        // draw a flat placeholder instead of guessing at fake peaks.
+        g.fillRect(x0 + 6, midY - 1, w - 12, 2);
+      }
     } else if (c.sample) {
       g.fillStyle = 'rgba(255,255,255,.6)';
       g.font = '9px system-ui';
@@ -337,7 +380,8 @@ export class Arrangement {
     g.fillText(lane.label, 10, y + 18);
     g.fillStyle = '#44557a';
     g.font = '9px system-ui';
-    g.fillText(lane.param === 'pan' ? '-1 … +1' : '0 … 1', 12, y + H - 8);
+    const rangeLabel = lane.deviceId ? `${lane.range.min} … ${lane.range.max}` : lane.param === 'pan' ? '-1 … +1' : '0 … 1';
+    g.fillText(rangeLabel, 12, y + H - 8);
     this._hits.push({ x: 0, y, w: HEADER_W, h: H, type: 'autoHead', lane });
 
     g.strokeStyle = '#141a2c';
@@ -350,9 +394,11 @@ export class Arrangement {
     }
 
     const list = autoList(this.project, lane);
-    const toY = (v) => lane.param === 'pan'
-      ? y + H / 2 - v * (H / 2 - 6)
-      : y + H - 8 - v * (H - 16);
+    const toY = (v) => {
+      if (lane.param === 'pan' && !lane.deviceId) return y + H / 2 - v * (H / 2 - 6);
+      const n = lane.range ? normalizeAuto(v, lane.range) : v;
+      return y + H - 8 - n * (H - 16);
+    };
     if (list.length) {
       g.strokeStyle = '#5aa2ff';
       g.lineWidth = 1.5;
@@ -388,6 +434,12 @@ export class Arrangement {
       const laneIdx = Math.floor((y + this.scrollY - RULER_H) / LANE_H);
       if (laneIdx >= 0 && laneIdx < this.project.tracks.length) {
         return { type: 'lane', track: this.project.tracks[laneIdx], laneIdx };
+      }
+      const lanes = this.autoLanes();
+      const autoY = RULER_H + this.project.tracks.length * LANE_H - this.scrollY;
+      if (y >= autoY) {
+        const li = Math.floor((y - autoY) / AUTO_LANE_H);
+        if (li >= 0 && li < lanes.length) return { type: 'autoLane', lane: lanes[li] };
       }
     }
     return { type: 'bg' };
@@ -485,6 +537,15 @@ export class Arrangement {
       return;
     }
 
+    if (hit.type === 'autoLane') {
+      const beat = Math.round(Math.max(0, this.xToBeat(x)) * 4) / 4;
+      const value = this.autoValueAtY(hit.lane, y);
+      st.setAutoPoint(hit.lane.owner, hit.lane.param, beat, value, hit.lane.deviceId);
+      this.drag = { mode: 'autoPoint', lane: hit.lane };
+      this._needsDraw = true;
+      return;
+    }
+
     if (hit.type === 'clipEdge') {
       st.select(hit.track.id, hit.clip.id);
       st.pushUndo();
@@ -493,7 +554,14 @@ export class Arrangement {
     }
 
     if (hit.type === 'clip') {
-      st.select(hit.track.id, hit.clip.id);
+      if (e.shiftKey) {
+        st.toggleClipSelection(hit.track.id, hit.clip.id);
+        this._needsDraw = true;
+        return;
+      }
+      const inMulti = (st.selection.selectedClipIds || []).includes(hit.clip.id);
+      if (!inMulti) st.select(hit.track.id, hit.clip.id);
+      else st.selection.trackId = hit.track.id;
       st.pushUndo();
       this.drag = {
         mode: 'clipMove',
@@ -503,17 +571,56 @@ export class Arrangement {
         origStart: hit.clip.start,
         origTrackId: hit.track.id,
         moved: false,
-        alt: e.altKey
+        alt: e.altKey,
+        group: inMulti ? this.collectSelectedClips() : null
       };
       return;
     }
 
     if (hit.type === 'lane') {
-      st.select(hit.track.id);
+      if (!e.shiftKey) {
+        st.select(hit.track.id);
+        st.selection.selectedClipIds = [];
+      } else {
+        st.selection.trackId = hit.track.id;
+      }
+      this.drag = { mode: 'marquee', x0: x, y0: y, x1: x, y1: y, additive: e.shiftKey };
+      this._needsDraw = true;
       return;
     }
 
     this.drag = { mode: 'pan', startX: x, startY: y, scrollX: this.scrollX, scrollY: this.scrollY };
+  }
+
+  collectSelectedClips() {
+    const st = this.app.state;
+    const ids = st.selection.selectedClipIds || [];
+    const out = [];
+    for (const id of ids) {
+      const t = st.trackOfClip(id);
+      const c = t && t.clips.find((x) => x.id === id);
+      if (t && c) out.push({ trackId: t.id, clipId: id, origStart: c.start });
+    }
+    return out;
+  }
+
+  updateMarqueeSelection(d) {
+    const st = this.app.state;
+    const x0 = Math.min(d.x0, d.x1), x1 = Math.max(d.x0, d.x1);
+    const y0 = Math.min(d.y0, d.y1), y1 = Math.max(d.y0, d.y1);
+    const hit = [];
+    for (const h of this._hits) {
+      if (h.type !== 'clip') continue;
+      if (h.x + h.w >= x0 && h.x <= x1 && h.y + h.h >= y0 && h.y <= y1) hit.push(h.clip.id);
+    }
+    if (d.additive) {
+      const base = d._baseIds || (d._baseIds = (st.selection.selectedClipIds || []).slice());
+      const merged = base.slice();
+      for (const id of hit) if (!merged.includes(id)) merged.push(id);
+      st.setClipSelection(merged);
+    } else {
+      st.setClipSelection(hit);
+    }
   }
 
   onMove(e) {
@@ -532,9 +639,25 @@ export class Arrangement {
       if (ns !== d.clip.start) {
         d.moved = true;
         d.lastStart = ns;
-        st.updateClip(d.track.id, d.clip.id, { start: ns }, { undo: false });
+        const delta = ns - d.origStart;
+        if (d.group && d.group.length > 1) {
+          for (const gEntry of d.group) {
+            const gt = st.track(gEntry.trackId);
+            const gc = gt && gt.clips.find((c) => c.id === gEntry.clipId);
+            if (!gt || !gc) continue;
+            let gns = gEntry.origStart + delta;
+            gns = gt.kind === 'drum' ? Math.max(0, Math.round(gns / 4) * 4) : Math.max(0, gns);
+            if (gns !== gc.start) st.updateClip(gt.id, gc.id, { start: gns }, { undo: false });
+          }
+        } else {
+          st.updateClip(d.track.id, d.clip.id, { start: ns }, { undo: false });
+        }
         this._needsDraw = true;
       }
+    } else if (d.mode === 'marquee') {
+      d.x1 = x; d.y1 = y;
+      this.updateMarqueeSelection(d);
+      this._needsDraw = true;
     } else if (d.mode === 'resize') {
       const dt = ((x - d.startX) * 4) / this.pxPerBar;
       if (d.edge === 'r') {
@@ -566,7 +689,7 @@ export class Arrangement {
     } else if (d.mode === 'autoPoint') {
       const beat = Math.round(Math.max(0, this.xToBeat(x)) * 4) / 4;
       const value = this.autoValueAtY(d.lane, y);
-      st.setAutoPoint(d.lane.owner, d.lane.param, Math.round(beat * 4) / 4, value);
+      st.setAutoPoint(d.lane.owner, d.lane.param, beat, value, d.lane.deviceId);
       this._needsDraw = true;
     } else if (d.mode === 'pan') {
       this.scrollX = Math.max(0, d.scrollX - (x - d.startX));
@@ -580,16 +703,34 @@ export class Arrangement {
     const d = this.drag;
     this.drag = null;
     if (!d) return;
+    const st = this.app.state;
     if (d.mode === 'clipMove' && d.alt) {
-      // keep a duplicate at the dragged position, restore the original
-      const st = this.app.state;
-      const copy = JSON.parse(JSON.stringify(d.clip));
-      copy.id = uid('c');
-      copy.name = (d.clip.name || 'Clip') + ' copy';
-      copy.notes.forEach((n) => { n.id = uid('n'); });
-      copy.start = d.clip.start;
-      st.addClip(d.track.id, copy);
-      st.updateClip(d.track.id, d.clip.id, { start: d.origStart }, { undo: false });
+      // keep a duplicate at the dragged position, restore the original(s)
+      if (d.group && d.group.length > 1) {
+        const newIds = [];
+        for (const gEntry of d.group) {
+          const gt = st.track(gEntry.trackId);
+          const gc = gt && gt.clips.find((c) => c.id === gEntry.clipId);
+          if (!gt || !gc) continue;
+          const copy = JSON.parse(JSON.stringify(gc));
+          copy.id = uid('c');
+          copy.name = (gc.name || 'Clip') + ' copy';
+          copy.notes.forEach((n) => { n.id = uid('n'); });
+          copy.start = gc.start;
+          st.addClip(gt.id, copy);
+          st.updateClip(gt.id, gc.id, { start: gEntry.origStart }, { undo: false });
+          newIds.push(copy.id);
+        }
+        st.setClipSelection(newIds);
+      } else {
+        const copy = JSON.parse(JSON.stringify(d.clip));
+        copy.id = uid('c');
+        copy.name = (d.clip.name || 'Clip') + ' copy';
+        copy.notes.forEach((n) => { n.id = uid('n'); });
+        copy.start = d.clip.start;
+        st.addClip(d.track.id, copy);
+        st.updateClip(d.track.id, d.clip.id, { start: d.origStart }, { undo: false });
+      }
     }
     if (d.mode === 'loop' && !d.moved) {
       const { x } = this.localXY(e);
@@ -622,17 +763,19 @@ export class Arrangement {
     const hit = this.hitTest(x, y);
     const st = this.app.state;
     if (hit.type === 'clip') {
-      st.select(hit.track.id, hit.clip.id);
+      const inMulti = (st.selection.selectedClipIds || []).includes(hit.clip.id);
+      if (!inMulti) st.select(hit.track.id, hit.clip.id);
       const c = hit.clip;
       ctxMenu(e.clientX, e.clientY, [
         { label: '✎ Rename…', onClick: () => this.renameClip(c) },
-        { label: '⧉ Duplicate', key: 'Ctrl+D', onClick: () => st.duplicateClip(hit.track.id, c.id) },
+        { label: '⧉ Duplicate', key: 'Ctrl+D', onClick: () => (inMulti ? this.app.duplicateSelection() : st.duplicateClip(hit.track.id, c.id)) },
         { label: '✂ Split at Playhead', onClick: () => st.splitClip(hit.track.id, c.id, Math.round(this.app.transport.position / 4)) },
         { label: '💾 Save Clip to Library', onClick: () => this.app.browser.saveClipToLibrary(c, hit.track.kind) },
         'sep',
         { label: c.loop ? '⤓ Unloop clip' : '🔁 Loop clip', onClick: () => st.updateClip(hit.track.id, c.id, { loop: !c.loop }) },
+        { label: '▦ Quantize start to grid', onClick: () => this.quantizeSelectedClips(hit.track, c) },
         'sep',
-        { label: '🗑 Delete', key: 'Del', onClick: () => st.removeClip(hit.track.id, c.id) }
+        { label: '🗑 Delete', key: 'Del', onClick: () => this.app.deleteSelection() }
       ]);
     } else if (hit.type === 'lane') {
       st.select(hit.track.id);
@@ -641,13 +784,32 @@ export class Arrangement {
         { label: '✎ Rename track…', onClick: () => this.renameTrack(hit.track) },
         { label: '🎨 Cycle color', onClick: () => this.cycleTrackColor(hit.track) },
         'sep',
+        hit.track.frozenActive
+          ? { label: '❄ Unfreeze track', onClick: () => this.app.unfreezeTrack(hit.track.id) }
+          : { label: '❄ Freeze track (bounce to audio)', onClick: () => this.app.freezeTrack(hit.track.id) },
+        'sep',
         { label: '🗑 Delete track', onClick: () => { if (confirm(`Delete track "${hit.track.name}"?`)) st.removeTrack(hit.track.id); } }
       ]);
+    } else if (hit.type === 'autoPoint') {
+      ctxMenu(e.clientX, e.clientY, [
+        { label: '🗑 Delete point', onClick: () => st.removeAutoPoint(hit.lane.owner, hit.lane.param, hit.pt.beat, hit.lane.deviceId) }
+      ]);
+    } else if (hit.type === 'autoLane') {
+      const list = autoList(this.project, hit.lane);
+      if (list.length) {
+        ctxMenu(e.clientX, e.clientY, [
+          { label: '🗑 Clear all points on this lane', onClick: () => { st.pushUndo(); list.length = 0; st.emit('project'); } }
+        ]);
+      }
     }
   }
 
   onDrop(e) {
     e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+      this.onDropFiles(e);
+      return;
+    }
     let data = null;
     try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (err) { return; }
     if (!data) return;
@@ -704,7 +866,64 @@ export class Arrangement {
     }
   }
 
+  /* Native OS file drop (e.g. dragging a .wav from Finder), as opposed to the
+     internal drag-payload JSON handled above. Decodes the file, stores it in
+     the IndexedDB asset store, and drops a clip referencing it by assetId. */
+  async onDropFiles(e) {
+    const file = [...e.dataTransfer.files].find((f) => f.type.startsWith('audio/'));
+    if (!file) { toast('Drop an audio file (wav / mp3 / ogg…)', true); return; }
+    const { x, y } = this.localXY(e);
+    const bar = Math.max(0, Math.floor(this.xToBeat(x) / 4));
+    const laneIdx = Math.floor((y + this.scrollY - RULER_H) / LANE_H);
+    const st = this.app.state;
+    const trackAt = (i) => (i >= 0 && i < st.project.tracks.length) ? st.project.tracks[i] : null;
+    const t = trackAt(laneIdx) || st.selectedTrack() || st.addTrack({ name: 'Audio', kind: 'synth' });
+
+    await this.app.engine.resume();
+    const bytes = await file.arrayBuffer();
+    const assetId = uid('a');
+    let buffer;
+    try {
+      buffer = await decodeAndCache(this.app.engine.ctx, assetId, bytes);
+    } catch (err) {
+      toast('Could not decode audio file', true);
+      return;
+    }
+    const meta = {
+      id: assetId, name: file.name, mime: file.type,
+      durationSec: buffer.duration, sampleRate: buffer.sampleRate, channels: buffer.numberOfChannels
+    };
+    await putAsset(Object.assign({ bytes }, meta));
+    st.registerAsset(meta);
+
+    const spb = 60 / (this.project.tempo || 110);
+    const lengthBars = Math.max(1, Math.ceil(buffer.duration / (4 * spb)));
+    const clip = st.addClip(t.id, {
+      name: file.name.replace(/\.[^.]+$/, ''), start: bar, length: lengthBars,
+      audio: { assetId, trimStart: 0, trimEnd: buffer.duration, gain: 1 }
+    });
+    st.select(t.id, clip.id);
+    toast(`Imported "${file.name}" → ${t.name}`);
+  }
+
   /* ---------- actions ---------- */
+
+  quantizeSelectedClips(track, clickedClip) {
+    const st = this.app.state;
+    const ids = (st.selection.selectedClipIds || []).includes(clickedClip.id) && st.selection.selectedClipIds.length > 1
+      ? st.selection.selectedClipIds
+      : [clickedClip.id];
+    const gridBars = Math.max(0.0625, this.snapVal / 4);
+    const byTrack = new Map();
+    for (const id of ids) {
+      const t = st.trackOfClip(id);
+      if (!t) continue;
+      if (!byTrack.has(t.id)) byTrack.set(t.id, []);
+      byTrack.get(t.id).push(id);
+    }
+    for (const [trackId, clipIds] of byTrack) st.quantizeClipStarts(trackId, clipIds, gridBars);
+    toast(`Quantized ${ids.length} clip${ids.length === 1 ? '' : 's'} to grid`);
+  }
 
   createClipAt(track, bar) {
     const clip = this.app.state.addClip(track.id, track.kind === 'drum'
@@ -765,14 +984,19 @@ export class Arrangement {
   autoValueAtY(lane, y) {
     const top = this.autoLaneTop(lane);
     const rel = 1 - (y - top) / AUTO_LANE_H;
-    if (lane.param === 'pan') return Math.min(1, Math.max(-1, rel * 2 - 1));
-    return Math.min(1, Math.max(0, rel));
+    if (lane.param === 'pan' && !lane.deviceId) return Math.min(1, Math.max(-1, rel * 2 - 1));
+    const n = Math.min(1, Math.max(0, rel));
+    return lane.range ? denormalizeAuto(n, lane.range) : n;
   }
 }
 
 /* ---------------- module helpers ---------------- */
 
 function autoList(project, lane) {
+  if (lane.deviceId) {
+    const t = project.tracks.find((x) => x.id === lane.owner);
+    return (t && t.automation && t.automation.devices && t.automation.devices[lane.deviceId] && t.automation.devices[lane.deviceId][lane.param]) || [];
+  }
   if (lane.owner === 'master') return project.master.automation[lane.param] || [];
   const t = project.tracks.find((x) => x.id === lane.owner);
   return (t && t.automation && t.automation[lane.param]) || [];

@@ -1,4 +1,5 @@
 /* dawCAT — project state, persistence, undo/redo */
+import { deleteAsset } from './engine/assets.js';
 
 export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 export const SCALES = {
@@ -55,7 +56,7 @@ export function defaultSynthPreset(kind = 'pluck') {
 function mkClip(track, patch) {
   return Object.assign({
     id: uid('c'), name: '', start: 0, length: 4, gain: 1, loop: false, loopLen: 4,
-    notes: [], steps: null, sample: null
+    notes: [], steps: null, sample: null, audio: null
   }, patch);
 }
 
@@ -76,7 +77,8 @@ export function defaultProject() {
     preset: kind === 'synth' ? defaultSynthPreset('pluck') : null,
     drumKit: 'soft', volume: 0.8, pan: 0, mute: false, solo: false, arm: false,
     sends: { a: 0.12, b: 0.1 }, devices: [], clips: [],
-    automation: { volume: [], pan: [] }
+    automation: { volume: [], pan: [], devices: {} },
+    frozenActive: false, frozenAssetId: null
   }, extra);
 
   const drums = mkTrack('Drums', '#3b82f6', 'drum', {});
@@ -128,8 +130,52 @@ export function defaultProject() {
     sections: { dawn: 0, day: 16, dusk: 32, night: 48 },
     tracks,
     master: { volume: 0.85, automation: { volume: [] } },
-    cueScan: { at: null, files: [], cues: [] }
+    cueScan: { at: null, files: [], cues: [] },
+    // Metadata only — { [id]: {name, mime, durationSec, sampleRate, channels} }.
+    // The actual audio bytes live in IndexedDB (src/engine/assets.js) and are
+    // only ever inlined as base64 when explicitly downloading a project file.
+    assets: {}
   };
+}
+
+/* ---------------- project shape validation / migration ----------------
+   There are two structurally different JSON shapes that float around this app:
+   - a real *project* (this file's shape: tracks[].clips[], full editable state)
+   - a flattened *export payload* (bridge.js buildExportPayload(): tracks[] with
+     no clips, a top-level events[] instead, marked with kind: 'dawcat-export')
+   Both used to pass the old `Array.isArray(p.tracks)` check, so importing an
+   exported Track JSON as a project silently corrupted state and crashed on the
+   next render. This validates the real shape and gives a specific reason when
+   it's actually the other shape, so callers can show a clear toast instead. */
+
+function validateProjectShape(p) {
+  if (!p || typeof p !== 'object') return { ok: false, reason: 'not a project file' };
+  if (p.kind === 'dawcat-export') return { ok: false, reason: 'export-payload' };
+  if (!Array.isArray(p.tracks)) return { ok: false, reason: 'not a project file' };
+  if (!p.tracks.every((t) => t && Array.isArray(t.clips))) {
+    // Real projects always give every track a clips[] array; the flattened
+    // export payload (bridge.js buildExportPayload) never does, even for
+    // older exports made before the `kind` marker existed.
+    const reason = Array.isArray(p.events) ? 'export-payload' : 'not a project file';
+    return { ok: false, reason };
+  }
+  return { ok: true };
+}
+
+function migrateProject(p) {
+  for (const t of p.tracks) {
+    if (!Array.isArray(t.devices)) t.devices = [];
+    if (!t.automation || typeof t.automation !== 'object') t.automation = { volume: [], pan: [], devices: {} };
+    if (!Array.isArray(t.automation.volume)) t.automation.volume = [];
+    if (!Array.isArray(t.automation.pan)) t.automation.pan = [];
+    if (!t.automation.devices || typeof t.automation.devices !== 'object') t.automation.devices = {};
+    if (typeof t.frozenActive !== 'boolean') t.frozenActive = false;
+    if (t.frozenAssetId === undefined) t.frozenAssetId = null;
+  }
+  if (!p.master) p.master = { volume: 0.85, automation: { volume: [] } };
+  if (!p.master.automation) p.master.automation = { volume: [] };
+  if (!Array.isArray(p.master.automation.volume)) p.master.automation.volume = [];
+  if (!p.assets || typeof p.assets !== 'object') p.assets = {};
 }
 
 /* ---------------- app state ---------------- */
@@ -138,7 +184,7 @@ export class AppState extends EventTarget {
   constructor() {
     super();
     this.project = null;
-    this.selection = { trackId: null, clipId: null, noteId: null, deviceId: null, eqBand: 1 };
+    this.selection = { trackId: null, clipId: null, selectedClipIds: [], noteId: null, deviceId: null, eqBand: 1 };
     this.undoStack = [];
     this.redoStack = [];
     this._undoTimer = null;
@@ -150,7 +196,7 @@ export class AppState extends EventTarget {
 
   setProject(p, { resetUndo = true } = {}) {
     this.project = p;
-    this.selection = { trackId: p.tracks[0] ? p.tracks[0].id : null, clipId: null, noteId: null, deviceId: null, eqBand: 1 };
+    this.selection = { trackId: p.tracks[0] ? p.tracks[0].id : null, clipId: null, selectedClipIds: [], noteId: null, deviceId: null, eqBand: 1 };
     if (resetUndo) { this.undoStack = []; this.redoStack = []; }
     this.emit('project');
     this.emit('selection');
@@ -170,7 +216,9 @@ export class AppState extends EventTarget {
   loadJSON(json) {
     try {
       const p = typeof json === 'string' ? JSON.parse(json) : json;
-      if (!p || !Array.isArray(p.tracks)) throw new Error('bad project');
+      const check = validateProjectShape(p);
+      if (!check.ok) { this.lastLoadError = check.reason; throw new Error(check.reason); }
+      migrateProject(p);
       this.setProject(p);
       return true;
     } catch (e) { return false; }
@@ -183,7 +231,10 @@ export class AppState extends EventTarget {
   restore() {
     try {
       const raw = localStorage.getItem('dawcat_project_v1');
-      if (raw) { const p = JSON.parse(raw); if (p && Array.isArray(p.tracks)) { this.project = p; return true; } }
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (validateProjectShape(p).ok) { migrateProject(p); this.project = p; return true; }
+      }
     } catch (e) { /* corrupted */ }
     return false;
   }
@@ -234,7 +285,8 @@ export class AppState extends EventTarget {
       id: uid('t'), name: 'Track', color: TRACK_COLORS[this.project.tracks.length % TRACK_COLORS.length],
       kind: 'synth', preset: defaultSynthPreset('pluck'), drumKit: 'soft',
       volume: 0.8, pan: 0, mute: false, solo: false, arm: false,
-      sends: { a: 0.1, b: 0.1 }, devices: [], clips: [], automation: { volume: [], pan: [] }
+      sends: { a: 0.1, b: 0.1 }, devices: [], clips: [], automation: { volume: [], pan: [], devices: {} },
+      frozenActive: false, frozenAssetId: null
     }, patch);
     this.project.tracks.push(t);
     this.emit('project'); this.emit('chain', t.id);
@@ -255,7 +307,7 @@ export class AppState extends EventTarget {
     if (undo) this.pushUndo();
     Object.assign(t, patch);
     this.emit('project');
-    if (patch.preset || patch.volume !== undefined || patch.pan !== undefined || patch.mute !== undefined || patch.sends) {
+    if (patch.preset || patch.volume !== undefined || patch.pan !== undefined || patch.mute !== undefined || patch.sends || patch.frozenActive !== undefined) {
       this.emit('chain', id);
     }
   }
@@ -268,7 +320,7 @@ export class AppState extends EventTarget {
     if (!t) return null;
     const clip = Object.assign({
       id: uid('c'), name: '', start: 0, length: 4, gain: 1, loop: false, loopLen: 4,
-      notes: [], steps: null, sample: null
+      notes: [], steps: null, sample: null, audio: null
     }, patch);
     if (t.kind === 'drum' && !clip.steps) clip.steps = mkSteps(null);
     if (t.kind === 'drum') clip.length = Math.max(1, Math.round(clip.length));
@@ -287,16 +339,31 @@ export class AppState extends EventTarget {
     this.emit('project');
   }
 
-  removeClip(trackId, clipId) {
-    this.pushUndo();
+  removeClip(trackId, clipId, { undo = true } = {}) {
+    if (undo) this.pushUndo();
     const t = this.track(trackId);
     if (!t) return;
+    const removed = t.clips.find((c) => c.id === clipId);
     t.clips = t.clips.filter((c) => c.id !== clipId);
     if (this.selection.clipId === clipId) { this.selection.clipId = null; this.emit('selection'); }
+    if (this.selection.selectedClipIds && this.selection.selectedClipIds.includes(clipId)) {
+      this.selection.selectedClipIds = this.selection.selectedClipIds.filter((id) => id !== clipId);
+      this.emit('selection');
+    }
     this.emit('project');
+    // Each drag-and-dropped file gets its own fresh assetId (never shared),
+    // so once its one clip is gone the asset is orphaned — clean it up so
+    // IndexedDB doesn't accumulate audio no project reference points to.
+    if (removed && removed.audio && removed.audio.assetId) this.cleanupOrphanAsset(removed.audio.assetId);
   }
 
-  duplicateClip(trackId, clipId) {
+  cleanupOrphanAsset(assetId) {
+    const stillUsed = this.project.tracks.some((t) =>
+      t.frozenAssetId === assetId || t.clips.some((c) => c.audio && c.audio.assetId === assetId));
+    if (!stillUsed) this.removeAsset(assetId);
+  }
+
+  duplicateClip(trackId, clipId, { undo = true } = {}) {
     const t = this.track(trackId);
     const c = t && t.clips.find((x) => x.id === clipId);
     if (!c) return null;
@@ -305,7 +372,7 @@ export class AppState extends EventTarget {
     copy.name = c.name + ' copy';
     copy.notes.forEach((n) => { n.id = uid('n'); });
     copy.start = c.start + c.length;
-    this.pushUndo();
+    if (undo) this.pushUndo();
     t.clips.push(copy);
     this.emit('project');
     return copy;
@@ -424,25 +491,64 @@ export class AppState extends EventTarget {
     this.emit('chain', trackId);
   }
 
+  /* ---------- assets (imported audio files) ---------- */
+
+  registerAsset(meta) {
+    // meta: {id, name, mime, durationSec, sampleRate, channels} — no undo entry;
+    // this only affects a metadata table, not the editable clip/note content,
+    // and the matching IndexedDB row (src/engine/assets.js) isn't undo-tracked either.
+    this.project.assets[meta.id] = meta;
+    this.emit('project');
+  }
+
+  removeAsset(id) {
+    if (!this.project.assets[id]) return;
+    this.pushUndo();
+    delete this.project.assets[id];
+    for (const t of this.project.tracks) {
+      for (const c of t.clips) if (c.audio && c.audio.assetId === id) c.audio = null;
+      if (t.frozenAssetId === id) { t.frozenAssetId = null; t.frozenActive = false; }
+    }
+    this.emit('project');
+    deleteAsset(id).catch(() => { /* best-effort IndexedDB cleanup */ });
+  }
+
   /* ---------- automation ---------- */
 
-  setAutoPoint(trackId, param, beat, value) {
-    const list = trackId === 'master'
-      ? this.project.master.automation[param]
-      : (this.track(trackId) || {}).automation?.[param];
+  /* Resolves the point-array for a track/master or device-param automation lane.
+     When `create` is true and `deviceId` is set, lazily creates automation.devices[deviceId][param]. */
+  autoList(trackId, param, deviceId, create) {
+    if (deviceId) {
+      const t = this.track(trackId);
+      if (!t) return null;
+      if (!t.automation.devices) t.automation.devices = {};
+      if (!t.automation.devices[deviceId]) {
+        if (!create) return null;
+        t.automation.devices[deviceId] = {};
+      }
+      const dev = t.automation.devices[deviceId];
+      if (!dev[param]) {
+        if (!create) return null;
+        dev[param] = [];
+      }
+      return dev[param];
+    }
+    if (trackId === 'master') return this.project.master.automation[param];
+    return (this.track(trackId) || {}).automation?.[param];
+  }
+
+  setAutoPoint(trackId, param, beat, value, deviceId = null) {
+    const list = this.autoList(trackId, param, deviceId, true);
     if (!list) return;
     this.pushUndo();
-    const eps = 0.02;
     const existing = list.find((p) => Math.abs(p.beat - beat) < 0.05);
     if (existing) existing.value = value;
     else { list.push({ beat, value }); list.sort((a, b) => a.beat - b.beat); }
     this.emit('project');
   }
 
-  removeAutoPoint(trackId, param, beat) {
-    const list = trackId === 'master'
-      ? this.project.master.automation[param]
-      : this.track(trackId)?.automation?.[param];
+  removeAutoPoint(trackId, param, beat, deviceId = null) {
+    const list = this.autoList(trackId, param, deviceId, false);
     if (!list) return;
     this.pushUndo();
     const i = list.findIndex((p) => Math.abs(p.beat - beat) < 0.12);
@@ -455,8 +561,54 @@ export class AppState extends EventTarget {
   select(trackId, clipId = null) {
     this.selection.trackId = trackId;
     this.selection.clipId = clipId;
+    this.selection.selectedClipIds = clipId ? [clipId] : [];
     this.selection.deviceId = null;
     this.emit('selection');
+  }
+
+  toggleClipSelection(trackId, clipId) {
+    const ids = this.selection.selectedClipIds || (this.selection.selectedClipIds = []);
+    const i = ids.indexOf(clipId);
+    if (i >= 0) ids.splice(i, 1);
+    else ids.push(clipId);
+    this.selection.trackId = trackId;
+    this.selection.clipId = ids.length ? ids[ids.length - 1] : null;
+    this.emit('selection');
+  }
+
+  setClipSelection(ids) {
+    this.selection.selectedClipIds = ids.slice();
+    this.selection.clipId = ids.length ? ids[ids.length - 1] : null;
+    this.emit('selection');
+  }
+
+  /* ---------- quantize ---------- */
+
+  quantizeNotes(trackId, clipId, noteIds, gridBeats, strength = 1) {
+    const t = this.track(trackId);
+    const c = t && t.clips.find((x) => x.id === clipId);
+    if (!c || !gridBeats) return;
+    const ids = new Set(noteIds && noteIds.length ? noteIds : c.notes.map((n) => n.id));
+    this.pushUndo();
+    for (const n of c.notes) {
+      if (!ids.has(n.id)) continue;
+      const snapped = Math.max(0, Math.round(n.start / gridBeats) * gridBeats);
+      n.start = n.start + (snapped - n.start) * strength;
+    }
+    this.emit('project');
+  }
+
+  quantizeClipStarts(trackId, clipIds, gridBars, strength = 1) {
+    const t = this.track(trackId);
+    if (!t || !gridBars) return;
+    const ids = new Set(clipIds && clipIds.length ? clipIds : t.clips.map((c) => c.id));
+    this.pushUndo();
+    for (const c of t.clips) {
+      if (!ids.has(c.id)) continue;
+      const snapped = Math.max(0, Math.round(c.start / gridBars) * gridBars);
+      c.start = c.start + (snapped - c.start) * strength;
+    }
+    this.emit('project');
   }
 }
 

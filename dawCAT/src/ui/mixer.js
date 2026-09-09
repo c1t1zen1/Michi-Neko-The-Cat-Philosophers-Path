@@ -87,12 +87,16 @@ export class Mixer {
   rafMeters() {
     const tick = () => {
       const view = document.getElementById('view-mix');
-      if (view && view.classList.contains('active')) {
+      const inspBody = document.getElementById('insp-body');
+      const hosts = [];
+      if (view && view.classList.contains('active')) hosts.push(this.host);
+      if (inspBody && inspBody.querySelector('.strip')) hosts.push(inspBody);
+      for (const host of hosts) {
         for (const t of this.app.state.project.tracks) {
-          const meter = this.host.querySelector(`.meter-v[data-track="${t.id}"] .meter-v-fill`);
+          const meter = host.querySelector(`.meter-v[data-track="${t.id}"] .meter-v-fill`);
           if (meter) meter.style.height = Math.round(this.app.engine.trackLevel(t.id) * 100) + '%';
         }
-        const master = this.host.querySelector('.master .meter-v-fill');
+        const master = host.querySelector('.master .meter-v-fill');
         if (master) master.style.height = Math.round(this.app.engine.masterLevel() * 100) + '%';
       }
       requestAnimationFrame(() => tick());

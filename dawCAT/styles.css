@@ -204,6 +204,20 @@ input[type="range"] { accent-color: var(--accent); padding: 0; border: none; bac
 .insp-dev:hover, .insp-dev.sel { background: #16223e; color: #dbe6fa; }
 .insp-dev .num { width: 14px; height: 14px; border-radius: 50%; background: #22304f; color: #9cc0ff; font-size: 9px; display: flex; align-items: center; justify-content: center; }
 .insp-dev.off { opacity: .45; }
+.sec-title {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+  font-size: 11px; font-weight: 600; color: #d5e0f2; background: #141d33;
+  border-bottom: 1px solid var(--border); margin-bottom: 6px;
+}
+.insp-section { padding-bottom: 8px; }
+.insp-section label.dim, .form-row {
+  display: flex; align-items: center; gap: 8px; margin: 6px 10px; font-size: 11px; color: var(--text-dim);
+}
+.insp-section label.dim input[type="text"],
+.insp-section label.dim input[type="number"],
+.insp-section label.dim input[type="range"],
+.insp-section label.dim select { flex: 1; min-width: 0; }
+.empty-hint { color: var(--text-dim); font-size: 11px; padding: 16px 10px; text-align: center; line-height: 1.6; }
 
 /* ======================= DEVICE CHAIN ======================= */
 #devicechain {
@@ -229,6 +243,14 @@ input[type="range"] { accent-color: var(--accent); padding: 0; border: none; bac
 .dev-item .dev-x { color: var(--text-dim); padding: 0 3px; border-radius: 3px; visibility: hidden; }
 .dev-item:hover .dev-x { visibility: visible; }
 .dev-item .dev-x:hover { color: var(--red); }
+.dev-chip {
+  display: flex; align-items: center; gap: 6px; padding: 5px 9px; margin: 2px 2px;
+  border-radius: 4px; cursor: pointer; color: #a9b8d4; border: 1px solid transparent; font-size: 11px;
+}
+.dev-chip:hover { background: #14203a; }
+.dev-chip.selected { background: #16264a; border-color: #2c4a86; color: #e2ecff; }
+.dev-chip.off { opacity: .5; }
+.dev-chip span { flex: 1; }
 #device-add { padding: 6px; border-top: 1px solid var(--border); }
 #device-add-select { width: 100%; }
 
@@ -270,12 +292,15 @@ input[type="range"] { accent-color: var(--accent); padding: 0; border: none; bac
 .strip-name { text-align: center; font-weight: 600; color: #d7e2f5; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; padding: 2px; border-radius: 3px; }
 .strip-color { height: 3px; border-radius: 2px; margin: 0 4px; }
 .strip-body { flex: 1; display: flex; gap: 6px; justify-content: center; min-height: 0; }
-.fader-wrap { position: relative; width: 26px; display: flex; align-items: stretch; justify-content: center; }
-.fader { writing-mode: vertical-lr; direction: rtl; width: 26px; height: 100%; accent-color: #5aa2ff; cursor: ns-resize; }
-.meter-canvas { width: 10px; height: 100%; background: #0a1120; border-radius: 3px; }
-.strip-db { text-align: center; color: #8fa2c2; font-family: var(--font); font-size: 10px; }
-.strip-pan { display: flex; align-items: center; gap: 4px; }
-.strip-pan input { width: 100%; }
+.fader-row { display: flex; align-items: stretch; gap: 6px; flex: 1; min-height: 90px; justify-content: center; }
+.fader { position: relative; width: 22px; background: #0a1120; border: 1px solid var(--border); border-radius: 4px; cursor: ns-resize; touch-action: none; }
+.fader-fill { position: absolute; left: 1px; right: 1px; bottom: 1px; background: linear-gradient(180deg, #5aa2ff, #2c5fb0); border-radius: 3px; }
+.fader-thumb { position: absolute; left: -3px; right: -3px; height: 6px; background: #dfe9ff; border-radius: 2px; box-shadow: 0 0 4px rgba(0,0,0,.6); }
+.meter-v { width: 9px; background: #0a1120; border: 1px solid var(--border); border-radius: 3px; position: relative; overflow: hidden; }
+.meter-v-fill { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, #ff5a5a, #ffcf5a 45%, #5aff9c 78%); }
+.db-label { text-align: center; color: #8fa2c2; font-family: var(--font); font-size: 10px; }
+.pan-row { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text-dim); }
+.pan-row input { flex: 1; min-width: 0; }
 .strip-btns { display: flex; gap: 4px; }
 .strip-btn { flex: 1; padding: 3px 0; text-align: center; border-radius: 3px; background: #16203a; border: 1px solid var(--border); color: #8fa0bf; font-size: 10px; font-weight: 700; cursor: pointer; }
 .strip-btn.on-mute { background: #4a1d24; color: #ff9c9c; border-color: #6e2a33; }

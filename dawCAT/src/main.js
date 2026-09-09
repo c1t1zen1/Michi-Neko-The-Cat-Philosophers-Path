@@ -1,9 +1,11 @@
 /* dawCAT — app bootstrap */
-import { AppState, defaultProject } from './state.js';
+import { AppState, defaultProject, uid } from './state.js';
 import { AudioEngine } from './engine/core.js';
 import { Transport } from './engine/transport.js';
-import { renderProject } from './engine/render.js';
+import { preloadProjectAssets, putAsset, cacheBuffer } from './engine/assets.js';
+import { renderProject, renderTrackToBuffer, wavBlob } from './engine/render.js';
 import { exportToGame } from './bridge.js';
+import { writeMidiFile, parseMidiFile } from './midi.js';
 import { scanGameCues } from './scanner.js';
 import { buildTopbar } from './ui/transport-ui.js';
 import { Browser } from './ui/browser.js';
@@ -58,8 +60,20 @@ class App {
       const f = e.target.files[0];
       if (!f) return;
       const text = await f.text();
-      if (this.state.loadJSON(text)) toast('Project loaded');
-      else toast('Invalid project file', true);
+      if (this.state.loadJSON(text)) {
+        toast('Project loaded');
+      } else if (this.state.lastLoadError === 'export-payload') {
+        toast('That looks like a Track JSON export, not a project — use Export ▸ Download Track JSON files only for archival, and open real .dawcat.json project saves here instead', true);
+      } else {
+        toast('Invalid project file', true);
+      }
+      e.target.value = '';
+    });
+
+    document.getElementById('midi-input').addEventListener('change', async (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      await this.importMidiFile(f);
       e.target.value = '';
     });
   }
@@ -135,15 +149,70 @@ class App {
     this._rebuildTimer = setTimeout(() => {
       if (this.engine.ctx) this.engine.rebuildAll(this.state.project);
       this.transport.markDirty();
+      // Decoding doesn't need a running/resumed context (just an instance),
+      // so this can warm the cache before the user hits "Enable Audio".
+      preloadProjectAssets(this.engine.ensure().ctx, this.state.project);
     }, 60);
     clearTimeout(this._saveTimer);
     this._saveTimer = setTimeout(() => this.state.persist(), 1500);
+  }
+
+  /* ---------- track freeze / bounce-to-audio ---------- */
+
+  async freezeTrack(trackId) {
+    const st = this.state;
+    const t = st.track(trackId);
+    if (!t) return;
+    if (t.frozenActive) { toast(`${t.name} is already frozen — unfreeze first to re-render`, true); return; }
+    toast(`Freezing ${t.name}…`);
+    let buffer;
+    try {
+      buffer = await renderTrackToBuffer(st.project, t);
+    } catch (err) {
+      toast('Freeze failed: ' + err.message, true);
+      return;
+    }
+    const assetId = uid('a');
+    const bytes = await wavBlob(buffer).arrayBuffer();
+    cacheBuffer(assetId, buffer);
+    const meta = {
+      id: assetId, name: `${t.name} (frozen)`, mime: 'audio/wav',
+      durationSec: buffer.duration, sampleRate: buffer.sampleRate, channels: buffer.numberOfChannels
+    };
+    await putAsset(Object.assign({ bytes }, meta));
+    st.registerAsset(meta);
+    st.updateTrack(trackId, { frozenActive: true, frozenAssetId: assetId }, { undo: true });
+    toast(`${t.name} frozen`);
+  }
+
+  unfreezeTrack(trackId) {
+    const st = this.state;
+    const t = st.track(trackId);
+    if (!t || !t.frozenActive) return;
+    const oldAssetId = t.frozenAssetId;
+    st.updateTrack(trackId, { frozenActive: false, frozenAssetId: null }, { undo: true });
+    if (oldAssetId) st.cleanupOrphanAsset(oldAssetId);
+    toast(`${t.name} unfrozen`);
   }
 
   /* ---------- selection-aware actions ---------- */
 
   duplicateSelection() {
     const st = this.state;
+    const ids = st.selection.selectedClipIds || [];
+    if (ids.length > 1) {
+      st.pushUndo();
+      const newIds = [];
+      for (const id of ids) {
+        const t = st.trackOfClip(id);
+        if (!t) continue;
+        const copy = st.duplicateClip(t.id, id, { undo: false });
+        if (copy) newIds.push(copy.id);
+      }
+      st.setClipSelection(newIds);
+      toast(`${newIds.length} clips duplicated`);
+      return;
+    }
     const c = st.selectedClip();
     const t = st.selectedTrack();
     if (c && t) { st.duplicateClip(t.id, c.id); toast('Clip duplicated'); }
@@ -155,6 +224,19 @@ class App {
       const t = st.selectedTrack();
       const c = st.selectedClip();
       if (t && c) st.removeNote(t.id, c.id, st.selection.noteId);
+      return;
+    }
+    const ids = st.selection.selectedClipIds || [];
+    if (ids.length > 1) {
+      st.pushUndo();
+      for (const id of ids) {
+        const t = st.trackOfClip(id);
+        if (t) st.removeClip(t.id, id, { undo: false });
+      }
+      st.selection.selectedClipIds = [];
+      st.selection.clipId = null;
+      st.emit('selection');
+      toast(`${ids.length} clips deleted`);
       return;
     }
     const c = st.selectedClip();
@@ -198,6 +280,45 @@ class App {
     }
   }
 
+  /* ---------- MIDI import/export ---------- */
+
+  exportMidi() {
+    try {
+      const bytes = writeMidiFile(this.state.project);
+      download((this.state.project.name || 'dawcat') + '.mid', bytes, 'audio/midi');
+      toast('MIDI exported (notes only — drum lanes, FX and automation don\'t survive .mid)');
+    } catch (e) {
+      toast('MIDI export failed: ' + e.message, true);
+    }
+  }
+
+  importMidiDialog() {
+    document.getElementById('midi-input').click();
+  }
+
+  async importMidiFile(file) {
+    let result;
+    try {
+      result = parseMidiFile(await file.arrayBuffer());
+    } catch (e) {
+      toast('Could not parse MIDI file: ' + e.message, true);
+      return;
+    }
+    if (!result.tracks.length) { toast('No note events found in that MIDI file', true); return; }
+    const st = this.state;
+    let lastTrack = null;
+    for (const mt of result.tracks) {
+      const t = st.addTrack({ name: mt.name });
+      const endBeat = mt.notes.reduce((m, n) => Math.max(m, n.start + n.len), 0.25);
+      const lengthBars = Math.max(1, Math.ceil(endBeat / 4));
+      const notes = mt.notes.map((n) => ({ id: uid('n'), midi: n.midi, start: n.start, len: n.len, vel: n.vel }));
+      st.addClip(t.id, { name: mt.name, start: 0, length: lengthBars, notes });
+      lastTrack = t;
+    }
+    if (lastTrack) st.select(lastTrack.id);
+    toast(`Imported ${result.tracks.length} track(s) from MIDI (${result.bpm} BPM in file — project tempo unchanged)`);
+  }
+
   /* ---------- game bridge ---------- */
 
   async rescanCues() {
@@ -224,13 +345,15 @@ class App {
       secRow.append(el('label', { class: 'dim' }, `${ph} `, inp));
     }
 
+    const hasImportedAudio = p.tracks.some((t) => t.clips.some((c) => c.audio && c.audio.assetId));
     const note = el('div', { class: 'hintbox' });
     note.innerHTML = [
       '<b>1 · Instant preview (no file changes):</b> click the game tab once to unlock audio, open its DevTools console, paste the hot-swap snippet, press Enter.',
       '<b>2 · Permanent:</b> download <code>music.js</code>, replace the game\'s <code>src/music.js</code> with it, hard-refresh the game (Ctrl+Shift+R). Same MusicDirector API — no other game code changes.',
-      '<b>3 · Backup:</b> download the track JSON (re-importable via File ▸ Open Project).',
-      'Day-phase seeking: set the bar where each phase starts (−1 = ignore that phase).'
-    ].map((s) => `<div>${s}</div>`).join('');
+      '<b>3 · Archive:</b> download the flattened track JSON for reference/tooling — it is <b>not</b> a project file and can\'t be re-opened as an editable project; use File ▸ Save Project for that.',
+      'Day-phase seeking: set the bar where each phase starts (−1 = ignore that phase).',
+      hasImportedAudio ? '⚠ This project has drag-and-dropped audio clips — those play back in the editor but are <b>not</b> included in any game export (synth notes, drum steps and built-in samples only).' : ''
+    ].filter(Boolean).map((s) => `<div>${s}</div>`).join('');
 
     const copyBtn = el('button', { class: 'btn primary', text: '📋 Copy Hot-Swap Snippet' });
     copyBtn.addEventListener('click', async () => {
@@ -250,7 +373,7 @@ class App {
     jsonBtn.addEventListener('click', () => {
       applyMapping();
       const { payload } = exportToGame(st.project);
-      download((st.project.name || 'track') + '.dawcat.json', JSON.stringify(payload, null, 2), 'application/json');
+      download((st.project.name || 'track') + '.dawcat-export.json', JSON.stringify(payload, null, 2), 'application/json');
     });
 
     function applyMapping() {

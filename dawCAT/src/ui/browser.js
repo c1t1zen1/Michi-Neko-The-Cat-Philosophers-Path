@@ -61,7 +61,13 @@ export class Browser {
         tab.classList.add('active');
         const isSearch = tab.dataset.bt === 'search';
         document.getElementById('browser-search-row').classList.toggle('hidden', !isSearch);
-        if (isSearch) this.searchInput.focus();
+        if (isSearch) {
+          this.searchInput.focus();
+        } else if (this.filter) {
+          this.searchInput.value = '';
+          this.filter = '';
+          this.render();
+        }
       });
     });
 
@@ -71,6 +77,7 @@ export class Browser {
 
   render() {
     this.tree.innerHTML = '';
+    this._filterMatchCount = 0;
     const p = this.app.state.project;
     const cues = (p.cueScan && p.cueScan.cues) || [];
 
@@ -151,7 +158,10 @@ export class Browser {
       { label: '＋ Save current project', icon: '💾', onClick: () => this.saveProjectToLibrary() },
       ...lib.map((entry) => ({
         label: entry.name, icon: '💾', sub: new Date(entry.at).toLocaleDateString(),
-        onClick: () => { if (this.app.state.loadJSON(entry.data)) toast(`Loaded "${entry.name}"`); },
+        onClick: () => {
+          if (this.app.state.loadJSON(entry.data)) toast(`Loaded "${entry.name}"`);
+          else toast(`Could not load "${entry.name}" — saved data looks corrupted`, true);
+        },
         ctx: () => [{ label: 'Delete', onClick: () => this.deleteSavedProject(entry) }]
       }))
     ]);
@@ -171,6 +181,10 @@ export class Browser {
       }
     }
     this.category('Current Project', '🐈', projItems);
+
+    if (this.filter && this._filterMatchCount === 0) {
+      this.tree.append(el('div', { class: 'bscan-note', text: `No results for "${this.filter}".` }));
+    }
   }
 
   category(name, icon, items, emptyNote = null) {
@@ -178,6 +192,7 @@ export class Browser {
     const matches = this.filter
       ? items.filter((it) => it.label.toLowerCase().includes(this.filter))
       : items;
+    if (this.filter) this._filterMatchCount += matches.length;
     if (this.filter && !matches.length) return;
     const head = el('div', { class: 'bcat-head' },
       el('span', { class: 'caret', text: open ? '▾' : '▸' }),

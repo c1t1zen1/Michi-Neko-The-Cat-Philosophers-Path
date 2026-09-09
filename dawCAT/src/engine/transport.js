@@ -105,6 +105,15 @@ export class Transport extends EventTarget {
     const evs = [];
     for (const t of p.tracks) {
       if (t.mute || (soloed && !t.solo)) continue;
+      if (t.frozenActive && t.frozenAssetId) {
+        // Frozen: play the single pre-rendered bounce instead of the
+        // individual clip events — this is the entire point of freezing
+        // (skips re-synthesizing/re-running devices every playback).
+        let endBeat = 4;
+        for (const c of t.clips) endBeat = Math.max(endBeat, (c.start + c.length) * 4);
+        evs.push({ beat: 0, kind: 'audio', trackId: t.id, assetId: t.frozenAssetId, durBeats: endBeat, gain: 1, trimStart: 0 });
+        continue;
+      }
       for (const c of t.clips) {
         const clipStartB = c.start * 4;
         const clipEndB = (c.start + c.length) * 4;
@@ -138,6 +147,13 @@ export class Transport extends EventTarget {
           } else {
             evs.push({ beat: clipStartB, kind: 'sample', trackId: t.id, sample: c.sample, durBeats: c.length * 4, gain: c.gain });
           }
+        }
+        if (c.audio && c.audio.assetId) {
+          evs.push({
+            beat: clipStartB, kind: 'audio', trackId: t.id, assetId: c.audio.assetId,
+            durBeats: c.length * 4, gain: c.gain * (c.audio.gain != null ? c.audio.gain : 1),
+            trimStart: c.audio.trimStart || 0
+          });
         }
       }
     }
@@ -215,6 +231,7 @@ export class Transport extends EventTarget {
     else if (ev.kind === 'drum') e.drum(ev.trackId, ev.lane, time, ev.vel, ev.kit);
     else if (ev.kind === 'sfx') e.sfx(ev.name, time, ev.gain);
     else if (ev.kind === 'sample') e.ambient(ev.sample, time, ev.durBeats * this.spb, ev.gain);
+    else if (ev.kind === 'audio') e.playAudioClip(ev.trackId, ev.assetId, time, ev.durBeats * this.spb, ev.gain, ev.trimStart);
   }
 
   applyAutomation(now) {
@@ -226,6 +243,19 @@ export class Transport extends EventTarget {
       if (vol && vol.length) chain.gain.gain.setTargetAtTime(autoValue(vol, this.position), now, 0.06);
       const pan = t.automation && t.automation.pan;
       if (pan && pan.length && chain.pan.pan) chain.pan.pan.setTargetAtTime(autoValue(pan, this.position), now, 0.06);
+      const devAuto = t.automation && t.automation.devices;
+      if (devAuto && chain.deviceParams) {
+        for (const deviceId in devAuto) {
+          const paramRefs = chain.deviceParams[deviceId];
+          if (!paramRefs) continue;
+          const params = devAuto[deviceId];
+          for (const key in params) {
+            const points = params[key];
+            const ref = paramRefs[key];
+            if (ref && points && points.length) ref.setTargetAtTime(autoValue(points, this.position), now, 0.06);
+          }
+        }
+      }
     }
     const mv = p.master.automation && p.master.automation.volume;
     if (mv && mv.length) {

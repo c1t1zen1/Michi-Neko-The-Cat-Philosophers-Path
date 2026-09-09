@@ -2,6 +2,15 @@
 import { el, toast, makeKnob } from './common.js';
 import { defaultSynthPreset } from '../state.js';
 import { SYNTH_KINDS, OSC_TYPES } from '../engine/synth.js';
+import { computeEqCurve } from '../engine/fx.js';
+
+// Never-started offline context, used purely to construct BiquadFilterNodes for
+// getFrequencyResponse() curve math — works even before the user has clicked "Enable Audio".
+let eqCurveCtx = null;
+function getEqCurveCtx() {
+  if (!eqCurveCtx) eqCurveCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 1, 44100);
+  return eqCurveCtx;
+}
 
 const DEVICE_NAMES = {
   eq8: 'EQ Eight', comp: 'Compressor', delay: 'Delay', reverb: 'Reverb',
@@ -76,6 +85,34 @@ export class Devices {
     }
     if (!type) return;
     st.addDevice(t.id, type);
+  }
+
+  /* ---------- reusable summary chips (used by Inspector's Plugins tab) ---------- */
+
+  chainChips(t, onSelect) {
+    const st = this.app.state;
+    const wrap = el('div', { class: 'insp-devlist' });
+    const select = (id) => { st.selection.deviceId = id; st.emit('selection'); if (onSelect) onSelect(id); };
+
+    if (t.kind === 'synth') {
+      const chip = el('div', { class: 'dev-chip' + (st.selection.deviceId === 'synth' ? ' selected' : '') },
+        el('span', { text: `🎹 Analog (${(t.preset && t.preset.kind) || 'pluck'})` })
+      );
+      chip.addEventListener('click', () => select('synth'));
+      wrap.append(chip);
+    }
+    if (!t.devices || !t.devices.length) {
+      if (t.kind !== 'synth') wrap.append(el('div', { class: 'empty-hint', text: 'No devices on this track yet.' }));
+      return wrap;
+    }
+    for (const d of t.devices) {
+      const chip = el('div', { class: 'dev-chip' + (st.selection.deviceId === d.id ? ' selected' : '') + (d.on ? '' : ' off') },
+        el('span', { text: DEVICE_NAMES[d.type] || d.type })
+      );
+      chip.addEventListener('click', () => select(d.id));
+      wrap.append(chip);
+    }
+    return wrap;
   }
 
   /* ---------- synth (Analog) editor ---------- */
@@ -292,36 +329,22 @@ function drawEqCurve(canvas, params, selBand) {
   g.strokeStyle = '#232c44';
   g.beginPath(); g.moveTo(0, H / 2); g.lineTo(W, H / 2); g.stroke();
 
-  const widthOf = (q) => Math.max(0.15, 1.2 / Math.max(0.1, q));
   const yOf = (db) => H / 2 - (db / 18) * (H / 2 - 8);
+
+  const pxs = [];
+  const freqs = new Float32Array(Math.floor(W / 2) + 1);
+  for (let px = 0, i = 0; px <= W; px += 2, i++) { pxs.push(px); freqs[i] = fOf(px); }
+  const mags = computeEqCurve(getEqCurveCtx(), params, freqs);
 
   g.strokeStyle = '#5aa2ff';
   g.lineWidth = 2;
   g.beginPath();
-  for (let px = 0; px <= W; px += 2) {
-    const f = fOf(px);
-    let db = 0;
-    for (const b of params.bands) {
-      const oct = Math.log2(f / b.freq);
-      if (b.type === 'peaking') {
-        const w = widthOf(b.q);
-        db += b.gain * Math.exp(-(oct * oct) / (2 * w * w));
-      } else if (b.type === 'lowshelf') {
-        const k = Math.min(1, Math.max(0, (b.freq - f) / (b.freq * 0.7)));
-        db += b.gain * k;
-      } else if (b.type === 'highshelf') {
-        const k = Math.min(1, Math.max(0, (f - b.freq) / (b.freq * 0.5)));
-        db += b.gain * k;
-      } else if (b.type === 'lowpass') {
-        db -= Math.min(24, Math.max(0, oct) * 12);
-      } else if (b.type === 'highpass') {
-        db -= Math.min(24, Math.max(0, -oct) * 12);
-      }
-    }
-    const y = yOf(Math.max(-15, Math.min(15, db)));
-    if (px === 0) g.moveTo(px, y);
+  pxs.forEach((px, i) => {
+    const db = 20 * Math.log10(Math.max(1e-6, mags[i]));
+    const y = yOf(Math.max(-18, Math.min(18, db)));
+    if (i === 0) g.moveTo(px, y);
     else g.lineTo(px, y);
-  }
+  });
   g.stroke();
   g.lineWidth = 1;
 

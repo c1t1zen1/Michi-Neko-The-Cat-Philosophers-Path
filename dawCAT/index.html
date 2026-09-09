@@ -88,10 +88,10 @@
     <!-- INSPECTOR -->
     <aside id="inspector">
       <div class="panel-head">
-        <span class="ph-tab active">Inspector</span>
-        <span class="ph-tab">Mixer</span>
-        <span class="ph-tab">Plugins</span>
-        <span class="ph-tab">Metadata</span>
+        <span class="ph-tab active" data-itab="inspector">Inspector</span>
+        <span class="ph-tab" data-itab="mixer">Mixer</span>
+        <span class="ph-tab" data-itab="plugins">Plugins</span>
+        <span class="ph-tab" data-itab="metadata">Metadata</span>
       </div>
       <div id="insp-body"></div>
     </aside>
@@ -124,6 +124,7 @@
 <div id="modal-root"></div>
 <div id="ctx-menu" class="hidden"></div>
 <input type="file" id="file-input" accept=".json" hidden>
+<input type="file" id="midi-input" accept=".mid,.midi" hidden>
 
 <script type="module" src="src/main.js"></script>
 </body>

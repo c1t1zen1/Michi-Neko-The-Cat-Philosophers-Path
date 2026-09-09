@@ -1,5 +1,6 @@
 /* dawCAT — piano roll: note editing for the selected synth clip */
 import { SCALES, SNAP_VALUES, midiToName } from '../state.js';
+import { ctxMenu } from './common.js';
 
 const KEYS_W = 64;
 const VEL_H = 72;
@@ -345,8 +346,20 @@ export class PianoRoll {
     if (!clip) return;
     const { x, y } = this.localXY(e);
     const hit = this._hits.find((h) => x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h);
+    const st = this.app.state;
+    const trackId = st.selection.trackId;
+    const gridBeats = this.snapVal();
     if (hit && hit.type === 'note') {
-      this.app.state.removeNote(this.app.state.selection.trackId, clip.id, hit.note.id);
+      ctxMenu(e.clientX, e.clientY, [
+        { label: '▦ Quantize note to grid', onClick: () => st.quantizeNotes(trackId, clip.id, [hit.note.id], gridBeats) },
+        { label: '▦ Quantize all notes to grid', onClick: () => st.quantizeNotes(trackId, clip.id, null, gridBeats) },
+        'sep',
+        { label: '🗑 Delete note', onClick: () => st.removeNote(trackId, clip.id, hit.note.id) }
+      ]);
+    } else {
+      ctxMenu(e.clientX, e.clientY, [
+        { label: '▦ Quantize all notes to grid', onClick: () => st.quantizeNotes(trackId, clip.id, null, gridBeats) }
+      ]);
     }
   }
 }
