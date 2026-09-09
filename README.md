@@ -131,6 +131,20 @@ Then open **http://127.0.0.1:8080** in your browser.
 
 > 📖 See **[INSTALL.md](INSTALL.md)** for detailed setup instructions and **[QUICKSTART.md](QUICKSTART.md)** for the extended gameplay guide.
 
+### 📚 Documentation
+
+| Document | What's in it |
+|----------|--------------|
+| [INSTALL.md](INSTALL.md) | Running the game locally, browser/device setup, troubleshooting |
+| [QUICKSTART.md](QUICKSTART.md) | Extended gameplay manual — controls, progression, secrets |
+| [NPC_TASKS_AND_ENDGAME_GUIDE.md](NPC_TASKS_AND_ENDGAME_GUIDE.md) | Every NPC task, dialogue riddle and end-game reward |
+| [FUTURE_QUESTS.md](FUTURE_QUESTS.md) | Planned quests, world expansion and story direction |
+| [docs/PERFORMANCE_REVIEW_2026-09-09_023812.md](docs/PERFORMANCE_REVIEW_2026-09-09_023812.md) | Mobile-first performance audit & optimisation plan |
+
+> 🗄️ `OLD/archive-cat-city/` holds design docs and prototype code from the **predecessor
+> project** (a first-person "Cat City FPS" concept). It is **not** this game — see
+> [its README](OLD/archive-cat-city/README.md).
+
 ---
 
 ## 🎯 Controls
@@ -196,13 +210,13 @@ Michi-Neko-The-Cat-Philosophers-Path/
 │   ├── menus.js                # Title screen, pause menu, settings
 │   ├── settings.js             # Settings persistence (localStorage)
 │   ├── save.js                 # Save/load manager (localStorage)
-│   ├── waypoints.js            # Screen-space objective markers & compass
-│   └── city_gen/               # City generation utilities
-├── SceneManager.js             # Legacy scene manager module
-├── AssetManager.js             # Asset loading framework
-├── StreamingManager.js         # Chunk streaming framework
-├── design/                     # Design documents & specifications
-└── *.md                        # Architecture, gameplay spec, neighborhoods
+│   └── waypoints.js            # Screen-space objective markers & compass
+├── docs/                       # Performance reviews & inspiration artwork
+├── data/                       # Development reference screenshots
+├── dawCAT/                     # Companion browser DAW (separate mini-app)
+├── cadJS/                      # Companion CAD/agent scratch tool (separate mini-app)
+└── OLD/
+    └── archive-cat-city/       # 🗄️ Archived predecessor project — see its README
 ```
 
 ---

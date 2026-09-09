@@ -1,6 +1,6 @@
-# 📦 Cat Walk — Installation Manual
+# 📦 Michi-Neko · 道猫 — Installation Manual
 
-> **Cat Walk** is a pure browser game built with Three.js and ES Modules.  
+> **Michi-Neko (道猫 — "the cat's path")** is a pure browser game built with Three.js and ES Modules.  
 > It requires no build step, no package manager, and no external dependencies —  
 > just a static web server and a modern browser.
 
@@ -16,7 +16,7 @@
 | **RAM** | 512MB+ free (the game targets <500MB memory usage) |
 | **Disk space** | ~5MB (the entire game is source code — no asset downloads) |
 
-> **Why a web server?** Cat Walk uses ES Modules (`import`/`export`), which browsers block when loading files directly from the filesystem (`file://`). A local server is required.
+> **Why a web server?** Michi-Neko uses ES Modules (`import`/`export`), which browsers block when loading files directly from the filesystem (`file://`). A local server is required.
 
 ---
 
@@ -25,7 +25,7 @@
 ### Option A — Python (recommended, no install needed on most systems)
 
 ```bash
-# From the Cat_Walk directory:
+# From the repository root (Michi-Neko-The-Cat-Philosophers-Path/):
 py -m http.server 8080 --bind 127.0.0.1
 ```
 
@@ -66,8 +66,8 @@ Any tool that serves static files over HTTP will work:
 1. **Download or clone the repository**
 
    ```bash
-   git clone https://github.com/c1t1zen/Hermes-Jetson.git
-   cd Hermes-Jetson/Cat_Walk
+   git clone https://github.com/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path.git
+   cd Michi-Neko-The-Cat-Philosophers-Path
    ```
 
 2. **Start a local web server** (choose any option from above)
@@ -107,11 +107,11 @@ Not sure if your browser supports WebGL 2.0? Visit [webglreport.com](https://web
 
 ## Graphics Quality Settings
 
-Cat Walk auto-detects your device capability on first launch. You can also adjust quality manually in the **Settings** menu (gear icon on the title screen or pause menu):
+Michi-Neko auto-detects your device capability on first launch. You can also adjust quality manually in the **Settings** menu (gear icon on the title screen or pause menu):
 
 | Quality | Shadow Resolution | Bloom | Pixel Ratio Cap | Target Devices |
 |---------|-------------------|-------|-----------------|----------------|
-| **Low** | 1024px | Off | 1.0x | Raspberry Pi, older mobile, low-end laptops |
+| **Low** | 1024px | Off | 1.0x | Older phones, low-end laptops, single-board PCs |
 | **Medium** | 2048px | On | 1.25x | Mid-range desktops, modern phones |
 | **High** | 2048px | On | 1.75x | Gaming PCs, modern Macs |
 | **Auto** | Detected | Detected | Detected | Let the game decide (recommended) |
@@ -122,7 +122,7 @@ The game also features **adaptive resolution** — if your FPS drops below 45, i
 
 ## Mobile & Touch Setup
 
-Cat Walk is designed mobile-first and works on phones and tablets:
+Michi-Neko is designed mobile-first and works on phones and tablets:
 
 1. **Serve over your local network** (so your phone can reach it):
 
@@ -145,17 +145,18 @@ Cat Walk is designed mobile-first and works on phones and tablets:
 
 ---
 
-## Raspberry Pi Setup
+## Low-End & Single-Board PCs
 
-Cat Walk was designed with Raspberry Pi 5 in mind:
+The game is designed to stay playable on weak hardware — including a Raspberry Pi 5 or an old
+phone:
 
-1. **Use Chromium** (pre-installed on Raspberry Pi OS)
+1. **Use Chromium** (best WebGL support on Linux / Raspberry Pi OS)
 2. **Set quality to "Low"** in Settings
-3. **Connect via HDMI** to a display (headless mode won't render WebGL)
-4. **Start the server on the Pi itself:**
+3. **Connect a display** (headless mode won't render WebGL)
+4. **Start the server on the device itself:**
 
    ```bash
-   cd ~/Cat_Walk
+   cd Michi-Neko-The-Cat-Philosophers-Path
    python3 -m http.server 8080
    # Open http://localhost:8080 in Chromium
    ```
@@ -213,7 +214,7 @@ If you want to modify the game:
 ### File Structure Overview
 
 ```
-Cat_Walk/
+Michi-Neko-The-Cat-Philosophers-Path/
 ├── index.html          # HTML shell, CSS styling, UI overlays
 ├── src/                # All game source code (ES modules)
 │   ├── main.js         # Game class — main entry point
@@ -222,14 +223,16 @@ Cat_Walk/
 │   ├── countryside.js  # World generation (Kyoto valley)
 │   ├── sky.js          # Sky, day/night, weather
 │   └── ...             # 20+ other game modules
-└── design/             # Design documents & specs
+├── docs/               # Performance reviews & inspiration artwork
+└── OLD/
+    └── archive-cat-city/  # Archived predecessor project (not this game)
 ```
 
 ---
 
 ## Uninstall
 
-Since Cat Walk runs entirely in the browser with no installation:
+Since Michi-Neko runs entirely in the browser with no installation:
 
 1. Close the browser tab
 2. Stop the web server (`Ctrl+C` in the terminal)

@@ -174,7 +174,7 @@ In the **current alpha**, there is **no ending or total completion reward** — 
 |------|---------|
 | `QUICKSTART.md` | Game overview, progression system, XP tables |
 | `FUTURE_QUESTS.md` | Planned quests, NPC dialogues, ending sequence |
-| `PROGRESSION_FLOW.txt` | Progression triggers, rank conditions, endgame design |
+| `OLD/archive-cat-city/design/PROGRESSION_FLOW.txt` | Progression triggers, rank conditions, endgame design (archived predecessor design) |
 | `src/main.js` | Game logic, NPC positions, quest initialization, XP rewards |
 | `src/context_actions.js` | Interactive object actions, dialogue triggers, item collection |
 | `src/progression.js` | Rank system, XP tracking, level thresholds |
