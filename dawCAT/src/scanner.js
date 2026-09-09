@@ -3,6 +3,13 @@
 
 import { hzToMidi } from './state.js';
 
+// The game currently has one continuous scene, so every scanned cue is tagged
+// with this constant. When the game grows more scenes, give each its own
+// scanner pass (or a per-file scene map) so cues carry a real scene id —
+// the sidebar grouping and export Scene/Time-of-Day pickers already key off
+// this field and need no further changes.
+const SCENE = 'Overworld';
+
 export async function discoverFiles() {
   const files = new Set(['src/music.js', 'src/audio.js']);
   try {
@@ -64,6 +71,7 @@ function scanText(file, text, out) {
         out.push({
           id: `phase:${file}:${name}`,
           kind: 'phase', name: cap(name), file, line: lineOf(lines, text, body),
+          scene: SCENE, timeOfDay: name,
           rootHz: root, chord, scale, density, cutoff
         });
       }
@@ -90,6 +98,7 @@ function scanText(file, text, out) {
       kind: isAmbient ? 'ambient' : 'sfx',
       name: cap(splitCamel(m[2])),
       file, line: lineOf(lines, text, body),
+      scene: SCENE, timeOfDay: null,
       oscTypes: [...new Set(oscTypes)],
       hz, midi: hz.map(hzToMidi),
       dur: durOf(body),
@@ -110,6 +119,7 @@ function scanText(file, text, out) {
       id: `arr:${file}:${varName}`,
       kind: /chord/i.test(varName) ? 'chord' : /scale|pentatonic/i.test(varName) ? 'scale' : 'notes',
       name: cap(splitCamel(varName)), file, line: lineOf(lines, text, am[0]),
+      scene: SCENE, timeOfDay: null,
       hz: vals, midi: vals.map(hzToMidi)
     });
   }

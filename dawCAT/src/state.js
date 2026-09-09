@@ -127,6 +127,13 @@ export function defaultProject() {
     key: 'C', scale: 'minor', bars: 64,
     loop: { on: false, start: 0, end: 8 },
     metronome: false, swing: 0,
+    // Which game scene/time-of-day this arrangement targets on export.
+    // scene: free-form (game currently has one scene, "Overworld"); more get
+    // added by typing a new name in the Export to Game dialog.
+    // timeOfDay: null means "full day cycle" (uses `sections` below to seek
+    // dawn/day/dusk/night); a specific phase means "just this variant" and
+    // `sections` is ignored on export.
+    scene: 'Overworld', timeOfDay: null,
     sections: { dawn: 0, day: 16, dusk: 32, night: 48 },
     tracks,
     master: { volume: 0.85, automation: { volume: [] } },
@@ -176,6 +183,8 @@ function migrateProject(p) {
   if (!p.master.automation) p.master.automation = { volume: [] };
   if (!Array.isArray(p.master.automation.volume)) p.master.automation.volume = [];
   if (!p.assets || typeof p.assets !== 'object') p.assets = {};
+  if (typeof p.scene !== 'string') p.scene = 'Overworld';
+  if (typeof p.timeOfDay !== 'string') p.timeOfDay = null;
 }
 
 /* ---------------- app state ---------------- */

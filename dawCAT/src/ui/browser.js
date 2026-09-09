@@ -1,6 +1,6 @@
 /* dawCAT — browser sidebar: sounds, drums, effects, samples, game cues, library */
 import { el, toast, ctxMenu } from './common.js';
-import { SCALES, hzToMidi, defaultSynthPreset, uid } from '../state.js';
+import { SCALES, hzToMidi, midiToName, defaultSynthPreset, uid } from '../state.js';
 
 const PRESETS = [
   { name: 'Koto Pluck', preset: defaultSynthPreset('pluck') },
@@ -47,7 +47,7 @@ export class Browser {
     this.app = app;
     this.tree = document.getElementById('browser-tree');
     this.searchInput = document.getElementById('browser-search');
-    this.openCats = new Set(['Sounds', 'Game Cues', 'Current Project']);
+    this.openCats = new Set(['Sounds', 'Game Cues', 'Game Cues:Overworld', 'Game Cues:Overworld:tod', 'Current Project']);
     this.filter = '';
 
     document.getElementById('btn-rescan').addEventListener('click', () => this.app.rescanCues());
@@ -125,17 +125,7 @@ export class Browser {
       drag: { kind: 'sample', sample: s.sample, name: s.name }
     })));
 
-    this.category('Game Cues', '🐾',
-      cues.map((cue) => ({
-        label: cue.name, icon: cueIcon(cue), sub: cue.kind,
-        onClick: () => this.previewCue(cue),
-        drag: { kind: 'cue', cueId: cue.id },
-        cue
-      })),
-      cues.length === 0
-        ? 'Rescan to read music cues from ../src/*.js — serve dawCAT over HTTP next to the game.'
-        : null
-    );
+    this.renderGameCuesTree(cues);
 
     this.category('Clips', '📋', this.savedClips().map((sc) => ({
       label: sc.name, icon: '📎', sub: sc.kind,
@@ -188,29 +178,91 @@ export class Browser {
   }
 
   category(name, icon, items, emptyNote = null) {
-    const open = this.openCats.has(name) || !!this.filter;
     const matches = this.filter
       ? items.filter((it) => it.label.toLowerCase().includes(this.filter))
       : items;
     if (this.filter) this._filterMatchCount += matches.length;
     if (this.filter && !matches.length) return;
-    const head = el('div', { class: 'bcat-head' },
+    const itemsEl = this.categoryShell(this.tree, name, icon, items.length, name, 0);
+    if (emptyNote) itemsEl.append(el('div', { class: 'bscan-note', text: emptyNote }));
+    for (const item of matches) itemsEl.append(this.row(item));
+  }
+
+  /* Builds one collapsible category head + its (empty) item container, appended
+     into `container`. Returns the item container so callers can either drop leaf
+     rows into it (see category()) or nest further categoryShell()s for a
+     sub-grouped tree (see renderGameCuesTree()). `indent` shifts the header left
+     padding one notch per nesting level. */
+  categoryShell(container, name, icon, count, key, indent = 0) {
+    const open = this.openCats.has(key) || !!this.filter;
+    const head = el('div', {
+      class: 'bcat-head',
+      style: indent ? `padding-left:${8 + indent * 14}px` : null
+    },
       el('span', { class: 'caret', text: open ? '▾' : '▸' }),
       el('span', { class: 'bicon', text: icon }),
       el('span', { text: name }),
-      this.filter ? null : el('span', { class: 'count', text: String(items.length) })
+      this.filter ? null : el('span', { class: 'count', text: String(count) })
     );
     const cat = el('div', { class: 'bcat' + (open ? ' open' : '') }, head);
     head.addEventListener('click', () => {
-      if (this.openCats.has(name)) this.openCats.delete(name);
-      else this.openCats.add(name);
+      if (this.openCats.has(key)) this.openCats.delete(key);
+      else this.openCats.add(key);
       this.render();
     });
     const itemsEl = el('div', { class: 'bcat-items' });
-    if (emptyNote) itemsEl.append(el('div', { class: 'bscan-note', text: emptyNote }));
-    for (const item of matches) itemsEl.append(this.row(item));
     cat.append(itemsEl);
-    this.tree.append(cat);
+    container.append(cat);
+    return itemsEl;
+  }
+
+  /* Game Cues, grouped Scene > (Time of Day | Sounds) > cue, so a future scene
+     scanned into a new `cue.scene` gets its own group automatically. */
+  renderGameCuesTree(cues) {
+    const matches = this.filter ? cues.filter((c) => c.name.toLowerCase().includes(this.filter)) : cues;
+    if (this.filter) this._filterMatchCount += matches.length;
+    if (this.filter && !matches.length) return;
+
+    const itemsEl = this.categoryShell(this.tree, 'Game Cues', '🐾', cues.length, 'Game Cues', 0);
+
+    if (!matches.length) {
+      itemsEl.append(el('div', { class: 'bscan-note', text: 'Rescan to read music cues from ../src/*.js — serve dawCAT over HTTP next to the game.' }));
+      return;
+    }
+
+    const byScene = new Map();
+    for (const cue of matches) {
+      const scene = cue.scene || 'Overworld';
+      if (!byScene.has(scene)) byScene.set(scene, []);
+      byScene.get(scene).push(cue);
+    }
+
+    const TOD_ORDER = ['dawn', 'day', 'dusk', 'night'];
+    for (const [scene, sceneCues] of byScene) {
+      const sceneItemsEl = this.categoryShell(itemsEl, scene, '🗺', sceneCues.length, `Game Cues:${scene}`, 1);
+
+      const todCues = sceneCues.filter((c) => c.timeOfDay)
+        .sort((a, b) => TOD_ORDER.indexOf(a.timeOfDay) - TOD_ORDER.indexOf(b.timeOfDay));
+      const soundCues = sceneCues.filter((c) => !c.timeOfDay);
+
+      if (todCues.length) {
+        const todItemsEl = this.categoryShell(sceneItemsEl, 'Time of Day', '🕐', todCues.length, `Game Cues:${scene}:tod`, 2);
+        for (const cue of todCues) todItemsEl.append(this.row(this.cueRow(cue)));
+      }
+      if (soundCues.length) {
+        const soundItemsEl = this.categoryShell(sceneItemsEl, 'Sounds', '🔊', soundCues.length, `Game Cues:${scene}:sfx`, 2);
+        for (const cue of soundCues) soundItemsEl.append(this.row(this.cueRow(cue)));
+      }
+    }
+  }
+
+  cueRow(cue) {
+    return {
+      label: cue.name, icon: cueIcon(cue), sub: cue.kind,
+      onClick: () => this.previewCue(cue),
+      drag: { kind: 'cue', cueId: cue.id },
+      cue
+    };
   }
 
   row(item) {
@@ -232,11 +284,15 @@ export class Browser {
     if (item.cue) {
       row.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-        ctxMenu(e.clientX, e.clientY, [
+        const opts = [
           { label: '▶ Preview', onClick: () => this.previewCue(item.cue) },
           { label: '→ Clip on selected track', onClick: () => this.cueToClip(item.cue) },
           { label: '→ Instrument preset', onClick: () => this.cueToPreset(item.cue) }
-        ]);
+        ];
+        if (item.cue.kind === 'phase') {
+          opts.push({ label: '🆕 Load as new project', onClick: () => this.loadCueAsProject(item.cue) });
+        }
+        ctxMenu(e.clientX, e.clientY, opts);
       });
     }
     if (item.drag) {
@@ -324,6 +380,14 @@ export class Browser {
     toast(`${cue.name} → preset on ${t.name}`);
   }
 
+  loadCueAsProject(cue) {
+    if (!confirm(`Load "${cue.name}" as a new project? The current project stays in browser storage until overwritten.`)) return;
+    const st = this.app.state;
+    const proj = buildProjectFromPhaseCue(cue, st.project);
+    st.setProject(proj);
+    toast(`Loaded "${cue.name}" → new project (Pad + Pluck tracks, ${proj.scene}/${proj.timeOfDay})`);
+  }
+
   pasteClip(clipData, trackId = null, startBar = null) {
     const st = this.app.state;
     const t = trackId ? st.track(trackId) : st.selectedTrack();
@@ -371,20 +435,28 @@ export class Browser {
 
 /* ---------------- cue helpers ---------------- */
 
+/* Deterministic (seeded) pluck-melody generator shared by cueToClipSpec()'s
+   single-clip import and buildProjectFromPhaseCue()'s full-project import, so
+   both produce the same phrase for a given phase cue. */
+function generatePluckPattern(rootMidi, scale, spanBeats = 16) {
+  const notes = [];
+  let seed = 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  let t = 0;
+  while (t < spanBeats) {
+    const deg = scale[Math.floor(rnd() * scale.length)];
+    const oct = rnd() < 0.3 ? 12 : 0;
+    notes.push({ id: uid('n'), midi: rootMidi + 24 + deg + oct, start: t, len: 0.5 + rnd() * 0.5, vel: 0.55 + rnd() * 0.3 });
+    t += 0.5 + rnd() * 0.75;
+  }
+  return notes;
+}
+
 export function cueToClipSpec(cue) {
   if (cue.kind === 'phase' || cue.kind === 'scale') {
     const rootMidi = cue.rootHz ? hzToMidi(cue.rootHz) : 48;
     const scale = cue.scale && cue.scale.length ? cue.scale : [0, 3, 5, 7, 10];
-    const notes = [];
-    let seed = 7;
-    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-    let t = 0;
-    while (t < 16) {
-      const deg = scale[Math.floor(rnd() * scale.length)];
-      const oct = rnd() < 0.3 ? 12 : 0;
-      notes.push({ id: uid('n'), midi: rootMidi + 24 + deg + oct, start: t, len: 0.5 + rnd() * 0.5, vel: 0.55 + rnd() * 0.3 });
-      t += 0.5 + rnd() * 0.75;
-    }
+    const notes = generatePluckPattern(rootMidi, scale);
     return {
       patch: { name: `${cue.name} Pluck`, start: 0, length: 4, loop: true, loopLen: 16, notes },
       presetPatch: cue.cutoff ? { cutoff: cue.cutoff } : null
@@ -428,4 +500,73 @@ export function ambientNameFor(cue) {
   const key = cue.name.toLowerCase().replace(/[^a-z]/g, '');
   const map = { windchimes: 'chimes', birds: 'birds', birdsong: 'birds', rain: 'rain', ambient: 'wind', lapping: 'lap', purr: 'purr' };
   return map[key] || 'chimes';
+}
+
+/* ---------------- load-a-song-cue-as-new-project ---------------- */
+
+function mkFullTrack(name, color, preset) {
+  return {
+    id: uid('t'), name, color, kind: 'synth', preset,
+    drumKit: 'soft', volume: 0.8, pan: 0, mute: false, solo: false, arm: false,
+    sends: { a: 0.12, b: 0.1 }, devices: [], clips: [],
+    automation: { volume: [], pan: [], devices: {} },
+    frozenActive: false, frozenAssetId: null
+  };
+}
+
+function mkFullClip(patch) {
+  return Object.assign({
+    id: uid('c'), name: '', start: 0, length: 4, gain: 1, loop: false, loopLen: 4,
+    notes: [], steps: null, sample: null, audio: null
+  }, patch);
+}
+
+function matchScaleName(semis) {
+  const norm = (arr) => [...new Set(arr.map((s) => ((s % 12) + 12) % 12))].sort((a, b) => a - b).join(',');
+  const target = norm(semis);
+  for (const [name, arr] of Object.entries(SCALES)) if (norm(arr) === target) return name;
+  return 'minor';
+}
+
+/* Rebuilds a phase cue (Dawn/Day/Dusk/Night — root/chord/scale/cutoff) as a
+   fresh, fully editable project: a Pad track voicing the phase's chord and a
+   Pluck track playing its generative scale pattern, mirroring the two voices
+   MusicDirector itself layers for that phase (src/music.js). Carries the
+   scene/timeOfDay tags forward so the Export to Game dialog defaults to the
+   same variant this project was loaded from. */
+export function buildProjectFromPhaseCue(cue, existingProject) {
+  const rootMidi = cue.rootHz ? hzToMidi(cue.rootHz) : 48;
+  const chord = cue.chord && cue.chord.length ? cue.chord : [0, 7, 12, 16];
+  const scale = cue.scale && cue.scale.length ? cue.scale : [0, 3, 5, 7, 10];
+
+  const padPreset = defaultSynthPreset('pad');
+  if (cue.cutoff) padPreset.cutoff = cue.cutoff;
+  const padTrack = mkFullTrack('Pad', '#f59e0b', padPreset);
+  padTrack.clips.push(mkFullClip({
+    name: `${cue.name} Pad`, start: 0, length: 8, loop: true, loopLen: 4,
+    notes: chord.map((semi, i) => ({ id: uid('n'), midi: rootMidi + semi, start: 0, len: 3.6, vel: 0.5 + i * 0.03 }))
+  }));
+
+  const pluckTrack = mkFullTrack('Pluck', '#ec4899', defaultSynthPreset('pluck'));
+  pluckTrack.clips.push(mkFullClip({
+    name: `${cue.name} Pluck`, start: 0, length: 4, loop: true, loopLen: 16,
+    notes: generatePluckPattern(rootMidi, scale)
+  }));
+
+  return {
+    version: 1,
+    name: `${cue.scene || 'Overworld'} — ${cue.name}`,
+    tempo: 110, timeSigNum: 4, timeSigDen: 4,
+    key: midiToName(rootMidi + 24).replace(/-?\d+$/, ''), scale: matchScaleName(scale), bars: 16,
+    loop: { on: false, start: 0, end: 8 },
+    metronome: false, swing: 0,
+    scene: cue.scene || 'Overworld', timeOfDay: cue.timeOfDay || null,
+    sections: { dawn: -1, day: -1, dusk: -1, night: -1 },
+    tracks: [padTrack, pluckTrack],
+    master: { volume: 0.85, automation: { volume: [] } },
+    cueScan: existingProject && existingProject.cueScan
+      ? JSON.parse(JSON.stringify(existingProject.cueScan))
+      : { at: null, files: [], cues: [] },
+    assets: {}
+  };
 }

@@ -17,6 +17,21 @@ import { Inspector } from './ui/inspector.js';
 import { Devices } from './ui/devices.js';
 import { el, toast, showModal, download } from './ui/common.js';
 
+function slug(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled'; }
+
+// The full-day-cycle case (timeOfDay unset) keeps the plain `music.js` name so
+// it drops straight into the game's existing src/music.js path unchanged.
+// A single-time-of-day export gets a distinct name so multiple scene/time
+// variants can sit side by side without overwriting each other.
+function musicFileName(project) {
+  return project.timeOfDay ? `music.${slug(project.scene)}.${project.timeOfDay}.js` : 'music.js';
+}
+
+function jsonFileName(project) {
+  const tag = project.timeOfDay ? `${slug(project.scene)}.${project.timeOfDay}` : slug(project.scene);
+  return `${project.name || 'track'}.${tag}.dawcat-export.json`;
+}
+
 class App {
   constructor() {
     this.state = new AppState();
@@ -337,6 +352,24 @@ class App {
   exportToGameDialog() {
     const st = this.state;
     const p = st.project;
+
+    const sceneInput = el('input', {
+      type: 'text', value: p.scene || 'Overworld', placeholder: 'Overworld',
+      title: 'Which game scene this arrangement is for. Type a new name to prep a variation for a scene the game doesn\'t have yet.'
+    });
+    const todSelect = el('select', { title: 'Which time of day this export targets' },
+      el('option', { value: '', text: 'All (full day cycle)' }),
+      el('option', { value: 'dawn', text: 'Dawn' }),
+      el('option', { value: 'day', text: 'Day' }),
+      el('option', { value: 'dusk', text: 'Dusk' }),
+      el('option', { value: 'night', text: 'Night' })
+    );
+    todSelect.value = p.timeOfDay || '';
+    const targetRow = el('div', { class: 'form-row' },
+      el('label', { class: 'dim' }, 'Scene ', sceneInput),
+      el('label', { class: 'dim' }, 'Time of Day ', todSelect)
+    );
+
     const secInputs = {};
     const secRow = el('div', { class: 'form-row' });
     for (const ph of ['dawn', 'day', 'dusk', 'night']) {
@@ -344,6 +377,9 @@ class App {
       secInputs[ph] = inp;
       secRow.append(el('label', { class: 'dim' }, `${ph} `, inp));
     }
+    const syncSecRowVisibility = () => secRow.classList.toggle('hidden', !!todSelect.value);
+    todSelect.addEventListener('change', syncSecRowVisibility);
+    syncSecRowVisibility();
 
     const hasImportedAudio = p.tracks.some((t) => t.clips.some((c) => c.audio && c.audio.assetId));
     const note = el('div', { class: 'hintbox' });
@@ -351,7 +387,8 @@ class App {
       '<b>1 · Instant preview (no file changes):</b> click the game tab once to unlock audio, open its DevTools console, paste the hot-swap snippet, press Enter.',
       '<b>2 · Permanent:</b> download <code>music.js</code>, replace the game\'s <code>src/music.js</code> with it, hard-refresh the game (Ctrl+Shift+R). Same MusicDirector API — no other game code changes.',
       '<b>3 · Archive:</b> download the flattened track JSON for reference/tooling — it is <b>not</b> a project file and can\'t be re-opened as an editable project; use File ▸ Save Project for that.',
-      'Day-phase seeking: set the bar where each phase starts (−1 = ignore that phase).',
+      '<b>Scene / Time of Day:</b> tags this export so you can tell variations apart. Picking a specific Time of Day ignores the day-phase seeking below and just loops that one variant — the game only has one scene/cycle today, so other variants are for scenes it grows into later.',
+      'Day-phase seeking (full-cycle exports only): set the bar where each phase starts (−1 = ignore that phase).',
       hasImportedAudio ? '⚠ This project has drag-and-dropped audio clips — those play back in the editor but are <b>not</b> included in any game export (synth notes, drum steps and built-in samples only).' : ''
     ].filter(Boolean).map((s) => `<div>${s}</div>`).join('');
 
@@ -366,17 +403,19 @@ class App {
     musicBtn.addEventListener('click', () => {
       applyMapping();
       const { musicJS } = exportToGame(st.project);
-      download('music.js', musicJS, 'text/javascript');
+      download(musicFileName(st.project), musicJS, 'text/javascript');
       toast('music.js downloaded — replace the game\'s src/music.js, then hard-refresh');
     });
     const jsonBtn = el('button', { class: 'btn', text: '⬇ Download Track JSON' });
     jsonBtn.addEventListener('click', () => {
       applyMapping();
       const { payload } = exportToGame(st.project);
-      download((st.project.name || 'track') + '.dawcat-export.json', JSON.stringify(payload, null, 2), 'application/json');
+      download(jsonFileName(st.project), JSON.stringify(payload, null, 2), 'application/json');
     });
 
     function applyMapping() {
+      st.project.scene = sceneInput.value.trim() || 'Overworld';
+      st.project.timeOfDay = todSelect.value || null;
       for (const ph of ['dawn', 'day', 'dusk', 'night']) {
         const v = parseInt(secInputs[ph].value, 10);
         st.project.sections[ph] = isNaN(v) ? -1 : v;
@@ -386,7 +425,7 @@ class App {
     showModal({
       title: 'Export to Game',
       wide: true,
-      body: el('div', {}, secRow, note, el('div', { class: 'form-row' }, copyBtn, musicBtn, jsonBtn)),
+      body: el('div', {}, targetRow, secRow, note, el('div', { class: 'form-row' }, copyBtn, musicBtn, jsonBtn)),
       buttons: [{ label: 'Close' }]
     });
   }
