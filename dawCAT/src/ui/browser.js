@@ -413,6 +413,11 @@ export function cueToClipSpec(cue) {
   return { patch: { name: cue.name, start: 0, length: 2 }, presetPatch: null };
 }
 
+function cueIcon(cue) {
+  const icons = { phase: '🈁', scale: '🈁', chord: '🎹', notes: '🎵', sfx: '🔊', ambient: '🍃' };
+  return icons[cue.kind] || '🐾';
+}
+
 function sfxNameFor(cue) {
   const key = cue.name.toLowerCase().replace(/[^a-z]/g, '');
   const map = { dreamchime: 'dream', doorslide: 'door', unlockchime: 'unlock', keychime: 'keychime' };
