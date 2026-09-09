@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { barkTextures, texturedMaterial } from './textures.js?v=20260907a';
-import { createFoliageMaterial, lumpyTuftGeometry, updateFoliage } from './foliage.js?v=20260907a';
+import { barkTextures, texturedMaterial } from './textures.js?v=20260909a';
+import { createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture, buildCanopy, updateFoliage } from './foliage.js?v=20260909a';
 
 function mulberry32(a) {
   return function() {
@@ -34,21 +34,33 @@ export class Vegetation {
     this.matTrunk = this.matTrunks[0];
 
     // One painterly foliage shader for every canopy; colours come from
-    // per-vertex tints baked into the merged tuft geometry.
-    this.matFoliage = createFoliageMaterial({ sss: 0.34, wind: 1.0, mottle: 0.34 });
-    this.matBlossom = createFoliageMaterial({ sss: 0.42, wind: 1.15, mottle: 0.2, bump: 0.38, roughness: 0.85 });
-    this.matNeedle = createFoliageMaterial({ sss: 0.18, wind: 0.6, mottle: 0.36 });
-    this.colSakura = [0xd27a94, 0xeaa2b6, 0xf6c6d2];
-    this.colMaple = [0x8e2d20, 0xc24a34, 0xe0704a];
-    this.colLeaf = [0x35561f, 0x4c7433, 0x6f9440];
-    this.colPine = [0x24401f, 0x33582f, 0x4a7040];
+    // per-vertex tints baked into the merged tuft geometry. Each kind pairs
+    // a tuft-core material with an alpha-cut leaf-spray card material (and
+    // a depth material so the cards throw leaf-shaped shadows).
+    this.matFoliage = createFoliageMaterial({ sss: 0.34, wind: 1.0, mottle: 0.4 });
+    this.matBlossom = createFoliageMaterial({ sss: 0.42, wind: 1.15, mottle: 0.24, bump: 0.44, roughness: 0.85 });
+    this.matNeedle = createFoliageMaterial({ sss: 0.18, wind: 0.6, mottle: 0.42 });
+    this.cardSets = {};
+    for (const [kind, opts] of Object.entries({
+      broadleaf: { sss: 0.4, wind: 1.05, mottle: 0.22, bump: 0.4 },
+      maple: { sss: 0.46, wind: 1.1, mottle: 0.22, bump: 0.4 },
+      sakura: { sss: 0.5, wind: 1.2, mottle: 0.14, bump: 0.28, roughness: 0.85 },
+      needle: { sss: 0.22, wind: 0.65, mottle: 0.26, bump: 0.42 }
+    })) {
+      const map = leafCardTexture(kind);
+      this.cardSets[kind] = {
+        material: createFoliageMaterial(Object.assign({ map, alphaTest: 0.5, side: THREE.DoubleSide }, opts)),
+        depth: createFoliageDepthMaterial(map, 0.5)
+      };
+    }
+    this.colSakura = [0xd27a94, 0xeaa2b6, 0xf6c6d2, 0xfbdde6];
+    this.colMaple = [0x8e2d20, 0xc24a34, 0xe0704a, 0xf09060];
+    this.colLeaf = [0x2f4f1c, 0x3f6626, 0x5a8536, 0x7aa348];
+    this.colPine = [0x24401f, 0x33582f, 0x4a7040, 0x5f8850];
 
     this.matBamboo = new THREE.MeshStandardMaterial({ color: 0x6f9e4c, roughness: 0.6 });
     this.matBambooLeaf = new THREE.MeshStandardMaterial({ color: 0x74a04a, roughness: 0.9, side: THREE.DoubleSide });
     this.matSusuki = new THREE.MeshStandardMaterial({ color: 0xd9cca8, roughness: 0.9, side: THREE.DoubleSide });
-    this.leafTuftGeo = lumpyTuftGeometry(3, 1, 0.3);
-    this.leafTuftGeoB = lumpyTuftGeometry(3, 2, 0.34);
-    this.leafTuftGeoC = lumpyTuftGeometry(2, 3, 0.3);
 
     this.sakuraSpots = [
       [-6, 8, 1.2], [7, 12, 1.0], [-12, -2, 1.3], [10, -4, 0.9],
@@ -65,6 +77,7 @@ export class Vegetation {
     this.buildMaplesAndPines();
     this.buildSusukiGrass();
     this.buildGrass();
+    this.buildGroundCover();
     this.buildWildflowers();
   }
 
@@ -78,48 +91,40 @@ export class Vegetation {
   }
 
   /**
-   * Painterly foliage mass: a cluster of lumpy leaf tufts layered dark→light
-   * (shadow core, mid body, sunlit crown) merged into ONE mesh with baked
-   * vertex tints, so a whole canopy is a single draw call through the
-   * shared foliage shader.
+   * Realistic tree: trunk + branching skeleton whose limbs carry dense leaf
+   * clumps (lumpy cores fringed with alpha-cut leaf sprays). The crown group
+   * sways as one; the branches stay put so limbs never detach.
    */
-  leafCluster(colors, count, spread, baseY, scale, material = this.matFoliage) {
-    const parts = [];
-    const tmpColor = new THREE.Color();
-    const m = new THREE.Matrix4();
-    const q = new THREE.Quaternion();
-    const e = new THREE.Euler();
-    const s = new THREE.Vector3();
-    const p = new THREE.Vector3();
-    const geos = [this.leafTuftGeo, this.leafTuftGeoB, this.leafTuftGeoC];
-    for (let i = 0; i < count; i++) {
-      const layer = i / count; // 0 = inner/shadow, 1 = outer/sunlit
-      const r = (0.3 + this.random() * 0.34) * scale * (1.0 - layer * 0.3);
-      const a = this.random() * Math.PI * 2;
-      const rad = Math.sqrt(this.random()) * spread * scale;
-      p.set(Math.cos(a) * rad, baseY * scale + layer * 0.5 * scale + (this.random() - 0.5) * 0.5 * scale, Math.sin(a) * rad);
-      s.set(r * (0.9 + this.random() * 0.5), r * (0.6 + this.random() * 0.3), r * (0.9 + this.random() * 0.5));
-      e.set(this.random() * Math.PI, this.random() * Math.PI, this.random() * Math.PI);
-      q.setFromEuler(e);
-      m.compose(p, q, s);
-      const geo = geos[i % geos.length].clone();
-      geo.applyMatrix4(m);
-      // Tint: pick the layer colour, nudge per tuft, and darken the underside
-      const ci = Math.min(colors.length - 1, Math.floor(layer * colors.length + this.random() * 0.6));
-      tmpColor.setHex(colors[ci]).offsetHSL((this.random() - 0.5) * 0.02, (this.random() - 0.5) * 0.08, (this.random() - 0.5) * 0.06);
-      const col = new Float32Array(geo.attributes.position.count * 3);
-      for (let v = 0; v < geo.attributes.position.count; v++) {
-        col[v * 3] = tmpColor.r; col[v * 3 + 1] = tmpColor.g; col[v * 3 + 2] = tmpColor.b;
-      }
-      geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-      parts.push(geo);
-    }
-    const merged = mergeGeometries(parts, false);
-    for (const g of parts) g.dispose();
-    const mesh = new THREE.Mesh(merged, material);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    return mesh;
+  canopyTree(x, z, scale, { kind, tuftMat, colors, trunk, canopy, sway = 0.02, collider = 0.35 }) {
+    const tree = new THREE.Group();
+    const trunkMat = this.matTrunks[Math.abs(Math.floor(x * 0.7 + z * 1.3)) % this.matTrunks.length];
+    tree.add(this.trunkMesh(trunk.rTop * scale, trunk.rBot * scale, trunk.h * scale, trunkMat, (this.random() - 0.5) * trunk.lean));
+
+    const built = buildCanopy(this.rng, Object.assign({ scale, colors, trunkH: trunk.h, trunkR: trunk.rTop * 1.15 }, canopy));
+    const branches = new THREE.Mesh(built.branches, trunkMat);
+    branches.castShadow = true;
+    branches.receiveShadow = true;
+    tree.add(branches);
+
+    const crown = new THREE.Group();
+    const tufts = new THREE.Mesh(built.tufts, tuftMat);
+    tufts.castShadow = true;
+    tufts.receiveShadow = true;
+    crown.add(tufts);
+    const set = this.cardSets[kind];
+    const cards = new THREE.Mesh(built.cards, set.material);
+    cards.customDepthMaterial = set.depth;
+    cards.castShadow = true;
+    cards.receiveShadow = true;
+    crown.add(cards);
+    tree.add(crown);
+    this.swayables.push({ node: crown, amp: sway, freq: 0.7 + this.random() * 0.5, phase: this.random() * 6 });
+
+    tree.position.set(x, 0, z);
+    tree.rotation.y = this.random() * Math.PI * 2;
+    this.scene.add(tree);
+    this.addCollider(x, z, collider * scale);
+    return tree;
   }
 
   /** Tapered trunk with a flared root collar and a gentle lean. */
@@ -147,38 +152,21 @@ export class Vegetation {
   }
 
   sakuraTree(x, z, scale = 1) {
-    const tree = new THREE.Group();
-    const trunkMat = this.matTrunks[Math.abs(Math.floor(x + z)) % this.matTrunks.length];
-
-    tree.add(this.trunkMesh(0.13 * scale, 0.22 * scale, 2.5 * scale, trunkMat, (this.random() - 0.5) * 0.14));
-
-    const branchGeo = new THREE.CylinderGeometry(0.04 * scale, 0.09 * scale, 1.3 * scale, 6);
-    for (let i = 0; i < 5; i++) {
-      const b = new THREE.Mesh(branchGeo, trunkMat);
-      const a = (i / 5) * Math.PI * 2 + this.random() * 0.8;
-      b.position.set(Math.cos(a) * 0.5 * scale, (2.15 + this.random() * 0.6) * scale, Math.sin(a) * 0.5 * scale);
-      b.rotation.z = Math.cos(a) * 0.95;
-      b.rotation.x = -Math.sin(a) * 0.95;
-      b.castShadow = true;
-      tree.add(b);
-      // Every branch carries its own blossom tuft — no bare stubs
-      const tip = this.leafCluster(this.colSakura, 4, 0.32, 0, scale * 0.55, this.matBlossom);
-      tip.position.copy(b.position);
-      tip.position.y += 0.55 * scale;
-      tip.position.x += Math.cos(a) * 0.5 * scale;
-      tip.position.z += Math.sin(a) * 0.5 * scale;
-      tree.add(tip);
-    }
-
-    // Layered blossom canopy: deep pink shadow core → light sunlit crown
-    const canopy = this.leafCluster(this.colSakura, 34 + Math.floor(this.random() * 8), 1.35, 2.9, scale, this.matBlossom);
-    tree.add(canopy);
-    this.swayables.push({ node: canopy, amp: 0.02, freq: 0.8 + this.random() * 0.4, phase: this.random() * 6 });
-
-    tree.position.set(x, 0, z);
-    tree.rotation.y = this.random() * Math.PI * 2;
-    this.scene.add(tree);
-    this.addCollider(x, z, 0.35 * scale);
+    // Somei-yoshino habit: a short trunk forking into wide, slightly
+    // drooping limbs smothered in blossom clusters.
+    this.canopyTree(x, z, scale, {
+      kind: 'sakura',
+      tuftMat: this.matBlossom,
+      colors: this.colSakura,
+      trunk: { rTop: 0.13, rBot: 0.22, h: 2.3, lean: 0.14 },
+      canopy: {
+        primaries: 6, tilt: 0.9, tiltVar: 0.2, droop: -0.08, bend: 0.14, branchLen: 1.5,
+        secondaries: 2, twigs: true, crownFill: 3, clumpR: 0.4,
+        tuftsPerClump: [3, 3, 2], cardsPerClump: [11, 10, 7], cardSize: 0.6,
+        tuftFlat: 0.72, lump: 0.34, seed: 11
+      },
+      sway: 0.02
+    });
   }
 
   buildSakuraGrove() {}
@@ -356,65 +344,41 @@ export class Vegetation {
   }
 
   mapleTree(x, z, scale = 1) {
-    const tree = new THREE.Group();
-    const trunkMat = this.matTrunks[(Math.abs(Math.floor(x - z)) + 1) % this.matTrunks.length];
-    tree.add(this.trunkMesh(0.11 * scale, 0.2 * scale, 2.1 * scale, trunkMat, (this.random() - 0.5) * 0.1));
-    const branchGeo = new THREE.CylinderGeometry(0.035 * scale, 0.08 * scale, 1.0 * scale, 6);
-    for (let i = 0; i < 3; i++) {
-      const b = new THREE.Mesh(branchGeo, trunkMat);
-      const a = (i / 3) * Math.PI * 2 + this.random();
-      b.position.set(Math.cos(a) * 0.35 * scale, (1.9 + this.random() * 0.4) * scale, Math.sin(a) * 0.35 * scale);
-      b.rotation.z = Math.cos(a) * 0.8;
-      b.rotation.x = -Math.sin(a) * 0.8;
-      b.castShadow = true;
-      tree.add(b);
-    }
-    // Layered crimson canopy: deep shadow core → bright sunlit crown
-    const canopy = this.leafCluster(this.colMaple, 22 + Math.floor(this.random() * 6), 1.0, 2.2, scale);
-    tree.add(canopy);
-    this.swayables.push({ node: canopy, amp: 0.02, freq: 0.7 + this.random() * 0.5, phase: this.random() * 6 });
-    tree.position.set(x, 0, z);
-    this.scene.add(tree);
-    this.addCollider(x, z, 0.3 * scale);
+    // Japanese maple: layered, near-horizontal limbs holding flat tiers of
+    // palmate leaves in crimson-to-coral.
+    this.canopyTree(x, z, scale, {
+      kind: 'maple',
+      tuftMat: this.matFoliage,
+      colors: this.colMaple,
+      trunk: { rTop: 0.11, rBot: 0.2, h: 2.0, lean: 0.1 },
+      canopy: {
+        primaries: 5, tilt: 1.02, tiltVar: 0.18, droop: 0.05, bend: 0.1, branchLen: 1.3,
+        secondaries: 2, twigs: true, crownFill: 2, clumpR: 0.36,
+        tuftsPerClump: [3, 2, 2], cardsPerClump: [10, 9, 6], cardSize: 0.58,
+        tuftFlat: 0.5, lump: 0.3, seed: 23
+      },
+      sway: 0.02,
+      collider: 0.3
+    });
   }
 
   pineTree(x, z, scale = 1) {
-    const tree = new THREE.Group();
-    const trunkMat = this.matTrunks[(Math.abs(Math.floor(x * 0.5 + z)) + 2) % this.matTrunks.length];
-    tree.add(this.trunkMesh(0.09 * scale, 0.17 * scale, 1.8 * scale, trunkMat, (this.random() - 0.5) * 0.2));
-    // Japanese garden pine: irregular layered needle pads (flattened tufts)
-    // merged into one mesh per tree
-    const parts = [];
-    const tmp = new THREE.Color();
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3(), p = new THREE.Vector3();
-    for (let i = 0; i < 3; i++) {
-      const padY = (1.7 + i * 0.72) * scale;
-      const padR = (1.05 - i * 0.26) * scale;
-      const pads = 4 + Math.floor(this.random() * 3);
-      for (let j = 0; j < pads; j++) {
-        const a = (j / pads) * Math.PI * 2 + this.random();
-        const rad = this.random() * padR * 0.7;
-        const sz = (0.42 + this.random() * 0.3) * scale * (1.1 - i * 0.2);
-        p.set(Math.cos(a) * rad, padY + (this.random() - 0.5) * 0.25 * scale, Math.sin(a) * rad);
-        s.set(sz * 1.5, sz * 0.5, sz * 1.5);
-        e.set(0, this.random() * Math.PI, 0);
-        q.setFromEuler(e);
-        m.compose(p, q, s);
-        const geo = (j % 2 ? this.leafTuftGeo : this.leafTuftGeoB).clone().applyMatrix4(m);
-        tmp.setHex(this.colPine[Math.min(2, Math.floor(this.random() * 3))]).offsetHSL(0, (this.random() - 0.5) * 0.06, (this.random() - 0.5) * 0.05);
-        const col = new Float32Array(geo.attributes.position.count * 3);
-        for (let v = 0; v < geo.attributes.position.count; v++) { col[v * 3] = tmp.r; col[v * 3 + 1] = tmp.g; col[v * 3 + 2] = tmp.b; }
-        geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-        parts.push(geo);
-      }
-    }
-    const crown = new THREE.Mesh(mergeGeometries(parts, false), this.matNeedle);
-    crown.castShadow = true;
-    crown.receiveShadow = true;
-    tree.add(crown);
-    tree.position.set(x, 0, z);
-    this.scene.add(tree);
-    this.addCollider(x, z, 0.3 * scale);
+    // Niwaki garden pine: a leaning trunk, a few reaching limbs, and flat
+    // cloud-pruned needle pads at their ends.
+    this.canopyTree(x, z, scale, {
+      kind: 'needle',
+      tuftMat: this.matNeedle,
+      colors: this.colPine,
+      trunk: { rTop: 0.09, rBot: 0.17, h: 1.9, lean: 0.2 },
+      canopy: {
+        primaries: 4, tilt: 1.05, tiltVar: 0.28, droop: 0.12, bend: 0.06, branchLen: 1.45,
+        secondaries: 2, twigs: false, crownFill: 2, clumpR: 0.55,
+        tuftsPerClump: [4, 3, 2], cardsPerClump: [12, 10, 6], cardSize: 0.72,
+        tuftFlat: 0.38, pad: true, lump: 0.3, seed: 37
+      },
+      sway: 0.012,
+      collider: 0.3
+    });
   }
 
   buildMaplesAndPines() {
@@ -572,10 +536,13 @@ export class Vegetation {
     return false;
   }
 
-  bladeGeometry() {
-    const rows = 4;
-    const baseWidth = 0.048;
-    const height = 0.95;
+  /**
+   * A tapered, gently arched blade fan from root to a single tip vertex.
+   * Defaults match the meadow grass blade; `taperPow` below ~0.6 keeps the
+   * blade broad near the tip instead of needle-sharp, which is what turns
+   * this same builder into a clover-like paddle for buildGroundCover().
+   */
+  bladeGeometry(rows = 4, baseWidth = 0.048, height = 0.95, curveAmt = 0.32, taperPow = 1.35) {
     const positions = [];
     const uvs = [];
     const indices = [];
@@ -584,8 +551,8 @@ export class Vegetation {
     for (let i = 0; i < rows; i++) {
       const t = i / rows;
       // Exponential taper towards needle-sharp apex
-      const w = baseWidth * Math.pow(1.0 - t, 1.35);
-      const curve = t * t * 0.32;
+      const w = baseWidth * Math.pow(1.0 - t, taperPow);
+      const curve = t * t * curveAmt;
       positions.push(
         -w / 2, t * height, curve * 0.35,
         0, t * height, curve,
@@ -595,7 +562,7 @@ export class Vegetation {
     }
 
     // Top apex: single sharp pointed vertex
-    const topCurve = 0.35;
+    const topCurve = curveAmt * 1.09;
     positions.push(0, height, topCurve);
     uvs.push(0.5, 1.0);
     const apexIndex = rows * 3;
@@ -732,6 +699,93 @@ export class Vegetation {
     return mat;
   }
 
+  /**
+   * Lightweight wind-swayed material for small ground-cover blooms: unlike
+   * the meadow grass shader it skips the fixed green root→tip gradient so
+   * each instance's tint (a real petal colour) reads clearly, fading up
+   * from a shaded green base at the root to full bloom colour at the tip.
+   */
+  groundBloomMaterial() {
+    const uniforms = {
+      uTime: { value: 0 },
+      uPlayerPos: { value: new THREE.Vector3(0, 0, 0) },
+      uSunDir: { value: new THREE.Vector3(0, 1, 0) },
+      uSunColor: { value: new THREE.Color(0xffe6b8) },
+      uWind: { value: 0.0 }
+    };
+    const mat = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+    mat.uniforms = uniforms;
+    mat.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, uniforms);
+      shader.vertexShader = `
+        uniform float uTime;
+        uniform vec3 uPlayerPos;
+        uniform float uWind;
+        attribute float aPhase;
+        attribute vec3 aTint;
+        attribute float aWidthScale;
+        attribute float aCurveAngle;
+        varying float vT;
+        varying vec3 vTint;
+      ` + shader.vertexShader
+        .replace('#include <beginnormal_vertex>', /* glsl */`
+          #include <beginnormal_vertex>
+          objectNormal = normalize(mix(objectNormal, vec3(0.0, 1.0, 0.0), 0.8));
+        `)
+        .replace('#include <begin_vertex>', /* glsl */`
+          vT = uv.y;
+          vTint = aTint;
+          vec4 base = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+          float speedVar = 0.75 + fract(aPhase * 3.17) * 0.5;
+          float gustTime = uTime * 0.22 * speedVar;
+          float gust = sin(gustTime * 1.3 + base.x * 0.18 + base.z * 0.14 + aPhase);
+          float windMul = 1.0 + uWind * 1.4;
+          float sway = gust * 0.16 * windMul;
+
+          float w = uv.y * uv.y;
+          vec3 pos = position;
+          pos.x *= aWidthScale;
+          pos.x += sin(aCurveAngle) * 0.1 * w + sway * w;
+          pos.z += cos(aCurveAngle) * 0.1 * w + sway * 0.5 * w;
+
+          vec2 away = base.xz - uPlayerPos.xz;
+          float dist = length(away);
+          float push = smoothstep(0.85, 0.05, dist);
+          if (push > 0.001) {
+            vec2 dir = dist > 0.001 ? away / dist : vec2(0.0, 1.0);
+            pos.x += dir.x * push * 0.5 * w;
+            pos.z += dir.y * push * 0.5 * w;
+            pos.y *= 1.0 - push * 0.55 * vT;
+          }
+          vec3 transformed = pos;
+        `);
+      shader.fragmentShader = `
+        uniform vec3 uSunDir;
+        uniform vec3 uSunColor;
+        varying float vT;
+        varying vec3 vTint;
+      ` + shader.fragmentShader
+        .replace('#include <normal_fragment_begin>', /* glsl */`
+          #include <normal_fragment_begin>
+          normal = normalize(mix(normal, normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz), 0.85));
+        `)
+        .replace('#include <color_fragment>', /* glsl */`
+          #include <color_fragment>
+          vec3 groundBase = vec3(0.3, 0.4, 0.22);
+          vec3 gcol = mix(groundBase, vTint, vT * vT);
+          diffuseColor.rgb *= gcol;
+        `)
+        .replace('#include <emissivemap_fragment>', /* glsl */`
+          #include <emissivemap_fragment>
+          vec3 gSunV = normalize((viewMatrix * vec4(uSunDir, 0.0)).xyz);
+          float gThru = pow(max(dot(normalize(-vViewPosition), gSunV), 0.0), 3.0);
+          totalEmissiveRadiance += vTint * uSunColor * (gThru * 0.4 + 0.05) * vT * vT;
+        `);
+    };
+    mat.customProgramCacheKey = () => 'ground-bloom';
+    return mat;
+  }
+
   buildGrass() {
     const bladeGeo = this.bladeGeometry();
     this.grassMat = this.grassMaterial();
@@ -846,6 +900,86 @@ export class Vegetation {
     }
   }
 
+  /**
+   * Ground-cover variety mixed sparsely through the meadow: broad rounded
+   * clover paddles (reusing the meadow-grass shader, just wider/shorter/
+   * duller-tipped than a grass blade) and tiny bright ground blooms, so the
+   * turf reads as more than one repeated blade shape up close.
+   */
+  buildGroundCover() {
+    this.groundBloomMat = this.groundBloomMaterial();
+    const extent = 44;
+    const dummy = new THREE.Object3D();
+    const bloomPalette = [
+      [1.0, 0.66, 0.74], [1.0, 0.84, 0.42], [0.98, 0.95, 0.86], [0.8, 0.66, 0.94], [1.0, 0.5, 0.42]
+    ];
+
+    const specs = [
+      { geo: this.bladeGeometry(3, 0.15, 0.24, 0.12, 0.4), mat: this.grassMat, count: 1300, sMin: 0.75, sMax: 1.2, flavor: 'clover' },
+      { geo: this.bladeGeometry(3, 0.08, 0.19, 0.08, 0.55), mat: this.groundBloomMat, count: 850, sMin: 0.8, sMax: 1.25, flavor: 'bloom' }
+    ];
+
+    for (const spec of specs) {
+      const mesh = new THREE.InstancedMesh(spec.geo, spec.mat, spec.count);
+      const phases = new Float32Array(spec.count);
+      const tints = new Float32Array(spec.count * 3);
+      const widthScales = new Float32Array(spec.count);
+      const curveAngles = new Float32Array(spec.count);
+      let placed = 0;
+      let guard = 0;
+
+      while (placed < spec.count && guard < spec.count * 8) {
+        guard++;
+        const a = this.random() * Math.PI * 2;
+        const r = Math.sqrt(this.random()) * extent;
+        const x = Math.cos(a) * r, z = Math.sin(a) * r;
+        if (this.isExcluded(x, z)) continue;
+
+        // Follow the same clumping pattern as the meadow grass so ground
+        // cover naturally gathers in the same lush patches
+        const patchNoise = Math.sin(x * 0.14) * Math.cos(z * 0.16) + 0.55 * Math.sin(x * 0.31 + z * 0.25);
+        if (patchNoise < 0.05 && this.random() < 0.7) continue;
+
+        const s = spec.sMin + this.random() * (spec.sMax - spec.sMin);
+        dummy.position.set(x, 0, z);
+        dummy.scale.set(1.0, s, 1.0);
+        dummy.rotation.set(0, this.random() * Math.PI * 2, 0);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(placed, dummy.matrix);
+
+        phases[placed] = this.random() * Math.PI * 2;
+        widthScales[placed] = 0.85 + this.random() * 0.3;
+        curveAngles[placed] = this.random() * Math.PI * 2;
+
+        if (spec.flavor === 'clover') {
+          const inBloom = this.random() < 0.14;
+          tints[placed * 3] = inBloom ? 1.0 : 0.56 + this.random() * 0.12;
+          tints[placed * 3 + 1] = inBloom ? 1.0 : 0.8 + this.random() * 0.12;
+          tints[placed * 3 + 2] = inBloom ? 0.9 : 0.5 + this.random() * 0.12;
+        } else {
+          const c = bloomPalette[Math.floor(this.random() * bloomPalette.length)];
+          const b = 0.85 + this.random() * 0.3;
+          tints[placed * 3] = c[0] * b;
+          tints[placed * 3 + 1] = c[1] * b;
+          tints[placed * 3 + 2] = c[2] * b;
+        }
+        placed++;
+      }
+
+      mesh.count = placed;
+      spec.geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases.subarray(0, placed), 1));
+      spec.geo.setAttribute('aTint', new THREE.InstancedBufferAttribute(tints.subarray(0, placed * 3), 3));
+      spec.geo.setAttribute('aWidthScale', new THREE.InstancedBufferAttribute(widthScales.subarray(0, placed), 1));
+      spec.geo.setAttribute('aCurveAngle', new THREE.InstancedBufferAttribute(curveAngles.subarray(0, placed), 1));
+      const center = new THREE.Vector3(0, 0.3, 0);
+      spec.geo.boundingSphere = new THREE.Sphere(center, extent * 1.05 + 2);
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.receiveShadow = true;
+      mesh.castShadow = false;
+      this.scene.add(mesh);
+    }
+  }
+
   update(dt, playerPos, sky = null) {
     this.time += dt;
     updateFoliage(this.time, sky, playerPos);
@@ -863,6 +997,14 @@ export class Vegetation {
         const sunUp = Math.max(0, sky.sunDir.y);
         this.grassMat.uniforms.uSunDir.value.copy(sky.sunDir);
         this.grassMat.uniforms.uSunColor.value.copy(p.sun).multiplyScalar(Math.pow(sunUp, 0.5));
+
+        if (this.groundBloomMat) {
+          this.groundBloomMat.uniforms.uTime.value = this.time;
+          this.groundBloomMat.uniforms.uWind.value = this.grassMat.uniforms.uWind.value;
+          this.groundBloomMat.uniforms.uSunDir.value.copy(sky.sunDir);
+          this.groundBloomMat.uniforms.uSunColor.value.copy(p.sun).multiplyScalar(Math.pow(sunUp, 0.5));
+          if (playerPos) this.groundBloomMat.uniforms.uPlayerPos.value.copy(playerPos);
+        }
       }
     }
     // Dappled light pools track golden-hour sun

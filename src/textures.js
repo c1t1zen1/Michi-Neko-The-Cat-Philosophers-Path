@@ -472,10 +472,10 @@ export function dirtTextures(seed = 7) {
   });
 }
 
-/** Tree bark: deep vertical fissures with lichen flecks. */
+/** Tree bark: deep vertical fissures, fine cross-grain plating and lichen/moss flecks. */
 export function barkTextures(base = 0x6a4b35, dark = 0x2c1b12, seed = 8) {
   return cached('bark' + base + dark + seed, () => {
-    const size = 256;
+    const size = 320;
     const b = hexToRgb(base), d = hexToRgb(dark);
     const height = new Float32Array(size * size);
     const out = [0, 0, 0];
@@ -484,16 +484,21 @@ export function barkTextures(base = 0x6a4b35, dark = 0x2c1b12, seed = 8) {
       // Stretch the noise vertically for long fissures
       const fissure = fbm(u, v * 0.18, 10, 4, seed);
       const ridge = Math.pow(Math.abs(Math.sin((u * 18 + fissure * 3.0) * Math.PI)), 0.6);
+      // Fine cross-grain plating breaks the ridges into short overlapping
+      // plates instead of unbroken vertical lines
+      const plate = Math.pow(Math.abs(Math.sin((v * 22 + fbm(u, v, 14, 2, seed + 12) * 2.5) * Math.PI)), 1.4);
       const flake = fbm(u, v, 28, 2, seed + 4);
-      const h = ridge * 0.7 + flake * 0.3;
+      const grain = fbm(u, v, 60, 2, seed + 19);
+      const h = ridge * 0.58 + plate * ridge * 0.16 + flake * 0.18 + grain * 0.08;
       height[y * size + x] = h;
       mix3(d, b, h, out);
-      const lichen = Math.max(0, fbm(u, v, 6, 3, seed + 7) - 0.62) * 2;
-      o[0] = out[0] * (1 - lichen * 0.2); o[1] = out[1] * (1 + lichen * 0.15); o[2] = out[2] * (1 - lichen * 0.3);
+      const lichen = Math.max(0, fbm(u, v, 6, 3, seed + 7) - 0.6) * 2;
+      const moss = Math.max(0, fbm(u, v, 4, 3, seed + 31) - 0.68) * 2.4;
+      o[0] = out[0] * (1 - lichen * 0.2 - moss * 0.22); o[1] = out[1] * (1 + lichen * 0.15 + moss * 0.28); o[2] = out[2] * (1 - lichen * 0.3 - moss * 0.18);
     });
     return {
       map: finishTexture(canvas, { repeat: [2, 3] }),
-      normalMap: heightToNormal(height, size, 2.2, [2, 3])
+      normalMap: heightToNormal(height, size, 2.6, [2, 3])
     };
   });
 }

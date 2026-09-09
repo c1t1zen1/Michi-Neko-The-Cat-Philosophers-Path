@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {
   plasterTextures, woodTextures, shojiTextures, tatamiTextures, stoneTextures,
   strawTextures, metalTextures, texturedMaterial, worldScaleBoxUVs
-} from './textures.js?v=20260907a';
+} from './textures.js?v=20260909a';
 
 const panel = (m) => { m.userData.uvPanel = true; return m; };
 const MAT = {

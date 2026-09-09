@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20260907a';
+import { Cat } from './cat.js?v=20260909a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -94,7 +94,9 @@ export class Player {
     this.updateSplash(dt);
 
     // Determine effective ground height (terrain, water, or elevated platforms)
-    let groundY = inWater ? -0.09 : 0;
+    let groundY = inWater
+      ? (world && world.wadeDepthAt ? world.wadeDepthAt(this.mesh.position.x, this.mesh.position.z) : -0.09)
+      : 0;
     if (isInside) {
       groundY = interior.getGroundHeight(this.mesh.position.x, this.mesh.position.z);
     } else if (world && world.platforms) {

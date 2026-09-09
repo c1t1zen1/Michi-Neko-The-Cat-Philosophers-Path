@@ -186,20 +186,33 @@ export class Sky {
     const texVariants = [this.buildCloudTexture(0), this.buildCloudTexture(1), this.buildCloudTexture(2)];
 
     this.clouds = [];
-    // [x, y, z, scaleW, scaleH, mirror] — wide drifting cumulus plus thin
-    // warm horizon strips that catch the sunset.
+    // Clouds are placed by bearing and elevation so they ride ABOVE the
+    // backdrop: the canyon head behind the shrine (-z) tops out near 28°,
+    // the flank hills near 10°, and the lowland behind the pagoda (+z) is
+    // open to the horizon. [bearingDeg (0 = +z pagoda, 180 = -z shrine),
+    // elevationDeg, distance, spriteW, spriteH, mirror]
     const defs = [
-      [-80, 42, -140, 95, 34, 0], [-10, 52, -170, 130, 44, 1], [70, 40, -130, 85, 30, 0],
-      [-130, 36, -60, 75, 26, 1], [120, 48, -80, 100, 36, 0], [30, 58, -190, 145, 48, 1],
-      [-60, 46, 130, 90, 32, 0], [90, 42, 110, 80, 28, 1],
-      [-150, 30, 40, 70, 24, 0], [150, 34, -10, 78, 26, 0],
+      // Towering cumulus stacked over the canyon head
+      [150, 36, 190, 120, 42, 0], [175, 42, 200, 150, 52, 1], [200, 35, 185, 110, 40, 0],
+      [162, 50, 205, 95, 34, 1], [190, 56, 210, 105, 36, 0], [215, 40, 195, 90, 32, 1],
+      // Flank cumulus above the eastern and western hills
+      [95, 22, 185, 100, 36, 0], [120, 30, 190, 85, 30, 1], [265, 24, 185, 105, 38, 1],
+      [240, 31, 195, 90, 32, 0], [75, 16, 180, 80, 28, 1], [285, 17, 180, 78, 26, 0],
+      // Big open sky behind the pagoda: low, wide fair-weather clouds
+      [0, 12, 195, 140, 46, 0], [22, 20, 190, 110, 38, 1], [-25, 9, 200, 125, 42, 0],
+      [45, 15, 185, 95, 32, 1], [-48, 18, 190, 90, 30, 0], [12, 30, 200, 100, 34, 1],
       // Horizon streak bands: very wide, low, thin layers
-      [-40, 18, -195, 220, 11, 0], [110, 15, -185, 200, 9, 1],
-      [-160, 16, -120, 180, 9, 0], [30, 13, 185, 210, 10, 1],
-      [-180, 14, 100, 190, 9, 0], [180, 17, 80, 180, 10, 1]
+      [175, 31, 205, 230, 12, 0], [130, 24, 200, 200, 10, 1], [220, 25, 200, 190, 10, 0],
+      [5, 4, 215, 240, 11, 1], [-35, 6, 210, 200, 9, 0], [40, 5, 210, 190, 10, 1],
+      [95, 12, 205, 180, 9, 0], [265, 13, 205, 180, 9, 1]
     ];
     for (let i = 0; i < defs.length; i++) {
-      const [x, y, z, w, h, mirror] = defs[i];
+      const [bearing, elevation, dist, w, h, mirror] = defs[i];
+      const b = THREE.MathUtils.degToRad(bearing);
+      const e = THREE.MathUtils.degToRad(elevation);
+      const x = Math.sin(b) * Math.cos(e) * dist;
+      const y = Math.sin(e) * dist;
+      const z = Math.cos(b) * Math.cos(e) * dist;
       const tex = texVariants[i % texVariants.length];
       const c = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.85, fog: false, depthWrite: false }));
       c.position.set(x, y, z);
@@ -564,7 +577,7 @@ export class Sky {
       const dist = Math.max(1, Math.hypot(c.position.x, c.position.z));
       const sunSide = (cxz / dist + 1) * 0.5;
       c.material.color.copy(p.cloud).lerp(p.warm, sunSide * goldeness * 1.1);
-      c.material.opacity = p.cloudOpacity * (0.6 + Math.sin(this.time * 0.4 + i) * 0.1);
+      c.material.opacity = p.cloudOpacity * (0.9 + Math.sin(this.time * 0.4 + i) * 0.1);
     }
   }
 
