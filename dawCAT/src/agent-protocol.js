@@ -1,8 +1,8 @@
 /* dawCAT — AI composition agent protocol: provider-agnostic request building,
-   prompt construction, and strict plan validation. Mirrors cadJS's
-   src/agent-protocol.mjs (same provider set, same JSON-only contract), swapping
-   the CAD action vocabulary for a DAW one. Runs unmodified in both the browser
-   (agent-panel.js) and the Node proxy (server.mjs) — no DOM, no Node built-ins. */
+   prompt construction, and strict plan validation. No server involved — the
+   browser (agent-panel.js) calls the provider directly with these request
+   shapes, the same way you'd curl it. Pure functions only: no DOM, no Node
+   built-ins, so this file needs nothing beyond a browser to run. */
 
 export const AGENT_PROTOCOL_VERSION = 1;
 
@@ -10,14 +10,6 @@ export const SUPPORTED_AGENT_ACTIONS = new Set([
   'addTrack', 'renameTrack', 'deleteTrack', 'setTrackMix', 'setTrackPreset',
   'addDevice', 'setDeviceParams', 'addClip', 'deleteClip', 'setTempo', 'setKeyScale', 'setSwing', 'setMaster'
 ]);
-
-export function agentProtocolSchema() {
-  return {
-    protocol: AGENT_PROTOCOL_VERSION,
-    actions: [...SUPPORTED_AGENT_ACTIONS],
-    response: { summary: 'string', actions: [{ type: 'action name', target: 'selection|track id|trackId:clipId', params: 'object' }], caveats: ['string'] }
-  };
-}
 
 const SYSTEM_PROMPT = `You are the dawCAT music composition agent for the Michi-Neko game soundtrack. Return JSON only.
 Create a small, musically coherent plan of DAW actions the browser editor can execute directly and automatically the moment you respond — there is no separate confirmation step, so only include actions you actually intend to happen. Never return audio data, JavaScript, shell commands, markdown, or unsupported actions.
@@ -99,6 +91,11 @@ export function validateAgentPlan(input) {
   };
 }
 
+// Anthropic's API blocks cross-origin browser requests unless this header
+// opts in — it exists specifically so a page like this one can call the API
+// directly with a user-supplied key instead of needing a backend.
+const ANTHROPIC_BROWSER_HEADER = { 'anthropic-dangerous-direct-browser-access': 'true' };
+
 export function createProviderRequest(settingsInput, payload) {
   const settings = normalizeAgentSettings(settingsInput);
   const prompt = buildAgentPrompt(payload);
@@ -106,7 +103,7 @@ export function createProviderRequest(settingsInput, payload) {
     const body = { model: settings.model, max_tokens: settings.maxTokens, messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }] };
     if (settings.reasoning !== 'none' && settings.maxTokens >= 1152) body.thinking = { type: 'enabled', budget_tokens: Math.min(settings.maxTokens - 128, { low: 1024, medium: 2048, high: 4096 }[settings.reasoning] || 2048) };
     else { body.temperature = settings.temperature; body.top_p = settings.topP; }
-    return { url: `${settings.baseUrl}/messages`, headers: { 'content-type': 'application/json', 'x-api-key': settings.apiKey, 'anthropic-version': '2023-06-01' }, body };
+    return { url: `${settings.baseUrl}/messages`, headers: { 'content-type': 'application/json', 'x-api-key': settings.apiKey, 'anthropic-version': '2023-06-01', ...ANTHROPIC_BROWSER_HEADER }, body };
   }
   const body = { model: settings.model, messages: [{ role: 'user', content: prompt }], temperature: settings.temperature, top_p: settings.topP, max_tokens: settings.maxTokens, response_format: { type: 'json_object' } };
   if (settings.reasoning !== 'none' && !['local', 'custom'].includes(settings.provider)) body.reasoning_effort = settings.reasoning;
@@ -119,4 +116,27 @@ export function createProviderRequest(settingsInput, payload) {
 export function extractProviderText(provider, response) {
   if (provider === 'anthropic') return (response.content || []).filter((item) => item.type === 'text').map((item) => item.text).join('\n');
   return response.choices?.[0]?.message?.content || response.output_text || '';
+}
+
+// GET request for the provider's model list (the "🔍 scan" button next to
+// Model). Every provider here follows (or tolerates) the OpenAI-style
+// GET /models -> {data:[{id}, ...]} convention, including Anthropic's own
+// models endpoint and every local/OpenAI-compatible server.
+export function createModelsRequest(settingsInput) {
+  const settings = normalizeAgentSettings(settingsInput);
+  const headers = {};
+  if (settings.provider === 'anthropic') Object.assign(headers, { 'x-api-key': settings.apiKey, 'anthropic-version': '2023-06-01' }, ANTHROPIC_BROWSER_HEADER);
+  else if (settings.apiKey) headers.authorization = `Bearer ${settings.apiKey}`;
+  return { url: `${settings.baseUrl}/models`, headers };
+}
+
+// Normalizes whatever shape a /models response comes back in (OpenAI/
+// Anthropic-style {data:[{id}]}, a bare array, or Ollama-style {models:[{name}]})
+// into a flat list of model id strings.
+export function extractModelList(response) {
+  const list = Array.isArray(response?.data) ? response.data
+    : Array.isArray(response?.models) ? response.models
+    : Array.isArray(response) ? response
+    : [];
+  return list.map((m) => (typeof m === 'string' ? m : m.id || m.name)).filter(Boolean);
 }

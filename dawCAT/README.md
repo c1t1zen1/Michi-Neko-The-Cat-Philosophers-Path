@@ -1,6 +1,6 @@
 # dawCAT · Web Audio Studio
 
-A tiny Ableton-style DAW built for **Michi-Neko: The Cat Philosopher's Path**. Compose with the game's own musical DNA, then export straight back into it — **without modifying any game code** (except optionally replacing `src/music.js` with the generated drop-in). An optional [AI composition agent](#ai-composition-agent) turns natural-language prompts into validated melody/rhythm/mix plans, against a local llama-server, Anthropic, OpenAI, or any OpenAI-compatible API.
+A tiny Ableton-style DAW built for **Michi-Neko: The Cat Philosopher's Path**. Compose with the game's own musical DNA, then export straight back into it — **without modifying any game code** (except optionally replacing `src/music.js` with the generated drop-in). An optional [AI composition agent](#ai-composition-agent) turns natural-language prompts into validated melody/rhythm/mix plans, calling a local llama-server, Anthropic, OpenAI, or any OpenAI-compatible API directly from the browser — no server of dawCAT's own involved.
 
 Pure Web Audio API + vanilla ES modules. No npm dependencies, no build step.
 
@@ -8,24 +8,21 @@ Pure Web Audio API + vanilla ES modules. No npm dependencies, no build step.
 
 ## Run it
 
-Serve the **game root** (not the dawCAT folder) so both the game and the DAW share one origin. Either works:
+Serve the **game root** (not the dawCAT folder) so both the game and the DAW share one origin — any static server works, no Node/npm needed anywhere in dawCAT:
 
 ```
-# Option A — any static server, from the repo root
+# from the repo root (Michi-Neko-The-Cat-Philosophers-Path/)
 python -m http.server 8080
-
-# Option B — dawCAT's own Node server (also needed for the AI agent, below)
-cd dawCAT && npm start
 ```
 
 Then open:
 
-- **DAW:** `http://localhost:8080/dawCAT/` (or `:4174` with `npm start`)
-- **Game:** `http://localhost:8080/` (or `:4174`)
+- **DAW:** `http://localhost:8080/dawCAT/`
+- **Game:** `http://localhost:8080/`
 
 > Serving over HTTP is required for the game-cue scanner (`fetch('../src/*.js')`). Opening `dawCAT/index.html` directly from disk (`file://`) works for composing, but scanning and hot-swap preview need the shared server.
 
-`npm start` (`dawCAT/server.mjs`) is a zero-dependency drop-in for `python -m http.server` — same static files, same shared-origin layout — plus one extra route, `/api/agent`, that the **AI composition agent** needs. Everything else in dawCAT works identically either way; only the AI agent panel requires the Node server.
+The [AI composition agent](#ai-composition-agent) needs nothing extra either — it calls your chosen provider (local llama-server, OpenAI, Anthropic, ...) directly from the page with `fetch()`, the same as any other static-file app. There's no proxy to run and no API key ever leaves the browser for anywhere but the provider you configured.
 
 ---
 
@@ -73,11 +70,11 @@ Both the hot-swap snippet and `music.js` carry each track's full **device chain*
 
 ## AI composition agent
 
-Click the **✦ AI** tab next to Arrangement/Mix/Piano Roll/Clip (or **AI Agent ▸ Open AI Composition Agent**). It opens as a floating panel, not a view swap — the tab underneath keeps whatever you were looking at, and the agent panel floats on top. **Closing the panel doesn't stop a request in flight** — it keeps generating in the background; click the AI tab again to reopen and see where it's at.
+Open it from **AI Agent ▸ Open AI Composition Agent** in the top menu bar. It's a floating panel, not a view swap — whatever you were looking at stays visible underneath. **Closing the panel doesn't stop a request in flight** — it keeps generating in the background; reopen the menu to see where it's at.
 
 Describe a melody, rhythm, or idea in plain language; the agent turns it into a constrained JSON plan of DAW actions — new or reworked tracks, clips (notes or drum steps), presets, FX, mix levels, tempo/key/scale/swing, the master fader — that dawCAT validates and **applies automatically the moment the full response comes back**, no separate confirm step. It cannot execute arbitrary JavaScript, touch game or project files, or do anything outside the action list below. `Ctrl+Z` or **Undo Last** reverts the whole plan in one step if you don't like the result. Same harness shape as cadJS's design agent, adapted for music instead of geometry.
 
-Requires the Node server (`npm start` in `dawCAT/`, see [Run it](#run-it)) — the agent panel proxies through `/api/agent` so the browser never has to fight CORS or expose your API key to a third-party origin directly. Without it, every other part of dawCAT works fine; the panel just reports that the agent server isn't running.
+No server, no npm, no build step — the panel calls your configured provider's API **directly from the browser** with `fetch()`, exactly like curling it yourself. That means it lives or dies by that provider's own CORS policy: a local inference server (llama-server, LM Studio, Ollama's OpenAI-compatible endpoint) overwhelmingly allows cross-origin requests by default, which is the whole point of running one, so this just works for the common case. A cloud provider that blocks browser origins will surface as a plain network error in the panel — there's no proxy left to paper over that, and dawCAT doesn't ship one.
 
 ### Remix / Write / Free Mode
 
@@ -99,13 +96,19 @@ Three buttons above the prompt box pick how the request is framed — all three 
 | OpenRouter | `https://openrouter.ai/api/v1` | `openai/gpt-5.2` | Required |
 | Anthropic | `https://api.anthropic.com/v1` | `claude-opus-4-6` | Required |
 
-Base URLs and model IDs are editable and may need updates as provider availability changes. API keys are kept in browser `sessionStorage` only — never written to project JSON, never logged.
+Base URLs are editable and may need updates as provider availability changes. API keys are kept in browser `sessionStorage` only — never written to project JSON, never logged, and only ever sent to the Base URL you set.
 
 Local llama.cpp example:
 
 ```powershell
 llama-server -m C:\models\your-model.gguf --host 127.0.0.1
 ```
+
+### Picking a model
+
+The Model field is a combo box — type a model id directly, or click **🔍** next to it to `GET {Base URL}/models` and populate a dropdown of what that server actually has loaded, then pick one. Works for local servers, OpenAI, OpenRouter, and Anthropic (its own `/v1/models` endpoint) alike; if a provider doesn't implement that endpoint, the scan just reports nothing found and you can still type the model id by hand.
+
+Anthropic calls include the `anthropic-dangerous-direct-browser-access` header, which is what Anthropic requires to allow a page like this one to call its API straight from a browser with a user-supplied key instead of going through a backend.
 
 ### Context sent to the model
 
@@ -165,15 +168,13 @@ dawn scene.
 dawCAT/
   index.html          shell
   styles.css          Nebula-DAW theme
-  package.json        "npm start" → server.mjs (only needed for the AI agent)
-  server.mjs          static file server + /api/agent provider proxy
   src/
     main.js            bootstrap + shortcuts + wiring + AI agent execution
     state.js           project model, undo/redo (+ applyBatch for AI plans), persistence
     scanner.js         game cue scanner (phases, SFX, scales)
     bridge.js          export: drop-in music.js + hot-swap snippet + JSON
     midi.js            Standard MIDI File (.mid) import/export
-    agent-protocol.js  AI agent: provider requests, prompt, plan validation
+    agent-protocol.js  AI agent: direct-to-provider request building, prompt, plan validation
     engine/
       core.js         context, master bus, track chains, meters
       synth.js        synth voices, game SFX approximations, ambience
@@ -187,4 +188,4 @@ dawCAT/
                       inspector, devices, transport-ui, agent-panel, common helpers
 ```
 
-No npm dependencies (`server.mjs` uses only Node built-ins) and no build step — the DAW itself is still just static files; `npm start` only adds the one proxy route the AI agent needs.
+No dependencies, no build step — just static files, AI agent included.

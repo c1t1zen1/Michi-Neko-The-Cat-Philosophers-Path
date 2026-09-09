@@ -120,6 +120,9 @@ input[type="range"] { accent-color: var(--accent); padding: 0; border: none; bac
 .agent-block.grow { flex: 1; }
 .agent-block h3 { margin: 0 0 8px; color: #8da0ad; font-size: 9px; letter-spacing: 1px; }
 .agent-block label { display: grid; gap: 4px; color: var(--text-dim); font-size: 9px; margin-bottom: 7px; }
+.label-row { display: flex; align-items: center; justify-content: space-between; }
+.label-row button { min-width: 18px; height: 16px; padding: 0 3px; font-size: 10px; line-height: 1; background: #16203a; border: 1px solid var(--border); border-radius: 3px; color: #aebad2; }
+.label-row button:hover { background: #1c2a4a; color: #fff; }
 .agent-block input, .agent-block select, .agent-block textarea { width: 100%; }
 .agent-block textarea { min-height: 100px; resize: vertical; line-height: 1.5; }
 .agent-grid { display: grid; gap: 7px; margin-bottom: 7px; }
@@ -197,9 +200,6 @@ input[type="range"] { accent-color: var(--accent); padding: 0; border: none; bac
 .tab { padding: 5px 14px; border-radius: 4px; color: var(--text-dim); cursor: pointer; font-size: 12px; }
 .tab:hover { color: #d7e2f5; }
 .tab.active { background: #1a2745; color: #fff; box-shadow: inset 0 -2px 0 var(--accent); }
-.tab-ai { color: #cbb8ff; }
-.tab-ai:hover { color: #e5d9ff; }
-.tab-ai.active { background: #241a3d; color: #fff; box-shadow: inset 0 -2px 0 var(--purple); }
 .tab-spacer { flex: 1; }
 .snap-label { color: var(--text-dim); display: flex; align-items: center; gap: 5px; margin-right: 12px; }
 .snap-label select { font-size: 11px; padding: 2px 4px; }

@@ -1,12 +1,20 @@
-/* dawCAT — AI composition agent panel. Mirrors cadJS's src/agent-panel.mjs
-   (settings form, prompt box, validated plan preview), adapted for dawCAT's
-   own UX: no reference images (a DAW prompt doesn't need one), a Remix/Write/
-   Free Mode selector above the prompt, and automatic apply — the plan runs
-   the instant a full, validated response comes back, no separate confirm
-   step. Lives as a floating panel toggled from the "✦ AI" tab; closing it
-   does not cancel an in-flight request, so generation keeps running in the
-   background and the panel just shows whatever state it's in when reopened. */
-import { normalizeAgentSettings } from '../agent-protocol.js';
+/* dawCAT — AI composition agent panel. Settings form, Remix/Write/Free Mode
+   selector, prompt box, and validated plan preview. Calls the provider (local
+   llama-server, a custom OpenAI-compatible endpoint, OpenAI, OpenRouter, or
+   Anthropic) DIRECTLY from the browser — no server, no npm, no build step,
+   same as every other part of dawCAT. That means it lives or dies by that
+   provider's own CORS policy: local inference servers overwhelmingly allow
+   cross-origin requests by default (that's the whole point of an OpenAI-
+   compatible local endpoint), so this "just works" for the common llama-
+   server case; a cloud provider that blocks browser origins will surface as
+   a network error here, not a nicer one — there's no proxy left to hide it.
+
+   Plan apply is automatic — the plan runs the instant a full, validated
+   response comes back, no separate confirm step. Opened from the AI Agent
+   menu; closing it does not cancel an in-flight request, so generation keeps
+   running in the background and the panel just shows whatever state it's in
+   when reopened. */
+import { normalizeAgentSettings, createProviderRequest, createModelsRequest, extractModelList, extractJson, extractProviderText, validateAgentPlan } from '../agent-protocol.js';
 
 const SETTINGS_KEY = 'michi-neko-dawcat-agent-settings-v1';
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -37,6 +45,7 @@ export class AgentPanel {
     $('#agent-close').addEventListener('click', () => this.close());
     $('#agent-provider').addEventListener('change', () => { const preset = PRESETS[$('#agent-provider').value]; $('#agent-base-url').value = preset.baseUrl; $('#agent-model').value = preset.model; this.saveSettings(); });
     for (const id of ['agent-base-url', 'agent-model', 'agent-api-key', 'agent-temperature', 'agent-top-p', 'agent-max-tokens', 'agent-reasoning']) $(`#${id}`).addEventListener('change', () => this.saveSettings());
+    $('#agent-scan-models').addEventListener('click', () => this.scanModels());
     document.querySelectorAll('.agent-modes button[data-mode]').forEach((button) => {
       button.addEventListener('click', () => {
         this.mode = button.dataset.mode;
@@ -70,19 +79,50 @@ export class AgentPanel {
     $('#agent-temperature').value = settings.temperature; $('#agent-top-p').value = settings.topP; $('#agent-max-tokens').value = settings.maxTokens; $('#agent-reasoning').value = settings.reasoning;
   }
 
+  // Turns a fetch()-level failure (wrong port, server not running, or a CORS
+  // block) into a message that actually points at the fix, instead of the
+  // opaque "Failed to fetch" TypeError the browser throws for all three.
+  networkErrorHint(url) {
+    return `Could not reach ${url}. Check that the server is running at that Base URL/port, and that it allows cross-origin requests from this page (CORS) — most local inference servers (llama-server, LM Studio, Ollama's OpenAI-compatible endpoint) allow this by default.`;
+  }
+
+  async scanModels() {
+    const settings = this.settings(); this.saveSettings();
+    const { url, headers } = createModelsRequest(settings);
+    this.state(`Scanning models at ${url}…`, 'busy');
+    try {
+      let response;
+      try { response = await fetch(url, { headers }); }
+      catch { throw new Error(this.networkErrorHint(url)); }
+      const text = await response.text();
+      let data; try { data = JSON.parse(text); } catch { throw new Error('Model list response was not JSON.'); }
+      if (!response.ok) throw new Error(data.error?.message || data.message || `Model list HTTP ${response.status}`);
+      const models = extractModelList(data);
+      const listEl = $('#agent-model-list');
+      listEl.innerHTML = models.map((m) => `<option value="${escapeHtml(m)}">`).join('');
+      this.state(models.length ? `Found ${models.length} model(s) — click the Model field to pick one.` : 'Scan succeeded but returned no models.');
+      this.log(`Scanned ${models.length} model(s) from ${settings.baseUrl}`);
+    } catch (error) {
+      this.state(error.message, 'error');
+    }
+  }
+
   async generate() {
     const instruction = $('#agent-prompt').value.trim();
     if (!instruction) return this.state('Describe the melody, rhythm, or idea first.', 'error');
-    this.stop(); this.controller = new AbortController(); this.state(`Building context and contacting model (${this.mode})…`, 'busy'); $('#agent-send').disabled = true;
+    this.stop(); this.controller = new AbortController(); this.state(`Contacting model (${this.mode})…`, 'busy'); $('#agent-send').disabled = true;
     try {
       const settings = this.settings(); this.saveSettings();
-      const response = await fetch('/api/agent', { method: 'POST', headers: { 'content-type': 'application/json' }, signal: this.controller.signal, body: JSON.stringify({ settings, instruction, mode: this.mode, context: this.callbacks.getContext() }) });
-      let data;
-      try { data = await response.json(); }
-      catch { throw new Error('No agent server responded — run `npm start` in dawCAT/ (see README) to enable the AI agent.'); }
-      if (!response.ok) throw new Error(data.error || `Agent HTTP ${response.status}`);
-      this.plan = data.plan;
-      this.log(`${data.provider}/${data.model} [${this.mode}]: ${this.plan.summary}`);
+      if (!['local', 'custom'].includes(settings.provider) && !settings.apiKey) throw new Error(`API key is required for ${settings.provider}`);
+      const outbound = createProviderRequest(settings, { instruction, mode: this.mode, context: this.callbacks.getContext() });
+      let response;
+      try { response = await fetch(outbound.url, { method: 'POST', headers: outbound.headers, body: JSON.stringify(outbound.body), signal: this.controller.signal }); }
+      catch (networkError) { if (networkError.name === 'AbortError') throw networkError; throw new Error(this.networkErrorHint(outbound.url)); }
+      const text = await response.text();
+      let data; try { data = JSON.parse(text); } catch { throw new Error('Provider did not return JSON: ' + text.slice(0, 200)); }
+      if (!response.ok) throw new Error(data.error?.message || data.message || `Provider HTTP ${response.status}`);
+      this.plan = validateAgentPlan(extractJson(extractProviderText(settings.provider, data)));
+      this.log(`${settings.provider}/${settings.model} [${this.mode}]: ${this.plan.summary}`);
       // Apply automatically — no confirmation step. A bad plan rolls the
       // project back completely (see AppState.applyBatch), so this can't
       // half-apply and leave a mess.

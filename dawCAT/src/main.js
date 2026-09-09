@@ -95,18 +95,11 @@ class App {
     this.mixer = new Mixer(this);
     this.inspector = new Inspector(this);
     this.devices = new Devices(this);
-    const tabAi = document.getElementById('tab-ai');
     this.agentPanel = new AgentPanel({
       getContext: () => this.getAgentContext(),
       executePlan: (plan) => this.executeAgentPlan(plan),
-      undo: () => this.state.undo(),
-      onToggle: (open) => tabAi.classList.toggle('active', open)
+      undo: () => this.state.undo()
     });
-    // The AI tab isn't part of the Arrangement/Mix/Piano Roll/Clip view-switcher
-    // (no data-tab attribute — wireTabs() only wires elements that have one):
-    // it toggles the floating agent panel instead, leaving whichever view is
-    // showing untouched underneath.
-    tabAi.addEventListener('click', () => this.agentPanel.toggle());
 
     this.wireTabs();
     this.wireSnapZoom();
