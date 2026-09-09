@@ -63,22 +63,15 @@ class Game {
     // survive the post chain, and the depth buffer feeds the screen-space
     // ambient occlusion, height fog and light-shaft passes.
     const rtSize = this.renderer.getDrawingBufferSize(new THREE.Vector2());
-    const makeDepth = () => {
-      const d = new THREE.DepthTexture(rtSize.width, rtSize.height, THREE.UnsignedIntType);
-      d.format = THREE.DepthFormat;
-      d.minFilter = THREE.NearestFilter;
-      d.magFilter = THREE.NearestFilter;
-      return d;
-    };
     const renderTarget = new THREE.WebGLRenderTarget(rtSize.width, rtSize.height, {
       samples: 4, // tier-driven; applyQuality() rewrites this per device
       type: THREE.HalfFloatType,
-      depthTexture: makeDepth()
+      depthTexture: this.makeDepthTexture()
     });
     this.composer = new EffectComposer(this.renderer, renderTarget);
     // Each ping-pong buffer needs its own depth attachment so the scene depth
     // read by the post passes is never a stale copy from the other buffer.
-    this.composer.renderTarget2.depthTexture = makeDepth();
+    this.composer.renderTarget2.depthTexture = this.makeDepthTexture();
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.aoPass = new AOPass(this.camera, rtSize.width, rtSize.height, { scale: 0.5, samples: 12 });
     this.composer.addPass(this.aoPass);
@@ -395,6 +388,16 @@ class Game {
 
   /* ---------------- Settings ---------------- */
 
+  /** Fresh depth attachment for a composer render target (see applyQuality). */
+  makeDepthTexture() {
+    const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    const d = new THREE.DepthTexture(size.width, size.height, THREE.UnsignedIntType);
+    d.format = THREE.DepthFormat;
+    d.minFilter = THREE.NearestFilter;
+    d.magFilter = THREE.NearestFilter;
+    return d;
+  }
+
   applySettings() {
     const v = this.settings.values;
     this.audio.applyVolumes({
@@ -419,13 +422,25 @@ class Game {
     // MSAA on the composer target: 4x only on the high tier. Medium keeps
     // the half-res bloom + FXAA-free look but drops the per-tile memory and
     // resolve cost that 4x MSAA adds on integrated/mobile GPUs.
+    //
+    // Mutating .samples on the live targets and disposing them in place
+    // corrupts the depth attachments (observed as a lost WebGL context and a
+    // white screen), so the ping-pong targets are rebuilt from scratch at the
+    // new sample count instead.
     const samples = q === 'high' ? 4 : 0;
     if (this.composer.renderTarget1.samples !== samples) {
-      this.composer.renderTarget1.samples = samples;
-      this.composer.renderTarget2.samples = samples;
-      // Force framebuffer re-allocation at the new sample count.
-      this.composer.renderTarget1.dispose();
-      this.composer.renderTarget2.dispose();
+      const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+      const rtOpts = { samples, type: THREE.HalfFloatType, depthTexture: this.makeDepthTexture() };
+      const rt1 = new THREE.WebGLRenderTarget(size.width, size.height, rtOpts);
+      const rt2 = new THREE.WebGLRenderTarget(size.width, size.height, rtOpts);
+      const old1 = this.composer.renderTarget1;
+      const old2 = this.composer.renderTarget2;
+      this.composer.renderTarget1 = rt1;
+      this.composer.renderTarget2 = rt2;
+      this.composer.writeBuffer = rt1;
+      this.composer.readBuffer = rt2;
+      old1.dispose();
+      old2.dispose();
     }
 
     // 4096 shadow maps only for high tier on a desktop discrete GPU; every
