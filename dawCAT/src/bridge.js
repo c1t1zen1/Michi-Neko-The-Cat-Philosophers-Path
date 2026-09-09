@@ -127,8 +127,15 @@ function dawcatRuntime() {
       this.anchorTime = 0;
       this.evIdx = 0;
       this.out = null;
+      this.scene = null;
     }
     get ctx() { return this.audio ? this.audio.ctx : null; }
+
+    // An exported track is a single scene/time-of-day variant — there's
+    // nothing else here to switch to yet — but the game calls setScene()
+    // unconditionally, so keep the call a harmless no-op rather than making
+    // main.js feature-detect around a hot-swapped/dropped-in export.
+    setScene(name) { this.scene = name; }
 
     start() {
       if (this.started || !this.audio.initialized || !this.ctx) return;
@@ -671,6 +678,14 @@ export class MusicDirector {
   /** Lower music volume while paused / dialogue. */
   setDucked(ducked) {
     this.player.setDucked(ducked);
+  }
+
+  /** Called when the player crosses between scenes (e.g. entering/leaving the
+   *  Tea House). This export is one scene/time-of-day variant, so it's a
+   *  no-op — kept so main.js's unconditional this.music.setScene() call
+   *  doesn't need to feature-detect around this drop-in replacement. */
+  setScene(name) {
+    this.player.setScene(name);
   }
 
   phaseForDayTime(dayTime) {

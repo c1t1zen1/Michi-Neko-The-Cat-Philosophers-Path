@@ -847,9 +847,12 @@ class Game {
     this.audio.updateListener(this.camera);
     for (const n of this.npcs) n.update(dt, this.player.mesh.position, this.camera);
 
-    // Music follows the day cycle; ducks during pause/dialogue
+    // Music follows the day cycle; ducks during pause/dialogue; muted/cozier
+    // inside the Tea House than out in the open valley. Guarded in case an
+    // older hot-swapped/exported music.js predates setScene().
     this.music.update(this.sky.dayTime);
     this.music.setDucked(!playing || this.dialogue.active);
+    if (this.music.setScene) this.music.setScene(inside ? 'Tea House' : 'Overworld');
 
     this.ui.setTimeWeather(this.formatTime(this.sky.dayTime), this.capitalise(this.sky.weather));
     this.ui.setInventory(this.city.hasSecretKey, this.city.nestInteracted);
