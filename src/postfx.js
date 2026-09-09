@@ -411,10 +411,11 @@ export class AtmospherePass extends Pass {
     u.uSunDir.value.copy(sky.sunDir).normalize();
     // Aerial perspective leans toward the pale horizon, not the saturated
     // palette fog, so daylight stays clean and only dusk turns amber.
-    u.uFogColor.value.copy(p.fog).lerp(p.horizon, 0.45).lerp(new THREE.Color(0xdde6ee), 0.35 * (1 - golden) * (1 - night));
+    // (Constants hoisted — allocating Colors here ran every frame.)
+    u.uFogColor.value.copy(p.fog).lerp(p.horizon, 0.45).lerp(AERIAL_TINT, 0.35 * (1 - golden) * (1 - night));
     // Far haze sits between the sky's zenith and horizon tints: blue-violet
     // by day, mauve at dusk, ink-blue at night
-    u.uHazeColor.value.copy(p.top).lerp(p.mid, 0.45).lerp(new THREE.Color(0xb8c0dc), 0.35 * (1 - night));
+    u.uHazeColor.value.copy(p.top).lerp(p.mid, 0.45).lerp(HAZE_TINT, 0.35 * (1 - night));
     u.uFogSunColor.value.copy(p.warm).lerp(p.sun, 0.35).multiplyScalar(0.5 + golden * 0.8);
     // Night fog is a cool, thin blue; weather thickens it
     const weatherFog = { clear: 1, cloudy: 1.6, mist: 5.0, snow: 2.8, rain: 3.0 };
@@ -464,6 +465,11 @@ export class AtmospherePass extends Pass {
 // Final grade
 // ---------------------------------------------------------------------------
 
+// Palette constants hoisted out of AtmospherePass.updateFromSky (was: two
+// THREE.Color allocations per frame).
+const AERIAL_TINT = new THREE.Color(0xdde6ee);
+const HAZE_TINT = new THREE.Color(0xb8c0dc);
+
 export const GradeShader = {
   uniforms: {
     tDiffuse: { value: null },
@@ -506,6 +512,95 @@ export const GradeShader = {
       col.r = texture2D(tDiffuse, vUv + fr).r;
       col.g = texture2D(tDiffuse, vUv).g;
       col.b = texture2D(tDiffuse, vUv - fr).b;
+
+      float lum = dot(col, vec3(0.299, 0.587, 0.114));
+
+      // Filmic S-curve contrast around mid grey
+      col = mix(vec3(0.5), col, uContrast);
+      col = clamp(col, 0.0, 1.0);
+
+      // Golden-hour split tone: amber highlights, gentle plum shadows
+      col += vec3(0.05, 0.024, -0.014) * smoothstep(0.38, 1.0, lum) * uWarmth;
+      col = mix(col, col * vec3(1.02, 0.975, 1.06), smoothstep(0.55, 0.0, lum) * 0.3);
+
+      // Painterly saturation lift keyed to mid tones
+      float midMask = smoothstep(0.04, 0.4, lum) * (1.0 - smoothstep(0.62, 1.0, lum));
+      col = mix(vec3(lum), col, 1.0 + midMask * (uSaturation - 1.0));
+
+      // Soft-edged cinematic vignette
+      float vig = smoothstep(0.95, 0.3, sqrt(r2) * 1.02);
+      col *= mix(1.0, vig, uVignette);
+
+      // Fine animated grain, denser in shadows
+      float grain = gradeHash(vUv * vec2(1920.0, 1080.0) + fract(uTime * 13.7) * 91.0) - 0.5;
+      col += grain * uGrain * (1.0 - lum * 0.65);
+
+      gl_FragColor = vec4(col, 1.0);
+    }
+  `
+};
+
+// ---------------------------------------------------------------------------
+// Merged output + grade pass
+// ---------------------------------------------------------------------------
+
+// OutputPass (tone map + sRGB encode) and GradeShader fused into a single
+// fullscreen pass: one less render-target round-trip per frame. Tone mapping
+// and the sRGB encode call three.js's own prefix-injected helpers — a
+// tone-mapped ShaderMaterial pulls in tonemapping_pars_fragment, which
+// defines ACESFilmicToneMapping (driven by renderer.toneMappingExposure) and
+// saturate. Redefining them here collided with the prefix and broke the
+// program, so the pass simply calls the prefix versions.
+export const GradeOutputShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    uTime: { value: 0 },
+    uVignette: { value: 0.38 },
+    uGrain: { value: 0.028 },
+    uFringe: { value: 0.0012 },
+    uWarmth: { value: 0.75 },
+    uContrast: { value: 1.06 },
+    uSaturation: { value: 1.12 }
+  },
+  vertexShader: GradeShader.vertexShader,
+  fragmentShader: /* glsl */`
+    uniform sampler2D tDiffuse;
+    uniform float uTime;
+    uniform float uVignette;
+    uniform float uGrain;
+    uniform float uFringe;
+    uniform float uWarmth;
+    uniform float uContrast;
+    uniform float uSaturation;
+    varying vec2 vUv;
+
+    // sRGB OETF (three.js r160 colourspace math, vec3 flavour)
+    vec3 gradeToSRGB(vec3 value) {
+      vec3 lt = vec3(lessThanEqual(value.rgb, vec3(0.0031308)));
+      vec3 v1 = value.rgb * 12.92;
+      vec3 v2 = pow(value.rgb, vec3(0.41666)) * 1.055 - 0.055;
+      return mix(v2, v1, lt);
+    }
+
+    float gradeHash(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
+    void main() {
+      vec2 centre = vUv - 0.5;
+      float r2 = dot(centre, centre);
+      // Lateral chromatic fringe, strongest at the frame edges
+      vec2 fr = centre * uFringe * r2 * 8.0;
+      vec3 col;
+      col.r = texture2D(tDiffuse, vUv + fr).r;
+      col.g = texture2D(tDiffuse, vUv).g;
+      col.b = texture2D(tDiffuse, vUv - fr).b;
+
+      // Tone map + encode to sRGB (what OutputPass did) before grading, so
+      // the grade math sees exactly the same values as before the merge.
+      // ACESFilmicToneMapping + toneMappingExposure come from the prefix.
+      col = ACESFilmicToneMapping(col);
+      col = gradeToSRGB(col);
 
       float lum = dot(col, vec3(0.299, 0.587, 0.114));
 

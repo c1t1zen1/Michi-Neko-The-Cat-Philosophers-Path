@@ -2,9 +2,8 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { AOPass, AtmospherePass, GradeShader } from './postfx.js?v=20260909a';
+import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20260909a';
 import { Player } from './player.js?v=20260909a';
 import { Countryside } from './countryside.js?v=20260909a';
 import { Sky } from './sky.js?v=20260909a';
@@ -23,6 +22,7 @@ import { InteriorManager } from './interior.js?v=20260909a';
 import { SaveManager } from './save.js?v=20260823a';
 import { ScentTrail } from './scent.js?v=20260823a';
 import { SettingsManager } from './settings.js?v=20260825h';
+import { isDiscreteGPU } from './settings.js?v=20260825h';
 import { MenuSystem } from './menus.js?v=20260825d';
 import { WaypointSystem, Compass } from './waypoints.js?v=20260823a';
 import { MusicDirector } from './music.js?v=20260825h';
@@ -44,7 +44,9 @@ class Game {
 
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
-      antialias: true,
+      // MSAA now lives on the composer's render target (tier-driven samples),
+      // so the default framebuffer never needs its own multisampling.
+      antialias: false,
       powerPreference: 'high-performance'
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -69,7 +71,7 @@ class Game {
       return d;
     };
     const renderTarget = new THREE.WebGLRenderTarget(rtSize.width, rtSize.height, {
-      samples: 4,
+      samples: 4, // tier-driven; applyQuality() rewrites this per device
       type: THREE.HalfFloatType,
       depthTexture: makeDepth()
     });
@@ -83,13 +85,16 @@ class Game {
     this.atmosphere = new AtmospherePass(this.camera, rtSize.width, rtSize.height);
     this.atmosphere.aoPass = this.aoPass;
     this.composer.addPass(this.atmosphere);
+    // Bloom renders at half resolution: its 5 mip levels blur everything
+    // anyway, so the downsize is invisible while costing ~4x less fill.
     this.bloom = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2),
       0.38, 0.85, 0.82
     );
     this.composer.addPass(this.bloom);
-    this.composer.addPass(new OutputPass());
-    this.gradePass = new ShaderPass(GradeShader);
+    // Tone mapping + colour-space + grade fused into one fullscreen pass
+    // (was OutputPass + GradeShader: two passes over the frame).
+    this.gradePass = new ShaderPass(GradeOutputShader);
     this.composer.addPass(this.gradePass);
 
     this.clock = new THREE.Clock();
@@ -273,6 +278,12 @@ class Game {
     this.adaptTimer = 2;
     this.pixelCap = Math.min(window.devicePixelRatio || 1, 1.75);
     this.pixelScale = this.renderer.getPixelRatio();
+    // Two-stage adaptive: stage 1 trims post-FX before touching resolution.
+    this.perfStage = 0;
+    this.perfEscalateTimer = 0;
+    // Shadow-map refresh cadence (frames); 1 = every frame.
+    this.shadowCadence = 1;
+    this._shadowFrame = 0;
 
     window.addEventListener('resize', () => this.onResize());
     this.loop();
@@ -336,6 +347,38 @@ class Game {
     if (this.adaptTimer > 0) return;
     this.adaptTimer = 2;
     const fps = this.ui.fps;
+
+    // Stage 1: shed post-FX weight first (light shafts, bloom resolution).
+    // Stage 2: only then scale down the framebuffer.
+    if (fps > 0 && fps < 45) {
+      this.perfEscalateTimer = 0;
+      if (this.perfStage === 0) {
+        this.perfStage = 1;
+        this.postStrengths = { ...(this.postStrengths || {}), shafts: 0 };
+        this.bloom.setSize(window.innerWidth / 4, window.innerHeight / 4);
+        return;
+      }
+    } else if (fps > 58) {
+      this.perfEscalateTimer += 2;
+      // Sustained healthy fps walks the stages back down.
+      if (this.perfEscalateTimer > 10 && this.perfStage > 0) {
+        this.perfStage--;
+        this.perfEscalateTimer = 0;
+        if (this.perfStage === 0) {
+          const q = this.settings.resolveQuality();
+          this.postStrengths = {
+            ao: q === 'low' ? 0 : q === 'medium' ? 0.85 : 1,
+            shafts: q === 'low' ? 0 : q === 'medium' ? 0.7 : 1
+          };
+        }
+        this.bloom.setSize(window.innerWidth / 2, window.innerHeight / 2);
+        return;
+      }
+    } else {
+      this.perfEscalateTimer = 0;
+    }
+
+    if (this.perfStage < 2) return; // stage 1 must get a chance to help
     let changed = false;
     if (fps > 0 && fps < 45 && this.pixelScale > 0.55) {
       this.pixelScale = Math.max(0.55, this.pixelScale * 0.85);
@@ -373,7 +416,21 @@ class Game {
     this.renderer.setPixelRatio(Math.min(dpr, cap));
     this.onResize();
 
-    const shadowSize = q === 'low' ? 1024 : q === 'medium' ? 2048 : 4096;
+    // MSAA on the composer target: 4x only on the high tier. Medium keeps
+    // the half-res bloom + FXAA-free look but drops the per-tile memory and
+    // resolve cost that 4x MSAA adds on integrated/mobile GPUs.
+    const samples = q === 'high' ? 4 : 0;
+    if (this.composer.renderTarget1.samples !== samples) {
+      this.composer.renderTarget1.samples = samples;
+      this.composer.renderTarget2.samples = samples;
+      // Force framebuffer re-allocation at the new sample count.
+      this.composer.renderTarget1.dispose();
+      this.composer.renderTarget2.dispose();
+    }
+
+    // 4096 shadow maps only for high tier on a desktop discrete GPU; every
+    // other device caps at 2048 (low: 1024).
+    const shadowSize = q === 'low' ? 1024 : q === 'medium' ? 2048 : (isDiscreteGPU() ? 4096 : 2048);
     if (this.sky.sun.shadow.mapSize.x !== shadowSize) {
       this.sky.sun.shadow.mapSize.set(shadowSize, shadowSize);
       if (this.sky.sun.shadow.map) {
@@ -381,15 +438,59 @@ class Game {
         this.sky.sun.shadow.map = null;
       }
     }
+    // Low/medium refresh the shadow map every other frame — the sun and the
+    // cat move slowly enough that the one-frame lag is invisible.
+    this.shadowCadence = q === 'high' ? 1 : 2;
+    this.sky.sun.shadow.autoUpdate = false;
+    this.sky.sun.shadow.needsUpdate = true;
+
+    // Sub-0.35 m props stop casting shadows on low: their shadow cost is
+    // pure overdraw at 1024px and their absence is unnoticeable.
+    this.applySmallPropShadows(q !== 'low');
+
     this.bloom.enabled = q !== 'low';
     // Screen-space AO and light shafts scale with the tier; low keeps only
     // the cheap height fog.
     this.aoPass.enabled = q !== 'low';
     this.aoPass.setSamples(q === 'high' ? 14 : 8);
-    this.postStrengths = q === 'low'
-      ? { ao: 0, shafts: 0 }
-      : q === 'medium' ? { ao: 0.85, shafts: 0.7 } : { ao: 1, shafts: 1 };
+    const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+    // Light shafts are a 22-step screen march — too heavy for mobile tiers.
+    const shafts = q === 'low' || (mobile && q === 'medium') ? 0 : q === 'medium' ? 0.7 : 1;
+    this.postStrengths = { ao: q === 'low' ? 0 : q === 'medium' ? 0.85 : 1, shafts };
     this.gradePass.uniforms.uFringe.value = q === 'high' ? 0.0012 : 0.0;
+
+    // Density levers: grass blades, particle counts, lantern point lights.
+    if (this.vegetation) {
+      this.vegetation.setDensity(q === 'low' ? 0.5 : q === 'medium' ? 0.75 : 1.0);
+    }
+    if (this.particles) {
+      this.particles.setBudget(q === 'low' ? 0.5 : q === 'medium' ? 0.75 : 1.0);
+    }
+    if (this.city) {
+      this.city.lanternLightCount = q === 'low' ? 2 : 4;
+    }
+  }
+
+  /**
+   * Toggle castShadow for small props (bounding sphere < 0.35 m). The base
+   * state is remembered on first traversal so re-enabling restores exactly
+   * what the builders set.
+   */
+  applySmallPropShadows(enabled) {
+    if (!this._propShadowCache) this._propShadowCache = new Map();
+    this.scene.traverse((o) => {
+      if (!o.isMesh || o.isInstancedMesh) return;
+      if (o.userData._baseCastShadow === undefined) {
+        o.userData._baseCastShadow = o.castShadow;
+        if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+        o.userData._propRadius = o.geometry.boundingSphere
+          ? o.geometry.boundingSphere.radius * Math.max(o.scale.x, o.scale.y, o.scale.z)
+          : Infinity;
+      }
+      if (o.userData._propRadius < 0.35) {
+        o.castShadow = enabled ? o.userData._baseCastShadow : false;
+      }
+    });
   }
 
   /* ---------------- Game flow ---------------- */
@@ -645,6 +746,10 @@ class Game {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.composer.setSize(window.innerWidth, window.innerHeight);
+    // composer.setSize() resets every pass to full resolution — put bloom
+    // back at its reduced size (quarter while adaptive stage 1 is active).
+    const bf = this.perfStage >= 1 ? 4 : 2;
+    this.bloom.setSize(window.innerWidth / bf, window.innerHeight / bf);
   }
 
   update(dt) {
@@ -696,8 +801,16 @@ class Game {
       this.player.moveInput.copy(savedInput);
     }
 
-    // World simulation always runs (living background on title screen)
-    this.city.update(dt, this.player.mesh.position, this.sky);
+    // World simulation always runs (living background on title screen) —
+    // except while inside the tea house, where the valley is invisible and
+    // the room only needs its own lights. Sky keeps ticking so the dome and
+    // weather stay continuous for the windows.
+    const inside = this.interior.isInside;
+    this.sky.envPaused = inside;
+    this.sky.setInteriorShadowMode(inside);
+    if (!inside) {
+      this.city.update(dt, this.player.mesh.position, this.sky);
+    }
     this.sky.update(dt, this.player.mesh.position);
     this.atmosphere.updateFromSky(this.sky, this.camera, this.postStrengths || { ao: 1, shafts: 1 });
     // Golden-hour rim light on the cat follows the sun palette
@@ -709,9 +822,11 @@ class Game {
       const golden = Math.min(1, Math.max(0, (0.42 - sunY) / 0.42)) * Math.min(1, sunY / 0.06);
       catRimUniforms.uRimStrength.value = 0.14 + golden * 0.7;
     }
-    this.vegetation.update(dt, this.player.mesh.position, this.sky);
-    this.particles.update(dt, this.player.mesh.position, this.sky);
-    this.ambientLife.update(dt, this.player.mesh.position, this.sky, this.player.cat, this.player, this.city);
+    if (!inside) {
+      this.vegetation.update(dt, this.player.mesh.position, this.sky);
+      this.particles.update(dt, this.player.mesh.position, this.sky);
+      this.ambientLife.update(dt, this.player.mesh.position, this.sky, this.player.cat, this.player, this.city);
+    }
     this.scent.update(dt, this.player.mesh.position, playing ? this.player.currentSpeed : 0);
     this.audio.setWeatherTransition(this.sky.getWeatherTransition());
     this.audio.updateListener(this.camera);
@@ -892,7 +1007,22 @@ Quality  ${this.settings.resolveQuality()}`;
       this.updateAdaptiveResolution(dt);
     }
     this.gradePass.uniforms.uTime.value = this.clock.elapsedTime;
+    // Shadow map refreshes on a tier-driven cadence; the sun and cat move
+    // slowly enough that a one-frame-old map is indistinguishable.
+    if (++this._shadowFrame >= this.shadowCadence) {
+      this._shadowFrame = 0;
+      this.sky.sun.shadow.needsUpdate = true;
+    }
     this.composer.render();
+    // First frame is on screen: dissolve the soft-focus boot image away.
+    if (!this._bootDissolved) {
+      this._bootDissolved = true;
+      const boot = document.getElementById('boot-screen');
+      if (boot) {
+        boot.classList.add('dissolve');
+        setTimeout(() => boot.remove(), 900);
+      }
+    }
     if (this.captureRequested) {
       this.captureRequested = false;
       this.capturePhoto();

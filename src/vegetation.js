@@ -23,7 +23,12 @@ export class Vegetation {
     this.waterRects = options.waterRects || [];
     this.riverSamples = options.riverSamples || [];
     this.exclusionRects = options.exclusionRects || [];
-    this.bambooSwayables = [];
+    // Static geometry accumulators: tree trunks/branches and long-tail
+    // canopies are baked into one mesh per material instead of one mesh per
+    // tree part (see _bakeStatic / _finalizeStatic).
+    this._staticAccum = new Map();
+    this.grassMeshes = [];
+    this.groundCoverMeshes = [];
 
     // Bark with deep fissure normal maps
     this.matTrunks = [
@@ -61,6 +66,13 @@ export class Vegetation {
     this.matBamboo = new THREE.MeshStandardMaterial({ color: 0x6f9e4c, roughness: 0.6 });
     this.matBambooLeaf = new THREE.MeshStandardMaterial({ color: 0x74a04a, roughness: 0.9, side: THREE.DoubleSide });
     this.matSusuki = new THREE.MeshStandardMaterial({ color: 0xd9cca8, roughness: 0.9, side: THREE.DoubleSide });
+    // Shader-driven bamboo: the culm bend + leaf flutter run in the vertex
+    // stage (see bambooSwayMaterial), so the groves cost zero CPU per frame.
+    this.bambooTime = { value: 0 };
+    this.matBambooSway = this.bambooSwayMaterial(false, false);
+    this.matBambooLeafSway = this.bambooSwayMaterial(true, false);
+    this.bambooDepthStalk = this.bambooSwayMaterial(false, true);
+    this.bambooDepthLeaf = this.bambooSwayMaterial(true, true);
 
     this.sakuraSpots = [
       [-6, 8, 1.2], [7, 12, 1.0], [-12, -2, 1.3], [10, -4, 0.9],
@@ -79,6 +91,7 @@ export class Vegetation {
     this.buildGrass();
     this.buildGroundCover();
     this.buildWildflowers();
+    this._finalizeStatic();
   }
 
   random() { return this.rng(); }
@@ -94,37 +107,78 @@ export class Vegetation {
    * Realistic tree: trunk + branching skeleton whose limbs carry dense leaf
    * clumps (lumpy cores fringed with alpha-cut leaf sprays). The crown group
    * sways as one; the branches stay put so limbs never detach.
+   *
+   * Trunks and limbs are static for every tree, so they are baked into
+   * per-material merged meshes (one draw call per bark material instead of
+   * two per tree). The ~15 trees nearest the village keep their own crown
+   * group + JS sway; long-tail trees bake their crown into the static merge
+   * too — the foliage shader's wind still animates those canopies.
    */
   canopyTree(x, z, scale, { kind, tuftMat, colors, trunk, canopy, sway = 0.02, collider = 0.35 }) {
     const tree = new THREE.Group();
-    const trunkMat = this.matTrunks[Math.abs(Math.floor(x * 0.7 + z * 1.3)) % this.matTrunks.length];
-    tree.add(this.trunkMesh(trunk.rTop * scale, trunk.rBot * scale, trunk.h * scale, trunkMat, (this.random() - 0.5) * trunk.lean));
-
-    const built = buildCanopy(this.rng, Object.assign({ scale, colors, trunkH: trunk.h, trunkR: trunk.rTop * 1.15 }, canopy));
-    const branches = new THREE.Mesh(built.branches, trunkMat);
-    branches.castShadow = true;
-    branches.receiveShadow = true;
-    tree.add(branches);
-
-    const crown = new THREE.Group();
-    const tufts = new THREE.Mesh(built.tufts, tuftMat);
-    tufts.castShadow = true;
-    tufts.receiveShadow = true;
-    crown.add(tufts);
-    const set = this.cardSets[kind];
-    const cards = new THREE.Mesh(built.cards, set.material);
-    cards.customDepthMaterial = set.depth;
-    cards.castShadow = true;
-    cards.receiveShadow = true;
-    crown.add(cards);
-    tree.add(crown);
-    this.swayables.push({ node: crown, amp: sway, freq: 0.7 + this.random() * 0.5, phase: this.random() * 6 });
-
     tree.position.set(x, 0, z);
     tree.rotation.y = this.random() * Math.PI * 2;
-    this.scene.add(tree);
+    tree.updateMatrix();
+
+    const trunkMat = this.matTrunks[Math.abs(Math.floor(x * 0.7 + z * 1.3)) % this.matTrunks.length];
+    const trunkMesh = this.trunkMesh(trunk.rTop * scale, trunk.rBot * scale, trunk.h * scale, trunkMat, (this.random() - 0.5) * trunk.lean).children[0];
+    trunkMesh.updateMatrix();
+    this._bakeStatic(trunkMesh.geometry, new THREE.Matrix4().multiplyMatrices(tree.matrix, trunkMesh.matrix), trunkMat);
+
+    const built = buildCanopy(this.rng, Object.assign({ scale, colors, trunkH: trunk.h, trunkR: trunk.rTop * 1.15 }, canopy));
+    this._bakeStatic(built.branches, tree.matrix, trunkMat);
+
+    if ((x * x + z * z) < 1296) {
+      // Near-village tree: keep the per-tree crown meshes and JS sway.
+      const crown = new THREE.Group();
+      const tufts = new THREE.Mesh(built.tufts, tuftMat);
+      tufts.castShadow = true;
+      tufts.receiveShadow = true;
+      crown.add(tufts);
+      const set = this.cardSets[kind];
+      const cards = new THREE.Mesh(built.cards, set.material);
+      cards.customDepthMaterial = set.depth;
+      cards.castShadow = true;
+      cards.receiveShadow = true;
+      crown.add(cards);
+      tree.add(crown);
+      this.swayables.push({ node: crown, amp: sway, freq: 0.7 + this.random() * 0.5, phase: this.random() * 6 });
+      this.scene.add(tree);
+    } else {
+      // Long-tail tree: crown baked into the static merges; the foliage
+      // material's vertex-shader wind keeps it moving.
+      this._bakeStatic(built.tufts, tree.matrix, tuftMat);
+      this._bakeStatic(built.cards, tree.matrix, this.cardSets[kind].material, this.cardSets[kind].depth);
+    }
+
     this.addCollider(x, z, collider * scale);
     return tree;
+  }
+
+  /** Accumulate a world-baked geometry for the end-of-build static merge. */
+  _bakeStatic(geo, matrix, material, depthMat = null) {
+    let acc = this._staticAccum.get(material.uuid);
+    if (!acc) {
+      acc = { geos: [], material, depth: depthMat };
+      this._staticAccum.set(material.uuid, acc);
+    }
+    geo.applyMatrix4(matrix);
+    acc.geos.push(geo);
+  }
+
+  /** Merge every accumulated static geometry into one mesh per material. */
+  _finalizeStatic() {
+    for (const acc of this._staticAccum.values()) {
+      if (!acc.geos.length) continue;
+      const merged = mergeGeometries(acc.geos, false);
+      merged.computeBoundingSphere();
+      const mesh = new THREE.Mesh(merged, acc.material);
+      if (acc.depth) mesh.customDepthMaterial = acc.depth;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      this.scene.add(mesh);
+    }
+    this._staticAccum.clear();
   }
 
   /** Tapered trunk with a flared root collar and a gentle lean. */
@@ -239,20 +293,24 @@ export class Vegetation {
 
   buildBambooGrove(cx, cz, radius) {
     const count = Math.floor(radius * radius * 1.6);
-    const lowerStalkGeo = new THREE.CylinderGeometry(0.065, 0.075, 7, 6);
-    const upperStalkGeo = new THREE.CylinderGeometry(0.055, 0.065, 7, 6);
-    const lowerStalks = new THREE.InstancedMesh(lowerStalkGeo, this.matBamboo, count);
-    const upperStalks = new THREE.InstancedMesh(upperStalkGeo, this.matBamboo, count);
-    lowerStalks.castShadow = true;
-    upperStalks.castShadow = true;
-    const leafGeo = this.bladeGeometry();
     const leavesPerStalk = 72;
-    const leaves = new THREE.InstancedMesh(leafGeo, this.matBambooLeaf, count * leavesPerStalk);
-    leaves.castShadow = true;
+    const leafTotal = count * leavesPerStalk;
+
+    // Lower culms sit below the bend point and never move: bake their
+    // matrices once into a plain InstancedMesh.
+    const lowerStalks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.065, 0.075, 7, 6), this.matBamboo, count);
+    lowerStalks.castShadow = true;
+
+    // Upper culms + leaves carry per-plant data in instanced attributes and
+    // animate entirely in the vertex shader — zero per-frame JS or uploads.
+    const upperGeo = new THREE.InstancedBufferGeometry().copy(new THREE.CylinderGeometry(0.055, 0.065, 7, 6));
+    const leafGeo = new THREE.InstancedBufferGeometry().copy(this.bladeGeometry());
+    const plantArr = new Float32Array(count * 4);   // x, z, height, phase
+    const yawArr = new Float32Array(count);
+    const leafPlant = new Float32Array(leafTotal * 4);
+    const leafA = new Float32Array(leafTotal * 4);  // angle, heightRatio, branchLength, phase
+    const leafB = new Float32Array(leafTotal * 4);  // length, width, roll, plant yaw
     const dummy = new THREE.Object3D();
-    const plantData = [];
-    const leafData = [];
-    let leafIndex = 0;
 
     for (let i = 0; i < count; i++) {
       const a = this.random() * Math.PI * 2;
@@ -261,86 +319,160 @@ export class Vegetation {
       const z = cz + Math.sin(a) * r;
       const height = 5.6 + this.random() * 3.2;
       const yaw = this.random() * Math.PI * 2;
-      const plant = { x, z, height, yaw, phase: this.random() * Math.PI * 2 };
-      plantData.push(plant);
+      const phase = this.random() * Math.PI * 2;
+      plantArr[i * 4] = x;
+      plantArr[i * 4 + 1] = z;
+      plantArr[i * 4 + 2] = height;
+      plantArr[i * 4 + 3] = phase;
+      yawArr[i] = yaw;
 
-      this.setBambooStalkMatrices(lowerStalks, upperStalks, i, plant, 0);
+      // Static lower culm (below the bend point)
+      const bendStart = height * 0.64;
+      dummy.position.set(x, bendStart / 2, z);
+      dummy.rotation.set(0, yaw, 0);
+      dummy.scale.set(1, bendStart / 7, 1);
+      dummy.updateMatrix();
+      lowerStalks.setMatrixAt(i, dummy.matrix);
 
       // Dense, top-heavy foliage hides upper culms while leaving the base open.
       for (let j = 0; j < leavesPerStalk; j++) {
-        const angle = this.random() * Math.PI * 2;
-        const heightRatio = 0.22 + Math.pow(this.random(), 0.48) * 0.76;
-        const branchLength = 0.18 + this.random() * 0.46;
-        const leaf = {
-          plant,
-          angle,
-          heightRatio,
-          branchLength,
-          length: 0.48 + this.random() * 0.42,
-          width: 0.78 + this.random() * 0.52,
-          roll: (this.random() - 0.5) * 0.38,
-          phase: this.random() * Math.PI * 2
-        };
-        leafData.push(leaf);
-        this.setBambooLeafMatrix(leaves, leafIndex++, leaf, 0);
+        const k = i * leavesPerStalk + j;
+        leafPlant[k * 4] = x;
+        leafPlant[k * 4 + 1] = z;
+        leafPlant[k * 4 + 2] = height;
+        leafPlant[k * 4 + 3] = phase;
+        leafA[k * 4] = this.random() * Math.PI * 2;                       // angle
+        leafA[k * 4 + 1] = 0.22 + Math.pow(this.random(), 0.48) * 0.76;   // heightRatio
+        leafA[k * 4 + 2] = 0.18 + this.random() * 0.46;                   // branchLength
+        leafA[k * 4 + 3] = this.random() * Math.PI * 2;                   // phase
+        leafB[k * 4] = 0.48 + this.random() * 0.42;                       // length
+        leafB[k * 4 + 1] = 0.78 + this.random() * 0.52;                   // width
+        leafB[k * 4 + 2] = (this.random() - 0.5) * 0.38;                  // roll
+        leafB[k * 4 + 3] = yaw;                                           // plant yaw
       }
     }
     lowerStalks.instanceMatrix.needsUpdate = true;
-    upperStalks.instanceMatrix.needsUpdate = true;
-    leaves.instanceMatrix.needsUpdate = true;
+
+    upperGeo.setAttribute('aPlant', new THREE.InstancedBufferAttribute(plantArr, 4));
+    upperGeo.setAttribute('aYaw', new THREE.InstancedBufferAttribute(yawArr, 1));
+    upperGeo.instanceCount = count;
+    leafGeo.setAttribute('aPlant', new THREE.InstancedBufferAttribute(leafPlant, 4));
+    leafGeo.setAttribute('aLeafA', new THREE.InstancedBufferAttribute(leafA, 4));
+    leafGeo.setAttribute('aLeafB', new THREE.InstancedBufferAttribute(leafB, 4));
+    leafGeo.instanceCount = leafTotal;
+
+    const groveSphere = new THREE.Sphere(new THREE.Vector3(cx, 4.5, cz), radius + 7);
+    upperGeo.boundingSphere = groveSphere.clone();
+    leafGeo.boundingSphere = groveSphere.clone();
+
+    const upperStalks = new THREE.Mesh(upperGeo, this.matBambooSway);
+    const leaves = new THREE.Mesh(leafGeo, this.matBambooLeafSway);
+    upperStalks.castShadow = true;
+    leaves.castShadow = true;
+    upperStalks.customDepthMaterial = this.bambooDepthStalk;
+    leaves.customDepthMaterial = this.bambooDepthLeaf;
     this.scene.add(lowerStalks);
     this.scene.add(upperStalks);
     this.scene.add(leaves);
-    this.bambooSwayables.push({ lowerStalks, upperStalks, leaves, plantData, leafData, leafCount: leafIndex });
     this.addCollider(cx, cz, radius * 0.7);
   }
 
-  getBambooBend(plant, time) {
-    return {
-      x: Math.cos(time * 0.62 + plant.phase * 1.17) * 0.032,
-      z: Math.sin(time * 0.75 + plant.phase) * 0.085
+  /**
+   * Bamboo materials with the culm bend + leaf flutter computed in the
+   * vertex shader. Per-plant data rides in instanced attributes and the GLSL
+   * replicates the previous per-frame JS matrices exactly (Euler XYZ bend of
+   * the upper culm, leaf cards hung off the bent culm with their own
+   * flutter), so the groves cost zero CPU per frame. `leaf` selects the
+   * leaf-card attribute layout; `depth` builds the matching shadow material
+   * so shadows sway with the culms.
+   */
+  bambooSwayMaterial(leaf, depth) {
+    const mat = depth
+      ? new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking })
+      : leaf
+        ? new THREE.MeshStandardMaterial({ color: 0x74a04a, roughness: 0.9, side: THREE.DoubleSide })
+        : new THREE.MeshStandardMaterial({ color: 0x6f9e4c, roughness: 0.6 });
+    const time = this.bambooTime;
+    const head = /* glsl */`
+      uniform float uTime;
+      attribute vec4 aPlant;
+      ${leaf ? 'attribute vec4 aLeafA;\n      attribute vec4 aLeafB;' : 'attribute float aYaw;'}
+      mat3 bEuler(vec3 r) {
+        float cx = cos(r.x), sx = sin(r.x);
+        float cy = cos(r.y), sy = sin(r.y);
+        float cz = cos(r.z), sz = sin(r.z);
+        return mat3(1.0, 0.0, 0.0, 0.0, cx, sx, 0.0, -sx, cx)
+             * mat3(cy, 0.0, -sy, 0.0, 1.0, 0.0, sy, 0.0, cy)
+             * mat3(cz, sz, 0.0, -sz, cz, 0.0, 0.0, 0.0, 1.0);
+      }
+    `;
+    let bend;
+    if (leaf) {
+      bend = /* glsl */`
+        vec4 bP = aPlant;
+        vec4 bA = aLeafA;
+        vec4 bB = aLeafB;
+        float bBx = cos(uTime * 0.62 + bP.w * 1.17) * 0.032;
+        float bBz = sin(uTime * 0.75 + bP.w) * 0.085;
+        float bH = bP.z * bA.y;
+        float bStart = bP.z * 0.64;
+        mat3 bRb = bEuler(vec3(bBx, bB.w, bBz));
+        vec3 bBent = bRb * vec3(0.0, max(0.0, bH - bStart), 0.0);
+        float bHW = smoothstep(0.45, 1.0, bA.y);
+        mat3 bRl = bEuler(vec3(
+          0.72 + cos(uTime * 0.62 + bA.w) * 0.06 * bHW,
+          bA.x + 1.5707963,
+          -0.95 + bBz * bHW + bB.z));
+        vec3 transformed = vec3(
+          bP.x + bBent.x + cos(bA.x) * bA.z,
+          min(bH, bStart) + bBent.y,
+          bP.y + bBent.z + sin(bA.x) * bA.z
+        ) + bRl * (position * vec3(bB.y, bB.x, bB.y));
+      `;
+    } else {
+      bend = /* glsl */`
+        vec4 bP = aPlant;
+        float bStart = bP.z * 0.64;
+        float bH = bP.z - bStart;
+        mat3 bR = bEuler(vec3(cos(uTime * 0.62 + bP.w * 1.17) * 0.032, aYaw, sin(uTime * 0.75 + bP.w) * 0.085));
+        vec3 bC = bR * vec3(0.0, bH * 0.5, 0.0);
+        vec3 transformed = vec3(bP.x + bC.x, bStart + bC.y, bP.y + bC.z)
+          + bR * (position * vec3(1.0, bH / 7.0, 1.0));
+      `;
+    }
+    mat.onBeforeCompile = (shader) => {
+      shader.uniforms.uTime = time;
+      shader.vertexShader = head + shader.vertexShader
+        .replace('#include <begin_vertex>', bend);
+      if (!depth) {
+        // Rotate shading normals with the same bend so lighting follows.
+        const norm = leaf ? /* glsl */`
+          vec4 bNP = aPlant;
+          vec4 bNA = aLeafA;
+          vec4 bNB = aLeafB;
+          float bNBx = cos(uTime * 0.62 + bNP.w * 1.17) * 0.032;
+          float bNBz = sin(uTime * 0.75 + bNP.w) * 0.085;
+          mat3 bNRl = bEuler(vec3(
+            0.72 + cos(uTime * 0.62 + bNA.w) * 0.06 * smoothstep(0.45, 1.0, bNA.y),
+            bNA.x + 1.5707963,
+            -0.95 + bNBz * smoothstep(0.45, 1.0, bNA.y) + bNB.z));
+          #include <beginnormal_vertex>
+          objectNormal = bNRl * objectNormal;
+        ` : /* glsl */`
+          vec4 bNP = aPlant;
+          mat3 bNR = bEuler(vec3(
+            cos(uTime * 0.62 + bNP.w * 1.17) * 0.032,
+            aYaw,
+            sin(uTime * 0.75 + bNP.w) * 0.085));
+          #include <beginnormal_vertex>
+          objectNormal = bNR * objectNormal;
+        `;
+        shader.vertexShader = shader.vertexShader
+          .replace('#include <beginnormal_vertex>', norm);
+      }
     };
-  }
-
-  setBambooStalkMatrices(lowerMesh, upperMesh, index, plant, time) {
-    const bendStart = plant.height * 0.64;
-    const upperHeight = plant.height - bendStart;
-    const lower = new THREE.Object3D();
-    lower.position.set(plant.x, bendStart / 2, plant.z);
-    lower.rotation.y = plant.yaw;
-    lower.scale.set(1, bendStart / 7, 1);
-    lower.updateMatrix();
-    lowerMesh.setMatrixAt(index, lower.matrix);
-
-    const bend = this.getBambooBend(plant, time);
-    const upper = new THREE.Object3D();
-    upper.rotation.set(bend.x, plant.yaw, bend.z);
-    const centerOffset = new THREE.Vector3(0, upperHeight / 2, 0).applyEuler(upper.rotation);
-    upper.position.set(plant.x + centerOffset.x, bendStart + centerOffset.y, plant.z + centerOffset.z);
-    upper.scale.set(1, upperHeight / 7, 1);
-    upper.updateMatrix();
-    upperMesh.setMatrixAt(index, upper.matrix);
-  }
-
-  setBambooLeafMatrix(mesh, index, leaf, time) {
-    const { plant } = leaf;
-    const bend = this.getBambooBend(plant, time);
-    const swayY = Math.cos(time * 0.62 + leaf.phase) * 0.06;
-    const h = plant.height * leaf.heightRatio;
-    const bendStart = plant.height * 0.64;
-    const bendHeight = Math.max(0, h - bendStart);
-    const bentOffset = new THREE.Vector3(0, bendHeight, 0).applyEuler(new THREE.Euler(bend.x, plant.yaw, bend.z));
-    const dummy = new THREE.Object3D();
-    dummy.position.set(
-      plant.x + bentOffset.x + Math.cos(leaf.angle) * leaf.branchLength,
-      Math.min(h, bendStart) + bentOffset.y,
-      plant.z + bentOffset.z + Math.sin(leaf.angle) * leaf.branchLength
-    );
-    const heightWeight = THREE.MathUtils.smoothstep(leaf.heightRatio, 0.45, 1);
-    dummy.rotation.set(0.72 + swayY * heightWeight, leaf.angle + Math.PI / 2, -0.95 + bend.z * heightWeight + leaf.roll);
-    dummy.scale.set(leaf.width, leaf.length, leaf.width);
-    dummy.updateMatrix();
-    mesh.setMatrixAt(index, dummy.matrix);
+    mat.customProgramCacheKey = () => 'bamboo-' + (leaf ? 'leaf' : 'stalk') + (depth ? '-depth' : '');
+    return mat;
   }
 
   mapleTree(x, z, scale = 1) {
@@ -389,8 +521,6 @@ export class Vegetation {
   }
 
   buildSusukiGrass() {
-    const susukiCount = 90;
-    const group = new THREE.Group();
     const stemGeo = new THREE.CylinderGeometry(0.015, 0.03, 1.8, 5);
     const plumeGeo = new THREE.ConeGeometry(0.08, 0.55, 5);
     const leafGeo = new THREE.PlaneGeometry(0.08, 1.2);
@@ -439,6 +569,30 @@ export class Vegetation {
       }
       clump.position.set(x, 0, z);
       this.scene.add(clump);
+      clump.updateMatrixWorld(true);
+      // Merge the clump's ~30 small meshes into one per material — the
+      // clump group still sways as one, so the motion is unchanged, but the
+      // draw calls drop roughly tenfold.
+      const inv = clump.matrixWorld.clone().invert();
+      const byMat = new Map();
+      for (const stalk of clump.children.slice()) {
+        stalk.traverse((o) => {
+          if (!o.isMesh) return;
+          let list = byMat.get(o.material.uuid);
+          if (!list) {
+            list = { geos: [], material: o.material };
+            byMat.set(o.material.uuid, list);
+          }
+          list.geos.push(o.geometry.clone()
+            .applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld)));
+        });
+        clump.remove(stalk);
+      }
+      for (const list of byMat.values()) {
+        const merged = mergeGeometries(list.geos, false);
+        merged.computeBoundingSphere();
+        clump.add(new THREE.Mesh(merged, list.material));
+      }
       this.swayables.push({ node: clump, amp: 0.04, freq: 1.1 + this.random() * 0.4, phase: this.random() * 6 });
     }
   }
@@ -885,6 +1039,8 @@ export class Vegetation {
         }
 
         mesh.count = placed;
+        mesh.userData.fullCount = placed;
+        this.grassMeshes.push(mesh);
         geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases.subarray(0, placed), 1));
         geo.setAttribute('aTint', new THREE.InstancedBufferAttribute(tints.subarray(0, placed * 3), 3));
         geo.setAttribute('aWidthScale', new THREE.InstancedBufferAttribute(widthScales.subarray(0, placed), 1));
@@ -967,6 +1123,8 @@ export class Vegetation {
       }
 
       mesh.count = placed;
+      mesh.userData.fullCount = placed;
+      this.groundCoverMeshes.push(mesh);
       spec.geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases.subarray(0, placed), 1));
       spec.geo.setAttribute('aTint', new THREE.InstancedBufferAttribute(tints.subarray(0, placed * 3), 3));
       spec.geo.setAttribute('aWidthScale', new THREE.InstancedBufferAttribute(widthScales.subarray(0, placed), 1));
@@ -978,6 +1136,17 @@ export class Vegetation {
       mesh.castShadow = false;
       this.scene.add(mesh);
     }
+  }
+
+  /**
+   * Quality-tier lever: scale the meadow grass + ground-cover instance
+   * counts. Blades are placed in scan order, so thinning the draw range
+   * reads as slightly sparser turf rather than a mowed pattern.
+   */
+  setDensity(fraction) {
+    const f = THREE.MathUtils.clamp(fraction, 0.05, 1);
+    for (const m of this.grassMeshes) m.count = Math.floor(m.userData.fullCount * f);
+    for (const m of this.groundCoverMeshes) m.count = Math.floor(m.userData.fullCount * f);
   }
 
   update(dt, playerPos, sky = null) {
@@ -1021,16 +1190,7 @@ export class Vegetation {
       s.node.rotation.z = Math.sin(this.time * s.freq * 0.25 + s.phase) * s.amp;
       s.node.rotation.x = Math.cos(this.time * s.freq * 0.20 + s.phase) * s.amp * 0.7;
     }
-    for (const bamboo of this.bambooSwayables) {
-      for (let i = 0; i < bamboo.plantData.length; i++) {
-        this.setBambooStalkMatrices(bamboo.lowerStalks, bamboo.upperStalks, i, bamboo.plantData[i], this.time);
-      }
-      for (let i = 0; i < bamboo.leafCount; i++) {
-        this.setBambooLeafMatrix(bamboo.leaves, i, bamboo.leafData[i], this.time);
-      }
-      bamboo.lowerStalks.instanceMatrix.needsUpdate = true;
-      bamboo.upperStalks.instanceMatrix.needsUpdate = true;
-      bamboo.leaves.instanceMatrix.needsUpdate = true;
-    }
+    // Bamboo culms + leaves animate in the vertex shader; only the clock moves.
+    this.bambooTime.value = this.time;
   }
 }

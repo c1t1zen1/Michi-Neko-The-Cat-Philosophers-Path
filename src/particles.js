@@ -14,6 +14,27 @@ export class Particles {
   }
 
   /**
+   * Quality-tier lever: cap each particle system's live count via geometry
+   * draw ranges. The update math still runs over the full seed arrays (cheap
+   * JS), but only the leading fraction of each system is drawn. Rain counts
+   * vertices in pairs — its buffer holds two vertices per streak.
+   */
+  setBudget(fraction) {
+    const f = THREE.MathUtils.clamp(fraction, 0.1, 1);
+    const cap = (obj, vertsPer) => {
+      if (!obj || !obj.geometry || !obj.geometry.attributes.position) return;
+      const items = obj.geometry.attributes.position.count / vertsPer;
+      obj.geometry.setDrawRange(0, Math.max(1, Math.floor(items * f)) * vertsPer);
+    };
+    cap(this.petals, 1);
+    cap(this.fireflies, 1);
+    cap(this.motes, 1);
+    cap(this.riverPetals, 1);
+    cap(this.snow, 1);
+    cap(this.rain, 2);
+  }
+
+  /**
    * Volumetric-feeling god ray shafts: tall faint gradient cards angled with
    * the sun, dotted through the treeline and shrine grove. Opacity rises in
    * golden hour and misty weather so light feels like it's pouring through

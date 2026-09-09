@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   plasterTextures, woodTextures, kawaraTextures, shojiTextures, tatamiTextures,
   cobbleTextures, stoneTextures, groundTextures, dirtTextures, strawTextures,
@@ -10,6 +11,12 @@ import {
 } from './foliage.js?v=20260909a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
+
+// Hoisted scratch colours: update() re-tints the far haze every frame and
+// previously allocated two THREE.Colors per frame here.
+const HAZE_NIGHT = new THREE.Color(0x4a5478);
+const HAZE_DAY = new THREE.Color(0xffffff);
+const _hazeTint = new THREE.Color();
 
 // River centreline, shared by the ground carve and the water ribbon
 const RIVER_POINTS = [
@@ -185,9 +192,117 @@ export class Countryside {
     this.buildMountains();
     this.buildYarn();
     this.boundaryRadius = 44;
+    // All builders are done: collapse the static architecture into one draw
+    // call per material before the first frame renders.
+    this._mergeStatics();
   }
 
   random() { return this.rng(); }
+
+  /**
+   * Draw-call reduction: merge the valley's static architecture into one
+   * mesh per material (grouped also by shadow flags and attribute layout).
+   * Runtime-referenced objects — lanterns, collectibles, the sliding door,
+   * the turtle, ripples, the feather — keep their own meshes, and animated
+   * groups get their static children merged internally so group-level
+   * motion (lantern sway, door slide, key spin) is preserved exactly.
+   */
+  _mergeStatics() {
+    const matSet = new Set(Object.values(MAT));
+    const protectedRoots = new Set();
+    for (const l of this.lanterns) if (l.group) protectedRoots.add(l.group);
+    for (const c of this.collectibles) if (c) protectedRoots.add(c);
+    for (const r of this.ripples) if (r.mesh) protectedRoots.add(r.mesh);
+    for (const k of [this.secretKeyMesh, this.secretDoorMesh, this.lockPlate,
+      this.fishMesh, this.nestMesh, this.nestFeatherMesh,
+      this.corralRewardMesh, this.shishiRocker]) {
+      if (k) protectedRoots.add(k);
+    }
+    if (this.corralGuardian && this.corralGuardian.mesh) protectedRoots.add(this.corralGuardian.mesh);
+
+    const inProtected = (o) => {
+      for (let p = o; p; p = p.parent) if (protectedRoots.has(p)) return true;
+      return false;
+    };
+
+    this.scene.updateMatrixWorld(true);
+
+    // Pass 1: every static mesh using a shared MAT material merges into the
+    // scene (transforms baked to world space).
+    const eligible = [];
+    this.scene.traverse((o) => {
+      if (!o.isMesh || o.isInstancedMesh || o.isSkinnedMesh) return;
+      if (inProtected(o)) return;
+      const mat = o.material;
+      if (!matSet.has(mat) || mat.transparent) return;
+      const g = o.geometry;
+      if (!g.index || !g.attributes.position || !g.attributes.normal || !g.attributes.uv) return;
+      eligible.push(o);
+    });
+    if (eligible.length > 1) this._mergeInto(eligible, this.scene);
+
+    // Pass 2: animated groups keep their motion but shed internal draw
+    // calls — merge each protected group's static descendants per material.
+    for (const root of protectedRoots) {
+      if (!root || root.isMesh || !root.isObject3D) continue;
+      root.updateMatrixWorld(true);
+      const inner = [];
+      const walk = (parent) => {
+        for (const child of parent.children) {
+          if (protectedRoots.has(child)) continue; // individually referenced
+          if (child.isMesh) {
+            const mat = child.material;
+            if (matSet.has(mat) && !mat.transparent && child.geometry.index &&
+                child.geometry.attributes.uv) inner.push(child);
+          } else {
+            walk(child);
+          }
+        }
+      };
+      walk(root);
+      if (inner.length > 1) this._mergeInto(inner, root);
+    }
+  }
+
+  /** Merge meshes into `parent`, baking their transforms relative to it. */
+  _mergeInto(meshes, parent) {
+    const groups = new Map();
+    for (const m of meshes) {
+      const sig = m.material.uuid + '|' + (m.castShadow ? 1 : 0) + (m.receiveShadow ? 1 : 0) + '|' +
+        Object.keys(m.geometry.attributes).sort().join('+');
+      if (!groups.has(sig)) groups.set(sig, []);
+      groups.get(sig).push(m);
+    }
+    const inv = new THREE.Matrix4().copy(parent.matrixWorld).invert();
+    for (const list of groups.values()) {
+      if (list.length < 2) continue;
+      const geos = [];
+      for (const m of list) {
+        const g = m.geometry.clone();
+        if (m.matrixWorld.determinant() < 0) {
+          // Mirrored transform: flip triangle winding so faces stay outward
+          const idx = g.index.array;
+          for (let i = 0; i < idx.length; i += 3) {
+            const t = idx[i]; idx[i] = idx[i + 2]; idx[i + 2] = t;
+          }
+        }
+        g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, m.matrixWorld));
+        geos.push(g);
+      }
+      const merged = mergeGeometries(geos, false);
+      if (!merged) continue;
+      merged.computeBoundingSphere();
+      const first = list[0];
+      const mesh = new THREE.Mesh(merged, first.material);
+      mesh.castShadow = first.castShadow;
+      mesh.receiveShadow = first.receiveShadow;
+      parent.add(mesh);
+      for (const m of list) {
+        if (m.parent) m.parent.remove(m);
+        m.geometry.dispose();
+      }
+    }
+  }
 
   addCollider(mesh, pad = 0) {
     mesh.updateWorldMatrix(true, true);
@@ -2873,7 +2988,9 @@ export class Countryside {
   /**
    * A small pool of real point lights hops between the lanterns nearest the
    * cat so paper and stone lanterns actually throw warm light on the street
-   * at night, instead of only glowing themselves.
+   * at night, instead of only glowing themselves. The nearest-lantern pick
+   * is cached until the cat moves ~2 m (or the light budget changes) so the
+   * sort over every lantern spot doesn't run each frame.
    */
   updateLanternLights(dt, playerPos, nightness) {
     if (!this.lanternLights) {
@@ -2891,21 +3008,29 @@ export class Countryside {
         this.lightSpots.push(new THREE.Vector3(p.x, p.y - 0.25, p.z));
       }
       for (const s of this.toroSpots || []) this.lightSpots.push(s.clone());
+      this._lightPickCache = [];
+      this._lightPickPos = new THREE.Vector3(1e9, 0, 0);
+      this._lightPickCount = -1;
     }
     if (nightness < 0.02 || !playerPos) {
       for (const l of this.lanternLights) l.intensity = 0;
       return;
     }
-    // Pick the four nearest lanterns
-    const best = [];
-    for (const s of this.lightSpots) {
-      const d2 = s.distanceToSquared(playerPos);
-      if (best.length < 4) { best.push({ s, d2 }); best.sort((a, b) => a.d2 - b.d2); }
-      else if (d2 < best[3].d2) { best[3] = { s, d2 }; best.sort((a, b) => a.d2 - b.d2); }
+    const count = Math.min(this.lanternLightCount || 4, this.lanternLights.length);
+    if (this._lightPickPos.distanceToSquared(playerPos) > 4 || this._lightPickCount !== count) {
+      this._lightPickPos.copy(playerPos);
+      this._lightPickCount = count;
+      const best = [];
+      for (const s of this.lightSpots) {
+        const d2 = s.distanceToSquared(playerPos);
+        if (best.length < count) { best.push({ s, d2 }); best.sort((a, b) => a.d2 - b.d2); }
+        else if (d2 < best[best.length - 1].d2) { best[best.length - 1] = { s, d2 }; best.sort((a, b) => a.d2 - b.d2); }
+      }
+      this._lightPickCache = best;
     }
     for (let i = 0; i < this.lanternLights.length; i++) {
       const light = this.lanternLights[i];
-      const pick = best[i];
+      const pick = this._lightPickCache[i];
       if (!pick) { light.intensity = 0; continue; }
       light.position.copy(pick.s);
       const flicker = 0.9 + Math.sin(this.time * 9 + i * 2.1) * 0.06 + Math.sin(this.time * 23 + i) * 0.04;
@@ -2936,7 +3061,7 @@ export class Countryside {
       if (this.matHazeFar) {
         const p = sky.resolvePalette();
         const dayness = Math.min(1, Math.max(0, sky.sunDir.y + 0.25) / 0.5);
-        const tint = new THREE.Color(0x4a5478).lerp(new THREE.Color(0xffffff), dayness);
+        const tint = _hazeTint.copy(HAZE_NIGHT).lerp(HAZE_DAY, dayness);
         const golden = Math.max(0, sky.sunDir.y) * Math.exp(-Math.max(0, sky.sunDir.y) * 3.0);
         tint.lerp(p.warm, golden * 0.3);
         this.matHazeFar.color.copy(tint);

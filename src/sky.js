@@ -29,7 +29,8 @@ export class Sky {
     scene.fog = new THREE.Fog(0xf2b98a, 110, 420);
 
     this.envTimer = 0;
-    this.envInterval = 3.5;
+    this.envInterval = 25;
+    this.envPaused = false;
     this.pmrem = null;
     this.envScene = null;
   }
@@ -54,6 +55,39 @@ export class Sky {
     if (this.envTarget) this.envTarget.dispose();
     this.envTarget = target;
     this.scene.environment = target.texture;
+  }
+
+  /**
+   * True when the sky signature (sun elevation band + weather + blend) has
+   * moved far enough from the last environment bake to be worth re-baking.
+   */
+  envDrifted() {
+    const sig = Math.round(this.sunDir.y * 40) + '|' + this.weather + '|' +
+      Math.round((this.weatherBlend != null ? this.weatherBlend : 1) * 4);
+    if (sig === this._envSig) return false;
+    this._envSig = sig;
+    return true;
+  }
+
+  /**
+   * While the cat is inside the tea house the room only needs its own point
+   * lights + the hemisphere fill. Tighten the sun's shadow frustum to the
+   * room so the shadow pass culls the whole valley (which sits far outside
+   * the small ortho box) instead of re-rendering it every frame.
+   */
+  setInteriorShadowMode(on) {
+    if (this._interiorShadow === on) return;
+    this._interiorShadow = on;
+    const c = this.sun.shadow.camera;
+    const s = on ? 10 : 38;
+    c.left = -s;
+    c.right = s;
+    c.top = s;
+    c.bottom = -s;
+    c.near = on ? 100 : 60;
+    c.far = on ? 180 : 240;
+    c.updateProjectionMatrix();
+    this.sun.shadow.needsUpdate = true;
   }
 
   makeDomeMaterial(exposure = 1.0) {
@@ -539,11 +573,18 @@ export class Sky {
       u.uTime.value = this.time;
     }
 
-    // Re-bake the environment map as the sky palette drifts
+    // Re-bake the environment map as the sky palette drifts. The bake is a
+    // full cube render + mip chain, so it runs on a long interval and only
+    // when the palette has actually drifted since the last bake — and never
+    // while inside the tea house, where the sky is out of sight.
     this.envTimer -= dt;
-    if (this.envTimer <= 0) {
-      this.envTimer = this.envInterval;
-      this.refreshEnvironment();
+    if (this.envTimer <= 0 && !this.envPaused) {
+      if (this.envDrifted()) {
+        this.envTimer = this.envInterval;
+        this.refreshEnvironment();
+      } else {
+        this.envTimer = 2; // palette static — re-check again shortly
+      }
     }
 
     // Stars + moon only rise once the sun is properly down — no stars in

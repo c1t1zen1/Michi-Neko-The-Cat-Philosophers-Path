@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   plasterTextures, woodTextures, shojiTextures, tatamiTextures, stoneTextures,
   strawTextures, metalTextures, texturedMaterial, worldScaleBoxUVs
@@ -53,6 +54,75 @@ export class InteriorManager {
     this.wipeEl = document.getElementById('door-wipe');
     this.buildInterior();
     this.buildKnockables();
+    // Room is fully built: collapse the static interior into one draw call
+    // per material (knockables and the grilled fish stay separate).
+    this._mergeStatics();
+  }
+
+  /**
+   * Merge the room's static meshes into one per material, baking transforms
+   * relative to the interior group. The knockable tabletop objects (physics)
+   * and the grilled fish (visible toggle) keep their own meshes.
+   */
+  _mergeStatics() {
+    const matSet = new Set(Object.values(MAT));
+    const protectedRoots = new Set();
+    for (const k of this.knockables) if (k.mesh) protectedRoots.add(k.mesh);
+    if (this.fishMesh) protectedRoots.add(this.fishMesh);
+
+    const inProtected = (o) => {
+      for (let p = o; p; p = p.parent) if (protectedRoots.has(p)) return true;
+      return false;
+    };
+
+    this.group.updateMatrixWorld(true);
+    const eligible = [];
+    this.group.traverse((o) => {
+      if (!o.isMesh || o.isInstancedMesh || o.isSkinnedMesh) return;
+      if (inProtected(o)) return;
+      const mat = o.material;
+      if (!matSet.has(mat) || mat.transparent) return;
+      const g = o.geometry;
+      if (!g.index || !g.attributes.position || !g.attributes.normal || !g.attributes.uv) return;
+      eligible.push(o);
+    });
+    if (eligible.length < 2) return;
+
+    const groups = new Map();
+    for (const m of eligible) {
+      const sig = m.material.uuid + '|' + (m.castShadow ? 1 : 0) + (m.receiveShadow ? 1 : 0) + '|' +
+        Object.keys(m.geometry.attributes).sort().join('+');
+      if (!groups.has(sig)) groups.set(sig, []);
+      groups.get(sig).push(m);
+    }
+    const inv = new THREE.Matrix4().copy(this.group.matrixWorld).invert();
+    for (const list of groups.values()) {
+      if (list.length < 2) continue;
+      const geos = [];
+      for (const m of list) {
+        const g = m.geometry.clone();
+        if (m.matrixWorld.determinant() < 0) {
+          const idx = g.index.array;
+          for (let i = 0; i < idx.length; i += 3) {
+            const t = idx[i]; idx[i] = idx[i + 2]; idx[i + 2] = t;
+          }
+        }
+        g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, m.matrixWorld));
+        geos.push(g);
+      }
+      const merged = mergeGeometries(geos, false);
+      if (!merged) continue;
+      merged.computeBoundingSphere();
+      const first = list[0];
+      const mesh = new THREE.Mesh(merged, first.material);
+      mesh.castShadow = first.castShadow;
+      mesh.receiveShadow = first.receiveShadow;
+      this.group.add(mesh);
+      for (const m of list) {
+        if (m.parent) m.parent.remove(m);
+        m.geometry.dispose();
+      }
+    }
   }
 
   /** Small tabletop treasures cats love to shove off tables. */

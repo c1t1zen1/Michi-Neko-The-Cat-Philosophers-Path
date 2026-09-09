@@ -251,8 +251,12 @@
       position: absolute; inset: 0; z-index: 500;
       display: flex; align-items: center; justify-content: center;
       background: radial-gradient(ellipse at center, rgba(26,14,8,0.55) 0%, rgba(12,6,3,0.88) 100%);
-      backdrop-filter: blur(3px);
       opacity: 1; transition: opacity 0.35s ease;
+    }
+    /* backdrop-filter forces a per-frame blur pass — desktop GPUs only.
+       The overlay's own dark gradient keeps menus readable on mobile. */
+    @media (hover: hover) and (pointer: fine) {
+      .overlay { backdrop-filter: blur(3px); }
     }
     .panel {
       background: linear-gradient(175deg, rgba(249,240,226,0.97) 0%, rgba(233,214,186,0.95) 100%);
@@ -490,6 +494,23 @@
     .door-wipe-crest { font-size: 38px; margin-bottom: 6px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2)); }
     .door-wipe-title { font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #b8321e; }
     .door-wipe-sub { font-size: 13px; letter-spacing: 4px; color: #6a4830; margin-top: 4px; }
+
+    /* ============ Boot screen ============ */
+    /* A soft-focus still of the valley paints the screen instantly while the
+       engine boots; once the first real frame renders, main.js dissolves it
+       away over half a second into the matching live world. */
+    #boot-screen {
+      position: absolute; inset: 0; z-index: 700;
+      overflow: hidden; pointer-events: none;
+      background: #1a1210;
+      transition: opacity 0.5s ease;
+    }
+    #boot-screen img {
+      width: 100%; height: 100%; object-fit: cover;
+      filter: blur(12px) saturate(1.05);
+      transform: scale(1.08);
+    }
+    #boot-screen.dissolve { opacity: 0; }
   </style>
   <script type="importmap">
   {
@@ -501,6 +522,10 @@
   </script>
 </head>
 <body class="in-title">
+  <!-- Soft-focus boot image: dissolves into the live world after frame one -->
+  <div id="boot-screen">
+    <img src="docs/images/title-screen.jpg" alt="" fetchpriority="high">
+  </div>
   <canvas id="canvas"></canvas>
   <div id="vignette"></div>
 

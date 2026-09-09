@@ -38,6 +38,35 @@ export class SettingsManager {
     const dpr = window.devicePixelRatio || 1;
     const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
     if (mobile) return cores >= 6 ? 'medium' : 'low';
-    return (cores >= 8 && dpr <= 2.5) ? 'high' : 'medium';
+    // Desktop: an integrated GPU (or unknown string) never gets 'high' —
+    // Intel/Apple silicon iGPUs choke on 4x MSAA + 4096 shadows.
+    if (cores >= 8 && dpr <= 2.5) return isDiscreteGPU() ? 'high' : 'medium';
+    return 'medium';
+  }
+}
+
+/**
+ * Best-effort discrete-GPU detection via WEBGL_debug_renderer_info.
+ * Returns true only when the GPU string clearly identifies a discrete
+ * vendor part (NVIDIA GeForce/Quadro, AMD Radeon RX, Apple M-series Pro/Max,
+ * Intel Arc). Unknown strings resolve to false so auto-tier stays modest.
+ */
+export function isDiscreteGPU() {
+  try {
+    const c = document.createElement('canvas');
+    const gl = c.getContext('webgl2') || c.getContext('webgl');
+    if (!gl) return false;
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    const raw = ext
+      ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
+      : gl.getParameter(gl.RENDERER);
+    const s = String(raw || '');
+    if (/nvidia|geforce|quadro|rtx|gtx/i.test(s)) return true;
+    if (/radeon.*(rx|pro|9[0-9]{2})/i.test(s)) return true;
+    if (/apple\s*m[1-9]\s*(pro|max|ultra)/i.test(s)) return true;
+    if (/arc\s*[a-z]*\s*[3-9]/i.test(s)) return true;
+    return false;
+  } catch (e) {
+    return false;
   }
 }
