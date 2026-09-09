@@ -1,26 +1,31 @@
 # dawCAT · Web Audio Studio
 
-A tiny Ableton-style DAW built for **Michi-Neko: The Cat Philosopher's Path**. Compose with the game's own musical DNA, then export straight back into it — **without modifying any game code** (except optionally replacing `src/music.js` with the generated drop-in).
+A tiny Ableton-style DAW built for **Michi-Neko: The Cat Philosopher's Path**. Compose with the game's own musical DNA, then export straight back into it — **without modifying any game code** (except optionally replacing `src/music.js` with the generated drop-in). An optional [AI composition agent](#ai-composition-agent) turns natural-language prompts into validated melody/rhythm/mix plans, against a local llama-server, Anthropic, OpenAI, or any OpenAI-compatible API.
 
-Pure Web Audio API + vanilla ES modules. No dependencies, no build step.
+Pure Web Audio API + vanilla ES modules. No npm dependencies, no build step.
 
 ---
 
 ## Run it
 
-Serve the **game root** (not the dawCAT folder) so both the game and the DAW share one origin:
+Serve the **game root** (not the dawCAT folder) so both the game and the DAW share one origin. Either works:
 
 ```
-# from the repo root (Michi-Neko-The-Cat-Philosophers-Path/)
+# Option A — any static server, from the repo root
 python -m http.server 8080
+
+# Option B — dawCAT's own Node server (also needed for the AI agent, below)
+cd dawCAT && npm start
 ```
 
 Then open:
 
-- **DAW:** `http://localhost:8080/dawCAT/`
-- **Game:** `http://localhost:8080/`
+- **DAW:** `http://localhost:8080/dawCAT/` (or `:4174` with `npm start`)
+- **Game:** `http://localhost:8080/` (or `:4174`)
 
 > Serving over HTTP is required for the game-cue scanner (`fetch('../src/*.js')`). Opening `dawCAT/index.html` directly from disk (`file://`) works for composing, but scanning and hot-swap preview need the shared server.
+
+`npm start` (`dawCAT/server.mjs`) is a zero-dependency drop-in for `python -m http.server` — same static files, same shared-origin layout — plus one extra route, `/api/agent`, that the **AI composition agent** needs. Everything else in dawCAT works identically either way; only the AI agent panel requires the Node server.
 
 ---
 
@@ -46,7 +51,7 @@ Press **⟳ Rescan** in the browser header. dawCAT fetches the game's source ove
 - **Ambient** — `startRain/WindChimes/Birds/Ambient/Lapping` loops
 - **Melodies / chords / scales** — any standalone frequency array in the game code
 
-Each cue can be **previewed** (click), **dragged** into the arrangement as a clip (phases become pluck patterns in the game's own scale, chords become pads, SFX become one-shot clips, ambient loops become sample clips), or converted into an instrument preset (right-click). Rescan any time the game code changes.
+The browser groups cues **Scene → Time of Day / Sounds** (today just one scene, "Overworld" — a later scene gets its own group automatically). Each cue can be **previewed** (click), **dragged** into the arrangement as a clip (phases become pluck patterns in the game's own scale, chords become pads, SFX become one-shot clips, ambient loops become sample clips), or converted into an instrument preset (right-click). Right-click a **Dawn/Day/Dusk/Night** cue for **Load as new project** — clears the current project and rebuilds it as a fresh Pad + Pluck arrangement voicing that phase's chord/scale, ready to remix. Rescan any time the game code changes.
 
 ---
 
@@ -61,6 +66,59 @@ Each cue can be **previewed** (click), **dragged** into the arrangement as a cli
 Both the hot-swap snippet and `music.js` carry each track's full **device chain** (EQ/compressor/delay/reverb/filter/chorus/utility) and **volume/pan/device-parameter automation**, so what you hear in dawCAT is what plays in the game. The one thing that never survives game export is drag-and-dropped audio clips (synth notes, drum steps and built-in samples only) — the export dialog warns you if a project has any.
 
 **Day phases:** in the export dialog, map `dawn / day / dusk / night` to arrangement bars. The exported player seeks to each section as the in-game clock changes (same hour thresholds as the original director: night <5.5h, dawn <7.5h, day <17h, dusk after). Leave −1 to ignore a phase and just loop the whole track.
+
+**Scene / Time of Day:** every project carries a `scene` (free text — the game only has one, "Overworld", today) and a `timeOfDay` (`dawn/day/dusk/night`, or "All" for the classic full-cycle export). Picking a specific Time of Day tags the export and makes it just loop that one variant instead of seeking phases — the day-phase mapping above only applies to "All" exports. Downloaded filenames disambiguate by scene/time (e.g. `music.overworld.dawn.js`) so variants don't overwrite each other; this is prep for scenes the game doesn't have yet — right-click a **Dawn/Day/Dusk/Night** Game Cue ▸ **Load as new project** to start one.
+
+---
+
+## AI composition agent
+
+Click **✦ AI Agent** in the top bar (or **AI Agent ▸ Open AI Composition Agent**). Describe a melody, rhythm, or idea in plain language; the agent turns it into a constrained JSON plan of DAW actions — new tracks, clips (notes or drum steps), presets, FX, mix levels, tempo/key/scale/swing — that dawCAT validates and applies. It cannot execute arbitrary JavaScript, touch game or project files, or do anything outside the action list below. Same harness shape as cadJS's design agent, adapted for music instead of geometry.
+
+Requires the Node server (`npm start` in `dawCAT/`, see [Run it](#run-it)) — the agent panel proxies through `/api/agent` so the browser never has to fight CORS or expose your API key to a third-party origin directly. Without it, every other part of dawCAT works fine; the panel just reports that the agent server isn't running.
+
+### Providers
+
+| Provider | Default base URL | Default model | Key |
+|---|---|---|---|
+| Local / llama-server | `http://127.0.0.1:8080/v1` | `local-model` | Normally none |
+| Custom / OpenAI-compatible | `http://127.0.0.1:3000/v1` | `custom-model` | Gateway-dependent |
+| OpenAI | `https://api.openai.com/v1` | `gpt-5.2` | Required |
+| OpenRouter | `https://openrouter.ai/api/v1` | `openai/gpt-5.2` | Required |
+| Anthropic | `https://api.anthropic.com/v1` | `claude-opus-4-6` | Required |
+
+Base URLs and model IDs are editable and may need updates as provider availability changes. API keys are kept in browser `sessionStorage` only — never written to project JSON, never logged.
+
+Local llama.cpp example:
+
+```powershell
+llama-server -m C:\models\your-model.gguf --host 127.0.0.1
+```
+
+### Context sent to the model
+
+The whole project's musical shape, not the audio itself: tempo/key/scale/swing/time signature, every track (id, name, kind, preset, drum kit, clip count), the current selection, and up to 12 of the scanned Game Cues' phase data (scene, time of day, root Hz, chord, scale) — so a prompt like *"match the dusk cue's mood"* has something real to work from.
+
+### Execution modes
+
+| Mode | Behavior |
+|---|---|
+| Plan only | Displays the plan; **RUN PLAN** disabled |
+| Confirm before run | Waits for **RUN PLAN** |
+| Auto-run valid plans | Runs immediately after protocol validation |
+
+### Supported actions
+
+`addTrack` (synth or drum, with a preset/kit), `renameTrack`, `deleteTrack`, `setTrackMix` (volume/pan/mute/solo/sends), `setTrackPreset`, `addDevice` (EQ/comp/delay/reverb/filter/chorus/utility), `addClip` (note melody on a synth track, or a 16-step rhythm on a drum track), `deleteClip`, `setTempo`, `setKeyScale`, `setSwing`. Plans are limited to 40 actions and applied as **one undoable transaction** (`Ctrl+Z` or **Undo Last** reverts the whole plan in one step) — a plan that fails partway rolls the project back completely rather than leaving a half-applied mess.
+
+### Example prompt
+
+```text
+Add a warm pad track voicing a Cmaj9 chord and a koto pluck track playing a
+sparse pentatonic-major melody around it, both around 90 BPM, plus a light
+four-on-the-floor drum groove on a soft kit. Keep it calm — this is for a
+dawn scene.
+```
 
 ---
 
@@ -103,12 +161,15 @@ Both the hot-swap snippet and `music.js` carry each track's full **device chain*
 dawCAT/
   index.html          shell
   styles.css          Nebula-DAW theme
+  package.json        "npm start" → server.mjs (only needed for the AI agent)
+  server.mjs          static file server + /api/agent provider proxy
   src/
-    main.js           bootstrap + shortcuts + wiring
-    state.js          project model, undo/redo, persistence
-    scanner.js        game cue scanner (phases, SFX, scales)
-    bridge.js         export: drop-in music.js + hot-swap snippet + JSON
-    midi.js           Standard MIDI File (.mid) import/export
+    main.js            bootstrap + shortcuts + wiring + AI agent execution
+    state.js           project model, undo/redo (+ applyBatch for AI plans), persistence
+    scanner.js         game cue scanner (phases, SFX, scales)
+    bridge.js          export: drop-in music.js + hot-swap snippet + JSON
+    midi.js            Standard MIDI File (.mid) import/export
+    agent-protocol.js  AI agent: provider requests, prompt, plan validation
     engine/
       core.js         context, master bus, track chains, meters
       synth.js        synth voices, game SFX approximations, ambience
@@ -119,7 +180,7 @@ dawCAT/
       transport.js    lookahead scheduler (tempo, loop, metronome, automation)
       render.js       OfflineAudioContext → WAV, per-track freeze bounce
     ui/               browser, arrangement, pianoroll, drumgrid, mixer,
-                      inspector, devices, transport-ui, common helpers
+                      inspector, devices, transport-ui, agent-panel, common helpers
 ```
 
-No dependencies, no build step — just static files.
+No npm dependencies (`server.mjs` uses only Node built-ins) and no build step — the DAW itself is still just static files; `npm start` only adds the one proxy route the AI agent needs.

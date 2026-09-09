@@ -259,6 +259,29 @@ export class AppState extends EventTarget {
     }, 250);
   }
 
+  /* Runs `mutate` (any number of state-mutating calls — addTrack, addClip, ...)
+     as one atomic, single-undo-step transaction: snapshots the project first,
+     rolls back to it if `mutate` throws partway through, and otherwise pushes
+     that one snapshot as a single undo entry regardless of how many individual
+     pushUndo()-debounced calls happened inside. Used to apply a whole AI agent
+     plan as one Ctrl+Z, matching cadJS's agent-plan transaction pattern. */
+  applyBatch(mutate) {
+    clearTimeout(this._undoTimer);
+    const before = JSON.stringify(this.project);
+    try {
+      mutate();
+    } catch (e) {
+      clearTimeout(this._undoTimer);
+      this.project = JSON.parse(before);
+      this.emit('project'); this.emit('selection');
+      throw e;
+    }
+    clearTimeout(this._undoTimer);
+    this.undoStack.push(before);
+    if (this.undoStack.length > 80) this.undoStack.shift();
+    this.redoStack = [];
+  }
+
   undo() {
     if (!this.undoStack.length) return false;
     this.redoStack.push(JSON.stringify(this.project));

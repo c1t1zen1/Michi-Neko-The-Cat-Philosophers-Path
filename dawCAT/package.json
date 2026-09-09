@@ -1,0 +1,11 @@
+{
+  "name": "michi-neko-dawcat",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Web Audio Studio for Michi-Neko, with an optional AI composition agent.",
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node -e \"Promise.all([import('./server.mjs'),import('./src/agent-protocol.js')]).then(() => console.log('server/agent-protocol modules: ok'))\""
+  }
+}

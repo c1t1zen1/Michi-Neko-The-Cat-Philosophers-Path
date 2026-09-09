@@ -65,6 +65,12 @@ function buildMenus(app) {
       ]
     },
     {
+      name: 'AI Agent',
+      entries: [
+        { label: 'Open AI Composition Agent', onClick: () => app.agentPanel.toggle() }
+      ]
+    },
+    {
       name: 'Help',
       entries: [
         { label: 'Keyboard Shortcuts', onClick: () => app.showShortcuts() },

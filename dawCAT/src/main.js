@@ -1,5 +1,5 @@
 /* dawCAT — app bootstrap */
-import { AppState, defaultProject, uid } from './state.js';
+import { AppState, defaultProject, defaultSynthPreset, uid, SCALES, DRUM_LANES } from './state.js';
 import { AudioEngine } from './engine/core.js';
 import { Transport } from './engine/transport.js';
 import { preloadProjectAssets, putAsset, cacheBuffer } from './engine/assets.js';
@@ -15,6 +15,7 @@ import { DrumGrid } from './ui/drumgrid.js';
 import { Mixer } from './ui/mixer.js';
 import { Inspector } from './ui/inspector.js';
 import { Devices } from './ui/devices.js';
+import { AgentPanel } from './ui/agent-panel.js';
 import { el, toast, showModal, download } from './ui/common.js';
 
 function slug(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled'; }
@@ -30,6 +31,28 @@ function musicFileName(project) {
 function jsonFileName(project) {
   const tag = project.timeOfDay ? `${slug(project.scene)}.${project.timeOfDay}` : slug(project.scene);
   return `${project.name || 'track'}.${tag}.dawcat-export.json`;
+}
+
+function clampRange(v, min, max) { return Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : min; }
+
+// Builds a full 8-lane, 16-step drum pattern from the AI's sparse
+// {lane: [[stepIndex, velocity], ...]} shorthand — mirrors state.js's private
+// mkSteps() so an agent-authored clip has the exact shape AppState.addClip()
+// expects (it doesn't normalize a caller-supplied `steps` object itself).
+function buildStepsFromPattern(pattern) {
+  const steps = {};
+  for (const lane of DRUM_LANES) steps[lane.id] = new Array(16).fill(0);
+  if (pattern && typeof pattern === 'object') {
+    for (const [laneId, hits] of Object.entries(pattern)) {
+      if (!steps[laneId] || !Array.isArray(hits)) continue;
+      for (const hit of hits) {
+        const [i, v] = Array.isArray(hit) ? hit : [hit, 1];
+        const idx = clampRange(Math.round(Number(i)), 0, 15);
+        steps[laneId][idx] = clampRange(Number(v ?? 1), 0, 1);
+      }
+    }
+  }
+  return steps;
 }
 
 class App {
@@ -59,11 +82,17 @@ class App {
     this.mixer = new Mixer(this);
     this.inspector = new Inspector(this);
     this.devices = new Devices(this);
+    this.agentPanel = new AgentPanel({
+      getContext: () => this.getAgentContext(),
+      executePlan: (plan) => this.executeAgentPlan(plan),
+      undo: () => this.state.undo()
+    });
 
     this.wireTabs();
     this.wireSnapZoom();
     this.wireShortcuts();
     this.wireAudioButton();
+    document.getElementById('btn-agent').addEventListener('click', () => this.agentPanel.toggle());
 
     this.state.addEventListener('project', () => this.onProjectChanged());
     this.state.addEventListener('chain', () => {
@@ -428,6 +457,126 @@ class App {
       body: el('div', {}, targetRow, secRow, note, el('div', { class: 'form-row' }, copyBtn, musicBtn, jsonBtn)),
       buttons: [{ label: 'Close' }]
     });
+  }
+
+  /* ---------- AI composition agent ---------- */
+
+  getAgentContext() {
+    const p = this.state.project;
+    const gameCues = ((p.cueScan && p.cueScan.cues) || [])
+      .filter((c) => c.kind === 'phase')
+      .map((c) => ({ scene: c.scene, timeOfDay: c.timeOfDay, name: c.name, rootHz: c.rootHz, chord: c.chord, scale: c.scale }));
+    return {
+      editor: 'dawCAT',
+      tempo: p.tempo, key: p.key, scale: p.scale, swing: p.swing, timeSig: `${p.timeSigNum}/${p.timeSigDen}`,
+      selection: this.state.selection.trackId,
+      tracks: p.tracks.map((t) => ({
+        id: t.id, name: t.name, kind: t.kind,
+        preset: t.kind === 'synth' ? t.preset.kind : null,
+        drumKit: t.kind === 'drum' ? t.drumKit : null,
+        clips: t.clips.length
+      })),
+      gameCues: gameCues.slice(0, 12),
+      constraints: { maxActions: 40, reversible: true }
+    };
+  }
+
+  findAgentTrack(target) {
+    const st = this.state;
+    if (!target || target === 'selection') return st.selectedTrack();
+    return st.track(target);
+  }
+
+  executeAgentAction(action) {
+    const st = this.state;
+    const p = action.params || {};
+    if (action.type === 'addTrack') {
+      const kind = p.kind === 'drum' ? 'drum' : 'synth';
+      const presetKind = ['pluck', 'pad', 'lead', 'bass', 'keys', 'chime'].includes(p.preset) ? p.preset : 'pluck';
+      const t = st.addTrack({
+        name: String(p.name || (kind === 'drum' ? 'Drums' : 'Synth')),
+        kind,
+        preset: kind === 'synth' ? defaultSynthPreset(presetKind) : null,
+        drumKit: ['soft', 'punch', 'lofi'].includes(p.drumKit) ? p.drumKit : 'soft'
+      });
+      st.select(t.id);
+      return;
+    }
+    if (action.type === 'deleteClip') {
+      const [trackId, clipId] = String(action.target || '').split(':');
+      if (!trackId || !clipId) throw new Error('deleteClip target must be "trackId:clipId"');
+      st.removeClip(trackId, clipId);
+      return;
+    }
+    const t = this.findAgentTrack(action.target);
+    if (!t) throw new Error(`Agent target track not found: ${action.target}`);
+    if (action.type === 'renameTrack') { st.updateTrack(t.id, { name: String(p.name || t.name) }); return; }
+    if (action.type === 'deleteTrack') { st.removeTrack(t.id); return; }
+    if (action.type === 'setTrackMix') {
+      const patch = {};
+      if (p.volume != null) patch.volume = clampRange(Number(p.volume), 0, 1);
+      if (p.pan != null) patch.pan = clampRange(Number(p.pan), -1, 1);
+      if (p.mute != null) patch.mute = Boolean(p.mute);
+      if (p.solo != null) patch.solo = Boolean(p.solo);
+      if (p.sends) patch.sends = { a: clampRange(Number(p.sends.a ?? t.sends.a), 0, 1), b: clampRange(Number(p.sends.b ?? t.sends.b), 0, 1) };
+      st.updateTrack(t.id, patch);
+      return;
+    }
+    if (action.type === 'setTrackPreset') {
+      if (t.kind !== 'synth') throw new Error(`setTrackPreset needs a synth track, "${t.name}" is a drum track`);
+      const kind = ['pluck', 'pad', 'lead', 'bass', 'keys', 'chime'].includes(p.preset) ? p.preset : t.preset.kind;
+      const preset = Object.assign(defaultSynthPreset(kind), p.patch && typeof p.patch === 'object' ? p.patch : {});
+      st.updateTrack(t.id, { preset });
+      return;
+    }
+    if (action.type === 'addDevice') {
+      const type = ['eq8', 'comp', 'delay', 'reverb', 'filter', 'chorus', 'utility'].includes(p.type) ? p.type : null;
+      if (!type) throw new Error(`Unknown device type: ${p.type}`);
+      st.addDevice(t.id, type);
+      return;
+    }
+    if (action.type === 'addClip') {
+      const length = Math.max(0.25, Number(p.length ?? 4));
+      const patch = {
+        name: p.name ? String(p.name) : undefined,
+        start: Math.max(0, Number(p.start ?? 0)),
+        length,
+        loop: !!p.loop,
+        loopLen: Math.max(1, Number(p.loopLen ?? length * 4))
+      };
+      if (t.kind === 'drum') {
+        patch.steps = buildStepsFromPattern(p.steps);
+      } else {
+        if (!Array.isArray(p.notes) || !p.notes.length) throw new Error(`addClip on synth track "${t.name}" needs a notes array`);
+        patch.notes = p.notes.map((n) => ({
+          id: uid('n'),
+          midi: clampRange(Math.round(Number(n.midi)), 0, 127),
+          start: Math.max(0, Number(n.start ?? 0)),
+          len: Math.max(0.05, Number(n.len ?? 0.5)),
+          vel: clampRange(Number(n.vel ?? 0.8), 0, 1)
+        }));
+      }
+      const clip = st.addClip(t.id, patch);
+      st.select(t.id, clip.id);
+      return;
+    }
+    if (action.type === 'setTempo') { st.project.tempo = clampRange(Number(p.bpm), 40, 220); st.emit('project'); return; }
+    if (action.type === 'setKeyScale') {
+      if (p.key) st.project.key = String(p.key);
+      if (p.scale && SCALES[p.scale]) st.project.scale = p.scale;
+      st.emit('project');
+      return;
+    }
+    if (action.type === 'setSwing') { st.project.swing = clampRange(Number(p.swing), 0, 1); st.emit('project'); return; }
+  }
+
+  async executeAgentPlan(plan) {
+    const st = this.state;
+    let count = 0;
+    st.applyBatch(() => {
+      for (const action of plan.actions) { this.executeAgentAction(action); count++; }
+    });
+    return count;
   }
 
   previewSfxDialog() {

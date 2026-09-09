@@ -34,6 +34,7 @@
       <div class="sysrow"><span>VOX</span><div class="meter"><div id="vox-bar"></div></div><span id="vox-val">0</span></div>
     </div>
     <div id="online-dot"><span class="dot"></span> Online</div>
+    <button id="btn-agent" class="agent-toggle" title="AI composition agent — melodies, rhythms, ideas from a prompt">✦ AI Agent</button>
     <button id="btn-enable-audio" class="enable-audio hidden">🔊 Enable Audio</button>
   </header>
 
@@ -118,6 +119,33 @@
     </div>
     <div id="device-editor"></div>
   </section>
+
+  <!-- ======================= AI AGENT ======================= -->
+  <aside id="agent-panel" class="agent-panel" aria-label="AI composition agent">
+    <header><div><b>AI COMPOSITION AGENT</b><small>CONSTRAINED DAW ACTION HARNESS</small></div><button id="agent-close" title="Close">×</button></header>
+    <div class="agent-scroll">
+      <section class="agent-block">
+        <h3>PROVIDER</h3>
+        <div class="agent-grid two"><label>Service<select id="agent-provider"><option value="local">Local / llama-server</option><option value="custom">Custom / OpenAI-compatible</option><option value="openai">OpenAI</option><option value="openrouter">OpenRouter</option><option value="anthropic">Anthropic</option></select></label><label>Model<input id="agent-model"></label></div>
+        <label>Base URL<input id="agent-base-url" spellcheck="false"></label>
+        <label>API key<input id="agent-api-key" type="password" autocomplete="off" placeholder="Kept in this browser session only"></label>
+        <div class="agent-grid four"><label>Temperature<input id="agent-temperature" type="number" min="0" max="2" step="0.05"></label><label>Top P<input id="agent-top-p" type="number" min="0.01" max="1" step="0.05"></label><label>Max tokens<input id="agent-max-tokens" type="number" min="128" max="32000" step="128"></label><label>Reasoning<select id="agent-reasoning"><option>none</option><option>low</option><option selected>medium</option><option>high</option></select></label></div>
+        <label>Execution<select id="agent-autonomy"><option value="plan">Plan only</option><option value="confirm" selected>Confirm before run</option><option value="auto">Auto-run valid plans</option></select></label>
+      </section>
+      <section class="agent-block grow">
+        <h3>PROMPT</h3>
+        <textarea id="agent-prompt" placeholder="Example: Add a warm pad track and a koto pluck track for a calm dawn cue in C pentatonic, around 90 BPM, with a light drum groove."></textarea>
+        <div class="agent-actions"><button id="agent-send" class="primary">GENERATE PLAN</button><button id="agent-stop">STOP</button></div>
+        <div id="agent-state" class="agent-state">Ready. Model output is validated before any project change.</div>
+      </section>
+      <section class="agent-block">
+        <h3>PLAN</h3>
+        <div id="agent-plan" class="agent-plan"><span>No plan generated.</span></div>
+        <div class="agent-actions"><button id="agent-run" class="primary" disabled>RUN PLAN</button><button id="agent-undo">UNDO LAST</button><button id="agent-export-plan">EXPORT</button></div>
+      </section>
+      <section class="agent-block"><h3>ACTIVITY</h3><div id="agent-log" class="agent-log"></div></section>
+    </div>
+  </aside>
 </div>
 
 <div id="toasts"></div>
