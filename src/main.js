@@ -269,7 +269,9 @@ class Game {
 
     // ---- Adaptive resolution ----
     this.adaptTimer = 2;
-    this.pixelCap = Math.min(window.devicePixelRatio || 1, 1.75);
+    // applyQuality() already ran (via applySettings) and set the tier's cap —
+    // don't stomp it back to full DPR here.
+    if (this.pixelCap === undefined) this.pixelCap = Math.min(window.devicePixelRatio || 1, 1.75);
     this.pixelScale = this.renderer.getPixelRatio();
     // Two-stage adaptive: stage 1 trims post-FX before touching resolution.
     this.perfStage = 0;
@@ -417,6 +419,10 @@ class Game {
     const dpr = window.devicePixelRatio || 1;
     const cap = q === 'low' ? 1.0 : q === 'medium' ? 1.25 : Math.min(dpr, 1.75);
     this.renderer.setPixelRatio(Math.min(dpr, cap));
+    // The adaptive-resolution loop walks pixelScale back up to pixelCap, so
+    // the cap has to follow the tier or low/medium drift back to full res.
+    this.pixelCap = Math.min(dpr, cap);
+    this.pixelScale = this.renderer.getPixelRatio();
     this.onResize();
 
     // MSAA on the composer target: 4x only on the high tier. Medium keeps
@@ -430,9 +436,15 @@ class Game {
     const samples = q === 'high' ? 4 : 0;
     if (this.composer.renderTarget1.samples !== samples) {
       const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
-      const rtOpts = { samples, type: THREE.HalfFloatType, depthTexture: this.makeDepthTexture() };
-      const rt1 = new THREE.WebGLRenderTarget(size.width, size.height, rtOpts);
-      const rt2 = new THREE.WebGLRenderTarget(size.width, size.height, rtOpts);
+      // Each buffer gets its OWN depth attachment. Sharing one DepthTexture
+      // across the ping-pong pair makes the pass that samples readBuffer's
+      // depth while drawing into writeBuffer a framebuffer feedback loop, and
+      // the driver drops those draws — the scene renders black under the GUI.
+      const rtOpts = { samples, type: THREE.HalfFloatType };
+      const rt1 = new THREE.WebGLRenderTarget(size.width, size.height,
+        { ...rtOpts, depthTexture: this.makeDepthTexture() });
+      const rt2 = new THREE.WebGLRenderTarget(size.width, size.height,
+        { ...rtOpts, depthTexture: this.makeDepthTexture() });
       const old1 = this.composer.renderTarget1;
       const old2 = this.composer.renderTarget2;
       this.composer.renderTarget1 = rt1;
