@@ -8,6 +8,10 @@ Use descriptive kebab-case scenery names that match what the image actually show
 - `lantern-lit-village-path-dusk.jpg` — a lantern-lit stone path through the village at dusk, cherry blossoms and machiya townhouses
 - `tea-ceremony-room.jpg` — the tea house interior concept: tatami, scroll, bonsai, lantern light, and grilled sea bream on the table
 
+Not concept art:
+
+- `cobble-before-after.png` — a side-by-side of the cobblestone ground texture before and after the tiling rework, kept as a reference for what the current stones should look like
+
 Tip: press **P** in-game to open Photo Mode, orbit to a nice composition, and capture.
 
 Any JPG/PNG under ~1 MB each works well (keeps the README fast to load).
