@@ -14,7 +14,7 @@
    button in the menu bar (one click, no dropdown); closing it does not cancel
    an in-flight request, so generation keeps running in the background and the
    panel just shows whatever state it's in when reopened. */
-import { normalizeAgentSettings, createProviderRequest, createModelsRequest, extractModelList, extractJson, extractProviderText, validateAgentPlan } from '../agent-protocol.js';
+import { normalizeAgentSettings, normalizeBaseUrl, createProviderRequest, createModelsRequest, extractModelList, extractJson, extractProviderText, validateAgentPlan } from '../agent-protocol.js';
 
 const SETTINGS_KEY = 'michi-neko-dawcat-agent-settings-v1';
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -59,7 +59,7 @@ export class AgentPanel {
       this.setModelOptions([]);
       this.saveSettings();
     });
-    for (const id of ['agent-base-url', 'agent-model', 'agent-api-key', 'agent-temperature', 'agent-top-p', 'agent-max-tokens', 'agent-reasoning']) $(`#${id}`).addEventListener('change', () => this.saveSettings());
+    for (const id of ['agent-base-url', 'agent-model', 'agent-api-key', 'agent-temperature', 'agent-top-p', 'agent-max-tokens', 'agent-reasoning']) $(`#${id}`).addEventListener('change', () => { this.syncBaseUrl(); this.saveSettings(); });
     // The text input is the source of truth; picking from the scanned list
     // just writes into it, so a typed id and a scanned id are the same thing.
     $('#agent-model-select').addEventListener('change', (e) => { if (e.target.value) { $('#agent-model').value = e.target.value; this.saveSettings(); } });
@@ -71,6 +71,19 @@ export class AgentPanel {
     $('#agent-stop').addEventListener('click', () => this.stop());
     $('#agent-undo').addEventListener('click', () => this.callbacks.undo?.());
     $('#agent-export-plan').addEventListener('click', () => this.plan && download(`dawcat-agent-plan-${Date.now()}.json`, JSON.stringify(this.plan, null, 2)));
+  }
+
+  // Shows the address actually being called. Pasting llama-server's own
+  // "http://0.0.0.0:8080" banner into Base URL is the natural thing to do and
+  // silently wrong, so normalizeBaseUrl() rewrites the host — write the result
+  // back into the field rather than calling one address while showing another.
+  syncBaseUrl() {
+    const field = $('#agent-base-url');
+    const fixed = normalizeBaseUrl(field.value);
+    if (fixed && fixed !== field.value.trim().replace(/\/+$/, '')) {
+      this.log(`Base URL ${field.value} → ${fixed} (0.0.0.0 is a listen-on-everything address, not one you can connect to)`);
+      field.value = fixed;
+    }
   }
 
   setMode(mode) {
@@ -110,14 +123,59 @@ export class AgentPanel {
     $('#agent-temperature').value = settings.temperature; $('#agent-top-p').value = settings.topP; $('#agent-max-tokens').value = settings.maxTokens; $('#agent-reasoning').value = settings.reasoning;
   }
 
-  // Turns a fetch()-level failure (wrong port, server not running, or a CORS
-  // block) into a message that actually points at the fix, instead of the
-  // opaque "Failed to fetch" TypeError the browser throws for all three.
-  networkErrorHint(url) {
-    return `Could not reach ${url}. Check that the server is running at that Base URL/port, and that it allows cross-origin requests from this page (CORS) — most local inference servers (llama-server, LM Studio, Ollama's OpenAI-compatible endpoint) allow this by default.`;
+  // A browser throws the same opaque "Failed to fetch" TypeError whether the
+  // server is down, on another port, blocked as mixed content, or answering
+  // fine but without CORS headers. This works out which one it actually was
+  // so the panel can say something useful, instead of listing all four and
+  // leaving you to guess.
+  //
+  // The discriminator is a mode:"no-cors" probe: it reaches the server
+  // without needing any CORS header back (the response is opaque, which is
+  // fine — we only care that it resolved). If THAT succeeds, something is
+  // listening and the real block was CORS. If it fails too, nothing answered
+  // at that address at all.
+  async diagnoseNetworkFailure(url) {
+    let target;
+    try { target = new URL(url); } catch { return `"${url}" is not a valid URL. It should look like http://127.0.0.1:8080/v1`; }
+    const where = `${target.protocol}//${target.host}`;
+    // These messages suggest a value for the Base URL field, so drop the
+    // endpoint this request happened to append to it.
+    const basePath = target.pathname.replace(/\/(models|chat\/completions|messages)$/, '');
+
+    if (location.protocol === 'https:' && target.protocol === 'http:') {
+      return `Blocked as mixed content: dawCAT is being served over HTTPS, and a browser will not let an HTTPS page call a plain-http:// address like ${where}. Nothing reaches the server — it never sees the request. Serve dawCAT over http:// (e.g. python -m http.server) rather than https, and try again.`;
+    }
+
+    let reachable = false;
+    try { await fetch(where, { mode: 'no-cors' }); reachable = true; } catch { /* really unreachable */ }
+
+    if (reachable) {
+      return `${where} is running and answering, but it did not allow this page to read the response — that's a CORS block, not a connection problem. Restart the server so it allows cross-origin requests from ${location.origin} (llama-server: it allows any origin by default, so check you're not behind a proxy that strips the headers).`;
+    }
+
+    const hints = [];
+    if (target.hostname === 'localhost') hints.push(`try 127.0.0.1 instead of localhost — "localhost" can resolve to the IPv6 address ::1, and a server started with --host 0.0.0.0 is listening on IPv4 only, so nothing answers on ::1`);
+    if (!target.port) hints.push(`no port in the Base URL, so this is going to ${target.protocol === 'https:' ? '443' : '80'} — llama-server's default is 8080, so you probably want ${target.protocol}//${target.hostname}:8080${basePath}`);
+    if (target.port && target.port === location.port && target.hostname === location.hostname) hints.push(`that is the same address dawCAT itself is served from, so this request is hitting dawCAT's own static file server rather than llama-server — put llama-server on a different port`);
+    hints.push('check the server is still running, and that the port matches the one it printed on startup');
+    const detail = hints.join('; ');
+    return `Nothing answered at ${where}. ${detail.charAt(0).toUpperCase()}${detail.slice(1)}.`;
+  }
+
+  // Something answered, but not with JSON. Overwhelmingly this means the Base
+  // URL points at the wrong server — most often dawCAT's own static file
+  // server, whose 404 page comes back as HTML — so say that rather than just
+  // dumping the first 200 characters of someone's error page.
+  notJsonHint(url, response, text) {
+    let target; try { target = new URL(url); } catch { target = null; }
+    const sameServer = target && target.host === location.host;
+    const what = /^\s*</.test(text) ? 'an HTML page' : `"${text.slice(0, 80)}"`;
+    if (sameServer) return `${target.host} answered with ${what} (HTTP ${response.status}), not JSON — that is the address dawCAT itself is served from, so this hit dawCAT's own file server instead of an AI provider. Point Base URL at the server running your model (llama-server's default is http://127.0.0.1:8080/v1).`;
+    return `${url} answered with ${what} (HTTP ${response.status}), not JSON. Check the Base URL ends at the API root — for an OpenAI-compatible server that is the part before /models, e.g. http://127.0.0.1:8080/v1`;
   }
 
   async scanModels() {
+    this.syncBaseUrl();
     const settings = this.settings(); this.saveSettings();
     const { url, headers } = createModelsRequest(settings);
     const button = $('#agent-scan-models');
@@ -126,9 +184,9 @@ export class AgentPanel {
     try {
       let response;
       try { response = await fetch(url, { headers }); }
-      catch { throw new Error(this.networkErrorHint(url)); }
+      catch { throw new Error(await this.diagnoseNetworkFailure(url)); }
       const text = await response.text();
-      let data; try { data = JSON.parse(text); } catch { throw new Error('Model list response was not JSON.'); }
+      let data; try { data = JSON.parse(text); } catch { throw new Error(this.notJsonHint(url, response, text)); }
       if (!response.ok) throw new Error(data.error?.message || data.message || `Model list HTTP ${response.status}`);
       const models = extractModelList(data);
       this.setModelOptions(models);
@@ -146,14 +204,15 @@ export class AgentPanel {
     if (!instruction) return this.state('Describe the melody, rhythm, or idea first.', 'error');
     this.stop(); this.controller = new AbortController(); this.state(`Contacting model (${this.mode})…`, 'busy'); $('#agent-send').disabled = true;
     try {
+      this.syncBaseUrl();
       const settings = this.settings(); this.saveSettings();
       if (!['local', 'custom'].includes(settings.provider) && !settings.apiKey) throw new Error(`API key is required for ${settings.provider}`);
       const outbound = createProviderRequest(settings, { instruction, mode: this.mode, context: this.callbacks.getContext() });
       let response;
       try { response = await fetch(outbound.url, { method: 'POST', headers: outbound.headers, body: JSON.stringify(outbound.body), signal: this.controller.signal }); }
-      catch (networkError) { if (networkError.name === 'AbortError') throw networkError; throw new Error(this.networkErrorHint(outbound.url)); }
+      catch (networkError) { if (networkError.name === 'AbortError') throw networkError; throw new Error(await this.diagnoseNetworkFailure(outbound.url)); }
       const text = await response.text();
-      let data; try { data = JSON.parse(text); } catch { throw new Error('Provider did not return JSON: ' + text.slice(0, 200)); }
+      let data; try { data = JSON.parse(text); } catch { throw new Error(this.notJsonHint(outbound.url, response, text)); }
       if (!response.ok) throw new Error(data.error?.message || data.message || `Provider HTTP ${response.status}`);
       this.plan = validateAgentPlan(extractJson(extractProviderText(settings.provider, data)));
       this.log(`${settings.provider}/${settings.model} [${this.mode}]: ${this.plan.summary}`);

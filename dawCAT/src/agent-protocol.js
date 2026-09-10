@@ -42,6 +42,24 @@ function finiteNumber(value, fallback, min = -Infinity, max = Infinity) {
   return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
 }
 
+// 0.0.0.0 is a *bind* address meaning "listen on every interface" — it is not
+// an address you can connect to. llama-server prints the URL it bound
+// ("http://0.0.0.0:8080"), so pasting that straight into Base URL is the
+// obvious thing to do and then fails: Chrome quietly reinterprets it as
+// localhost, but Safari and Firefox do not, and nothing answers. The server
+// that bound 0.0.0.0 is listening on 127.0.0.1, so connect there instead.
+export function normalizeBaseUrl(value) {
+  const trimmed = String(value || '').trim().replace(/\/+$/, '');
+  try {
+    const url = new URL(trimmed);
+    if (url.hostname === '0.0.0.0' || url.hostname === '[::]') {
+      url.hostname = '127.0.0.1';
+      return url.toString().replace(/\/+$/, '');
+    }
+  } catch { /* not absolute yet (still being typed) — leave it alone */ }
+  return trimmed;
+}
+
 export function normalizeAgentSettings(input = {}) {
   const provider = ['local', 'custom', 'openai', 'openrouter', 'anthropic'].includes(input.provider) ? input.provider : 'local';
   const defaults = {
@@ -53,7 +71,7 @@ export function normalizeAgentSettings(input = {}) {
   }[provider];
   return {
     provider,
-    baseUrl: String(input.baseUrl || defaults.baseUrl).replace(/\/+$/, ''),
+    baseUrl: normalizeBaseUrl(input.baseUrl || defaults.baseUrl),
     model: String(input.model || defaults.model),
     apiKey: String(input.apiKey || ''),
     temperature: finiteNumber(input.temperature, 0.4, 0, 2),

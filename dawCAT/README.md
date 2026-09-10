@@ -12,17 +12,19 @@ Serve the **game root** (not the dawCAT folder) so both the game and the DAW sha
 
 ```
 # from the repo root (Michi-Neko-The-Cat-Philosophers-Path/)
-python -m http.server 8080
+python -m http.server 8000
 ```
 
 Then open:
 
-- **DAW:** `http://localhost:8080/dawCAT/`
-- **Game:** `http://localhost:8080/`
+- **DAW:** `http://localhost:8000/dawCAT/`
+- **Game:** `http://localhost:8000/`
+
+> Port 8000, not 8080, on purpose: **8080 is llama-server's default port**. Serving dawCAT there too means one of the two can't bind, and the AI agent's Base URL ends up pointing at dawCAT's own file server instead of your model.
 
 > Serving over HTTP is required for the game-cue scanner (`fetch('../src/*.js')`). Opening `dawCAT/index.html` directly from disk (`file://`) works for composing, but scanning and hot-swap preview need the shared server.
 
-The [AI composition agent](#ai-composition-agent) needs nothing extra either — it calls your chosen provider (local llama-server, OpenAI, Anthropic, ...) directly from the page with `fetch()`, the same as any other static-file app. There's no proxy to run and no API key ever leaves the browser for anywhere but the provider you configured.
+The [AI composition agent](#ai-composition-agent) needs nothing extra either — it calls your chosen provider (local llama-server, OpenAI, Anthropic, ...) directly from the page with `fetch()`, the same as any other static-file app. There's no proxy to run and no API key ever leaves the browser for anywhere but the provider you configured. If it can't reach your server, see [Connecting to a local server](#connecting-to-a-local-server).
 
 ---
 
@@ -102,14 +104,36 @@ Base URLs are editable and may need updates as provider availability changes. AP
 Local llama.cpp example:
 
 ```powershell
-llama-server -m C:\models\your-model.gguf --host 127.0.0.1
+llama-server -m C:\models\your-model.gguf --host 127.0.0.1 --port 8080
 ```
+
+Then set Base URL to `http://127.0.0.1:8080/v1` and press **⟳ SCAN MODELS**. See [Connecting to a local server](#connecting-to-a-local-server) if it doesn't connect.
 
 ### Picking a model
 
 Click **⟳ SCAN MODELS** next to the Model label: dawCAT does a `GET {Base URL}/models` against whatever provider you've configured and loads **every model that API offers** into the dropdown below it — pick one and it drops into the model field. Works for local servers, OpenAI, OpenRouter, and Anthropic (its own `/v1/models` endpoint) alike, and understands the OpenAI (`{data:[{id}]}`), bare-array, and Ollama (`{models:[{name}]}`) response shapes.
 
 The text field under the dropdown is the model id actually sent, so you can always just type one — useful if a provider doesn't implement `/models`, or if you want a model that isn't listed. Switching Service resets the list, since another provider's model ids don't exist on the new endpoint.
+
+### Connecting to a local server
+
+llama-server prints the address it **bound** on startup — `http://0.0.0.0:8080`. That is not an address you can connect to: `0.0.0.0` means "listen on every interface". dawCAT rewrites it to `127.0.0.1` for you (and shows the corrected value back in the field), but the distinction matters when you're checking things by hand.
+
+Use **`http://127.0.0.1:8080/v1`**. Four addresses that look equivalent are not:
+
+| Base URL | Result |
+|---|---|
+| `http://127.0.0.1:8080/v1` | ✅ What you want. |
+| `http://0.0.0.0:8080/v1` | Rewritten to `127.0.0.1` on use. Chrome silently treats it as localhost anyway; Safari and Firefox do not. |
+| `http://localhost:8080/v1` | ⚠️ Can fail even when the server is up: `localhost` may resolve to the IPv6 address `::1`, and `--host 0.0.0.0` binds **IPv4 only**, so nothing answers. |
+| `http://127.0.0.1/v1` | ❌ No port — goes to port 80, not 8080. |
+
+If a scan fails, the panel tells you which of these it actually was rather than a generic "could not reach": it re-probes the address to separate *nothing is listening there* from *the server answered but blocked the browser from reading it (CORS)*, and names mixed content when dawCAT is on `https://` and the server is on plain `http://` — which browsers block outright, so the request never leaves the page.
+
+Two more things worth checking if nothing connects:
+
+- **Don't serve dawCAT on port 8080.** That's llama-server's default; if dawCAT is there too, `http://127.0.0.1:8080/v1/models` reaches dawCAT's static file server and returns its HTML 404. The panel calls this out by name when it happens.
+- **Being able to open the server in a browser tab doesn't prove the agent can reach it.** Typing the URL in the address bar is a top-level navigation, which is exempt from CORS; a `fetch()` from a page is not. A server can load fine in a tab and still refuse the agent.
 
 Anthropic calls include the `anthropic-dangerous-direct-browser-access` header, which is what Anthropic requires to allow a page like this one to call its API straight from a browser with a user-supplied key instead of going through a backend.
 
