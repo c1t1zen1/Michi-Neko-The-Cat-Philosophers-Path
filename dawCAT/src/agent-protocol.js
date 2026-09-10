@@ -87,7 +87,11 @@ export function buildAgentPrompt({ instruction, context, mode }) {
 }
 
 export function extractJson(text) {
-  const raw = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  // Reasoning models emit their thinking first. Well-behaved servers put it in
+  // a separate field, but some inline it as <think>...</think> — and the
+  // braces inside it would otherwise be mistaken for the start of the plan.
+  const withoutThinking = String(text || '').replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, '');
+  const raw = withoutThinking.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
   try { return JSON.parse(raw); } catch {}
   const start = raw.indexOf('{'), end = raw.lastIndexOf('}');
   if (start >= 0 && end > start) return JSON.parse(raw.slice(start, end + 1));
@@ -133,7 +137,21 @@ export function createProviderRequest(settingsInput, payload) {
 
 export function extractProviderText(provider, response) {
   if (provider === 'anthropic') return (response.content || []).filter((item) => item.type === 'text').map((item) => item.text).join('\n');
-  return response.choices?.[0]?.message?.content || response.output_text || '';
+  const message = response.choices?.[0]?.message;
+  // reasoning_content is the fallback, not the preference: llama.cpp splits a
+  // thinking model's output into reasoning_content + content, and a few
+  // servers put everything in the former and leave content empty.
+  return message?.content || message?.reasoning_content || response.output_text || '';
+}
+
+// True when the response stopped because it hit the token ceiling rather than
+// because the model finished. With a reasoning model this is the single most
+// common cause of "no JSON came back" — the thinking consumed the budget and
+// the answer never got written — so it is worth reporting as its own error.
+export function isTruncatedResponse(provider, response) {
+  if (provider === 'anthropic') return response.stop_reason === 'max_tokens';
+  const reason = response.choices?.[0]?.finish_reason;
+  return reason === 'length' || reason === 'max_tokens';
 }
 
 // GET request for the provider's model list (the "🔍 scan" button next to

@@ -14,7 +14,7 @@
    button in the menu bar (one click, no dropdown); closing it does not cancel
    an in-flight request, so generation keeps running in the background and the
    panel just shows whatever state it's in when reopened. */
-import { normalizeAgentSettings, normalizeBaseUrl, createProviderRequest, createModelsRequest, extractModelList, extractJson, extractProviderText, validateAgentPlan } from '../agent-protocol.js';
+import { normalizeAgentSettings, normalizeBaseUrl, createProviderRequest, createModelsRequest, extractModelList, extractJson, extractProviderText, isTruncatedResponse, validateAgentPlan } from '../agent-protocol.js';
 
 const SETTINGS_KEY = 'michi-neko-dawcat-agent-settings-v1';
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -33,6 +33,25 @@ const MODE_HINTS = {
   free: 'Free — adjust anything in the composition: add or remove tracks, clips, devices, mix and tempo.'
 };
 
+// Loopback is "potentially trustworthy" per the Secure Contexts spec, so it is
+// exempt from mixed-content blocking — but a page on a public HTTPS origin is
+// still stopped from opening connections into the local network by a separate
+// rule, so https -> local fails either way, just for different reasons.
+const LOOPBACK_HOST = /^(localhost|[^.]+\.localhost|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|\[?::1\]?)$/i;
+const PRIVATE_LAN_HOST = /^(10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/;
+const HTTP_SERVE_HINT = 'from the repo root run "python -m http.server 8000" and open http://localhost:8000/dawCAT/';
+
+// llama-server reports a model by its absolute .gguf path — 100+ unreadable
+// characters in a dropdown. Show just the filename for those, and leave
+// ordinary ids (including OpenRouter's "vendor/model" form) exactly as they
+// are. Only the label changes; the option's value stays the real id.
+function modelLabel(id) {
+  const text = String(id);
+  const looksLikePath = /\.gguf$/i.test(text) || (text.length > 48 && text.split(/[\\/]/).length > 2);
+  if (!looksLikePath) return text;
+  return text.split(/[\\/]/).pop().replace(/\.gguf$/i, '') || text;
+}
+
 function escapeHtml(value) { return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char]); }
 function download(name, text) { const url = URL.createObjectURL(new Blob([text], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
 
@@ -46,6 +65,7 @@ export class AgentPanel {
     this.loadSettings();
     this.setMode('free');
     this.log('Agent harness initialized');
+    this.warnIfInsecureOrigin();
   }
 
   bind() {
@@ -86,6 +106,14 @@ export class AgentPanel {
     }
   }
 
+  // Says this up front rather than after a failed Send: served over HTTPS, no
+  // local provider is reachable at all, and no Base URL edit changes that.
+  warnIfInsecureOrigin() {
+    if (location.protocol !== 'https:') return;
+    this.state(`dawCAT is being served over HTTPS (${location.origin}), so the browser will block it from reaching any local AI server — loopback included. Cloud providers (OpenAI, Anthropic, OpenRouter) still work. To use a local llama-server, ${HTTP_SERVE_HINT}.`, 'error');
+    this.log('Served over HTTPS — local providers are unreachable from this origin');
+  }
+
   setMode(mode) {
     this.mode = MODE_HINTS[mode] ? mode : 'free';
     document.querySelectorAll('.agent-modes button[data-mode]').forEach((b) => b.classList.toggle('active', b.dataset.mode === this.mode));
@@ -98,7 +126,10 @@ export class AgentPanel {
   setModelOptions(models) {
     const select = $('#agent-model-select');
     const head = models.length ? `<option value="">— ${models.length} model(s) from this API —</option>` : '<option value="">— scan to list this API\'s models —</option>';
-    select.innerHTML = head + models.map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+    // llama-server reports a model by its full .gguf path, which is 100+
+    // unreadable characters in a dropdown. Label it with the filename and
+    // keep the real id as the value, since that is what gets sent.
+    select.innerHTML = head + models.map((m) => `<option value="${escapeHtml(m)}" title="${escapeHtml(m)}">${escapeHtml(modelLabel(m))}</option>`).join('');
     select.value = models.includes($('#agent-model').value) ? $('#agent-model').value : '';
   }
 
@@ -143,7 +174,18 @@ export class AgentPanel {
     const basePath = target.pathname.replace(/\/(models|chat\/completions|messages)$/, '');
 
     if (location.protocol === 'https:' && target.protocol === 'http:') {
-      return `Blocked as mixed content: dawCAT is being served over HTTPS, and a browser will not let an HTTPS page call a plain-http:// address like ${where}. Nothing reaches the server — it never sees the request. Serve dawCAT over http:// (e.g. python -m http.server) rather than https, and try again.`;
+      // Two different browser rules land here, and naming the wrong one sends
+      // you chasing the wrong fix — the remedy is the same, but "just use
+      // 127.0.0.1" is NOT it: a public HTTPS page can't reach loopback either.
+      const mechanism = LOOPBACK_HOST.test(target.hostname)
+        ? `Loopback addresses like ${target.hostname} are exempt from mixed-content blocking, but a browser still refuses to let a page on an HTTPS site open a connection into your local network, so switching between 127.0.0.1 and localhost will not help`
+        : `A browser will not let an HTTPS page call a plain-http:// address like ${where} — the request is blocked as mixed content and never leaves the page`;
+      const extra = [];
+      if (PRIVATE_LAN_HOST.test(target.hostname)) {
+        extra.push(`${target.hostname} is an address on your local network — if llama-server is running on this same machine, 127.0.0.1 is the address you want`);
+        if (/\.1$/.test(target.hostname)) extra.push(`and ${target.hostname} specifically is the usual address of a home router, not of your own computer, so llama-server is very unlikely to be there`);
+      }
+      return `dawCAT is being served over HTTPS (${location.origin}) — that is what is blocking this, not llama-server. ${mechanism}. Serve dawCAT over plain http instead: ${HTTP_SERVE_HINT}.${extra.length ? ' Also: ' + extra.join(', ') + '.' : ''}`;
     }
 
     let reachable = false;
@@ -214,6 +256,7 @@ export class AgentPanel {
       const text = await response.text();
       let data; try { data = JSON.parse(text); } catch { throw new Error(this.notJsonHint(outbound.url, response, text)); }
       if (!response.ok) throw new Error(data.error?.message || data.message || `Provider HTTP ${response.status}`);
+      if (isTruncatedResponse(settings.provider, data)) throw new Error(`The model hit the Max tokens limit (${settings.maxTokens}) before it finished the plan. Reasoning models spend tokens thinking before they answer, so the budget has to cover both — raise Max tokens (try 8000), or set Reasoning to "none".`);
       this.plan = validateAgentPlan(extractJson(extractProviderText(settings.provider, data)));
       this.log(`${settings.provider}/${settings.model} [${this.mode}]: ${this.plan.summary}`);
       // Apply automatically — no confirmation step. A bad plan rolls the
