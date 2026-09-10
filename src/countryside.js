@@ -787,18 +787,20 @@ export class Countryside {
 
   /**
    * Japanese river-stone cobbles (isogata) with a relief normal map. The
-   * default variant tiles across the road ribbon's 0..1 UVs; `worldScaled`
-   * returns a variant for boxes whose UVs are in metres (bridge deck, ramps).
+   * sheet is a 4x4 mosaic of five interlocking patterns, so both repeats are
+   * a quarter of what a single tile would want. The default variant tiles
+   * across the road ribbon's 0..1 UVs; `worldScaled` returns a variant for
+   * boxes whose UVs are in metres (bridge deck, ramps).
    */
   getCobbleMaterial(worldScaled = false) {
     if (worldScaled) {
       if (!this._cobbleWorldMat) {
-        this._cobbleWorldMat = texturedMaterial(TEX.cobble, { color: 0xe4dccc, roughness: 0.84, normalScale: 0.9, repeat: [0.65, 0.65] });
+        this._cobbleWorldMat = texturedMaterial(TEX.cobble, { color: 0xe4dccc, roughness: 0.84, normalScale: 0.9, repeat: [0.1625, 0.1625] });
       }
       return this._cobbleWorldMat;
     }
     if (!this._cobbleMat) {
-      this._cobbleMat = texturedMaterial(TEX.cobble, { color: 0xe4dccc, roughness: 0.84, normalScale: 0.9, repeat: [2.4, 2.0] });
+      this._cobbleMat = texturedMaterial(TEX.cobble, { color: 0xe4dccc, roughness: 0.84, normalScale: 0.9, repeat: [0.6, 0.5] });
       this._cobbleMat.userData.uvPanel = true;
     }
     return this._cobbleMat;

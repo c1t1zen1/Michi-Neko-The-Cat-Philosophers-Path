@@ -342,53 +342,164 @@ export function tatamiTextures(color = 0xa9b476) {
   });
 }
 
-/** River-stone cobbles: a Voronoi pavement with domed, individually tinted stones. */
+/**
+ * River-stone cobbles: five interlocking pavements shuffled into a mosaic.
+ *
+ * Each pattern is a Voronoi pavement whose seeds fall into two groups. The
+ * stones sitting on the tile's wrap lines are shared by all five patterns —
+ * toroidal distance makes one of those seeds act on both sides of a seam —
+ * while the interior seeds are unique per pattern and kept clear of the
+ * lines. Any two patterns therefore meet with the same stones across a join,
+ * so the five can be laid down in any order: here a shuffled GRID x GRID
+ * mosaic, with the stone palette rotated per cell and a slow wear field
+ * drifting over the whole sheet. The road's pattern repeats every four tiles
+ * instead of every one, and every stone still lines up with its neighbours.
+ */
 export function cobbleTextures(seed = 4) {
   return cached('cobble' + seed, () => {
-    const size = 256;
-    const n = 42;
-    const pts = [];
-    for (let i = 0; i < n; i++) pts.push([hash2(i, 1, seed), hash2(i, 2, seed)]);
-    const height = new Float32Array(size * size);
-    const cellId = new Int16Array(size * size);
-    const edge = new Float32Array(size * size);
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const u = x / size, v = y / size;
-        let d1 = 9, d2 = 9, id = 0;
-        for (let i = 0; i < n; i++) {
-          // Toroidal distance for seamless tiling
-          let dx = Math.abs(u - pts[i][0]); if (dx > 0.5) dx = 1 - dx;
-          let dy = Math.abs(v - pts[i][1]); if (dy > 0.5) dy = 1 - dy;
-          const d = Math.sqrt(dx * dx + dy * dy * 1.15);
-          if (d < d1) { d2 = d1; d1 = d; id = i; }
-          else if (d < d2) d2 = d;
+    const TILE = 256, GRID = 4, SIZE = TILE * GRID;
+    const VARIANTS = 5;
+    const SEAM = 6;              // stones strung along each wrap line
+    const SHARED = SEAM * 2 + 1; // seed ids below this straddle a seam
+    const CLEAR = 0.16;          // interior seeds stay this far off the wrap lines
+    const wrapD = (a, b) => { const d = Math.abs(a - b); return d > 0.5 ? 1 - d : d; };
+
+    // Seeds on the u = 0 and v = 0 wrap lines, common to all five patterns:
+    // id 0 sits on the crossing itself (one stone per corner rather than a
+    // rosette of slivers), then SEAM ids up each line.
+    // The third component is a size bias: subtracting it from the distance
+    // swells or shrinks that stone, so the pavement mixes big and small.
+    const shared = [[(hash2(0, 40, seed) - 0.5) * 0.06, (hash2(0, 45, seed) - 0.5) * 0.06, (hash2(0, 46, seed) - 0.5) * 0.05]];
+    for (let k = 0; k < SEAM; k++) {
+      const along = (k + 1 + (hash2(k, 41, seed) - 0.5) * 0.5) / (SEAM + 1);
+      shared.push([(hash2(k, 42, seed) - 0.5) * 0.07, along, (hash2(k, 47, seed) - 0.5) * 0.05]);
+    }
+    for (let k = 0; k < SEAM; k++) {
+      const along = (k + 1 + (hash2(k, 43, seed) - 0.5) * 0.5) / (SEAM + 1);
+      shared.push([along, (hash2(k, 44, seed) - 0.5) * 0.07, (hash2(k, 48, seed) - 0.5) * 0.05]);
+    }
+
+    // Interior seeds: dart-thrown per pattern so the stones stay evenly sized.
+    const seedsFor = (variant) => {
+      const pts = shared.slice();
+      for (let tries = 0; pts.length < shared.length + 24 && tries < 900; tries++) {
+        const u = CLEAR + hash2(tries, 51 + variant * 7, seed) * (1 - 2 * CLEAR);
+        const v = CLEAR + hash2(tries, 52 + variant * 7, seed) * (1 - 2 * CLEAR);
+        let ok = true;
+        for (let i = 0; i < pts.length; i++) {
+          const dx = wrapD(u, pts[i][0]), dy = wrapD(v, pts[i][1]);
+          if (dx * dx + dy * dy < 0.1 * 0.1) { ok = false; break; }
         }
-        const gap = d2 - d1; // 0 at the mortar line
-        const stone = smooth(Math.max(0, Math.min(1, (gap - 0.005) / 0.028)));
-        const dome = stone * (1 - Math.min(1, d1 / 0.15)) * 0.6 + stone * 0.4;
-        height[y * size + x] = dome + (fbm(u, v, 40, 2, seed + 8) - 0.5) * 0.08;
-        cellId[y * size + x] = id;
-        edge[y * size + x] = stone;
+        if (ok) pts.push([u, v, (hash2(tries, 53 + variant * 7, seed) - 0.5) * 0.05]);
+      }
+      return pts;
+    };
+
+    // One pattern's Voronoi fields: dome height, seed id, stone-vs-mortar mask.
+    const rasterise = (pts) => {
+      const n = pts.length;
+      const height = new Float32Array(TILE * TILE);
+      const ids = new Int16Array(TILE * TILE);
+      const mask = new Float32Array(TILE * TILE);
+      for (let y = 0; y < TILE; y++) {
+        for (let x = 0; x < TILE; x++) {
+          const u = x / TILE, v = y / TILE;
+          let d1 = 9, d2 = 9, id = 0;
+          for (let i = 0; i < n; i++) {
+            const dx = wrapD(u, pts[i][0]), dy = wrapD(v, pts[i][1]);
+            const d = Math.sqrt(dx * dx + dy * dy * 1.15) - pts[i][2];
+            if (d < d1) { d2 = d1; d1 = d; id = i; }
+            else if (d < d2) d2 = d;
+          }
+          const stone = smooth(Math.max(0, Math.min(1, (d2 - d1 - 0.005) / 0.028)));
+          const crown = Math.max(0, d1) / 0.15;
+          const i = y * TILE + x;
+          mask[i] = stone;
+          ids[i] = id;
+          height[i] = stone * (1 - Math.min(1, crown)) * 0.6 + stone * 0.4;
+        }
+      }
+      return { height, ids, mask };
+    };
+    const patterns = [];
+    for (let v = 0; v < VARIANTS; v++) patterns.push(rasterise(seedsFor(v)));
+
+    const tones = [
+      [0.80, 0.76, 0.68], [0.72, 0.68, 0.62], [0.85, 0.81, 0.72], [0.67, 0.65, 0.61],
+      [0.88, 0.83, 0.74], [0.76, 0.72, 0.66], [0.70, 0.68, 0.66], [0.82, 0.77, 0.67],
+      [0.66, 0.63, 0.58], [0.84, 0.81, 0.76], [0.74, 0.71, 0.63]
+    ];
+    const mortar = [0.55, 0.50, 0.42];
+
+    // Deal the five evenly over the grid rather than picking each cell at
+    // random, which would leave one pattern in half the cells and another
+    // unused; a seeded shuffle keeps the mix balanced but unpredictable.
+    const deal = [];
+    for (let i = 0; i < GRID * GRID; i++) deal.push(i % VARIANTS);
+    for (let i = deal.length - 1; i > 0; i--) {
+      const j = (hash2(i, 17, seed + 2) * (i + 1)) | 0;
+      const t = deal[i]; deal[i] = deal[j]; deal[j] = t;
+    }
+
+    const height = new Float32Array(SIZE * SIZE);
+    const mask = new Float32Array(SIZE * SIZE);
+    const tone = new Int16Array(SIZE * SIZE);
+    const lift = new Float32Array(SIZE * SIZE);
+    // A seam stone is split between two cells, so its tone and brightness are
+    // keyed to the seam it straddles rather than to either cell — otherwise
+    // the two halves would part company down the middle of the stone.
+    for (let gy = 0; gy < GRID; gy++) {
+      for (let gx = 0; gx < GRID; gx++) {
+        const src = patterns[deal[gy * GRID + gx]];
+        const shift = (hash2(gx, gy, seed + 4) * 9973) | 0;
+        for (let y = 0; y < TILE; y++) {
+          for (let x = 0; x < TILE; x++) {
+            const s = y * TILE + x;
+            const d = (gy * TILE + y) * SIZE + gx * TILE + x;
+            height[d] = src.height[s];
+            mask[d] = src.mask[s];
+            const id = src.ids[s];
+            const sx = (x < TILE / 2 ? gx : gx + 1) % GRID;
+            const sy = (y < TILE / 2 ? gy : gy + 1) % GRID;
+            let key;
+            if (id >= SHARED) key = (id * 7919 + shift) | 0;                    // interior: per cell
+            else if (id === 0) key = (hash2(sx, sy, seed + 5) * 99991) | 0;      // corner: per crossing
+            else if (id <= SEAM) key = (hash2(sx, gy, seed + 6 + id * 31) * 99991) | 0;
+            else key = (hash2(gx, sy, seed + 7 + id * 31) * 99991) | 0;
+            tone[d] = key % tones.length;
+            lift[d] = ((key / 13) | 0) % 11 / 11 - 0.5;
+          }
+        }
       }
     }
-    const tones = [[0.80, 0.76, 0.68], [0.73, 0.69, 0.62], [0.84, 0.80, 0.72], [0.68, 0.65, 0.60], [0.88, 0.83, 0.74], [0.76, 0.72, 0.66], [0.70, 0.68, 0.66]];
-    const mortar = [0.55, 0.50, 0.42];
+
+    // Grit and the settled undulation of the pavement run across the whole
+    // sheet, so neither picks up the cell grid.
+    for (let y = 0; y < SIZE; y++) {
+      for (let x = 0; x < SIZE; x++) {
+        const u = x / SIZE, v = y / SIZE;
+        height[y * SIZE + x] += (fbm(u, v, 160, 2, seed + 8) - 0.5) * 0.08
+          + (fbm(u, v, 6, 3, seed + 9) - 0.5) * 0.1;
+      }
+    }
+
     const out = [0, 0, 0];
-    const canvas = fieldToCanvas(size, (x, y, o) => {
-      const i = y * size + x;
-      const id = cellId[i];
-      const tone = tones[id % tones.length];
-      const stone = edge[i];
-      const h = height[i];
-      const grit = fbm(x / size, y / size, 32, 3, seed + 11);
-      mix3(mortar, tone, stone, out);
-      const shade = 0.78 + h * 0.34 + (grit - 0.5) * 0.14;
-      o[0] = out[0] * shade; o[1] = out[1] * shade; o[2] = out[2] * shade;
+    const canvas = fieldToCanvas(SIZE, (x, y, o) => {
+      const i = y * SIZE + x;
+      const u = x / SIZE, v = y / SIZE;
+      const grit = fbm(u, v, 128, 3, seed + 11);
+      const wear = fbm(u, v, 4, 4, seed + 13);
+      mix3(mortar, tones[tone[i]], mask[i], out);
+      const damp = Math.max(0, wear - 0.64) * 1.3; // rain-darkened patches
+      const shade = 0.78 + height[i] * 0.34 + (grit - 0.5) * 0.14 + (wear - 0.5) * 0.13
+        + lift[i] * mask[i] * 0.15;
+      o[0] = out[0] * shade * (1 - damp * 0.16);
+      o[1] = out[1] * shade * (1 - damp * 0.13);
+      o[2] = out[2] * shade * (1 - damp * 0.07);
     });
     return {
-      map: finishTexture(canvas, { repeat: [1, 1] }),
-      normalMap: heightToNormal(height, size, 2.2)
+      map: finishTexture(canvas, { repeat: [1, 1], aniso: 16 }),
+      normalMap: heightToNormal(height, SIZE, 2.2)
     };
   });
 }
