@@ -10,10 +10,10 @@
    a network error here, not a nicer one — there's no proxy left to hide it.
 
    Plan apply is automatic — the plan runs the instant a full, validated
-   response comes back, no separate confirm step. Opened from the AI Agent
-   menu; closing it does not cancel an in-flight request, so generation keeps
-   running in the background and the panel just shows whatever state it's in
-   when reopened. */
+   response comes back, no separate confirm step. Opened by the "✦ AI Agent"
+   button in the menu bar (one click, no dropdown); closing it does not cancel
+   an in-flight request, so generation keeps running in the background and the
+   panel just shows whatever state it's in when reopened. */
 import { normalizeAgentSettings, createProviderRequest, createModelsRequest, extractModelList, extractJson, extractProviderText, validateAgentPlan } from '../agent-protocol.js';
 
 const SETTINGS_KEY = 'michi-neko-dawcat-agent-settings-v1';
@@ -24,7 +24,13 @@ const PRESETS = {
   custom: { baseUrl: 'http://127.0.0.1:3000/v1', model: 'custom-model' },
   openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-5.2' },
   openrouter: { baseUrl: 'https://openrouter.ai/api/v1', model: 'openai/gpt-5.2' },
-  anthropic: { baseUrl: 'https://api.anthropic.com/v1', model: 'claude-opus-4-6' }
+  anthropic: { baseUrl: 'https://api.anthropic.com/v1', model: 'claude-opus-5' }
+};
+
+const MODE_HINTS = {
+  remix: 'Remix — rework the song cue already loaded in the project: new takes on its clips, presets, FX and mix.',
+  write: 'Write — compose a brand-new piece from your prompt, building fresh tracks and clips.',
+  free: 'Free — adjust anything in the composition: add or remove tracks, clips, devices, mix and tempo.'
 };
 
 function escapeHtml(value) { return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char]); }
@@ -38,24 +44,49 @@ export class AgentPanel {
     this.mode = 'free';
     this.bind();
     this.loadSettings();
+    this.setMode('free');
     this.log('Agent harness initialized');
   }
 
   bind() {
     $('#agent-close').addEventListener('click', () => this.close());
-    $('#agent-provider').addEventListener('change', () => { const preset = PRESETS[$('#agent-provider').value]; $('#agent-base-url').value = preset.baseUrl; $('#agent-model').value = preset.model; this.saveSettings(); });
+    // Switching service swaps in that provider's defaults and drops the model
+    // list from the previous one — those ids don't exist on the new endpoint.
+    $('#agent-provider').addEventListener('change', () => {
+      const preset = PRESETS[$('#agent-provider').value];
+      $('#agent-base-url').value = preset.baseUrl;
+      $('#agent-model').value = preset.model;
+      this.setModelOptions([]);
+      this.saveSettings();
+    });
     for (const id of ['agent-base-url', 'agent-model', 'agent-api-key', 'agent-temperature', 'agent-top-p', 'agent-max-tokens', 'agent-reasoning']) $(`#${id}`).addEventListener('change', () => this.saveSettings());
+    // The text input is the source of truth; picking from the scanned list
+    // just writes into it, so a typed id and a scanned id are the same thing.
+    $('#agent-model-select').addEventListener('change', (e) => { if (e.target.value) { $('#agent-model').value = e.target.value; this.saveSettings(); } });
     $('#agent-scan-models').addEventListener('click', () => this.scanModels());
     document.querySelectorAll('.agent-modes button[data-mode]').forEach((button) => {
-      button.addEventListener('click', () => {
-        this.mode = button.dataset.mode;
-        document.querySelectorAll('.agent-modes button[data-mode]').forEach((b) => b.classList.toggle('active', b === button));
-      });
+      button.addEventListener('click', () => this.setMode(button.dataset.mode));
     });
     $('#agent-send').addEventListener('click', () => this.generate());
     $('#agent-stop').addEventListener('click', () => this.stop());
     $('#agent-undo').addEventListener('click', () => this.callbacks.undo?.());
     $('#agent-export-plan').addEventListener('click', () => this.plan && download(`dawcat-agent-plan-${Date.now()}.json`, JSON.stringify(this.plan, null, 2)));
+  }
+
+  setMode(mode) {
+    this.mode = MODE_HINTS[mode] ? mode : 'free';
+    document.querySelectorAll('.agent-modes button[data-mode]').forEach((b) => b.classList.toggle('active', b.dataset.mode === this.mode));
+    $('#agent-mode-hint').textContent = MODE_HINTS[this.mode];
+  }
+
+  // Fills the scanned-model dropdown. The first option is always the "no
+  // list yet" placeholder, so an empty list (or a provider switch) leaves a
+  // dropdown that explains itself rather than an empty one.
+  setModelOptions(models) {
+    const select = $('#agent-model-select');
+    const head = models.length ? `<option value="">— ${models.length} model(s) from this API —</option>` : '<option value="">— scan to list this API\'s models —</option>';
+    select.innerHTML = head + models.map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+    select.value = models.includes($('#agent-model').value) ? $('#agent-model').value : '';
   }
 
   open() { $('#agent-panel').classList.add('open'); $('#agent-prompt').focus(); this.callbacks.onToggle?.(true); }
@@ -89,6 +120,8 @@ export class AgentPanel {
   async scanModels() {
     const settings = this.settings(); this.saveSettings();
     const { url, headers } = createModelsRequest(settings);
+    const button = $('#agent-scan-models');
+    button.disabled = true;
     this.state(`Scanning models at ${url}…`, 'busy');
     try {
       let response;
@@ -98,12 +131,13 @@ export class AgentPanel {
       let data; try { data = JSON.parse(text); } catch { throw new Error('Model list response was not JSON.'); }
       if (!response.ok) throw new Error(data.error?.message || data.message || `Model list HTTP ${response.status}`);
       const models = extractModelList(data);
-      const listEl = $('#agent-model-list');
-      listEl.innerHTML = models.map((m) => `<option value="${escapeHtml(m)}">`).join('');
-      this.state(models.length ? `Found ${models.length} model(s) — click the Model field to pick one.` : 'Scan succeeded but returned no models.');
+      this.setModelOptions(models);
+      this.state(models.length ? `Loaded ${models.length} model(s) — pick one from the Model dropdown.` : 'Scan succeeded but this API returned no models — type a model id instead.');
       this.log(`Scanned ${models.length} model(s) from ${settings.baseUrl}`);
     } catch (error) {
       this.state(error.message, 'error');
+    } finally {
+      button.disabled = false;
     }
   }
 

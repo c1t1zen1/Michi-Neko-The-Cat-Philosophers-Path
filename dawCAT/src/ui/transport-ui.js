@@ -64,11 +64,15 @@ function buildMenus(app) {
         { label: 'Preview Game SFX ▸', onClick: () => app.previewSfxDialog() }
       ]
     },
+    // No dropdown: the menu bar item IS the button. One click on "✦ AI Agent"
+    // opens the composition agent, instead of opening a menu whose only entry
+    // then had to be clicked a second time.
     {
-      name: 'AI Agent',
-      entries: [
-        { label: 'Open AI Composition Agent', onClick: () => app.agentPanel.toggle() }
-      ]
+      name: '✦ AI Agent',
+      action: true,
+      id: 'menu-ai-agent',
+      title: 'Open the AI composition agent — Remix / Write / Free',
+      onClick: () => app.openAgent()
     },
     {
       name: 'Help',
@@ -82,6 +86,12 @@ function buildMenus(app) {
   ];
 
   for (const menu of menus) {
+    if (menu.action) {
+      const button = el('div', { id: menu.id, class: 'menu-item menu-action', text: menu.name, title: menu.title || menu.name });
+      button.addEventListener('click', (e) => { e.stopPropagation(); closeMenus(); menu.onClick(); });
+      host.append(button);
+      continue;
+    }
     const item = el('div', { class: 'menu-item', text: menu.name });
     const drop = el('div', { class: 'menu-drop' });
     for (const entry of menu.entries) {

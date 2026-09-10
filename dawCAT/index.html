@@ -67,7 +67,7 @@
             <option value="1/16">1/16</option>
             <option value="off">Off</option>
           </select>
-        </span>
+        </label>
         <div class="zoom-ctl">Zoom:
           <button id="zoom-out">−</button>
           <input type="range" id="zoom-range" min="16" max="160" value="48">
@@ -125,25 +125,25 @@
     <div class="agent-scroll">
       <section class="agent-block">
         <h3>PROVIDER</h3>
-        <div class="agent-grid two">
-          <label>Service<select id="agent-provider"><option value="local">Local / llama-server</option><option value="custom">Custom / OpenAI-compatible</option><option value="openai">OpenAI</option><option value="openrouter">OpenRouter</option><option value="anthropic">Anthropic</option></select></label>
-          <label>
-            <span class="label-row">Model <button id="agent-scan-models" type="button" title="Scan available models from this Base URL">🔍</button></span>
-            <input id="agent-model" list="agent-model-list" autocomplete="off" spellcheck="false" placeholder="Scan, or type a model id">
-            <datalist id="agent-model-list"></datalist>
-          </label>
-        </div>
+        <label>Service<select id="agent-provider"><option value="local">Local / llama-server</option><option value="custom">Custom / OpenAI-compatible</option><option value="openai">OpenAI</option><option value="openrouter">OpenRouter</option><option value="anthropic">Anthropic</option></select></label>
         <label>Base URL<input id="agent-base-url" spellcheck="false"></label>
         <label>API key<input id="agent-api-key" type="password" autocomplete="off" placeholder="Kept in this browser session only"></label>
+        <label>
+          <span class="label-row">Model <button id="agent-scan-models" type="button" title="Load every model this Base URL offers (GET /models)">⟳ SCAN MODELS</button></span>
+          <select id="agent-model-select"><option value="">— scan to list this API's models —</option></select>
+          <input id="agent-model" autocomplete="off" spellcheck="false" placeholder="…or type a model id">
+        </label>
         <div class="agent-grid four"><label>Temperature<input id="agent-temperature" type="number" min="0" max="2" step="0.05"></label><label>Top P<input id="agent-top-p" type="number" min="0.01" max="1" step="0.05"></label><label>Max tokens<input id="agent-max-tokens" type="number" min="128" max="32000" step="128"></label><label>Reasoning<select id="agent-reasoning"><option>none</option><option>low</option><option selected>medium</option><option>high</option></select></label></div>
       </section>
       <section class="agent-block grow">
-        <h3>PROMPT</h3>
+        <h3>MODE</h3>
         <div class="agent-modes">
-          <button data-mode="remix" title="Send the current composition and ask the model to rework it">REMIX</button>
-          <button data-mode="write" title="Ask the model to write a brand-new composition">WRITE</button>
-          <button data-mode="free" class="active" title="Anything from a small tweak to a full remix or new composition">FREE MODE</button>
+          <button type="button" data-mode="remix" title="Rework a song cue that is already loaded in the project">REMIX</button>
+          <button type="button" data-mode="write" title="Write a brand-new composition from your prompt">WRITE</button>
+          <button type="button" data-mode="free" class="active" title="Adjust anything: add or remove tracks, clips, FX, tempo, mix">FREE</button>
         </div>
+        <div id="agent-mode-hint" class="agent-hint">Free — adjust anything in the composition: add or remove tracks, clips, devices, mix and tempo.</div>
+        <h3>PROMPT</h3>
         <textarea id="agent-prompt" placeholder="Example: Add a warm pad track and a koto pluck track for a calm dawn cue in C pentatonic, around 90 BPM, with a light drum groove."></textarea>
         <div class="agent-actions"><button id="agent-send" class="primary">SEND</button><button id="agent-stop">STOP</button></div>
         <div id="agent-state" class="agent-state">Ready. Changes apply automatically as soon as the model responds — Undo Last / Ctrl+Z reverts the whole thing in one step.</div>

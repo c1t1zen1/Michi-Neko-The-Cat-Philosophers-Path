@@ -38,6 +38,7 @@ The [AI composition agent](#ai-composition-agent) needs nothing extra either —
 | **Inspector** | Three tabs: **Track** (name, color, M/S/arm, sends, kit) and clip properties, **Mixer** (compact strip for the selected track), **Plugins** (chip list of the track's device chain, click to jump to Device Chain), **Metadata** (project name, tempo, time signature, key/scale, day-phase section markers, cue-scan summary). |
 | **Device Chain** (bottom) | Per-track rack: Analog synth editor, EQ Eight (real filter-response curve, including the high-pass stage), Compressor, Delay, Reverb, Auto Filter, Chorus, Utility. Automatable parameters can be drawn onto arrangement automation lanes. |
 | **Transport** | Play/stop/record, loop, metronome, tempo (click to edit), position, CPU/VOX meters. |
+| **✦ AI Agent** (menu bar) | One click opens the [AI composition agent](#ai-composition-agent) — pick a provider, scan its models, choose Remix / Write / Free, and prompt. |
 
 ### Game Cues (the fun part)
 
@@ -70,21 +71,21 @@ Both the hot-swap snippet and `music.js` carry each track's full **device chain*
 
 ## AI composition agent
 
-Open it from **AI Agent ▸ Open AI Composition Agent** in the top menu bar. It's a floating panel, not a view swap — whatever you were looking at stays visible underneath. **Closing the panel doesn't stop a request in flight** — it keeps generating in the background; reopen the menu to see where it's at.
+Open it with the **✦ AI Agent** button in the top menu bar. It's a button, not a menu — one click opens the agent, there's no dropdown entry to hunt for — and it lights up while the panel is open. The panel floats above whatever view you're in rather than swapping it, so your arrangement stays visible underneath. **Closing the panel doesn't stop a request in flight** — it keeps generating in the background; click **✦ AI Agent** again to see where it's at.
 
 Describe a melody, rhythm, or idea in plain language; the agent turns it into a constrained JSON plan of DAW actions — new or reworked tracks, clips (notes or drum steps), presets, FX, mix levels, tempo/key/scale/swing, the master fader — that dawCAT validates and **applies automatically the moment the full response comes back**, no separate confirm step. It cannot execute arbitrary JavaScript, touch game or project files, or do anything outside the action list below. `Ctrl+Z` or **Undo Last** reverts the whole plan in one step if you don't like the result. Same harness shape as cadJS's design agent, adapted for music instead of geometry.
 
 No server, no npm, no build step — the panel calls your configured provider's API **directly from the browser** with `fetch()`, exactly like curling it yourself. That means it lives or dies by that provider's own CORS policy: a local inference server (llama-server, LM Studio, Ollama's OpenAI-compatible endpoint) overwhelmingly allows cross-origin requests by default, which is the whole point of running one, so this just works for the common case. A cloud provider that blocks browser origins will surface as a plain network error in the panel — there's no proxy left to paper over that, and dawCAT doesn't ship one.
 
-### Remix / Write / Free Mode
+### Remix / Write / Free
 
-Three buttons above the prompt box pick how the request is framed — all three see the same full context (every track's real clip content, not just a count), so any of them can act on what's already in the project:
+Three buttons above the prompt box pick how the request is framed (the line under them spells out what the selected mode does) — all three see the same full context (every track's real clip content, not just a count), so any of them can act on what's already in the project:
 
 | Mode | What it tells the model |
 |---|---|
 | **Remix** | Rework the existing composition — prefer altering what's there (swap a clip's content, retune a preset, tweak a device, adjust mix) over piling on unrelated new tracks. |
 | **Write** | Compose something new — prefer adding fresh tracks/clips, only touching existing ones if the request needs it. |
-| **Free Mode** | Follow the request exactly as given, whether that's a one-line tweak, a full remix, a new composition, or all of the above. |
+| **Free** | Follow the request exactly as given — adjust anything in the composition: add or remove tracks, clips, devices, mix, tempo. A one-line tweak, a full remix, a new composition, or all of the above. |
 
 ### Providers
 
@@ -94,7 +95,7 @@ Three buttons above the prompt box pick how the request is framed — all three 
 | Custom / OpenAI-compatible | `http://127.0.0.1:3000/v1` | `custom-model` | Gateway-dependent |
 | OpenAI | `https://api.openai.com/v1` | `gpt-5.2` | Required |
 | OpenRouter | `https://openrouter.ai/api/v1` | `openai/gpt-5.2` | Required |
-| Anthropic | `https://api.anthropic.com/v1` | `claude-opus-4-6` | Required |
+| Anthropic | `https://api.anthropic.com/v1` | `claude-opus-5` | Required |
 
 Base URLs are editable and may need updates as provider availability changes. API keys are kept in browser `sessionStorage` only — never written to project JSON, never logged, and only ever sent to the Base URL you set.
 
@@ -106,7 +107,9 @@ llama-server -m C:\models\your-model.gguf --host 127.0.0.1
 
 ### Picking a model
 
-The Model field is a combo box — type a model id directly, or click **🔍** next to it to `GET {Base URL}/models` and populate a dropdown of what that server actually has loaded, then pick one. Works for local servers, OpenAI, OpenRouter, and Anthropic (its own `/v1/models` endpoint) alike; if a provider doesn't implement that endpoint, the scan just reports nothing found and you can still type the model id by hand.
+Click **⟳ SCAN MODELS** next to the Model label: dawCAT does a `GET {Base URL}/models` against whatever provider you've configured and loads **every model that API offers** into the dropdown below it — pick one and it drops into the model field. Works for local servers, OpenAI, OpenRouter, and Anthropic (its own `/v1/models` endpoint) alike, and understands the OpenAI (`{data:[{id}]}`), bare-array, and Ollama (`{models:[{name}]}`) response shapes.
+
+The text field under the dropdown is the model id actually sent, so you can always just type one — useful if a provider doesn't implement `/models`, or if you want a model that isn't listed. Switching Service resets the list, since another provider's model ids don't exist on the new endpoint.
 
 Anthropic calls include the `anthropic-dangerous-direct-browser-access` header, which is what Anthropic requires to allow a page like this one to call its API straight from a browser with a user-supplied key instead of going through a backend.
 

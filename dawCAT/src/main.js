@@ -87,19 +87,24 @@ class App {
       this.state.emit('selection');
     }
 
+    // The top bar (and with it the "✦ AI Agent" button) is built first and on
+    // its own, so a panel that fails to construct below can never take the
+    // agent's entry point down with it. Anything that does throw is surfaced
+    // as a toast rather than dying silently in the console.
     buildTopbar(this);
-    this.browser = new Browser(this);
-    this.arrangement = new Arrangement(this);
-    this.pianoroll = new PianoRoll(this);
-    this.drumgrid = new DrumGrid(this);
-    this.mixer = new Mixer(this);
-    this.inspector = new Inspector(this);
-    this.devices = new Devices(this);
-    this.agentPanel = new AgentPanel({
-      getContext: () => this.getAgentContext(),
-      executePlan: (plan) => this.executeAgentPlan(plan),
-      undo: () => this.state.undo()
-    });
+    try {
+      this.browser = new Browser(this);
+      this.arrangement = new Arrangement(this);
+      this.pianoroll = new PianoRoll(this);
+      this.drumgrid = new DrumGrid(this);
+      this.mixer = new Mixer(this);
+      this.inspector = new Inspector(this);
+      this.devices = new Devices(this);
+      this.ensureAgentPanel();
+    } catch (err) {
+      console.error('[dawCAT] panel failed to initialize', err);
+      toast(`A panel failed to load: ${err.message}`, true);
+    }
 
     this.wireTabs();
     this.wireSnapZoom();
@@ -472,6 +477,30 @@ class App {
   }
 
   /* ---------- AI composition agent ---------- */
+
+  // Built during init(), but built lazily here too so the "✦ AI Agent" button
+  // still works even if some earlier panel's constructor threw during startup
+  // — the agent was previously unreachable in that case, because a half-failed
+  // init() left this.agentPanel undefined and the menu entry threw on click.
+  ensureAgentPanel() {
+    if (this.agentPanel) return this.agentPanel;
+    this.agentPanel = new AgentPanel({
+      getContext: () => this.getAgentContext(),
+      executePlan: (plan) => this.executeAgentPlan(plan),
+      undo: () => this.state.undo(),
+      onToggle: (open) => document.getElementById('menu-ai-agent')?.classList.toggle('on', open)
+    });
+    return this.agentPanel;
+  }
+
+  openAgent() {
+    try {
+      this.ensureAgentPanel().toggle();
+    } catch (err) {
+      console.error('[dawCAT] AI agent failed to open', err);
+      toast(`AI agent failed to open: ${err.message}`, true);
+    }
+  }
 
   getAgentContext() {
     const p = this.state.project;

@@ -49,7 +49,7 @@ export function normalizeAgentSettings(input = {}) {
     custom: { baseUrl: 'http://127.0.0.1:3000/v1', model: 'custom-model' },
     openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-5.2' },
     openrouter: { baseUrl: 'https://openrouter.ai/api/v1', model: 'openai/gpt-5.2' },
-    anthropic: { baseUrl: 'https://api.anthropic.com/v1', model: 'claude-opus-4-6' }
+    anthropic: { baseUrl: 'https://api.anthropic.com/v1', model: 'claude-opus-5' }
   }[provider];
   return {
     provider,
