@@ -91,6 +91,13 @@ const GLSL_NOISE = /* glsl */`
 `;
 
 /**
+ * Every foliage material built so far, so a quality-tier change can
+ * re-specialise them together.
+ */
+const foliageMaterials = [];
+let foliageLowDetail = false;
+
+/**
  * Build the shared foliage material. `sss` scales sun translucency,
  * `wind` scales canopy sway, `rustle` enables the cat-brush response.
  */
@@ -172,19 +179,31 @@ export function createFoliageMaterial({ sss = 0.32, wind = 1.0, rustle = 0.0, ro
         #include <normal_fragment_begin>
         {
           // Leaf-clump relief: jitter the shading normal with world-space noise
-          // so light breaks into hundreds of small facets across the canopy
+          // so light breaks into hundreds of small facets across the canopy.
+          // The fine octave is the expensive half (three more noise lookups
+          // per fragment) and the one that stops resolving first at distance,
+          // so the low tier drops it — see FOL_LOW in setFoliageDetail().
           vec3 fw = vFolWorld * 3.2;
           vec3 folBump = vec3(folNoise(fw + 1.7), folNoise(fw + 9.1), folNoise(fw + 17.3)) - 0.5;
-          vec3 fw2 = vFolWorld * 9.5;
-          folBump += (vec3(folNoise(fw2 + 3.3), folNoise(fw2 + 5.9), folNoise(fw2 + 12.7)) - 0.5) * 0.5;
+          #ifndef FOL_LOW
+            vec3 fw2 = vFolWorld * 9.5;
+            folBump += (vec3(folNoise(fw2 + 3.3), folNoise(fw2 + 5.9), folNoise(fw2 + 12.7)) - 0.5) * 0.5;
+          #endif
           normal = normalize(normal + (viewMatrix * vec4(folBump, 0.0)).xyz * uBump);
         }
       `)
       .replace('#include <color_fragment>', /* glsl */`
         #include <color_fragment>
         // Painterly mottling: broad patches, leaf clumps and fine speckle so a
-        // canopy reads as thousands of leaves rather than one smooth mass
-        float folM = folNoise(vFolWorld * 0.55) * 0.4 + folNoise(vFolWorld * 2.1) * 0.35 + folNoise(vFolWorld * 6.5) * 0.25;
+        // canopy reads as thousands of leaves rather than one smooth mass.
+        // Dropping the fine speckle on the low tier redistributes its weight
+        // across the two that remain, so the average tone is unchanged and
+        // only the finest grain goes.
+        #ifdef FOL_LOW
+          float folM = folNoise(vFolWorld * 0.55) * 0.53 + folNoise(vFolWorld * 2.1) * 0.47;
+        #else
+          float folM = folNoise(vFolWorld * 0.55) * 0.4 + folNoise(vFolWorld * 2.1) * 0.35 + folNoise(vFolWorld * 6.5) * 0.25;
+        #endif
         diffuseColor.rgb *= 1.0 - uMottle + folM * uMottle * 2.0;
         // Dark crevices between clumps
         float folCrevice = smoothstep(0.62, 0.3, folNoise(vFolWorld * 1.6 + 11.0));
@@ -211,8 +230,32 @@ export function createFoliageMaterial({ sss = 0.32, wind = 1.0, rustle = 0.0, ro
         #include <opaque_fragment>
       `);
   };
-  mat.customProgramCacheKey = () => 'foliage_' + sss + '_' + wind + '_' + rustle + '_' + mottle + '_' + bump + '_' + (vertexColors ? 'vc' : 'ic') + (map ? '_map' : '');
+  // Detail level rides in a #define, so the low tier genuinely skips the
+  // noise lookups instead of multiplying their result by zero. It has to be
+  // part of the cache key or three would hand back the other variant's
+  // compiled program.
+  mat.defines = mat.defines || {};
+  if (foliageLowDetail) mat.defines.FOL_LOW = '';
+  mat.customProgramCacheKey = () => 'foliage_' + sss + '_' + wind + '_' + rustle + '_' + mottle + '_' + bump + '_' + (vertexColors ? 'vc' : 'ic') + (map ? '_map' : '') + (mat.defines.FOL_LOW !== undefined ? '_lod' : '');
+  foliageMaterials.push(mat);
   return mat;
+}
+
+/**
+ * Quality-tier lever: drop the fine bump octave and the fine mottle octave
+ * on the low tier. The canopy shader runs ten world-space noise lookups per
+ * fragment across every leaf, bush and forest pixel in the valley; this
+ * takes that to six. Both dropped octaves are the highest-frequency detail,
+ * which is the first thing a phone screen stops resolving anyway.
+ */
+export function setFoliageDetail(low) {
+  if (foliageLowDetail === low) return;
+  foliageLowDetail = low;
+  for (const mat of foliageMaterials) {
+    if (low) mat.defines.FOL_LOW = '';
+    else delete mat.defines.FOL_LOW;
+    mat.needsUpdate = true;
+  }
 }
 
 /** Shadow-map depth material that honours a leaf card's alpha cut-out. */

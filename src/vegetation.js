@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { barkTextures, texturedMaterial } from './textures.js?v=20260909a';
-import { createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture, buildCanopy, updateFoliage } from './foliage.js?v=20260909a';
+import { barkTextures, texturedMaterial } from './textures.js?v=20260910b';
+import { createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture, buildCanopy, updateFoliage } from './foliage.js?v=20260910b';
 
 function mulberry32(a) {
   return function() {
@@ -81,6 +81,7 @@ export class Vegetation {
       [-36, 24, 1.15], [20, -30, 1.2]
     ];
     this.dappleMeshes = [];
+    this.dapplePools = [];
     for (const [x, z, s] of this.sakuraSpots) this.sakuraTree(x, z, s);
     this.buildDappledLight();
     this.buildPetalDrifts();
@@ -268,6 +269,7 @@ export class Vegetation {
       pool.renderOrder = 1;
       this.scene.add(pool);
       this.dappleMeshes.push(mat);
+      this.dapplePools.push(pool);
     }
   }
 
@@ -1040,6 +1042,8 @@ export class Vegetation {
 
         mesh.count = placed;
         mesh.userData.fullCount = placed;
+        // Already one mesh per chunk, and setDensity() owns mesh.count.
+        mesh.userData.noChunk = true;
         this.grassMeshes.push(mesh);
         geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases.subarray(0, placed), 1));
         geo.setAttribute('aTint', new THREE.InstancedBufferAttribute(tints.subarray(0, placed * 3), 3));
@@ -1124,6 +1128,7 @@ export class Vegetation {
 
       mesh.count = placed;
       mesh.userData.fullCount = placed;
+      mesh.userData.noChunk = true; // setDensity() owns mesh.count
       this.groundCoverMeshes.push(mesh);
       spec.geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases.subarray(0, placed), 1));
       spec.geo.setAttribute('aTint', new THREE.InstancedBufferAttribute(tints.subarray(0, placed * 3), 3));
@@ -1147,6 +1152,10 @@ export class Vegetation {
     const f = THREE.MathUtils.clamp(fraction, 0.05, 1);
     for (const m of this.grassMeshes) m.count = Math.floor(m.userData.fullCount * f);
     for (const m of this.groundCoverMeshes) m.count = Math.floor(m.userData.fullCount * f);
+    // Dapple pools are additive transparent quads stacked on the ground —
+    // pure overdraw, and the first thing worth thinning on a phone.
+    const pools = Math.round(this.dapplePools.length * f);
+    for (let i = 0; i < this.dapplePools.length; i++) this.dapplePools[i].visible = i < pools;
   }
 
   update(dt, playerPos, sky = null) {

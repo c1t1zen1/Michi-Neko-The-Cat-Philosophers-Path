@@ -50,23 +50,37 @@ export class SettingsManager {
  * Returns true only when the GPU string clearly identifies a discrete
  * vendor part (NVIDIA GeForce/Quadro, AMD Radeon RX, Apple M-series Pro/Max,
  * Intel Arc). Unknown strings resolve to false so auto-tier stays modest.
+ *
+ * The answer cannot change for the life of the page, and the probe costs a
+ * whole WebGL context — browsers cap those (commonly 16) and evict the
+ * oldest, which would be the game's own — so it runs exactly once and the
+ * probe context is handed back immediately.
  */
+let discreteGPU = null;
+
 export function isDiscreteGPU() {
+  if (discreteGPU !== null) return discreteGPU;
+  discreteGPU = false;
+  let gl = null;
   try {
     const c = document.createElement('canvas');
-    const gl = c.getContext('webgl2') || c.getContext('webgl');
-    if (!gl) return false;
+    gl = c.getContext('webgl2') || c.getContext('webgl');
+    if (!gl) return discreteGPU;
     const ext = gl.getExtension('WEBGL_debug_renderer_info');
     const raw = ext
       ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
       : gl.getParameter(gl.RENDERER);
     const s = String(raw || '');
-    if (/nvidia|geforce|quadro|rtx|gtx/i.test(s)) return true;
-    if (/radeon.*(rx|pro|9[0-9]{2})/i.test(s)) return true;
-    if (/apple\s*m[1-9]\s*(pro|max|ultra)/i.test(s)) return true;
-    if (/arc\s*[a-z]*\s*[3-9]/i.test(s)) return true;
-    return false;
+    discreteGPU = /nvidia|geforce|quadro|rtx|gtx/i.test(s) ||
+      /radeon.*(rx|pro|9[0-9]{2})/i.test(s) ||
+      /apple\s*m[1-9]\s*(pro|max|ultra)/i.test(s) ||
+      /arc\s*[a-z]*\s*[3-9]/i.test(s);
   } catch (e) {
-    return false;
+    discreteGPU = false;
+  } finally {
+    // Release the probe context rather than waiting for a GC that may never
+    // come before the renderer asks for its own.
+    try { gl && gl.getExtension('WEBGL_lose_context')?.loseContext(); } catch (e) {}
   }
+  return discreteGPU;
 }

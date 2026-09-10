@@ -49,6 +49,42 @@ export function fbm(u, v, scale, octaves = 4, seed = 0, gain = 0.5) {
   return sum / norm;
 }
 
+/**
+ * A tileable fbm field sampled through a lookup grid.
+ *
+ * `fbm` costs four hash lookups per octave per call, and the big sheets
+ * evaluate several fields at every one of a million pixels. A field whose
+ * finest octave is `scale * 2^(octaves-1)` lattice cells across the tile
+ * carries no detail above that frequency, so a grid a few times finer than
+ * it describes the field completely — sampling a 1024px sheet per-pixel
+ * re-derives the same smooth values twenty times over for the low-frequency
+ * ones. Fields too fine to gain anything fall back to direct evaluation, so
+ * this is always safe to reach for.
+ *
+ * Returns a `(u, v) => number` sampler.
+ */
+export function fbmSampler(scale, octaves, seed, gain = 0.5, outSize = 1024) {
+  const finest = scale * Math.pow(2, octaves - 1);
+  let g = 8;
+  while (g < finest * 4) g *= 2;
+  if (g >= outSize) return (u, v) => fbm(u, v, scale, octaves, seed, gain);
+
+  const data = new Float32Array(g * g);
+  for (let y = 0; y < g; y++) {
+    for (let x = 0; x < g; x++) data[y * g + x] = fbm(x / g, y / g, scale, octaves, seed, gain);
+  }
+  return (u, v) => {
+    const x = u * g, y = v * g;
+    const x0 = Math.floor(x), y0 = Math.floor(y);
+    const fx = x - x0, fy = y - y0;
+    const xa = ((x0 % g) + g) % g, ya = ((y0 % g) + g) % g;
+    const xb = (xa + 1) % g, yb = (ya + 1) % g;
+    const a = data[ya * g + xa], b = data[ya * g + xb];
+    const c = data[yb * g + xa], d = data[yb * g + xb];
+    return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+  };
+}
+
 /** Non-tiling 2D fractal noise for world-space placement (terrain, clumping). */
 export function worldNoise(x, z, scale = 0.05, octaves = 4, seed = 0) {
   let amp = 1, sum = 0, norm = 0, f = scale;
@@ -474,12 +510,19 @@ export function cobbleTextures(seed = 4) {
     }
 
     // Grit and the settled undulation of the pavement run across the whole
-    // sheet, so neither picks up the cell grid.
+    // sheet, so neither picks up the cell grid. The two coarse fields (the
+    // settling and the wear) carry nothing above ~32 cells across a 1024px
+    // sheet, so they come off a lookup grid instead of four million hash
+    // lookups each; the fine grit stays exact.
+    const fSettle = fbmSampler(6, 3, seed + 9, 0.5, SIZE);
+    const fUnder = fbmSampler(160, 2, seed + 8, 0.5, SIZE);
+    const fGrit = fbmSampler(128, 3, seed + 11, 0.5, SIZE);
+    const fWear = fbmSampler(4, 4, seed + 13, 0.5, SIZE);
     for (let y = 0; y < SIZE; y++) {
+      const v = y / SIZE;
       for (let x = 0; x < SIZE; x++) {
-        const u = x / SIZE, v = y / SIZE;
-        height[y * SIZE + x] += (fbm(u, v, 160, 2, seed + 8) - 0.5) * 0.08
-          + (fbm(u, v, 6, 3, seed + 9) - 0.5) * 0.1;
+        const u = x / SIZE;
+        height[y * SIZE + x] += (fUnder(u, v) - 0.5) * 0.08 + (fSettle(u, v) - 0.5) * 0.1;
       }
     }
 
@@ -487,8 +530,8 @@ export function cobbleTextures(seed = 4) {
     const canvas = fieldToCanvas(SIZE, (x, y, o) => {
       const i = y * SIZE + x;
       const u = x / SIZE, v = y / SIZE;
-      const grit = fbm(u, v, 128, 3, seed + 11);
-      const wear = fbm(u, v, 4, 4, seed + 13);
+      const grit = fGrit(u, v);
+      const wear = fWear(u, v);
       mix3(mortar, tones[tone[i]], mask[i], out);
       const damp = Math.max(0, wear - 0.64) * 1.3; // rain-darkened patches
       const shade = 0.78 + height[i] * 0.34 + (grit - 0.5) * 0.14 + (wear - 0.5) * 0.13

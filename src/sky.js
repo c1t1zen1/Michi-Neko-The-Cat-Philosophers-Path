@@ -1,5 +1,18 @@
 import * as THREE from 'three';
 
+/** The nine colour channels every palette carries. */
+const PALETTE_KEYS = ['top', 'mid', 'horizon', 'warm', 'sun', 'hemiSky', 'hemiGround', 'fog', 'cloud'];
+/** Deep sunset bleed mixed into the sun colour as it grazes the horizon. */
+const SUNSET_BLEED = new THREE.Color(0xff6e30);
+
+/** A reusable palette: nine Colors written in place, never reallocated. */
+function paletteBuffer() {
+  const out = {};
+  for (const k of PALETTE_KEYS) out[k] = new THREE.Color();
+  out.cloudOpacity = 1;
+  return out;
+}
+
 export class Sky {
   constructor(scene) {
     this.scene = scene;
@@ -27,6 +40,15 @@ export class Sky {
     // pass (height fog + sun in-scatter) now paints most of the aerial
     // perspective, and it needs the far ridges to still carry their colour.
     scene.fog = new THREE.Fog(0xf2b98a, 110, 420);
+
+    // resolvePalette() is read by the sky, atmosphere, foliage, grass, river,
+    // far ridges and the cat's rim light — seven times a frame. It now
+    // computes once per frame into these buffers instead of allocating a
+    // fresh object and nine Colors on every call.
+    this._pal = paletteBuffer();
+    this._palBase = paletteBuffer();
+    this._palFrame = 0;
+    this._palStamp = -1;
 
     this.envTimer = 0;
     this.envInterval = 25;
@@ -359,7 +381,7 @@ export class Sky {
     this.sun.shadow.camera.bottom = -38;
     this.sun.shadow.bias = -0.00025;
     this.sun.shadow.normalBias = 0.035;
-    this.sun.shadow.radius = 3;
+
     this.scene.add(this.sun);
     this.scene.add(this.sun.target);
 
@@ -373,6 +395,7 @@ export class Sky {
     // Low warm bounce from the sunward horizon — the golden-hour rim light
     // that edges rooves, foliage, and the cat in amber.
     this.bounce = new THREE.DirectionalLight(0xff9a5a, 0.0);
+    this.bounce.visible = false;
     this.bounce.position.set(-60, 6, -40);
     this.scene.add(this.bounce);
     this.scene.add(this.bounce.target);
@@ -434,16 +457,30 @@ export class Sky {
     return { phase, phaseBlend };
   }
 
-  lerpPalette(a, b, t) {
-    const out = {};
-    for (const k of ['top','mid','horizon','warm','sun','hemiSky','hemiGround','fog','cloud']) {
-      out[k] = this.lerpColor(a[k] || a.horizon, b[k] || b.horizon, t, new THREE.Color());
+  /** Blend two palettes into `out` (a paletteBuffer), allocating nothing. */
+  lerpPalette(a, b, t, out) {
+    for (const k of PALETTE_KEYS) {
+      this.lerpColor(a[k] || a.horizon, b[k] || b.horizon, t, out[k]);
     }
     out.cloudOpacity = a.cloudOpacity + (b.cloudOpacity - a.cloudOpacity) * t;
     return out;
   }
 
+  /**
+   * The sky's colour state for this frame: time-of-day base blended toward
+   * the current weather.
+   *
+   * Seven systems ask for this every frame. The result is computed once per
+   * frame into a persistent buffer and handed back to every later caller, so
+   * a frame costs one palette instead of seven — and zero allocations
+   * instead of 63 (126 across sunrise and sunset, where the base is itself a
+   * blend). The returned object is shared and reused: read from it, copy out
+   * of it, never write into it.
+   */
   resolvePalette() {
+    if (this._palStamp === this._palFrame) return this._pal;
+    this._palStamp = this._palFrame;
+
     const { phase, phaseBlend } = this.getDayPhase();
     const dayPal = this.palettes.day;
     const sunsetPal = this.palettes.sunset;
@@ -451,19 +488,19 @@ export class Sky {
 
     let base;
     if (phase === 'night' || phase === 'night2') base = nightPal;
-    else if (phase === 'sunrise') base = this.lerpPalette(nightPal, dayPal, phaseBlend);
-    else if (phase === 'sunset') base = this.lerpPalette(dayPal, sunsetPal, phaseBlend);
+    else if (phase === 'sunrise') base = this.lerpPalette(nightPal, dayPal, phaseBlend, this._palBase);
+    else if (phase === 'sunset') base = this.lerpPalette(dayPal, sunsetPal, phaseBlend, this._palBase);
     else base = dayPal;
 
     // Clear weather has no palette of its own: it must resolve to the
     // time-of-day base, not the day palette, or nights never turn blue.
     const weatherPal = this.palettes[this.targetWeather] || base;
     const w = this.weatherBlend;
-    const out = {};
-    for (const k of ['top','mid','horizon','warm','sun','hemiSky','hemiGround','fog','cloud']) {
+    const out = this._pal;
+    for (const k of PALETTE_KEYS) {
       const bc = base[k] || dayPal[k];
       const wc = weatherPal[k] || bc;
-      out[k] = this.lerpColor(bc, wc, w, new THREE.Color());
+      this.lerpColor(bc, wc, w, out[k]);
     }
     out.cloudOpacity = base.cloudOpacity + (weatherPal.cloudOpacity - base.cloudOpacity) * w;
     return out;
@@ -547,7 +584,7 @@ export class Sky {
     this.sun.color.copy(p.sun);
     // Sunset bleed: the nearer the sun grazes the horizon, the deeper its hue
     const lowSun = Math.max(0, 1 - Math.max(0, sunY) * 2.6);
-    this.sun.color.lerp(new THREE.Color(0xff6e30), lowSun * 0.55 * (sunUp > 0 ? 1 : 0));
+    this.sun.color.lerp(SUNSET_BLEED, lowSun * 0.55 * (sunUp > 0 ? 1 : 0));
 
     this.fill.intensity = 0.28 + moonUp * 0.42;
     this.fill.color.setHSL(0.65, 0.32, 0.42 + moonUp * 0.28);
@@ -559,6 +596,12 @@ export class Sky {
     // Warm horizon bounce tracks the sun low across the sky
     const clearish = 1 - (this.targetWeather === 'clear' ? 0 : this.weatherBlend * 0.55);
     this.bounce.intensity = goldeness * 4.2 * clearish;
+    // The horizon bounce only exists during the two golden-hour bands; the
+    // rest of the cycle it sits at exactly zero and still costs a slot in
+    // NUM_DIR_LIGHTS. Hide it outside those windows — the crossover happens
+    // where it contributes nothing, so there is no visible step.
+    const bounceOn = this.bounce.intensity > (this.bounce.visible ? 0.001 : 0.01);
+    if (bounceOn !== this.bounce.visible) this.bounce.visible = bounceOn;
     this.bounce.color.copy(p.warm);
     this.bounce.position.set(-this.sunDir.x * 90, 5, -this.sunDir.z * 90);
     if (playerPos) this.bounce.target.position.copy(playerPos);
@@ -624,6 +667,9 @@ export class Sky {
 
   update(dt, playerPos) {
     this.time += dt;
+    // Retire this frame's cached palette; the next caller recomputes it once
+    // and everyone after that reads the same buffer.
+    this._palFrame++;
     this.updateWeather(dt);
     this.updateDayNight(dt, playerPos);
   }

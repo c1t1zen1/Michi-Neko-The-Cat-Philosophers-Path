@@ -3,7 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   plasterTextures, woodTextures, shojiTextures, tatamiTextures, stoneTextures,
   strawTextures, metalTextures, texturedMaterial, worldScaleBoxUVs
-} from './textures.js?v=20260909a';
+} from './textures.js?v=20260910b';
 
 const panel = (m) => { m.userData.uvPanel = true; return m; };
 const MAT = {
@@ -147,6 +147,17 @@ export class InteriorManager {
         floorY: this.origin.y + 0.05
       });
     }
+  }
+
+  /**
+   * Light the room only while the cat is in it. Changing the number of
+   * visible lights re-specialises the shaders, so this is called only on the
+   * interior transition, which is already hidden behind the door wipe.
+   */
+  setLightsActive(on) {
+    if (this._lightsActive === on) return;
+    this._lightsActive = on;
+    for (const l of this.roomLights || []) l.visible = on;
   }
 
   update(dt) {
@@ -322,13 +333,21 @@ export class InteriorManager {
 
     // Warm indoor point light
     // Warm andon glow plus a soft ceiling fill (candela-scale intensities)
+    // Three counts every *visible* light in the scene into NUM_POINT_LIGHTS
+    // and every lit fragment loops over all of them — so these two, 100 m
+    // overhead in a room nobody is standing in, were being evaluated on
+    // every surface in the valley. They start dark and only switch on with
+    // the interior itself; the door wipe covers the shader recompile.
     const indoorLight = new THREE.PointLight(0xffb855, 7.5, 12, 1.4);
     indoorLight.position.set(2.8, 1.2, -2.2);
+    indoorLight.visible = false;
     root.add(indoorLight);
 
     const ambientRoomLight = new THREE.PointLight(0xffdfa8, 4.5, 14, 1.2);
     ambientRoomLight.position.set(0, 2.6, 0);
+    ambientRoomLight.visible = false;
     root.add(ambientRoomLight);
+    this.roomLights = [indoorLight, ambientRoomLight];
 
     // 7. Engawa Veranda & Private Zen Courtyard (Right side)
     const engawa = box(1.6, 0.22, 4.4, MAT.timberEngawa, 4.9, 0.11, 0);

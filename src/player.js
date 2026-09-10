@@ -1,7 +1,19 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20260909a';
+import { Cat } from './cat.js?v=20260910b';
+import { ColliderGrid } from './collider_grid.js?v=20260910b';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
+
+// Collision scratch. The resolve loop, the camera ray and the camera
+// push-out run every frame over every candidate box; allocating a Vector3
+// or a cloned Box3 per candidate was a steady drip of garbage with nothing
+// to show for it. These are written and read within a single call.
+const _catCenter = new THREE.Vector3();
+const _boxCenter = new THREE.Vector3();
+const _expandBy = new THREE.Vector3(0.25, 0, 0.45);
+const _expanded = new THREE.Box3();
+const _rayHit = new THREE.Vector3();
+const _pushDir = new THREE.Vector3();
 
 export class Player {
   constructor(scene, camera, audio = null) {
@@ -19,6 +31,12 @@ export class Player {
     this.heading = 0;
 
     this.velocity = new THREE.Vector3();
+    // Broad phase over the world's static colliders, rebuilt only when the
+    // backing array changes (interior and exterior each get their own).
+    this.colliderGrid = new ColliderGrid(8);
+    this.interiorGrid = new ColliderGrid(4);
+    this.nearColliders = [];
+    this.nearCamColliders = [];
     this.isGrounded = false;
     this.speed = 4.5;
     this.sprintMultiplier = 1.7;
@@ -271,8 +289,20 @@ export class Player {
       }
     }
 
-    // Active colliders (interior vs exterior)
+    // Active colliders (interior vs exterior), narrowed to the cat's
+    // neighbourhood. The query rectangle spans both where the cat was and
+    // where it now is, padded past the widest collider expansion used below
+    // (0.45 m) so nothing that could still block the move is filtered out.
     const activeColliders = isInside ? interior.colliders : colliders;
+    const grid = (isInside ? this.interiorGrid : this.colliderGrid).sync(activeColliders || []);
+    const qPad = 1.6;
+    const nearColliders = grid.query(
+      Math.min(prevX, this.mesh.position.x) - qPad,
+      Math.min(prevZ, this.mesh.position.z) - qPad,
+      Math.max(prevX, this.mesh.position.x) + qPad,
+      Math.max(prevZ, this.mesh.position.z) + qPad,
+      this.nearColliders
+    );
 
     // Building collisions
     const catLocalMin = new THREE.Vector3(-0.25, 0, -0.4);
@@ -290,13 +320,13 @@ export class Player {
     // correction prevents stale bounds from allowing a second barrier through.
     for (let pass = 0; pass < 3 && !movementBlocked; pass++) {
       let corrected = false;
-      for (const c of activeColliders || []) {
+      for (const c of nearColliders) {
         catBox = makeCatBox();
         const verticalOverlap = catBox.max.y > c.min.y && catBox.min.y < c.max.y;
         if (!verticalOverlap) continue;
 
-        const currentCenter = catBox.getCenter(new THREE.Vector3());
-        const expanded = c.clone().expandByVector(new THREE.Vector3(0.25, 0, 0.45));
+        const currentCenter = catBox.getCenter(_catCenter);
+        const expanded = _expanded.copy(c).expandByVector(_expandBy);
         const crossedCollider = !expanded.containsPoint(previousCenter) &&
           this.segmentIntersectsBoxXZ(previousCenter, currentCenter, expanded);
 
@@ -310,8 +340,8 @@ export class Player {
         }
 
         if (!catBox.intersectsBox(c)) continue;
-        const catCenter = catBox.getCenter(new THREE.Vector3());
-        const cCenter = c.getCenter(new THREE.Vector3());
+        const catCenter = catBox.getCenter(_catCenter);
+        const cCenter = c.getCenter(_boxCenter);
         const dx = catCenter.x - cCenter.x;
         const dz = catCenter.z - cCenter.z;
         const overlapX = Math.min(catBox.max.x, c.max.x) - Math.max(catBox.min.x, c.min.x);
@@ -352,8 +382,19 @@ export class Player {
     if (this.cat.jumpTime > 0) targetPos.y += 0.05 * (this.cat.jumpTime / 0.25);
     if (this.cat.landTime > 0) targetPos.y -= 0.08 * (this.cat.landTime / 0.3);
 
-    // Soft camera collision against active colliders
+    // Soft camera collision against active colliders. The camera swings well
+    // outside the cat's own query, so the boom gets its own rectangle: the
+    // span from the eye to the desired camera position, padded for the
+    // push-out pass below, which reuses this same candidate set.
     const eye = this.mesh.position.clone().add(new THREE.Vector3(0, 0.35, 0));
+    const camPad = 1.0;
+    const camColliders = grid.query(
+      Math.min(eye.x, targetPos.x, this.camera.position.x) - camPad,
+      Math.min(eye.z, targetPos.z, this.camera.position.z) - camPad,
+      Math.max(eye.x, targetPos.x, this.camera.position.x) + camPad,
+      Math.max(eye.z, targetPos.z, this.camera.position.z) + camPad,
+      this.nearCamColliders
+    );
     const toCam = new THREE.Vector3().subVectors(targetPos, eye);
     const dist = toCam.length();
     let obstructed = false;
@@ -361,12 +402,11 @@ export class Player {
       const dir = toCam.clone().normalize();
       const ray = new THREE.Ray(eye, dir);
       let nearest = dist;
-      for (const c of activeColliders || []) {
+      for (const c of camColliders) {
         // Skip boxes that contain the eye (e.g. bush colliders around the cat)
         if (c.containsPoint(eye)) continue;
-        const hit = new THREE.Vector3();
-        if (ray.intersectBox(c, hit)) {
-          const d = hit.distanceTo(eye);
+        if (ray.intersectBox(c, _rayHit)) {
+          const d = _rayHit.distanceTo(eye);
           if (d > 0.05 && d < nearest) nearest = d;
         }
       }
@@ -393,19 +433,20 @@ export class Player {
       this.camera.position.copy(eye).add(camToCat);
     }
     // Push the camera out of any collider box it ended up inside
-    for (const c of activeColliders || []) {
+    for (const c of camColliders) {
       if (c.containsPoint(this.camera.position)) {
         // Move camera to the nearest face of the box, biased upward
         const p = this.camera.position;
-        const pushes = [
-          { d: p.x - c.min.x, v: new THREE.Vector3(-1, 0, 0) },
-          { d: c.max.x - p.x, v: new THREE.Vector3(1, 0, 0) },
-          { d: c.max.y - p.y, v: new THREE.Vector3(0, 1, 0) },
-          { d: p.z - c.min.z, v: new THREE.Vector3(0, 0, -1) },
-          { d: c.max.z - p.z, v: new THREE.Vector3(0, 0, 1) }
-        ];
-        pushes.sort((a, b) => a.d - b.d);
-        p.addScaledVector(pushes[0].v, pushes[0].d + 0.12);
+        let best = p.x - c.min.x;
+        _pushDir.set(-1, 0, 0);
+        const consider = (d, x, y, z) => {
+          if (d < best) { best = d; _pushDir.set(x, y, z); }
+        };
+        consider(c.max.x - p.x, 1, 0, 0);
+        consider(c.max.y - p.y, 0, 1, 0);
+        consider(p.z - c.min.z, 0, 0, -1);
+        consider(c.max.z - p.z, 0, 0, 1);
+        p.addScaledVector(_pushDir, best + 0.12);
       }
     }
 
