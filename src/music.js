@@ -26,6 +26,12 @@ export class MusicDirector {
     this.nextBarTime = 0;
     this.barLen = 4.0;
     this.timer = null;
+    // Voice budget (AU1.1): every pluck and pad chord is an oscillator +
+    // gain pair; without a cap a long session keeps piling simultaneous
+    // nodes on low-end mobile. Voices release themselves on `ended`.
+    this.voices = 0;
+    this.maxVoices = 12;
+    this.swellTimer = 0;
 
     // Phase definitions: root freq, pad chord (semitone offsets), pluck scale, density
     this.phases = {
@@ -178,6 +184,8 @@ export class MusicDirector {
   }
 
   playPadChord(t, freq) {
+    if (this.voices >= this.maxVoices) return;
+    this.voices++;
     const ctx = this.ctx;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0, t);
@@ -188,11 +196,14 @@ export class MusicDirector {
     o.type = 'sine';
     o.frequency.value = freq * 2;
     o.connect(g);
+    o.onended = () => { this.voices = Math.max(0, this.voices - 1); };
     o.start(t);
     o.stop(t + this.barLen + 1.4);
   }
 
   playPluck(t, freq) {
+    if (this.voices >= this.maxVoices) return;
+    this.voices++;
     const ctx = this.ctx;
     const o = ctx.createOscillator();
     o.type = 'triangle';
@@ -213,7 +224,40 @@ export class MusicDirector {
       g.connect(this.out);
       g.connect(this.echo);
     }
+    o.onended = () => { this.voices = Math.max(0, this.voices - 1); };
     o.start(t);
     o.stop(t + 1.6);
+  }
+
+  /**
+   * Gentle music swell for rest spots, stillness moments and quiet
+   * discoveries (G1.1/G1.2): the pad breathes up for a few seconds, then
+   * settles back. Called from the main loop each frame.
+   */
+  swell(duration = 6) {
+    this.swellTimer = Math.max(this.swellTimer, duration);
+    this.swellTotal = this.swellTimer;
+  }
+
+  updateSwell(dt) {
+    if (!this.swellTotal || this.swellTimer <= 0 || !this.started || !this.ctx) return;
+    this.swellTimer -= dt;
+    // Bell curve: ease in for the first third, hold, ease out at the end.
+    const elapsed = this.swellTotal - this.swellTimer;
+    const total = this.swellTotal;
+    const k = elapsed < total * 0.3
+      ? elapsed / (total * 0.3)
+      : this.swellTimer < total * 0.35
+        ? Math.max(0, this.swellTimer / (total * 0.35))
+        : 1;
+    if (this.padGain && isFinite(k)) {
+      if (this._padBase == null) this._padBase = this.padGain.gain.value;
+      this.padGain.gain.setTargetAtTime(this._padBase * (1 + k * 0.9), this.ctx.currentTime, 0.4);
+      if (this.swellTimer <= 0) {
+        this.padGain.gain.setTargetAtTime(this._padBase, this.ctx.currentTime, 1.2);
+        this._padBase = null;
+        this.swellTotal = 0;
+      }
+    }
   }
 }

@@ -1,5 +1,21 @@
 import * as THREE from 'three';
 
+// Hoisted colours: the trail tints from warm honey to dusk orange as a
+// mote ages. Previously two THREE.Color were allocated per live mote per
+// frame (see the 2026-09-11 review, §1.2.2).
+const SCENT_YOUNG = new THREE.Color(0xffd080);
+const SCENT_OLD = new THREE.Color(0xff7040);
+
+// Reusable scratch objects for the per-frame instance updates.
+const _dummy = new THREE.Object3D();
+const _offset = new THREE.Vector3();
+const _matrix = new THREE.Matrix4();
+const _pos = new THREE.Vector3();
+const _rot = new THREE.Quaternion();
+const _scl = new THREE.Vector3();
+const _col = new THREE.Color();
+const _emitColor = new THREE.Color(0xffd080);
+
 export class ScentTrail {
   constructor(scene, maxPoints = 80) {
     this.scene = scene;
@@ -8,6 +24,9 @@ export class ScentTrail {
     this.ages = new Float32Array(maxPoints);
     this.lastPos = new THREE.Vector3();
     this.emitTimer = 0;
+    // U1.4: the trail is meaningful only near things worth finding. The
+    // main loop sets this flag each frame from quest/POI proximity.
+    this.gated = false;
     this.build();
   }
 
@@ -25,13 +44,13 @@ export class ScentTrail {
     this.mesh.frustumCulled = false;
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 
-    const dummy = new THREE.Object3D();
-    dummy.position.set(0, -1000, 0);
-    dummy.scale.set(0, 0, 0);
-    dummy.updateMatrix();
+    _dummy.position.set(0, -1000, 0);
+    _dummy.scale.set(0, 0, 0);
+    _dummy.rotation.set(0, 0, 0);
+    _dummy.updateMatrix();
     for (let i = 0; i < this.maxPoints; i++) {
-      this.mesh.setMatrixAt(i, dummy.matrix);
-      this.mesh.setColorAt(i, new THREE.Color(0xffcc88));
+      this.mesh.setMatrixAt(i, _dummy.matrix);
+      this.mesh.setColorAt(i, _emitColor);
       this.life[i] = 0;
     }
     this.mesh.instanceMatrix.needsUpdate = true;
@@ -66,56 +85,52 @@ export class ScentTrail {
     this.life[slot] = 1.2 + Math.random() * 0.4;
     this.ages[slot] = 0;
 
-    const offset = new THREE.Vector3((Math.random() - 0.5) * 0.15, 0.04 + Math.random() * 0.06, (Math.random() - 0.5) * 0.15);
-    const p = position.clone().add(offset);
-
-    const dummy = new THREE.Object3D();
-    dummy.position.copy(p);
-    dummy.rotation.x = Math.random() * Math.PI;
-    dummy.rotation.y = Math.random() * Math.PI;
-    dummy.scale.setScalar(1);
-    dummy.updateMatrix();
-    this.mesh.setMatrixAt(slot, dummy.matrix);
-    this.mesh.setColorAt(slot, new THREE.Color(0xffd080));
+    _offset.set((Math.random() - 0.5) * 0.15, 0.04 + Math.random() * 0.06, (Math.random() - 0.5) * 0.15);
+    _dummy.position.copy(position).add(_offset);
+    _dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+    _dummy.scale.setScalar(1);
+    _dummy.updateMatrix();
+    this.mesh.setMatrixAt(slot, _dummy.matrix);
+    this.mesh.setColorAt(slot, _emitColor);
     this.mesh.instanceMatrix.needsUpdate = true;
     this.mesh.instanceColor.needsUpdate = true;
   }
 
   update(dt, playerPos, speed) {
+    // Gate: away from anything meaningful the trail stays silent, so it
+    // reads as a discovery aid rather than constant noise.
+    if (!this.gated) {
+      speed = 0;
+    }
     this.emit(playerPos, speed, dt);
 
-    const dummy = new THREE.Object3D();
     let changed = false;
     for (let i = 0; i < this.maxPoints; i++) {
       if (this.life[i] <= 0) continue;
       this.life[i] -= dt * 0.55;
       this.ages[i] += dt;
 
-      const m = new THREE.Matrix4();
-      this.mesh.getMatrixAt(i, m);
-      const pos = new THREE.Vector3();
-      const rot = new THREE.Quaternion();
-      const scl = new THREE.Vector3();
-      m.decompose(pos, rot, scl);
+      this.mesh.getMatrixAt(i, _matrix);
+      _matrix.decompose(_pos, _rot, _scl);
 
-      pos.y += dt * 0.04;
+      _pos.y += dt * 0.04;
       const s = Math.max(0, this.life[i]);
-      dummy.position.copy(pos);
-      dummy.quaternion.copy(rot);
-      dummy.scale.setScalar(s);
-      dummy.updateMatrix();
+      _dummy.position.copy(_pos);
+      _dummy.quaternion.copy(_rot);
+      _dummy.scale.setScalar(s);
+      _dummy.updateMatrix();
 
       const t = Math.min(1, this.ages[i]);
-      const col = new THREE.Color(0xffd080).lerp(new THREE.Color(0xff7040), t);
-      this.mesh.setColorAt(i, col);
-      this.mesh.setMatrixAt(i, dummy.matrix);
+      _col.copy(SCENT_YOUNG).lerp(SCENT_OLD, t);
+      this.mesh.setColorAt(i, _col);
+      this.mesh.setMatrixAt(i, _dummy.matrix);
       changed = true;
 
       if (this.life[i] <= 0) {
-        dummy.position.set(0, -1000, 0);
-        dummy.scale.setScalar(0);
-        dummy.updateMatrix();
-        this.mesh.setMatrixAt(i, dummy.matrix);
+        _dummy.position.set(0, -1000, 0);
+        _dummy.scale.setScalar(0);
+        _dummy.updateMatrix();
+        this.mesh.setMatrixAt(i, _dummy.matrix);
       }
     }
     if (changed) {

@@ -521,6 +521,23 @@ export class Cat {
     addOutline(neckFur, 1.05);
     this.neck.add(neckFur);
 
+    // Silk ribbon collar with a small brass bell (C2.1 cosmetics; Master
+    // Cat rank swaps it for bright gold and adds a twin — setMasterCat()).
+    this.matBellBrass = toonMat(0xb08a4a, { emissive: 0x40300a, emissiveIntensity: 0.15 });
+    this.collar = new THREE.Mesh(
+      new THREE.TorusGeometry(0.072, 0.012, 8, 20),
+      this.matRibbon
+    );
+    this.collar.rotation.x = Math.PI / 2.15;
+    this.collar.position.set(0, 0.015, 0.02);
+    this.neck.add(this.collar);
+    this.collarBell = new THREE.Mesh(
+      new THREE.SphereGeometry(0.016, 10, 8),
+      this.matBellBrass
+    );
+    this.collarBell.position.set(0, -0.06, 0.085);
+    this.neck.add(this.collarBell);
+
     this.head = new THREE.Group();
     this.head.position.set(0, 0.125, 0.055);
     this.head.scale.setScalar(1.06);
@@ -978,6 +995,26 @@ export class Cat {
     this.setMood('playful', 1.0, 2);
     if (this.audio) this.audio.playMeow();
   }
+
+  /**
+   * Master Cat (rank 4, C2.4): the collar bell becomes gold and gains a
+   * small twin. A quiet, permanent identity reward for the whole valley.
+   */
+  setMasterCat() {
+    if (this._masterCat) return;
+    this._masterCat = true;
+    if (this.collarBell) {
+      this.collarBell.material = this.matGoldBell;
+      const twin = new THREE.Mesh(
+        new THREE.SphereGeometry(0.013, 10, 8),
+        this.matGoldBell
+      );
+      twin.position.set(0.028, -0.058, 0.082);
+      this.neck.add(twin);
+      this.collarBellTwin = twin;
+    }
+  }
+
 
   setProwling(prowl) {
     this.isProwling = prowl;

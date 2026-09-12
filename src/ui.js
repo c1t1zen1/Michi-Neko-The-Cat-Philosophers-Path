@@ -31,15 +31,14 @@ export class UI {
       });
     }
 
-    // HUD parchment scroll (emakimono) unroll / roll-up toggle
+    // HUD parchment scroll (emakimono) unroll / roll-up toggle.
+    // Default-collapsed everywhere (U1.2): the quiet presentation is the
+    // recommendation — the parchment opens on request, not on habit.
     const scrollBtn = document.getElementById('scroll-toggle-btn');
     const hudScroll = document.getElementById('hud-scroll');
     const scrollArrow = document.getElementById('scroll-arrow');
     if (scrollBtn && hudScroll) {
-      const mobilePointer = window.matchMedia &&
-        window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-      const mobileUserAgent = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-      const collapsed = mobilePointer || mobileUserAgent;
+      const collapsed = true;
       hudScroll.classList.toggle('collapsed', collapsed);
       if (scrollArrow) scrollArrow.textContent = collapsed ? '▼' : '▲';
       scrollBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
@@ -73,7 +72,27 @@ export class UI {
     if (!this.hintsEnabled) this.hidePrompt();
   }
 
-  setScore(score) { this.scoreEl.textContent = `Yarn: ${score}`; }
+  setScore(score) {
+    // Keepsakes, not points (U1.2): the counter reads as memory collected,
+    // not a score to maximise.
+    this.scoreEl.textContent = `Keepsakes: ${score}`;
+  }
+
+  /**
+   * Interface mode (U1.2). 'minimal' keeps the parchment rolled up; the
+   * player can still unroll it by hand. 'guided' restores the classic
+   * expanded overlay for players who want the numbers at a glance.
+   */
+  setHudMode(mode) {
+    const hudScroll = document.getElementById('hud-scroll');
+    const scrollArrow = document.getElementById('scroll-arrow');
+    const scrollBtn = document.getElementById('scroll-toggle-btn');
+    if (!hudScroll) return;
+    const collapsed = mode !== 'guided';
+    hudScroll.classList.toggle('collapsed', collapsed);
+    if (scrollArrow) scrollArrow.textContent = collapsed ? '▼' : '▲';
+    if (scrollBtn) scrollBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  }
 
   setRank(text) { this.rankEl.textContent = text; }
 

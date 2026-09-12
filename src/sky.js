@@ -506,6 +506,15 @@ export class Sky {
     return out;
   }
 
+  /**
+   * The already-resolved palette for this frame. Callers (e.g. the cat's
+   * rim light) read this instead of re-resolving — it returns the shared
+   * per-frame buffer without any recomputation or allocation.
+   */
+  get currentPalette() {
+    return this.resolvePalette();
+  }
+
   setWeather(type) {
     if (this.targetWeather === type) return;
     this.previousWeather = this.weather;

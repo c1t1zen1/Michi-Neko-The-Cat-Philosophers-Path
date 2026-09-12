@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20260910b';
+import { Cat } from './cat.js?v=20260911a';
 
 export class NPC {
   constructor(scene, name, color, position, dialogueLines, options = {}) {
@@ -45,6 +45,28 @@ export class NPC {
     this.wanderSpeed = options.wanderSpeed || 1.15;
     this.wanderTarget = null;
     this.moveSpeed = 0;
+
+    // ---- Routines & schedules (N2.2/N2.3) ----
+    // Each entry is a home override: { night, rain, mist, postQuest } as
+    // THREE.Vector3. The cat walks to its current routine spot instead of
+    // teleporting, so the player can catch them mid-commute.
+    this.schedule = options.schedule || null;
+    this.postQuestHome = null;
+    this.effHome = this.home;
+    this.routineIdleTimer = 4 + Math.random() * 8;
+  }
+
+  /** The routine-aware home for this moment (night / weather / quest state). */
+  resolveRoutineHome(sky) {
+    if (this.postQuestHome) return this.postQuestHome;
+    const s = this.schedule;
+    if (!s || !sky) return this.home;
+    const night = sky.dayTime >= 19.5 || sky.dayTime < 5.5;
+    if (night && s.night) return s.night;
+    const w = sky.targetWeather || sky.weather;
+    if (w === 'rain' && s.rain) return s.rain;
+    if (w === 'mist' && s.mist) return s.mist;
+    return this.home;
   }
 
   createNameTag(name) {
@@ -76,8 +98,27 @@ export class NPC {
     this.nameTag.style.top = `${y}px`;
   }
 
-  update(dt, playerPos, camera) {
+  update(dt, playerPos, camera, sky = null) {
     this.updateNameTagPosition(camera);
+
+    // Routine-aware wandering: the effective home follows the schedule
+    // (moon-watching at night, sheltering from rain, river visits in mist).
+    const routineHome = this.resolveRoutineHome(sky);
+    const homeChanged = routineHome !== this.effHome;
+    this.effHome = routineHome;
+    if (homeChanged) this.wanderTarget = null;
+
+    // Weather playfulness (Mochi chasing bamboo leaves on the wind)
+    if (this.schedule && this.schedule.playInWind && sky) {
+      const w = sky.targetWeather || sky.weather;
+      if (w === 'cloudy' || w === 'rain') {
+        this.routineIdleTimer -= dt;
+        if (this.routineIdleTimer <= 0) {
+          this.routineIdleTimer = 6 + Math.random() * 10;
+          this.cat.setMood('playful', 2.5, 1);
+        }
+      }
+    }
 
     const dist = this.distanceTo(playerPos);
     let isTurning = false;
@@ -97,9 +138,9 @@ export class NPC {
           const ang = Math.random() * Math.PI * 2;
           const r = 1 + Math.random() * this.wanderRadius;
           this.wanderTarget = new THREE.Vector3(
-            this.home.x + Math.cos(ang) * r,
-            this.baseY,
-            this.home.z + Math.sin(ang) * r
+            this.effHome.x + Math.cos(ang) * r,
+            this.effHome.y,
+            this.effHome.z + Math.sin(ang) * r
           );
         }
       } else {
@@ -130,6 +171,13 @@ export class NPC {
     if (Math.abs(diff) > 0.05) {
       this.mesh.rotation.y += diff * Math.min(1.0, dt * 3.5);
       isTurning = true;
+    }
+
+    // Routine spots can sit at a different elevation than home (the old
+    // bridge deck, an eave-side shelter): ease the height across so the
+    // trip reads as one walk, not a teleport.
+    if (Math.abs(this.mesh.position.y - this.effHome.y) > 0.01) {
+      this.mesh.position.y += (this.effHome.y - this.mesh.position.y) * Math.min(1, dt * 2);
     }
 
     // Call Cat.update with proper numeric signature:

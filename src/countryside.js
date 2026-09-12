@@ -4,11 +4,11 @@ import {
   plasterTextures, woodTextures, kawaraTextures, shojiTextures, tatamiTextures,
   cobbleTextures, stoneTextures, groundTextures, dirtTextures, strawTextures,
   metalTextures, texturedMaterial, worldScaleBoxUVs, worldNoise
-} from './textures.js?v=20260910b';
+} from './textures.js?v=20260911a';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, lumpyTuftGeometry, lumpyConeGeometry,
   leafCardTexture, buildCanopy
-} from './foliage.js?v=20260910b';
+} from './foliage.js?v=20260911a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -186,12 +186,15 @@ export class Countryside {
 
     this.buildTorii(0, -22);
     this.buildShrine(0, -32);
+    this.buildMistAltar(0, -37.5);
+    this.buildWindChime(18.6, 2.95, 8.8);
     this.buildVillageStreet();
     this.buildStreetGreenery();
     this.buildBambooCorral(-31, 9);
     this.buildLanterns();
     this.buildMountains();
     this.buildYarn();
+    this.buildOfferingBells();
     this.boundaryRadius = 44;
     // All builders are done: collapse the static architecture into one draw
     // call per material before the first frame renders.
@@ -219,6 +222,8 @@ export class Countryside {
       this.corralRewardMesh, this.shishiRocker]) {
       if (k) protectedRoots.add(k);
     }
+    if (this.mistAltar) protectedRoots.add(this.mistAltar);
+    if (this.windChime) protectedRoots.add(this.windChime);
     if (this.corralGuardian && this.corralGuardian.mesh) protectedRoots.add(this.corralGuardian.mesh);
 
     const inProtected = (o) => {
@@ -2403,6 +2408,139 @@ export class Countryside {
     ));
   }
 
+  /**
+   * Mist-gated spirit altar hidden behind the shrine. Kuro's line —
+   * "follow the red shrine gates when the mist rolls in" — points here.
+   * The altar only materialises while mist blankets the valley; in clear
+   * weather a faint foundation ring is all that remains.
+   */
+  buildMistAltar(x, z) {
+    const altar = new THREE.Group();
+
+    // Weathered stone plinth + top slab
+    const stoneMat = new THREE.MeshStandardMaterial({
+      color: 0x8a93a0, roughness: 0.85, metalness: 0.05,
+      transparent: true, opacity: 0
+    });
+    const plinth = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.82, 0.5, 10), stoneMat);
+    plinth.position.y = 0.25;
+    plinth.castShadow = true;
+    altar.add(plinth);
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.14, 1.1), stoneMat);
+    slab.position.y = 0.56;
+    slab.castShadow = true;
+    altar.add(slab);
+
+    // Small offering bell on the slab
+    const bellMat = new THREE.MeshStandardMaterial({
+      color: 0xc9a86a, roughness: 0.35, metalness: 0.75,
+      transparent: true, opacity: 0, emissive: 0x6a5426, emissiveIntensity: 0.4
+    });
+    const bell = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 10), bellMat);
+    bell.position.y = 0.78;
+    altar.add(bell);
+    const bellTag = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.22, 0.03), bellMat);
+    bellTag.position.y = 0.96;
+    altar.add(bellTag);
+
+    // A pale spirit flame that breathes above the bell
+    const flameMat = new THREE.SpriteMaterial({
+      map: this.lanternHaloTex, color: 0xbfe8ff, transparent: true,
+      opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending
+    });
+    const flame = new THREE.Sprite(flameMat);
+    flame.scale.set(0.8, 1.1, 1);
+    flame.position.y = 1.25;
+    altar.add(flame);
+
+    // Faint foundation ring — always visible, a quiet "something is here"
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x9aa8b4, transparent: true, opacity: 0.35
+    });
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.03, 6, 32), ringMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.03;
+    altar.add(ring);
+
+    altar.position.set(x, 0, z);
+    this.scene.add(altar);
+    this.mistAltar = altar;
+    this.mistAltarPos = new THREE.Vector3(x, 0, z);
+    this.mistAltarTouched = false;
+    this._altarFadeMats = [stoneMat, bellMat, flameMat];
+  }
+
+  /** Furin wind chime hanging from the tea house eave. */
+  buildWindChime(x, y, z) {
+    const chime = new THREE.Group();
+
+    const cordMat = new THREE.MeshBasicMaterial({ color: 0x7c5a3a });
+    const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.5, 4), cordMat);
+    cord.position.y = -0.25;
+    chime.add(cord);
+
+    const bellMat = new THREE.MeshStandardMaterial({
+      color: 0xb8c4cc, roughness: 0.4, metalness: 0.6
+    });
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), bellMat);
+    dome.position.y = -0.5;
+    chime.add(dome);
+    this.chimeClapperMat = new THREE.MeshStandardMaterial({ color: 0xd6cdb8, roughness: 0.9 });
+    const clapper = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.16, 4), this.chimeClapperMat);
+    clapper.position.y = -0.6;
+    chime.add(clapper);
+    const tag = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.22, 0.004),
+      new THREE.MeshStandardMaterial({ color: 0xf3e4c8, roughness: 0.9 }));
+    tag.position.y = -0.75;
+    chime.add(tag);
+
+    chime.position.set(x, y, z);
+    this.scene.add(chime);
+    this.windChime = chime;
+    this.chimePos = new THREE.Vector3(x, y - 0.6, z);
+    this.chimeSway = 0; // energised by wind/weather and by batting
+  }
+
+  /**
+   * Bokuchi's five offering bells (N1.1): a second wander-and-find quest.
+   * Small bronze shrine bells tucked into scenic corners of the valley;
+   * they shimmer gently so a patient eye can spot them. Collected only
+   * while the bell hunt is active (main.checkCollectibles).
+   */
+  buildOfferingBells() {
+    const spots = [
+      [4, 0.45, -18.5],   // torii approach grass
+      [10, 0.45, 27],     // river bank pebbles
+      [30.5, 0.45, -16.5],// bamboo grove shade
+      [-24, 0.45, -15],   // open field by the key rock
+      [-29, 0.45, 12]     // corral fence corner
+    ];
+    this.offeringBells = [];
+    for (let i = 0; i < spots.length; i++) {
+      const [x, y, z] = spots[i];
+      const bell = new THREE.Group();
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xc9a86a, metalness: 0.8, roughness: 0.35,
+        emissive: 0x6a5426, emissiveIntensity: 0.5
+      });
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 8, 0, Math.PI * 2, 0, Math.PI / 1.7), mat);
+      dome.position.y = 0.06;
+      bell.add(dome);
+      const clapper = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.12, 5), mat);
+      clapper.position.y = -0.02;
+      bell.add(clapper);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.012, 6, 14), mat);
+      ring.position.y = 0.13;
+      bell.add(ring);
+      bell.position.set(x, y, z);
+      bell.rotation.y = Math.random() * Math.PI;
+      this.scene.add(bell);
+      bell.userData = { id: 100 + i, isOfferingBell: true };
+      this.collectibles.push(bell);
+      this.offeringBells.push(bell);
+    }
+  }
+
   buildTorii(x, z) {
     const torii = new THREE.Group();
     const pillarGeo = new THREE.CylinderGeometry(0.22, 0.28, 4.6, 10);
@@ -3138,6 +3276,9 @@ export class Countryside {
 
     // Shishi-odoshi bamboo clacker cycle
     if (this.shishiRocker) {
+      // A cat-batted boost (context action) adds a sudden deep tip.
+      this.clackerBoost = Math.max(0, (this.clackerBoost || 0) - dt * 0.9);
+      const boost = this.clackerBoost * 0.7;
       const cycle = (this.time * 0.4) % (Math.PI * 2);
       let tilt = 0;
       if (cycle < 4.8) {
@@ -3152,7 +3293,7 @@ export class Countryside {
         const p = (cycle - 5.3) / (Math.PI * 2 - 5.3);
         tilt = 0.83 * (1 - p);
       }
-      this.shishiRocker.rotation.z = Math.PI / 2 + tilt;
+      this.shishiRocker.rotation.z = Math.PI / 2 + tilt + boost;
     }
 
     // Secret Key spin & bob
@@ -3194,6 +3335,31 @@ export class Countryside {
     // Mist rolls in during misty weather
     const mistStrength = (sky && sky.weather === 'mist') ? Math.max(0, sky.weatherBlend * 2 - 0.4) : 0;
 
+    // Spirit altar materialises only while mist holds the valley
+    if (this.mistAltar) {
+      const blend = sky && typeof sky.weatherBlend === 'number' ? sky.weatherBlend : 1;
+      const misty = sky && (sky.targetWeather === 'mist' ? blend : (sky.weather === 'mist' ? 1 : 0));
+      const target = misty && !this.mistAltarTouched ? Math.max(0, Math.min(1, (misty - 0.25) * 1.6)) : 0;
+      for (const m of this._altarFadeMats) {
+        m.opacity += (target * (m === this._altarFadeMats[2] ? 0.85 : 1) - m.opacity) * Math.min(1, dt * 1.2);
+      }
+      const visible = this._altarFadeMats[0].opacity > 0.02;
+      this.mistAltar.visible = visible;
+      if (visible) {
+        // The spirit flame breathes
+        this._altarFadeMats[2].opacity = (0.55 + Math.sin(this.time * 2.1) * 0.25) * this._altarFadeMats[0].opacity;
+      }
+    }
+
+    // Furin wind chime sways with the weather (and after being batted)
+    if (this.windChime) {
+      this.chimeSway = Math.max(0, this.chimeSway - dt * 0.7);
+      const windBase = (sky && sky.weather === 'rain') ? 0.45 : (sky && sky.weather === 'cloudy') ? 0.22 : 0.1;
+      const sway = windBase + this.chimeSway;
+      this.windChime.rotation.z = Math.sin(this.time * 3.1) * sway * 0.5;
+      this.windChime.rotation.x = Math.cos(this.time * 2.3) * sway * 0.3;
+    }
+
     for (const item of this.collectibles) {
       item.rotation.y += dt * 2;
       const baseY = 0.35 + Math.sin(this.time * 3 + item.userData.id) * 0.08;
@@ -3217,7 +3383,7 @@ export class Countryside {
       }
 
       // Proximity glow pulse
-      if (playerPos) {
+      if (playerPos && item.material) {
         const d2 = item.position.distanceToSquared(playerPos);
         const pulse = d2 < 9 ? 0.5 + 0.5 * Math.sin(this.time * 4 + item.userData.id) : 0;
         const base = 0.5;

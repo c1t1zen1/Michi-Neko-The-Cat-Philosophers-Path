@@ -23,7 +23,7 @@ export class QuestManager {
   complete(quest) {
     this.active = null;
     this.completed.push({ ...quest, rewardClaimed: false });
-    this.ui.setQuest('Quest complete! Talk to Luna.');
+    this.ui.setQuest(`Quest complete! Talk to ${quest.giver || 'Luna'}.`);
   }
 
   hasCompleted(type) {
@@ -41,7 +41,7 @@ export class QuestManager {
     // field because their 50 XP was granted immediately on quest completion.
     const shouldGrantReward = quest.rewardClaimed === false;
     quest.rewardClaimed = true;
-    this.ui.setQuest('Luna rewarded you! Explore the bamboo corral.');
+    this.ui.setQuest(`${quest.giver || 'Luna'} rewarded you! Explore the valley.`);
     if (shouldGrantReward && this.onComplete) this.onComplete(quest);
     return { quest, granted: shouldGrantReward };
   }

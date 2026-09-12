@@ -560,6 +560,7 @@
         </div>
         <div id="hud-controls">
           <button id="hint-toggle-btn" class="hud-pill-btn">Hints: ON</button>
+          <button id="journal-btn" class="hud-pill-btn" aria-label="Open journal">📖 Journal</button>
         </div>
       </div>
       <div class="scroll-rod"></div>
@@ -636,13 +637,44 @@
         </select>
       </div>
       <div class="settings-row"><label>Show Hints</label><input type="checkbox" id="set-hints"></div>
+      <div class="settings-row"><label>Interface Mode</label>
+        <select id="set-hudmode">
+          <option value="minimal">Minimal — quiet, immersive</option>
+          <option value="guided">Guided — parchment + markers</option>
+        </select>
+      </div>
+      <div class="settings-row"><label>Save Data</label>
+        <button id="btn-export-save" class="menu-btn" style="padding:6px 14px;">Export</button>
+        <button id="btn-import-save" class="menu-btn" style="padding:6px 14px;">Import</button>
+        <input type="file" id="import-save-file" accept="application/json,.json" style="display:none;">
+      </div>
       <button id="btn-settings-close" class="menu-btn primary" style="margin-top:10px;">✓ Done</button>
+    </div>
+  </div>
+
+  <!-- ================= Journal (discovery keepsakes) ================= -->
+  <div id="journal-overlay" class="overlay hidden" aria-label="Discovery journal">
+    <div class="panel wide" id="journal-panel">
+      <h2 class="panel-title">手帳<span>VALLEY JOURNAL</span></h2>
+      <div id="journal-body" style="max-height:56vh;overflow-y:auto;text-align:left;"></div>
+      <button id="btn-journal-close" class="menu-btn primary" style="margin-top:10px;">✓ Close</button>
+    </div>
+  </div>
+
+  <!-- ================= WebGL recovery / support ================= -->
+  <div id="gl-recovery" class="overlay hidden">
+    <div class="panel">
+      <h2 class="panel-title" id="gl-recovery-title">静けさ<span>THE VALLEY IS RESTING…</span></h2>
+      <p id="gl-recovery-text" style="max-width:34ch;margin:10px auto;line-height:1.55;">
+        The valley is resting for a moment. Your pawprints are safe.
+      </p>
+      <button id="btn-gl-reload" class="menu-btn primary">Reload and Continue</button>
     </div>
   </div>
 
   <!-- Cache busting: every module import in src/ carries this same ?v= tag.
        Bump them together, or a changed file ships against a cached sibling:
          sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDDx/g" src/*.js index.html -->
-  <script type="module" src="src/main.js?v=20260910b"></script>
+  <script type="module" src="src/main.js?v=20260911a"></script>
 </body>
 </html>

@@ -12,6 +12,7 @@ export class MenuSystem {
     this.settings = opts.settings;
     this.audio = opts.audio;
     this.ui = opts.ui;
+    this.saveManager = opts.saveManager || null;
     this.cb = opts.callbacks;
     this.mode = 'title';          // 'title' | 'playing' | 'paused'
     this.settingsReturnTo = 'title';
@@ -41,7 +42,9 @@ export class MenuSystem {
   }
 
   refreshContinueButton() {
-    const hasSave = !!localStorage.getItem('catwalk_save_v1');
+    const hasSave = this.saveManager
+      ? this.saveManager.hasSave()
+      : !!(localStorage.getItem('catwalk_save_v2') || localStorage.getItem('catwalk_save_v1'));
     const btn = $('btn-continue');
     btn.disabled = !hasSave;
     btn.style.opacity = hasSave ? '' : '0.45';
@@ -112,6 +115,7 @@ export class MenuSystem {
     $('set-inverty').checked = v.invertY;
     $('set-quality').value = v.quality;
     $('set-hints').checked = v.hints;
+    if ($('set-hudmode')) $('set-hudmode').value = v.hudMode;
     this.updateValueLabels();
   }
 
@@ -141,5 +145,23 @@ export class MenuSystem {
     $('set-inverty').addEventListener('change', (e) => { this.settings.set('invertY', e.target.checked); this.cb.onApplySettings(); });
     $('set-quality').addEventListener('change', (e) => { this.settings.set('quality', e.target.value); this.cb.onApplySettings(); });
     $('set-hints').addEventListener('change', (e) => { this.settings.set('hints', e.target.checked); this.cb.onApplySettings(); });
+    if ($('set-hudmode')) {
+      $('set-hudmode').addEventListener('change', (e) => { this.settings.set('hudMode', e.target.value); this.cb.onApplySettings(); });
+    }
+    const btnExport = $('btn-export-save');
+    const btnImport = $('btn-import-save');
+    const importInput = $('import-save-file');
+    if (btnExport) btnExport.addEventListener('click', () => {
+      if (this.saveManager && this.saveManager.exportFile()) this.ui.showToast('Save exported as JSON.');
+      else this.ui.showToast('No save to export yet.');
+    });
+    if (btnImport && importInput) btnImport.addEventListener('click', () => importInput.click());
+    if (importInput) importInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const data = this.saveManager ? await this.saveManager.importFile(file) : null;
+      this.ui.showToast(data ? 'Save imported — reload to continue from it.' : 'That file was not a valid Michi-Neko save.');
+      e.target.value = '';
+    });
   }
 }

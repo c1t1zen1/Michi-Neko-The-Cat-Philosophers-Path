@@ -8,7 +8,8 @@ const DEFAULTS = {
   sensitivity: 100,
   invertY: false,
   quality: 'auto',
-  hints: true
+  hints: true,
+  hudMode: 'minimal'
 };
 
 export class SettingsManager {

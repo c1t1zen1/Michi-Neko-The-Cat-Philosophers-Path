@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20260910b';
-import { ColliderGrid } from './collider_grid.js?v=20260910b';
+import { Cat } from './cat.js?v=20260911a';
+import { ColliderGrid } from './collider_grid.js?v=20260911a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -40,7 +40,9 @@ export class Player {
     this.isGrounded = false;
     this.speed = 4.5;
     this.sprintMultiplier = 1.7;
-    this.canSprint = false;
+    // Base movement kit is available immediately (C2.3): the player chooses
+    // their own pace from the first step — walk, jog, sprint, jump, prowl.
+    this.canSprint = true;
     this.canWalkFences = false;
     this.sprint = false;
     this.jumpForce = 7.2;
@@ -168,6 +170,22 @@ export class Player {
       if (this.rippleTimer <= 0 && (moving || !this.isGrounded)) {
         world.spawnRipple(this.mesh.position.x, this.mesh.position.z, this.isGrounded ? 1 : 1.6);
         this.rippleTimer = 0.22;
+      }
+    }
+
+    // Rain paw-ripples (G2.2): wet paws leave small rings on puddled ground
+    // while it rains — the weather becomes something to walk through.
+    if (!inWater && this.isGrounded && world && world.spawnRipple) {
+      const sky = window.game && window.game.sky;
+      const raining = sky && (sky.targetWeather === 'rain'
+        ? sky.weatherBlend
+        : (sky.weather === 'rain' ? 1 : 0)) > 0.6;
+      if (raining && this.moveInput.lengthSq() > 0) {
+        this._rainRippleTimer = (this._rainRippleTimer || 0) - dt;
+        if (this._rainRippleTimer <= 0) {
+          world.spawnRipple(this.mesh.position.x, this.mesh.position.z, 0.5);
+          this._rainRippleTimer = 0.3;
+        }
       }
     }
 
@@ -370,6 +388,8 @@ export class Player {
     }
 
     // Camera follow + feel (yaw orbit + pitch tilt)
+    // Paused during rest cinematics so the slow drift owns the camera.
+    if (this.cameraPaused) return;
     const baseCamOffset = isInside ? new THREE.Vector3(0, 1.6, -2.6) : this.cameraOffset;
     const offset = baseCamOffset.clone().applyAxisAngle(Y_UP, this.yaw);
     if (this.pitch) {
