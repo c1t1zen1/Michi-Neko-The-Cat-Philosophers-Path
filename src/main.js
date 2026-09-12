@@ -3,30 +3,32 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20260909a';
-import { Player } from './player.js?v=20260909a';
-import { Countryside } from './countryside.js?v=20260909a';
-import { Sky } from './sky.js?v=20260909a';
-import { Vegetation } from './vegetation.js?v=20260909a';
-import { Particles } from './particles.js?v=20260909a';
-import { AmbientLife } from './ambient_life.js?v=20260909a';
-import { Controls } from './controls.js?v=20260825b';
-import { UI } from './ui.js?v=20260825h';
-import { NPC } from './npc.js?v=20260909a';
-import { Dialogue } from './dialogue.js?v=20260823a';
-import { QuestManager } from './quest.js?v=20260825i';
-import { AudioManager } from './audio.js?v=20260825j';
-import { ProgressionManager } from './progression.js?v=20260823a';
-import { ContextActionManager } from './context_actions.js?v=20260825j';
-import { InteriorManager } from './interior.js?v=20260909a';
-import { SaveManager } from './save.js?v=20260823a';
-import { ScentTrail } from './scent.js?v=20260823a';
-import { SettingsManager } from './settings.js?v=20260825h';
-import { isDiscreteGPU } from './settings.js?v=20260825h';
-import { MenuSystem } from './menus.js?v=20260825d';
-import { WaypointSystem, Compass } from './waypoints.js?v=20260823a';
-import { MusicDirector } from './music.js?v=20260825h';
-import { catRimUniforms } from './cat.js?v=20260909a';
+import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20260910b';
+import { Player } from './player.js?v=20260910b';
+import { Countryside } from './countryside.js?v=20260910b';
+import { Sky } from './sky.js?v=20260910b';
+import { Vegetation } from './vegetation.js?v=20260910b';
+import { Particles } from './particles.js?v=20260910b';
+import { AmbientLife } from './ambient_life.js?v=20260910b';
+import { Controls } from './controls.js?v=20260910b';
+import { UI } from './ui.js?v=20260910b';
+import { NPC } from './npc.js?v=20260910b';
+import { Dialogue } from './dialogue.js?v=20260910b';
+import { QuestManager } from './quest.js?v=20260910b';
+import { AudioManager } from './audio.js?v=20260910b';
+import { ProgressionManager } from './progression.js?v=20260910b';
+import { ContextActionManager } from './context_actions.js?v=20260910b';
+import { InteriorManager } from './interior.js?v=20260910b';
+import { SaveManager } from './save.js?v=20260910b';
+import { ScentTrail } from './scent.js?v=20260910b';
+import { SettingsManager } from './settings.js?v=20260910b';
+import { isDiscreteGPU } from './settings.js?v=20260910b';
+import { MenuSystem } from './menus.js?v=20260910b';
+import { WaypointSystem, Compass } from './waypoints.js?v=20260910b';
+import { MusicDirector } from './music.js?v=20260910b';
+import { catRimUniforms } from './cat.js?v=20260910b';
+import { chunkSceneInstances } from './instanced_chunks.js?v=20260910b';
+import { setFoliageDetail } from './foliage.js?v=20260910b';
 
 const AUTOSTART_KEY = 'catwalk_autostart';
 
@@ -102,6 +104,13 @@ class Game {
       riverSamples: this.city.riverSamples,
       exclusionRects: this.city.vegetationExclusions
     });
+    // Every builder has run: split the instanced vegetation sets that span
+    // the valley into spatial chunks so the frustum (and the sun's shadow
+    // frustum) can reject the ones behind the cat. Measured before this:
+    // 30 sets with a >60 m cull radius carrying 2.2 M triangles — two thirds
+    // of the scene — submitted regardless of where the camera looked.
+    this.chunkStats = chunkSceneInstances(this.scene, { cell: 32, minRadius: 40, minCount: 12, minTriangles: 80000 });
+
     this.particles = new Particles(this.scene);
     this.ambientLife = new AmbientLife(this.scene, this.audio, this.city.nestPos);
     this.scent = new ScentTrail(this.scene);
@@ -269,11 +278,15 @@ class Game {
 
     // ---- Adaptive resolution ----
     this.adaptTimer = 2;
-    this.pixelCap = Math.min(window.devicePixelRatio || 1, 1.75);
+    // applyQuality() already ran (via applySettings) and set the tier's cap —
+    // don't stomp it back to full DPR here.
+    if (this.pixelCap === undefined) this.pixelCap = Math.min(window.devicePixelRatio || 1, 1.75);
     this.pixelScale = this.renderer.getPixelRatio();
-    // Two-stage adaptive: stage 1 trims post-FX before touching resolution.
+    // Two-stage adaptive: stage 1 trims post-FX before touching resolution,
+    // stage 2 then scales the framebuffer (see updateAdaptiveResolution).
     this.perfStage = 0;
     this.perfEscalateTimer = 0;
+    this.perfLowSamples = 0;
     // Shadow-map refresh cadence (frames); 1 = every frame.
     this.shadowCadence = 1;
     this._shadowFrame = 0;
@@ -340,43 +353,48 @@ class Game {
     if (this.adaptTimer > 0) return;
     this.adaptTimer = 2;
     const fps = this.ui.fps;
+    const struggling = fps > 0 && fps < 45;
+    const healthy = fps > 58;
 
-    // Stage 1: shed post-FX weight first (light shafts, bloom resolution).
-    // Stage 2: only then scale down the framebuffer.
-    if (fps > 0 && fps < 45) {
+    // Stage 1 sheds post-FX weight (light shafts, quarter-res bloom); stage 2
+    // additionally lets the framebuffer scale below the tier's pixel cap.
+    // Stage 1 gets two consecutive slow samples (~4 s) to prove whether it
+    // helped before the resolution is allowed to drop.
+    if (struggling) {
       this.perfEscalateTimer = 0;
+      this.perfLowSamples++;
       if (this.perfStage === 0) {
-        this.perfStage = 1;
-        this.postStrengths = { ...(this.postStrengths || {}), shafts: 0 };
-        this.bloom.setSize(window.innerWidth / 4, window.innerHeight / 4);
+        this.setPerfStage(1);
+        this.perfLowSamples = 0;
         return;
       }
-    } else if (fps > 58) {
-      this.perfEscalateTimer += 2;
-      // Sustained healthy fps walks the stages back down.
-      if (this.perfEscalateTimer > 10 && this.perfStage > 0) {
-        this.perfStage--;
-        this.perfEscalateTimer = 0;
-        if (this.perfStage === 0) {
-          const q = this.settings.resolveQuality();
-          this.postStrengths = {
-            ao: q === 'low' ? 0 : q === 'medium' ? 0.85 : 1,
-            shafts: q === 'low' ? 0 : q === 'medium' ? 0.7 : 1
-          };
-        }
-        this.bloom.setSize(window.innerWidth / 2, window.innerHeight / 2);
-        return;
+      if (this.perfStage === 1 && this.perfLowSamples >= 2) {
+        this.setPerfStage(2);
+        this.perfLowSamples = 0;
       }
     } else {
-      this.perfEscalateTimer = 0;
+      this.perfLowSamples = 0;
+      if (healthy) {
+        this.perfEscalateTimer += 2;
+        // Sustained healthy fps walks back down, but resolution is restored
+        // before the stage itself steps down so the two never fight.
+        if (this.perfEscalateTimer > 10 && this.perfStage > 0 &&
+            this.pixelScale >= this.pixelCap - 1e-3) {
+          this.setPerfStage(this.perfStage - 1);
+          this.perfEscalateTimer = 0;
+          return;
+        }
+      } else {
+        this.perfEscalateTimer = 0;
+      }
     }
 
     if (this.perfStage < 2) return; // stage 1 must get a chance to help
     let changed = false;
-    if (fps > 0 && fps < 45 && this.pixelScale > 0.55) {
+    if (struggling && this.pixelScale > 0.55) {
       this.pixelScale = Math.max(0.55, this.pixelScale * 0.85);
       changed = true;
-    } else if (fps > 58 && this.pixelScale < this.pixelCap) {
+    } else if (healthy && this.pixelScale < this.pixelCap) {
       this.pixelScale = Math.min(this.pixelCap, this.pixelScale * 1.12);
       changed = true;
     }
@@ -384,6 +402,34 @@ class Game {
       this.renderer.setPixelRatio(this.pixelScale);
       this.onResize();
     }
+  }
+
+  /**
+   * Move between adaptive performance stages. Stage 0 is the tier's own
+   * settings, stage 1 drops light shafts and quarters the bloom, stage 2
+   * additionally unlocks framebuffer scaling. Leaving stage 2 puts the
+   * resolution back at the tier's cap first, so a recovering device never
+   * sits at a reduced pixel ratio with the stage already walked back.
+   */
+  setPerfStage(stage) {
+    stage = Math.max(0, Math.min(2, stage));
+    if (stage === this.perfStage) return;
+    const leavingStageTwo = this.perfStage === 2 && stage < 2;
+    this.perfStage = stage;
+    if (leavingStageTwo && this.pixelScale < this.pixelCap) {
+      this.pixelScale = this.pixelCap;
+      this.renderer.setPixelRatio(this.pixelScale);
+    }
+    if (stage >= 1) {
+      this.postStrengths = { ...(this.postStrengths || {}), shafts: 0 };
+    } else {
+      const q = this.settings.resolveQuality();
+      this.postStrengths = {
+        ao: q === 'low' ? 0 : q === 'medium' ? 0.85 : 1,
+        shafts: this.resolveShaftStrength(q)
+      };
+    }
+    this.onResize(); // re-applies the stage's bloom size
   }
 
   /* ---------------- Settings ---------------- */
@@ -417,6 +463,16 @@ class Game {
     const dpr = window.devicePixelRatio || 1;
     const cap = q === 'low' ? 1.0 : q === 'medium' ? 1.25 : Math.min(dpr, 1.75);
     this.renderer.setPixelRatio(Math.min(dpr, cap));
+    // The adaptive-resolution loop walks pixelScale back up to pixelCap, so
+    // the cap has to follow the tier or low/medium drift back to full res.
+    this.pixelCap = Math.min(dpr, cap);
+    this.pixelScale = this.renderer.getPixelRatio();
+    // Picking a tier by hand restarts the adaptive ladder from the top: the
+    // stage reached under the old tier says nothing about this one. This has
+    // to precede onResize(), which sizes bloom from the current stage.
+    this.perfStage = 0;
+    this.perfLowSamples = 0;
+    this.perfEscalateTimer = 0;
     this.onResize();
 
     // MSAA on the composer target: 4x only on the high tier. Medium keeps
@@ -430,9 +486,15 @@ class Game {
     const samples = q === 'high' ? 4 : 0;
     if (this.composer.renderTarget1.samples !== samples) {
       const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
-      const rtOpts = { samples, type: THREE.HalfFloatType, depthTexture: this.makeDepthTexture() };
-      const rt1 = new THREE.WebGLRenderTarget(size.width, size.height, rtOpts);
-      const rt2 = new THREE.WebGLRenderTarget(size.width, size.height, rtOpts);
+      // Each buffer gets its OWN depth attachment. Sharing one DepthTexture
+      // across the ping-pong pair makes the pass that samples readBuffer's
+      // depth while drawing into writeBuffer a framebuffer feedback loop, and
+      // the driver drops those draws — the scene renders black under the GUI.
+      const rtOpts = { samples, type: THREE.HalfFloatType };
+      const rt1 = new THREE.WebGLRenderTarget(size.width, size.height,
+        { ...rtOpts, depthTexture: this.makeDepthTexture() });
+      const rt2 = new THREE.WebGLRenderTarget(size.width, size.height,
+        { ...rtOpts, depthTexture: this.makeDepthTexture() });
       const old1 = this.composer.renderTarget1;
       const old2 = this.composer.renderTarget2;
       this.composer.renderTarget1 = rt1;
@@ -468,11 +530,19 @@ class Game {
     // the cheap height fog.
     this.aoPass.enabled = q !== 'low';
     this.aoPass.setSamples(q === 'high' ? 14 : 8);
-    const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
-    // Light shafts are a 22-step screen march — too heavy for mobile tiers.
-    const shafts = q === 'low' || (mobile && q === 'medium') ? 0 : q === 'medium' ? 0.7 : 1;
-    this.postStrengths = { ao: q === 'low' ? 0 : q === 'medium' ? 0.85 : 1, shafts };
+    this.postStrengths = {
+      ao: q === 'low' ? 0 : q === 'medium' ? 0.85 : 1,
+      shafts: this.resolveShaftStrength(q)
+    };
     this.gradePass.uniforms.uFringe.value = q === 'high' ? 0.0012 : 0.0;
+
+    // Environment re-bake interval. The bake is a cube render plus a mip
+    // chain; on a phone that is a visible hitch, and the sky palette moves
+    // slowly enough over a 60-minute day that a longer gap is invisible.
+    this.sky.envInterval = q === 'low' ? 60 : q === 'medium' ? 40 : 25;
+
+    // Canopy shader detail: the low tier drops the two finest noise octaves.
+    setFoliageDetail(q === 'low');
 
     // Density levers: grass blades, particle counts, lantern point lights.
     if (this.vegetation) {
@@ -483,7 +553,21 @@ class Game {
     }
     if (this.city) {
       this.city.lanternLightCount = q === 'low' ? 2 : 4;
+      // Resize the pool now: the count is the number of lights that exist,
+      // not the number that are turned up.
+      if (this.city.lanternLights) this.city.ensureLanternPool();
     }
+  }
+
+  /**
+   * Light-shaft strength for a quality tier. The shafts are a 22-step screen
+   * march, which is too heavy for any mobile tier, so phones lose them at
+   * medium as well as low.
+   */
+  resolveShaftStrength(q) {
+    const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+    if (q === 'low' || (mobile && q === 'medium')) return 0;
+    return q === 'medium' ? 0.7 : 1;
   }
 
   /**
@@ -763,8 +847,12 @@ class Game {
     this.composer.setSize(window.innerWidth, window.innerHeight);
     // composer.setSize() resets every pass to full resolution — put bloom
     // back at its reduced size (quarter while adaptive stage 1 is active).
+    // composer.setSize() takes CSS pixels and scales passes by the pixel
+    // ratio internally; bloom.setSize() does not, so the ratio has to be
+    // applied here or the bloom's share of the framebuffer drifts with DPR.
     const bf = this.perfStage >= 1 ? 4 : 2;
-    this.bloom.setSize(window.innerWidth / bf, window.innerHeight / bf);
+    const dpr = this.renderer.getPixelRatio();
+    this.bloom.setSize(window.innerWidth * dpr / bf, window.innerHeight * dpr / bf);
   }
 
   update(dt) {
@@ -823,7 +911,13 @@ class Game {
     const inside = this.interior.isInside;
     this.sky.envPaused = inside;
     this.sky.setInteriorShadowMode(inside);
-    if (!inside) {
+    // Only one set of lights is ever in play: the room's two, or the
+    // valley's lanterns. Every visible light is evaluated in every lit
+    // fragment, so the half that cannot be seen is switched off outright.
+    this.interior.setLightsActive(inside);
+    if (inside) {
+      this.city.suspendLanternLights();
+    } else {
       this.city.update(dt, this.player.mesh.position, this.sky);
     }
     this.sky.update(dt, this.player.mesh.position);
@@ -847,9 +941,12 @@ class Game {
     this.audio.updateListener(this.camera);
     for (const n of this.npcs) n.update(dt, this.player.mesh.position, this.camera);
 
-    // Music follows the day cycle; ducks during pause/dialogue
+    // Music follows the day cycle; ducks during pause/dialogue; muted/cozier
+    // inside the Tea House than out in the open valley. Guarded in case an
+    // older hot-swapped/exported music.js predates setScene().
     this.music.update(this.sky.dayTime);
     this.music.setDucked(!playing || this.dialogue.active);
+    if (this.music.setScene) this.music.setScene(inside ? 'Tea House' : 'Overworld');
 
     this.ui.setTimeWeather(this.formatTime(this.sky.dayTime), this.capitalise(this.sky.weather));
     this.ui.setInventory(this.city.hasSecretKey, this.city.nestInteracted);

@@ -25,6 +25,9 @@ function buildMenus(app) {
         { label: 'Export WAV…', onClick: () => app.exportWav() },
         { label: 'Export Project JSON', onClick: () => app.exportProjectJSON() },
         'sep',
+        { label: 'Import MIDI (.mid)…', onClick: () => app.importMidiDialog() },
+        { label: 'Export MIDI (.mid)', onClick: () => app.exportMidi() },
+        'sep',
         { label: 'Export to Game…', onClick: () => app.exportToGameDialog() },
         'sep',
         { label: 'Rescan Game Cues', onClick: () => app.rescanCues() }
@@ -61,6 +64,16 @@ function buildMenus(app) {
         { label: 'Preview Game SFX ▸', onClick: () => app.previewSfxDialog() }
       ]
     },
+    // No dropdown: the menu bar item IS the button. One click on "✦ AI Agent"
+    // opens the composition agent, instead of opening a menu whose only entry
+    // then had to be clicked a second time.
+    {
+      name: '✦ AI Agent',
+      action: true,
+      id: 'menu-ai-agent',
+      title: 'Open the AI composition agent — Remix / Write / Free',
+      onClick: () => app.openAgent()
+    },
     {
       name: 'Help',
       entries: [
@@ -73,6 +86,12 @@ function buildMenus(app) {
   ];
 
   for (const menu of menus) {
+    if (menu.action) {
+      const button = el('div', { id: menu.id, class: 'menu-item menu-action', text: menu.name, title: menu.title || menu.name });
+      button.addEventListener('click', (e) => { e.stopPropagation(); closeMenus(); menu.onClick(); });
+      host.append(button);
+      continue;
+    }
     const item = el('div', { class: 'menu-item', text: menu.name });
     const drop = el('div', { class: 'menu-drop' });
     for (const entry of menu.entries) {

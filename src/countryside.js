@@ -4,11 +4,11 @@ import {
   plasterTextures, woodTextures, kawaraTextures, shojiTextures, tatamiTextures,
   cobbleTextures, stoneTextures, groundTextures, dirtTextures, strawTextures,
   metalTextures, texturedMaterial, worldScaleBoxUVs, worldNoise
-} from './textures.js?v=20260909a';
+} from './textures.js?v=20260910b';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, lumpyTuftGeometry, lumpyConeGeometry,
   leafCardTexture, buildCanopy
-} from './foliage.js?v=20260909a';
+} from './foliage.js?v=20260910b';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -137,6 +137,7 @@ export class Countryside {
     this.seed = options.seed || 20260729;
     this.rng = mulberry32(this.seed);
     this.colliders = [];
+    this.lanternLightCount = 4; // quality-tier lever; sizes the light pool
     this.bambooFences = [];
     this.villageHouseColliders = { left: [], right: [] };
     this.platforms = []; // Climbable / standable surfaces for cat verticality
@@ -787,18 +788,20 @@ export class Countryside {
 
   /**
    * Japanese river-stone cobbles (isogata) with a relief normal map. The
-   * default variant tiles across the road ribbon's 0..1 UVs; `worldScaled`
-   * returns a variant for boxes whose UVs are in metres (bridge deck, ramps).
+   * sheet is a 4x4 mosaic of five interlocking patterns, so both repeats are
+   * a quarter of what a single tile would want. The default variant tiles
+   * across the road ribbon's 0..1 UVs; `worldScaled` returns a variant for
+   * boxes whose UVs are in metres (bridge deck, ramps).
    */
   getCobbleMaterial(worldScaled = false) {
     if (worldScaled) {
       if (!this._cobbleWorldMat) {
-        this._cobbleWorldMat = texturedMaterial(TEX.cobble, { color: 0xe4dccc, roughness: 0.84, normalScale: 0.9, repeat: [0.65, 0.65] });
+        this._cobbleWorldMat = texturedMaterial(TEX.cobble, { color: 0xe4dccc, roughness: 0.84, normalScale: 0.9, repeat: [0.1625, 0.1625] });
       }
       return this._cobbleWorldMat;
     }
     if (!this._cobbleMat) {
-      this._cobbleMat = texturedMaterial(TEX.cobble, { color: 0xe4dccc, roughness: 0.84, normalScale: 0.9, repeat: [2.4, 2.0] });
+      this._cobbleMat = texturedMaterial(TEX.cobble, { color: 0xe4dccc, roughness: 0.84, normalScale: 0.9, repeat: [0.6, 0.5] });
       this._cobbleMat.userData.uvPanel = true;
     }
     return this._cobbleMat;
@@ -2992,14 +2995,16 @@ export class Countryside {
    * is cached until the cat moves ~2 m (or the light budget changes) so the
    * sort over every lantern spot doesn't run each frame.
    */
-  updateLanternLights(dt, playerPos, nightness) {
+  /**
+   * Size the lantern light pool to the quality tier. The pool is built at
+   * the tier's count rather than dimmed down to it: a PointLight at
+   * intensity 0 still occupies a slot in NUM_POINT_LIGHTS and still runs the
+   * full lighting loop in every lit fragment, so the "2 lights on low" lever
+   * was costing exactly as much as four.
+   */
+  ensureLanternPool() {
     if (!this.lanternLights) {
       this.lanternLights = [];
-      for (let i = 0; i < 4; i++) {
-        const light = new THREE.PointLight(0xffb469, 0, 11, 2);
-        this.scene.add(light);
-        this.lanternLights.push(light);
-      }
       // Resolve every lantern's world position once the houses are placed
       this.lightSpots = [];
       const p = new THREE.Vector3();
@@ -3011,11 +3016,47 @@ export class Countryside {
       this._lightPickCache = [];
       this._lightPickPos = new THREE.Vector3(1e9, 0, 0);
       this._lightPickCount = -1;
+      this._lanternsLit = false;
     }
-    if (nightness < 0.02 || !playerPos) {
-      for (const l of this.lanternLights) l.intensity = 0;
-      return;
+    const want = Math.max(0, this.lanternLightCount || 4);
+    while (this.lanternLights.length < want) {
+      const light = new THREE.PointLight(0xffb469, 0, 11, 2);
+      light.visible = this._lanternsLit;
+      this.scene.add(light);
+      this.lanternLights.push(light);
     }
+    while (this.lanternLights.length > want) {
+      const light = this.lanternLights.pop();
+      this.scene.remove(light);
+      light.dispose();
+    }
+  }
+
+  /**
+   * Douse the valley's lanterns while the cat is inside the tea house. The
+   * outdoor update is suspended in there, so they would otherwise stay lit
+   * — and stay in NUM_POINT_LIGHTS — behind the room's own two lights.
+   * Clearing the lit flag makes the next update relight them on the way out.
+   */
+  suspendLanternLights() {
+    if (!this._lanternsLit) return;
+    this._lanternsLit = false;
+    for (const l of this.lanternLights || []) l.visible = false;
+  }
+
+  updateLanternLights(dt, playerPos, nightness) {
+    this.ensureLanternPool();
+
+    // Lanterns are only lit after dusk. Hidden rather than dimmed, with a
+    // hysteresis band so the count cannot flicker across the threshold and
+    // thrash the shader cache; the swap happens twice per 60-minute day.
+    const lit = !!playerPos && nightness >= (this._lanternsLit ? 0.015 : 0.035);
+    if (lit !== this._lanternsLit) {
+      this._lanternsLit = lit;
+      for (const l of this.lanternLights) l.visible = lit;
+    }
+    if (!lit) return;
+
     const count = Math.min(this.lanternLightCount || 4, this.lanternLights.length);
     if (this._lightPickPos.distanceToSquared(playerPos) > 4 || this._lightPickCount !== count) {
       this._lightPickPos.copy(playerPos);
@@ -3031,7 +3072,8 @@ export class Countryside {
     for (let i = 0; i < this.lanternLights.length; i++) {
       const light = this.lanternLights[i];
       const pick = this._lightPickCache[i];
-      if (!pick) { light.intensity = 0; continue; }
+      if (!pick) { light.visible = false; continue; }
+      light.visible = true;
       light.position.copy(pick.s);
       const flicker = 0.9 + Math.sin(this.time * 9 + i * 2.1) * 0.06 + Math.sin(this.time * 23 + i) * 0.04;
       light.intensity = nightness * 9 * flicker;

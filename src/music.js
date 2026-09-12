@@ -1,7 +1,19 @@
+// Per-scene mood: same phase definitions everywhere (dawn/day/dusk/night keep
+// their identity), but a small indoor space like the Tea House should read as
+// quieter and cozier than the open valley — fewer plucks, a darker filter, a
+// touch less pad level. Add an entry here for each new scene as the game
+// grows; anything not listed falls back to Overworld's neutral 1/1/1.
+const SCENE_MOODS = {
+  Overworld: { density: 1, cutoffMul: 1, gainMul: 1 },
+  'Tea House': { density: 0.55, cutoffMul: 0.72, gainMul: 0.8 }
+};
+
 /**
  * Generative day-phase music director.
  * Layers: warm pad drone + sparse koto-style plucks with echo.
- * Musical key/mood crossfades with the in-game time of day.
+ * Musical key/mood crossfades with the in-game time of day, and scales with
+ * the current scene (setScene()) — e.g. muted and intimate inside the Tea
+ * House versus full and open across the valley.
  */
 export class MusicDirector {
   /** @param {import('./audio.js').AudioManager} audio */
@@ -9,6 +21,7 @@ export class MusicDirector {
     this.audio = audio;
     this.started = false;
     this.phase = null;
+    this.scene = 'Overworld';
     this.duckTarget = 1;
     this.nextBarTime = 0;
     this.barLen = 4.0;
@@ -21,6 +34,16 @@ export class MusicDirector {
       dusk: { root: 110.0, chord: [0, 3, 10, 15], scale: [0, 3, 5, 7, 10, 12, 15], density: 0.55, cutoff: 850 },
       night: { root: 82.41, chord: [0, 7, 12, 19], scale: [0, 2, 3, 7, 10, 12, 14], density: 0.28, cutoff: 520 }
     };
+  }
+
+  get mood() { return SCENE_MOODS[this.scene] || SCENE_MOODS.Overworld; }
+
+  /** Called when the player crosses between scenes (e.g. entering/leaving the
+   *  Tea House). Same phase/time-of-day logic, different mood scaling. */
+  setScene(name) {
+    if (this.scene === name) return;
+    this.scene = SCENE_MOODS[name] ? name : 'Overworld';
+    if (this.started && this.phase) this.applyPhase(this.phase);
   }
 
   get ctx() { return this.audio.ctx; }
@@ -115,14 +138,15 @@ export class MusicDirector {
 
   applyPhase(name) {
     const def = this.phases[name];
+    const mood = this.mood;
     const t = this.ctx.currentTime;
     // Glide pad to new root
     for (const o of this.padOscs) {
       o.frequency.setTargetAtTime(def.root, t, 1.8);
     }
-    this.padFilter.frequency.setTargetAtTime(def.cutoff, t, 2.0);
-    // Swell pad level slightly by phase
-    const padLevel = name === 'night' ? 0.05 : name === 'day' ? 0.032 : 0.04;
+    this.padFilter.frequency.setTargetAtTime(def.cutoff * mood.cutoffMul, t, 2.0);
+    // Swell pad level slightly by phase, scaled by the current scene's mood
+    const padLevel = (name === 'night' ? 0.05 : name === 'day' ? 0.032 : 0.04) * mood.gainMul;
     this.padGain.gain.setTargetAtTime(padLevel, t, 2.0);
   }
 
@@ -130,6 +154,7 @@ export class MusicDirector {
     if (!this.started) return;
     const ctx = this.ctx;
     const def = this.phases[this.phase || 'day'];
+    const mood = this.mood;
     const horizon = ctx.currentTime + 0.8;
 
     while (this.nextBarTime < horizon) {
@@ -138,10 +163,10 @@ export class MusicDirector {
       const chordNote = def.chord[Math.floor(Math.random() * def.chord.length)];
       this.playPadChord(barT, def.root * Math.pow(2, chordNote / 12));
 
-      // Sparse plucks
+      // Sparse plucks — density scaled by the current scene's mood
       let t = barT + Math.random() * 0.5;
       while (t < barT + this.barLen) {
-        if (Math.random() < def.density * 0.5) {
+        if (Math.random() < def.density * mood.density * 0.5) {
           const deg = def.scale[Math.floor(Math.random() * def.scale.length)];
           const oct = Math.random() < 0.35 ? 2 : 1;
           this.playPluck(t, def.root * oct * Math.pow(2, deg / 12));

@@ -1,11 +1,19 @@
 /* dawCAT — inspector: track settings / clip properties */
 import { el, toast, fmtDb } from './common.js';
-import { TRACK_COLORS } from '../state.js';
+import { TRACK_COLORS, NOTE_NAMES, SCALES } from '../state.js';
 
 export class Inspector {
   constructor(app) {
     this.app = app;
     this.body = document.getElementById('insp-body');
+    this.activeTab = 'inspector';
+    for (const tabEl of document.querySelectorAll('#inspector [data-itab]')) {
+      tabEl.addEventListener('click', () => {
+        this.activeTab = tabEl.dataset.itab;
+        for (const t of document.querySelectorAll('#inspector [data-itab]')) t.classList.toggle('active', t === tabEl);
+        this.render();
+      });
+    }
     this.app.state.addEventListener('project', () => this.render());
     this.app.state.addEventListener('selection', () => this.render());
     this.render();
@@ -13,6 +21,10 @@ export class Inspector {
 
   render() {
     this.body.innerHTML = '';
+    if (this.activeTab === 'mixer') return this.mixerTab();
+    if (this.activeTab === 'plugins') return this.pluginsTab();
+    if (this.activeTab === 'metadata') return this.metadataTab();
+
     const st = this.app.state;
     const track = st.selectedTrack();
     const clip = st.selectedClip();
@@ -22,6 +34,90 @@ export class Inspector {
     if (!track && !clip) {
       this.body.append(el('div', { class: 'empty-hint', text: 'Select a track or clip to edit its settings.' }));
     }
+  }
+
+  mixerTab() {
+    const st = this.app.state;
+    const track = st.selectedTrack();
+    const wrap = el('div', { class: 'insp-mixer-single' });
+    if (track) wrap.append(this.app.mixer.strip(track));
+    else wrap.append(el('div', { class: 'empty-hint', text: 'Select a track to see its mixer strip.' }));
+    wrap.append(this.app.mixer.masterStrip());
+    this.body.append(wrap);
+  }
+
+  pluginsTab() {
+    const st = this.app.state;
+    const track = st.selectedTrack();
+    if (!track) {
+      this.body.append(el('div', { class: 'empty-hint', text: 'Select a track to see its device chain.' }));
+      return;
+    }
+    this.body.append(
+      this.section(`Devices · ${track.name}`, this.app.devices.chainChips(track, () => {
+        document.getElementById('devicechain').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }))
+    );
+  }
+
+  metadataTab() {
+    const st = this.app.state;
+    const p = st.project;
+
+    const nameInput = el('input', { type: 'text', value: p.name || 'Untitled' });
+    nameInput.addEventListener('change', () => { p.name = nameInput.value.trim() || 'Untitled'; st.emit('project'); });
+
+    const tempo = el('input', { type: 'number', min: '20', max: '300', step: '0.01', value: String(p.tempo) });
+    tempo.addEventListener('change', () => {
+      this.app.transport.setTempo(Math.max(20, Math.min(300, parseFloat(tempo.value) || p.tempo)));
+      st.emit('project');
+    });
+
+    const num = el('input', { type: 'number', min: '1', max: '32', step: '1', value: String(p.timeSigNum || 4) });
+    const den = el('select', {});
+    for (const d of [1, 2, 4, 8, 16]) den.append(el('option', { value: String(d), text: String(d) }));
+    den.value = String(p.timeSigDen || 4);
+    const applySig = () => {
+      p.timeSigNum = Math.max(1, parseInt(num.value) || 4);
+      p.timeSigDen = parseInt(den.value) || 4;
+      st.emit('project');
+    };
+    num.addEventListener('change', applySig);
+    den.addEventListener('change', applySig);
+
+    const keySel = el('select', {});
+    for (const k of NOTE_NAMES) keySel.append(el('option', { value: k, text: k }));
+    keySel.value = p.key || 'C';
+    const scaleSel = el('select', {});
+    for (const s of Object.keys(SCALES)) scaleSel.append(el('option', { value: s, text: s }));
+    scaleSel.value = p.scale || 'major';
+    keySel.addEventListener('change', () => { p.key = keySel.value; st.emit('project'); });
+    scaleSel.addEventListener('change', () => { p.scale = scaleSel.value; st.emit('project'); });
+
+    this.body.append(
+      this.section('Project',
+        el('label', { class: 'dim' }, 'Name ', nameInput),
+        el('label', { class: 'dim' }, 'Tempo ', tempo),
+        el('label', { class: 'dim' }, 'Time sig ', num, el('span', { class: 'dim', text: '/' }), den),
+        el('label', { class: 'dim' }, 'Key ', keySel),
+        el('label', { class: 'dim' }, 'Scale ', scaleSel)
+      )
+    );
+
+    if (p.sections && typeof p.sections === 'object') {
+      const rows = Object.keys(p.sections).map((name) => {
+        const startI = el('input', { type: 'number', min: '0', step: '1', value: String(p.sections[name] || 0) });
+        startI.addEventListener('change', () => { p.sections[name] = Math.max(0, parseInt(startI.value) || 0); st.emit('project'); });
+        return el('label', { class: 'dim' }, name, ' @ bar ', startI);
+      });
+      this.body.append(this.section('Section Markers', ...rows));
+    }
+
+    const cues = (p.cueScan && p.cueScan.cues) || [];
+    const cueSummary = cues.length
+      ? `${cues.length} cues scanned from game source (last scan: ${p.cueScan.at ? new Date(p.cueScan.at).toLocaleString() : 'unknown'}).`
+      : 'No cues scanned yet — use ⟳ Rescan in the Browser panel.';
+    this.body.append(this.section('Game Cues', el('div', { class: 'empty-hint', text: cueSummary })));
   }
 
   section(title, ...children) {

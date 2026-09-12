@@ -67,7 +67,7 @@
             <option value="1/16">1/16</option>
             <option value="off">Off</option>
           </select>
-        </span>
+        </label>
         <div class="zoom-ctl">Zoom:
           <button id="zoom-out">−</button>
           <input type="range" id="zoom-range" min="16" max="160" value="48">
@@ -88,10 +88,10 @@
     <!-- INSPECTOR -->
     <aside id="inspector">
       <div class="panel-head">
-        <span class="ph-tab active">Inspector</span>
-        <span class="ph-tab">Mixer</span>
-        <span class="ph-tab">Plugins</span>
-        <span class="ph-tab">Metadata</span>
+        <span class="ph-tab active" data-itab="inspector">Inspector</span>
+        <span class="ph-tab" data-itab="mixer">Mixer</span>
+        <span class="ph-tab" data-itab="plugins">Plugins</span>
+        <span class="ph-tab" data-itab="metadata">Metadata</span>
       </div>
       <div id="insp-body"></div>
     </aside>
@@ -118,12 +118,51 @@
     </div>
     <div id="device-editor"></div>
   </section>
+
+  <!-- ======================= AI AGENT ======================= -->
+  <aside id="agent-panel" class="agent-panel" aria-label="AI composition agent">
+    <header><div><b>AI COMPOSITION AGENT</b><small>CONSTRAINED DAW ACTION HARNESS</small></div><button id="agent-close" title="Close">×</button></header>
+    <div class="agent-scroll">
+      <section class="agent-block">
+        <h3>PROVIDER</h3>
+        <label>Service<select id="agent-provider"><option value="local">Local / llama-server</option><option value="custom">Custom / OpenAI-compatible</option><option value="openai">OpenAI</option><option value="openrouter">OpenRouter</option><option value="anthropic">Anthropic</option></select></label>
+        <label>Base URL<input id="agent-base-url" spellcheck="false"></label>
+        <label>API key<input id="agent-api-key" type="password" autocomplete="off" placeholder="Kept in this browser session only"></label>
+        <label>
+          <span class="label-row">Model <button id="agent-scan-models" type="button" title="Load every model this Base URL offers (GET /models)">⟳ SCAN MODELS</button></span>
+          <select id="agent-model-select"><option value="">— scan to list this API's models —</option></select>
+          <input id="agent-model" autocomplete="off" spellcheck="false" placeholder="…or type a model id">
+        </label>
+        <div class="agent-grid four"><label>Temperature<input id="agent-temperature" type="number" min="0" max="2" step="0.05"></label><label>Top P<input id="agent-top-p" type="number" min="0.01" max="1" step="0.05"></label><label>Max tokens<input id="agent-max-tokens" type="number" min="128" max="32000" step="128"></label><label>Reasoning<select id="agent-reasoning"><option>none</option><option>low</option><option selected>medium</option><option>high</option></select></label></div>
+      </section>
+      <section class="agent-block grow">
+        <h3>MODE</h3>
+        <div class="agent-modes">
+          <button type="button" data-mode="remix" title="Rework a song cue that is already loaded in the project">REMIX</button>
+          <button type="button" data-mode="write" title="Write a brand-new composition from your prompt">WRITE</button>
+          <button type="button" data-mode="free" class="active" title="Adjust anything: add or remove tracks, clips, FX, tempo, mix">FREE</button>
+        </div>
+        <div id="agent-mode-hint" class="agent-hint">Free — adjust anything in the composition: add or remove tracks, clips, devices, mix and tempo.</div>
+        <h3>PROMPT</h3>
+        <textarea id="agent-prompt" placeholder="Example: Add a warm pad track and a koto pluck track for a calm dawn cue in C pentatonic, around 90 BPM, with a light drum groove."></textarea>
+        <div class="agent-actions"><button id="agent-send" class="primary">SEND</button><button id="agent-stop">STOP</button></div>
+        <div id="agent-state" class="agent-state">Ready. Changes apply automatically as soon as the model responds — Undo Last / Ctrl+Z reverts the whole thing in one step.</div>
+      </section>
+      <section class="agent-block">
+        <h3>LAST PLAN APPLIED</h3>
+        <div id="agent-plan" class="agent-plan"><span>No plan yet.</span></div>
+        <div class="agent-actions"><button id="agent-undo">UNDO LAST</button><button id="agent-export-plan">EXPORT</button></div>
+      </section>
+      <section class="agent-block"><h3>ACTIVITY</h3><div id="agent-log" class="agent-log"></div></section>
+    </div>
+  </aside>
 </div>
 
 <div id="toasts"></div>
 <div id="modal-root"></div>
 <div id="ctx-menu" class="hidden"></div>
 <input type="file" id="file-input" accept=".json" hidden>
+<input type="file" id="midi-input" accept=".mid,.midi" hidden>
 
 <script type="module" src="src/main.js"></script>
 </body>

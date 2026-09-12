@@ -2,6 +2,7 @@
 import { createDeviceNode, makeImpulse } from './fx.js';
 import { playSynthNote, playGameSfx, playAmbient } from './synth.js';
 import { playDrum } from './drums.js';
+import { getCachedBuffer } from './assets.js';
 
 export function buildMasterPack(ctx) {
   const master = ctx.createGain();
@@ -35,21 +36,46 @@ export function buildMasterPack(ctx) {
 }
 
 function chainSignature(track) {
+  // Frozen tracks play back a pre-rendered buffer instead of running their
+  // insert devices live (see the frozen branch in buildTrackChain below), so
+  // their identity depends on which bounce is active, not on live device
+  // params — keeps this the single source of truth rebuildAll() compares
+  // against to decide whether to rebuild a track's node graph.
+  if (track.frozenActive) return 'frozen:' + track.frozenAssetId;
   return JSON.stringify((track.devices || []).map((d) => [d.type, d.on, d.params]));
 }
 
-export function buildTrackChain(pack, track, project) {
+/* Builds just the insert-device portion of a track's signal path (no
+   gain/pan/sends/master) — shared by the live per-track chain below and by
+   render.js's renderTrackToBuffer(), which bakes only this part into a
+   freeze so mute/solo/volume/pan/sends stay live and editable afterward. */
+export function buildDeviceChain(pack, track) {
   const { ctx } = pack;
   const input = ctx.createGain();
   let node = input;
   const devices = [];
+  const deviceParams = {};
   for (const def of track.devices || []) {
     if (!def.on) continue;
     const dev = createDeviceNode(pack, def);
     node.connect(dev.input);
     node = dev.output;
     devices.push(dev);
+    if (dev.params) deviceParams[def.id] = dev.params;
   }
+  return { input, output: node, devices, deviceParams };
+}
+
+export function buildTrackChain(pack, track, project) {
+  const { ctx } = pack;
+  // Frozen: skip the device chain entirely (already baked into
+  // frozenAssetId's rendered buffer at freeze time) — real CPU savings come
+  // from not running that DSP every tick for content that no longer changes.
+  const { input, output, devices, deviceParams } = track.frozenActive
+    ? { input: ctx.createGain(), output: null, devices: [], deviceParams: {} }
+    : buildDeviceChain(pack, track);
+  const node = output || input;
+
   const gain = ctx.createGain();
   const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
   const analyser = ctx.createAnalyser();
@@ -60,7 +86,7 @@ export function buildTrackChain(pack, track, project) {
   pan.connect(sendA); sendA.connect(pack.reverbBus);
   pan.connect(sendB); sendB.connect(pack.delayBus);
 
-  const chain = { input, gain, pan, analyser, sendA, sendB, devices, sig: chainSignature(track) };
+  const chain = { input, gain, pan, analyser, sendA, sendB, devices, deviceParams, sig: chainSignature(track) };
   syncTrackChain(pack, chain, track, project);
   return chain;
 }
@@ -169,6 +195,23 @@ export class AudioEngine {
   ambient(name, when, dur, level = 1) {
     this.ensure();
     playAmbient(this.pack, this.pack.master, name, when || this.ctx.currentTime, dur, level, (n) => this.register(n));
+  }
+
+  /* Plays a dragged-in audio-file clip. The buffer must already be decoded
+     and cached (assets.js decodeAndCache/loadDecodedAsset) — decoding is
+     async and this runs on the lookahead scheduler tick, so a cache miss
+     just silently skips the event rather than blocking playback. */
+  playAudioClip(trackId, assetId, when, dur, gain = 1, trimStart = 0) {
+    const dest = this.trackInput(trackId);
+    const buffer = getCachedBuffer(assetId);
+    if (!dest || !buffer) return;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    const g = this.ctx.createGain();
+    g.gain.value = gain;
+    src.connect(g); g.connect(dest);
+    src.start(when, Math.max(0, trimStart), Math.max(0.01, dur));
+    this.register(src);
   }
 
   preview(preset, midi) {

@@ -11,27 +11,58 @@ export class Particles {
     this.buildSnow();
     this.buildRain();
     this.buildGodRays();
+    this.setBudget(1);
   }
 
   /**
-   * Quality-tier lever: cap each particle system's live count via geometry
-   * draw ranges. The update math still runs over the full seed arrays (cheap
-   * JS), but only the leading fraction of each system is drawn. Rain counts
-   * vertices in pairs — its buffer holds two vertices per streak.
+   * Quality-tier lever: cap each particle system's live count.
+   *
+   * The draw range keeps the GPU from rasterising what the tier dropped, and
+   * the per-system `*Active` counts keep the JS simulation loops and the
+   * buffer uploads to the same prefix — a draw range alone left the CPU
+   * simulating (and re-uploading) every particle the tier had just cut.
+   * Rain counts vertices in pairs: its buffer holds two per streak.
    */
   setBudget(fraction) {
     const f = THREE.MathUtils.clamp(fraction, 0.1, 1);
+    this.budget = f;
     const cap = (obj, vertsPer) => {
-      if (!obj || !obj.geometry || !obj.geometry.attributes.position) return;
+      if (!obj || !obj.geometry || !obj.geometry.attributes.position) return 0;
       const items = obj.geometry.attributes.position.count / vertsPer;
-      obj.geometry.setDrawRange(0, Math.max(1, Math.floor(items * f)) * vertsPer);
+      const live = Math.max(1, Math.floor(items * f));
+      obj.geometry.setDrawRange(0, live * vertsPer);
+      return live;
     };
-    cap(this.petals, 1);
-    cap(this.fireflies, 1);
-    cap(this.motes, 1);
-    cap(this.riverPetals, 1);
-    cap(this.snow, 1);
-    cap(this.rain, 2);
+    // God-ray cards are large additive quads: their cost is overdraw, not
+    // geometry, so the lever hides whole cards rather than shrinking them.
+    if (this.godRays) {
+      const live = Math.max(1, Math.round(this.godRays.length * f));
+      for (let i = 0; i < this.godRays.length; i++) this.godRays[i].mesh.visible = i < live;
+      this.godRayActive = live;
+    }
+    this.petalActive = cap(this.petals, 1);
+    this.fireflyActive = cap(this.fireflies, 1);
+    this.moteActive = cap(this.motes, 1);
+    this.riverActive = cap(this.riverPetals, 1);
+    this.snowActive = cap(this.snow, 1);
+    this.rainActive = cap(this.rain, 2);
+  }
+
+  /**
+   * Flag an attribute for upload, restricted to the live prefix. Feature-
+   * detected because three renamed this API mid-r15x; without either method
+   * the assignment below still forces a correct (if whole-buffer) upload.
+   */
+  uploadRange(attr, vertexCount) {
+    const count = vertexCount * attr.itemSize;
+    if (attr.addUpdateRange) {
+      attr.clearUpdateRanges();
+      attr.addUpdateRange(0, count);
+    } else if (attr.updateRange) {
+      attr.updateRange.offset = 0;
+      attr.updateRange.count = count;
+    }
+    attr.needsUpdate = true;
   }
 
   /**
@@ -98,6 +129,7 @@ export class Particles {
     const strength = Math.min(0.42, golden * 0.55 + misty * 0.35);
     const sunYaw = sky ? Math.atan2(sky.sunDir.x, sky.sunDir.z) : 0;
     for (const ray of this.godRays) {
+      if (!ray.mesh.visible) continue;
       // Lean shafts away from the sun azimuth and gently breathe
       ray.mesh.rotation.y = sunYaw + Math.PI * 0.5 + Math.sin(this.time * 0.22 + ray.phase) * 0.07;
       ray.mesh.rotation.z = 0.24 + Math.sin(this.time * 0.17 + ray.phase) * 0.02;
@@ -157,7 +189,7 @@ export class Particles {
     const cz = playerPos ? playerPos.z : 0;
     const windX = 2.4;
 
-    for (let i = 0; i < this.rainCount; i++) {
+    for (let i = 0; i < this.rainActive; i++) {
       const speed = this.rainSeeds[i * 3 + 1];
       const lenScale = this.rainSeeds[i * 3 + 2];
       let x = sp.getX(i * 2);
@@ -176,7 +208,7 @@ export class Particles {
       sp.setXYZ(i * 2, x, y, z);
       sp.setXYZ(i * 2 + 1, x - windX * 0.02, y + len, z);
     }
-    sp.needsUpdate = true;
+    this.uploadRange(sp, this.rainActive * 2);
   }
 
   buildRiverPetals() {
@@ -367,12 +399,22 @@ export class Particles {
     const target = snowing ? 0.85 : 0;
     this.snowMat.opacity += (target - this.snowMat.opacity) * dt * 1.5;
 
+    // Park the whole system in clear weather, the way rain already does:
+    // simulating and re-uploading 900 invisible flakes every frame is the
+    // single largest slice of the particle budget, and it runs most of the
+    // game. Snow only recycles a flake when it lands, so unlike rain it
+    // cannot walk itself back to the player — reseed on the way in.
+    const wasVisible = this.snow.visible;
+    this.snow.visible = this.snowMat.opacity > 0.01;
+    if (!this.snow.visible) return;
+    if (!wasVisible) this.reseedSnow(playerPos);
+
     const sp = this.snow.geometry.attributes.position;
     const cx = playerPos ? playerPos.x : 0;
     const cz = playerPos ? playerPos.z : 0;
     const t = this.time;
 
-    for (let i = 0; i < sp.count; i++) {
+    for (let i = 0; i < this.snowActive; i++) {
       const seed = this.snowSeeds[i * 3];
       const fallSpeed = this.snowSeeds[i * 3 + 1];
       const amp = this.snowSeeds[i * 3 + 2];
@@ -388,7 +430,23 @@ export class Particles {
       }
       sp.setXYZ(i, x, y, z);
     }
-    sp.needsUpdate = true;
+    this.uploadRange(sp, this.snowActive);
+  }
+
+  /** Scatter the live flakes through the column above the player. */
+  reseedSnow(playerPos) {
+    const sp = this.snow.geometry.attributes.position;
+    const cx = playerPos ? playerPos.x : 0;
+    const cz = playerPos ? playerPos.z : 0;
+    for (let i = 0; i < this.snowActive; i++) {
+      sp.setXYZ(
+        i,
+        cx + (Math.random() - 0.5) * 75,
+        Math.random() * 22,
+        cz + (Math.random() - 0.5) * 75
+      );
+    }
+    this.uploadRange(sp, this.snowActive);
   }
 
   update(dt, playerPos, sky = null) {
@@ -403,7 +461,7 @@ export class Particles {
     const raining = sky && sky.weather === 'rain';
 
     const pp = this.petals.geometry.attributes.position;
-    for (let i = 0; i < pp.count; i++) {
+    for (let i = 0; i < this.petalActive; i++) {
       const seed = this.petalSeeds[i * 3];
       const fall = this.petalSeeds[i * 3 + 1];
       const ph = this.petalSeeds[i * 3 + 2];
@@ -417,23 +475,29 @@ export class Particles {
       }
       pp.setXYZ(i, x, y, z);
     }
-    pp.needsUpdate = true;
+    this.uploadRange(pp, this.petalActive);
 
-    const fp = this.fireflies.geometry.attributes.position;
-    for (let i = 0; i < fp.count; i++) {
-      const seed = this.fireflySeeds[i * 3];
-      const speed = this.fireflySeeds[i * 3 + 1];
-      const baseY = this.fireflySeeds[i * 3 + 2];
-      fp.setX(i, fp.getX(i) + Math.sin(t * speed + seed) * dt * 0.7);
-      fp.setZ(i, fp.getZ(i) + Math.cos(t * speed * 0.8 + seed * 1.3) * dt * 0.7);
-      fp.setY(i, baseY + Math.sin(t * speed * 1.6 + seed * 2) * 0.35);
-    }
-    fp.needsUpdate = true;
+    // Fireflies only exist after dusk. Fading them out but still drifting
+    // them (and re-uploading the buffer) burned the daylight hours for a
+    // system nobody can see.
     const nightness = sky ? Math.max(0, 1 - Math.max(0, sky.sunDir.y) * 6) : 0.5;
     this.fireflyMat.opacity = (0.65 + Math.sin(t * 2.4) * 0.3) * nightness * (raining ? 0.2 : 1);
+    this.fireflies.visible = this.fireflyMat.opacity > 0.01;
+    if (this.fireflies.visible) {
+      const fp = this.fireflies.geometry.attributes.position;
+      for (let i = 0; i < this.fireflyActive; i++) {
+        const seed = this.fireflySeeds[i * 3];
+        const speed = this.fireflySeeds[i * 3 + 1];
+        const baseY = this.fireflySeeds[i * 3 + 2];
+        fp.setX(i, fp.getX(i) + Math.sin(t * speed + seed) * dt * 0.7);
+        fp.setZ(i, fp.getZ(i) + Math.cos(t * speed * 0.8 + seed * 1.3) * dt * 0.7);
+        fp.setY(i, baseY + Math.sin(t * speed * 1.6 + seed * 2) * 0.35);
+      }
+      this.uploadRange(fp, this.fireflyActive);
+    }
 
     const rp = this.riverPetals.geometry.attributes.position;
-    for (let i = 0; i < rp.count; i++) {
+    for (let i = 0; i < this.riverActive; i++) {
       const seed = this.riverSeeds[i * 2];
       const speed = this.riverSeeds[i * 2 + 1];
       let x = rp.getX(i) + dt * speed * 1.2;
@@ -442,16 +506,16 @@ export class Particles {
       rp.setZ(i, rp.getZ(i) + Math.sin(t * 1.8 + seed) * dt * 0.3);
       rp.setY(i, 0.05 + Math.sin(t * 2.2 + seed) * 0.015);
     }
-    rp.needsUpdate = true;
+    this.uploadRange(rp, this.riverActive);
 
     const mp = this.motes.geometry.attributes.position;
-    for (let i = 0; i < mp.count; i++) {
+    for (let i = 0; i < this.moteActive; i++) {
       const seed = this.moteSeeds[i * 2];
       const speed = this.moteSeeds[i * 2 + 1];
       mp.setX(i, mp.getX(i) + Math.sin(t * speed + seed) * dt * 0.25 + dt * 0.12);
       mp.setY(i, mp.getY(i) + Math.cos(t * speed * 0.7 + seed) * dt * 0.12);
       if (playerPos && mp.getX(i) - playerPos.x > 30) mp.setX(i, playerPos.x - 28);
     }
-    mp.needsUpdate = true;
+    this.uploadRange(mp, this.moteActive);
   }
 }

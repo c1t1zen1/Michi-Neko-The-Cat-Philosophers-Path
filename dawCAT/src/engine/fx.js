@@ -31,7 +31,13 @@ function eq8(ctx, params) {
     return f;
   });
   let head = input;
-  const all = [hp, ...bands];
+  // Only wire the HP filter into the live chain when it's actually enabled — matches
+  // computeEqCurve()'s `params.hpOn !== false` gating and bridge.js's exported runtime
+  // (`if (p.hpOn) {...}`). Any later change to hpOn mutates d.params, which is part of
+  // chainSignature(), so devices.js's checkbox handler (emits 'chain') triggers a full
+  // rebuildAll() that reconstructs this node with the new hpOn state — no need to also
+  // handle the toggle dynamically inside apply().
+  const all = params.hpOn !== false ? [hp, ...bands] : [...bands];
   for (const f of all) { head.connect(f); head = f; }
   head.connect(output);
   apply();
@@ -47,8 +53,10 @@ function eq8(ctx, params) {
       f.gain.value = clamp(b.gain || 0, -24, 24);
     });
   }
+  const autoParams = { hpFreq: hp.frequency };
+  bands.forEach((f, i) => { autoParams[`band${i}Gain`] = f.gain; });
   return {
-    input, output,
+    input, output, params: autoParams,
     update(p) { Object.assign(params, p); apply(); },
     getResponse(freqs) {
       const mag = new Float32Array(freqs.length).fill(1);
@@ -64,6 +72,41 @@ function eq8(ctx, params) {
   };
 }
 
+/**
+ * Compute the real combined frequency response (linear magnitude) of an EQ Eight
+ * device's high-pass + band filters, using actual BiquadFilterNode.getFrequencyResponse()
+ * — the same math the live audio graph uses (see eq8()'s getResponse above), so the drawn
+ * curve always matches what's audible, including the high-pass filter when enabled.
+ */
+export function computeEqCurve(ctx, params, freqs) {
+  const nodes = [];
+  if (params.hpOn !== false) {
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = clamp(params.hpFreq || 30, 20, 2000);
+    nodes.push(hp);
+  }
+  for (const b of params.bands || []) {
+    const f = ctx.createBiquadFilter();
+    // Mirrors eq8()'s b2t() exactly: the live audio graph only ever builds
+    // lowshelf/highshelf/peaking bands, so the drawn curve must match that,
+    // not the full set of options offered in the band-type <select>.
+    f.type = b.type === 'lowshelf' ? 'lowshelf' : b.type === 'highshelf' ? 'highshelf' : 'peaking';
+    f.frequency.value = clamp(b.freq, 20, 20000);
+    f.Q.value = clamp(b.q || 1, 0.1, 12);
+    f.gain.value = clamp(b.gain || 0, -24, 24);
+    nodes.push(f);
+  }
+  const mag = new Float32Array(freqs.length).fill(1);
+  const tmp = new Float32Array(freqs.length);
+  const phase = new Float32Array(freqs.length);
+  for (const f of nodes) {
+    f.getFrequencyResponse(freqs, tmp, phase);
+    for (let i = 0; i < freqs.length; i++) mag[i] *= tmp[i];
+  }
+  return mag;
+}
+
 function comp(ctx, params) {
   const { input, output } = baseIO(ctx);
   const c = ctx.createDynamicsCompressor();
@@ -77,7 +120,7 @@ function comp(ctx, params) {
     makeup.gain.value = params.makeup || 1;
   }
   return {
-    input, output,
+    input, output, params: { threshold: c.threshold, ratio: c.ratio, attack: c.attack, release: c.release, knee: c.knee, makeup: makeup.gain },
     update(p) { Object.assign(params, p); apply(); },
     dispose() { try { input.disconnect(); output.disconnect(); } catch (e) { /* noop */ } }
   };
@@ -90,7 +133,7 @@ function delayFx(ctx, params, pack) {
   const delay = ctx.createDelay(2.5);
   const fb = ctx.createGain();
   input.connect(dry); dry.connect(output);
-  input.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(output);
+  input.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(output);
   apply();
   function apply() {
     const sync = params.sync || '1/8';
@@ -105,7 +148,7 @@ function delayFx(ctx, params, pack) {
     dry.gain.setTargetAtTime(1, ctx.currentTime, 0.05);
   }
   return {
-    input, output,
+    input, output, params: { feedback: fb.gain, wet: wet.gain },
     update(p) { Object.assign(params, p); apply(); },
     dispose() { try { input.disconnect(); output.disconnect(); } catch (e) { /* noop */ } }
   };
@@ -130,7 +173,7 @@ function reverbFx(ctx, params, pack) {
     }
   }
   return {
-    input, output,
+    input, output, params: { wet: wet.gain },
     update(p) { Object.assign(params, p); apply(); },
     dispose() { try { input.disconnect(); output.disconnect(); } catch (e) { /* noop */ } }
   };
@@ -147,7 +190,7 @@ function filterFx(ctx, params) {
     f.Q.value = clamp(params.q, 0.0001, 24);
   }
   return {
-    input, output,
+    input, output, params: { freq: f.frequency, q: f.Q },
     update(p) { Object.assign(params, p); apply(); },
     getResponse(freqs) {
       const mag = new Float32Array(freqs.length), ph = new Float32Array(freqs.length);
@@ -178,7 +221,7 @@ function chorusFx(ctx, params) {
     wet.gain.value = params.mix; dry.gain.value = 1 - params.mix * 0.5;
   }
   return {
-    input, output,
+    input, output, params: { rate: lfo.frequency, depth: lfoGain.gain, mix: wet.gain },
     update(p) { Object.assign(params, p); apply(); },
     dispose() { try { lfo.stop(); input.disconnect(); output.disconnect(); } catch (e) { /* noop */ } }
   };
@@ -191,7 +234,7 @@ function utility(ctx, params) {
   apply();
   function apply() { g.gain.value = params.gain; }
   return {
-    input, output,
+    input, output, params: { gain: g.gain },
     update(p) { Object.assign(params, p); apply(); },
     dispose() { try { input.disconnect(); output.disconnect(); } catch (e) { /* noop */ } }
   };

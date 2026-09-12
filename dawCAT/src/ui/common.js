@@ -109,7 +109,7 @@ export function makeKnob({ label, min, max, value, step = 0.01, fmt, onChange, d
 
   function render() {
     const f = (val - min) / (max - min);
-    ind.style.transform = `translateX(-50%) rotate(${-135 + f * 270}deg)`;
+    ind.style.transform = `translateX(-50%) rotate(${45 + f * 270}deg)`;
     valEl.textContent = fmt ? fmt(val) : val.toFixed(2);
   }
 

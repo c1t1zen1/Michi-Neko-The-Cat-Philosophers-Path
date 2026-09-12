@@ -12,12 +12,38 @@ export function maxNoteEnd(notes) {
 
 function r3(v) { return Math.round(v * 1000) / 1000; }
 
+function r3pts(list) { return (list || []).map((p) => ({ b: r3(p.beat), v: r3(p.value) })); }
+
+// Flattens track.automation.devices into { [deviceId]: { [paramKey]: [{b,v}] } },
+// dropping any param whose point list is empty so idle lanes don't bloat the payload.
+function r3devAuto(devAuto) {
+  const out = {};
+  if (!devAuto) return out;
+  for (const devId in devAuto) {
+    const params = devAuto[devId];
+    const po = {};
+    let has = false;
+    for (const key in params) {
+      const pts = params[key];
+      if (pts && pts.length) { po[key] = r3pts(pts); has = true; }
+    }
+    if (has) out[devId] = po;
+  }
+  return out;
+}
+
 export function buildExportPayload(project) {
   const soloed = project.tracks.some((t) => t.solo);
   const tracks = project.tracks.map((t) => ({
     name: t.name, kind: t.kind, preset: t.preset, drumKit: t.drumKit,
     volume: r3(t.volume), pan: r3(t.pan || 0),
-    sends: { a: r3(t.sends ? t.sends.a : 0), b: r3(t.sends ? t.sends.b : 0) }
+    sends: { a: r3(t.sends ? t.sends.a : 0), b: r3(t.sends ? t.sends.b : 0) },
+    devices: (t.devices || []).filter((d) => d.on).map((d) => ({ id: d.id, type: d.type, params: d.params })),
+    automation: {
+      volume: r3pts(t.automation && t.automation.volume),
+      pan: r3pts(t.automation && t.automation.pan),
+      devices: r3devAuto(t.automation && t.automation.devices)
+    }
   }));
   const events = [];
   project.tracks.forEach((t, ti) => {
@@ -58,16 +84,26 @@ export function buildExportPayload(project) {
   for (const t of project.tracks) {
     for (const c of t.clips) endBeat = Math.max(endBeat, (c.start + c.length) * 4);
   }
+  // A project pinned to one timeOfDay is a single scene/time variant, not the
+  // full-cycle arrangement `sections` seeks within — ignore any leftover bar
+  // mapping so the exported player just loops the variant instead of trying
+  // (and failing) to seek phases that this project never defined.
+  const singlePhase = !!project.timeOfDay;
   const sections = {};
   let any = false;
-  for (const ph of ['dawn', 'day', 'dusk', 'night']) {
-    const bar = project.sections ? project.sections[ph] : null;
-    sections[ph] = bar == null || bar < 0 ? null : bar;
-    if (bar != null && bar >= 0) any = true;
+  if (!singlePhase) {
+    for (const ph of ['dawn', 'day', 'dusk', 'night']) {
+      const bar = project.sections ? project.sections[ph] : null;
+      sections[ph] = bar == null || bar < 0 ? null : bar;
+      if (bar != null && bar >= 0) any = true;
+    }
   }
   return {
+    kind: 'dawcat-export',
     v: 1, name: project.name, tempo: project.tempo, songBeats: endBeat,
+    scene: project.scene || 'Overworld', timeOfDay: project.timeOfDay || null,
     master: project.master.volume,
+    masterAutomation: { volume: r3pts(project.master.automation && project.master.automation.volume) },
     tracks, events,
     sections: any ? sections : null
   };
@@ -91,14 +127,22 @@ function dawcatRuntime() {
       this.anchorTime = 0;
       this.evIdx = 0;
       this.out = null;
+      this.scene = null;
     }
     get ctx() { return this.audio ? this.audio.ctx : null; }
+
+    // An exported track is a single scene/time-of-day variant — there's
+    // nothing else here to switch to yet — but the game calls setScene()
+    // unconditionally, so keep the call a harmless no-op rather than making
+    // main.js feature-detect around a hot-swapped/dropped-in export.
+    setScene(name) { this.scene = name; }
 
     start() {
       if (this.started || !this.audio.initialized || !this.ctx) return;
       this.started = true;
       const ctx = this.ctx;
       const d = this.data;
+      this.masterVol = d.master != null ? d.master : 0.85;
       this.out = ctx.createGain();
       this.out.gain.value = 0;
       this.out.connect(this.audio.buses.music);
@@ -114,7 +158,7 @@ function dawcatRuntime() {
       this.echo.connect(fb); fb.connect(this.echo);
       this.echo.connect(delRet); delRet.connect(this.out);
       this.chains = d.tracks.map((t) => this.buildChain(t));
-      this.out.gain.setTargetAtTime(0.85 * this.duckTarget, ctx.currentTime, 2.0);
+      this.out.gain.setTargetAtTime(this.masterVol * this.duckTarget, ctx.currentTime, 2.0);
       this.anchorBeat = 0;
       this.anchorTime = ctx.currentTime + 0.2;
       this.evIdx = 0;
@@ -123,15 +167,184 @@ function dawcatRuntime() {
 
     buildChain(t) {
       const ctx = this.ctx;
-      const input = ctx.createGain();
+      const trackIn = ctx.createGain();
+      let head = trackIn;
+      const deviceParams = {};
+      for (const def of (t.devices || [])) {
+        const dev = this.buildDevice(ctx, def);
+        head.connect(dev.input);
+        head = dev.output;
+        if (dev.params && def.id) deviceParams[def.id] = dev.params;
+      }
       const gain = ctx.createGain(); gain.gain.value = t.volume;
       const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
-      input.connect(gain); gain.connect(pan); pan.connect(this.out);
+      head.connect(gain); gain.connect(pan); pan.connect(this.out);
       const sendA = ctx.createGain(); sendA.gain.value = t.sends ? t.sends.a : 0.1;
       const sendB = ctx.createGain(); sendB.gain.value = t.sends ? t.sends.b : 0.1;
       pan.connect(sendA); sendA.connect(this.reverbBus);
       pan.connect(sendB); sendB.connect(this.echo);
-      return { input, gain, pan };
+      return { input: trackIn, gain, pan, deviceParams };
+    }
+
+    // Trimmed, construction-only device factories: unlike the editor's live fx.js
+    // rack, these are baked once from the exported params and never updated/disposed
+    // (mirrors createDeviceNode()'s switch in engine/fx.js, collapsed to build-only).
+    buildDevice(ctx, def) {
+      const input = ctx.createGain();
+      const output = ctx.createGain();
+      const p = def.params || {};
+      let params = {};
+      switch (def.type) {
+        case 'eq8': {
+          let head = input;
+          if (p.hpOn) {
+            const hp = ctx.createBiquadFilter();
+            hp.type = 'highpass';
+            hp.frequency.value = p.hpFreq || 30;
+            head.connect(hp); head = hp;
+            params.hpFreq = hp.frequency;
+          }
+          (p.bands || []).forEach((b, i) => {
+            const f = ctx.createBiquadFilter();
+            f.type = b.type === 'lowshelf' ? 'lowshelf' : b.type === 'highshelf' ? 'highshelf' : 'peaking';
+            f.frequency.value = b.freq; f.Q.value = b.q || 1; f.gain.value = b.gain || 0;
+            head.connect(f); head = f;
+            params[`band${i}Gain`] = f.gain;
+          });
+          head.connect(output);
+          break;
+        }
+        case 'comp': {
+          const c = ctx.createDynamicsCompressor();
+          c.threshold.value = p.threshold != null ? p.threshold : -20;
+          c.ratio.value = p.ratio || 3;
+          c.attack.value = p.attack != null ? p.attack : 0.01;
+          c.release.value = p.release != null ? p.release : 0.25;
+          c.knee.value = p.knee != null ? p.knee : 12;
+          const makeup = ctx.createGain(); makeup.gain.value = p.makeup || 1;
+          input.connect(c); c.connect(makeup); makeup.connect(output);
+          params = { threshold: c.threshold, ratio: c.ratio, attack: c.attack, release: c.release, knee: c.knee, makeup: makeup.gain };
+          break;
+        }
+        case 'delay': {
+          const sync = { '1/16': 0.25, '1/8': 0.5, '1/8D': 0.75, '1/4': 1, '1/4D': 1.5, '1/2': 2 };
+          const dry = ctx.createGain(); dry.gain.value = 1;
+          const wet = ctx.createGain(); wet.gain.value = p.wet != null ? p.wet : 0.3;
+          const delay = ctx.createDelay(2.5);
+          let sec = (p.timeMs || 375) / 1000;
+          if (p.sync && p.sync !== 'free') sec = (60 / this.data.tempo) * (sync[p.sync] || 0.5);
+          delay.delayTime.value = Math.min(1.9, Math.max(0.01, sec));
+          const fb = ctx.createGain(); fb.gain.value = Math.min(0.92, Math.max(0, p.feedback != null ? p.feedback : 0.34));
+          input.connect(dry); dry.connect(output);
+          input.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(output);
+          params = { feedback: fb.gain, wet: wet.gain };
+          break;
+        }
+        case 'reverb': {
+          const size = Math.min(6, Math.max(0.2, p.size != null ? p.size : 2.2));
+          const decay = Math.min(6, Math.max(0.5, p.decay != null ? p.decay : 2.4));
+          const wetAmt = p.wet != null ? p.wet : 0.28;
+          const conv = ctx.createConvolver();
+          conv.buffer = this.impulse(size, decay);
+          const wet = ctx.createGain(); wet.gain.value = wetAmt;
+          const dry = ctx.createGain(); dry.gain.value = 1 - wetAmt * 0.4;
+          input.connect(dry); dry.connect(output);
+          input.connect(conv); conv.connect(wet); wet.connect(output);
+          params = { wet: wet.gain };
+          break;
+        }
+        case 'filter': {
+          const f = ctx.createBiquadFilter();
+          f.type = p.type || 'lowpass';
+          f.frequency.value = p.freq != null ? p.freq : 1200;
+          f.Q.value = p.q != null ? p.q : 0.8;
+          input.connect(f); f.connect(output);
+          params = { freq: f.frequency, q: f.Q };
+          break;
+        }
+        case 'chorus': {
+          const mix = p.mix != null ? p.mix : 0.35;
+          const dry = ctx.createGain(); dry.gain.value = 1 - mix * 0.5;
+          const wet = ctx.createGain(); wet.gain.value = mix;
+          const dl = ctx.createDelay(0.2); dl.delayTime.value = 0.025;
+          const lfo = ctx.createOscillator();
+          const lfoGain = ctx.createGain();
+          lfo.frequency.value = p.rate != null ? p.rate : 0.6;
+          lfoGain.gain.value = (p.depth != null ? p.depth : 0.4) * 0.012;
+          input.connect(dry); dry.connect(output);
+          input.connect(dl); dl.connect(wet); wet.connect(output);
+          lfo.connect(lfoGain); lfoGain.connect(dl.delayTime);
+          try { lfo.start(); } catch (e) {}
+          this.live.add(lfo);
+          params = { rate: lfo.frequency, depth: lfoGain.gain, mix: wet.gain };
+          break;
+        }
+        case 'utility':
+        default: {
+          const g = ctx.createGain(); g.gain.value = p.gain != null ? p.gain : 1;
+          input.connect(g); g.connect(output);
+          params = { gain: g.gain };
+          break;
+        }
+      }
+      return { input, output, params };
+    }
+
+    currentBeat() {
+      const spb = 60 / this.data.tempo;
+      return this.anchorBeat + (this.ctx.currentTime - this.anchorTime) / spb;
+    }
+
+    autoValue(points, beat) {
+      if (!points || !points.length) return null;
+      if (beat <= points[0].b) return points[0].v;
+      for (let i = 1; i < points.length; i++) {
+        if (beat <= points[i].b) {
+          const a = points[i - 1], b = points[i];
+          const f = (beat - a.b) / Math.max(0.0001, b.b - a.b);
+          return a.v + (b.v - a.v) * f;
+        }
+      }
+      return points[points.length - 1].v;
+    }
+
+    applyAutomation() {
+      if (!this.started) return;
+      const d = this.data;
+      const now = this.ctx.currentTime;
+      const beat = this.currentBeat();
+      this.chains.forEach((chain, i) => {
+        const t = d.tracks[i];
+        const auto = t && t.automation;
+        if (auto && auto.volume && auto.volume.length) {
+          const v = this.autoValue(auto.volume, beat);
+          if (v != null) chain.gain.gain.setTargetAtTime(v, now, 0.06);
+        }
+        if (auto && auto.pan && auto.pan.length && chain.pan.pan) {
+          const v = this.autoValue(auto.pan, beat);
+          if (v != null) chain.pan.pan.setTargetAtTime(v, now, 0.06);
+        }
+        const devAuto = auto && auto.devices;
+        if (devAuto && chain.deviceParams) {
+          for (const devId in devAuto) {
+            const refs = chain.deviceParams[devId];
+            if (!refs) continue;
+            const devParams = devAuto[devId];
+            for (const key in devParams) {
+              const pts = devParams[key];
+              const ref = refs[key];
+              if (!ref || !pts || !pts.length) continue;
+              const v = this.autoValue(pts, beat);
+              if (v != null) ref.setTargetAtTime(v, now, 0.06);
+            }
+          }
+        }
+      });
+      const mv = d.masterAutomation && d.masterAutomation.volume;
+      if (mv && mv.length && this.out) {
+        const v = this.autoValue(mv, beat);
+        if (v != null) this.out.gain.setTargetAtTime(this.masterVol * this.duckTarget * v, now, 0.06);
+      }
     }
 
     impulse(seconds, decay) {
@@ -178,7 +391,7 @@ function dawcatRuntime() {
     setDucked(ducked) {
       this.duckTarget = ducked ? 0.35 : 1;
       if (this.started && this.out && this.ctx) {
-        this.out.gain.setTargetAtTime(0.85 * this.duckTarget, this.ctx.currentTime, 0.6);
+        this.out.gain.setTargetAtTime((this.masterVol || 0.85) * this.duckTarget, this.ctx.currentTime, 0.6);
       }
     }
 
@@ -225,6 +438,7 @@ function dawcatRuntime() {
       const spb = 60 / d.tempo;
       const now = ctx.currentTime;
       const horizon = now + 0.5;
+      this.applyAutomation();
       let guard = 0;
       while (guard++ < 5000) {
         if (this.evIdx >= d.events.length) {
@@ -353,7 +567,7 @@ function dawcatRuntime() {
       bus.connect(this.out);
       if (name === 'rain' || name === 'wind' || name === 'purr') {
         const src = ctx.createBufferSource();
-        src.buffer = this.noise(2);
+        src.buffer = this.noiseBuf(2);
         src.loop = true;
         const f = ctx.createBiquadFilter();
         f.type = 'lowpass';
@@ -413,14 +627,23 @@ function dawcatRuntime() {
 
 export function generateMusicJS(payload) {
   const data = JSON.stringify(payload, null, 1);
+  const tod = payload.timeOfDay;
+  // Neutralize `*/` so a scene name typed with it can't prematurely close
+  // this block comment when embedded below.
+  const target = `${payload.scene || 'Overworld'} — ${tod ? tod[0].toUpperCase() + tod.slice(1) : 'full day cycle'}`.replace(/\*\//g, '* /');
   return `/* ============================================================
  * Generated by dawCAT — drop-in replacement for src/music.js
+ * Target: ${target}
  *
  * This file implements the exact MusicDirector API the game
  * already calls (start / stop / update / setDucked), so no other
  * game code needs to change. Your dawCAT arrangement plays on a
  * loop; if you mapped day phases to sections, the player seeks
- * to each phase's section as the in-game clock changes.
+ * to each phase's section as the in-game clock changes. (A
+ * single-time-of-day export like this one ignores those phase
+ * changes and just loops — the game doesn't yet load per-scene or
+ * per-time-of-day music, so swap this file in manually for the
+ * variant you want live.)
  *
  * To install: replace src/music.js with this file, then reload
  * the game (hard refresh: Ctrl+Shift+R). Keep a backup of the
@@ -457,6 +680,14 @@ export class MusicDirector {
     this.player.setDucked(ducked);
   }
 
+  /** Called when the player crosses between scenes (e.g. entering/leaving the
+   *  Tea House). This export is one scene/time-of-day variant, so it's a
+   *  no-op — kept so main.js's unconditional this.music.setScene() call
+   *  doesn't need to feature-detect around this drop-in replacement. */
+  setScene(name) {
+    this.player.setScene(name);
+  }
+
   phaseForDayTime(dayTime) {
     return this.player.phaseForDayTime(dayTime);
   }
@@ -471,6 +702,11 @@ export class MusicDirector {
 
 export function hotSwapSnippet(payload) {
   const data = JSON.stringify(payload);
+  const tod = payload.timeOfDay;
+  const target = `${payload.scene || 'Overworld'} · ${tod ? tod[0].toUpperCase() + tod.slice(1) : 'full day cycle'}`;
+  // JSON.stringify (not a template literal) so a scene name typed with a quote
+  // or backslash can't break out of the generated console.log call.
+  const logMsg = JSON.stringify(`%c dawCAT track hot-swapped into the game! (${target}) `);
   return `(function(){
   try {
     var DATA = ${data};
@@ -483,7 +719,7 @@ export function hotSwapSnippet(payload) {
     if (!p.started) { console.warn('dawCAT: audio not initialized yet — click the game once, then re-run this snippet'); return; }
     g.music = p;
     if (g.sky && g.sky.dayTime != null) p.update(g.sky.dayTime);
-    console.log('%c dawCAT track hot-swapped into the game! ', 'background:#3f7fff;color:#fff;border-radius:3px');
+    console.log(${logMsg}, 'background:#3f7fff;color:#fff;border-radius:3px');
   } catch (e) { console.error('dawCAT hot-swap failed:', e); }
 })();`;
 }
