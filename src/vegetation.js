@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { barkTextures, texturedMaterial } from './textures.js?v=20260911d';
-import { createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture, buildCanopy, updateFoliage } from './foliage.js?v=20260911d';
+import { barkTextures, texturedMaterial } from './textures.js?v=20260912b';
+import { createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture, buildCanopy, updateFoliage } from './foliage.js?v=20260912b';
 
 function mulberry32(a) {
   return function() {
@@ -85,7 +85,14 @@ export class Vegetation {
     for (const [x, z, s] of this.sakuraSpots) this.sakuraTree(x, z, s);
     this.buildDappledLight();
     this.buildPetalDrifts();
-    this.buildBambooGrove(30, -20, 7);
+    // Footpath in from the village side, past Bokuchi's offering bell to
+    // Mochi's clearing — keeps both reachable while the cat can still weave
+    // between the per-culm colliders anywhere else in the grove.
+    this.buildBambooGrove(30, -20, 7, [
+      { pts: [[24.2, -15.4], [30.5, -16.5], [28, -18]], r: 1.05 },
+      { pts: [[30.5, -16.5]], r: 1.5 },
+      { pts: [[28, -18]], r: 1.6 }
+    ]);
     this.buildBambooGrove(-32, -14, 5);
     this.buildMaplesAndPines();
     this.buildSusukiGrass();
@@ -293,10 +300,27 @@ export class Vegetation {
     }
   }
 
-  buildBambooGrove(cx, cz, radius) {
+  buildBambooGrove(cx, cz, radius, corridors = []) {
     const count = Math.floor(radius * radius * 1.6);
     const leavesPerStalk = 72;
     const leafTotal = count * leavesPerStalk;
+
+    // Corridors are { pts: [[x,z], ...], r } polylines (a single point is a
+    // round clearing). Stalks landing inside one are skipped entirely, so
+    // the gaps read as real openings in the grove — a footpath to walk,
+    // not invisible holes in a wall.
+    const distToSeg = (x, z, a, b) => {
+      const dx = b[0] - a[0], dz = b[1] - a[1];
+      const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz || 1)));
+      return Math.hypot(x - (a[0] + t * dx), z - (a[1] + t * dz));
+    };
+    const inCorridor = (x, z) => corridors.some((c) => {
+      if (c.pts.length === 1) return Math.hypot(x - c.pts[0][0], z - c.pts[0][1]) < c.r;
+      for (let s = 0; s + 1 < c.pts.length; s++) {
+        if (distToSeg(x, z, c.pts[s], c.pts[s + 1]) < c.r) return true;
+      }
+      return false;
+    });
 
     // Lower culms sit below the bend point and never move: bake their
     // matrices once into a plain InstancedMesh.
@@ -314,19 +338,22 @@ export class Vegetation {
     const leafB = new Float32Array(leafTotal * 4);  // length, width, roll, plant yaw
     const dummy = new THREE.Object3D();
 
+    let planted = 0;
     for (let i = 0; i < count; i++) {
       const a = this.random() * Math.PI * 2;
       const r = Math.sqrt(this.random()) * radius;
       const x = cx + Math.cos(a) * r;
       const z = cz + Math.sin(a) * r;
+      if (inCorridor(x, z)) continue;
+      const k = planted++;
       const height = 5.6 + this.random() * 3.2;
       const yaw = this.random() * Math.PI * 2;
       const phase = this.random() * Math.PI * 2;
-      plantArr[i * 4] = x;
-      plantArr[i * 4 + 1] = z;
-      plantArr[i * 4 + 2] = height;
-      plantArr[i * 4 + 3] = phase;
-      yawArr[i] = yaw;
+      plantArr[k * 4] = x;
+      plantArr[k * 4 + 1] = z;
+      plantArr[k * 4 + 2] = height;
+      plantArr[k * 4 + 3] = phase;
+      yawArr[k] = yaw;
 
       // Static lower culm (below the bend point)
       const bendStart = height * 0.64;
@@ -334,34 +361,40 @@ export class Vegetation {
       dummy.rotation.set(0, yaw, 0);
       dummy.scale.set(1, bendStart / 7, 1);
       dummy.updateMatrix();
-      lowerStalks.setMatrixAt(i, dummy.matrix);
+      lowerStalks.setMatrixAt(k, dummy.matrix);
+
+      // One thin box per culm instead of a single grove-sized slab: the cat
+      // can weave between stalks, so the grove is somewhere to walk through
+      // rather than a hedge to walk around.
+      this.addCollider(x, z, 0.1);
 
       // Dense, top-heavy foliage hides upper culms while leaving the base open.
       for (let j = 0; j < leavesPerStalk; j++) {
-        const k = i * leavesPerStalk + j;
-        leafPlant[k * 4] = x;
-        leafPlant[k * 4 + 1] = z;
-        leafPlant[k * 4 + 2] = height;
-        leafPlant[k * 4 + 3] = phase;
-        leafA[k * 4] = this.random() * Math.PI * 2;                       // angle
-        leafA[k * 4 + 1] = 0.22 + Math.pow(this.random(), 0.48) * 0.76;   // heightRatio
-        leafA[k * 4 + 2] = 0.18 + this.random() * 0.46;                   // branchLength
-        leafA[k * 4 + 3] = this.random() * Math.PI * 2;                   // phase
-        leafB[k * 4] = 0.48 + this.random() * 0.42;                       // length
-        leafB[k * 4 + 1] = 0.78 + this.random() * 0.52;                   // width
-        leafB[k * 4 + 2] = (this.random() - 0.5) * 0.38;                  // roll
-        leafB[k * 4 + 3] = yaw;                                           // plant yaw
+        const li = k * leavesPerStalk + j;
+        leafPlant[li * 4] = x;
+        leafPlant[li * 4 + 1] = z;
+        leafPlant[li * 4 + 2] = height;
+        leafPlant[li * 4 + 3] = phase;
+        leafA[li * 4] = this.random() * Math.PI * 2;                      // angle
+        leafA[li * 4 + 1] = 0.22 + Math.pow(this.random(), 0.48) * 0.76;  // heightRatio
+        leafA[li * 4 + 2] = 0.18 + this.random() * 0.46;                  // branchLength
+        leafA[li * 4 + 3] = this.random() * Math.PI * 2;                  // phase
+        leafB[li * 4] = 0.48 + this.random() * 0.42;                      // length
+        leafB[li * 4 + 1] = 0.78 + this.random() * 0.52;                  // width
+        leafB[li * 4 + 2] = (this.random() - 0.5) * 0.38;                 // roll
+        leafB[li * 4 + 3] = yaw;                                          // plant yaw
       }
     }
+    lowerStalks.count = planted;
     lowerStalks.instanceMatrix.needsUpdate = true;
 
     upperGeo.setAttribute('aPlant', new THREE.InstancedBufferAttribute(plantArr, 4));
     upperGeo.setAttribute('aYaw', new THREE.InstancedBufferAttribute(yawArr, 1));
-    upperGeo.instanceCount = count;
+    upperGeo.instanceCount = planted;
     leafGeo.setAttribute('aPlant', new THREE.InstancedBufferAttribute(leafPlant, 4));
     leafGeo.setAttribute('aLeafA', new THREE.InstancedBufferAttribute(leafA, 4));
     leafGeo.setAttribute('aLeafB', new THREE.InstancedBufferAttribute(leafB, 4));
-    leafGeo.instanceCount = leafTotal;
+    leafGeo.instanceCount = planted * leavesPerStalk;
 
     const groveSphere = new THREE.Sphere(new THREE.Vector3(cx, 4.5, cz), radius + 7);
     upperGeo.boundingSphere = groveSphere.clone();
@@ -376,7 +409,6 @@ export class Vegetation {
     this.scene.add(lowerStalks);
     this.scene.add(upperStalks);
     this.scene.add(leaves);
-    this.addCollider(cx, cz, radius * 0.7);
   }
 
   /**

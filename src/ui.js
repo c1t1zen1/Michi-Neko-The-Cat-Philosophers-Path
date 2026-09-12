@@ -82,8 +82,16 @@ export class UI {
    * Interface mode (U1.2). 'minimal' keeps the parchment rolled up; the
    * player can still unroll it by hand. 'guided' restores the classic
    * expanded overlay for players who want the numbers at a glance.
+   *
+   * applySettings() re-runs on every trusted gesture via the audio-unlock
+   * path, so only restate the parchment when the mode itself changed —
+   * otherwise a manual toggle is stomped back to the setting on the next
+   * click (and, in 'minimal', a pointerdown collapses the scroll before a
+   * click can land on the Journal button inside it).
    */
   setHudMode(mode) {
+    if (mode === this._hudMode) return;
+    this._hudMode = mode;
     const hudScroll = document.getElementById('hud-scroll');
     const scrollArrow = document.getElementById('scroll-arrow');
     const scrollBtn = document.getElementById('scroll-toggle-btn');

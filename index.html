@@ -511,6 +511,44 @@
       transform: scale(1.08);
     }
     #boot-screen.dissolve { opacity: 0; }
+    #boot-title {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; user-select: none;
+    }
+    .boot-paw { font-size: 40px; margin-bottom: 4px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6)); }
+    .boot-game-title {
+      font-size: clamp(48px, 8.5vw, 88px); margin: 0; letter-spacing: 10px; color: #fdf3e0;
+      text-shadow: 0 3px 0 #7c2c18, 0 8px 26px rgba(0,0,0,0.85), 0 0 60px rgba(255,190,120,0.25);
+      font-weight: bold;
+    }
+    .boot-game-subtitle {
+      font-size: clamp(13px, 2vw, 17px); color: #e8c898; letter-spacing: 7px;
+      margin: 10px 0 0 0; text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    }
+    .boot-loading {
+      position: absolute; left: 0; right: 0; bottom: 12%;
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+    }
+    .boot-spinner {
+      width: 42px; height: 42px; border-radius: 50%;
+      border: 3px solid rgba(246,232,212,0.25);
+      border-top-color: #e8b84a;
+      animation: boot-spin 0.9s linear infinite;
+    }
+    @keyframes boot-spin { to { transform: rotate(360deg); } }
+    .boot-loading-text {
+      font-size: 13px; letter-spacing: 6px; color: #f6e8d4;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    }
+    .boot-loading-text span {
+      display: block; font-size: 10px; letter-spacing: 4px;
+      color: rgba(230,200,160,0.7); margin-top: 4px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .boot-spinner { animation: boot-pulse 1.6s ease-in-out infinite; }
+      @keyframes boot-pulse { 0%,100% { opacity: 0.35; } 50% { opacity: 1; } }
+    }
   </style>
   <script type="importmap">
   {
@@ -523,8 +561,17 @@
 </head>
 <body class="in-title">
   <!-- Soft-focus boot image: dissolves into the live world after frame one -->
-  <div id="boot-screen">
+  <div id="boot-screen" role="status" aria-label="Loading Michi-Neko">
     <img src="docs/images/title-screen.jpg" alt="" fetchpriority="high">
+    <div id="boot-title">
+      <div class="boot-paw">🐾</div>
+      <h1 class="boot-game-title">Michi-Neko</h1>
+      <div class="boot-game-subtitle">道猫 — 京都江戸の谷</div>
+    </div>
+    <div class="boot-loading">
+      <div class="boot-spinner"></div>
+      <div class="boot-loading-text">Loading…<span>読み込み中</span></div>
+    </div>
   </div>
   <canvas id="canvas"></canvas>
   <div id="vignette"></div>
@@ -675,6 +722,6 @@
   <!-- Cache busting: every module import in src/ carries this same ?v= tag.
        Bump them together, or a changed file ships against a cached sibling:
          sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDDx/g" src/*.js index.html -->
-  <script type="module" src="src/main.js?v=20260911d"></script>
+  <script type="module" src="src/main.js?v=20260912b"></script>
 </body>
 </html>
