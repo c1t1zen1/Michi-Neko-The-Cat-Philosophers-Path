@@ -188,13 +188,22 @@ export class ContextActionManager {
       return { type: 'drink', label: 'drink fresh water', target: null };
     }
 
-    // 5. NPC interactions: greet > gift > slow blink (C1.5, N2.1)
+    // 5. NPC interactions: greet/talk > gift > slow blink (C1.5, N2.1)
     for (const n of this.npcs) {
       if (!n || !n.mesh) continue;
       const d = n.distanceTo(pos);
       if (d < 2.2) {
         if (!n.hasGreeted) {
           return { type: 'greet', label: `greet ${n.name}`, target: n };
+        }
+        // Quest-giver cats keep E = talk until their quest is done and the
+        // reward claimed — gestures never bury a quest offer or turn-in.
+        // Once their quest is claimed out, gifting opens up.
+        const questType = n.name === 'Luna' ? 'yarn' : n.name === 'Kuro' ? 'bell' : null;
+        const questClaimed = questType && this.quest &&
+          this.quest.hasCompleted(questType) && !this.quest.hasPendingReward(questType);
+        if (questType && !questClaimed) {
+          return { type: 'greet', label: `talk to ${n.name}`, target: n };
         }
         // Gift a nearby yarn ball to a friend — but never the yarn a
         // running quest still needs.

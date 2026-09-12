@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20260911b';
+import { Cat } from './cat.js?v=20260911d';
 
 export class NPC {
   constructor(scene, name, color, position, dialogueLines, options = {}) {
