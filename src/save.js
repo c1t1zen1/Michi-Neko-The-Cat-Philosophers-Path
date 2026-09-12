@@ -107,6 +107,9 @@ export class SaveManager {
     try {
       localStorage.removeItem(this.key);
       localStorage.removeItem(this.backupKey);
+      // The legacy key feeds load()'s fallback — leaving it behind would
+      // resurrect a pre-versioning save on the next boot (new game reset).
+      localStorage.removeItem(LEGACY_KEY);
     } catch (e) {}
   }
 

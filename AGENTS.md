@@ -21,7 +21,7 @@ Every module import carries `?v=<tag>`. Keep all tags in sync when editing:
 sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDD<letter>/g" src/*.js index.html
 ```
 
-Current tag: `20260911a`.
+Current tag: `20260911b`.
 
 ## Verification
 

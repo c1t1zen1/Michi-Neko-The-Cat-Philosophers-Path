@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20260911a';
+import { Cat } from './cat.js?v=20260911b';
 
 export class NPC {
   constructor(scene, name, color, position, dialogueLines, options = {}) {
@@ -47,26 +47,39 @@ export class NPC {
     this.moveSpeed = 0;
 
     // ---- Routines & schedules (N2.2/N2.3) ----
-    // Each entry is a home override: { night, rain, mist, postQuest } as
-    // THREE.Vector3. The cat walks to its current routine spot instead of
-    // teleporting, so the player can catch them mid-commute.
+    // Each entry is a home override: { night, rain, mist, postQuest } — a
+    // THREE.Vector3, or { pos, radius, plateau, rise } to tune the stroll
+    // at that spot. Elevated spots (the bridge deck) need a tight `radius`
+    // so the cat never wanders off the edge while pinned at deck height,
+    // and `plateau`/`rise` fade the target height in over the approach so
+    // the commute reads as walking up, not levitating.
     this.schedule = options.schedule || null;
     this.postQuestHome = null;
     this.effHome = this.home;
+    this.effWanderRadius = this.wanderRadius;
+    this._spotPlateau = 1.5;
+    this._spotRise = 2.5;
     this.routineIdleTimer = 4 + Math.random() * 8;
   }
 
   /** The routine-aware home for this moment (night / weather / quest state). */
   resolveRoutineHome(sky) {
-    if (this.postQuestHome) return this.postQuestHome;
-    const s = this.schedule;
-    if (!s || !sky) return this.home;
-    const night = sky.dayTime >= 19.5 || sky.dayTime < 5.5;
-    if (night && s.night) return s.night;
-    const w = sky.targetWeather || sky.weather;
-    if (w === 'rain' && s.rain) return s.rain;
-    if (w === 'mist' && s.mist) return s.mist;
-    return this.home;
+    let entry = this.postQuestHome;
+    if (!entry) {
+      const s = this.schedule;
+      if (s && sky) {
+        const night = sky.dayTime >= 19.5 || sky.dayTime < 5.5;
+        const w = sky.targetWeather || sky.weather;
+        if (night && s.night) entry = s.night;
+        else if (w === 'rain' && s.rain) entry = s.rain;
+        else if (w === 'mist' && s.mist) entry = s.mist;
+      }
+    }
+    entry = entry || this.home;
+    this.effWanderRadius = entry.radius != null ? entry.radius : this.wanderRadius;
+    this._spotPlateau = entry.plateau != null ? entry.plateau : 1.5;
+    this._spotRise = entry.rise != null ? entry.rise : 2.5;
+    return entry.pos || entry;
   }
 
   createNameTag(name) {
@@ -130,13 +143,13 @@ export class NPC {
       const dx = playerPos.x - this.mesh.position.x;
       const dz = playerPos.z - this.mesh.position.z;
       this.targetRotation = Math.atan2(dx, dz);
-    } else if (this.wanderRadius > 0) {
+    } else if (this.effWanderRadius > 0) {
       if (!this.wanderTarget) {
         // Idle pause between strolls
         this.idleTimer -= dt;
         if (this.idleTimer <= 0) {
           const ang = Math.random() * Math.PI * 2;
-          const r = 1 + Math.random() * this.wanderRadius;
+          const r = 1 + Math.random() * this.effWanderRadius;
           this.wanderTarget = new THREE.Vector3(
             this.effHome.x + Math.cos(ang) * r,
             this.effHome.y,
@@ -174,10 +187,20 @@ export class NPC {
     }
 
     // Routine spots can sit at a different elevation than home (the old
-    // bridge deck, an eave-side shelter): ease the height across so the
-    // trip reads as one walk, not a teleport.
-    if (Math.abs(this.mesh.position.y - this.effHome.y) > 0.01) {
-      this.mesh.position.y += (this.effHome.y - this.mesh.position.y) * Math.min(1, dt * 2);
+    // bridge deck, an eave-side shelter). The target height fades in over
+    // the approach — full height inside `plateau` distance of the spot,
+    // ground level beyond `plateau + rise` — so the cat climbs the ramp
+    // instead of floating across the valley floor mid-commute.
+    let targetY = this.baseY;
+    if (this.effHome.y > 0.05) {
+      const dx = this.mesh.position.x - this.effHome.x;
+      const dz = this.mesh.position.z - this.effHome.z;
+      const d = Math.hypot(dx, dz);
+      const t = 1 - THREE.MathUtils.clamp((d - this._spotPlateau) / this._spotRise, 0, 1);
+      targetY = this.baseY + (this.effHome.y - this.baseY) * t;
+    }
+    if (Math.abs(this.mesh.position.y - targetY) > 0.01) {
+      this.mesh.position.y += (targetY - this.mesh.position.y) * Math.min(1, dt * 2);
     }
 
     // Call Cat.update with proper numeric signature:

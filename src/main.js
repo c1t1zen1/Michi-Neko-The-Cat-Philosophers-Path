@@ -3,32 +3,32 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20260911a';
-import { Player } from './player.js?v=20260911a';
-import { Countryside } from './countryside.js?v=20260911a';
-import { Sky } from './sky.js?v=20260911a';
-import { Vegetation } from './vegetation.js?v=20260911a';
-import { Particles } from './particles.js?v=20260911a';
-import { AmbientLife } from './ambient_life.js?v=20260911a';
-import { Controls } from './controls.js?v=20260911a';
-import { UI } from './ui.js?v=20260911a';
-import { NPC } from './npc.js?v=20260911a';
-import { Dialogue } from './dialogue.js?v=20260911a';
-import { QuestManager } from './quest.js?v=20260911a';
-import { AudioManager } from './audio.js?v=20260911a';
-import { ProgressionManager } from './progression.js?v=20260911a';
-import { ContextActionManager } from './context_actions.js?v=20260911a';
-import { InteriorManager } from './interior.js?v=20260911a';
-import { SaveManager } from './save.js?v=20260911a';
-import { ScentTrail } from './scent.js?v=20260911a';
-import { SettingsManager } from './settings.js?v=20260911a';
-import { isDiscreteGPU } from './settings.js?v=20260911a';
-import { MenuSystem } from './menus.js?v=20260911a';
-import { WaypointSystem, Compass } from './waypoints.js?v=20260911a';
-import { MusicDirector } from './music.js?v=20260911a';
-import { catRimUniforms } from './cat.js?v=20260911a';
-import { chunkSceneInstances } from './instanced_chunks.js?v=20260911a';
-import { setFoliageDetail } from './foliage.js?v=20260911a';
+import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20260911b';
+import { Player } from './player.js?v=20260911b';
+import { Countryside } from './countryside.js?v=20260911b';
+import { Sky } from './sky.js?v=20260911b';
+import { Vegetation } from './vegetation.js?v=20260911b';
+import { Particles } from './particles.js?v=20260911b';
+import { AmbientLife } from './ambient_life.js?v=20260911b';
+import { Controls } from './controls.js?v=20260911b';
+import { UI } from './ui.js?v=20260911b';
+import { NPC } from './npc.js?v=20260911b';
+import { Dialogue } from './dialogue.js?v=20260911b';
+import { QuestManager } from './quest.js?v=20260911b';
+import { AudioManager } from './audio.js?v=20260911b';
+import { ProgressionManager } from './progression.js?v=20260911b';
+import { ContextActionManager } from './context_actions.js?v=20260911b';
+import { InteriorManager } from './interior.js?v=20260911b';
+import { SaveManager } from './save.js?v=20260911b';
+import { ScentTrail } from './scent.js?v=20260911b';
+import { SettingsManager } from './settings.js?v=20260911b';
+import { isDiscreteGPU } from './settings.js?v=20260911b';
+import { MenuSystem } from './menus.js?v=20260911b';
+import { WaypointSystem, Compass } from './waypoints.js?v=20260911b';
+import { MusicDirector } from './music.js?v=20260911b';
+import { catRimUniforms } from './cat.js?v=20260911b';
+import { chunkSceneInstances } from './instanced_chunks.js?v=20260911b';
+import { setFoliageDetail } from './foliage.js?v=20260911b';
 
 const AUTOSTART_KEY = 'catwalk_autostart';
 
@@ -146,7 +146,12 @@ class Game {
     this.luna.onDialogueComplete = () => this.finishLunaDialogue();
     // Routine (N2.2): at night Luna walks to the old bridge to watch the
     // moon travel across the water.
-    this.luna.schedule = { night: new THREE.Vector3(-1, 1.1, 30.5) };
+    // The night spot is the old bridge deck (y≈1.1): a tight stroll radius
+    // keeps her on the timber, and plateau/rise match the deck+ramp so she
+    // climbs to deck height only as she reaches the bridge.
+    this.luna.schedule = {
+      night: { pos: new THREE.Vector3(-1, 1.1, 30.5), radius: 0.25, plateau: 4.0, rise: 3.0 }
+    };
 
     // Additional wandering villagers
     this.mochi = new NPC(
@@ -262,15 +267,15 @@ class Game {
     this.installAudioEnableButton();
     this.startTitleAudio();
 
-    this.loadGame();
-
     // A reload is used to reset the world for a new game. Starting the game
     // must never depend on audio being enabled first.
     this.pendingNewGame = sessionStorage.getItem(AUTOSTART_KEY);
+    sessionStorage.removeItem(AUTOSTART_KEY);
+    // 'new' must boot a fresh valley — never restore a save that survived
+    // or was rewritten during the reset reload.
+    if (this.pendingNewGame !== 'new') this.loadGame();
+
     if (this.pendingNewGame) {
-      // Both 'new' and 'continue' boot straight into the valley; the
-      // constructor's loadGame() call already restored any saved state.
-      sessionStorage.removeItem(AUTOSTART_KEY);
       this.pendingNewGame = false;
       this.menu.startGame();
       this.controls.enabled = true;
@@ -377,6 +382,7 @@ class Game {
 
   saveIfPlaying() {
     try {
+      if (this.saveSuspended) return;
       if (this.menu && this.menu.isPlaying) this.saveGame();
     } catch (e) {}
   }
@@ -825,6 +831,9 @@ class Game {
 
   startNewGame() {
     this.saveManager.clear();
+    // The reset reload fires pagehide/visibilitychange — don't let them
+    // write a fresh save that would resurrect the cleared position.
+    this.saveSuspended = true;
     sessionStorage.setItem(AUTOSTART_KEY, 'new');
     location.reload();
   }
