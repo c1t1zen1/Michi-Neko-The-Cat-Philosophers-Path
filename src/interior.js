@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import {
   plasterTextures, woodTextures, shojiTextures, tatamiTextures, stoneTextures,
   strawTextures, metalTextures, texturedMaterial, worldScaleBoxUVs
-} from './textures.js?v=20260907a';
+} from './textures.js?v=20260924b';
+import { lumpyTuftGeometry } from './foliage.js?v=20260924b';
 
 const panel = (m) => { m.userData.uvPanel = true; return m; };
 const MAT = {
@@ -182,16 +183,42 @@ export class InteriorManager {
     const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.14, 10), MAT.stoneToro);
     pot.position.set(0.9, 0.28, -3.0);
     toko.add(pot);
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.07, 0.45, 6), MAT.timberDark);
-    trunk.position.set(0.9, 0.52, -3.0);
-    trunk.rotation.z = -0.25;
-    toko.add(trunk);
-    for (let c = 0; c < 3; c++) {
-      const foliage = new THREE.Mesh(new THREE.SphereGeometry(0.18 - c * 0.03, 8, 6), MAT.bamboo);
-      foliage.scale.set(1.4, 0.6, 1.2);
-      foliage.position.set(0.95 + c * 0.08, 0.65 + c * 0.12, -3.0 + (c % 2 === 0 ? 0.05 : -0.05));
-      toko.add(foliage);
+    const bonsaiWood = [];
+    const bonsaiTrunk = new THREE.CylinderGeometry(0.04, 0.07, 0.45, 6);
+    bonsaiTrunk.rotateZ(-0.25);
+    bonsaiTrunk.translate(0.9, 0.52, -3.0);
+    bonsaiWood.push(bonsaiTrunk);
+    for (const [angle, x, y] of [[-0.9, 0.82, 0.64], [0.9, 1.0, 0.72], [-0.72, 0.92, 0.82]]) {
+      const limb = new THREE.CylinderGeometry(0.014, 0.025, 0.28, 5);
+      limb.rotateZ(angle);
+      limb.translate(x, y, -3.0);
+      bonsaiWood.push(limb);
     }
+    const bonsaiSkeleton = new THREE.Mesh(mergeGeometries(bonsaiWood, false), MAT.timberDark);
+    bonsaiSkeleton.castShadow = true;
+    toko.add(bonsaiSkeleton);
+    for (const geometry of bonsaiWood) geometry.dispose();
+
+    const bonsaiPads = [];
+    const padBase = lumpyTuftGeometry(1, 37, 0.34);
+    const padMatrix = new THREE.Matrix4();
+    const padPosition = new THREE.Vector3();
+    const padScale = new THREE.Vector3();
+    for (const [x, y, z, sx, sy, sz] of [
+      [0.72, 0.68, -3.0, 0.24, 0.075, 0.18],
+      [1.08, 0.76, -3.02, 0.22, 0.07, 0.17],
+      [0.86, 0.87, -2.98, 0.18, 0.065, 0.15],
+      [1.04, 0.96, -3.0, 0.14, 0.06, 0.12]
+    ]) {
+      padPosition.set(x, y, z);
+      padScale.set(sx, sy, sz);
+      padMatrix.compose(padPosition, new THREE.Quaternion(), padScale);
+      bonsaiPads.push(padBase.clone().applyMatrix4(padMatrix));
+    }
+    const bonsaiFoliage = new THREE.Mesh(mergeGeometries(bonsaiPads, false), MAT.bamboo);
+    bonsaiFoliage.castShadow = true;
+    toko.add(bonsaiFoliage);
+    for (const geometry of bonsaiPads) geometry.dispose();
     root.add(toko);
 
     // 4. Low Chabudai Table with Ceramic Tea Set & Grilled Sea Bream (Fish Feast)

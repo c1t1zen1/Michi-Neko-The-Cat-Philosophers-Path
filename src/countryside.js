@@ -3,8 +3,11 @@ import {
   plasterTextures, woodTextures, kawaraTextures, shojiTextures, tatamiTextures,
   cobbleTextures, stoneTextures, groundTextures, dirtTextures, strawTextures,
   metalTextures, texturedMaterial, worldScaleBoxUVs, worldNoise
-} from './textures.js?v=20260907a';
-import { createFoliageMaterial, lumpyTuftGeometry } from './foliage.js?v=20260907a';
+} from './textures.js?v=20260924b';
+import {
+  createFoliageMaterial, createDistantFoliageMaterial,
+  lumpyTuftGeometry, lumpyConeGeometry
+} from './foliage.js?v=20260924b';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -2387,9 +2390,21 @@ export class Countryside {
     const tuftGeo = lumpyTuftGeometry(2, 5, 0.46);
     const tuftGeoB = lumpyTuftGeometry(2, 6, 0.42);
     const tuftGeoC = lumpyTuftGeometry(2, 10, 0.48);
-    const trunkGeo = new THREE.CylinderGeometry(0.12, 0.2, 1.2, 7);
+    // One instanced skeleton includes the trunk and visible forked limbs, so
+    // 260 boundary trees gain branch silhouettes without another draw call.
+    const trunkParts = [new THREE.CylinderGeometry(0.12, 0.2, 1.2, 7).translate(0, 0.6, 0)];
+    for (let branch = 0; branch < 4; branch++) {
+      const angle = branch / 4 * Math.PI * 2 + 0.35;
+      const limb = new THREE.CylinderGeometry(0.035, 0.075, 0.85, 5);
+      limb.rotateZ(0.78);
+      limb.rotateY(angle);
+      limb.translate(Math.cos(angle) * 0.28, 1.15 + (branch % 2) * 0.12, Math.sin(angle) * 0.28);
+      trunkParts.push(limb);
+    }
+    const trunkGeo = mergeGeometries(trunkParts, false);
+    for (const part of trunkParts) part.dispose();
     const canopyMats = [
-      new THREE.Color(0x2e5524), new THREE.Color(0x3b6a2e), new THREE.Color(0x25481e)
+      new THREE.Color(0x28572f), new THREE.Color(0x4a7b43), new THREE.Color(0x183d2b)
     ];
     const forestMat = createFoliageMaterial({ sss: 0.24, wind: 0.75, mottle: 0.38, vertexColors: false });
     const count = 260;
@@ -2540,29 +2555,53 @@ export class Countryside {
 
     // Foothill forest: dense instanced canopies carpeting the slopes so the
     // ridges read as wooded rather than bare geometry.
-    const treeGeo = lumpyTuftGeometry(2, 8, 0.36);
-    const treeMat = createFoliageMaterial({ sss: 0.15, wind: 0.5, mottle: 0.3, vertexColors: false });
+    const cedarGeo = lumpyConeGeometry(1, 8, 0.3);
+    const cedarGeoB = lumpyConeGeometry(1, 12, 0.34);
+    const broadleafGeo = lumpyTuftGeometry(1, 8, 0.36);
+    const treeMat = createDistantFoliageMaterial({ wind: 0.32 });
     const treeCount = 2600;
-    const trees = new THREE.InstancedMesh(treeGeo, treeMat, treeCount);
+    const trees = [
+      new THREE.InstancedMesh(cedarGeo, treeMat, treeCount),
+      new THREE.InstancedMesh(cedarGeoB, treeMat, treeCount),
+      new THREE.InstancedMesh(broadleafGeo, treeMat, treeCount)
+    ];
+    trees[0].name = 'Foothill Sugi A';
+    trees[1].name = 'Foothill Sugi B';
+    trees[2].name = 'Foothill Broadleaf';
     const dummy = new THREE.Object3D();
     const color = new THREE.Color();
+    const placed = [0, 0, 0];
     for (let i = 0; i < treeCount; i++) {
       const a = this.random() * Math.PI * 2;
       const r = 60 + Math.pow(this.random(), 0.75) * 130;
       const x = Math.cos(a) * r, z = Math.sin(a) * r;
-      // Smaller, denser crowns so the slopes read as woodland, not boulders
-      const s = 1.2 + this.random() * 2.2;
-      dummy.position.set(x, this.terrainHeight(x, z) + s * 0.5, z);
-      dummy.scale.set(s * (0.8 + this.random() * 0.5), s * 1.15, s * (0.8 + this.random() * 0.5));
-      dummy.rotation.set(this.random() * 0.4, this.random() * Math.PI, this.random() * 0.4);
+      const cedarChance = r < 95 ? 0.52 : 0.8;
+      const kind = this.random() < cedarChance ? (this.random() < 0.5 ? 0 : 1) : 2;
+      const y = this.terrainHeight(x, z);
+      if (kind === 2) {
+        const s = 1.15 + this.random() * 1.75;
+        dummy.position.set(x, y + s * 0.45, z);
+        dummy.scale.set(s * (0.8 + this.random() * 0.45), s, s * (0.8 + this.random() * 0.45));
+        dummy.rotation.set(this.random() * 0.24, this.random() * Math.PI, this.random() * 0.24);
+        color.setHSL(0.24 + this.random() * 0.08, 0.34 + this.random() * 0.13, 0.18 + this.random() * 0.1);
+      } else {
+        const s = 0.9 + this.random() * 1.45;
+        dummy.position.set(x, y - 0.16, z);
+        dummy.scale.set(s * (0.86 + this.random() * 0.26), s * (1.05 + this.random() * 0.42), s * (0.86 + this.random() * 0.26));
+        dummy.rotation.set((this.random() - 0.5) * 0.1, this.random() * Math.PI, (this.random() - 0.5) * 0.1);
+        color.setHSL(0.34 + this.random() * 0.055, 0.29 + this.random() * 0.13, 0.14 + this.random() * 0.09);
+      }
       dummy.updateMatrix();
-      trees.setMatrixAt(i, dummy.matrix);
-      color.setHSL(0.27 + this.random() * 0.08, 0.28 + this.random() * 0.14, 0.15 + this.random() * 0.1);
-      trees.setColorAt(i, color);
+      trees[kind].setMatrixAt(placed[kind], dummy.matrix);
+      trees[kind].setColorAt(placed[kind], color);
+      placed[kind]++;
     }
-    trees.instanceMatrix.needsUpdate = true;
-    if (trees.instanceColor) trees.instanceColor.needsUpdate = true;
-    this.scene.add(trees);
+    for (let kind = 0; kind < trees.length; kind++) {
+      trees[kind].count = placed[kind];
+      trees[kind].instanceMatrix.needsUpdate = true;
+      if (trees[kind].instanceColor) trees[kind].instanceColor.needsUpdate = true;
+      this.scene.add(trees[kind]);
+    }
   }
 
   mistTexture() {

@@ -4,29 +4,30 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { AOPass, AtmospherePass, GradeShader } from './postfx.js?v=20260907a';
-import { Player } from './player.js?v=20260907a';
-import { Countryside } from './countryside.js?v=20260907a';
-import { Sky } from './sky.js?v=20260907a';
-import { Vegetation } from './vegetation.js?v=20260907a';
-import { Particles } from './particles.js?v=20260907a';
-import { AmbientLife } from './ambient_life.js?v=20260907a';
-import { Controls } from './controls.js?v=20260825b';
-import { UI } from './ui.js?v=20260825h';
-import { NPC } from './npc.js?v=20260907a';
-import { Dialogue } from './dialogue.js?v=20260823a';
-import { QuestManager } from './quest.js?v=20260825i';
-import { AudioManager } from './audio.js?v=20260825j';
-import { ProgressionManager } from './progression.js?v=20260823a';
-import { ContextActionManager } from './context_actions.js?v=20260825j';
-import { InteriorManager } from './interior.js?v=20260907a';
-import { SaveManager } from './save.js?v=20260823a';
-import { ScentTrail } from './scent.js?v=20260823a';
-import { SettingsManager } from './settings.js?v=20260825h';
-import { MenuSystem } from './menus.js?v=20260825d';
-import { WaypointSystem, Compass } from './waypoints.js?v=20260823a';
-import { MusicDirector } from './music.js?v=20260825h';
-import { catRimUniforms } from './cat.js?v=20260907a';
+import { AOPass, AtmospherePass, GradeShader } from './postfx.js?v=20260924b';
+import { Player } from './player.js?v=20260924b';
+import { Countryside } from './countryside.js?v=20260924b';
+import { Sky } from './sky.js?v=20260924b';
+import { Vegetation } from './vegetation.js?v=20260924b';
+import { Particles } from './particles.js?v=20260924b';
+import { AmbientLife } from './ambient_life.js?v=20260924b';
+import { Controls } from './controls.js?v=20260924b';
+import { UI } from './ui.js?v=20260924b';
+import { NPC } from './npc.js?v=20260924b';
+import { Dialogue } from './dialogue.js?v=20260924b';
+import { QuestManager } from './quest.js?v=20260924b';
+import { AudioManager } from './audio.js?v=20260924b';
+import { ProgressionManager } from './progression.js?v=20260924b';
+import { ContextActionManager } from './context_actions.js?v=20260924b';
+import { InteriorManager } from './interior.js?v=20260924b';
+import { SaveManager } from './save.js?v=20260924b';
+import { ScentTrail } from './scent.js?v=20260924b';
+import { SettingsManager } from './settings.js?v=20260924b';
+import { MenuSystem } from './menus.js?v=20260924b';
+import { WaypointSystem, Compass } from './waypoints.js?v=20260924b';
+import { MusicDirector } from './music.js?v=20260924b';
+import { catRimUniforms } from './cat.js?v=20260924b';
+import { setFoliageDetail } from './foliage.js?v=20260924b';
 
 const AUTOSTART_KEY = 'catwalk_autostart';
 
@@ -390,6 +391,7 @@ class Game {
       ? { ao: 0, shafts: 0 }
       : q === 'medium' ? { ao: 0.85, shafts: 0.7 } : { ao: 1, shafts: 1 };
     this.gradePass.uniforms.uFringe.value = q === 'high' ? 0.0012 : 0.0;
+    setFoliageDetail(q === 'low');
   }
 
   /* ---------------- Game flow ---------------- */

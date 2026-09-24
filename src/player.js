@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20260907a';
+import { Cat } from './cat.js?v=20260924b';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
