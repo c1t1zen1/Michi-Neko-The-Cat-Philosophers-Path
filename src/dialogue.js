@@ -1,4 +1,4 @@
-const PORTRAITS = {
+﻿const PORTRAITS = {
   'Luna': '🐈‍⬛',
   'You': '🐱'
 };

@@ -1,4 +1,4 @@
-// Per-scene mood: same phase definitions everywhere (dawn/day/dusk/night keep
+﻿// Per-scene mood: same phase definitions everywhere (dawn/day/dusk/night keep
 // their identity), but a small indoor space like the Tea House should read as
 // quieter and cozier than the open valley — fewer plucks, a darker filter, a
 // touch less pad level. Add an entry here for each new scene as the game

@@ -3,32 +3,32 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20260912b';
-import { Player } from './player.js?v=20260912b';
-import { Countryside } from './countryside.js?v=20260912b';
-import { Sky } from './sky.js?v=20260912b';
-import { Vegetation } from './vegetation.js?v=20260912b';
-import { Particles } from './particles.js?v=20260912b';
-import { AmbientLife } from './ambient_life.js?v=20260912b';
-import { Controls } from './controls.js?v=20260912b';
-import { UI } from './ui.js?v=20260912b';
-import { NPC } from './npc.js?v=20260912b';
-import { Dialogue } from './dialogue.js?v=20260912b';
-import { QuestManager } from './quest.js?v=20260912b';
-import { AudioManager } from './audio.js?v=20260912b';
-import { ProgressionManager } from './progression.js?v=20260912b';
-import { ContextActionManager } from './context_actions.js?v=20260912b';
-import { InteriorManager } from './interior.js?v=20260912b';
-import { SaveManager } from './save.js?v=20260912b';
-import { ScentTrail } from './scent.js?v=20260912b';
-import { SettingsManager } from './settings.js?v=20260912b';
-import { isDiscreteGPU } from './settings.js?v=20260912b';
-import { MenuSystem } from './menus.js?v=20260912b';
-import { WaypointSystem, Compass } from './waypoints.js?v=20260912b';
-import { MusicDirector } from './music.js?v=20260912b';
-import { catRimUniforms } from './cat.js?v=20260912b';
-import { chunkSceneInstances } from './instanced_chunks.js?v=20260912b';
-import { setFoliageDetail } from './foliage.js?v=20260912b';
+import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20260920d';
+import { Player } from './player.js?v=20260920d';
+import { Countryside } from './countryside.js?v=20260920d';
+import { Sky } from './sky.js?v=20260920d';
+import { Vegetation } from './vegetation.js?v=20260920d';
+import { Particles } from './particles.js?v=20260920d';
+import { AmbientLife } from './ambient_life.js?v=20260920d';
+import { Controls } from './controls.js?v=20260920d';
+import { UI } from './ui.js?v=20260920d';
+import { NPC } from './npc.js?v=20260920d';
+import { Dialogue } from './dialogue.js?v=20260920d';
+import { QuestManager } from './quest.js?v=20260920d';
+import { AudioManager } from './audio.js?v=20260920d';
+import { ProgressionManager } from './progression.js?v=20260920d';
+import { ContextActionManager } from './context_actions.js?v=20260920d';
+import { InteriorManager } from './interior.js?v=20260920d';
+import { SaveManager } from './save.js?v=20260920d';
+import { ScentTrail } from './scent.js?v=20260920d';
+import { SettingsManager } from './settings.js?v=20260920d';
+import { isDiscreteGPU } from './settings.js?v=20260920d';
+import { MenuSystem } from './menus.js?v=20260920d';
+import { WaypointSystem, Compass } from './waypoints.js?v=20260920d';
+import { MusicDirector } from './music.js?v=20260920d';
+import { catRimUniforms } from './cat.js?v=20260920d';
+import { chunkSceneInstances } from './instanced_chunks.js?v=20260920d';
+import { setFoliageDetail } from './foliage.js?v=20260920d';
 
 const AUTOSTART_KEY = 'catwalk_autostart';
 
@@ -41,7 +41,7 @@ class Game {
     // targets require WebGL2. Without it, fail calmly instead of freezing.
     if (!this.supportsWebGL2()) {
       this.showRecoveryOverlay(
-        'この谷には WebGL2 が必要です',
+        '????? WebGL2 ?????',
         'This valley needs WebGL2 to render. Please try an up-to-date browser.',
         false
       );
@@ -146,7 +146,7 @@ class Game {
     this.luna.onDialogueComplete = () => this.finishLunaDialogue();
     // Routine (N2.2): at night Luna walks to the old bridge to watch the
     // moon travel across the water.
-    // The night spot is the old bridge deck (y≈1.1): a tight stroll radius
+    // The night spot is the old bridge deck (y—1.1): a tight stroll radius
     // keeps her on the timber, and plateau/rise match the deck+ramp so she
     // climbs to deck height only as she reaches the bridge.
     this.luna.schedule = {
@@ -405,7 +405,7 @@ class Game {
     try { this.controls.enabled = false; } catch (e) {}
     this.saveIfPlaying();
     this.showRecoveryOverlay(
-      '静けさ THE VALLEY IS RESTING…',
+      '??? THE VALLEY IS RESTING—',
       'The valley is resting for a moment. Your pawprints are safe — it will wake on its own, or you can reload and continue.'
     );
   }
@@ -484,7 +484,7 @@ class Game {
           time: this.formatTime(this.sky.dayTime)
         });
         this.ui.showToast(isNew
-          ? `📸 ${spot.name} stamped into your photo album`
+          ? `?? ${spot.name} stamped into your photo album`
           : 'Photo saved!');
       } else {
         this.ui.showToast('Photo saved!');
@@ -822,7 +822,7 @@ class Game {
   }
 
   setAudioEnableButtonState(enabled, label) {
-    this.audioEnableButton.textContent = enabled ? '🔊' : '🔇';
+    this.audioEnableButton.textContent = enabled ? '??' : '??';
     this.audioEnableButton.classList.toggle('audio-on', enabled);
     this.audioEnableButton.setAttribute('aria-pressed', String(enabled));
     this.audioEnableButton.setAttribute('aria-label', label);
@@ -869,23 +869,23 @@ class Game {
       return false;
     };
     const pois = [
-      { icon: '🐱', pos: this.luna.mesh.position },
-      { icon: '🍡', pos: this.mochi.mesh.position },
-      { icon: '⚫', pos: this.kuro.mesh.position }
+      { icon: '??', pos: this.luna.mesh.position },
+      { icon: '??', pos: this.mochi.mesh.position },
+      { icon: '?', pos: this.kuro.mesh.position }
     ];
     const pushIfVisible = (id, icon, pos) => {
       if (hintsOn || checkDiscover(id, pos)) pois.push({ icon, pos });
     };
-    pushIfVisible('door', '🏮', this.doorPos);
-    pushIfVisible('bamboo', '🎋', this._bambooPoi || (this._bambooPoi = new THREE.Vector3(30, 0, -20)));
+    pushIfVisible('door', '??', this.doorPos);
+    pushIfVisible('bamboo', '??', this._bambooPoi || (this._bambooPoi = new THREE.Vector3(30, 0, -20)));
     if (this.city.secretKeyMesh && this.city.secretKeyMesh.visible) {
-      pushIfVisible('key', '🔑', this.city.secretKeyMesh.position);
+      pushIfVisible('key', '??', this.city.secretKeyMesh.position);
     }
     if (this.city.nestFeatherMesh && this.city.nestFeatherMesh.visible) {
-      pushIfVisible('nest', '🪶', this.city.nestPos);
+      pushIfVisible('nest', '??', this.city.nestPos);
     }
     if (this.city.corralRewardMesh && this.city.corralRewardMesh.visible) {
-      pushIfVisible('corral', '🐢', this.city.corralRewardMesh.position);
+      pushIfVisible('corral', '??', this.city.corralRewardMesh.position);
     }
     this.compass.setPois(pois);
   }
@@ -894,16 +894,16 @@ class Game {
     const targets = [];
     const c = this.city;
     if (!c.hasSecretKey && c.secretKeyMesh && c.secretKeyMesh.visible) {
-      targets.push({ id: 'key', icon: '🔑', pos: c.secretKeyMesh.position });
+      targets.push({ id: 'key', icon: '??', pos: c.secretKeyMesh.position });
     } else if (!c.isSecretHouseUnlocked) {
-      targets.push({ id: 'door', icon: '🏮', pos: this.doorPos });
+      targets.push({ id: 'door', icon: '??', pos: this.doorPos });
     }
     if (!c.nestInteracted && c.nestFeatherMesh && c.nestFeatherMesh.visible) {
-      targets.push({ id: 'nest', icon: '🪶', pos: c.nestPos });
+      targets.push({ id: 'nest', icon: '??', pos: c.nestPos });
     }
     const larryReady = this.quest.hasCompleted('yarn') && !this.quest.hasPendingReward('yarn');
     if (larryReady && c.corralRewardMesh && c.corralRewardMesh.visible) {
-      targets.push({ id: 'corral', icon: '🐢', pos: c.corralRewardMesh.position });
+      targets.push({ id: 'corral', icon: '??', pos: c.corralRewardMesh.position });
     }
     if (this.quest.active && this.quest.active.type === 'yarn') {
       let best = null;
@@ -912,7 +912,7 @@ class Game {
         const d = y.position.distanceToSquared(this.player.mesh.position);
         if (d < bd) { bd = d; best = y; }
       }
-      if (best) targets.push({ id: 'yarn', icon: '🧶', pos: best.position });
+      if (best) targets.push({ id: 'yarn', icon: '??', pos: best.position });
     }
     this.waypoints.setTargets(targets);
   }
@@ -1103,7 +1103,7 @@ class Game {
       const yarnFinished = this.quest.hasCompleted('yarn') && !this.quest.hasPendingReward('yarn');
       const corralEvent = this.city.updateCorralGuardian(dt, this.player, yarnFinished);
       if (corralEvent === 'alerted') {
-        this.ui.showToast('🐢 Larry spotted you — run for the Jade Paw!');
+        this.ui.showToast('?? Larry spotted you — run for the Jade Paw!');
         this.player.cat.setMood('alert', 1.2, 2);
       }
       this.contextActions.update(dt);
@@ -1286,7 +1286,7 @@ class Game {
     this.updateStartupProbe(dt);
 
     const debug = `Pos      ${this.player.mesh.position.x.toFixed(1)}, ${this.player.mesh.position.y.toFixed(1)}, ${this.player.mesh.position.z.toFixed(1)}
-Time     ${this.formatTime(this.sky.dayTime)} · ${this.sky.weather}
+Time     ${this.formatTime(this.sky.dayTime)} — ${this.sky.weather}
 Quality  ${this.settings.resolveQuality()}`;
     this.ui.update(dt, this.score, debug);
   }
@@ -1398,20 +1398,20 @@ Quality  ${this.settings.resolveQuality()}`;
     const j = this.journal;
     const section = (title, entries, emptyText) => {
       const rows = entries.length
-        ? entries.map((e) => `<div style="padding:4px 0 4px 12px;color:#4a3524;">· ${e.text}</div>`).join('')
-        : `<div style="padding:4px 0 4px 12px;color:#9a8368;font-style:italic;">· ${emptyText}</div>`;
+        ? entries.map((e) => `<div style="padding:4px 0 4px 12px;color:#4a3524;">— ${e.text}</div>`).join('')
+        : `<div style="padding:4px 0 4px 12px;color:#9a8368;font-style:italic;">— ${emptyText}</div>`;
       return `<div style="margin-top:10px;"><strong style="color:#7c4c28;letter-spacing:0.5px;">${title}</strong>${rows}</div>`;
     };
     const cats = this.npcs.filter((n) => n.hasGreeted).map((n) => ({
       id: n.name, text: `${n.name}${n.giftedYarn ? ' — keeps your yarn gift' : n.slowBlinks ? ' — trusts your slow blink' : ' — a friend of the valley'}`
     }));
     body.innerHTML =
-      section('🐱 Cats Met', cats, 'The cats of the valley have not introduced themselves yet.') +
-      section('⛰ Places Discovered', j.places, 'The valley is still largely a blank page.') +
-      section('✨ Quiet Moments', j.quietMoments, 'Sit still somewhere beautiful, and see what finds you.') +
-      section('🌦 Weather Memories', j.weatherMemories, 'Every kind of sky leaves its own memory.') +
-      section('🎁 Keepsakes', j.keepsakes, 'Nothing found and kept yet.') +
-      section('📸 Photo Album', j.photos, 'No photographs taken at memorable spots yet.');
+      section('?? Cats Met', cats, 'The cats of the valley have not introduced themselves yet.') +
+      section('? Places Discovered', j.places, 'The valley is still largely a blank page.') +
+      section('? Quiet Moments', j.quietMoments, 'Sit still somewhere beautiful, and see what finds you.') +
+      section('?? Weather Memories', j.weatherMemories, 'Every kind of sky leaves its own memory.') +
+      section('?? Keepsakes', j.keepsakes, 'Nothing found and kept yet.') +
+      section('?? Photo Album', j.photos, 'No photographs taken at memorable spots yet.');
   }
 
   completeDrink() {
@@ -1419,10 +1419,10 @@ Quality  ${this.settings.resolveQuality()}`;
     if (this.drinkCount >= 10 && !this.freshWaterAchievement) {
       this.freshWaterAchievement = true;
       this.progression.addXP(40, 'Fresh Water Connoisseur achievement');
-      this.ui.showToast('🏅 Fresh Water Connoisseur — completed 10 refreshing drinks!');
+      this.ui.showToast('?? Fresh Water Connoisseur — completed 10 refreshing drinks!');
       if (this.audio) this.audio.playDreamChime();
     } else {
-      this.ui.showToast(`Fresh water enjoyed · ${Math.min(this.drinkCount, 10)}/10`);
+      this.ui.showToast(`Fresh water enjoyed — ${Math.min(this.drinkCount, 10)}/10`);
     }
     this.saveGame();
   }
@@ -1451,7 +1451,7 @@ Quality  ${this.settings.resolveQuality()}`;
     if (this.quest.hasPendingReward('yarn')) {
       return [
         'You found all three! Even the moonlight looks warmer around you.',
-        'Here is your reward: Luna’s Leap lesson. Your paws can spring much higher now!',
+        'Here is your reward: Luna—s Leap lesson. Your paws can spring much higher now!',
         'Try it at the bamboo corral west of the village. A stubborn turtle guards a Jade Paw inside.'
       ];
     }
@@ -1481,7 +1481,7 @@ Quality  ${this.settings.resolveQuality()}`;
     }
     if (w === 'mist') {
       return [
-        'The bamboo disappears into the mist… like it is playing hide and seek!',
+        'The bamboo disappears into the mist— like it is playing hide and seek!',
         'Careful where you step — the whole valley is whispering today.'
       ];
     }
@@ -1494,8 +1494,8 @@ Quality  ${this.settings.resolveQuality()}`;
     const night = this.sky.sunDir && this.sky.sunDir.y < -0.02;
     if (night) {
       return [
-        'The bamboo sounds different at night… all hush-hush and crick-crick.',
-        'Luna said she’d be at the old bridge if you’re looking for her.'
+        'The bamboo sounds different at night— all hush-hush and crick-crick.',
+        'Luna said she—d be at the old bridge if you—re looking for her.'
       ];
     }
     return this.mochi.dialogue;
@@ -1506,13 +1506,13 @@ Quality  ${this.settings.resolveQuality()}`;
     // Bell hunt (N1.1) — offered once Luna's yarn hunt is done.
     if (this.quest.hasPendingReward('bell')) {
       return [
-        '…The bells are quiet again. Bokuchi is pleased.',
+        '—The bells are quiet again. Bokuchi is pleased.',
         'Take this. The forest will hum where you walk — he asked me to say that exactly.'
       ];
     }
     if (!this.quest.active && !this.quest.hasCompleted('bell') && this.quest.hasCompleted('yarn')) {
       return [
-        '…You found Luna’s yarn. So you are the one.',
+        '—You found Luna—s yarn. So you are the one.',
         'A forest spirit I know — Bokuchi — hid five offering bells in this valley when he grew tired of being thanked only by the wind.',
         'Find them for me, and I will make sure he notices you.'
       ];
@@ -1520,38 +1520,38 @@ Quality  ${this.settings.resolveQuality()}`;
     if (this.quest.active && this.quest.active.type === 'bell') {
       const remaining = Math.max(0, this.quest.active.target - this.quest.active.current);
       return remaining === 0
-        ? ['…That is all five. Bring their silence back to me.']
-        : [`…${remaining} bell${remaining === 1 ? '' : 's'} still ring where the valley tucked them away.`];
+        ? ['—That is all five. Bring their silence back to me.']
+        : [`—${remaining} bell${remaining === 1 ? '' : 's'} still ring where the valley tucked them away.`];
     }
     const w = this.sky.weather;
     if (w === 'mist') {
       if (this.city.mistAltarTouched) {
         return [
-          '…You found the altar. The spirits speak of you now.',
+          '—You found the altar. The spirits speak of you now.',
           'The mist only shows itself to those who wait. You waited.'
         ];
       }
       return [
-        '…The mist is thick. The red gates are awake.',
+        '—The mist is thick. The red gates are awake.',
         'Walk past the shrine when the veil is heaviest. Something old is listening.'
       ];
     }
     if (w === 'rain') {
       return [
-        '…Rain. The river swells and tells older stories.',
-        'I do not mind it. The sound is… honest.'
+        '—Rain. The river swells and tells older stories.',
+        'I do not mind it. The sound is— honest.'
       ];
     }
     if (w === 'snow') {
       return [
-        '…Snow silences even the river’s gossip.',
+        '—Snow silences even the river—s gossip.',
         'Walk softly. The valley is sleeping under this.'
       ];
     }
     const night = this.sky.sunDir && this.sky.sunDir.y < -0.02;
     if (night) {
       return [
-        '…The moon is full of old cats’ promises.',
+        '—The moon is full of old cats— promises.',
         'Come back when the mist rolls in. I will show you something.'
       ];
     }
@@ -1563,7 +1563,7 @@ Quality  ${this.settings.resolveQuality()}`;
       const reward = this.quest.claimReward('yarn');
       if (reward) {
         this.ui.showToast(reward.granted
-          ? 'Luna’s reward: Jump boost unlocked! Find the turtle corral.'
+          ? 'Luna—s reward: Jump boost unlocked! Find the turtle corral.'
           : 'Luna points you toward the turtle corral and its hidden Jade Paw.');
         if (this.audio) this.audio.playKeyChime();
         this.saveGame();
@@ -1580,11 +1580,11 @@ Quality  ${this.settings.resolveQuality()}`;
     if (this.quest.hasPendingReward('bell')) {
       const reward = this.quest.claimReward('bell');
       if (reward) {
-        this.ui.showToast('✦ Bokuchi’s Blessing — the forest hums softly wherever you walk ✦', 4200);
+        this.ui.showToast('? Bokuchi—s Blessing — the forest hums softly wherever you walk ?', 4200);
         if (this.audio) this.audio.playDreamChime();
         this.music.swell(6);
-        this.progression.addXP(50, 'Bokuchi’s Blessing');
-        this.discover('keepsakes', { id: 'bokuchi-blessing', text: 'Bokuchi’s Blessing — the forest spirit’s quiet thanks' });
+        this.progression.addXP(50, 'Bokuchi—s Blessing');
+        this.discover('keepsakes', { id: 'bokuchi-blessing', text: 'Bokuchi—s Blessing — the forest spirit—s quiet thanks' });
         this.saveGame();
       }
       return;
@@ -1621,23 +1621,23 @@ Quality  ${this.settings.resolveQuality()}`;
           this.quest.onCollect('bell');
           this.progression.addXP(10, 'Offering bell found');
           if (this.audio) this.audio.playBell();
-          this.ui.showToast('🔔 An offering bell rings softly for Bokuchi.');
+          this.ui.showToast('?? An offering bell rings softly for Bokuchi.');
           this.saveGame();
         } else if (item.userData.isCharm) {
           // Golden Dango Charm — grants XP + temporary speed buff
           this.progression.addXP(50, 'Golden Dango Charm found!');
-          this.ui.showToast('✦ Golden Dango Charm! Speed blessed by the river spirit ✦');
+          this.ui.showToast('? Golden Dango Charm! Speed blessed by the river spirit ?');
           this.player.speedBuffTimer = 20;
           if (this.audio) this.audio.playBell();
-          this.discover('keepsakes', { id: 'golden-dango', text: 'Golden Dango Charm — a river spirit’s sweet blessing' });
+          this.discover('keepsakes', { id: 'golden-dango', text: 'Golden Dango Charm — a river spirit—s sweet blessing' });
         } else if (item.userData.isCorralReward) {
           this.city.setCorralRewardCollected(true);
           this.player.canWalkFences = true;
           this.progression.addXP(75, 'Claimed the Jade Paw from the turtle corral');
-          this.ui.showToast('✦ Jade Paw claimed! Larry taught you to balance on fence tops! ✦');
+          this.ui.showToast('? Jade Paw claimed! Larry taught you to balance on fence tops! ?');
           this.player.cat.setMood('playful', 1.8, 2);
           if (this.audio) this.audio.playKeyChime();
-          this.discover('keepsakes', { id: 'jade-paw', text: 'Jade Paw — Larry the turtle’s fence-walking secret' });
+          this.discover('keepsakes', { id: 'jade-paw', text: 'Jade Paw — Larry the turtle—s fence-walking secret' });
           this.saveGame();
         } else {
           this.progression.addXP(10, 'Yarn collected');
@@ -1673,7 +1673,7 @@ Quality  ${this.settings.resolveQuality()}`;
 
     if (fps > 0 && fps < 30) {
       this._ecoLow = (this._ecoLow || 0) + 1;
-      // Three consecutive slow windows (~6 s) of sustained struggle → cap.
+      // Three consecutive slow windows (~6 s) of sustained struggle ? cap.
       if (this._ecoLow >= 3) this.frameFloor = 1 / 30;
     } else if (fps > 45) {
       this._ecoLow = 0;

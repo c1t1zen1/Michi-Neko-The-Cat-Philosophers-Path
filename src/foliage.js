@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 import { mergeVertices, mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 /**
@@ -52,8 +52,11 @@ export function noise3(x, y, z) {
 const tuftCache = new Map();
 
 /**
- * Lumpy leaf-mass sphere: an icosphere pushed in and out by 3D noise so its
- * silhouette clumps like a hand-painted canopy, with smooth vertex normals.
+ * Scalloped leaf-mass pillow: an icosphere displaced by a peaky low-
+ * frequency lobe field so its silhouette breaks into a handful of
+ * cauliflower puffs with real grooves between them — the way hand-painted
+ * canopies build their masses — over finer grain. The underside is crushed
+ * so a tuft reads as foliage hanging from a bough, not a ball.
  */
 export function lumpyTuftGeometry(detail = 2, seed = 0, lump = 0.3) {
   const key = detail + '_' + seed + '_' + lump;
@@ -64,13 +67,20 @@ export function lumpyTuftGeometry(detail = 2, seed = 0, lump = 0.3) {
   const p = new THREE.Vector3();
   for (let i = 0; i < pos.count; i++) {
     p.fromBufferAttribute(pos, i);
-    const n1 = noise3(p.x * 1.9 + seed * 7.1, p.y * 1.9 + seed * 3.3, p.z * 1.9 + seed * 5.7);
+    const n1 = noise3(p.x * 1.5 + seed * 7.1, p.y * 1.5 + seed * 3.3, p.z * 1.5 + seed * 5.7);
     const n2 = noise3(p.x * 4.3 + seed, p.y * 4.3, p.z * 4.3 - seed);
     const n3 = noise3(p.x * 8.7 - seed * 2.0, p.y * 8.7 + seed, p.z * 8.7);
-    const r = 1 + (n1 - 0.5) * 2 * lump + (n2 - 0.5) * lump * 0.7 + (n3 - 0.5) * lump * 0.35;
-    // Flatten the underside a little so masses sit like foliage, not balls
-    const squash = p.y < 0 ? 1 - 0.18 * (-p.y) : 1;
-    p.multiplyScalar(r).multiply(new THREE.Vector3(1, squash, 1));
+    // Peaky lobes: squaring the field sharpens the bulges and carves deep
+    // creases where it dips, so light catches each puff separately.
+    const lobe = Math.pow(n1, 1.7);
+    const r = 1 + (lobe - 0.42) * 2 * lump * 0.95 + (n2 - 0.5) * lump * 0.55 + (n3 - 0.5) * lump * 0.28;
+    // Pillow, not sphere: scallops droop on the underside, dome on top,
+    // and the mass is a touch wider than it is deep.
+    const squash = p.y < 0 ? 1 - (0.2 + 0.14 * lobe) * (-p.y) : 1;
+    p.multiplyScalar(r);
+    p.x *= 1.07;
+    p.z *= 1.07;
+    p.y = p.y * squash + (p.y >= 0 ? 0.16 : -0.05) * (lobe - 0.3);
     pos.setXYZ(i, p.x, p.y, p.z);
   }
   geo.computeVertexNormals();
@@ -207,13 +217,13 @@ export function createFoliageMaterial({ sss = 0.32, wind = 1.0, rustle = 0.0, ro
         diffuseColor.rgb *= 1.0 - uMottle + folM * uMottle * 2.0;
         // Dark crevices between clumps
         float folCrevice = smoothstep(0.62, 0.3, folNoise(vFolWorld * 1.6 + 11.0));
-        diffuseColor.rgb *= 1.0 - folCrevice * 0.3;
+        diffuseColor.rgb *= 1.0 - folCrevice * 0.38;
         // Top-lit crown gradient, cool violet-tinged undersides
         vec3 folUp = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
         float folUpness = dot(normalize(vNormal), folUp) * 0.5 + 0.5;
         float folCrown = folUpness * 0.55 + vFolTop * 0.45;
-        diffuseColor.rgb *= 0.78 + folCrown * 0.34;
-        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.7, 0.8, 1.08), (1.0 - folCrown) * 0.45);
+        diffuseColor.rgb *= 0.72 + folCrown * 0.42;
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.68, 0.78, 1.1), (1.0 - folCrown) * 0.5);
       `)
       .replace('#include <opaque_fragment>', /* glsl */`
         {
@@ -619,7 +629,7 @@ export function buildCanopy(rng, {
   const card = leafCardGeometry();
   const tmpColor = new THREE.Color();
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), qRoll = new THREE.Quaternion();
-  const e = new THREE.Euler(), sc = new THREE.Vector3(), p = new THREE.Vector3(), nrm = new THREE.Vector3();
+  const sc = new THREE.Vector3(), p = new THREE.Vector3();
   const zAxis = new THREE.Vector3(0, 0, 1);
   const pick = (light, jitter) => {
     const ci = Math.min(colors.length - 1, Math.max(0, Math.floor(light * colors.length)));
@@ -634,38 +644,75 @@ export function buildCanopy(rng, {
     const R = clumpR * (tip.level === 0 ? 1.1 : tip.level === 1 ? 0.95 : 0.7) * (0.85 + rng() * 0.3);
     const centre = tip.p.clone().addScaledVector(tip.dir, R * 0.35);
     const lvl = Math.min(2, tip.level);
+    // Each clump gets its own macro tint so neighbouring masses separate in
+    // hue and value the way painted canopies do.
+    const clumpTint = (rng() - 0.5) * 0.16;
 
-    for (let n = 0; n < tuftsPerClump[lvl]; n++) {
-      p.set(rng() - 0.5, (rng() - 0.5) * (pad ? 0.3 : 1), rng() - 0.5).multiplyScalar(R * 0.8).add(centre);
-      const r = R * (0.75 + rng() * 0.35);
-      sc.set(r * (0.9 + rng() * 0.3), r * tuftFlat * (0.9 + rng() * 0.2), r * (0.9 + rng() * 0.3));
-      e.set(pad ? (rng() - 0.5) * 0.3 : rng() * Math.PI, rng() * Math.PI, pad ? (rng() - 0.5) * 0.3 : rng() * Math.PI);
-      q.setFromEuler(e);
+    // Clump frame: `out` points from the limb tip up-and-out over the crown
+    // shell; pillows stack tangent to `out`, cards fringe its surface.
+    const out = tip.dir.clone().lerp(up, pad ? 0.85 : 0.45).normalize();
+    const sideA = new THREE.Vector3().crossVectors(out, up);
+    if (sideA.lengthSq() < 0.01) sideA.set(1, 0, 0);
+    sideA.normalize();
+    const sideB = new THREE.Vector3().crossVectors(out, sideA).normalize();
+
+    const nTufts = tuftsPerClump[lvl];
+    for (let n = 0; n < nTufts; n++) {
+      // Golden-angle fan: pillows ring the clump centre with tight overlaps
+      // at the core and bulge apart at the rim, so the silhouette breaks
+      // into distinct scalloped masses rather than one merged ball.
+      const ang = n * 2.399963 + rng() * 0.7;
+      const ringR = nTufts > 1 ? R * (0.3 + rng() * 0.28) : 0;
+      const off = sideA.clone().multiplyScalar(Math.cos(ang) * ringR)
+        .addScaledVector(sideB, Math.sin(ang) * ringR)
+        .addScaledVector(out, (rng() - 0.35) * R * (pad ? 0.18 : 0.4));
+      p.copy(centre).add(off);
+      const r = R * (0.78 + rng() * 0.3);
+      // Pillow puffs: wide and squashed, domed toward the sky-side of its
+      // spot on the shell, scallops spun by a random roll about the dome.
+      const domeN = off.lengthSq() > 1e-6
+        ? out.clone().multiplyScalar(0.6).addScaledVector(off.clone().normalize(), 0.55).normalize()
+        : out.clone();
+      q.setFromUnitVectors(up, domeN);
+      qRoll.setFromAxisAngle(up, rng() * Math.PI * 2);
+      q.multiply(qRoll);
+      sc.set(r * (1.0 + rng() * 0.34), r * tuftFlat * (0.85 + rng() * 0.2), r * (1.0 + rng() * 0.34));
       m.compose(p, q, sc);
       const geo = lumpyTuftGeometry(tuftDetail, seed + n, lump).clone().applyMatrix4(m);
-      const col = pick(light - 0.1, 0.06);
-      col.multiplyScalar(0.82 + light * 0.18);
+      // Under-shell pillows go deep into shade; sky-side crests stay bright
+      const shadeBias = THREE.MathUtils.clamp(off.dot(up) / (R * 0.5) * 0.12, -0.14, 0.1);
+      const col = pick(THREE.MathUtils.clamp(light - 0.1 + shadeBias + clumpTint, 0, 0.999), 0.06);
+      col.multiplyScalar(0.76 + light * 0.24);
       tuftGeos.push(bakeColor(geo, col));
     }
 
     for (let n = 0; n < cardsPerClump[lvl]; n++) {
-      nrm.set(rng() - 0.5, rng() - 0.5, rng() - 0.5).normalize();
-      if (pad) nrm.y = Math.abs(nrm.y) * 0.35 + 0.65; else nrm.y += 0.22;
-      nrm.normalize();
-      p.copy(centre).addScaledVector(nrm, R * (0.7 + rng() * 0.5));
-      if (pad) p.y = centre.y + (rng() - 0.5) * R * 0.25;
-      // Face outward/upward with a random roll about the normal
+      // Cards live ON the clump shell: a cone of directions about `out`,
+      // more on the silhouette rim than the interior, tilted tangent to
+      // the mass so sprays lie against it instead of floating randomly.
+      const ang = rng() * Math.PI * 2;
+      const rim = rng();
+      const elev = pad ? 1.1 + rim * 0.35 : rim * rim * 1.45; // bias to rim for canopies
+      const shell = sideA.clone().multiplyScalar(Math.cos(ang) * Math.cos(elev))
+        .addScaledVector(sideB, Math.sin(ang) * Math.cos(elev))
+        .addScaledVector(out, Math.sin(elev)).normalize();
+      p.copy(centre).addScaledVector(shell, R * (0.92 + rng() * 0.3));
+      if (pad) p.y = centre.y + (rng() - 0.5) * R * 0.22;
       const face = pad
         ? new THREE.Vector3((rng() - 0.5) * 0.5, 1, (rng() - 0.5) * 0.5).normalize()
-        : nrm.clone().multiplyScalar(0.8).addScaledVector(up, 0.18).add(new THREE.Vector3(rng() - 0.5, rng() - 0.5, rng() - 0.5).multiplyScalar(0.4)).normalize();
+        : shell.clone().lerp(out, 0.25).addScaledVector(up, 0.12).add(
+            new THREE.Vector3(rng() - 0.5, rng() - 0.5, rng() - 0.5).multiplyScalar(0.3)
+          ).normalize();
       q.setFromUnitVectors(zAxis, face);
       qRoll.setFromAxisAngle(zAxis, rng() * Math.PI * 2);
       q.multiply(qRoll);
-      const size = cardSize * (0.8 + rng() * 0.45) * (tip.level === 2 ? 0.85 : 1);
+      // Rim sprays a touch larger (they break the silhouette), crown-top
+      // sprays smaller (they only texturise the surface).
+      const size = cardSize * (0.8 + rng() * 0.45) * (tip.level === 2 ? 0.85 : 1) * (pad ? 1 : 1.12 - elev * 0.22);
       sc.set(size, size, size);
       m.compose(p, q, sc);
       const geo = card.clone().applyMatrix4(m);
-      const col = pick(Math.min(0.999, light + 0.12 + rng() * 0.1), 0.08);
+      const col = pick(Math.min(0.999, light + 0.1 + (1 - rim) * 0.1 + rng() * 0.08 + clumpTint * 0.5), 0.08);
       cardGeos.push(bakeColor(geo, col));
     }
   }

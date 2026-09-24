@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { barkTextures, texturedMaterial } from './textures.js?v=20260912b';
-import { createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture, buildCanopy, updateFoliage } from './foliage.js?v=20260912b';
+import { barkTextures, texturedMaterial } from './textures.js?v=20260920d';
+import { createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture, buildCanopy, updateFoliage } from './foliage.js?v=20260920d';
 
 function mulberry32(a) {
   return function() {
@@ -19,6 +19,8 @@ export class Vegetation {
     this.rng = mulberry32(options.seed || 77);
     this.time = 0;
     this.swayables = [];
+    this._treeCount = 0;
+    this._shrubCount = 0;
     this.pathSamples = options.pathSamples || [];
     this.waterRects = options.waterRects || [];
     this.riverSamples = options.riverSamples || [];
@@ -124,6 +126,8 @@ export class Vegetation {
    */
   canopyTree(x, z, scale, { kind, tuftMat, colors, trunk, canopy, sway = 0.02, collider = 0.35 }) {
     const tree = new THREE.Group();
+    const treeIdx = ++this._treeCount;
+    tree.name = `${kind.charAt(0).toUpperCase() + kind.slice(1)} Tree ${treeIdx}`;
     tree.position.set(x, 0, z);
     tree.rotation.y = this.random() * Math.PI * 2;
     tree.updateMatrix();
@@ -139,6 +143,7 @@ export class Vegetation {
     if ((x * x + z * z) < 1296) {
       // Near-village tree: keep the per-tree crown meshes and JS sway.
       const crown = new THREE.Group();
+      crown.name = `${tree.name} Crown`;
       const tufts = new THREE.Mesh(built.tufts, tuftMat);
       tufts.castShadow = true;
       tufts.receiveShadow = true;
@@ -181,6 +186,7 @@ export class Vegetation {
       const merged = mergeGeometries(acc.geos, false);
       merged.computeBoundingSphere();
       const mesh = new THREE.Mesh(merged, acc.material);
+      mesh.name = `Baked ${acc.depth ? 'Canopy Cards' : 'Trunks & Canopy'}`;
       if (acc.depth) mesh.customDepthMaterial = acc.depth;
       mesh.castShadow = true;
       mesh.receiveShadow = true;
@@ -274,6 +280,7 @@ export class Vegetation {
       pool.position.set(x - 0.6 * s, 0.055, z + 0.8 * s);
       pool.scale.setScalar(s * (1.0 + this.random() * 0.5));
       pool.renderOrder = 1;
+      pool.name = `Dapple Pool ${this.dapplePools.length + 1}`;
       this.scene.add(pool);
       this.dappleMeshes.push(mat);
       this.dapplePools.push(pool);
@@ -571,6 +578,7 @@ export class Vegetation {
       // Grouped susuki must explicitly respect bridge/path exclusions.
       if (this.isExcluded(x, z)) continue;
       const clump = new THREE.Group();
+      clump.name = `Shrub Clump ${++this._shrubCount}`;
       const count = 5 + Math.floor(this.random() * 4);
       for (let i = 0; i < count; i++) {
         const stalk = new THREE.Group();
@@ -786,7 +794,7 @@ export class Vegetation {
    * sun's shadow map, react to the hemisphere/point lights and fog like
    * everything else — under trees and eaves the meadow finally darkens.
    * Wind, arching and the cat's footprint push are injected into the vertex
-   * stage; a root→tip gradient and sun translucency into the fragment stage.
+   * stage; a root?tip gradient and sun translucency into the fragment stage.
    */
   grassMaterial() {
     const uniforms = {
@@ -889,7 +897,7 @@ export class Vegetation {
 
   /**
    * Lightweight wind-swayed material for small ground-cover blooms: unlike
-   * the meadow grass shader it skips the fixed green root→tip gradient so
+   * the meadow grass shader it skips the fixed green root?tip gradient so
    * each instance's tint (a real petal colour) reads clearly, fading up
    * from a shaded green base at the root to full bloom colour at the tip.
    */
@@ -1076,6 +1084,7 @@ export class Vegetation {
         mesh.userData.fullCount = placed;
         // Already one mesh per chunk, and setDensity() owns mesh.count.
         mesh.userData.noChunk = true;
+        mesh.name = `Grass Field ${this.grassMeshes.length + 1}`;
         this.grassMeshes.push(mesh);
         geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases.subarray(0, placed), 1));
         geo.setAttribute('aTint', new THREE.InstancedBufferAttribute(tints.subarray(0, placed * 3), 3));
@@ -1161,6 +1170,7 @@ export class Vegetation {
       mesh.count = placed;
       mesh.userData.fullCount = placed;
       mesh.userData.noChunk = true; // setDensity() owns mesh.count
+      mesh.name = `Ground Cover ${this.groundCoverMeshes.length + 1}`;
       this.groundCoverMeshes.push(mesh);
       spec.geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases.subarray(0, placed), 1));
       spec.geo.setAttribute('aTint', new THREE.InstancedBufferAttribute(tints.subarray(0, placed * 3), 3));

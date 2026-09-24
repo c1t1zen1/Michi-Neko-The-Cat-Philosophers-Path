@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20260912b';
+import { Cat } from './cat.js?v=20260920d';
 
 export class NPC {
   constructor(scene, name, color, position, dialogueLines, options = {}) {
@@ -12,6 +12,7 @@ export class NPC {
     this.hasGreeted = false;
 
     this.mesh = new THREE.Group();
+    this.mesh.name = `${name} (NPC)`;
 
     // Elegant Kyoto Cat Customization for Luna / NPC Companions
     const isLuna = name.toLowerCase().includes('luna');
@@ -85,8 +86,8 @@ export class NPC {
   createNameTag(name) {
     const div = document.createElement('div');
     div.className = 'npc-nametag';
-    const jpSuffix = name.toLowerCase() === 'luna' ? ' · 月' : '';
-    div.innerHTML = `✨ <strong>${name}</strong>${jpSuffix}`;
+    const jpSuffix = name.toLowerCase() === 'luna' ? ' — ?' : '';
+    div.innerHTML = `? <strong>${name}</strong>${jpSuffix}`;
     div.style.cssText = 'position:absolute;color:#2c1b12;background:linear-gradient(160deg,rgba(248,238,222,0.94),rgba(235,218,194,0.9));padding:3px 10px;border-radius:12px;font-size:12px;font-family:Georgia,serif;pointer-events:none;transform:translate(-50%,-100%);white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,0.35);border:1px solid #7c4c28;letter-spacing:0.5px;';
     document.body.appendChild(div);
     return div;

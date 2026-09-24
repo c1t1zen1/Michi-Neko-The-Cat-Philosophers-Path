@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 export class Controls {
   constructor(player, ui, audio = null, contextActions = null, dialogue = null) {

@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 /**
  * Split wide instanced meshes into spatial chunks so frustum culling works.

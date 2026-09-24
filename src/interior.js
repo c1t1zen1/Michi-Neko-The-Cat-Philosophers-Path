@@ -3,7 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   plasterTextures, woodTextures, shojiTextures, tatamiTextures, stoneTextures,
   strawTextures, metalTextures, texturedMaterial, worldScaleBoxUVs
-} from './textures.js?v=20260912b';
+} from './textures.js?v=20260920d';
 
 const panel = (m) => { m.userData.uvPanel = true; return m; };
 const MAT = {
@@ -42,6 +42,7 @@ export class InteriorManager {
     this.origin = new THREE.Vector3(0, 100, 0); // Isolated interior coordinate space
 
     this.group = new THREE.Group();
+    this.group.name = 'Tea House Interior';
     this.group.position.copy(this.origin);
     this.game.scene.add(this.group);
 
@@ -133,8 +134,10 @@ export class InteriorManager {
       { geo: new THREE.SphereGeometry(0.055, 10, 8), mat: MAT.ceramicWhite, x: 0.6, z: 0.15 }
     ];
     const topY = this.origin.y + 0.58;
+    let knockIdx = 0;
     for (const d of defs) {
       const m = new THREE.Mesh(d.geo, d.mat);
+      m.name = `Table Knick-knack ${++knockIdx}`;
       m.castShadow = true;
       m.position.set(this.origin.x + d.x, topY + 0.05, this.origin.z + d.z);
       this.group.add(m);
@@ -209,6 +212,7 @@ export class InteriorManager {
 
     // 1. Room Floor: 8-mat Tatami arrangement (Room size: 8m wide x 7m deep x 3.6m ceiling)
     const floor = new THREE.Group();
+    floor.name = 'Tatami Floor';
     const matW = 1.25, matL = 2.5, matH = 0.08;
     const mats = [
       [-1.25, 0.04, -1.25, false], [1.25, 0.04, -1.25, false],
@@ -254,6 +258,7 @@ export class InteriorManager {
 
     // 3. Tokonoma Alcove (Sacred recess on back wall)
     const toko = new THREE.Group();
+    toko.name = 'Tokonoma Alcove';
     toko.add(box(3.2, 0.22, 1.2, MAT.timberDark, 0, 0.11, -3.0));
     // Hanging Scroll (Kakejiku)
     toko.add(box(1.2, 2.2, 0.04, MAT.fusumaPaper, 0, 1.9, -3.42));
@@ -277,6 +282,7 @@ export class InteriorManager {
 
     // 4. Low Chabudai Table with Ceramic Tea Set & Grilled Sea Bream (Fish Feast)
     const table = new THREE.Group();
+    table.name = 'Chabudai Table';
     table.add(box(1.8, 0.1, 1.3, MAT.timberEngawa, 0, 0.44, 0));
     for (const sx of [-1, 1]) {
       for (const sz of [-1, 1]) {
@@ -298,6 +304,7 @@ export class InteriorManager {
     table.add(platter);
 
     const fish = new THREE.Group();
+    fish.name = 'Grilled Sea Bream';
     const fishBody = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), MAT.grilledFish);
     fishBody.scale.set(1.5, 0.5, 0.6);
     const fishTail = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.16, 4), MAT.grilledFish);
@@ -313,6 +320,7 @@ export class InteriorManager {
 
     // 5. Plush Velvet Zabuton Nap Bed (Cozy Nap Spot)
     const bed = new THREE.Group();
+    bed.name = 'Zabuton Nap Bed';
     const zabuton = box(0.9, 0.16, 0.9, MAT.cushionRed, 0, 0.08, 0);
     bed.add(zabuton);
     for (const sx of [-1, 1]) {
@@ -325,6 +333,7 @@ export class InteriorManager {
 
     // 6. Paper Andon Floor Lantern (Warm ambient lighting)
     const andon = new THREE.Group();
+    andon.name = 'Andon Lantern';
     andon.add(box(0.44, 0.06, 0.44, MAT.timberDark, 0, 0.03, 0));
     andon.add(box(0.36, 0.8, 0.36, MAT.lanternPaper, 0, 0.43, 0));
     andon.add(box(0.42, 0.05, 0.42, MAT.timberDark, 0, 0.85, 0));
@@ -339,11 +348,13 @@ export class InteriorManager {
     // every surface in the valley. They start dark and only switch on with
     // the interior itself; the door wipe covers the shader recompile.
     const indoorLight = new THREE.PointLight(0xffb855, 7.5, 12, 1.4);
+    indoorLight.name = 'Andon Glow Light';
     indoorLight.position.set(2.8, 1.2, -2.2);
     indoorLight.visible = false;
     root.add(indoorLight);
 
     const ambientRoomLight = new THREE.PointLight(0xffdfa8, 4.5, 14, 1.2);
+    ambientRoomLight.name = 'Room Fill Light';
     ambientRoomLight.position.set(0, 2.6, 0);
     ambientRoomLight.visible = false;
     root.add(ambientRoomLight);
@@ -357,6 +368,7 @@ export class InteriorManager {
     root.add(garden);
     // Stone Toro lantern in courtyard
     const toro = new THREE.Group();
+    toro.name = 'Courtyard Toro Lantern';
     toro.add(box(0.4, 0.1, 0.4, MAT.stoneToro, 0, 0.05, 0));
     toro.add(box(0.2, 0.5, 0.2, MAT.stoneToro, 0, 0.35, 0));
     toro.add(box(0.38, 0.35, 0.38, MAT.lanternPaper, 0, 0.75, 0));
@@ -370,6 +382,7 @@ export class InteriorManager {
 
     // 8. Sliding Exit Door (Front center)
     const exitDoor = new THREE.Group();
+    exitDoor.name = 'Exit Door';
     exitDoor.add(box(2.6, 2.2, 0.08, MAT.shoji, 0, 1.1, 0));
     exitDoor.position.set(0, 0, 3.6);
     root.add(exitDoor);

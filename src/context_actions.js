@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 // Hoisted findAction scratch (2026-09-11 review §1.2.2: the proximity scan
 // ran every frame and allocated several vectors per call).

@@ -1,4 +1,4 @@
-export class ProgressionManager {
+﻿export class ProgressionManager {
   constructor(ui, player) {
     this.ui = ui;
     this.player = player;

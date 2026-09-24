@@ -247,6 +247,8 @@ class CadApp {
     this.sourceMode = 'editor';
     this.viewMode = 'editor';
     this.expanded = new Set();
+    this.expandedVirtual = new Set();
+    this.treeGroupThreshold = 6;
     this.isolated = null;
     this.runtimeOverrides = new Map();
     this.assetBaselines = new Map();
@@ -527,10 +529,17 @@ class CadApp {
     game.scene.name ||= 'Michi-Neko Live Scene';
     const systems = {
       'Player Character': game.player?.mesh, 'Luna': game.luna?.mesh, 'Mochi': game.mochi?.mesh, 'Kuro': game.kuro?.mesh,
-      'Interior': game.interior?.group, 'Sky Dome': game.sky?.dome
+      'Interior': game.interior?.group, 'Sky Dome': game.sky?.dome, 'Stars': game.sky?.stars, 'Moon': game.sky?.moon,
+      'Sun': game.sky?.sun, 'Hemisphere Light': game.sky?.hemi, 'Fill Light': game.sky?.fill, 'Bounce Light': game.sky?.bounce,
+      'Falling Petals': game.particles?.petals, 'River Petals': game.particles?.riverPetals, 'Fireflies': game.particles?.fireflies,
+      'Dust Motes': game.particles?.motes, 'Snowfall': game.particles?.snow, 'Butterflies': game.ambientLife?.butterflies
     };
     for (const [name, object] of Object.entries(systems)) if (object) { object.name ||= name; object.userData.cadSystem = name; }
     for (const npc of game.npcs || []) if (npc?.mesh) npc.mesh.name ||= npc.name || 'NPC Cat';
+    for (const mesh of game.vegetation?.grassMeshes || []) { mesh.name ||= 'Grass Field'; mesh.userData.cadSystem ||= 'Grass Fields'; }
+    for (const mesh of game.vegetation?.groundCoverMeshes || []) { mesh.name ||= 'Ground Cover'; mesh.userData.cadSystem ||= 'Ground Cover'; }
+    for (const pool of game.vegetation?.dapplePools || []) pool.userData.cadSystem ||= 'Dapple Pools';
+    for (const ray of game.particles?.godRays || []) if (ray.mesh) ray.mesh.userData.cadSystem ||= 'God Rays';
   }
 
   installRuntimePicking() {
@@ -571,9 +580,42 @@ class CadApp {
       row.addEventListener('click', (event) => { if (event.target.closest('.vis')) return; this.select(object); });
       $('.twisty', row).addEventListener('click', (event) => { event.stopPropagation(); open ? this.expanded.delete(key) : this.expanded.add(key); this.rebuildTree(); });
       $('.vis', row).addEventListener('click', (event) => { event.stopPropagation(); this.changeProperty(object, 'Visibility', () => { object.visible = !object.visible; }, () => { object.visible = !object.visible; }); this.rebuildTree(); });
-      host.append(row); if (open) children.forEach((child) => append(child, depth + 1));
+      host.append(row);
+      if (!open) return;
+      if (filter) { children.forEach((child) => append(child, depth + 1)); return; }
+      for (const entry of this.groupSiblings(children)) {
+        if (!entry.prefix || entry.members.length < this.treeGroupThreshold) { entry.members.forEach((child) => append(child, depth + 1)); continue; }
+        this.appendVirtualFolder(entry, object, depth + 1, append);
+      }
     };
     append(root, 0); $('#object-stats').textContent = `${this.countObjects(root)} OBJECTS`;
+  }
+
+  /** Collapse long runs of numbered siblings ("Sakura Tree 12"…) into virtual folders. */
+  groupSiblings(children) {
+    const prefixOf = (label) => {
+      const match = label.match(/^(.*?)[\s_-]+\d+([-_.]\d+)*$/);
+      return match && match[1].trim() ? match[1].trim() : null;
+    };
+    const groups = [];
+    for (const child of children) {
+      const prefix = prefixOf(objectLabel(child));
+      const last = groups[groups.length - 1];
+      if (prefix && last && last.prefix === prefix) last.members.push(child);
+      else groups.push({ prefix, members: [child] });
+    }
+    return groups;
+  }
+
+  appendVirtualFolder(entry, parent, depth, append) {
+    const host = $('#scene-tree');
+    const key = `virtual:${parent.uuid || pathForObject(parent)}:${entry.prefix}`;
+    const open = this.expandedVirtual.has(key);
+    const row = document.createElement('div'); row.className = 'tree-row virtual'; row.style.paddingLeft = `${5 + depth * 11}px`;
+    row.innerHTML = `<span class="twisty">${open ? '▾' : '▸'}</span><span class="type">▣</span><span class="label">${escapeHtml(`${entry.prefix} (${entry.members.length})`)}</span><span class="vis">·</span>`;
+    row.addEventListener('click', (event) => { event.stopPropagation(); open ? this.expandedVirtual.delete(key) : this.expandedVirtual.add(key); this.rebuildTree(); });
+    host.append(row);
+    if (open) entry.members.forEach((child) => append(child, depth + 1));
   }
 
   countObjects(root) { let count = 0; root?.traverse?.(() => count++); return count; }

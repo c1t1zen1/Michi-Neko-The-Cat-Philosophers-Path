@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 /** The nine colour channels every palette carries. */
 const PALETTE_KEYS = ['top', 'mid', 'horizon', 'warm', 'sun', 'hemiSky', 'hemiGround', 'fog', 'cloud'];
@@ -195,6 +195,7 @@ export class Sky {
 
   buildDome() {
     this.dome = new THREE.Mesh(new THREE.SphereGeometry(240, 48, 28), this.makeDomeMaterial(1.0));
+    this.dome.name = 'Sky Dome';
     this.scene.add(this.dome);
   }
 
@@ -271,6 +272,7 @@ export class Sky {
       const z = Math.cos(b) * Math.cos(e) * dist;
       const tex = texVariants[i % texVariants.length];
       const c = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.85, fog: false, depthWrite: false }));
+      c.name = `Cloud ${i + 1}`;
       c.position.set(x, y, z);
       c.scale.set(mirror ? -w : w, h, 1);
       c.material.opacity = 0.55 + Math.random() * 0.3;
@@ -333,6 +335,7 @@ export class Sky {
       `
     });
     this.stars = new THREE.Points(geo, this.starMat);
+    this.stars.name = 'Stars';
     this.stars.frustumCulled = false;
     this.scene.add(this.stars);
   }
@@ -361,6 +364,7 @@ export class Sky {
     tex.colorSpace = THREE.SRGBColorSpace;
     this.moonMat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, fog: false, depthWrite: false });
     this.moon = new THREE.Sprite(this.moonMat);
+    this.moon.name = 'Moon';
     this.moon.scale.set(34, 34, 1);
     this.scene.add(this.moon);
   }
@@ -382,22 +386,28 @@ export class Sky {
     this.sun.shadow.bias = -0.00025;
     this.sun.shadow.normalBias = 0.035;
 
+    this.sun.name = 'Sun';
+    this.sun.target.name = 'Sun Target';
     this.scene.add(this.sun);
     this.scene.add(this.sun.target);
 
     this.hemi = new THREE.HemisphereLight(0x8fa5c9, 0x9a7a55, 0.85);
+    this.hemi.name = 'Hemisphere Light';
     this.scene.add(this.hemi);
 
     this.fill = new THREE.DirectionalLight(0x5a4a78, 0.35);
+    this.fill.name = 'Fill Light';
     this.fill.position.set(40, 30, 60);
     this.scene.add(this.fill);
 
     // Low warm bounce from the sunward horizon — the golden-hour rim light
     // that edges rooves, foliage, and the cat in amber.
     this.bounce = new THREE.DirectionalLight(0xff9a5a, 0.0);
+    this.bounce.name = 'Bounce Light';
     this.bounce.visible = false;
     this.bounce.position.set(-60, 6, -40);
     this.scene.add(this.bounce);
+    this.bounce.target.name = 'Bounce Target';
     this.scene.add(this.bounce.target);
   }
 

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%BE%3C/text%3E%3C/svg%3E">
   <meta name="theme-color" content="#1a1210">
-  <title>Michi-Neko · 道猫</title>
+  <title>Michi-Neko — ??</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1210; font-family: Georgia, 'Times New Roman', serif; touch-action: none; }
@@ -564,13 +564,13 @@
   <div id="boot-screen" role="status" aria-label="Loading Michi-Neko">
     <img src="docs/images/title-screen.jpg" alt="" fetchpriority="high">
     <div id="boot-title">
-      <div class="boot-paw">🐾</div>
+      <div class="boot-paw">??</div>
       <h1 class="boot-game-title">Michi-Neko</h1>
-      <div class="boot-game-subtitle">道猫 — 京都江戸の谷</div>
+      <div class="boot-game-subtitle">?? — ??????</div>
     </div>
     <div class="boot-loading">
       <div class="boot-spinner"></div>
-      <div class="boot-loading-text">Loading…<span>読み込み中</span></div>
+      <div class="boot-loading-text">Loading—<span>?????</span></div>
     </div>
   </div>
   <canvas id="canvas"></canvas>
@@ -580,7 +580,7 @@
   <div id="compass"></div>
 
   <!-- Mobile browsers require an explicit user action before Web Audio can play. -->
-  <button id="btn-enable-audio" type="button" aria-label="Turn on audio" aria-pressed="false" title="Turn on audio">🔇</button>
+  <button id="btn-enable-audio" type="button" aria-label="Turn on audio" aria-pressed="false" title="Turn on audio">??</button>
 
   <!-- Stacked toast notifications -->
   <div id="toast-stack"></div>
@@ -590,7 +590,7 @@
 
   <!-- Collapsible Japanese Parchment Scroll HUD -->
   <div id="scroll-wrapper">
-    <button id="scroll-toggle-btn" aria-label="Toggle Scroll" aria-expanded="true">📜 Menu <span id="scroll-arrow">▲</span></button>
+    <button id="scroll-toggle-btn" aria-label="Toggle Scroll" aria-expanded="true">?? Menu <span id="scroll-arrow">?</span></button>
     <div id="hud-scroll">
       <div class="scroll-rod"></div>
       <div id="hud">
@@ -600,14 +600,14 @@
         <div id="xp-wrap"><div id="xp-fill"></div><span id="xp-label">XP 0</span></div>
         <div id="quest-card"><div id="quest-name">No active quest</div><div id="quest-progress"><div id="quest-fill"></div></div></div>
         <div id="mode">WASD + Space, E: Act, M: Meow, C: Prowl</div>
-        <div id="time-weather">--:-- · Clear</div>
+        <div id="time-weather">--:-- — Clear</div>
         <div id="inventory">
-          <span id="badge-key" class="badge">🔑 Key: 0</span>
-          <span id="badge-feather" class="badge">🪶 Feather: 0</span>
+          <span id="badge-key" class="badge">?? Key: 0</span>
+          <span id="badge-feather" class="badge">?? Feather: 0</span>
         </div>
         <div id="hud-controls">
           <button id="hint-toggle-btn" class="hud-pill-btn">Hints: ON</button>
-          <button id="journal-btn" class="hud-pill-btn" aria-label="Open journal">📖 Journal</button>
+          <button id="journal-btn" class="hud-pill-btn" aria-label="Open journal">?? Journal</button>
         </div>
       </div>
       <div class="scroll-rod"></div>
@@ -621,54 +621,54 @@
   <div id="meow-btn" class="touch-zone">MEOW</div>
 
   <!-- Off-screen objective arrow -->
-  <div id="edge-arrow" class="hidden"><span class="arrow-glyph">➤</span> <span id="edge-arrow-icon">🔑</span></div>
+  <div id="edge-arrow" class="hidden"><span class="arrow-glyph">?</span> <span id="edge-arrow-icon">??</span></div>
 
   <!-- Sliding Shoji Door Transition Wipe -->
   <div id="door-wipe" class="hidden">
     <div class="shoji-panel shoji-left"></div>
     <div class="shoji-panel shoji-right"></div>
     <div class="door-wipe-content">
-      <div class="door-wipe-crest">🌸</div>
-      <div class="door-wipe-title">秘奥庵</div>
+      <div class="door-wipe-crest">??</div>
+      <div class="door-wipe-title">???</div>
       <div class="door-wipe-sub">HISOMU-AN TEA HOUSE</div>
     </div>
   </div>
 
   <!-- Photo mode -->
-  <div id="photo-hint" class="hidden">📷 Photo Mode — drag: orbit · wheel: zoom · Enter: capture · P / Esc: exit</div>
+  <div id="photo-hint" class="hidden">?? Photo Mode — drag: orbit — wheel: zoom — Enter: capture — P / Esc: exit</div>
   <div id="photo-flash"></div>
 
   <!-- ================= Title Screen ================= -->
   <div id="title-screen">
     <div id="title-vignette"></div>
     <div id="title-content">
-      <div id="title-paw">🐾</div>
+      <div id="title-paw">??</div>
       <h1 id="game-title">Michi-Neko</h1>
-      <div id="game-subtitle">道猫 — 京都江戸の谷</div>
+      <div id="game-subtitle">?? — ??????</div>
       <nav id="title-menu">
-        <button id="btn-continue" class="menu-btn primary">▶ Continue</button>
-        <button id="btn-new-game" class="menu-btn">✦ New Game</button>
-        <button id="btn-title-settings" class="menu-btn">⚙ Settings</button>
+        <button id="btn-continue" class="menu-btn primary">? Continue</button>
+        <button id="btn-new-game" class="menu-btn">? New Game</button>
+        <button id="btn-title-settings" class="menu-btn">? Settings</button>
       </nav>
-      <div id="title-hint">WASD move · Space jump · E act · M meow · C prowl · Esc pause</div>
-      <div id="title-version">Kyoto Edo Valley · v0.9</div>
+      <div id="title-hint">WASD move — Space jump — E act — M meow — C prowl — Esc pause</div>
+      <div id="title-version">Kyoto Edo Valley — v0.9</div>
     </div>
   </div>
 
   <!-- ================= Pause Menu ================= -->
   <div id="pause-screen" class="overlay hidden">
     <div class="panel">
-      <h2 class="panel-title">一時停止<span>PAUSED</span></h2>
-      <button id="btn-resume" class="menu-btn primary">▶ Resume</button>
-      <button id="btn-pause-settings" class="menu-btn">⚙ Settings</button>
-      <button id="btn-save-quit" class="menu-btn">💾 Save & Quit to Title</button>
+      <h2 class="panel-title">????<span>PAUSED</span></h2>
+      <button id="btn-resume" class="menu-btn primary">? Resume</button>
+      <button id="btn-pause-settings" class="menu-btn">? Settings</button>
+      <button id="btn-save-quit" class="menu-btn">?? Save & Quit to Title</button>
     </div>
   </div>
 
   <!-- ================= Settings ================= -->
   <div id="settings-screen" class="overlay hidden">
     <div class="panel wide">
-      <h2 class="panel-title">設定<span>SETTINGS</span></h2>
+      <h2 class="panel-title">??<span>SETTINGS</span></h2>
       <div class="settings-row"><label>Master Volume</label><input type="range" id="set-master" min="0" max="100"><span class="settings-value" id="val-master"></span></div>
       <div class="settings-row"><label>Music Volume</label><input type="range" id="set-music" min="0" max="100"><span class="settings-value" id="val-music"></span></div>
       <div class="settings-row"><label>SFX Volume</label><input type="range" id="set-sfx" min="0" max="100"><span class="settings-value" id="val-sfx"></span></div>
@@ -695,23 +695,23 @@
         <button id="btn-import-save" class="menu-btn" style="padding:6px 14px;">Import</button>
         <input type="file" id="import-save-file" accept="application/json,.json" style="display:none;">
       </div>
-      <button id="btn-settings-close" class="menu-btn primary" style="margin-top:10px;">✓ Done</button>
+      <button id="btn-settings-close" class="menu-btn primary" style="margin-top:10px;">? Done</button>
     </div>
   </div>
 
   <!-- ================= Journal (discovery keepsakes) ================= -->
   <div id="journal-overlay" class="overlay hidden" aria-label="Discovery journal">
     <div class="panel wide" id="journal-panel">
-      <h2 class="panel-title">手帳<span>VALLEY JOURNAL</span></h2>
+      <h2 class="panel-title">??<span>VALLEY JOURNAL</span></h2>
       <div id="journal-body" style="max-height:56vh;overflow-y:auto;text-align:left;"></div>
-      <button id="btn-journal-close" class="menu-btn primary" style="margin-top:10px;">✓ Close</button>
+      <button id="btn-journal-close" class="menu-btn primary" style="margin-top:10px;">? Close</button>
     </div>
   </div>
 
   <!-- ================= WebGL recovery / support ================= -->
   <div id="gl-recovery" class="overlay hidden">
     <div class="panel">
-      <h2 class="panel-title" id="gl-recovery-title">静けさ<span>THE VALLEY IS RESTING…</span></h2>
+      <h2 class="panel-title" id="gl-recovery-title">???<span>THE VALLEY IS RESTING—</span></h2>
       <p id="gl-recovery-text" style="max-width:34ch;margin:10px auto;line-height:1.55;">
         The valley is resting for a moment. Your pawprints are safe.
       </p>
@@ -721,7 +721,7 @@
 
   <!-- Cache busting: every module import in src/ carries this same ?v= tag.
        Bump them together, or a changed file ships against a cached sibling:
-         sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDDx/g" src/*.js index.html -->
-  <script type="module" src="src/main.js?v=20260912b"></script>
+         sed -i '' -E "s/\?v=[0-9a-z]+/?v=20260920d/g" src/*.js index.html -->
+  <script type="module" src="src/main.js?v=20260920d"></script>
 </body>
 </html>

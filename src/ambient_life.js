@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 /**
  * Shared low-poly bird geometries. Only ~17 birds ever exist at once, so
@@ -77,6 +77,7 @@ export class AmbientLife {
 
     for (let i = 0; i < 14; i++) {
       const g = new THREE.Group();
+      g.name = `Sparrow ${i + 1}`;
       const body = new THREE.Mesh(bodyGeo, bodyMat);
       body.rotation.x = Math.PI / 2;
       g.add(body);
@@ -129,6 +130,7 @@ export class AmbientLife {
 
     for (let i = 0; i < 3; i++) {
       const g = new THREE.Group();
+      g.name = `Crow ${i + 1}`;
       const body = new THREE.Mesh(bodyGeo, crowBodyMat);
       body.scale.setScalar(scale);
       body.rotation.x = Math.PI / 2;
@@ -339,6 +341,7 @@ export class AmbientLife {
       sizeAttenuation: true
     });
     this.butterflies = new THREE.Points(geo, this.bflyMat);
+    this.butterflies.name = 'Butterflies';
     this.butterflies.frustumCulled = false;
     this.scene.add(this.butterflies);
   }
@@ -526,6 +529,7 @@ export class AmbientLife {
       const variant = variants[i % variants.length];
       const len = 0.55 + Math.random() * 0.3;
       const fish = new THREE.Group();
+      fish.name = `Koi ${String(i + 1).padStart(2, '0')}`;
       const bodyMat = new THREE.MeshToonMaterial({ map: this.koiPatternTexture(variant, i + 1), gradientMap: ramp });
       const finMat = new THREE.MeshToonMaterial({
         color: finTints[variant], gradientMap: ramp, side: THREE.DoubleSide, transparent: true, opacity: 0.82

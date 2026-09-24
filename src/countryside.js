@@ -4,11 +4,11 @@ import {
   plasterTextures, woodTextures, kawaraTextures, shojiTextures, tatamiTextures,
   cobbleTextures, stoneTextures, groundTextures, dirtTextures, strawTextures,
   metalTextures, texturedMaterial, worldScaleBoxUVs, worldNoise
-} from './textures.js?v=20260912b';
+} from './textures.js?v=20260920d';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, lumpyTuftGeometry, lumpyConeGeometry,
   leafCardTexture, buildCanopy
-} from './foliage.js?v=20260912b';
+} from './foliage.js?v=20260920d';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -300,6 +300,8 @@ export class Countryside {
       merged.computeBoundingSphere();
       const first = list[0];
       const mesh = new THREE.Mesh(merged, first.material);
+      this._bakedCount = (this._bakedCount || 0) + 1;
+      mesh.name = `Baked Statics ${this._bakedCount}`;
       mesh.castShadow = first.castShadow;
       mesh.receiveShadow = first.receiveShadow;
       parent.add(mesh);
@@ -530,6 +532,7 @@ export class Countryside {
     }));
     ground.material.vertexColors = true;
     ground.material.color.setHex(0xffffff);
+    ground.name = 'Village Ground';
     ground.receiveShadow = true;
     this.scene.add(ground);
     this.groundMesh = ground;
@@ -580,6 +583,7 @@ export class Countryside {
         .replace('#include <alphatest_fragment>', '#include <alphatest_fragment>\n diffuseColor.a *= smoothstep(0.0, 0.42, vShoulderU) * smoothstep(1.0, 0.58, vShoulderU) * 0.9;');
     };
     const shoulder = new THREE.Mesh(geo, mat);
+    shoulder.name = 'Earthen Shoulders';
     shoulder.receiveShadow = true;
     shoulder.renderOrder = -1;
     this.scene.add(shoulder);
@@ -612,6 +616,7 @@ export class Countryside {
     const geo = new THREE.RingGeometry(0.68, 1, 28);
     for (let i = 0; i < 24; i++) {
       const ring = new THREE.Mesh(geo, mat.clone());
+      ring.name = `Ripple Ring ${i + 1}`;
       ring.rotation.x = -Math.PI / 2;
       ring.position.y = 0.045;
       ring.visible = false;
@@ -697,25 +702,29 @@ export class Countryside {
     // sheets that catch the sky, breathe with wind cat's-paws, and show the
     // silty bed and seedling shadows through the surface.
     if (!this.riverUniforms) this.createRiverUniforms();
+    let paddyIdx = 0;
     for (const [px, pz, w, d] of plots) {
+      paddyIdx++;
       const waterMat = this.createPaddyWaterMaterial(w, d);
       this.paddyWaterMaterials.push({ material: waterMat });
       const water = new THREE.Mesh(new THREE.PlaneGeometry(w, d, 1, 1), waterMat);
+      water.name = `Paddy Water ${paddyIdx}`;
       water.rotation.x = -Math.PI / 2;
       water.position.set(px, 0.02, pz);
       this.scene.add(water);
       // Silty paddy floor just under the sheet so the water reads as depth
       const bed = new THREE.Mesh(new THREE.PlaneGeometry(w, d), MAT.paddyMud);
+      bed.name = `Paddy Bed ${paddyIdx}`;
       bed.rotation.x = -Math.PI / 2;
       bed.position.set(px, 0.008, pz);
       bed.receiveShadow = true;
       this.scene.add(bed);
 
       const ridgeH = 0.28, ridgeW = 0.5;
-      this.scene.add(box(w + ridgeW * 2, ridgeH, ridgeW, MAT.ridge, px, ridgeH / 2, pz - d / 2 - ridgeW / 2));
-      this.scene.add(box(w + ridgeW * 2, ridgeH, ridgeW, MAT.ridge, px, ridgeH / 2, pz + d / 2 + ridgeW / 2));
-      this.scene.add(box(ridgeW, ridgeH, d, MAT.ridge, px - w / 2 - ridgeW / 2, ridgeH / 2, pz));
-      this.scene.add(box(ridgeW, ridgeH, d, MAT.ridge, px + w / 2 + ridgeW / 2, ridgeH / 2, pz));
+      const ridgeN = box(w + ridgeW * 2, ridgeH, ridgeW, MAT.ridge, px, ridgeH / 2, pz - d / 2 - ridgeW / 2); ridgeN.name = `Paddy Ridge ${paddyIdx} N`; this.scene.add(ridgeN);
+      const ridgeS = box(w + ridgeW * 2, ridgeH, ridgeW, MAT.ridge, px, ridgeH / 2, pz + d / 2 + ridgeW / 2); ridgeS.name = `Paddy Ridge ${paddyIdx} S`; this.scene.add(ridgeS);
+      const ridgeWm = box(ridgeW, ridgeH, d, MAT.ridge, px - w / 2 - ridgeW / 2, ridgeH / 2, pz); ridgeWm.name = `Paddy Ridge ${paddyIdx} W`; this.scene.add(ridgeWm);
+      const ridgeE = box(ridgeW, ridgeH, d, MAT.ridge, px + w / 2 + ridgeW / 2, ridgeH / 2, pz); ridgeE.name = `Paddy Ridge ${paddyIdx} E`; this.scene.add(ridgeE);
 
       for (let i = 0; i < Math.floor(w * d / 1.6); i++) {
         dummy.position.set(
@@ -733,6 +742,7 @@ export class Countryside {
     rice.count = ri;
     rice.instanceMatrix.needsUpdate = true;
     this.scene.add(rice);
+    rice.name = 'Rice Stalks';
   }
 
   buildPath() {
@@ -785,6 +795,7 @@ export class Countryside {
     geo.setIndex(indices);
     geo.computeVertexNormals();
     const gravel = new THREE.Mesh(geo, this.getCobbleMaterial());
+    gravel.name = 'Cobbled Path';
     gravel.receiveShadow = true;
     this.scene.add(gravel);
 
@@ -835,6 +846,7 @@ export class Countryside {
         slab.rotation.y = Math.atan2(tan.x, tan.z) + (this.random() - 0.5) * 0.35;
         slab.receiveShadow = true;
         slab.castShadow = true;
+        slab.name = `Path Slab ${i}-${c}`;
         this.scene.add(slab);
       }
     }
@@ -859,6 +871,7 @@ export class Countryside {
       rock.rotation.set(this.random() * Math.PI, this.random() * Math.PI, this.random() * Math.PI);
       rock.castShadow = true;
       rock.receiveShadow = true;
+      rock.name = `Path Boulder ${i + 1}`;
       this.scene.add(rock);
       if (s > 0.5) this.addCollider(rock, -0.05);
     }
@@ -921,6 +934,7 @@ export class Countryside {
     geo.computeVertexNormals();
     this.riverMat = this.createRiverWaterMaterial();
     const river = new THREE.Mesh(geo, this.riverMat);
+    river.name = 'River';
     river.receiveShadow = true;
     this.scene.add(river);
 
@@ -928,6 +942,7 @@ export class Countryside {
     // as ledge-walk surfaces, stone abutment colliders, and a hidden
     // golden dango charm secret tucked underneath.
     const bridge = new THREE.Group();
+    bridge.name = 'Kiyomizu Bridge';
     const deckMat = MAT.timberEngawa || MAT.vermilion;
     const deckY = 1.0;
 
@@ -1016,6 +1031,7 @@ export class Countryside {
       new THREE.MeshStandardMaterial({ color: 0xf2c14e, emissive: 0xd9a441, emissiveIntensity: 0.6, metalness: 0.7, roughness: 0.35 })
     );
     charm.position.set(-1, 0.28, 30.5);
+    charm.name = 'River-Spirit Charm';
     charm.userData.id = 90;
     charm.userData.isCharm = true;
     charm.castShadow = true;
@@ -1278,6 +1294,7 @@ export class Countryside {
 
   createKoushi(w, h, count = 8, mat = MAT.timberDark) {
     const group = new THREE.Group();
+    group.name = 'Koushi Lattice';
     const frameThick = 0.04;
     // Outer frame
     group.add(box(w, frameThick, frameThick * 1.5, mat, 0, h / 2, 0));
@@ -1305,7 +1322,7 @@ export class Countryside {
     const pos = geo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const z = pos.getZ(i);
-      const t = THREE.MathUtils.clamp((eaveSign * z + len / 2) / len, 0, 1); // 0 ridge → 1 eave
+      const t = THREE.MathUtils.clamp((eaveSign * z + len / 2) / len, 0, 1); // 0 ridge ? 1 eave
       const curve = Math.pow(smoothstep(0.45, 1.0, t), 2.0) * lift;
       pos.setY(i, pos.getY(i) + curve);
     }
@@ -1318,6 +1335,7 @@ export class Countryside {
 
   createKawaraRoof(w, d, ridgeH = 1.2, overhang = 0.6) {
     const roof = new THREE.Group();
+    roof.name = 'Kawara Roof';
     const halfD = d / 2 + overhang;
     const slopeLen = Math.sqrt(halfD * halfD + ridgeH * ridgeH) + 0.1;
     const angle = Math.atan2(ridgeH, halfD);
@@ -1383,6 +1401,7 @@ export class Countryside {
     // Gable end cap ornaments (Onigawara)
     for (const sx of [-1, 1]) {
       const oni = new THREE.Group();
+      oni.name = 'Onigawara Ornament';
       oni.add(box(0.12, 0.42, 0.38, MAT.roofRidge, 0, 0, 0));
       oni.add(box(0.14, 0.18, 0.48, MAT.vermilion, 0, -0.15, 0));
       oni.position.set(sx * (w / 2 + overhang + 0.08), ridgeH + 0.12, 0);
@@ -1412,6 +1431,7 @@ export class Countryside {
 
   createEngawa(w, d, h = 0.38) {
     const engawa = new THREE.Group();
+    engawa.name = 'Engawa Veranda';
     // Raised wooden deck
     engawa.add(box(w, 0.1, d, MAT.timberEngawa, 0, h - 0.05, 0));
     // Plinth stones supporting veranda
@@ -1428,6 +1448,7 @@ export class Countryside {
 
   createChochinLantern(x, y, z, parentGroup) {
     const lantern = new THREE.Group();
+    lantern.name = 'Chochin Lantern';
     // Suspension cord
     lantern.add(box(0.015, 0.35, 0.015, MAT.timberDark, 0, 0.18, 0));
     // Black lacquer top cap
@@ -1451,6 +1472,7 @@ export class Countryside {
 
   createClimbCrates(x, y, z, parentGroup, rotY = 0) {
     const group = new THREE.Group();
+    group.name = 'Climb Crates';
     // Bottom step: 2 heavy wooden crates + 1 sake barrel
     const c1 = box(0.9, 0.65, 0.9, MAT.timberMedium, -0.5, 0.325, 0);
     const c2 = box(0.9, 0.65, 0.9, MAT.timberDark, 0.5, 0.325, 0);
@@ -1496,6 +1518,7 @@ export class Countryside {
   // --- 1. Merchant Tea House (Chaya) with Rooftop Bird Nest ---
   buildMachiyaTeaHouse(x, z, rotY) {
     const house = new THREE.Group();
+    house.name = 'Machiya Tea House (Chaya)';
 
     // Ground Floor: 7.6m wide, 5.4m deep, 2.5m high
     const groundFloor = box(7.6, 2.4, 5.4, MAT.plasterWarm, 0, 1.2, 0);
@@ -1596,6 +1619,7 @@ export class Countryside {
   // --- 2. Kyoto Craftsman Machiya with Engawa & Shishi-odoshi ---
   buildMachiyaResidence(x, z, rotY) {
     const house = new THREE.Group();
+    house.name = 'Machiya Residence';
 
     // Ground Floor: 8.0m wide, 5.0m deep
     const groundFloor = box(8.0, 2.4, 5.0, MAT.plasterWarm, 0, 1.2, 0);
@@ -1666,6 +1690,7 @@ export class Countryside {
   // --- 3. Secret Locked Kyoto Machiya (Hisomu-an) with Interior ---
   buildSecretMachiya(x, z, rotY) {
     const house = new THREE.Group();
+    house.name = 'Secret Machiya (Hisomu-an)';
 
     // Outer Shell with open front entrance
     // Left Wall
@@ -1682,6 +1707,7 @@ export class Countryside {
     // --- INTERIOR DESIGN (Ghibli Cozy Tatami Room) ---
     // 1. Tatami Mat Floor (6-mat pattern)
     const tatamiFloor = new THREE.Group();
+    tatamiFloor.name = 'Tatami Floor';
     const matW = 1.15, matL = 2.3, matH = 0.08;
     const matPositions = [
       [-1.15, 0.04, -1.15, false], [1.15, 0.04, -1.15, false],
@@ -1699,6 +1725,7 @@ export class Countryside {
 
     // 2. Low Table (Kotatsu / Chabudai) with ceramic tea set & Grilled Fish Cat Treat
     const table = new THREE.Group();
+    table.name = 'Chabudai Table';
     table.add(box(1.5, 0.08, 1.1, MAT.timberEngawa, 0, 0.42, 0));
     for (const sx of [-1, 1]) {
       for (const sz of [-1, 1]) {
@@ -1719,6 +1746,7 @@ export class Countryside {
     table.add(plate);
 
     const fish = new THREE.Group();
+    fish.name = 'Grilled Fish Treat';
     const fishBody = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), MAT.grilledFish);
     fishBody.scale.set(1.4, 0.45, 0.55);
     fish.add(fishBody);
@@ -1756,6 +1784,7 @@ export class Countryside {
 
     // 5. Paper Andon Floor Lantern (glowing warm interior lamp)
     const andon = new THREE.Group();
+    andon.name = 'Andon Lantern';
     andon.add(box(0.4, 0.05, 0.4, MAT.timberDark, 0, 0.025, 0));
     andon.add(box(0.32, 0.65, 0.32, MAT.lanternPaper, 0, 0.35, 0));
     andon.add(box(0.38, 0.04, 0.38, MAT.timberDark, 0, 0.7, 0));
@@ -1771,6 +1800,7 @@ export class Countryside {
     house.add(doorFrame);
 
     const slidingDoor = new THREE.Group();
+    slidingDoor.name = 'Secret Sliding Door';
     slidingDoor.add(box(2.35, 2.05, 0.08, MAT.shoji, 0, 1.05, 0));
     const doorLattice = this.createKoushi(2.35, 2.05, 11);
     doorLattice.position.z = 0.05;
@@ -1778,6 +1808,7 @@ export class Countryside {
 
     // Antique Brass Padlock Emblem on the door handle
     this.lockPlate = new THREE.Group();
+    this.lockPlate.name = 'Brass Lock Plate';
     this.lockPlate.add(box(0.24, 0.3, 0.06, MAT.goldAntique, 0, 1.05, 0.1));
     const shackle = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.025, 6, 12, Math.PI), MAT.goldAntique);
     shackle.position.set(0, 1.2, 0.1);
@@ -1833,6 +1864,7 @@ export class Countryside {
   // --- 4. Interactive Bird Nest on Machiya Rooftop ---
   buildBirdNest(houseGroup, worldPos) {
     const nestGroup = new THREE.Group();
+    nestGroup.name = "Rooftop Bird's Nest";
 
     // Twig nest bowl
     const nestBowl = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.14, 8, 16), MAT.nestTwig);
@@ -1855,6 +1887,7 @@ export class Countryside {
 
     // Glowing Golden "Guardian's Feather" Trophy in the nest
     const feather = new THREE.Group();
+    feather.name = "Guardian's Feather";
     const featherQuill = box(0.015, 0.35, 0.01, MAT.featherGold, 0, 0, 0);
     const featherVane = box(0.12, 0.26, 0.01, MAT.featherGold, 0, 0.04, 0);
     feather.add(featherQuill, featherVane);
@@ -1894,6 +1927,7 @@ export class Countryside {
     keyGroup.add(halo);
 
     keyGroup.position.set(x, y, z);
+    keyGroup.name = 'Secret Key';
     keyGroup.userData = { isSecretKey: true, id: 999 };
     this.scene.add(keyGroup);
     this.secretKeyMesh = keyGroup;
@@ -1902,6 +1936,7 @@ export class Countryside {
 
   buildKeyHidingRock(x, z) {
     const rockGroup = new THREE.Group();
+    rockGroup.name = 'Key Hiding Rock';
     const rockGeo = new THREE.DodecahedronGeometry(0.78, 1);
     const mainRock = new THREE.Mesh(rockGeo, MAT.stoneDark);
     mainRock.scale.set(1.35, 1.0, 0.9);
@@ -1933,6 +1968,7 @@ export class Countryside {
   // --- 6. Interactive Shishi-Odoshi (Bamboo Clacker) ---
   buildShishiOdoshi(x, y, z, parentGroup) {
     const shishi = new THREE.Group();
+    shishi.name = 'Shishi-Odoshi';
 
     // Stone Water Basin (Tsukubai)
     const basin = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.3, 0.45, 10), MAT.stoneDark);
@@ -1959,6 +1995,7 @@ export class Countryside {
 
     // Animated Rocker Tube
     const rocker = new THREE.Group();
+    rocker.name = 'Shishi Rocker';
     const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.65, 8), MAT.bambooGreen);
     tube.rotation.z = Math.PI / 2;
     rocker.add(tube);
@@ -1999,7 +2036,9 @@ export class Countryside {
   }
 
   buildVillageHouse(x, z, rot, side = null) {
+    this._villageHouseCount = (this._villageHouseCount || 0) + 1;
     const house = new THREE.Group();
+    house.name = `Machiya House ${side === 'left' ? 'W' : 'E'}${this._villageHouseCount}`;
     const wallMat = this.random() > 0.5 ? MAT.plasterWarm : MAT.plaster;
     const w = 4.4 + this.random() * 1.2;   // width along street
     const d = 3.2 + this.random() * 0.6;   // depth
@@ -2043,12 +2082,12 @@ export class Countryside {
     if (side && this.villageHouseColliders[side]) this.villageHouseColliders[side].push(houseCollider);
 
     // Village rooftop parkour: eave-edge ring then the ridge line. The cat
-    // reaches these by hopping up from a nearby tōrō lantern cap or gliding
+    // reaches these by hopping up from a nearby toro lantern cap or gliding
     // across from another rooftop — real cat exploration routes.
     this.addSlopedRoofPlatforms(house, 2.1, w + 0.6, d + 0.4, 0.95, 0.5);
   }
 
-  // --- Street greenery: bushes, moss, bamboo fences & tōrō stone lanterns ---
+  // --- Street greenery: bushes, moss, bamboo fences & toro stone lanterns ---
   buildStreetGreenery() {
     const bushTints = [0x46702f, 0x54803a, 0x628f44, 0x3d6529];
     const bushGeo = lumpyTuftGeometry(2, 9, 0.32);
@@ -2090,6 +2129,7 @@ export class Countryside {
     if (bushes.instanceColor) bushes.instanceColor.needsUpdate = true;
     bushes.castShadow = true;
     bushes.receiveShadow = true;
+    bushes.name = 'Street Bushes';
     this.scene.add(bushes);
 
     // Moss / grass patches hugging the road edges
@@ -2110,6 +2150,7 @@ export class Countryside {
     moss.count = mi;
     moss.instanceMatrix.needsUpdate = true;
     moss.receiveShadow = true;
+    moss.name = 'Roadside Moss';
     this.scene.add(moss);
 
     // Continuous takegaki runs bridge the exact world-space gaps between
@@ -2142,7 +2183,7 @@ export class Countryside {
       }
     }
 
-    // Tōrō stone lanterns spaced along the street
+    // Toro stone lanterns spaced along the street
     const toroZ = [22, 14, 4, -2, -11, -21];
     toroZ.forEach((z, i) => {
       const side = i % 2 === 0 ? -1 : 1;
@@ -2152,6 +2193,7 @@ export class Countryside {
 
   buildBambooFence(x, z, rot, options = {}) {
     const fence = new THREE.Group();
+    fence.name = `Takegaki Fence ${this.bambooFences ? this.bambooFences.length + 1 : 1}`;
     const len = options.length || (2.6 + this.random() * 1.6);
     const fenceHeight = options.height || 1.35;
     const rotationJitter = options.rotationJitter === false ? 0 : (this.random() - 0.5) * 0.2;
@@ -2232,6 +2274,7 @@ export class Countryside {
     signFace.rotation.y = Math.PI;
     marker.add(signFace);
     marker.position.set(x, 0, z - depth / 2 - 0.35);
+    marker.name = 'Corral Warning Sign';
     marker.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     this.scene.add(marker);
 
@@ -2243,6 +2286,7 @@ export class Countryside {
       roughness: 0.3
     });
     const reward = new THREE.Mesh(new THREE.IcosahedronGeometry(0.23, 1), rewardMat);
+    reward.name = 'Jade Paw Reward';
     reward.position.set(x, 0.42, z);
     reward.castShadow = true;
     reward.userData.id = 91;
@@ -2259,6 +2303,7 @@ export class Countryside {
     this.corralRewardMesh = reward;
 
     const turtle = new THREE.Group();
+    turtle.name = 'Turtle Guardian (Larry)';
     const shellMat = new THREE.MeshStandardMaterial({ color: 0x5f7e42, roughness: 0.78, flatShading: true });
     const shellLight = new THREE.MeshStandardMaterial({ color: 0x8da85c, roughness: 0.82, flatShading: true });
     const skinMat = new THREE.MeshStandardMaterial({ color: 0x9aaa68, roughness: 0.9, flatShading: true });
@@ -2375,6 +2420,8 @@ export class Countryside {
 
   buildToroLantern(x, z) {
     const t = new THREE.Group();
+    this._toroCount = (this._toroCount || 0) + 1;
+    t.name = `Toro Lantern ${this._toroCount}`;
     const base = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.34, 0.18, 8), MAT.stoneDark);
     base.position.y = 0.09;
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.62, 7), MAT.stone);
@@ -2416,6 +2463,7 @@ export class Countryside {
    */
   buildMistAltar(x, z) {
     const altar = new THREE.Group();
+    altar.name = 'Mist Altar';
 
     // Weathered stone plinth + top slab
     const stoneMat = new THREE.MeshStandardMaterial({
@@ -2473,6 +2521,7 @@ export class Countryside {
   /** Furin wind chime hanging from the tea house eave. */
   buildWindChime(x, y, z) {
     const chime = new THREE.Group();
+    chime.name = 'Wind Chime';
 
     const cordMat = new THREE.MeshBasicMaterial({ color: 0x7c5a3a });
     const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.5, 4), cordMat);
@@ -2519,6 +2568,7 @@ export class Countryside {
     for (let i = 0; i < spots.length; i++) {
       const [x, y, z] = spots[i];
       const bell = new THREE.Group();
+      bell.name = `Offering Bell ${i + 1}`;
       const mat = new THREE.MeshStandardMaterial({
         color: 0xc9a86a, metalness: 0.8, roughness: 0.35,
         emissive: 0x6a5426, emissiveIntensity: 0.5
@@ -2543,6 +2593,7 @@ export class Countryside {
 
   buildTorii(x, z) {
     const torii = new THREE.Group();
+    torii.name = 'Torii Gate';
     const pillarGeo = new THREE.CylinderGeometry(0.22, 0.28, 4.6, 10);
     for (const s of [-1, 1]) {
       const p = new THREE.Mesh(pillarGeo, MAT.vermilion);
@@ -2579,6 +2630,7 @@ export class Countryside {
 
   buildShrine(x, z) {
     const shrine = new THREE.Group();
+    shrine.name = 'Shrine (Hongu)';
     // Stepped stone foundation (Dan)
     shrine.add(box(3.8, 0.35, 3.0, MAT.stoneDark, 0, 0.175, 0));
     shrine.add(box(3.2, 0.35, 2.4, MAT.stone, 0, 0.525, 0));
@@ -2651,8 +2703,10 @@ export class Countryside {
       [-2.6, -18], [2.6, -18], [-2.8, -26], [2.8, -26],
       [-3, -4], [3.2, 2], [-2.8, 14]
     ];
+    let lampIdx = 0;
     for (const [x, z] of spots) {
       const l = new THREE.Group();
+      l.name = `Street Lamp ${++lampIdx}`;
       l.add(box(0.5, 0.25, 0.5, MAT.stone, 0, 0.125, 0));
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 0.9, 8), MAT.stone);
       post.position.y = 0.7;
@@ -2730,6 +2784,7 @@ export class Countryside {
    */
   buildDistantPagoda(x, z) {
     const pagoda = new THREE.Group();
+    pagoda.name = 'Distant Pagoda';
     const roofTileDark = new THREE.MeshStandardMaterial({
       color: 0x202a2d,
       roughness: 0.62,
@@ -2811,7 +2866,7 @@ export class Countryside {
       baseY += storyH + roofH * 0.62;
     }
 
-    // Sōrin finial: stacked metal discs, a central shaft, and a pointed cap.
+    // Sorin finial: stacked metal discs, a central shaft, and a pointed cap.
     const finialBaseY = baseY - 0.1;
     const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 2.6, 8), finialMat);
     shaft.position.y = finialBaseY + 1.3;
@@ -2883,9 +2938,13 @@ export class Countryside {
       const cards = new THREE.InstancedMesh(built.cards, cardMat, perVariant[v]);
       cards.customDepthMaterial = cardDepth;
       const branches = new THREE.InstancedMesh(built.branches, barkMat, perVariant[v]);
+      tufts.name = `Edge Forest Crown ${v + 1}`;
+      cards.name = `Edge Forest Cards ${v + 1}`;
+      branches.name = `Edge Forest Branches ${v + 1}`;
       sets.push({ tufts, cards, branches, next: 0 });
     }
     const trunks = new THREE.InstancedMesh(trunkGeo, barkMat, count);
+    trunks.name = 'Edge Forest Trunks';
     const dummy = new THREE.Object3D();
     const col = new THREE.Color();
     const pagodaBearing = Math.atan2(56, 12);
@@ -3009,6 +3068,7 @@ export class Countryside {
           if (side === -1) win.rotation.y = Math.PI;
           house.add(win);
         }
+        house.name = `Distant House ${cx > 0 ? 'E' : 'W'}${i + 1}`;
         house.position.set(hx, this.terrainHeight(hx, hz) - 0.3, hz);
         house.rotation.y = this.random() * Math.PI;
         this.scene.add(house);
@@ -3028,6 +3088,9 @@ export class Countryside {
       new THREE.InstancedMesh(cedarGeoB, treeMat, treeCount),
       new THREE.InstancedMesh(roundGeo, treeMat, treeCount)
     ];
+    meshes[0].name = 'Foothill Forest A';
+    meshes[1].name = 'Foothill Forest B';
+    meshes[2].name = 'Foothill Forest Crowns';
     const dummy = new THREE.Object3D();
     const color = new THREE.Color();
     const placed = [0, 0, 0];
@@ -3108,6 +3171,7 @@ export class Countryside {
     ];
     for (const [x, z] of yarnSpots) {
       const yarn = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), MAT.yarn);
+      yarn.name = `Yarn Ball ${String(id).padStart(2, '0')}`;
       yarn.position.set(x, 0.35, z);
       yarn.castShadow = true;
       yarn.userData.id = id++;

@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 // Hoisted colours: the trail tints from warm honey to dusk orange as a
 // mote ages. Previously two THREE.Color were allocated per live mote per

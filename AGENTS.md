@@ -21,7 +21,14 @@ Every module import carries `?v=<tag>`. Keep all tags in sync when editing:
 sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDD<letter>/g" src/*.js index.html
 ```
 
-Current tag: `20260912b`.
+Current tag: `20260920d`.
+
+On Windows do NOT bulk-rewrite with PowerShell `Get-Content`/`Set-Content` —
+it re-encodes and corrupts em-dashes/Japanese text. Use Node (byte-safe):
+
+```
+node -e "const fs=require('fs');const files=fs.readdirSync('src').filter(f=>f.endsWith('.js')).map(f=>'src/'+f).concat('index.html');for(const f of files){let s=fs.readFileSync(f,'utf8');const n=s.replace(/\?v=[0-9a-z]+/g,'?v=TAG');if(n!==s)fs.writeFileSync(f,n)}"
+```
 
 ## Verification
 

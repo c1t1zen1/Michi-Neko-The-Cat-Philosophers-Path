@@ -1,4 +1,4 @@
-export class QuestManager {
+﻿export class QuestManager {
   constructor(ui, onComplete = null) {
     this.ui = ui;
     this.onComplete = onComplete;

@@ -1,4 +1,4 @@
-export class UI {
+﻿export class UI {
   constructor() {
     this.scoreEl = document.getElementById('score');
     this.rankEl = document.getElementById('rank');

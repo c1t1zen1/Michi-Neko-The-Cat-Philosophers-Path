@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Uniform XZ grid over the world's static collider boxes.
  *
  * The cat's collision resolve, the camera ray and the camera push-out each

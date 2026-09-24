@@ -1,4 +1,4 @@
-const KEY = 'catwalk_settings_v1';
+﻿const KEY = 'catwalk_settings_v1';
 
 const DEFAULTS = {
   master: 80,

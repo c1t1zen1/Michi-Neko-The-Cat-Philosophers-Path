@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Production-hardened save manager.
  *
  * - Schema-versioned payloads with migration functions (v1 -> v2).

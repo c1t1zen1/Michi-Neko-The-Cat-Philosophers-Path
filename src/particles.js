@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 export class Particles {
   constructor(scene, options = {}) {
@@ -102,6 +102,7 @@ export class Particles {
       [24, 13.5, 9, 2.2], [-7, 31, 8, 2.6], [15, 31.5, 9, 2.4]
     ];
     this.godRays = [];
+    let rayIdx = 0;
     for (const [x, z, h, w] of spots) {
       const mat = new THREE.MeshBasicMaterial({
         map: tex,
@@ -113,6 +114,7 @@ export class Particles {
         fog: false
       });
       const card = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+      card.name = `God Ray ${++rayIdx}`;
       card.position.set(x, h * 0.5, z);
       card.rotation.y = Math.random() * Math.PI;
       card.renderOrder = 3;
@@ -233,6 +235,7 @@ export class Particles {
       sizeAttenuation: true
     });
     this.riverPetals = new THREE.Points(geo, mat);
+    this.riverPetals.name = 'River Petals';
     this.riverPetals.frustumCulled = false;
     this.scene.add(this.riverPetals);
   }
@@ -290,6 +293,7 @@ export class Particles {
       sizeAttenuation: true
     });
     this.petals = new THREE.Points(geo, mat);
+    this.petals.name = 'Falling Petals';
     this.petals.frustumCulled = false;
     this.scene.add(this.petals);
   }
@@ -319,6 +323,7 @@ export class Particles {
       sizeAttenuation: true
     });
     this.fireflies = new THREE.Points(geo, this.fireflyMat);
+    this.fireflies.name = 'Fireflies';
     this.fireflies.frustumCulled = false;
     this.scene.add(this.fireflies);
   }
@@ -346,6 +351,7 @@ export class Particles {
       sizeAttenuation: true
     });
     this.motes = new THREE.Points(geo, mat);
+    this.motes.name = 'Dust Motes';
     this.motes.frustumCulled = false;
     this.scene.add(this.motes);
   }
@@ -390,6 +396,7 @@ export class Particles {
       blending: THREE.AdditiveBlending
     });
     this.snow = new THREE.Points(geo, this.snowMat);
+    this.snow.name = 'Snowfall';
     this.snow.frustumCulled = false;
     this.scene.add(this.snow);
   }
