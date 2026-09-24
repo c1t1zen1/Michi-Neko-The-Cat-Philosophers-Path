@@ -387,7 +387,7 @@ export class Cat {
       headRotX: 0,
       headRotY: 0,
       neckX: 0,
-      tailRootX: 0.85,
+      tailRootX: 0.68,
       legRootX: [0, 0, 0, 0],
       legKneeX: [0, 0, 0, 0],
       earX: [-0.12, -0.12]
@@ -427,29 +427,30 @@ export class Cat {
 
   buildTorso() {
     this.hips = new THREE.Group();
-    this.hips.position.set(0, 0.43, -0.12);
+    this.hips.position.set(0, 0.43, -0.14);
     this.body.add(this.hips);
 
     this.chest = new THREE.Group();
     this.chest.position.set(0, 0.45, 0.13);
     this.body.add(this.chest);
 
-    // Haunches: broader rear mass reads as a real cat rump
-    const hipMesh = ball(0.155, this.matFur, 1.0, 0.98, 1.22, 26, 20, FUR_KIND.torso);
+    // A cat's pelvis is narrower than its ribcage. The large side haunches
+    // carry the rear silhouette without turning the rump into a sphere.
+    const hipMesh = ball(0.135, this.matFur, 0.95, 0.92, 1.22, 26, 20, FUR_KIND.torso);
     addOutline(hipMesh, 1.035);
     this.hips.add(hipMesh);
     for (const side of [-1, 1]) {
-      const thigh = ball(0.085, this.matFur, 0.9, 1.1, 1.05, 18, 14, FUR_KIND.torso);
-      thigh.position.set(side * 0.085, -0.06, -0.03);
+      const thigh = ball(0.075, this.matFur, 0.88, 1.28, 1.08, 18, 14, FUR_KIND.torso);
+      thigh.position.set(side * 0.078, -0.09, 0.025);
       this.hips.add(thigh);
     }
 
-    const chestMesh = ball(0.162, this.matFur, 0.94, 1.0, 1.3, 26, 20, FUR_KIND.torso);
+    const chestMesh = ball(0.15, this.matFur, 0.93, 1.03, 1.34, 26, 20, FUR_KIND.torso);
     addOutline(chestMesh, 1.035);
     this.chest.add(chestMesh);
     for (const side of [-1, 1]) {
-      const shoulder = ball(0.075, this.matFur, 0.9, 1.05, 1.0, 18, 14, FUR_KIND.torso);
-      shoulder.position.set(side * 0.085, -0.04, 0.05);
+      const shoulder = ball(0.067, this.matFur, 0.84, 1.14, 1.12, 18, 14, FUR_KIND.torso);
+      shoulder.position.set(side * 0.084, -0.035, 0.04);
       this.chest.add(shoulder);
     }
 
@@ -475,9 +476,10 @@ export class Cat {
     bellyMesh.position.set(0, -0.105, -0.06);
     this.chest.add(bellyMesh);
 
-    const spine = capsule(0.145, 0.24, this.matFur, 0.9, 1, 1, FUR_KIND.torso);
+    // Long, gently tapered trunk between the ribcage and pelvis.
+    const spine = capsule(0.125, 0.27, this.matFur, 0.9, 0.94, 1, FUR_KIND.torso);
     spine.rotation.x = Math.PI / 2;
-    spine.position.set(0, 0.445, 0.005);
+    spine.position.set(0, 0.435, -0.005);
     addOutline(spine, 1.03);
     this.body.add(spine);
 
@@ -515,7 +517,7 @@ export class Cat {
     this.chest.add(this.neck);
 
     // Fur bridge so the head connects seamlessly to the body (no gap/neck hole)
-    const neckFur = capsule(0.062, 0.10, this.matFur, 1, 1, 1, FUR_KIND.torso);
+    const neckFur = capsule(0.058, 0.11, this.matFur, 1, 1, 1, FUR_KIND.torso);
     neckFur.rotation.x = Math.PI / 2.6;
     neckFur.position.set(0, 0.05, 0.045);
     addOutline(neckFur, 1.05);
@@ -540,19 +542,19 @@ export class Cat {
 
     this.head = new THREE.Group();
     this.head.position.set(0, 0.125, 0.055);
-    this.head.scale.setScalar(1.06);
+    this.head.scale.setScalar(1.0);
     this.neck.add(this.head);
 
     // Rounded feline skull, slightly broader than tall
-    const skull = ball(0.104, this.matFur, 1.08, 0.97, 1.05, 30, 24, FUR_KIND.head);
+    const skull = ball(0.102, this.matFur, 1.06, 0.98, 1.07, 30, 24, FUR_KIND.head);
     addOutline(skull, 1.04);
     this.head.add(skull);
 
     // Fluffy cheek ruffs
-    const cheekL = ball(0.064, this.matFur, 1.18, 0.84, 0.95, 22, 16, FUR_KIND.head);
-    cheekL.position.set(-0.05, -0.024, 0.024);
-    const cheekR = ball(0.064, this.matFur, 1.18, 0.84, 0.95, 22, 16, FUR_KIND.head);
-    cheekR.position.set(0.05, -0.024, 0.024);
+    const cheekL = ball(0.054, this.matFur, 1.14, 0.82, 0.98, 22, 16, FUR_KIND.head);
+    cheekL.position.set(-0.05, -0.027, 0.03);
+    const cheekR = ball(0.054, this.matFur, 1.14, 0.82, 0.98, 22, 16, FUR_KIND.head);
+    cheekR.position.set(0.05, -0.027, 0.03);
     this.head.add(cheekL, cheekR);
 
     // Cream snout bridge & rounded whisker pads
@@ -584,34 +586,34 @@ export class Cat {
 
     for (const side of [-1, 1]) {
       const eyeGroup = new THREE.Group();
-      eyeGroup.position.set(side * 0.045, 0.020, 0.088);
+      eyeGroup.position.set(side * 0.043, 0.020, 0.091);
       eyeGroup.rotation.y = side * 0.18;
       // Almond tilt: outer corners raised like the reference art
       eyeGroup.rotation.z = side * -0.14;
 
       // Dark eye contour / eyeliner — wide almond shape
-      const eyeLiner = ball(0.028, this.matEyeLiner, 1.28, 1.15, 0.45, 20, 14);
+      const eyeLiner = ball(0.0245, this.matEyeLiner, 1.28, 1.13, 0.45, 20, 14);
       eyeGroup.add(eyeLiner);
 
       // Textured amber iris (almond). The geometry itself is turned so the
       // sphere's pole faces forward (+Z) and the iris map reads as a disc;
       // the mesh scale then flattens it front-to-back, not top-to-bottom.
-      const iris = ball(0.024, this.matEye, 1.16, 1.06, 0.52, 24, 18);
+      const iris = ball(0.021, this.matEye, 1.16, 1.06, 0.52, 24, 18);
       iris.geometry.rotateX(Math.PI / 2);
       iris.position.set(0, 0, 0.004);
       eyeGroup.add(iris);
 
       // Large rounded dark pupil
-      const pupil = ball(0.0135, this.matPupil, 0.88, 1.05, 0.65, 12, 12);
+      const pupil = ball(0.0118, this.matPupil, 0.88, 1.08, 0.65, 12, 12);
       pupil.position.set(0, 0, 0.0085);
       eyeGroup.add(pupil);
 
       // Bright anime highlight catchlights
-      const glint = ball(0.0055, this.matGlint, 1, 1, 0.4, 8, 8);
+      const glint = ball(0.0048, this.matGlint, 1, 1, 0.4, 8, 8);
       glint.position.set(side * -0.006, 0.007, 0.0125);
       eyeGroup.add(glint);
 
-      const glintSmall = ball(0.0028, this.matGlint, 1, 1, 0.4, 6, 6);
+      const glintSmall = ball(0.0024, this.matGlint, 1, 1, 0.4, 6, 6);
       glintSmall.position.set(side * 0.005, -0.006, 0.0125);
       eyeGroup.add(glintSmall);
 
@@ -624,14 +626,14 @@ export class Cat {
     this.ears = [];
     for (const side of [-1, 1]) {
       const ear = new THREE.Group();
-      ear.position.set(side * 0.062, 0.095, 0.008);
+      ear.position.set(side * 0.058, 0.096, 0.004);
 
-      const outer = new THREE.Mesh(new THREE.ConeGeometry(0.042, 0.088, 10), this.matFur);
+      const outer = new THREE.Mesh(new THREE.ConeGeometry(0.039, 0.096, 10), this.matFur);
       outer.scale.set(1, 1, 0.6);
       outer.castShadow = true;
       outer.userData.furKind = FUR_KIND.ear;
 
-      const inner = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.06, 10), this.matPink);
+      const inner = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.066, 10), this.matPink);
       inner.scale.set(1, 1, 0.45);
       inner.position.set(0, -0.006, 0.012);
 
@@ -667,35 +669,52 @@ export class Cat {
   buildLegs() {
     this.legs = [];
     const defs = [
-      { parent: this.chest, x: -0.075, z: 0.05, front: true },
-      { parent: this.chest, x: 0.075, z: 0.05, front: true },
-      { parent: this.hips, x: -0.075, z: -0.04, front: false },
-      { parent: this.hips, x: 0.075, z: -0.04, front: false }
+      { parent: this.chest, x: -0.074, y: -0.065, z: 0.055, front: true },
+      { parent: this.chest, x: 0.074, y: -0.065, z: 0.055, front: true },
+      { parent: this.hips, x: -0.077, y: -0.06, z: 0.01, front: false },
+      { parent: this.hips, x: 0.077, y: -0.06, z: 0.01, front: false }
     ];
     for (const d of defs) {
       const root = new THREE.Group();
-      root.position.set(d.x, -0.05, d.z);
+      root.position.set(d.x, d.y, d.z);
       d.parent.add(root);
 
-      const upperLen = d.front ? 0.13 : 0.15;
-      const upper = capsule(d.front ? 0.037 : 0.05, upperLen, this.matFur, 0.88, 1, 0.88, FUR_KIND.leg);
-      upper.position.y = -upperLen / 2 - 0.02;
+      const upperLen = d.front ? 0.12 : 0.13;
+      const upper = capsule(d.front ? 0.032 : 0.042, upperLen, this.matFur, 0.88, 1, 0.88, FUR_KIND.leg);
+      upper.rotation.x = d.front ? 0.16 : -0.52;
+      upper.position.set(0, d.front ? -0.067 : -0.064, d.front ? -0.012 : 0.037);
       addOutline(upper, 1.06);
       root.add(upper);
 
       const knee = new THREE.Group();
-      knee.position.y = -upperLen - 0.04;
+      knee.position.set(0, d.front ? -0.145 : -0.135, d.front ? -0.023 : 0.078);
       root.add(knee);
 
-      const lowerLen = 0.13;
-      const lower = capsule(0.027, lowerLen, this.matFur, 0.88, 1, 0.88, FUR_KIND.leg);
-      lower.position.y = -lowerLen / 2 - 0.015;
+      const lowerLen = d.front ? 0.14 : 0.105;
+      const lower = capsule(d.front ? 0.024 : 0.029, lowerLen, this.matFur, 0.88, 1, 0.88, FUR_KIND.leg);
+      lower.rotation.x = d.front ? -0.1 : 0.65;
+      lower.position.set(0, d.front ? -0.082 : -0.06, d.front ? 0.008 : -0.04);
       addOutline(lower, 1.07);
       knee.add(lower);
 
+      // Cats walk on their toes. The long rear hock creates the familiar
+      // zig-zag hind leg instead of a second straight column.
+      let pawParent = knee;
+      if (!d.front) {
+        const ankle = new THREE.Group();
+        ankle.position.set(0, -0.12, -0.078);
+        knee.add(ankle);
+        const hock = capsule(0.021, 0.065, this.matFur, 0.9, 1, 0.9, FUR_KIND.leg);
+        hock.rotation.x = -0.24;
+        hock.position.set(0, -0.048, 0.012);
+        addOutline(hock, 1.08);
+        ankle.add(hock);
+        pawParent = ankle;
+      }
+
       // Cream paws / socks
       const paw = new THREE.Group();
-      const pawBall = ball(0.034, this.matBelly, 1, 0.65, 1.35, 18, 12);
+      const pawBall = ball(0.032, this.matBelly, d.front ? 0.96 : 1.02, 0.62, d.front ? 1.38 : 1.55, 18, 12);
       paw.add(pawBall);
 
       // Pink paw beans / pads
@@ -708,8 +727,8 @@ export class Cat {
         paw.add(toe);
       }
 
-      paw.position.set(0, -lowerLen - 0.058, 0.014);
-      knee.add(paw);
+      paw.position.set(0, d.front ? -0.20 : -0.075, d.front ? 0.025 : 0.038);
+      pawParent.add(paw);
 
       this.legs.push({ root, knee, front: d.front, upperLen, lowerLen, paw });
     }
@@ -718,16 +737,16 @@ export class Cat {
   buildTail() {
     this.tailSegs = [];
     let parent = this.hips;
-    let segLen = 0.09;
+    let segLen = 0.075;
     const root = new THREE.Group();
-    root.position.set(0, 0.05, -0.14);
+    root.position.set(0, 0.03, -0.15);
     parent.add(root);
     let cur = root;
-    const segCount = 5;
+    const segCount = 7;
     for (let i = 0; i < segCount; i++) {
       const seg = new THREE.Group();
       if (i > 0) seg.position.z = -segLen * 0.82;
-      const r = 0.034 - i * 0.003;
+      const r = 0.03 - i * 0.0027;
       const mesh = capsule(r, segLen, this.matFur, 1, 1, 1, FUR_KIND.tail);
       mesh.userData.tailIndex = i;
       mesh.userData.tailSegs = segCount;
@@ -740,7 +759,7 @@ export class Cat {
       this.tailSegs.push(seg);
       cur = seg;
     }
-    root.rotation.x = 0.85;
+    root.rotation.x = 0.68;
     this.tailRoot = root;
   }
 
