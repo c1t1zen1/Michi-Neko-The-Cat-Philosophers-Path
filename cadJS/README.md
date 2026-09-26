@@ -120,6 +120,7 @@ Press `Ctrl+C` in the terminal running the server. Closing the browser does not 
 - **INFO** — about, repository rescan, and game reload.
 - **Discovered game elements** — quick access to catalogue entries.
 - **SCAN** — rescans repository source and assets.
+- **EXPORT TO GAME** — pushes the selected runtime-linked CAD object to the live game and publishes it to `cad-overrides.json`.
 - **GAME / TAB** or **CAD / TAB** — switches the central viewport.
 
 ### Left tool rail
@@ -385,9 +386,9 @@ Press **SCAN** to refresh the repository catalogue. The server excludes `.git`, 
 
 ### Source discovery
 
-For Three.js-related JavaScript/TypeScript source, cadJS detects exported classes, `build*`/`create*`/`make*`/`generate*`/`add*` methods, geometry/material constructors, and common scene object types.
+For Three.js-related JavaScript/TypeScript source, cadJS detects exported classes, `build*`/`create*`/`make*`/`generate*`/`add*` builders and methods, geometry/material constructors, and common scene object types.
 
-Most source entries are metadata only. Except for the known procedural `Cat`, cadJS does not execute arbitrary discovered builders.
+Click a class or builder entry to instantiate it in the CAD workspace. cadJS imports the module, constructs the symbol with zero arguments or stubbed parameters (`rng`, `scene`, `time`-style names get safe stand-ins), and wraps the result — Object3D, group-bearing wrapper, bare geometry, or material (previewed on a sphere). Imported objects carry their source module/symbol metadata and a captured asset baseline. Builders that are unexported class methods cannot be instantiated and report a clear error instead.
 
 ### File discovery
 
@@ -395,7 +396,7 @@ Most source entries are metadata only. Except for the known procedural `Cat`, ca
 - Environments: HDR, EXR
 - Images: PNG, JPEG, WebP, GIF, SVG
 
-Double-click a supported model to load it. Double-click an image to open it in another tab. Unsupported preview formats remain catalogue references.
+Click a supported model to load it. Click an image to open it in another tab. Unsupported preview formats remain catalogue references.
 
 ---
 
@@ -446,6 +447,18 @@ Double-click a visible object on the game canvas. cadJS raycasts the live scene 
 
 Use inspector fields for transforms, visibility, rendering, materials, lights, or cameras. Runtime edits affect only the embedded game instance and are captured as override records.
 
+### Round-trip editing (send to CAD / push to game)
+
+For durable edits, clone a runtime object into the CAD workspace instead of editing it in place:
+
+- In the **SCENE** tree with the **RUNTIME** source active, click an object's name. cadJS deep-clones the object (geometry included) into the workspace, preserves its world transform, links it back to the live source, switches to the CAD viewport, and frames it. (Double-click and the inspector's **EDIT IN CAD WORKSPACE** button also work.)
+- Edit freely — transforms, materials, geometry tools, textures. `cadGeoEdited` is flagged automatically when geometry is rebuilt or distorted so pushes serialize the new geometry, and CAD-authored texture maps are serialized into the override record.
+- With the clone (or any descendant) selected, the inspector **RUNTIME LINK** section offers:
+  - **APPLY LIVE ONLY** — applies the clone's state back to the live game object (and matching children by index) without persisting.
+  - **PUSH TO GAME** — same apply, then POSTs the record to `/api/overrides`, which merges it into `cad-overrides.json` at the repo root keyed by object name.
+- The top bar **EXPORT TO GAME** button is a shortcut for **PUSH TO GAME** on the current selection — it also attempts a browser project autosave first (a full `localStorage` quota does not block the publish).
+- The game loads `cad-overrides.json` at boot (`src/cad_overrides.js`) and applies each record by name — position/rotation/scale, visibility, render flags, scalar material fields, serialized geometry, and CAD-authored texture maps (data-URL textures are cached and cloned per material). No game source file is ever rewritten, and missing names or files are skipped silently.
+
 ### Export/reapply overrides
 
 Choose **FILE → Export game overrides**. Files use a name like:
@@ -462,7 +475,7 @@ Open an overrides JSON in cadJS to reapply resolvable records to the current gam
 - Runtime paths use hierarchy indices and can break when the game hierarchy changes.
 - Procedural updates may overwrite edited values every frame.
 - Animated character parts, wings, fish tails, particles, and moving systems are especially likely to reset.
-- Overrides are not automatically loaded by the production game.
+- Exported `.overrides.json` session files are not loaded automatically — only pushed `cad-overrides.json` records are (loaded at boot by `src/cad_overrides.js`).
 
 Use runtime editing for visual experimentation and comparison, not as the only production archive.
 
@@ -505,6 +518,7 @@ Choose **FILE → Open project / package…** and select `.cadjs.json`. The curr
 | `.cadjs.json` | Complete editable workspace | Yes | No |
 | `.cadasset.json` | Incremental compatible asset revision | Yes | No |
 | `.overrides.json` | Temporary live-scene states | Yes | No |
+| `cad-overrides.json` | Pushed design overrides (repo root, via Push to game) | Yes | Yes — applied by name at boot |
 | `.glb` | Portable 3D asset | Re-importable; not full CAD history | No |
 | `.obj` | Geometry interchange | Re-importable; limited fidelity | No |
 | `.png` | Viewport image | No | No |
@@ -748,12 +762,10 @@ Shortcuts are ignored while an input, select, or textarea has focus.
 ### Runtime environment adjustment
 
 1. Switch to Game and scan runtime.
-2. Select a mostly static object.
-3. Make a small adjustment.
-4. Play/view the result.
-5. Export overrides.
-6. Reload and reapply to test path resolution.
-7. Translate the approved result into stable production code/data later.
+2. Click a mostly static object's name in the **SCENE** tree (runtime source) to import a linked clone into CAD.
+3. Make the adjustment; use `Tab` to compare against the live game.
+4. Click **EXPORT TO GAME** to apply live and publish to `cad-overrides.json`.
+5. Reload the game preview (or reopen it) and confirm the override is applied at boot — the console prints `[cadJS] N published overrides applied`.
 
 ### Imported model
 

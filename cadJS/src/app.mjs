@@ -447,6 +447,7 @@ class CadApp {
     $('#refresh-catalog').addEventListener('click', () => this.loadCatalog(true));
     $('#mode-toggle').addEventListener('click', () => this.toggleView());
     $('#scan-runtime').addEventListener('click', () => this.scanRuntime());
+    $('#export-game').addEventListener('click', () => this.pushToGame(true));
     $('#runtime-source').addEventListener('click', () => this.toggleTreeSource());
     $('#tree-filter').addEventListener('input', () => this.rebuildTree());
     $('#asset-filter').addEventListener('input', () => this.renderCatalog());
@@ -501,17 +502,99 @@ class CadApp {
       if (filter && !`${entry.label} ${entry.file} ${entry.category}`.toLowerCase().includes(filter)) continue;
       const row = document.createElement('div'); row.className = 'asset-row'; row.dataset.id = entry.id;
       row.innerHTML = `<span class="asset-kind">${entry.kind === 'builder' ? 'ƒ' : entry.kind === 'class' ? 'C' : entry.kind === 'image' ? '▧' : '◆'}</span><b>${escapeHtml(entry.label)}</b><small>${escapeHtml(entry.category)} · ${escapeHtml(entry.file)}</small>`;
-      row.addEventListener('dblclick', () => this.openCatalogEntry(entry.id)); host.append(row);
+      row.addEventListener('click', () => this.openCatalogEntry(entry.id)); host.append(row);
     }
   }
 
   openCatalogEntry(id) {
     const entry = this.catalog?.entries?.find((item) => item.id === id); if (!entry) return;
-    if (entry.symbol === 'Cat') return this.select(this.catAdapter?.group || null);
+    if (entry.symbol === 'Cat' && this.catAdapter?.group) return this.select(this.catAdapter.group);
     if (entry.kind === 'model') return this.loadModelUrl(`../${entry.file}`);
     if (entry.kind === 'image') return window.open(`../${entry.file}`, '_blank', 'noopener');
+    if (entry.kind === 'class' || entry.kind === 'builder') return this.importCatalogSymbol(entry);
     this.status(`${entry.label.toUpperCase()} DISCOVERED IN ${entry.file}`);
     this.setPanel('assets');
+  }
+
+  async importCatalogSymbol(entry) {
+    try {
+      this.status(`IMPORTING ${entry.label.toUpperCase()} FROM ${entry.file}…`);
+      const module = await import(`/${entry.file}`);
+      const symbol = module[entry.symbol];
+      if (typeof symbol !== 'function') throw new Error(`${entry.symbol} is not an exported class or builder in ${entry.file}`);
+      const object = this.instantiateSymbol(symbol);
+      if (!object) throw new Error(`${entry.symbol} produced no scene object to edit`);
+      object.name ||= entry.label;
+      object.userData = { ...object.userData, sourceModule: entry.file, cadSourceModule: entry.file, cadSourceSymbol: entry.symbol, cadLabel: entry.label };
+      this.root.add(object);
+      this.history.push(`Import ${entry.label}`, () => { this.root.remove(object); this.select(null); }, () => { this.root.add(object); this.select(object); });
+      try { this.registerAsset(object, { assetId: normalizeAssetId(`catalog.${entry.label}`) }); } catch { /* baseline capture is best-effort */ }
+      if (this.viewMode !== 'editor') this.toggleView('editor');
+      this.sourceMode = 'editor'; $('#runtime-source').textContent = 'EDITOR';
+      this.select(object); this.focusObject(object); this.rebuildTree();
+      this.status(`${entry.label.toUpperCase()} IMPORTED — EDIT, THEN EXPORT TO GAME`);
+    } catch (error) { this.status(`IMPORT ${entry.label.toUpperCase()}: ${error.message}`, true); }
+  }
+
+  instantiateSymbol(symbol) {
+    const params = this.symbolParams(symbol);
+    const stubs = params.map((name) => this.stubForParam(name));
+    const isClass = /^\s*class\s/.test(Function.prototype.toString.call(symbol));
+    const attempts = isClass ? [() => new symbol(), () => new symbol(...stubs)] : [() => symbol(), () => symbol(...stubs)];
+    let lastError = null;
+    for (const attempt of attempts) {
+      try { const object = this.asSceneObject(attempt()); if (object) return object; }
+      catch (error) { lastError = error; }
+    }
+    if (lastError) console.warn(`[cadJS] symbol instantiation: ${lastError.message}`);
+    return null;
+  }
+
+  symbolParams(fn) {
+    const source = Function.prototype.toString.call(fn);
+    const list = /^\s*class\s/.test(source)
+      ? (source.match(/constructor\s*\(([^)]*)\)/) || [])[1] || ''
+      : (source.match(/^[^(]*\(([^)]*)\)/) || [])[1] || '';
+    return String(list).split(',').map((part) => part.trim())
+      .map((part) => part.startsWith('{') || part.startsWith('[') || part.startsWith('...') ? '' : part.split(/[=\s]/)[0])
+      .map((name) => (/^[\w$]+$/.test(name) ? name : ''));
+  }
+
+  stubForParam(name) {
+    if (/^(rng|rand|random|noise)$/i.test(name)) return Math.random;
+    if (/^(scene|root|parent|container|world|city|environment)$/i.test(name)) return new THREE.Group();
+    if (/^(time|t|dt|delta|elapsed|clock)$/i.test(name)) return 0;
+    if (/player/i.test(name)) return { position: new THREE.Vector3(), mesh: null };
+    if (/camera/i.test(name)) return null;
+    return undefined;
+  }
+
+  asSceneObject(result) {
+    if (!result) return null;
+    if (result.isObject3D) return result;
+    if (result.group?.isObject3D) return result.group;
+    if (result.mesh?.isObject3D) return result.mesh;
+    if (result.object?.isObject3D) return result.object;
+    if (result.isMaterial) {
+      const preview = new THREE.Mesh(new THREE.SphereGeometry(.6, 32, 20), result);
+      preview.name = `${result.name || result.type || 'Material'} Preview`;
+      return preview;
+    }
+    if (result.isBufferGeometry) return new THREE.Mesh(result, new THREE.MeshStandardMaterial({ color: 0x8fae6d, roughness: .9 }));
+    if (typeof result === 'object') {
+      const wrapped = new THREE.Group();
+      let added = 0;
+      for (const [key, value] of Object.entries(result)) {
+        if (value?.isObject3D) { wrapped.add(value); added++; }
+        else if (value?.isBufferGeometry) {
+          const mesh = new THREE.Mesh(value, new THREE.MeshStandardMaterial({ color: 0x8fae6d, roughness: .9 }));
+          mesh.name = splitLabel(key); mesh.castShadow = true; mesh.receiveShadow = true;
+          wrapped.add(mesh); added++;
+        }
+      }
+      if (added) return wrapped;
+    }
+    return null;
   }
 
   get runtimeGame() { try { return this.frame.contentWindow?.game || null; } catch { return null; } }
@@ -577,7 +660,8 @@ class CadApp {
       const row = document.createElement('div'); row.className = `tree-row${object === this.selected ? ' selected' : ''}`; row.style.paddingLeft = `${5 + depth * 11}px`;
       const key = object.uuid || pathForObject(object); const open = this.expanded.has(key) || depth < 1 || !!filter;
       row.innerHTML = `<span class="twisty">${children.length ? (open ? '▾' : '▸') : '·'}</span><span class="type">${objectIcon(object)}</span><span class="label">${escapeHtml(objectLabel(object))}</span><button class="vis">${object.visible ? '◉' : '○'}</button>`;
-      row.addEventListener('click', (event) => { if (event.target.closest('.vis')) return; this.select(object); });
+      row.addEventListener('click', (event) => { if (event.target.closest('.vis')) return; if (this.sourceMode === 'runtime' && !this.isEditorObject(object)) this.sendToCad(object); else this.select(object); });
+      row.addEventListener('dblclick', (event) => { if (event.target.closest('.vis, .twisty')) return; if (this.sourceMode === 'runtime' && !this.isEditorObject(object)) this.sendToCad(object); });
       $('.twisty', row).addEventListener('click', (event) => { event.stopPropagation(); open ? this.expanded.delete(key) : this.expanded.add(key); this.rebuildTree(); });
       $('.vis', row).addEventListener('click', (event) => { event.stopPropagation(); this.changeProperty(object, 'Visibility', () => { object.visible = !object.visible; }, () => { object.visible = !object.visible; }); this.rebuildTree(); });
       host.append(row);
@@ -665,6 +749,7 @@ class CadApp {
       ${object.isCamera ? this.cameraSection(object) : ''}
       ${object.isInstancedMesh ? this.instanceSection(object) : ''}
       ${this.assetPackageSection(object)}
+      ${this.runtimeLinkSection(object)}
       ${this.section('METADATA', `<div class="property-row"><span>Path</span><input value="${escapeHtml(pathForObject(object))}" disabled></div><div class="property-row"><span>Children</span><input value="${object.children?.length || 0}" disabled></div>`)}
     `;
     this.bindInspector(object, material);
@@ -716,6 +801,30 @@ class CadApp {
   lightSection(object) { return this.section('LIGHT', `${object.color ? this.colorRow('Color', 'light-color', object.color) : ''}${this.numberRow('Intensity', 'light-intensity', object.intensity, .05, 0)}${'distance' in object ? this.numberRow('Distance', 'light-distance', object.distance, .1, 0) : ''}${'decay' in object ? this.numberRow('Decay', 'light-decay', object.decay, .1, 0) : ''}${this.checkRow('Shadow', 'light-shadow', object.castShadow)}`); }
   cameraSection(object) { return this.section('CAMERA', `${'fov' in object ? this.numberRow('Field of view', 'camera-fov', object.fov, 1, 1) : ''}${this.numberRow('Near', 'camera-near', object.near, .01, .001)}${this.numberRow('Far', 'camera-far', object.far, 1, .1)}${this.numberRow('Zoom', 'camera-zoom', object.zoom, .01, .01)}`); }
   instanceSection(object) { return this.section('INSTANCES', `<div class="property-row"><span>Count</span><input value="${object.count}" disabled></div>${this.numberRow('Instance index', 'instance-index', 0, 1, 0)}<button class="wide-button" data-inspector-action="extract-instance">EXTRACT INSTANCE AS MESH</button>`); }
+
+  runtimeLinkSection(object) {
+    if (this.isEditorObject(object)) {
+      const link = this.runtimeLinkFor(object);
+      if (!link) return '';
+      return this.section('RUNTIME LINK', `
+        <div class="property-row"><span>Target</span><input value="${escapeHtml(link.source.name || link.source.path)}" disabled></div>
+        <div class="button-grid"><button data-inspector-action="push-live">APPLY LIVE ONLY</button><button data-inspector-action="push-game">PUSH TO GAME</button></div>
+        <div class="property-row"><span>Persist</span><input value="Push writes cad-overrides.json — loaded by every game boot" disabled></div>
+      `);
+    }
+    if (object.userData?.helper || object.isScene) return '';
+    return this.section('RUNTIME OBJECT', `
+      <button class="wide-button" data-inspector-action="send-to-cad">EDIT IN CAD WORKSPACE</button>
+      <div class="property-row"><span>Tip</span><input value="Click a name in the SCENE tree to load it into CAD" disabled></div>
+    `);
+  }
+
+  /** Nearest ancestor (or self) that was cloned from a runtime object. */
+  runtimeLinkFor(object) {
+    let node = object;
+    while (node) { if (node.userData?.cadRuntimeSource) return { root: node, source: node.userData.cadRuntimeSource }; node = node.parent; }
+    return null;
+  }
 
   bindInspector(object, material) {
     const bind = (id, event, read, apply) => { const input = $(`#${id}`); if (!input) return; input.addEventListener(event, () => { const before = read(); const value = input.type === 'checkbox' ? input.checked : input.value; apply(value); const after = read(); this.history.push(splitLabel(id), () => { apply(before); this.refreshInspector(); }, () => { apply(after); this.refreshInspector(); }); this.recordRuntimeOverride(object); this.rebuildTree(); }); };
@@ -778,6 +887,7 @@ class CadApp {
       };
       next = constructors[type]?.(); if (!next) return this.status(`${type} parameter rebuilding is not available`, true);
       object.geometry = next;
+      object.userData.cadGeoEdited = true;
       if (!this.originalGeometries.has(object)) this.originalGeometries.set(object, before.clone());
       this.history.push('Geometry parameters', () => { object.geometry = before; this.refreshInspector(); }, () => { object.geometry = next; this.refreshInspector(); });
       this.status(`${type.toUpperCase()} REBUILT`);
@@ -788,7 +898,7 @@ class CadApp {
     const object = this.selected; if (!object?.geometry?.attributes?.position) return;
     if (mode === 'reset') {
       const original = this.originalGeometries.get(object); if (!original) return this.status('NO ORIGINAL GEOMETRY SNAPSHOT', true);
-      const before = object.geometry; const next = original.clone(); object.geometry = next;
+      const before = object.geometry; const next = original.clone(); object.geometry = next; delete object.userData.cadGeoEdited;
       this.history.push('Reset geometry', () => object.geometry = before, () => object.geometry = next); this.refreshInspector(); return;
     }
     const before = object.geometry;
@@ -813,6 +923,7 @@ class CadApp {
       position.setXYZ(i, v.x, v.y, v.z);
     }
     position.needsUpdate = true; next.computeVertexNormals(); next.computeBoundingBox(); next.computeBoundingSphere(); object.geometry = next;
+    object.userData.cadGeoEdited = true;
     this.history.push(splitLabel(mode), () => { object.geometry = before; this.refreshInspector(); }, () => { object.geometry = next; this.refreshInspector(); }); this.refreshInspector();
   }
 
@@ -942,6 +1053,9 @@ class CadApp {
       const materials = Array.isArray(this.selected.material) ? this.selected.material : [this.selected.material]; materials.forEach((material) => { if (material.map) { material.map.repeat.set(1,1); material.map.offset.set(0,0); material.map.center.set(.5,.5); material.map.rotation = 0; material.map.needsUpdate = true; } }); this.refreshInspector();
     }
     if (action === 'extract-instance') this.extractInstance();
+    if (action === 'send-to-cad') this.sendToCad(this.selected);
+    if (action === 'push-live') this.pushToGame(false);
+    if (action === 'push-game') this.pushToGame(true);
     if (action === 'export-asset-package') this.exportAssetPackage();
     if (action === 'rebase-asset') this.rebaseAsset();
     if (action === 'register-asset') this.registerSelectedAsset();
@@ -1023,7 +1137,7 @@ class CadApp {
     const menus = {
       file: [['New project','new'],['Open project / package…','open'],['Save browser project','save'],['Export project JSON','export-project'],['Export versioned asset package','export-asset-package'],['Export selected GLB','export-glb'],['Export selected OBJ','export-obj'],['Export game overrides','export-overrides'],['Viewport PNG','screenshot']],
       edit: [['Undo','undo','Ctrl+Z'],['Redo','redo','Ctrl+Y'],['Duplicate','duplicate','Ctrl+D'],['Remove','delete','Delete'],['Reset transform','reset-transform']],
-      object: [['Add box','add-box'],['Add sphere','add-sphere'],['Add cylinder','add-cylinder'],['Add directional light','add-light'],['Isolate selection','isolate','I'],['Frame selection','focus','F']],
+      object: [['Add box','add-box'],['Add sphere','add-sphere'],['Add cylinder','add-cylinder'],['Add directional light','add-light'],['Isolate selection','isolate','I'],['Frame selection','focus','F'],['Send runtime object to CAD','send-to-cad'],['Push CAD edits to game','push-game']],
       view: [['CAD / game environment','toggle-view','Tab'],['Perspective','view-persp','1'],['Front','view-front','2'],['Right','view-side','3'],['Top','view-top','4'],['Grid','grid','G'],['Wireframe','wireframe','X']],
       agent: [['Open AI design agent','agent-open','A'],['Use local llama-server','agent-local'],['Use MCP/custom gateway','agent-mcp'],['Use OpenAI','agent-openai'],['Use OpenRouter','agent-openrouter'],['Use Anthropic','agent-anthropic']],
       info: [['About cadJS','about'],['Rescan repository','rescan'],['Reload game preview','reload-game']]
@@ -1037,6 +1151,7 @@ class CadApp {
     const map = { undo: () => this.history.undo(), redo: () => this.history.redo(), duplicate: () => this.duplicateSelected(), delete: () => this.deleteSelected(), 'reset-transform': () => this.action('reset-transform'), isolate: () => this.toggleIsolation(), focus: () => this.focusObject(this.selected),
       'add-box': () => this.addObject('BoxGeometry'), 'add-sphere': () => this.addObject('SphereGeometry'), 'add-cylinder': () => this.addObject('CylinderGeometry'), 'add-light': () => this.addObject('DirectionalLight'),
       'toggle-view': () => this.toggleView(), 'view-persp': () => this.setCameraView('perspective'), 'view-front': () => this.setCameraView('front'), 'view-side': () => this.setCameraView('side'), 'view-top': () => this.setCameraView('top'),
+      'send-to-cad': () => this.sendToCad(this.selected), 'push-live': () => this.pushToGame(false), 'push-game': () => this.pushToGame(true),
       grid: () => $('#grid-toggle').click(), wireframe: () => this.toggleWireframe(), save: () => this.saveProject(), open: () => $('#file-input').click(), 'export-project': () => this.exportProject(), 'export-asset-package': () => this.exportAssetPackage(), 'export-overrides': () => this.exportOverrides(),
       'export-glb': () => this.exportGlb(), 'export-obj': () => this.exportObj(), screenshot: () => this.screenshot(), rescan: () => this.loadCatalog(true), 'reload-game': () => { this.frame.contentWindow.location.reload(); },
       'agent-open': () => this.agentPanel.open(), 'agent-local': () => this.setAgentProvider('local'), 'agent-mcp': () => this.setAgentProvider('mcp'), 'agent-openai': () => this.setAgentProvider('openai'), 'agent-openrouter': () => this.setAgentProvider('openrouter'), 'agent-anthropic': () => this.setAgentProvider('anthropic'),
@@ -1175,6 +1290,124 @@ class CadApp {
     this.status(`${applied} RUNTIME OVERRIDES APPLIED`); this.rebuildTree();
   }
 
+  /** Clone a live game object into the CAD workspace for round-trip editing. */
+  async sendToCad(object = this.selected) {
+    if (!object || this.isEditorObject(object)) return this.status('SELECT A RUNTIME OBJECT FIRST (CLICK ITS TREE ROW)', true);
+    const scene = this.runtimeGame?.scene;
+    if (!scene || object === scene || object.userData?.helper) return this.status('THAT OBJECT CANNOT BE EDITED IN CAD', true);
+    try {
+      this.status(`CLONING ${objectLabel(object).toUpperCase()} INTO CAD…`);
+      const clone = await new THREE.ObjectLoader().parseAsync(object.toJSON());
+      object.updateWorldMatrix(true, false);
+      clone.matrix.copy(object.matrixWorld);
+      clone.matrix.decompose(clone.position, clone.quaternion, clone.scale);
+      clone.userData = { ...clone.userData, cadRuntimeSource: { name: object.name || '', path: pathForObject(object), type: object.type } };
+      this.root.add(clone);
+      this.history.push('Send to CAD', () => { this.root.remove(clone); this.select(null); }, () => { this.root.add(clone); this.select(clone); });
+      if (this.viewMode !== 'editor') this.toggleView('editor');
+      this.sourceMode = 'editor'; $('#runtime-source').textContent = 'EDITOR';
+      this.select(clone); this.focusObject(clone);
+      this.status(`${objectLabel(clone).toUpperCase()} IN CAD — EDIT, THEN PUSH TO GAME`);
+    } catch (error) { this.status(`SEND TO CAD: ${error.message}`, true); }
+  }
+
+  /** Locate the live object a CAD clone was made from — name first, path fallback. */
+  findRuntimeTarget(source) {
+    const scene = this.runtimeGame?.scene; if (!scene || !source) return null;
+    const byPath = source.path ? findByPath(scene, source.path) : null;
+    if (byPath && (!source.name || byPath.name === source.name)) return byPath;
+    if (source.name) {
+      let found = null;
+      scene.traverse((object) => { if (!found && object.name === source.name) found = object; });
+      if (found) return found;
+    }
+    return byPath;
+  }
+
+  /**
+   * Push a runtime-linked CAD clone back to the live game, and optionally
+   * publish it to cad-overrides.json via /api/overrides so every boot applies it.
+   */
+  async pushToGame(publish) {
+    const link = this.runtimeLinkFor(this.selected);
+    if (!link) {
+      const label = this.selected && this.isEditorObject(this.selected) ? objectLabel(this.selected).toUpperCase() : '';
+      return this.status(label ? `${label} IS NOT LINKED TO THE GAME — CLICK ITS NAME IN THE RUNTIME SCENE TREE TO IMPORT A LINKED COPY FIRST` : 'SELECT A CAD OBJECT CLONED FROM THE GAME FIRST', true);
+    }
+    const { root, source } = link;
+    const target = this.findRuntimeTarget(source);
+    if (!target) return this.status(`RUNTIME TARGET NOT FOUND: ${source.name || source.path}`, true);
+    const name = source.name || target.name;
+    if (!name) return this.status('TARGET HAS NO NAME — NAME IT IN THE GAME SOURCE BEFORE PUSHING', true);
+
+    // Apply the clone subtree to the live object, recording each node state.
+    const nodes = [];
+    const textureTasks = [];
+    let droppedParts = 0;
+    const walk = (src, dst, rel) => {
+      if (!dst) return;
+      applySnapshot(dst, snapshotObject(src));
+      if (!rel) {
+        // The clone root carries a world transform; convert to dst parent space.
+        src.updateWorldMatrix(true, false);
+        const local = new THREE.Matrix4();
+        if (dst.parent) { dst.parent.updateWorldMatrix(true, false); local.copy(dst.parent.matrixWorld).invert(); }
+        local.multiply(src.matrixWorld);
+        local.decompose(dst.position, dst.quaternion, dst.scale);
+      }
+      const geometry = src.userData?.cadGeoEdited && src.geometry && dst.geometry ? serializeGeometry(src.geometry) : null;
+      if (geometry) dst.geometry = parseGeometry(geometry);
+      const node = { rel, state: snapshotObject(dst), ...(geometry ? { geometry } : {}) };
+      const map = (Array.isArray(src.material) ? src.material[0] : src.material)?.map;
+      const texture = map ? serializeTexture(map) : null;
+      if (texture?.dataUrl && node.state.material) {
+        node.state.material.map = texture;
+        if (dst.material) textureTasks.push({ dst, texture });
+      }
+      nodes.push(node);
+      const children = (src.children || []).filter((child) => !child.userData?.cadInternal && !child.userData?.helper);
+      const used = new Set();
+      children.forEach((child, index) => {
+        // Name-match first so added/removed CAD children don't shift siblings.
+        let dstChild = child.name ? dst.children.find((c) => c.name === child.name && !used.has(c)) : null;
+        if (!dstChild) dstChild = dst.children[index] && !used.has(dst.children[index]) ? dst.children[index] : null;
+        if (dstChild) used.add(dstChild); else droppedParts++;
+        const rel2 = dstChild ? String(dst.children.indexOf(dstChild)) : String(index);
+        walk(child, dstChild, rel === '' ? rel2 : `${rel}.${rel2}`);
+      });
+    };
+    walk(root, target, '');
+    for (const task of textureTasks) {
+      try {
+        const texture = await this.textureFromDataUrl(task.texture.dataUrl, task.texture.name || 'CAD texture');
+        texture.wrapS = task.texture.wrapS ?? THREE.RepeatWrapping; texture.wrapT = task.texture.wrapT ?? THREE.RepeatWrapping;
+        if (task.texture.repeat) texture.repeat.fromArray(task.texture.repeat);
+        if (task.texture.offset) texture.offset.fromArray(task.texture.offset);
+        texture.center.set(.5, .5); texture.rotation = task.texture.rotation || 0;
+        const materials = Array.isArray(task.dst.material) ? task.dst.material : [task.dst.material];
+        for (const material of materials.filter(Boolean)) { material.map = texture; material.needsUpdate = true; }
+      } catch (error) { console.warn(`[cadJS] texture push: ${error.message}`); }
+    }
+
+    this.runtimeOverrides.set(fingerprintDescriptor({ source:'game', path:pathForObject(target), type:target.type, name:target.name }), { path:pathForObject(target), state:snapshotObject(target) });
+    this.rebuildTree();
+
+    const partNote = droppedParts ? ` (${droppedParts} NEW PART${droppedParts === 1 ? '' : 'S'} NOT PUSHED — ADDING PARTS IS NOT SUPPORTED YET)` : '';
+    if (!publish) return this.status(`${name.toUpperCase()} UPDATED LIVE — NOT PERSISTED${partNote}`);
+    try {
+      const response = await fetch('/api/overrides', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ overrides: [{ name, type: source.type, nodes }] })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+      try { this.saveProject(); } catch (error) { console.warn(`[cadJS] project autosave skipped: ${error.message}`); }
+      this.status(`PUSHED TO GAME: ${name.toUpperCase()} → cad-overrides.json (${result.total} record${result.total === 1 ? '' : 's'})${partNote}`);
+    } catch (error) {
+      this.status(`LIVE UPDATE OK — SAVE FAILED: ${error.message} (start cadJS with npm start)`, true);
+    }
+  }
+
   async loadModelUrl(url) {
     const ext = url.split('.').pop().split('?')[0].toLowerCase();
     try {
@@ -1203,4 +1436,4 @@ class CadApp {
   }
 }
 
-new CadApp();
+window.cadApp = new CadApp();

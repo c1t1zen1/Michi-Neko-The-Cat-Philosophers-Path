@@ -33,8 +33,8 @@ export function classifyFile(filePath) {
 export function extractSourceMetadata(source, filePath = '') {
   const text = String(source || '');
   const classes = [...text.matchAll(/export\s+class\s+([A-Za-z_$][\w$]*)/g)].map((match) => match[1]);
-  const builders = [...text.matchAll(/^\s+(build|create|make|generate|add)([A-Z][A-Za-z0-9_$]*)\s*\(/gm)]
-    .map((match) => `${match[1]}${match[2]}`);
+  const builders = [...new Set([...text.matchAll(/(?:^[ \t]*export\s+(?:async\s+)?function\s+|^[ \t]+)(build|create|make|generate|add)([A-Z][A-Za-z0-9_$]*)\s*\(/gm)]
+    .map((match) => `${match[1]}${match[2]}`))];
   const geometries = [...new Set([...text.matchAll(/new\s+THREE\.([A-Za-z0-9_$]+Geometry)\s*\(/g)].map((match) => match[1]))];
   const materials = [...new Set([...text.matchAll(/new\s+THREE\.([A-Za-z0-9_$]+Material)\s*\(/g)].map((match) => match[1]))];
   const objectTypes = [...new Set([...text.matchAll(/new\s+THREE\.(Mesh|Group|InstancedMesh|Sprite|Points|Line|PerspectiveCamera|OrthographicCamera|[A-Za-z]+Light)\s*\(/g)].map((match) => match[1]))];

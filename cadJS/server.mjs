@@ -1,5 +1,5 @@
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
-import { readdir } from 'node:fs/promises';
+import { readdir, writeFile } from 'node:fs/promises';
 import { createServer, request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { extname, join, normalize, relative, resolve, sep } from 'node:path';
@@ -66,6 +66,39 @@ function postJson(urlValue, headers, body, timeout = 180000) {
   });
 }
 
+const OVERRIDES_FILE = join(REPO_ROOT, 'cad-overrides.json');
+
+function readOverridesFile() {
+  try {
+    const doc = JSON.parse(readFileSync(OVERRIDES_FILE, 'utf8'));
+    if (doc?.format === 'michi-neko-cad-overrides' && Array.isArray(doc.overrides)) return doc;
+  } catch { /* missing or unreadable file — start fresh */ }
+  return { format: 'michi-neko-cad-overrides', version: 1, updated: null, overrides: [] };
+}
+
+// Merge published design records (keyed by object name) into
+// cad-overrides.json at the repo root. This file — never game source — is
+// the permanent integration point; the game loads it at boot.
+async function overridesRequest(request, response) {
+  if (request.method === 'GET') return json(response, 200, readOverridesFile());
+  if (request.method !== 'POST') return json(response, 405, { error: 'Method not allowed' });
+  const payload = await readJsonBody(request);
+  const records = Array.isArray(payload.overrides) ? payload.overrides : [payload];
+  const doc = readOverridesFile();
+  const byName = new Map(doc.overrides.map((item) => [item.name, item]));
+  let written = 0;
+  for (const record of records) {
+    if (!record || typeof record.name !== 'string' || !record.name.trim()) continue;
+    record.updated = new Date().toISOString();
+    byName.set(record.name, record); written++;
+  }
+  if (!written) return json(response, 400, { error: 'No named override records supplied' });
+  doc.overrides = [...byName.values()];
+  doc.updated = new Date().toISOString();
+  await writeFile(OVERRIDES_FILE, JSON.stringify(doc, null, 2));
+  return json(response, 200, { ok: true, written, total: doc.overrides.length, file: 'cad-overrides.json' });
+}
+
 async function agentRequest(request, response) {
   const payload = await readJsonBody(request);
   const settings = normalizeAgentSettings(payload.settings);
@@ -98,6 +131,7 @@ const server = createServer(async (request, response) => {
     if (request.url === '/api/agent' && request.method === 'POST') return await agentRequest(request, response);
     if (request.url === '/api/agent/providers') return json(response, 200, { providers: ['local', 'mcp', 'openai', 'openrouter', 'anthropic'], protocol: 1 });
     if (request.url === '/api/agent/schema') return json(response, 200, agentProtocolSchema());
+    if (request.url === '/api/overrides') return await overridesRequest(request, response);
     if (request.url === '/api/catalog' || request.url === '/api/catalog/refresh') {
       const catalog = await scanCatalog();
       return json(response, 200, catalog);
