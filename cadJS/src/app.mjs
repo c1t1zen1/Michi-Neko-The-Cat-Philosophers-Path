@@ -256,7 +256,8 @@ class CadApp {
     this.originalGeometries = new WeakMap();
     this.textureLoader = new THREE.TextureLoader();
     this.shapeSettings = { amount: .65, axis: 'y', frequency: 3, seed: 1 };
-    this.history = new History(() => this.updateStatus());
+    this.workspaceDirty = false;
+    this.history = new History(() => { this.updateStatus(); this.workspaceDirty = true; });
     this.clock = new THREE.Clock();
     this.raycaster = new THREE.Raycaster();
     this.pointer = new THREE.Vector2();
@@ -448,6 +449,8 @@ class CadApp {
     $('#mode-toggle').addEventListener('click', () => this.toggleView());
     $('#scan-runtime').addEventListener('click', () => this.scanRuntime());
     $('#export-game').addEventListener('click', () => this.pushToGame(true));
+    $('#clear-workspace').addEventListener('click', () => this.clearWorkspaceRequest());
+    this.bindSwitchGuard();
     $('#runtime-source').addEventListener('click', () => this.toggleTreeSource());
     $('#tree-filter').addEventListener('input', () => this.rebuildTree());
     $('#asset-filter').addEventListener('input', () => this.renderCatalog());
@@ -518,6 +521,8 @@ class CadApp {
 
   async importCatalogSymbol(entry) {
     try {
+      if (!(await this.guardWorkspaceSwitch())) return;
+      this.clearWorkspace();
       this.status(`IMPORTING ${entry.label.toUpperCase()} FROM ${entry.file}…`);
       const module = await import(`/${entry.file}`);
       const symbol = module[entry.symbol];
@@ -1162,6 +1167,8 @@ class CadApp {
   onKey(event) {
     if (/INPUT|SELECT|TEXTAREA/.test(event.target.tagName)) return;
     const key = event.key.toLowerCase();
+    // The switch guard is modal: swallow every other shortcut while it is open.
+    if (!$('#switch-guard').classList.contains('hidden')) { if (key === 'escape') { event.preventDefault(); this.resolveSwitchGuard('cancel'); } return; }
     if (key === 'tab') { event.preventDefault(); return this.toggleView(); }
     if ((event.ctrlKey || event.metaKey) && key === 'z') { event.preventDefault(); return event.shiftKey ? this.history.redo() : this.history.undo(); }
     if ((event.ctrlKey || event.metaKey) && (key === 'y')) { event.preventDefault(); return this.history.redo(); }
@@ -1283,6 +1290,94 @@ class CadApp {
   }
 
   newProject() { if (!confirm('Clear the current CAD workspace?')) return; this.transform.detach(); while (this.root.children.length) this.root.remove(this.root.children[0]); this.runtimeOverrides.clear(); this.assetBaselines.clear(); this.lastAssetPackage = null; this.addStarterScene(); this.rebuildTree(); }
+
+  /**
+   * Empty the CAD workspace — camera, grid and helpers stay, the board goes
+   * blank so an import lands on a clean slate. Records one undo entry so the
+   * clear is reversible, and drops the unsaved-changes flag because the board
+   * no longer holds pending work.
+   */
+  clearWorkspace() {
+    const before = this.root.toJSON();
+    const beforeOverrides = new Map(this.runtimeOverrides);
+    const beforeBaselines = new Map(this.assetBaselines);
+    const beforePackage = this.lastAssetPackage;
+    this.transform.detach();
+    while (this.root.children.length) this.root.remove(this.root.children[0]);
+    this.runtimeOverrides = new Map();
+    this.assetBaselines = new Map();
+    this.lastAssetPackage = null;
+    this.select(null);
+    this.rebuildTree();
+    const after = this.root.toJSON();
+    this.history.push('Clear workspace',
+      () => { this.restoreWorkspace(before); this.runtimeOverrides = new Map(beforeOverrides); this.assetBaselines = new Map(beforeBaselines); this.lastAssetPackage = beforePackage; },
+      () => { this.restoreWorkspace(after); this.runtimeOverrides = new Map(); this.assetBaselines = new Map(); this.lastAssetPackage = null; });
+    this.workspaceDirty = false;
+  }
+
+  /** CLEAR button entry point — settle the unsaved work, then empty the board. */
+  async clearWorkspaceRequest() {
+    if (!await this.guardWorkspaceSwitch('The CAD workspace has unsaved changes. Clearing the board discards them.')) return this.status('CLEAR CANCELLED — WORKSPACE UNCHANGED');
+    this.clearWorkspace();
+    this.status('WORKSPACE CLEARED — UNDO BRINGS THE PREVIOUS BOARD BACK');
+  }
+
+  /**
+   * Resolve true when the caller may clear the board, false when the user
+   * cancelled. A workspace with no pending edits passes straight through.
+   */
+  async guardWorkspaceSwitch(message) {
+    if (!this.workspaceDirty) return true;
+    const choice = await this.promptSwitchGuard(message || 'The CAD workspace has unsaved changes. Switching clears the board.');
+    if (choice === 'cancel' || !choice) return false;
+    if (choice === 'save') await this.saveWorkspaceBeforeClear();
+    return true;
+  }
+
+  bindSwitchGuard() {
+    $$('#switch-guard [data-choice]').forEach((button) => button.addEventListener('click', () => this.resolveSwitchGuard(button.dataset.choice)));
+    $('#switch-guard').addEventListener('pointerdown', (event) => { if (event.target === event.currentTarget) this.resolveSwitchGuard('cancel'); });
+  }
+
+  /** Show the guard and hand back a promise settled by the user's choice. */
+  promptSwitchGuard(message) {
+    const guard = $('#switch-guard');
+    if (!guard.classList.contains('hidden')) this.resolveSwitchGuard('cancel');
+    $('#switch-guard-message').textContent = message;
+    this.switchGuardFocus = document.activeElement;
+    guard.classList.remove('hidden');
+    $('[data-choice="save"]', guard)?.focus();
+    return new Promise((resolve) => { this.switchGuardResolve = resolve; });
+  }
+
+  resolveSwitchGuard(choice) {
+    const guard = $('#switch-guard');
+    if (guard.classList.contains('hidden')) return;
+    guard.classList.add('hidden');
+    const resolve = this.switchGuardResolve;
+    this.switchGuardResolve = null;
+    this.switchGuardFocus?.focus?.();
+    this.switchGuardFocus = null;
+    resolve?.(choice);
+  }
+
+  /**
+   * SAVE & SWITCH: publish the items that were cloned from the game, otherwise
+   * download the project as a file. Mirrors the hint under the guard buttons.
+   */
+  async saveWorkspaceBeforeClear() {
+    const linked = this.root.children.filter((child) => this.runtimeLinkFor(child));
+    if (linked.length) {
+      for (const object of linked) { this.select(object); await this.pushToGame(true); }
+      this.saveProject();
+      const failed = $('#status-message').style.color === 'var(--danger)';
+      return this.status(`${linked.length} LINKED ITEM${linked.length === 1 ? '' : 'S'} PUSHED TO THE GAME — SAVED BEFORE CLEAR${failed ? ' (PUBLISH FAILED — SEE ABOVE)' : ''}`);
+    }
+    this.exportProject();
+    this.saveProject();
+    this.status('PROJECT DOWNLOADED BEFORE CLEAR — NOTHING WAS LINKED TO THE GAME');
+  }
 
   applyRuntimeOverrides() {
     const root = this.runtimeGame?.scene; if (!root) return this.status('GAME SCENE NOT READY', true);

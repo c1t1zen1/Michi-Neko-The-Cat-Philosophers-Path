@@ -26,6 +26,7 @@
       <div class="top-actions">
         <select id="catalog-select" aria-label="Discovered objects"><option>Scanning game…</option></select>
         <button id="refresh-catalog" title="Rescan source and assets">↻ SCAN</button>
+        <button id="clear-workspace" title="Clear all items from the CAD workspace (keeps the board) — create from scratch">✕ CLEAR</button>
         <button id="export-game" class="accent" title="Push the selected CAD object to the live game and save it permanently (cad-overrides.json, applied at every game boot)">⤓ EXPORT TO GAME</button>
         <button id="mode-toggle" class="accent" title="Switch editor/game view (Tab)">GAME / TAB</button>
       </div>
@@ -129,6 +130,19 @@
       <span id="status-message">READY</span><span id="object-stats">0 OBJECTS</span><span id="render-stats">0 FPS</span>
       <span class="status-spacer"></span><span>X RED</span><span>Y GREEN</span><span>Z BLUE</span>
     </footer>
+
+    <div id="switch-guard" class="switch-guard hidden">
+      <div class="switch-card panel-glass">
+        <b>SWITCH ITEMS?</b>
+        <span id="switch-guard-message">The CAD workspace has unsaved changes. Switching clears the board.</span>
+        <div class="switch-actions">
+          <button data-choice="save">SAVE & SWITCH</button>
+          <button data-choice="discard">DISCARD CHANGES</button>
+          <button data-choice="cancel">CANCEL</button>
+        </div>
+        <small>Save publishes linked items to the game; unlinked work downloads a project file.</small>
+      </div>
+    </div>
   </div>
   <input id="file-input" type="file" accept=".json,.glb,.gltf,.obj,.fbx,.stl" hidden>
   <input id="texture-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
