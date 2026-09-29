@@ -2,9 +2,9 @@
 [![Platform](https://img.shields.io/badge/platform-web%20browser-4c1?style=for-the-badge&logo=googlechrome&logoColor=white)](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/) [![Built with Three.js](https://img.shields.io/badge/built%20with-three.js-000000?style=for-the-badge&logo=threedotjs&logoColor=white)](https://threejs.org/) [![WebGL 2.0](https://img.shields.io/badge/graphics-webgl%202.0-990000?style=for-the-badge&logo=webgl&logoColor=white)](https://www.khronos.org/webgl/) [![License: MIT](https://img.shields.io/github/license/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path?style=for-the-badge&color=blue)](LICENSE) [![Repo Size](https://img.shields.io/github/repo-size/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path?style=for-the-badge&color=orange)](https://github.com/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path) ![Status: Alpha](https://img.shields.io/badge/status-alpha-yellow?style=for-the-badge) [![Star this repo](https://img.shields.io/github/stars/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path?style=for-the-badge&logo=github&color=gold&label=star%20this%20repo)](https://github.com/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path/stargazers)
 <div align="center">
 
-https://github.com/user-attachments/assets/98beca05-d17b-4123-a8c6-fa52245a155d
-
-**[▶ Watch the teaser video (tap here on mobile)](https://github.com/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path/blob/main/docs/images/michi-neko-teaser-8s-v3.mp4)**
+<video src="https://github.com/user-attachments/assets/98beca05-d17b-4123-a8c6-fa52245a155d" poster="https://raw.githubusercontent.com/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path/main/docs/images/title-screen.jpg" controls muted playsinline width="100%">
+  <a href="https://github.com/user-attachments/assets/98beca05-d17b-4123-a8c6-fa52245a155d">▶ Watch the teaser video</a>
+</video>
 
 </div>
 
