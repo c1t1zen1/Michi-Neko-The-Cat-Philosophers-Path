@@ -4,6 +4,10 @@
 
 https://github.com/user-attachments/assets/98beca05-d17b-4123-a8c6-fa52245a155d
 
+<a href="https://github.com/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path/blob/main/docs/images/michi-neko-teaser-8s-v3.mp4"><img src="docs/images/title-screen.jpg" alt="Watch the Michi-Neko teaser (tap to play)" width="640"></a>
+
+<sub>Video not showing on mobile? Tap the image above to watch the teaser.</sub>
+
 </div>
 
 ### A Third-Person Cat Exploration Game set in a Kyoto-Inspired Valley
