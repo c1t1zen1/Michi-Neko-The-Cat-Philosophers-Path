@@ -153,7 +153,11 @@ function furMat(palette) {
             // ---- torso ----
             float belly = smoothstep(0.405, 0.315, p.y);
             float bib = ellipseMask(p, vec3(0.0, 0.43, 0.30), vec3(0.085, 0.11, 0.13), 0.35);
-            cream = max(belly, bib * 0.85);
+            // White throat running from the chest up under the chin; the
+            // diagonal cut keeps the nape and shoulders tabby.
+            float throat = ellipseMask(p, vec3(0.0, 0.50, 0.36), vec3(0.10, 0.17, 0.17), 0.3)
+              * smoothstep(0.03, -0.03, p.y - p.z - 0.25);
+            cream = max(belly, max(bib * 0.85, throat));
             float top = smoothstep(0.34, 0.50, p.y) * (1.0 - cream);
             float span = smoothstep(-0.30, -0.22, p.z) * smoothstep(0.30, 0.20, p.z);
             stripe = stripeWave(p.z * 38.0 + abs(p.x) * 6.0, n) * top * span;
@@ -165,9 +169,9 @@ function furMat(palette) {
           } else if (kind < 1.5) {
             // ---- head ----
             float muzzle = ellipseMask(p, vec3(0.0, 0.628, 0.405), vec3(0.078, 0.052, 0.07), 0.35);
-            float chin = ellipseMask(p, vec3(0.0, 0.59, 0.385), vec3(0.06, 0.05, 0.06), 0.4);
-            float throat = smoothstep(0.62, 0.56, p.y) * smoothstep(0.24, 0.32, p.z);
-            cream = max(max(muzzle, chin), throat * 0.9);
+            float chin = ellipseMask(p, vec3(0.0, 0.585, 0.38), vec3(0.085, 0.055, 0.075), 0.35);
+            float throat = smoothstep(0.615, 0.575, p.y) * smoothstep(0.22, 0.30, p.z);
+            cream = max(max(muzzle, chin), throat);
             // Forehead "M": three short vertical marks between the ears
             float crownZone = smoothstep(0.695, 0.725, p.y) * smoothstep(0.32, 0.37, p.z) * smoothstep(0.10, 0.06, abs(p.x));
             float mMarks = smoothstep(0.45, 0.85, abs(sin(p.x * 68.0))) * smoothstep(0.02, 0.05, abs(p.x) + 0.02);
@@ -223,7 +227,7 @@ function furMat(palette) {
         #include <opaque_fragment>
       `);
   };
-  mat.customProgramCacheKey = () => 'cat-fur-v2';
+  mat.customProgramCacheKey = () => 'cat-fur-v3';
   return mat;
 }
 
@@ -522,23 +526,37 @@ export class Cat {
     neckFur.position.set(0, 0.05, 0.045);
     addOutline(neckFur, 1.05);
     this.neck.add(neckFur);
+    // Thicker neck ruff aligned with the collar so the ribbon hugs fur all
+    // the way round instead of hanging off the thin bridge.
+    const neckRuff = capsule(0.077, 0.03, this.matFur, 1, 1, 1, FUR_KIND.torso);
+    neckRuff.rotation.x = 0.8;
+    neckRuff.position.set(0, 0.035, 0.005);
+    this.neck.add(neckRuff);
 
     // Silk ribbon collar with a small brass bell (C2.1 cosmetics; Master
     // Cat rank swaps it for bright gold and adds a twin — setMasterCat()).
     this.matBellBrass = toonMat(0xb08a4a, { emissive: 0x40300a, emissiveIntensity: 0.15 });
+    // The ring's axis follows the neck (chest → head, ~45° forward), so it
+    // rides high on the nape and dips to the throat at the front.
+    const collarR = 0.084;
+    const collarTube = 0.011;
     this.collar = new THREE.Mesh(
-      new THREE.TorusGeometry(0.072, 0.012, 8, 20),
+      new THREE.TorusGeometry(collarR, collarTube, 10, 28),
       this.matRibbon
     );
-    this.collar.rotation.x = Math.PI / 2.15;
-    this.collar.position.set(0, 0.015, 0.02);
+    this.collar.rotation.x = -0.8;
+    this.collar.position.set(0, 0.03, 0.0);
     this.neck.add(this.collar);
+    // Bell hangs straight down from the front of the ring, tucked against
+    // the ribbon (collar-local -Y is the throat after the tilt; `drop` is
+    // world-down expressed in collar space).
+    const drop = new THREE.Vector3(0, -Math.cos(0.8), -Math.sin(0.8));
     this.collarBell = new THREE.Mesh(
-      new THREE.SphereGeometry(0.016, 10, 8),
+      new THREE.SphereGeometry(0.016, 12, 10),
       this.matBellBrass
     );
-    this.collarBell.position.set(0, -0.06, 0.085);
-    this.neck.add(this.collarBell);
+    this.collarBell.position.set(0, -collarR, 0).addScaledVector(drop, collarTube + 0.012);
+    this.collar.add(this.collarBell);
 
     this.head = new THREE.Group();
     this.head.position.set(0, 0.125, 0.055);
@@ -1028,8 +1046,10 @@ export class Cat {
         new THREE.SphereGeometry(0.013, 10, 8),
         this.matGoldBell
       );
-      twin.position.set(0.028, -0.058, 0.082);
-      this.neck.add(twin);
+      twin.position.copy(this.collarBell.position);
+      twin.position.x += 0.027;
+      twin.position.y += 0.004;
+      this.collar.add(twin);
       this.collarBellTwin = twin;
     }
   }
