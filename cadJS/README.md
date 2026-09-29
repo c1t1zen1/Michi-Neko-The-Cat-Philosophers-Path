@@ -122,6 +122,7 @@ Press `Ctrl+C` in the terminal running the server. Closing the browser does not 
 - **SCAN** — rescans repository source and assets.
 - **EXPORT TO GAME** — pushes the selected runtime-linked CAD object to the live game and publishes it to `cad-overrides.json`.
 - **GAME / TAB** or **CAD / TAB** — switches the central viewport.
+- **CLEAR** — empties the CAD workspace as one undoable step (camera, grid, and helpers stay). With unsaved edits present, cadJS first offers to save-and-switch, discard, or cancel.
 
 ### Left tool rail
 
@@ -390,6 +391,8 @@ For Three.js-related JavaScript/TypeScript source, cadJS detects exported classe
 
 Click a class or builder entry to instantiate it in the CAD workspace. cadJS imports the module, constructs the symbol with zero arguments or stubbed parameters (`rng`, `scene`, `time`-style names get safe stand-ins), and wraps the result — Object3D, group-bearing wrapper, bare geometry, or material (previewed on a sphere). Imported objects carry their source module/symbol metadata and a captured asset baseline. Builders that are unexported class methods cannot be instantiated and report a clear error instead.
 
+The workspace holds one item at a time: importing a different element replaces the current board contents. With unsaved edits present, the switch guard offers **SAVE & SWITCH** (publishes runtime-linked items, otherwise exports/downloads the project), **DISCARD CHANGES**, or **CANCEL**. The board is only cleared after the new element actually loads — a failed import leaves the workspace untouched.
+
 ### File discovery
 
 - Models: GLB, glTF, FBX, OBJ, STL, PLY, DAE, 3DS
@@ -485,7 +488,17 @@ Use runtime editing for visual experimentation and comparison, not as the only p
 
 ### New project
 
-**FILE → New project** clears the current CAD workspace after confirmation, then reloads the starter platform and procedural cat. Current runtime overrides, baselines, and package lineage are cleared.
+**FILE → New project** clears the current CAD workspace through the unsaved-changes guard, then reloads the starter platform and procedural cat as one undoable step. Current runtime overrides, baselines, and package lineage are cleared.
+
+### Workspace switching and unsaved changes
+
+Importing a different catalogue element or model, sending a live object to CAD, opening a project file, starting a new project, or clicking **CLEAR** all replace the board. When the workspace holds unsaved edits, the switch guard appears first:
+
+- **SAVE & SWITCH** — publishes runtime-linked items to the game (live + `cad-overrides.json`), otherwise exports/downloads the project, then switches.
+- **DISCARD CHANGES** — drops the edits and switches.
+- **CANCEL** (or `Esc`, or clicking outside the card) — keeps the current board unchanged.
+
+A workspace with no pending edits switches without prompting. Saving, exporting, loading a project, or completing an import clears the unsaved-edits flag.
 
 ### Save browser project
 

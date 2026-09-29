@@ -522,13 +522,13 @@ class CadApp {
   async importCatalogSymbol(entry) {
     try {
       if (!(await this.guardWorkspaceSwitch())) return;
-      this.clearWorkspace();
       this.status(`IMPORTING ${entry.label.toUpperCase()} FROM ${entry.file}…`);
       const module = await import(`/${entry.file}`);
       const symbol = module[entry.symbol];
       if (typeof symbol !== 'function') throw new Error(`${entry.symbol} is not an exported class or builder in ${entry.file}`);
       const object = this.instantiateSymbol(symbol);
       if (!object) throw new Error(`${entry.symbol} produced no scene object to edit`);
+      this.clearWorkspace();
       object.name ||= entry.label;
       object.userData = { ...object.userData, sourceModule: entry.file, cadSourceModule: entry.file, cadSourceSymbol: entry.symbol, cadLabel: entry.label };
       this.root.add(object);
@@ -537,6 +537,7 @@ class CadApp {
       if (this.viewMode !== 'editor') this.toggleView('editor');
       this.sourceMode = 'editor'; $('#runtime-source').textContent = 'EDITOR';
       this.select(object); this.focusObject(object); this.rebuildTree();
+      this.workspaceDirty = false;
       this.status(`${entry.label.toUpperCase()} IMPORTED — EDIT, THEN EXPORT TO GAME`);
     } catch (error) { this.status(`IMPORT ${entry.label.toUpperCase()}: ${error.message}`, true); }
   }
@@ -1207,8 +1208,8 @@ class CadApp {
     };
   }
 
-  saveProject() { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.serializeProject())); this.status('PROJECT SAVED TO BROWSER'); }
-  exportProject() { download(`michi-neko-${Date.now()}.cadjs.json`, JSON.stringify(this.serializeProject(), null, 2)); }
+  saveProject() { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.serializeProject())); this.workspaceDirty = false; this.status('PROJECT SAVED TO BROWSER'); }
+  exportProject() { download(`michi-neko-${Date.now()}.cadjs.json`, JSON.stringify(this.serializeProject(), null, 2)); this.workspaceDirty = false; }
   exportOverrides() { download(`michi-neko-${Date.now()}.overrides.json`, JSON.stringify({ format: 'cadJS-overrides', version: 1, overrides: [...this.runtimeOverrides.values()] }, null, 2)); }
 
   exportAssetPackage() {
@@ -1271,7 +1272,7 @@ class CadApp {
   async openFile(file) {
     if (!file) return;
     const ext = file.name.split('.').pop().toLowerCase();
-    if (ext === 'json') { try { const data = JSON.parse(await file.text()); if (data.format === ASSET_PACKAGE_FORMAT) await this.loadAssetPackage(data); else this.loadProject(data); } catch (error) { this.status(`OPEN: ${error.message}`, true); } }
+    if (ext === 'json') { try { const data = JSON.parse(await file.text()); if (data.format === ASSET_PACKAGE_FORMAT) await this.loadAssetPackage(data); else if (data.format !== 'cadJS-project' || await this.guardWorkspaceSwitch('Opening a project replaces the CAD workspace — unsaved changes are discarded.')) this.loadProject(data); } catch (error) { this.status(`OPEN: ${error.message}`, true); } }
     else this.loadModelFile(file);
     $('#file-input').value = '';
   }
@@ -1286,10 +1287,14 @@ class CadApp {
     this.grid.visible = project.settings?.grid !== false; this.runtimeOverrides = new Map((project.runtimeOverrides || []).map((item) => [fingerprintDescriptor({ source:'game', path:item.path }), item]));
     this.assetBaselines = new Map(Object.entries(project.assetBaselines || {})); this.lastAssetPackage = project.lastAssetPackage || null;
     if (!this.assetBaselines.size) this.root.children.filter((child) => child.userData?.cadAssetId).forEach((child) => this.registerAsset(child, { assetId:child.userData.cadAssetId, assetType:child.userData.cadAssetType, sourceModule:child.userData.cadSourceModule, sourceSymbol:child.userData.cadSourceSymbol }));
-    this.select(null); this.rebuildTree(); this.status('PROJECT LOADED');
+    this.select(null); this.rebuildTree(); this.workspaceDirty = false; this.status('PROJECT LOADED');
   }
 
-  newProject() { if (!confirm('Clear the current CAD workspace?')) return; this.transform.detach(); while (this.root.children.length) this.root.remove(this.root.children[0]); this.runtimeOverrides.clear(); this.assetBaselines.clear(); this.lastAssetPackage = null; this.addStarterScene(); this.rebuildTree(); }
+  async newProject() {
+    if (!await this.guardWorkspaceSwitch('Starting a new project clears the CAD workspace — unsaved changes are discarded.')) return;
+    this.clearWorkspace(); this.addStarterScene();
+    this.status('NEW PROJECT — STARTER SCENE RESTORED');
+  }
 
   /**
    * Empty the CAD workspace — camera, grid and helpers stay, the board goes
@@ -1307,6 +1312,7 @@ class CadApp {
     this.runtimeOverrides = new Map();
     this.assetBaselines = new Map();
     this.lastAssetPackage = null;
+    this.catAdapter = null;
     this.select(null);
     this.rebuildTree();
     const after = this.root.toJSON();
@@ -1391,17 +1397,20 @@ class CadApp {
     const scene = this.runtimeGame?.scene;
     if (!scene || object === scene || object.userData?.helper) return this.status('THAT OBJECT CANNOT BE EDITED IN CAD', true);
     try {
+      if (!await this.guardWorkspaceSwitch()) return;
       this.status(`CLONING ${objectLabel(object).toUpperCase()} INTO CAD…`);
       const clone = await new THREE.ObjectLoader().parseAsync(object.toJSON());
       object.updateWorldMatrix(true, false);
       clone.matrix.copy(object.matrixWorld);
       clone.matrix.decompose(clone.position, clone.quaternion, clone.scale);
       clone.userData = { ...clone.userData, cadRuntimeSource: { name: object.name || '', path: pathForObject(object), type: object.type } };
+      this.clearWorkspace();
       this.root.add(clone);
       this.history.push('Send to CAD', () => { this.root.remove(clone); this.select(null); }, () => { this.root.add(clone); this.select(clone); });
       if (this.viewMode !== 'editor') this.toggleView('editor');
       this.sourceMode = 'editor'; $('#runtime-source').textContent = 'EDITOR';
       this.select(clone); this.focusObject(clone);
+      this.workspaceDirty = false;
       this.status(`${objectLabel(clone).toUpperCase()} IN CAD — EDIT, THEN PUSH TO GAME`);
     } catch (error) { this.status(`SEND TO CAD: ${error.message}`, true); }
   }
@@ -1506,11 +1515,13 @@ class CadApp {
   async loadModelUrl(url) {
     const ext = url.split('.').pop().split('?')[0].toLowerCase();
     try {
+      if (!await this.guardWorkspaceSwitch()) return;
       let object;
       if (ext === 'glb' || ext === 'gltf') object = (await new GLTFLoader().loadAsync(url)).scene;
       else if (ext === 'obj') object = await new OBJLoader().loadAsync(url);
       else if (ext === 'stl') { const geometry = await new STLLoader().loadAsync(url); object = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x8aa5b3, roughness: .7 })); }
       if (!object) return this.status(`MODEL FORMAT .${ext} IS CATALOGUED BUT NOT PREVIEWABLE`, true);
+      this.clearWorkspace();
       object.name ||= url.split('/').pop(); this.root.add(object); this.select(object); this.focusObject(object); this.status(`MODEL LOADED: ${object.name}`);
     } catch (error) { this.status(`MODEL LOAD: ${error.message}`, true); }
   }
