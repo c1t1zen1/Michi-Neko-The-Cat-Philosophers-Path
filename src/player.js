@@ -36,6 +36,7 @@ export class Player {
     // backing array changes (interior and exterior each get their own).
     this.colliderGrid = new ColliderGrid(8);
     this.interiorGrid = new ColliderGrid(4);
+    this.summitGrid = new ColliderGrid(6);
     this.nearColliders = [];
     this.nearCamColliders = [];
     this.isGrounded = false;
@@ -99,6 +100,8 @@ export class Player {
 
     const interior = window.game && window.game.interior ? window.game.interior : null;
     const isInside = interior && interior.isInside;
+    const summit = window.game && window.game.summit ? window.game.summit : null;
+    const onSummit = !isInside && summit && summit.active;
 
     const inWater = (!isInside && world && world.isInWater)
       ? world.isInWater(this.mesh.position.x, this.mesh.position.z, this.mesh.position.y)
@@ -117,7 +120,7 @@ export class Player {
     // Determine effective ground height (terrain, water, or elevated platforms)
     let groundY = inWater
       ? (world && world.wadeDepthAt ? world.wadeDepthAt(this.mesh.position.x, this.mesh.position.z) : -0.09)
-      : 0;
+      : (world && world.groundAt ? world.groundAt(this.mesh.position.x, this.mesh.position.z) : 0);
     if (isInside) {
       groundY = interior.getGroundHeight(this.mesh.position.x, this.mesh.position.z);
     } else if (world && world.platforms) {
@@ -312,8 +315,8 @@ export class Player {
     // neighbourhood. The query rectangle spans both where the cat was and
     // where it now is, padded past the widest collider expansion used below
     // (0.45 m) so nothing that could still block the move is filtered out.
-    const activeColliders = isInside ? interior.colliders : colliders;
-    const grid = (isInside ? this.interiorGrid : this.colliderGrid).sync(activeColliders || []);
+    const activeColliders = isInside ? interior.colliders : (onSummit ? summit.colliders : colliders);
+    const grid = (isInside ? this.interiorGrid : (onSummit ? this.summitGrid : this.colliderGrid)).sync(activeColliders || []);
     const qPad = 1.6;
     const nearColliders = grid.query(
       Math.min(prevX, this.mesh.position.x) - qPad,

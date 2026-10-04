@@ -942,7 +942,10 @@ export class Cat {
     const p = this.idleActionTimer / d;
 
     let blend;
-    if (p < 0.2) blend = p / 0.2;
+    if (this.idleAction === 'sleep') {
+      // Sleep settles in slowly and holds — no fade-out; only moving ends it.
+      blend = Math.min(1, this.idleActionTimer / 3.5);
+    } else if (p < 0.2) blend = p / 0.2;
     else if (p < 0.65) blend = 1.0;
     else blend = Math.max(0, 1 - (p - 0.65) / 0.35);
     blend = blend * blend * (3 - 2 * blend);
@@ -969,6 +972,12 @@ export class Cat {
 
     if (this.muzzle && pose.muzzleScaleY) {
       this.muzzle.scale.set(1, THREE.MathUtils.lerp(1, pose.muzzleScaleY, blend), 1);
+    }
+
+    // Sleeping breath: a slow, tiny rise and fall of the curled body.
+    if (this.idleAction === 'sleep' && blend > 0) {
+      this.body.position.y += Math.sin(this.idleActionTimer * 1.9) * 0.011 * blend;
+      this.chest.scale.y = 1 + Math.sin(this.idleActionTimer * 1.9) * 0.025 * blend;
     }
 
     if (this.idleActionTimer >= d) this.endIdleAction();
@@ -1022,6 +1031,21 @@ export class Cat {
       pose.headRotY = 0.08;
       pose.earX = [-0.20, -0.20];
       pose.muzzleScaleY = 1.5;
+    } else if (name === 'sleep') {
+      // Curled into a ball: haunches under, paws folded, chin tucked to chest,
+      // tail swung forward to wrap the flank.
+      pose.bodyY = -0.185;
+      pose.bodyRotZ = 0.10;
+      pose.chestY = 0.36;
+      pose.hipsY = 0.33;
+      pose.headY = 0.05;
+      pose.headRotX = 0.62;
+      pose.headRotY = -0.30;
+      pose.neckX = 0.30;
+      pose.tailRootX = 1.25;
+      pose.legRootX = [0.55, 0.55, 1.0, 1.0];
+      pose.legKneeX = [-1.35, -1.35, 1.35, 1.35];
+      pose.earX = [-0.28, -0.28];
     }
     return pose;
   }
@@ -1204,7 +1228,8 @@ export class Cat {
       const k = this.blink > 0.08 ? (0.16 - this.blink) / 0.08 : this.blink / 0.08;
       blinkSquint = 1 - k * 0.92;
     }
-    const squint = blinkSquint * (1 - this.yawnOpen * 0.55);
+    const squint = blinkSquint * (1 - this.yawnOpen * 0.55) *
+      (this.idleAction === 'sleep' ? 0.06 : 1); // eyes close when asleep
     const pupilScale = cfg.pupilScale;
     // Almond baseline (y squashed) preserved through blinks
     for (const eye of this.eyes) eye.scale.y = 0.74 * squint;

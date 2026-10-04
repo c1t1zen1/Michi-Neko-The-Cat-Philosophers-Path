@@ -530,6 +530,136 @@ export class AudioManager {
     });
   }
 
+  /**
+   * A distant monk choir "aaah" — layered detuned voices with vibrato and a
+   * soft formant band, the sound of the mountain answering the tenth bell.
+   */
+  playMonkChoir(duration = 5.5) {
+    if (!this.initialized) return;
+    const t = this.ctx.currentTime;
+    const out = this.ctx.createGain();
+    out.gain.setValueAtTime(0, t);
+    out.gain.linearRampToValueAtTime(0.075, t + 1.4);
+    out.gain.setValueAtTime(0.075, t + duration - 1.8);
+    out.gain.linearRampToValueAtTime(0, t + duration);
+    // Low choral body through a warm formant band
+    const formant = this.ctx.createBiquadFilter();
+    formant.type = 'bandpass';
+    formant.frequency.value = 640;
+    formant.Q.value = 0.7;
+    out.connect(formant).connect(this.master);
+    // A parallel "air" path for the open vowel brightness
+    const air = this.ctx.createGain();
+    air.gain.value = 0.4;
+    out.connect(air).connect(this.master);
+
+    const voices = [
+      [98.0, -6], [98.0, 5], [146.83, -4], [146.83, 7],   // G2 / D3 unison pairs
+      [196.0, 0], [196.0, 9]                              // G3 lift
+    ];
+    for (const [freq, detune] of voices) {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = freq;
+      osc.detune.value = detune;
+      const vib = this.ctx.createOscillator();
+      vib.frequency.value = 4.6 + Math.random() * 0.8;
+      const vibG = this.ctx.createGain();
+      vibG.gain.value = 2.2;
+      vib.connect(vibG).connect(osc.frequency);
+      const g = this.ctx.createGain();
+      g.gain.value = freq > 150 ? 0.16 : 0.3;
+      osc.connect(g).connect(out);
+      osc.start(t); osc.stop(t + duration + 0.1);
+      vib.start(t); vib.stop(t + duration + 0.1);
+    }
+    // A high choir shimmer arriving late — the "aaaaah" opening
+    const shimmer = this.ctx.createOscillator();
+    shimmer.type = 'sine';
+    shimmer.frequency.value = 392;
+    const sg = this.ctx.createGain();
+    sg.gain.setValueAtTime(0, t);
+    sg.gain.linearRampToValueAtTime(0.05, t + duration * 0.5);
+    sg.gain.linearRampToValueAtTime(0, t + duration);
+    shimmer.connect(sg).connect(this.master);
+    shimmer.start(t); shimmer.stop(t + duration + 0.1);
+  }
+
+  /** Singing bowl: a slow-blooming tone with soft partials, meditation cue. */
+  playSingingBowl(freq = 174.61, duration = 9) {
+    if (!this.initialized) return;
+    const t = this.ctx.currentTime;
+    const partials = [[1, 0.06, 0.9], [2.76, 0.018, 0.7], [4.9, 0.007, 0.5]];
+    for (const [mult, vol, decayK] of partials) {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq * mult;
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol, t + 0.9);
+      g.gain.exponentialRampToValueAtTime(0.0004, t + duration * decayK);
+      osc.connect(g).connect(this.buses.ambient);
+      osc.start(t);
+      osc.stop(t + duration);
+    }
+    // The bowl's soft strike tick
+    const tick = this.ctx.createOscillator();
+    tick.type = 'sine';
+    tick.frequency.setValueAtTime(freq * 4.4, t);
+    const tg = this.ctx.createGain();
+    tg.gain.setValueAtTime(0.012, t);
+    tg.gain.exponentialRampToValueAtTime(0.0003, t + 0.35);
+    tick.connect(tg).connect(this.buses.ambient);
+    tick.start(t); tick.stop(t + 0.4);
+  }
+
+  /**
+   * Summit wind bed: a dedicated filtered-noise layer with slow gust LFOs,
+   * switched while the cat is on the mountain. Louder and airier than the
+   * valley ambient — the wind is the scene's main voice.
+   */
+  setSummitWind(on) {
+    if (!this.initialized || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    if (on && !this._summitWind) {
+      const bufferSize = 2 * this.ctx.sampleRate;
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+      noise.loop = true;
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = 480;
+      filter.Q.value = 0.6;
+      const gain = this.ctx.createGain();
+      gain.gain.value = 0;
+      // Two gust LFOs: a slow swell plus a quicker whistle flutter on the filter
+      const lfo1 = this.ctx.createOscillator();
+      lfo1.frequency.value = 0.11;
+      const lfo1G = this.ctx.createGain();
+      lfo1G.gain.value = 0.028;
+      lfo1.connect(lfo1G).connect(gain.gain);
+      const lfo2 = this.ctx.createOscillator();
+      lfo2.frequency.value = 0.53;
+      const lfo2G = this.ctx.createGain();
+      lfo2G.gain.value = 260;
+      lfo2.connect(lfo2G).connect(filter.frequency);
+      noise.connect(filter).connect(gain).connect(this.buses.ambient);
+      noise.start(t); lfo1.start(t); lfo2.start(t);
+      gain.gain.setTargetAtTime(0.055, t, 2.2);
+      this._summitWind = { noise, lfo1, lfo2, gain };
+    } else if (!on && this._summitWind) {
+      const w = this._summitWind;
+      this._summitWind = null;
+      w.gain.gain.setTargetAtTime(0, t, 1.4);
+      setTimeout(() => {
+        try { w.noise.stop(); w.lfo1.stop(); w.lfo2.stop(); } catch {}
+      }, 4000);
+    }
+  }
+
   /** Surface-aware footsteps: grass / wood / stone / water. */
   playFootstep(surface = 'grass') {
     if (!this.initialized) return;

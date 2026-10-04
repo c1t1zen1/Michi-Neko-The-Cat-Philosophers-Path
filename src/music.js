@@ -5,7 +5,8 @@
 // grows; anything not listed falls back to Overworld's neutral 1/1/1.
 const SCENE_MOODS = {
   Overworld: { density: 1, cutoffMul: 1, gainMul: 1 },
-  'Tea House': { density: 0.55, cutoffMul: 0.72, gainMul: 0.8 }
+  'Tea House': { density: 0.55, cutoffMul: 0.72, gainMul: 0.8 },
+  'Summit': { density: 0.16, cutoffMul: 0.62, gainMul: 0.58, bowls: true }
 };
 
 /**
@@ -24,6 +25,7 @@ export class MusicDirector {
     this.scene = 'Overworld';
     this.duckTarget = 1;
     this.nextBarTime = 0;
+    this.nextBowl = 0;
     this.barLen = 4.0;
     this.timer = null;
     // Voice budget (AU1.1): every pluck and pad chord is an oscillator +
@@ -179,6 +181,14 @@ export class MusicDirector {
         }
         t += 0.32 + Math.random() * 0.55;
       }
+
+      // Summit sound bath: every few bars a singing bowl rings under the pad.
+      if (mood.bowls && t >= this.nextBowl) {
+        this.nextBowl = t + this.barLen * (2 + (Math.random() * 2 | 0));
+        const bowlFreqs = [146.83, 164.81, 174.61, 196.0, 220.0]; // D3 E3 F3 G3 A3
+        this.audio.playSingingBowl(bowlFreqs[(Math.random() * bowlFreqs.length) | 0], 10 + Math.random() * 5);
+      }
+
       this.nextBarTime += this.barLen;
     }
   }

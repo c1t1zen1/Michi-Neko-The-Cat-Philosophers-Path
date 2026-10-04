@@ -36,6 +36,10 @@ export class ContextActionManager {
     // Music swell hook for rest spots / stillness moments.
     this.onMusicSwell = null;
 
+    // Wired up by Game after construction — the summit listens for bell rings.
+    this.summit = null;
+    this.onBellRing = null;
+
     // ---- Rest & watch spots (G1.1): hand-placed vantage points ----
     this.restSpots = [
       { id: 'shrine', name: 'Shrine Steps', pos: new THREE.Vector3(0, 0, -26.5), poem: 'Stone remembers every paw that paused here.' },
@@ -553,6 +557,7 @@ export class ContextActionManager {
     if (this.audio) this.audio.playBell();
     this.player.cat.setMood('alert', 0.6, 2);
     if (this.progression) this.progression.addXP(10, 'Rang the sacred shrine bell');
+    if (this.onBellRing) this.onBellRing();
   }
 
   /* ---------------- Cat verbs & friendship (C1, N2.1) ---------------- */

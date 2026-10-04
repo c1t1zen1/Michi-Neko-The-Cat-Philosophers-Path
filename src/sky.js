@@ -34,6 +34,9 @@ export class Sky {
     this.weatherBlend = 1;
     this.targetWeather = 'clear';
     this.weatherDurations = { clear: 600, cloudy: 420, snow: 300, mist: 360, rain: 300 };
+    // Optional subset/weighted list of weather types the picker may choose
+    // (the summit sets clear/cloudy/snow — no rain or mist up there).
+    this.weatherPool = null;
 
     this.palettes = this.buildPalettes();
     // Material fog is kept faint and distant: the screen-space atmosphere
@@ -97,11 +100,12 @@ export class Sky {
    * room so the shadow pass culls the whole valley (which sits far outside
    * the small ortho box) instead of re-rendering it every frame.
    */
-  setInteriorShadowMode(on) {
-    if (this._interiorShadow === on) return;
+  setInteriorShadowMode(on, extent = 10) {
+    if (this._interiorShadow === on && this._shadowExtent === extent) return;
     this._interiorShadow = on;
+    this._shadowExtent = extent;
     const c = this.sun.shadow.camera;
-    const s = on ? 10 : 38;
+    const s = on ? extent : 38;
     c.left = -s;
     c.right = s;
     c.top = s;
@@ -549,7 +553,8 @@ export class Sky {
         this.previousWeather = this.weather;
       }
     } else if (this.weatherTimer <= 0) {
-      const types = Object.keys(this.weatherDurations).filter(t => t !== this.weather);
+      const pool = this.weatherPool || Object.keys(this.weatherDurations);
+      const types = pool.filter(t => t !== this.weather);
       this.previousWeather = this.weather;
       this.targetWeather = types[Math.floor(Math.random() * types.length)];
       this.weatherBlend = 0;
