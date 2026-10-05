@@ -495,6 +495,76 @@
     .door-wipe-title { font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #b8321e; }
     .door-wipe-sub { font-size: 13px; letter-spacing: 4px; color: #6a4830; margin-top: 4px; }
 
+
+    /* ============ Summit ascent transition (天上) ============ */
+    /* Full-screen veil for the climb to the mountain top. Three modes, driven
+       by classes from mountaintop.js:
+         .show      - veil visible
+         .fallback  - no video: a warm light bloom instead (never a black frame)
+         .quick     - the short return veil on the way down
+         .fade-out  - dissolving away
+       The video element is lazy: no src and no preload until it is first
+       needed, so an mp4 never sits in the cold-start payload. */
+    #summit-transition {
+      position: absolute; inset: 0; z-index: 560;
+      pointer-events: none; overflow: hidden;
+      display: none; align-items: center; justify-content: center;
+      background: #120d0a;
+      opacity: 0; transition: opacity 0.85s ease;
+    }
+    #summit-transition.show { display: flex; opacity: 1; }
+    #summit-transition.fade-out { opacity: 0; }
+    #summit-transition.fallback {
+      background: radial-gradient(circle at 50% 46%, #fff6e2 0%, #ffdfae 26%, #e8a86a 52%, #7d4a2c 78%, #241611 100%);
+      animation: summit-flare 1.7s ease-in-out forwards;
+    }
+    /* The no-mp4 ascent: a bloom of light that swells, whites out at the
+       teleport moment (~1.7 s in) and settles back. Stands in for the video
+       so the transition still reads as a climb rather than a hard cut. */
+    @keyframes summit-flare {
+      0%   { filter: brightness(0.45) saturate(1.3); }
+      38%  { filter: brightness(1.35) saturate(1.1); }
+      62%  { filter: brightness(2.6) saturate(0.75); }
+      78%  { filter: brightness(3.4) saturate(0.5); }
+      100% { filter: brightness(1.1) saturate(1); }
+    }
+    /* A quick return reads as a softer, cooler veil than the ascent. */
+    #summit-transition.quick {
+      background: radial-gradient(circle at 50% 50%, #f6ecdc 0%, #dcc6a4 40%, #6b4a34 75%, #1d1410 100%);
+      transition: opacity 0.4s ease;
+      animation: summit-dim 0.9s ease-in-out forwards;
+    }
+    @keyframes summit-dim {
+      0%   { filter: brightness(1.6) blur(0px); }
+      100% { filter: brightness(0.85) blur(1.5px); }
+    }
+    #summit-video {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      /* Decoration behind the veil; it never takes pointer input. */
+      pointer-events: none;
+    }
+    #summit-transition:not(.fallback):not(.quick) #summit-video { opacity: 0.96; }
+    .summit-plate {
+      position: relative; z-index: 2; text-align: center;
+      opacity: 0; transform: scale(0.94);
+      transition: opacity 1.1s ease 0.35s, transform 1.1s ease 0.35s;
+      color: #fff6e4; text-shadow: 0 2px 14px rgba(60, 26, 8, 0.75);
+    }
+    #summit-transition.show .summit-plate { opacity: 1; transform: scale(1); }
+    .summit-plate-title { font-size: 40px; font-weight: bold; letter-spacing: 14px; }
+    .summit-plate-sub { font-size: 12px; letter-spacing: 6px; margin-top: 8px; opacity: 0.85; }
+    /* The plate fades out once the video is running, so it never sits over
+       the first frames of the new scene. */
+    #summit-transition.video-playing .summit-plate { opacity: 0; transition: opacity 0.8s ease; }
+    @media (prefers-reduced-motion: reduce) {
+      #summit-transition, #summit-transition.quick { transition: none; }
+      /* Hold the veils as stills — no flare, no dim, no drifting plate. */
+      #summit-transition.fallback, #summit-transition.quick { animation: none; }
+      .summit-plate { transform: none; }
+    }
+
     /* ============ Boot screen ============ */
     /* A soft-focus still of the valley paints the screen instantly while the
        engine boots; once the first real frame renders, main.js dissolves it
@@ -634,6 +704,17 @@
     </div>
   </div>
 
+
+  <!-- Summit ascent veil: full-screen transition up to the mountain top.
+       mountaintop.js adds .show / .fallback / .quick / .fade-out; the video
+       src is attached lazily on first use so it costs nothing at boot. -->
+  <div id="summit-transition">
+    <video id="summit-video" muted playsinline preload="none" aria-hidden="true"></video>
+    <div class="summit-plate">
+      <div class="summit-plate-title">天上</div>
+      <div class="summit-plate-sub">THE MOUNTAIN TOP</div>
+    </div>
+  </div>
   <!-- Photo mode -->
   <div id="photo-hint" class="hidden">📷 Photo Mode — drag: orbit · wheel: zoom · Enter: capture · P / Esc: exit</div>
   <div id="photo-flash"></div>

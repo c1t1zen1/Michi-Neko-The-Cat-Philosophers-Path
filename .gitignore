@@ -1,0 +1,8 @@
+# Local scratch
+tmp_*.txt
+
+# Optional runtime media — drop summit-transition.mp4 in locally to test the
+# ascent cinematic. The game falls back to the CSS light-burst without it.
+assets/*.mp4
+
+node_modules/

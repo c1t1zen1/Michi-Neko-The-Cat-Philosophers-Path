@@ -163,6 +163,20 @@
     document.getElementById('prompt').style.display = 'none';
   }
 
+  /**
+   * Hide every guidance affordance at once: the act prompt and the quest
+   * card. Used by the summit, which is explicitly a scene with no hints and
+   * no missions. Screen-space markers are handled separately by clearing
+   * the WaypointSystem's targets (the off-screen arrow hides itself).
+   */
+  hideAllGuidance() {
+    this.hidePrompt();
+    for (const id of ['quest-card', 'compass']) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    }
+  }
+
   /** Per-frame HUD tick: FPS sampling + debug overlay refresh. */
   update(dt, score, extraDebug = null) {
     this.setScore(score);

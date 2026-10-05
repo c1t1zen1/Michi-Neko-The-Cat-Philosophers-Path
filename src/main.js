@@ -26,6 +26,7 @@ import { isDiscreteGPU } from './settings.js?v=20260929b';
 import { MenuSystem } from './menus.js?v=20260929b';
 import { WaypointSystem, Compass } from './waypoints.js?v=20260929b';
 import { MusicDirector } from './music.js?v=20260929b';
+import { SummitManager } from './mountaintop.js?v=20260929b';
 import { catRimUniforms } from './cat.js?v=20260929b';
 import { chunkSceneInstances } from './instanced_chunks.js?v=20260929b';
 import { setFoliageDetail } from './foliage.js?v=20260929b';
@@ -211,6 +212,15 @@ class Game {
     this.contextActions.npcs = this.npcs;
     this.contextActions.onDiscover = (section, entry) => this.discover(section, entry);
     this.contextActions.onMusicSwell = (d) => this.music.swell(d);
+
+    // 天上 — the hidden mountain-top clearing. Reached by ringing the shrine
+    // bell ten times; left by walking back under the torii at the foot of the
+    // steps. Built here (after player/ui/audio/sky) because its shrine rays,
+    // drifting clouds and journal hooks read them; the group itself stays
+    // invisible until the cat actually goes up there.
+    this.summit = new SummitManager(this);
+    this.contextActions.onBellRing = () => this.summit.onBellRing();
+    this.contextActions.summit = this.summit;
 
     // Discovery journal (G1.4): keepsake memory of the valley, not a checklist.
     this.journal = {
@@ -1008,6 +1018,15 @@ class Game {
     if (data.journal) this.journal = { ...this.journal, ...data.journal };
     if (data.worldFlags) {
       if (data.worldFlags.mistCharm) this.city.mistAltarTouched = true;
+      // Restore the ring count BEFORE the unlock so the tenth ring stays the
+      // tenth ring, then re-show the beacon silently (no choir on a reload).
+      if (Number.isFinite(data.worldFlags.summitBellRings)) {
+        this.summit.bellRings = Math.max(0, data.worldFlags.summitBellRings | 0);
+      }
+      if (data.worldFlags.summitUnlocked) {
+        this.summit.setUnlocked(true, true);
+        this.summit.bellRings = Math.max(this.summit.bellRings, 10);
+      }
     }
     if (Array.isArray(data.restVisited)) {
       this.contextActions.visitedSpots = new Set(data.restVisited);
@@ -1027,15 +1046,28 @@ class Game {
         this.collectibles.splice(i, 1);
       }
     }
+
+    // 天上: resume on the summit if that's where the cat was saved. No
+    // cinematic — enterImmediate() just teleports onto the landing under the
+    // torii and lets the clearing fade in.
+    if (data.worldFlags && data.worldFlags.onSummit && this.summit.unlocked) {
+      this.summit.enterImmediate();
+    }
   }
 
   saveGame() {
     const p = this.player;
-    // Never persist an interior or mid-transition position as the spawn
-    // (S1.5): the tea house reloads outside its front door.
+    // Never persist an interior, mid-transition or summit position as the
+    // spawn (S1.5): the tea house reloads outside its front door, and the
+    // summit lives at y=-1200 — writing that would soft-lock the cat into
+    // empty space on the next load. The summit is re-entered via the
+    // `onSummit` flag below instead.
     let px = p.mesh.position.x, py = p.mesh.position.y, pz = p.mesh.position.z;
-    if (this.interior.isInside || this.interior.isTransitioning) {
-      const spawn = this.city.secretDoorSpawnPos;
+    let onSummit = this.summit.active;
+    if (this.interior.isInside || this.interior.isTransitioning || onSummit) {
+      const spawn = onSummit
+        ? { x: 0, z: -23.6 }                       // under the valley torii
+        : this.city.secretDoorSpawnPos;
       px = spawn ? spawn.x : 20; py = 0; pz = spawn ? spawn.z : 14.5;
     }
     const safe = this.safePos || { x: px, y: py, z: pz };
@@ -1068,7 +1100,12 @@ class Game {
       freshWaterAchievement: this.freshWaterAchievement,
       journal: this.journal,
       worldFlags: {
-        mistCharm: !!this.city.mistAltarTouched
+        mistCharm: !!this.city.mistAltarTouched,
+        // 天上: the ten-bell unlock and the ring count survive a reload, and
+        // `onSummit` restores the cat to the clearing instead of the valley.
+        summitUnlocked: this.summit.unlocked,
+        summitBellRings: this.summit.bellRings,
+        onSummit,
       },
       restVisited: [...(this.contextActions.visitedSpots || [])],
       slowBlinked: [...(this.contextActions.slowBlinked || [])],
@@ -1103,17 +1140,32 @@ class Game {
     this.controls.update(dt);
 
     if (playing) {
-      this.player.update(dt, this.city.colliders, this.city, this.luna);
-      const yarnFinished = this.quest.hasCompleted('yarn') && !this.quest.hasPendingReward('yarn');
-      const corralEvent = this.city.updateCorralGuardian(dt, this.player, yarnFinished);
+      // The summit is a region of the same scene with its own collider set,
+      // ground function and soft containment, so it stands in for `city` as
+      // the world's "active" half while the cat is up there.
+      const onSummit = this.summit.active;
+      const world = onSummit ? this.summit : this.city;
+      this.player.update(dt, world.colliders, world, this.luna);
+      // Nothing in the valley applies while the cat is on the mountain: no
+      // collectibles, no turtle, no NPCs, no corridor guardian, no prompts.
+      const yarnFinished = !onSummit &&
+        this.quest.hasCompleted('yarn') && !this.quest.hasPendingReward('yarn');
+      const corralEvent = onSummit ? null
+        : this.city.updateCorralGuardian(dt, this.player, yarnFinished);
       if (corralEvent === 'alerted') {
         this.ui.showToast('🐢 Larry spotted you — run for the Jade Paw!');
         this.player.cat.setMood('alert', 1.2, 2);
       }
-      this.contextActions.update(dt);
+      // The summit is a respite scene — no prompts, no verbs, no quest verbs
+      // to press E at. updateMeditation() owns the sit/sleep beat there.
+      if (onSummit) {
+        this.contextActions.hideAllPrompts();
+      } else {
+        this.contextActions.update(dt);
+      }
       this.dialogue.update(dt);
       this.updateDialogue();
-      this.checkCollectibles();
+      if (!onSummit) this.checkCollectibles();
       if (!this.toriiMessageSeen && this.progression.rank >= 4 && this.city.toriiTopPos &&
           this.player.mesh.position.y > 5.05 &&
           this.player.mesh.position.distanceToSquared(this.city.toriiTopPos) < 5.5) {
@@ -1125,7 +1177,8 @@ class Game {
       // Interior simulation (knockable table objects)
       this.interior.update(dt);
 
-      // Valley collectibles are hidden while inside the Tea House
+      // Valley collectibles are hidden while inside the Tea House (and while
+      // the summit is up, where the whole valley is hidden anyway).
       const insideNow = this.interior.isInside;
       for (const item of this.collectibles) {
         if (!item.userData.isCorralReward) item.visible = !insideNow;
@@ -1189,21 +1242,32 @@ class Game {
     // background updates at half frequency while nobody is playing.
     const onTitle = this.menu.mode === 'title';
     if (onTitle && this.isTouchDevice()) this._titleTick = !this._titleTick;
-    if (!inside && !(onTitle && this._titleTick)) {
+    // 天上: the summit ticks in BOTH scenes — in the valley it drives the shrine
+    // beacon and the walk-into-the-light trigger, on the summit it owns the
+    // whole clearing. While it is active the valley's vegetation / particle /
+// wildlife sims are skipped entirely: they are invisible anyway, and
+    // vegetation.update() drives the SAME shared foliage uniforms the summit's
+    // updateFoliage() writes, so running both makes the two clocks fight.
+    this.summit.update(dt, playing);
+    if (!this.summit.active && !inside && !(onTitle && this._titleTick)) {
       this.vegetation.update(dt, this.player.mesh.position, this.sky);
       this.particles.update(dt, this.player.mesh.position, this.sky);
       this.ambientLife.update(dt, this.player.mesh.position, this.sky, this.player.cat, this.player, this.city);
     }
     // Scent gating (U1.4): the trail only flows near things worth finding.
-    this.scent.gated = playing && this.computeScentGate();
+    // Never on the summit — there is nothing there worth scenting.
+    this.scent.gated = playing && !this.summit.active && this.computeScentGate();
     this.scent.update(dt, this.player.mesh.position, playing ? this.player.currentSpeed : 0);
     this.audio.setWeatherTransition(this.sky.getWeatherTransition());
     this.audio.updateListener(this.camera);
-    for (const n of this.npcs) n.update(dt, this.player.mesh.position, this.camera, this.sky);
+    if (!this.summit.active) {
+      for (const n of this.npcs) n.update(dt, this.player.mesh.position, this.camera, this.sky);
+    }
 
     // Weather memories (G2.3): the first time each weather is experienced
     // while playing, it becomes a keepsake memory.
-    if (playing && this.sky.weatherBlend > 0.9 && this.sky.weather !== this._lastWeatherSeen) {
+    if (playing && !this.summit.active &&
+        this.sky.weatherBlend > 0.9 && this.sky.weather !== this._lastWeatherSeen) {
       this._lastWeatherSeen = this.sky.weather;
       const text = {
         clear: 'Clear skies — the whole valley stretched out in sunlight.',
@@ -1220,7 +1284,11 @@ class Game {
     // older hot-swapped/exported music.js predates setScene().
     this.music.update(this.sky.dayTime);
     this.music.setDucked(!playing || this.dialogue.active);
-    if (this.music.setScene) this.music.setScene(inside ? 'Tea House' : 'Overworld');
+    // 天上 gets its own sparse, heavily-filtered sound-bath mood (SCENE_MOODS
+    // in music.js), with singing bowls ringing under the pad.
+    if (this.music.setScene) {
+      this.music.setScene(inside ? 'Tea House' : (this.summit.active ? 'Summit' : 'Overworld'));
+    }
     if (this.music.updateSwell) this.music.updateSwell(dt);
 
     this.ui.setTimeWeather(this.formatTime(this.sky.dayTime), this.capitalise(this.sky.weather));
@@ -1270,7 +1338,7 @@ class Game {
     // compass keeps POIs but only those already discovered (or all, when
     // hints are on).
     if (playing) {
-      if (this.settings.values.hints) {
+      if (this.settings.values.hints && !this.summit.active) {
         this.updateWaypointTargets();
       } else if (this.waypoints.targets.length) {
         this.waypoints.setTargets([]);

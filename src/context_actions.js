@@ -122,6 +122,19 @@ export class ContextActionManager {
     this.updateDust(dt);
   }
 
+  /**
+   * Clear every interactive prompt for a frame without running the whole
+   * proximity sweep. The summit uses this: it is a respite scene, so the
+   * valley's verb prompts (including the always-true "sit down" idle verb)
+   * must never appear there.
+   */
+  hideAllPrompts() {
+    if (this.rest) this.updateRest(0);
+    this.activeAction = null;
+    this.cooldown = 0;
+    this.ui.hidePrompt();
+  }
+
   isMobile() {
     return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   }

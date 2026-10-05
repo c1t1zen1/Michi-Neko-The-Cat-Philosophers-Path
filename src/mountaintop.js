@@ -40,6 +40,12 @@ const CORRIDOR_Z0 = -26;        // where the notch leaves the meadow
 const CORRIDOR_Z1 = -48.4;      // end of the landing below the torii
 const GATE_Z = -44;             // torii line in local space
 
+// Optional cinematic for the ascent. Drop an mp4 at this path and it plays
+// full-screen; when the file is absent (or undecodable) the CSS light-burst
+// in index.html carries the transition, so the scene never hard-depends on
+// the asset existing. Never fetched at boot — attached on first use only.
+const SUMMIT_VIDEO_SRC = 'assets/summit-transition.mp4';
+
 // Summit sky: no rain, no mist — wind, drifting clouds, soft snow at times.
 const SUMMIT_WEATHER_POOL = ['clear', 'clear', 'clear', 'cloudy', 'cloudy', 'snow'];
 const SUMMIT_WEATHER_DURATIONS = { clear: 300, cloudy: 260, snow: 200 };
@@ -138,6 +144,7 @@ export class SummitManager {
     this.buildSkirtAndVista();
     this.buildSummitClouds();
     this.buildPollen();
+    this.buildSummitSnow();
     this.buildShrineRays();
     this.markSkyKeepers();
   }
@@ -351,7 +358,7 @@ export class SummitManager {
     const tufts = new THREE.Mesh(built.tufts, opts.tuftMat);
     tufts.castShadow = tufts.receiveShadow = true;
     crown.add(tufts);
-    const set = this.cardSets[opts.kind];
+    const set = this.cardSets[kind];
     const cards = new THREE.Mesh(built.cards, set.material);
     cards.customDepthMaterial = set.depth;
     cards.castShadow = cards.receiveShadow = true;
@@ -780,6 +787,58 @@ export class SummitManager {
     }
   }
 
+  /**
+   * Summit-local snow. The valley's snowfall is a scene child and gets hidden
+   * by setValleyVisible(), so a mountain-top 'snow' weather would otherwise
+   * render nothing at all. This one lives in the summit group and drifts with
+   * the same gusts as the grass.
+   */
+  buildSummitSnow() {
+    const count = 620;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(count * 3);
+    this._snowSeeds = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      pos[i * 3] = (this.rng() - 0.5) * 62;
+      pos[i * 3 + 1] = this.rng() * 26;
+      pos[i * 3 + 2] = (this.rng() - 0.5) * 62;
+      this._snowSeeds[i * 3] = this.rng() * 100;              // phase
+      this._snowSeeds[i * 3 + 1] = 0.55 + this.rng() * 0.7;   // fall speed
+      this._snowSeeds[i * 3 + 2] = 0.6 + this.rng() * 0.9;    // flutter amp
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 12, 0), 60);
+    this.snowMat = new THREE.PointsMaterial({
+      map: glowTexture(255, 255, 255, 48),
+      color: 0xffffff,
+      size: 0.3,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      sizeAttenuation: true
+    });
+    this.snow = new THREE.Points(geo, this.snowMat);
+    this.snow.name = 'Summit Snowfall';
+    this.snow.frustumCulled = false;
+    this.snow.visible = false;
+    this.group.add(this.snow);
+  }
+
+  /** Scatter the live flakes through the column above the cat. */
+  reseedSnow() {
+    const sp = this.snow.geometry.attributes.position;
+    const cx = this._localPlayer.x, cz = this._localPlayer.z;
+    for (let i = 0; i < sp.count; i++) {
+      sp.setXYZ(
+        i,
+        cx + (this.rng() - 0.5) * 66,
+        this.rng() * 26,
+        cz + (this.rng() - 0.5) * 66
+      );
+    }
+    sp.needsUpdate = true;
+  }
+
   buildPollen() {
     // Grass pollen / seeds riding the gusts — visible wind.
     const count = 90;
@@ -985,17 +1044,27 @@ export class SummitManager {
     };
 
     if (overlay) {
-      overlay.classList.remove('hidden', 'fade-out');
+      overlay.classList.remove('hidden', 'fade-out', 'fallback', 'quick', 'video-playing');
       overlay.classList.add('show');
       // Prefer the mp4 cinematic; if it is absent or unplayable the CSS
-      // light-burst carries the transition instead.
+      // light-burst in index.html carries the transition instead.
       let videoPlaying = false;
       if (video) {
+        // Attach the source lazily — a missing file is the normal case, and
+        // the 404 lands us straight on the fallback rather than a black frame.
+        if (!video.src) {
+          video.src = SUMMIT_VIDEO_SRC;
+          try { video.load(); } catch {}
+        }
         video.onended = finish;
         video.onerror = () => { overlay.classList.add('fallback'); };
         const pr = video.play();
         if (pr && pr.then) {
-          pr.then(() => { videoPlaying = true; }).catch(() => {
+          pr.then(() => {
+            videoPlaying = true;
+            // Fades the 天上 plate out once frames are actually running.
+            overlay.classList.add('video-playing');
+          }).catch(() => {
             overlay.classList.add('fallback');
           });
         } else {
@@ -1018,8 +1087,19 @@ export class SummitManager {
 
   /** Restore-from-save entry: no cinematic, just arrive. */
   enterImmediate() {
+    if (this.active) return;
     this.setActive(true);
     this.transitioning = false;
+    // Place the cat on the landing under the torii, facing up the steps into
+    // the meadow — exactly where enter() leaves it, minus the veil.
+    const g = this.game;
+    const p = g.player;
+    p.mesh.position.set(this.origin.x, this.origin.y - 1.6, this.origin.z + GATE_Z + 1.6);
+    p.heading = 0; p.yaw = 0; p.yawPrev = 0;
+    p.mesh.rotation.y = 0;
+    p.velocity.set(0, 0, 0);
+    g.camera.position.set(this.origin.x, this.origin.y - 0.4, this.origin.z + GATE_Z + 5.4);
+    g.camera.lookAt(this.origin.x, this.origin.y + 0.5, this.origin.z + 20);
   }
 
   /** Torii crossing on the summit → back to the shrine torii in the valley. */
@@ -1038,8 +1118,9 @@ export class SummitManager {
       overlay.classList.add('show', 'fallback', 'quick');
     }
     setTimeout(() => {
-      this.setActive(false);
       const p = g.player;
+      // Place the cat FIRST, so setActive(false)'s compass re-seed measures
+      // discovery against the valley position rather than the summit pocket.
       // Stand under the valley torii facing the shrine — the bell's home.
       p.mesh.position.set(0, 0, -23.6);
       p.heading = Math.PI; p.yaw = Math.PI; p.yawPrev = Math.PI;
@@ -1047,10 +1128,16 @@ export class SummitManager {
       p.velocity.set(0, 0, 0);
       g.camera.position.set(0, 1.7, -19.6);
       g.camera.lookAt(0, 0.5, -24);
+      this.setActive(false);
       setTimeout(() => {
         if (overlay) {
           overlay.classList.add('fade-out');
-          setTimeout(() => overlay.classList.add('hidden'), 900);
+          setTimeout(() => {
+            // Clear every veil mode, not just `hidden` — otherwise the next
+            // ascent inherits `quick` and reuses the descent's veil.
+            overlay.classList.remove('show', 'fallback', 'quick', 'video-playing', 'fade-out');
+            overlay.classList.add('hidden');
+          }, 900);
         }
         this.transitioning = false;
         g.controls.enabled = true;
@@ -1074,16 +1161,23 @@ export class SummitManager {
       if (!SUMMIT_WEATHER_POOL.includes(sky.targetWeather)) sky.setWeather('clear');
       sky.weatherTimer = Math.min(sky.weatherTimer, 140);
       if (this.game.audio) this.game.audio.setSummitWind(true);
-      const compass = document.getElementById('compass');
-      if (compass) compass.style.display = 'none';
+      // No hints, no missions, no waypoint arrows — a respite scene.
+      this.game.ui.hideAllGuidance();
       this.meditateT = 0;
       this.sleeping = false;
+      this._sitHintShown = false;
     } else {
       sky.weatherDurations = this._savedDurations || sky.weatherDurations;
       sky.weatherPool = null;
       if (this.game.audio) this.game.audio.setSummitWind(false);
-      const compass = document.getElementById('compass');
-      if (compass) compass.style.display = '';
+      // Restore the valley's guidance, and re-seed the compass so its POIs
+      // come back where they were.
+      for (const id of ['quest-card', 'compass']) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = '';
+      }
+      if (this.game.waypoints) this.game.waypoints.setTargets([]);
+      if (this.game.refreshCompassPois) this.game.refreshCompassPois();
     }
   }
 
@@ -1154,6 +1248,37 @@ export class SummitManager {
       pp.needsUpdate = true;
     }
 
+    // Summit-local snow — only while the weather actually says snow. Parks the
+    // system (visible=false) otherwise so it costs nothing in clear weather.
+    if (this.snow && this.snowMat) {
+      const snowing = sky && (sky.weather === 'snow' ||
+        (sky.weather === 'cloudy' && sky.weatherBlend > 0.65));
+      const target = snowing ? 0.8 : 0;
+      this.snowMat.opacity += (target - this.snowMat.opacity) * Math.min(1, dt * 1.4);
+      const wasVisible = this.snow.visible;
+      this.snow.visible = this.snowMat.opacity > 0.012;
+      if (this.snow.visible) {
+        const sp = this.snow.geometry.attributes.position;
+        if (!wasVisible) this.reseedSnow();
+        for (let i = 0; i < sp.count; i++) {
+          const phase = this._snowSeeds[i * 3];
+          const fall = this._snowSeeds[i * 3 + 1];
+          const amp = this._snowSeeds[i * 3 + 2];
+          let x = sp.getX(i) + Math.sin(t * 1.3 + phase) * dt * 0.7 * amp;
+          let y = sp.getY(i) - fall * dt;
+          let z = sp.getZ(i) + Math.cos(t * 1.05 + phase * 1.3) * dt * 0.55 * amp;
+          if (y < 0.1) {
+            // Landed: recycle upwind so gusts visibly sweep the field.
+            y = 24 + this.rng() * 4;
+            x = this._localPlayer.x - 34 + this.rng() * 68;
+            z = this._localPlayer.z - 34 + this.rng() * 68;
+          }
+          sp.setXYZ(i, x, y, z);
+        }
+        sp.needsUpdate = true;
+      }
+    }
+
     // Gentle crown sway for the rim trees.
     for (const s of this.swayables) {
       s.node.rotation.z = Math.sin(t * s.freq * 0.3 + s.phase) * s.amp;
@@ -1199,7 +1324,15 @@ export class SummitManager {
         this.sleeping = false;
         this.meditateT = 0;
       }
-    } else if (!this.sleeping) {
+    } else {
+      // The spell breaks the moment the cat moves or leaves the meadow
+      // heart. Without this the `sleeping` flag latches on forever: every
+      // other branch is guarded by `!this.sleeping`, so a sleeping cat that
+      // stands up would never be cleared and could never re-sit.
+      if (this.sleeping) {
+        this.sleeping = false;
+        if (cat.idleAction === 'sleep') cat.endIdleAction();
+      }
       this.meditateT = 0;
     }
   }
