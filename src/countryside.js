@@ -4,11 +4,11 @@ import {
   plasterTextures, woodTextures, kawaraTextures, shojiTextures, tatamiTextures,
   cobbleTextures, stoneTextures, groundTextures, dirtTextures, strawTextures,
   metalTextures, texturedMaterial, worldScaleBoxUVs, worldNoise
-} from './textures.js?v=20260929b';
+} from './textures.js?v=20261005a';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, lumpyTuftGeometry, lumpyConeGeometry,
   leafCardTexture, buildCanopy
-} from './foliage.js?v=20260929b';
+} from './foliage.js?v=20261005a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -2945,6 +2945,10 @@ export class Countryside {
     }
     const trunks = new THREE.InstancedMesh(trunkGeo, barkMat, count);
     trunks.name = 'Edge Forest Trunks';
+    this.edgeForestTrunks = trunks;
+    // Corridor trees standing behind the shrine — they lean aside when the
+    // tenth bell opens the way to the summit (setShrineThicketOpen).
+    this.shrineThicketTrees = [];
     const dummy = new THREE.Object3D();
     const col = new THREE.Color();
     const pagodaBearing = Math.atan2(56, 12);
@@ -2961,9 +2965,15 @@ export class Countryside {
       const sightlineHeight = Math.abs(angleDelta) < 0.3 ? 0.88 * 0.9 : 1;
       const set = sets[assign[i]];
       const idx = set.next++;
+      // Captured so the thicket can re-pose this instance later; the call
+      // order of the RNG is preserved exactly.
+      const rotCrown = this.random() * Math.PI * 2;
+      const sx = s * (0.9 + this.random() * 0.2);
+      const sz = s * (0.9 + this.random() * 0.2);
+      const rotTrunk = this.random() * Math.PI;
       dummy.position.set(x, 0, z);
-      dummy.rotation.set(0, this.random() * Math.PI * 2, 0);
-      dummy.scale.set(s * (0.9 + this.random() * 0.2), s * sightlineHeight, s * (0.9 + this.random() * 0.2));
+      dummy.rotation.set(0, rotCrown, 0);
+      dummy.scale.set(sx, s * sightlineHeight, sz);
       dummy.updateMatrix();
       set.tufts.setMatrixAt(idx, dummy.matrix);
       set.cards.setMatrixAt(idx, dummy.matrix);
@@ -2974,14 +2984,21 @@ export class Countryside {
       set.cards.setColorAt(idx, col);
       dummy.position.set(x, 0.6 * s * sightlineHeight, z);
       dummy.scale.set(s, s * sightlineHeight, s);
-      dummy.rotation.set(0, this.random() * Math.PI, 0);
+      dummy.rotation.set(0, rotTrunk, 0);
       dummy.updateMatrix();
       trunks.setMatrixAt(i, dummy.matrix);
       // Impassable wall collider
-      this.colliders.push(new THREE.Box3(
+      const box = new THREE.Box3(
         new THREE.Vector3(x - s * 0.35, 0, z - s * 0.35),
         new THREE.Vector3(x + s * 0.35, s * 2.2, z + s * 0.35)
-      ));
+      );
+      this.colliders.push(box);
+      if (Math.abs(x) < 3.6 && z < -33) {
+        this.shrineThicketTrees.push({
+          set, idx, trunkIdx: i, x, z, s, sy: s * sightlineHeight,
+          sx, sz, rotCrown, rotTrunk, side: x >= 0 ? 1 : -1, box
+        });
+      }
     }
     for (const set of sets) {
       for (const m of [set.tufts, set.cards, set.branches]) {
@@ -3000,6 +3017,10 @@ export class Countryside {
     const bushGeo = lumpyTuftGeometry(1, 7, 0.3);
     const bushMat = createFoliageMaterial({ sss: 0.2, wind: 0.6, mottle: 0.3, vertexColors: false });
     const bushes = new THREE.InstancedMesh(bushGeo, bushMat, 160);
+    bushes.name = 'Wall Undergrowth';
+    this.undergrowthMesh = bushes;
+    // Shrubs in the shrine's rear corridor — they part open with the trees.
+    this.shrineThicketBushes = [];
     const bushCol = new THREE.Color();
     for (let i = 0; i < 160; i++) {
       const a = this.random() * Math.PI * 2;
@@ -3007,17 +3028,26 @@ export class Countryside {
       const s = 0.9 + this.random() * 1.6;
       const x = Math.cos(a) * r;
       const z = Math.sin(a) * r;
+      const rotY = this.random() * Math.PI;
       dummy.position.set(x, s * 0.5, z);
       dummy.scale.set(s * 1.2, s * 0.8, s * 1.2);
-      dummy.rotation.set(0, this.random() * Math.PI, 0);
+      dummy.rotation.set(0, rotY, 0);
       dummy.updateMatrix();
       bushes.setMatrixAt(i, dummy.matrix);
       bushes.setColorAt(i, bushCol.setHex(0x2c5222).offsetHSL((this.random() - 0.5) * 0.03, 0, (this.random() - 0.5) * 0.08));
+      let box = null;
       if (r < 41) {
-        this.colliders.push(new THREE.Box3(
+        box = new THREE.Box3(
           new THREE.Vector3(x - s * 0.6, 0, z - s * 0.6),
           new THREE.Vector3(x + s * 0.6, Math.max(0.9, s), z + s * 0.6)
-        ));
+        );
+        this.colliders.push(box);
+      }
+      if (Math.abs(x) < 9 && z < -32) {
+        this.shrineThicketBushes.push({
+          i, x, z, y: s * 0.5, sx: s * 1.2, sy: s * 0.8, sz: s * 1.2,
+          rotY, side: x >= 0 ? 1 : -1, box
+        });
       }
     }
     bushes.instanceMatrix.needsUpdate = true;
@@ -3025,6 +3055,56 @@ export class Countryside {
     bushes.castShadow = true;
     bushes.receiveShadow = true;
     this.scene.add(bushes);
+  }
+
+  /**
+   * The thicket behind the shrine parts open when the tenth bell rings —
+   * the corridor trees lean aside and the undergrowth shrubs slide outward,
+   * opening a walkable gap where the god-rays stand. t: 0 closed → 1 open.
+   * One-way: the unlock is permanent, so the wall colliders are dropped
+   * once the opening starts (the parted thicket stands outside the gap).
+   */
+  setShrineThicketOpen(t) {
+    t = Math.max(0, Math.min(1, t));
+    if (t === this._thicketT) return;
+    this._thicketT = t;
+    const dummy = this._thicketDummy || (this._thicketDummy = new THREE.Object3D());
+    const touched = new Set();
+    for (const b of this.shrineThicketBushes) {
+      const dx = b.side * (2.8 + b.sx * 0.6) * t;
+      dummy.position.set(b.x + dx, b.y - 0.45 * t, b.z);
+      dummy.rotation.set(0, b.rotY, b.side * 0.2 * t);
+      dummy.scale.set(b.sx, b.sy * (1 - 0.3 * t), b.sz);
+      dummy.updateMatrix();
+      this.undergrowthMesh.setMatrixAt(b.i, dummy.matrix);
+      touched.add(this.undergrowthMesh);
+    }
+    for (const tr of this.shrineThicketTrees) {
+      const dx = tr.side * (3.4 + tr.s * 0.8) * t;
+      const lean = tr.side * 0.26 * t;
+      dummy.position.set(tr.x + dx, -0.35 * t, tr.z);
+      dummy.rotation.set(0, tr.rotCrown, lean);
+      dummy.scale.set(tr.sx, tr.sy, tr.sz);
+      dummy.updateMatrix();
+      tr.set.tufts.setMatrixAt(tr.idx, dummy.matrix);
+      tr.set.cards.setMatrixAt(tr.idx, dummy.matrix);
+      tr.set.branches.setMatrixAt(tr.idx, dummy.matrix);
+      touched.add(tr.set.tufts); touched.add(tr.set.cards); touched.add(tr.set.branches);
+      dummy.position.set(tr.x + dx, 0.6 * tr.sy - 0.35 * t, tr.z);
+      dummy.rotation.set(0, tr.rotTrunk, lean);
+      dummy.scale.set(tr.s, tr.sy, tr.s);
+      dummy.updateMatrix();
+      this.edgeForestTrunks.setMatrixAt(tr.trunkIdx, dummy.matrix);
+      touched.add(this.edgeForestTrunks);
+    }
+    for (const m of touched) m.instanceMatrix.needsUpdate = true;
+    if (t > 0 && !this._thicketCollidersDropped) {
+      this._thicketCollidersDropped = true;
+      const drop = new Set();
+      for (const b of this.shrineThicketBushes) if (b.box) drop.add(b.box);
+      for (const tr of this.shrineThicketTrees) if (tr.box) drop.add(tr.box);
+      if (drop.size) this.colliders = this.colliders.filter((b) => !drop.has(b));
+    }
   }
 
   buildVillage() {

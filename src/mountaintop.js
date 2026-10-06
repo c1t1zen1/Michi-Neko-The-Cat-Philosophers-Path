@@ -3,11 +3,11 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   dirtTextures, stoneTextures, woodTextures, metalTextures, barkTextures,
   texturedMaterial, worldNoise, glowTexture
-} from './textures.js?v=20260929b';
+} from './textures.js?v=20261005a';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture,
   leafCardGeometry, buildCanopy, updateFoliage, lumpyTuftGeometry
-} from './foliage.js?v=20260929b';
+} from './foliage.js?v=20261005a';
 
 function mulberry32(a) {
   return function() {
@@ -74,6 +74,7 @@ export class SummitManager {
     this.meditateT = 0;
     this.sleeping = false;
     this._sitHintShown = false;
+    this._thicketOpen = 0;
     this.time = 0;
 
     this.group = new THREE.Group();
@@ -153,11 +154,15 @@ export class SummitManager {
 
   isInWater() { return false; }
 
-  /** Base ground height: meadow is flat, the stair corridor floor sits low. */
+  /**
+   * Base ground height — WORLD space, like the interior's getGroundHeight:
+   * the player physics compares it against the cat's world y, so returning
+   * the local 0/-1.6 would snap the cat out of the summit pocket.
+   */
   groundAt(x, z) {
     const lx = x - this.origin.x, lz = z - this.origin.z;
-    if (Math.abs(lx) < 4.2 && lz < -29.5 && lz > -49.2) return -1.6;
-    return 0;
+    if (Math.abs(lx) < 4.2 && lz < -29.5 && lz > -49.2) return this.origin.y - 1.6;
+    return this.origin.y;
   }
 
   /** Soft containment: meadow circle + the stair corridor notch. */
@@ -392,6 +397,14 @@ export class SummitManager {
       trunk: { rTop: 0.09, rBot: 0.17, h: 1.9, lean: 0.2 },
       canopy: { primaries: 4, tilt: 1.05, tiltVar: 0.28, droop: 0.12, bend: 0.06, branchLen: 1.45, secondaries: 2, twigs: false, crownFill: 2, clumpR: 0.55, tuftsPerClump: [4, 3, 2], cardsPerClump: [12, 10, 6], cardSize: 0.72, tuftFlat: 0.38, pad: true, lump: 0.3, seed: 37 },
       sway: 0.05
+    });
+    // The shade tree over the sitting spot — the reference art's broad
+    // green crown, open over the meditation stone and the vista.
+    this._tree(7.4, 8.4, 1.75, 'broadleaf', {
+      colors: this.colLeaf, tuftMat: this.matFoliage,
+      trunk: { rTop: 0.16, rBot: 0.3, h: 2.6, lean: 0.08 },
+      canopy: { primaries: 7, tilt: 0.82, tiltVar: 0.2, droop: -0.04, bend: 0.12, branchLen: 1.7, secondaries: 2, twigs: true, crownFill: 3, clumpR: 0.52, tuftsPerClump: [3, 3, 2], cardsPerClump: [12, 10, 7], cardSize: 0.7, tuftFlat: 0.62, lump: 0.32, seed: 63 },
+      sway: 0.05, collider: 0.44
     });
     // The leaning sakura on the eastern brow — the framing tree of the vista.
     this._tree(22.5, 11, 1.35, 'sakura', {
@@ -873,8 +886,9 @@ export class SummitManager {
     g.name = 'Shrine Summit Rays';
     const rayTex = this.makeRayTexture();
     const baseY = 0;
-    // Fan of leaning shafts rising from behind the shrine roof
-    for (let i = 0; i < 7; i++) {
+    // Fan of leaning shafts rising from behind the shrine roof — kept inside
+    // the parted thicket's gap so the light reads through it.
+    for (let i = 0; i < 9; i++) {
       const w = 1.6 + this.rng() * 2.6;
       const ray = new THREE.Mesh(
         new THREE.PlaneGeometry(w, 17 + this.rng() * 7),
@@ -884,19 +898,31 @@ export class SummitManager {
           side: THREE.DoubleSide, fog: false
         })
       );
-      const a = (i / 6 - 0.5) * 0.9;
-      ray.position.set(Math.sin(a) * 4.2, baseY + 8.5, -39.4 - Math.abs(a) * 2);
+      const a = (i / 8 - 0.5) * 1.15;
+      ray.position.set(Math.sin(a) * 6.8, baseY + 8.5, -39.4 - Math.abs(a) * 2);
       ray.rotation.z = a * 0.55;
       ray.rotation.y = a * 0.4;
       ray.userData.phase = this.rng() * Math.PI * 2;
-      ray.userData.baseOpacity = 0.34 + this.rng() * 0.3;
+      ray.userData.baseOpacity = 0.55 + this.rng() * 0.35;
       g.add(ray);
       this._rays = this._rays || [];
       this._rays.push(ray);
     }
+    // A soft bloom in the gap — light flooding through, readable against
+    // the fog where thin shafts alone would wash out.
+    const bloom = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowTexture(255, 236, 190, 64), transparent: true, opacity: 0.0,
+      blending: THREE.AdditiveBlending, depthWrite: false, fog: false
+    }));
+    bloom.position.set(0, baseY + 5.2, -38.6);
+    bloom.scale.set(15, 10, 1);
+    bloom.userData.phase = 1.7;
+    bloom.userData.baseOpacity = 0.5;
+    g.add(bloom);
+    this._rays.push(bloom);
     // Ground glow where the light pools
     const pool = new THREE.Mesh(
-      new THREE.CircleGeometry(3.4, 24),
+      new THREE.CircleGeometry(4.6, 28),
       new THREE.MeshBasicMaterial({
         map: glowTexture(255, 232, 176, 64), transparent: true, opacity: 0.0,
         blending: THREE.AdditiveBlending, depthWrite: false, fog: false
@@ -905,7 +931,7 @@ export class SummitManager {
     pool.rotation.x = -Math.PI / 2;
     pool.position.set(0, baseY + 0.06, -40.4);
     pool.userData.phase = 0;
-    pool.userData.baseOpacity = 0.5;
+    pool.userData.baseOpacity = 0.55;
     g.add(pool);
     this._rays.push(pool);
 
@@ -988,9 +1014,20 @@ export class SummitManager {
   setUnlocked(on, silent = false) {
     this.unlocked = on;
     if (this.raysGroup) this.raysGroup.visible = on;
+    if (on && silent) {
+      // Restore-from-save: the thicket is already open — no animation.
+      this._thicketOpen = 1;
+      if (this.game.city && this.game.city.setShrineThicketOpen) {
+        this.game.city.setShrineThicketOpen(1);
+      }
+    }
     if (on && !silent) {
       if (this.game.audio) this.game.audio.playMonkChoir();
-      this.game.ui.showToast('✦ Light spills from behind the shrine — the mountain calls ✦', 5200);
+      // A gentle look-up so the light reveal lands — the player can take
+      // over at any time (a downward drag cancels it, never fought).
+      this._revealT = 3.0;
+      this._revealPitch = this.game.player.pitch || 0;
+      this.game.ui.showToast('✦ The thicket parts — light spills from behind the shrine ✦', 5200);
       if (this.game.progression) this.game.progression.addXP(60, 'The tenth bell — a path of light');
       this.game.discover('places', { id: 'summit-path', text: 'Light gathers behind the shrine where the mountain leans close' });
       this.game.saveGame();
@@ -1189,6 +1226,28 @@ export class SummitManager {
       const t = this.time += dt;
       for (const r of this._rays) {
         r.material.opacity = r.userData.baseOpacity * (0.72 + 0.28 * Math.sin(t * 0.7 + r.userData.phase));
+      }
+      // The thicket behind the shrine parts open — one-way, permanent.
+      if (this._thicketOpen < 1) {
+        this._thicketOpen = Math.min(1, this._thicketOpen + dt * 0.35);
+        if (this.game.city && this.game.city.setShrineThicketOpen) {
+          this.game.city.setShrineThicketOpen(smoothstep(0, 1, this._thicketOpen));
+        }
+      }
+      // The reveal: lift the gaze toward the light for a beat (negative
+      // pitch lowers the boom and looks up). A downward drag cancels it
+      // immediately — the camera never fights the player.
+      if (this._revealT > 0) {
+        this._revealT -= dt;
+        const p = this.game.player;
+        if (typeof p.pitch === 'number') {
+          if (p.pitch > this._revealPitch + 0.03) {
+            this._revealT = 0;
+          } else if (p.pitch > -0.35) {
+            p.pitch = Math.max(-0.35, p.pitch - dt * 0.2);
+            this._revealPitch = p.pitch;
+          }
+        }
       }
       const pos = this.game.player.mesh.position;
       // The portal pool behind the shrine

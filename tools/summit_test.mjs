@@ -221,7 +221,6 @@ const pre = `
 vm.runInContext(pre + src.replace('export class SummitManager', 'class SummitManager') +
   '\nthis.SummitManager = SummitManager;', sandbox);
 
-/* ---------------- fake game ---------------- */
 const toasts = [];
 const audioCalls = [];
 const sceneChildren = [];
@@ -229,8 +228,8 @@ const sceneChildren = [];
 function makeGame() {
   audioCalls.length = 0; toasts.length = 0; sceneChildren.length = 0;
   const guard = (name) => (...a) => { audioCalls.push(name); };
-  return {
-    audioCalls, toasts,
+  const game = {
+    audioCalls, toasts, thicketCalls: [],
     scene: { children: sceneChildren, add(o) { sceneChildren.push(o); } },
     player: {
       mesh: { position: new V3(0, 0, -20), rotation: { y: 0 }, userData: {} },
@@ -282,8 +281,12 @@ function makeGame() {
     waypoints: { setTargets() {} },
     quest: {}, progression: { addXP() {} },
     discover() {}, saveGame() {}, music: { swell() {} }, refreshCompassPois() {},
-    city: { secretDoorSpawnPos: { x: 20, z: 14.5 }, colliders: [] },
+    city: {
+      secretDoorSpawnPos: { x: 20, z: 14.5 }, colliders: [],
+      setShrineThicketOpen: (t) => game.thicketCalls.push(t),
+    },
   };
+  return game;
 }
 
 const SummitManager = sandbox.SummitManager;
@@ -332,6 +335,9 @@ ok('re-ringing never re-fires the unlock',
 const t0 = S.time;
 S.update(0.016, true);
 ok('beacon pulses in the valley once unlocked', S.time > t0 && S.active === false);
+ok('the thicket behind the shrine parts open',
+  g.thicketCalls.length > 0 && g.thicketCalls[g.thicketCalls.length - 1] > 0,
+  `calls=${g.thicketCalls.length}`);
 
 // --- entry (skip the cinematic timers) ---
 S.enterImmediate();
@@ -349,6 +355,13 @@ const pp = g.player.mesh.position;
 ok('cat lands on the torii landing',
   Math.abs(pp.y - (-1201.6)) < 0.01 && Math.abs(pp.z - (-42.4)) < 0.01,
   `y=${pp.y} z=${pp.z}`);
+
+// The player physics compares groundAt() against the cat's WORLD y — local
+// heights here would snap the cat from the summit pocket to valley level.
+ok('groundAt returns world heights',
+  Math.abs(S.groundAt(0, -42.4) - (-1201.6)) < 0.01 &&
+  Math.abs(S.groundAt(0, 0) - (-1200)) < 0.01,
+  `corridor=${S.groundAt(0, -42.4)} meadow=${S.groundAt(0, 0)}`);
 
 // --- containment: the cat can never wander off the summit ---
 const runaway = { x: 300, y: 0, z: 0 };
@@ -380,6 +393,7 @@ ok('exit leaves the veil fully cleared for the next ascent',
 g = makeGame();
 S = new SummitManager(g);
 S.setUnlocked(true, true);
+ok('restore-from-save opens the thicket instantly', g.thicketCalls.includes(1));
 S.enterImmediate();
 
 // Park the cat dead-centre in the meadow heart, sitting and perfectly still.

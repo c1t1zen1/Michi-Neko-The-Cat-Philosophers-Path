@@ -3,8 +3,8 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   plasterTextures, woodTextures, shojiTextures, tatamiTextures, stoneTextures,
   strawTextures, metalTextures, texturedMaterial, worldScaleBoxUVs
-} from './textures.js?v=20260929b';
-import { lumpyTuftGeometry } from './foliage.js?v=20260929b';
+} from './textures.js?v=20261005a';
+import { lumpyTuftGeometry } from './foliage.js?v=20261005a';
 
 const panel = (m) => { m.userData.uvPanel = true; return m; };
 const MAT = {
