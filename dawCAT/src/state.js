@@ -219,7 +219,7 @@ export class AppState extends EventTarget {
     const keepSfx = this.selection && p.sfx.some((s) => s.id === this.selection.sfxId) ? this.selection.sfxId : null;
     this.project = p;
     this.selection = { trackId: p.tracks[0] ? p.tracks[0].id : null, clipId: null, selectedClipIds: [], noteId: null, deviceId: null, eqBand: 1, sfxId: keepSfx || (p.sfx[0] ? p.sfx[0].id : null) };
-    if (resetUndo) { this.undoStack = []; this.redoStack = []; }
+    if (resetUndo) { this.undoStack = []; this.redoStack = []; clearTimeout(this._undoTimer); this._pendingUndo = null; }
     this.emit('project');
     this.emit('selection');
   }
@@ -263,13 +263,25 @@ export class AppState extends EventTarget {
 
   /* ---------- undo/redo ---------- */
 
+  /* Called just BEFORE a mutation. The first call of a burst (a knob drag, a
+     note drag) snapshots the pre-edit project; the snapshot is committed to
+     the undo stack once the burst has been quiet for 250 ms, so the whole
+     burst is one undo step back to where it started. (It used to snapshot
+     250 ms after the edit — i.e. the post-edit state — which left every
+     manual undo one step behind.) */
   pushUndo() {
+    if (this._pendingUndo == null) this._pendingUndo = JSON.stringify(this.project);
     clearTimeout(this._undoTimer);
-    this._undoTimer = setTimeout(() => {
-      this.undoStack.push(JSON.stringify(this.project));
-      if (this.undoStack.length > 80) this.undoStack.shift();
-      this.redoStack = [];
-    }, 250);
+    this._undoTimer = setTimeout(() => this.flushUndo(), 250);
+  }
+
+  flushUndo() {
+    clearTimeout(this._undoTimer);
+    if (this._pendingUndo == null) return;
+    this.undoStack.push(this._pendingUndo);
+    this._pendingUndo = null;
+    if (this.undoStack.length > 80) this.undoStack.shift();
+    this.redoStack = [];
   }
 
   /* Runs `mutate` (any number of state-mutating calls — addTrack, addClip, ...)
@@ -279,23 +291,26 @@ export class AppState extends EventTarget {
      pushUndo()-debounced calls happened inside. Used to apply a whole AI agent
      plan as one Ctrl+Z, matching cadJS's agent-plan transaction pattern. */
   applyBatch(mutate) {
-    clearTimeout(this._undoTimer);
+    this.flushUndo();
     const before = JSON.stringify(this.project);
     try {
       mutate();
     } catch (e) {
       clearTimeout(this._undoTimer);
+      this._pendingUndo = null;
       this.project = JSON.parse(before);
       this.emit('project'); this.emit('selection');
       throw e;
     }
     clearTimeout(this._undoTimer);
+    this._pendingUndo = null;
     this.undoStack.push(before);
     if (this.undoStack.length > 80) this.undoStack.shift();
     this.redoStack = [];
   }
 
   undo() {
+    this.flushUndo();
     if (!this.undoStack.length) return false;
     this.redoStack.push(JSON.stringify(this.project));
     this.setProject(JSON.parse(this.undoStack.pop()), { resetUndo: false });
@@ -304,6 +319,8 @@ export class AppState extends EventTarget {
   }
 
   redo() {
+    // An edit made since the undo commits here and (correctly) clears redo.
+    this.flushUndo();
     if (!this.redoStack.length) return false;
     this.undoStack.push(JSON.stringify(this.project));
     this.setProject(JSON.parse(this.redoStack.pop()), { resetUndo: false });

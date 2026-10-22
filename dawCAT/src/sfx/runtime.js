@@ -96,6 +96,19 @@ export function sfxRuntime() {
     return layer.start * stretch + (r.count - 1) * r.interval * stretch + hitLength(layer, stretch);
   }
 
+  /* Per-layer hit spans (seconds, canonical variation) — the editor's lanes. */
+  function timeline(patch) {
+    const p = normalize(patch);
+    return p.layers.map((l, index) => {
+      const hits = [];
+      for (let k = 0; k < l.repeat.count; k++) {
+        const start = l.start + k * l.repeat.interval;
+        hits.push({ start, end: start + hitLength(l, 1) });
+      }
+      return { index, id: l.id, kind: l.kind, on: l.on && l.gain > 0, hits };
+    });
+  }
+
   function duration(patch) {
     const p = normalize(patch);
     let end = 0;
@@ -367,5 +380,5 @@ export function sfxRuntime() {
     return { start: t0, end, duration: end - t0 };
   }
 
-  return { play, duration, normalize, noise, version: 1 };
+  return { play, duration, timeline, normalize, noise, version: 1 };
 }

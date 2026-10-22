@@ -107,6 +107,15 @@ test('newLayer makes a playable layer of each kind', () => {
   }
 });
 
+test('timeline reports each layer\'s hits for the editor lanes', () => {
+  const lanes = rt.timeline({ layers: [{ freq: 500, start: 0.1, repeat: { count: 3, interval: 0.05 }, env: { attack: 0, hold: 0, decay: 0.1, sustain: 0 } }, { on: false }] });
+  assert.equal(lanes.length, 2);
+  assert.equal(lanes[0].hits.length, 3);
+  assert.ok(Math.abs(lanes[0].hits[2].start - 0.2) < 1e-9);
+  assert.ok(Math.abs(lanes[0].hits[0].end - 0.2) < 1e-9);
+  assert.equal(lanes[1].on, false);
+});
+
 test('GAME_HOOKS lists the game AudioManager methods', () => {
   for (const h of ['playMeow', 'playCollect', 'playFootstep', 'playBell']) assert.ok(GAME_HOOKS.includes(h), h);
 });
