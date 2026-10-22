@@ -6,3 +6,5 @@ tmp_*.txt
 assets/*.mp4
 
 node_modules/
+# Claude Code worktrees (local checkouts, never commit)
+.claude/worktrees/
