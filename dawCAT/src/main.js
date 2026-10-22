@@ -17,6 +17,7 @@ import { Mixer } from './ui/mixer.js';
 import { Inspector } from './ui/inspector.js';
 import { Devices } from './ui/devices.js';
 import { AgentPanel } from './ui/agent-panel.js';
+import { SfxDesigner } from './ui/sfx-designer.js';
 import { el, toast, showModal, download } from './ui/common.js';
 
 function slug(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled'; }
@@ -67,6 +68,7 @@ class App {
       this.mixer = new Mixer(this);
       this.inspector = new Inspector(this);
       this.devices = new Devices(this);
+      this.sfxDesigner = new SfxDesigner(this);
       this.ensureAgentPanel();
     } catch (err) {
       console.error('[dawCAT] panel failed to initialize', err);
@@ -118,6 +120,14 @@ class App {
     this.activeTab = name;
     document.querySelectorAll('.tab[data-tab]').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
     document.querySelectorAll('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + name));
+    if (name === 'sfx' && this.sfxDesigner) this.sfxDesigner.onShow();
+  }
+
+  openSoundDesign() { this.switchTab('sfx'); }
+
+  exportSfxPack() {
+    this.switchTab('sfx');
+    this.sfxDesigner.exportPackDialog();
   }
 
   openClipEditor(clipId) {
@@ -582,7 +592,11 @@ class App {
         e.preventDefault();
         st.persist();
         toast('Saved to browser');
+      } else if (e.key === 'Enter' && this.activeTab === 'sfx') {
+        e.preventDefault();
+        this.sfxDesigner.preview();
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (this.activeTab === 'sfx') return;
         this.deleteSelection();
       } else if (TYPE_KEYS[e.key.toLowerCase()] != null && !e.ctrlKey && !e.metaKey) {
         const midi = TYPE_KEYS[e.key.toLowerCase()];

@@ -29,6 +29,7 @@ function buildMenus(app) {
         { label: 'Export MIDI (.mid)', onClick: () => app.exportMidi() },
         'sep',
         { label: 'Export to Game…', onClick: () => app.exportToGameDialog() },
+        { label: 'Export SFX Pack…', onClick: () => app.exportSfxPack() },
         'sep',
         { label: 'Rescan Game Cues', onClick: () => app.rescanCues() }
       ]
@@ -61,6 +62,7 @@ function buildMenus(app) {
         { label: 'Enable Audio', onClick: () => app.enableAudio() },
         { label: 'Toggle Metronome', onClick: () => app.toggleMetronome() },
         'sep',
+        { label: '✦ Sound Design', onClick: () => app.openSoundDesign() },
         { label: 'Preview Game SFX ▸', onClick: () => app.previewSfxDialog() }
       ]
     },
