@@ -561,8 +561,8 @@ class App {
 
   showAbout() {
     const box = el('div', { class: 'hintbox' });
-    box.innerHTML = 'A tiny Ableton-style DAW built for <i>Michi-Neko: The Cat Philosopher\'s Path</i>. Compose with the game\'s own musical DNA, then export straight back into it. Pure Web Audio — no dependencies, no build step.';
-    showModal({ title: 'dawCAT · Web Audio Studio', body: box, buttons: [{ label: 'Close' }] });
+    box.innerHTML = 'An audio asset studio built for <i>Michi-Neko: The Cat Philosopher\'s Path</i>. Compose music cues with the game\'s own musical DNA, design procedural sound effects in <b>✦ Sound Design</b>, and let the <b>✦ AI assistant</b> (local llama-server or a cloud API) do the heavy lifting — then export straight back into the game. Pure Web Audio — no dependencies, no build step.';
+    showModal({ title: 'dawCAT 2.0 · Audio Asset Studio', body: box, buttons: [{ label: 'Close' }] });
   }
 
   /* ---------- shortcuts ---------- */
