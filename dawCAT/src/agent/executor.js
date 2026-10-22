@@ -84,7 +84,10 @@ export class PlanExecutor {
       selection: { trackId: st.selection.trackId, clipId: st.selection.clipId, sfxId: st.selection.sfxId },
       master: { volume: p.master.volume },
       tracks,
-      sfx: (p.sfx || []).slice(0, 40),
+      // Full patches only where sounds are the subject; music modes get a
+      // one-line summary so many SFX can't crowd a small model's context.
+      sfx: (p.sfx || []).slice(0, 40).map((s) => (['sfx', 'free'].includes(mode) ? s
+        : { id: s.id, name: s.name, category: s.category, layers: s.layers.length, gameHook: s.gameHook || undefined })),
       gameCues: cues.slice(0, 12),
       gameHooks: mode === 'sfx' ? GAME_HOOKS : undefined,
       constraints: { maxActions: 60, undoable: true }

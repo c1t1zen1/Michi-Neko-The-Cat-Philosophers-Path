@@ -99,8 +99,8 @@ export function fmtDb(v) {
 }
 
 /* Draggable knob control. `log: true` maps the sweep logarithmically (for
-   frequencies), `title` adds a hover explanation; the mouse wheel nudges
-   in fine steps and double-click resets to `def`. */
+   frequencies), `title` adds a hover explanation; once grabbed, the mouse
+   wheel nudges it in fine steps, and double-click resets to `def`. */
 export function makeKnob({ label, min, max, value, step = 0.01, fmt, onChange, def, size = 34, log = false, title }) {
   let val = value;
   const lo = log ? Math.max(min, 1e-6) : min;
@@ -123,7 +123,12 @@ export function makeKnob({ label, min, max, value, step = 0.01, fmt, onChange, d
     valEl.textContent = fmt ? fmt(val) : val.toFixed(2);
   }
 
+  // The wheel fine-tunes only a knob you've grabbed (until the pointer
+  // leaves it), so scrolling a panel past knobs never changes them.
+  let armed = false;
+  knob.addEventListener('pointerleave', () => { armed = false; });
   dial.addEventListener('wheel', (e) => {
+    if (!armed) return;
     e.preventDefault();
     val = quantize(fromF(Math.min(1, Math.max(0, toF(val) - Math.sign(e.deltaY) * 0.01))));
     render();
@@ -132,6 +137,7 @@ export function makeKnob({ label, min, max, value, step = 0.01, fmt, onChange, d
 
   dial.addEventListener('pointerdown', (e) => {
     e.preventDefault();
+    armed = true;
     const startY = e.clientY;
     const startF = toF(val);
     const onMove = (ev) => {

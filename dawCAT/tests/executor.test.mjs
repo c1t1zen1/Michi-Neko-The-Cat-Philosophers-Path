@@ -207,6 +207,16 @@ test('buildContext lists tracks, clip content, SFX and selection', () => {
   assert.ok(Array.isArray(ctx.gameHooks));
 });
 
+test('music modes get SFX summaries; sound modes get full patches', () => {
+  const { ex } = setup();
+  run(ex, [{ type: 'addSfx', params: { template: 'meow' } }]);
+  const compose = ex.buildContext({ mode: 'compose' }).sfx[0];
+  assert.equal(Array.isArray(compose.layers), false);
+  assert.equal(compose.layers, 3);
+  assert.ok(Array.isArray(ex.buildContext({ mode: 'sfx' }).sfx[0].layers));
+  assert.ok(Array.isArray(ex.buildContext({ mode: 'free' }).sfx[0].layers));
+});
+
 test('v1 projects without an sfx array load and gain one', () => {
   const state = new AppState();
   const p = defaultProject();
