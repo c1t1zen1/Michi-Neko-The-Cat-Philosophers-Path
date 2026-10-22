@@ -1102,16 +1102,59 @@ class CadApp {
       if (Array.isArray(p.position)) object.position.fromArray(p.position.map(Number)); if (Array.isArray(p.rotation)) object.rotation.set(...p.rotation.map((n) => Number(n) * RAD)); if (Array.isArray(p.scale)) object.scale.fromArray(p.scale.map(Number));
       const material = Array.isArray(object.material) ? object.material[0] : object.material; if (p.color && material?.color) material.color.set(p.color); this.select(object); return;
     }
+    if (action.type === 'addProceduralAsset') {
+      object = buildProceduralAsset(p.prefab, { seed: p.seed, variant: p.variant, primaryColor: p.color, accentColor: p.accentColor });
+      if (p.name) object.name = String(p.name);
+      if (Array.isArray(p.position)) object.position.fromArray(p.position.map(Number));
+      if (Array.isArray(p.rotation)) object.rotation.set(...p.rotation.map((n) => Number(n) * RAD));
+      if (Array.isArray(p.scale)) object.scale.fromArray(p.scale.map(Number));
+      this.root.add(object);
+      try { this.registerAsset(object, { assetId: normalizeAssetId(`procedural.${p.prefab}`) }); } catch { /* ignore */ }
+      this.select(object);
+      return;
+    }
+    if (!object) object = this.selected || this.root;
     if (!object) throw new Error(`Agent target not found: ${action.target}`);
     if (action.type === 'setTransform') { if (Array.isArray(p.position)) object.position.fromArray(p.position.map(Number)); if (Array.isArray(p.rotation)) object.rotation.set(...p.rotation.map((n) => Number(n) * RAD)); if (Array.isArray(p.scale)) object.scale.fromArray(p.scale.map(Number)); }
     if (action.type === 'setMaterial') object.traverse((mesh) => { const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]; materials.filter(Boolean).forEach((material) => { if (p.color && material.color) material.color.set(p.color); if (p.emissive && material.emissive) material.emissive.set(p.emissive); for (const key of ['roughness','metalness','opacity']) if (p[key] !== undefined && key in material) material[key] = Number(p[key]); for (const key of ['flatShading','wireframe']) if (p[key] !== undefined && key in material) material[key] = Boolean(p[key]); if (p.opacity !== undefined) material.transparent = Number(p.opacity) < 1; material.needsUpdate = true; }); });
     if (action.type === 'duplicate') { this.select(object); this.duplicateSelected(); }
     if (action.type === 'delete') { this.select(object); this.deleteSelected(); }
     if (action.type === 'distort') { this.select(object); this.shapeSettings = { ...this.shapeSettings, amount:Number(p.amount ?? .65), axis:p.axis || 'y', frequency:Number(p.frequency ?? 3), seed:Number(p.seed ?? 1) }; this.distortGeometry(p.mode); }
+    if (action.type === 'subdivideGeometry') { this.select(object); this.subdivideSelected(Number(p.iterations || 1), Number(p.smoothness ?? 0.5)); }
     if (action.type === 'rename') object.name = String(p.name || object.name);
     if (action.type === 'setVisibility') object.visible = Boolean(p.visible);
     if (action.type === 'focus') this.focusObject(object);
     if (action.type === 'applyTexture') { const reference = references[Number(p.referenceIndex || 0)]; if (!reference?.dataUrl) throw new Error('Requested reference image is missing'); await this.applyTextureData(reference.dataUrl, reference.name, object, p.scope === 'descendants', p); }
+    if (action.type === 'generateProceduralTexture') {
+      const texInfo = synthesizePainterlyTexture({
+        preset: p.preset || 'moss-stone',
+        primaryColor: p.primaryColor,
+        secondaryColor: p.secondaryColor,
+        accentColor: p.accentColor,
+        scale: p.scale || 1,
+        seed: p.seed || 7
+      });
+      await this.applyTextureData(texInfo.dataUrl, texInfo.name, object, p.scope !== 'selected', { repeat: p.repeat || [1, 1] });
+    }
+    if (action.type === 'applyPalette') { applyMaterialPaletteToObject(object === this.root ? (this.selected || this.root) : object, p.palette || 'kyoto-shrine'); }
+    if (action.type === 'poseCharacter') {
+      const charRoot = this.catAdapter?.group || this.assetRootFor(object) || object;
+      applyCharacterPose(charRoot, p.pose || 'sit', Number(p.intensity ?? 1));
+    }
+    if (action.type === 'alignObject') { this.alignObjectTransform(object === this.root ? this.selected : object, p.mode || 'ground', p.axis || 'y'); }
+    if (action.type === 'mirrorObject') { this.mirrorObjectClone(object === this.root ? this.selected : object, p.axis || 'x', Number(p.offset ?? 0)); }
+    if (action.type === 'arrayClone') { this.arrayCloneObject(object === this.root ? this.selected : object, p); }
+    if (action.type === 'scatterObjects') { this.scatterCloneObject(object === this.root ? this.selected : object, p); }
+    if (action.type === 'groupObjects') {
+      const targetObj = object === this.root ? this.selected : object;
+      if (targetObj && targetObj !== this.root && targetObj.parent) {
+        const group = new THREE.Group();
+        group.name = String(p.name || `${objectLabel(targetObj)} Group`);
+        targetObj.parent.add(group);
+        group.add(targetObj);
+        this.select(group);
+      }
+    }
   }
 
   async executeAgentPlan(plan, references = []) {
@@ -1123,6 +1166,321 @@ class CadApp {
     this.history.push(`AI: ${plan.summary}`, () => this.restoreWorkspace(before), () => this.restoreWorkspace(after)); this.rebuildTree(); this.refreshInspector(); return plan.actions.length;
   }
 
+  spawnProceduralAsset(prefabId) {
+    const object = buildProceduralAsset(prefabId, { seed: Math.floor(Math.random() * 900) + 1 });
+    this.root.add(object);
+    try { this.registerAsset(object, { assetId: normalizeAssetId(`procedural.${prefabId}-${Date.now().toString(36).slice(-3)}`) }); } catch { /* ignore */ }
+    this.history.push(`Add ${object.name}`, () => { this.root.remove(object); this.select(null); }, () => { this.root.add(object); this.select(object); });
+    this.select(object);
+    this.focusObject(object);
+    this.rebuildTree();
+    this.status(`SPAWNED PROCEDURAL ASSET: ${object.name.toUpperCase()}`);
+    return object;
+  }
+
+  async applyProceduralTexturePreset(presetId, descendants = true) {
+    const target = this.selected && this.selected !== this.root ? this.selected : this.catAdapter?.group || this.root.children.find((c) => !c.userData?.helper);
+    if (!target) return this.status('SELECT AN OBJECT BEFORE APPLYING PROCEDURAL TEXTURE', true);
+    const tex = synthesizePainterlyTexture({ preset: presetId, seed: Math.floor(Math.random() * 500) + 1 });
+    await this.applyTextureData(tex.dataUrl, tex.name, target, descendants, { repeat: [1, 1] });
+    this.status(`APPLIED 256PX PAINTERLY TEXTURE: ${tex.name.toUpperCase()}`);
+  }
+
+  applyPalettePreset(paletteId) {
+    const target = this.selected && this.selected !== this.root ? this.selected : this.catAdapter?.group || this.root;
+    const before = this.root.toJSON();
+    const count = applyMaterialPaletteToObject(target, paletteId);
+    const after = this.root.toJSON();
+    this.history.push(`Palette ${paletteId}`, () => this.restoreWorkspace(before), () => this.restoreWorkspace(after));
+    this.refreshInspector();
+    this.status(`PALETTE APPLIED (${count} MATERIALS): ${paletteId.toUpperCase()}`);
+  }
+
+  applyPosePreset(poseId) {
+    const target = this.catAdapter?.group || this.assetRootFor(this.selected) || this.selected;
+    if (!target) return this.status('LOAD OR SELECT CHARACTER RIG FIRST', true);
+    const before = this.root.toJSON();
+    const changed = applyCharacterPose(target, poseId, 1);
+    const after = this.root.toJSON();
+    this.history.push(`Pose ${poseId}`, () => this.restoreWorkspace(before), () => this.restoreWorkspace(after));
+    this.refreshInspector();
+    this.status(`CHARACTER POSE: ${poseId.toUpperCase()} (${changed} JOINTS UPDATED)`);
+  }
+
+  alignObjectTransform(target = this.selected, mode = 'ground') {
+    if (!target || target === this.root) return this.status('SELECT AN OBJECT TO ALIGN', true);
+    const before = snapshotObject(target);
+    const box = new THREE.Box3().setFromObject(target);
+    if (!box.isEmpty()) {
+      const center = box.getCenter(new THREE.Vector3());
+      if (mode === 'ground') target.position.y -= box.min.y;
+      else if (mode === 'center') { target.position.x -= center.x; target.position.z -= center.z; }
+      else if (mode === 'origin') { target.position.set(0, 0, 0); }
+    }
+    const after = snapshotObject(target);
+    this.history.push(`Align ${mode}`, () => { applySnapshot(target, before); this.refreshInspector(); }, () => { applySnapshot(target, after); this.refreshInspector(); });
+    this.refreshInspector();
+    this.status(`ALIGNED ${objectLabel(target).toUpperCase()} (${mode.toUpperCase()})`);
+  }
+
+  mirrorObjectClone(source = this.selected, axis = 'x', offset = 0) {
+    if (!source || source === this.root || !source.parent) return this.status('SELECT AN OBJECT TO MIRROR', true);
+    const copy = source.clone(true);
+    copy.name = `${objectLabel(source)} Mirror ${axis.toUpperCase()}`;
+    copy.traverse((child) => { if (child.geometry) child.geometry = child.geometry.clone(); if (child.material) child.material = cloneMaterial(child.material); });
+    const box = new THREE.Box3().setFromObject(source);
+    const size = box.getSize(new THREE.Vector3());
+    const gap = offset || Math.max(0.8, size[axis] * 1.25);
+    copy.position[axis] = source.position[axis] ? -source.position[axis] : source.position[axis] + gap;
+    copy.scale[axis] *= -1;
+    source.parent.add(copy);
+    this.history.push(`Mirror ${axis.toUpperCase()}`, () => { copy.parent?.remove(copy); this.select(source); }, () => { source.parent.add(copy); this.select(copy); });
+    this.select(copy);
+    this.rebuildTree();
+    this.status(`MIRRORED ACROSS ${axis.toUpperCase()}`);
+    return copy;
+  }
+
+  arrayCloneObject(source = this.selected, params = {}) {
+    if (!source || source === this.root || !source.parent) return this.status('SELECT AN OBJECT FOR ARRAY CLONE', true);
+    const mode = params.mode || 'linear';
+    const count = Math.max(2, Math.min(24, Number(params.count || 4)));
+    const spacing = Array.isArray(params.spacing) ? params.spacing.map(Number) : [1.4, 0, 0];
+    const radius = Number(params.radius || 2.4);
+    const created = [];
+    for (let i = 1; i < count; i++) {
+      const copy = source.clone(true);
+      copy.name = `${objectLabel(source)} ${i + 1}`;
+      copy.traverse((child) => { if (child.geometry) child.geometry = child.geometry.clone(); if (child.material) child.material = cloneMaterial(child.material); });
+      if (mode === 'radial') {
+        const angle = (i / count) * Math.PI * 2;
+        copy.position.set(source.position.x + Math.cos(angle) * radius, source.position.y, source.position.z + Math.sin(angle) * radius);
+        if (params.rotateEach !== false) copy.rotation.y = source.rotation.y - angle;
+      } else {
+        copy.position.set(source.position.x + spacing[0] * i, source.position.y + (spacing[1] || 0) * i, source.position.z + (spacing[2] || 0) * i);
+      }
+      source.parent.add(copy);
+      created.push(copy);
+    }
+    if (mode === 'radial') {
+      source.position.set(source.position.x + radius, source.position.y, source.position.z);
+    }
+    this.history.push(`Array ${mode} ×${count}`, () => { created.forEach((c) => c.parent?.remove(c)); this.rebuildTree(); }, () => { created.forEach((c) => source.parent.add(c)); this.rebuildTree(); });
+    this.rebuildTree();
+    this.status(`ARRAY CLONE: ${count} ITEMS (${mode.toUpperCase()})`);
+    return created;
+  }
+
+  scatterCloneObject(source = this.selected, params = {}) {
+    if (!source || source === this.root || !source.parent) return this.status('SELECT AN OBJECT TO SCATTER', true);
+    const count = Math.max(2, Math.min(24, Number(params.count || 6)));
+    const radius = Math.max(0.5, Number(params.radius || 3.2));
+    const minScale = Number(params.minScale ?? 0.78);
+    const maxScale = Number(params.maxScale ?? 1.25);
+    let s = Math.max(1, Number(params.seed || 42));
+    const rand = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 0xffffffff; };
+    const created = [];
+    for (let i = 0; i < count; i++) {
+      const copy = source.clone(true);
+      copy.name = `${objectLabel(source)} Scatter ${i + 1}`;
+      copy.traverse((child) => { if (child.geometry) child.geometry = child.geometry.clone(); if (child.material) child.material = cloneMaterial(child.material); });
+      const angle = rand() * Math.PI * 2;
+      const dist = Math.sqrt(rand()) * radius;
+      copy.position.set(source.position.x + Math.cos(angle) * dist, source.position.y, source.position.z + Math.sin(angle) * dist);
+      copy.rotation.y = rand() * Math.PI * 2;
+      const sc = minScale + rand() * (maxScale - minScale);
+      copy.scale.multiplyScalar(sc);
+      source.parent.add(copy);
+      created.push(copy);
+    }
+    this.history.push(`Scatter ×${count}`, () => { created.forEach((c) => c.parent?.remove(c)); this.rebuildTree(); }, () => { created.forEach((c) => source.parent.add(c)); this.rebuildTree(); });
+    this.rebuildTree();
+    this.status(`SCATTERED ${count} INSTANCES WITHIN ${radius}M`);
+    return created;
+  }
+
+  subdivideSelected(iterations = 1, smoothness = 0.45) {
+    const root = this.selected;
+    if (!root) return this.status('SELECT A MESH OR GROUP TO SUBDIVIDE', true);
+    const meshes = [];
+    root.traverse((obj) => { if (obj.isMesh && obj.geometry?.attributes?.position) meshes.push(obj); });
+    if (!meshes.length) return this.status('NO MESH GEOMETRY TO SUBDIVIDE', true);
+    const before = meshes.map((m) => ({ mesh: m, geometry: m.geometry.clone() }));
+    for (const mesh of meshes) {
+      let geom = mesh.geometry.toNonIndexed();
+      for (let iter = 0; iter < Math.min(2, iterations); iter++) {
+        const pos = geom.attributes.position;
+        const nextPositions = [];
+        const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vC = new THREE.Vector3();
+        const mAB = new THREE.Vector3(), mBC = new THREE.Vector3(), mCA = new THREE.Vector3();
+        for (let i = 0; i < pos.count; i += 3) {
+          vA.fromBufferAttribute(pos, i);
+          vB.fromBufferAttribute(pos, i + 1);
+          vC.fromBufferAttribute(pos, i + 2);
+          mAB.addVectors(vA, vB).multiplyScalar(0.5);
+          mBC.addVectors(vB, vC).multiplyScalar(0.5);
+          mCA.addVectors(vC, vA).multiplyScalar(0.5);
+          if (smoothness > 0) {
+            for (const v of [mAB, mBC, mCA]) {
+              const len = v.length();
+              if (len > 0.0001) v.multiplyScalar(1 + smoothness * 0.04);
+            }
+          }
+          const pushTri = (p1, p2, p3) => { nextPositions.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z, p3.x, p3.y, p3.z); };
+          pushTri(vA, mAB, mCA);
+          pushTri(mAB, vB, mBC);
+          pushTri(mCA, mBC, vC);
+          pushTri(mAB, mBC, mCA);
+        }
+        const nextGeom = new THREE.BufferGeometry();
+        nextGeom.setAttribute('position', new THREE.Float32BufferAttribute(nextPositions, 3));
+        nextGeom.computeVertexNormals();
+        geom = nextGeom;
+      }
+      mesh.geometry = geom;
+    }
+    const after = meshes.map((m) => ({ mesh: m, geometry: m.geometry.clone() }));
+    this.history.push('Subdivide geometry', () => { before.forEach((b) => { b.mesh.geometry = b.geometry.clone(); }); this.refreshInspector(); }, () => { after.forEach((a) => { a.mesh.geometry = a.geometry.clone(); }); this.refreshInspector(); });
+    this.refreshInspector();
+    this.status(`SUBDIVIDED ${meshes.length} MESH(ES)`);
+  }
+
+  toggleBoundsHelper() {
+    this.boundsHelper.visible = !this.boundsHelper.visible;
+    if (this.boundsHelper.visible) this.boundsHelper.setFromObject(this.selected && this.selected !== this.root ? this.selected : this.root);
+    $('#bounds-toggle')?.classList.toggle('active', this.boundsHelper.visible);
+    this.status(this.boundsHelper.visible ? 'BOUNDING BOX OVERLAY ON' : 'BOUNDING BOX OVERLAY OFF');
+  }
+
+  toggleTurntable() {
+    this.turntable = !this.turntable;
+    $('#turntable-toggle')?.classList.toggle('active', this.turntable);
+    this.status(this.turntable ? 'TURNTABLE ORBIT ON' : 'TURNTABLE ORBIT OFF');
+  }
+
+  cycleLightingMood() {
+    const moods = [
+      { label: 'STUDIO', bg: 0x111820, hemiSky: 0x9fc9ee, hemiGround: 0x20252a, hemiInt: 1.55, keyColor: 0xdcecff, keyInt: 2.3, fillColor: 0x4f7ead, fillInt: 0.65 },
+      { label: 'GOLDEN HOUR', bg: 0x1e1618, hemiSky: 0xffb27d, hemiGround: 0x2d1e1b, hemiInt: 1.45, keyColor: 0xff9e5e, keyInt: 2.6, fillColor: 0x6e5488, fillInt: 0.55 },
+      { label: 'KYOTO DUSK', bg: 0x0c1322, hemiSky: 0x6283c8, hemiGround: 0x161824, hemiInt: 1.25, keyColor: 0x8fb3ff, keyInt: 1.65, fillColor: 0xd96b43, fillInt: 0.85 },
+      { label: 'SHRINE NOON', bg: 0x182228, hemiSky: 0xdff4ff, hemiGround: 0x3b4838, hemiInt: 1.85, keyColor: 0xfff8eb, keyInt: 2.75, fillColor: 0x7aa488, fillInt: 0.7 }
+    ];
+    this.lightingModeIndex = (this.lightingModeIndex + 1) % moods.length;
+    const m = moods[this.lightingModeIndex];
+    this.scene.background.setHex(m.bg);
+    if (this.scene.fog) this.scene.fog.color.setHex(m.bg);
+    this.hemiLight.color.setHex(m.hemiSky);
+    this.hemiLight.groundColor.setHex(m.hemiGround);
+    this.hemiLight.intensity = m.hemiInt;
+    this.keyLight.color.setHex(m.keyColor);
+    this.keyLight.intensity = m.keyInt;
+    this.fillLight.color.setHex(m.fillColor);
+    this.fillLight.intensity = m.fillInt;
+    const btn = $('#lighting-cycle');
+    if (btn) btn.textContent = m.label;
+    this.status(`LIGHTING MOOD: ${m.label}`);
+  }
+
+  bindCommandPalette() {
+    const dialog = $('#command-palette');
+    const input = $('#command-palette-input');
+    if (!dialog || !input) return;
+    dialog.addEventListener('click', (event) => {
+      if (event.target.hasAttribute('data-close-palette')) this.closeCommandPalette();
+    });
+    input.addEventListener('input', () => this.renderCommandPalette(input.value));
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') { event.preventDefault(); this.closeCommandPalette(); }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const first = $('#command-palette-list button');
+        if (first) first.click();
+      }
+    });
+  }
+
+  getCommands() {
+    const commands = [
+      { label: 'AI: Open / Toggle AI Asset Designer', category: 'AI Harness', shortcut: 'A', run: () => this.agentPanel.toggle() },
+      { label: 'AI: Probe Local llama-server / Ollama / LM Studio', category: 'AI Harness', shortcut: 'Probe', run: () => { this.agentPanel.open(); this.agentPanel.probeConnection(true); } },
+      { label: 'AI: Switch to Built-in Instant Copilot (Offline)', category: 'AI Harness', shortcut: 'Instant', run: () => this.setAgentProvider('builtin') },
+      { label: 'AI: Switch to Local llama-server (8080)', category: 'AI Harness', shortcut: 'Local', run: () => this.setAgentProvider('local') },
+      { label: 'AI: Switch to Ollama (11434)', category: 'AI Harness', shortcut: 'Ollama', run: () => this.setAgentProvider('ollama') },
+      { label: 'AI: Switch to LM Studio (1234)', category: 'AI Harness', shortcut: 'LMStudio', run: () => this.setAgentProvider('lmstudio') },
+      { label: 'AI: Capture Viewport Snapshot as Vision Reference', category: 'AI Harness', shortcut: 'Snap', run: () => { this.agentPanel.open(); this.agentPanel.captureViewportReference(); } },
+      ...PROCEDURAL_PREFABS.map((p) => ({
+        label: `Spawn Procedural: ${p.label} (${p.category})`,
+        category: 'Kyoto Prefab',
+        shortcut: 'Prefab',
+        run: () => this.spawnProceduralAsset(p.id)
+      })),
+      ...PROCEDURAL_TEXTURES.map((t) => ({
+        label: `Apply 256px Painterly Texture: ${t.label}`,
+        category: 'Texture Studio',
+        shortcut: '256px',
+        run: () => this.applyProceduralTexturePreset(t.id, true)
+      })),
+      ...Object.entries(MATERIAL_PALETTES).map(([id, pal]) => ({
+        label: `Apply Color Harmony Palette: ${pal.label}`,
+        category: 'Palette',
+        shortcut: 'Colors',
+        run: () => this.applyPalettePreset(id)
+      })),
+      ...CHARACTER_POSES.map((pose) => ({
+        label: `Pose Character Rig: ${pose.label}`,
+        category: 'Character',
+        shortcut: 'Pose',
+        run: () => this.applyPosePreset(pose.id)
+      })),
+      { label: 'CAD: Drop Selected Object to Ground (Y = 0)', category: 'CAD Layout', shortcut: 'Ground', run: () => this.alignObjectTransform(this.selected, 'ground') },
+      { label: 'CAD: Center Selected Object at Origin', category: 'CAD Layout', shortcut: 'Center', run: () => this.alignObjectTransform(this.selected, 'center') },
+      { label: 'CAD: Mirror Selected Object Across X Axis', category: 'CAD Layout', shortcut: 'Mirror X', run: () => this.mirrorObjectClone(this.selected, 'x') },
+      { label: 'CAD: Radial Ring Array ×6', category: 'CAD Layout', shortcut: 'Ring ×6', run: () => this.arrayCloneObject(this.selected, { mode: 'radial', count: 6, radius: 2.5 }) },
+      { label: 'CAD: Organic Scatter Cluster ×7', category: 'CAD Layout', shortcut: 'Scatter', run: () => this.scatterCloneObject(this.selected, { count: 7, radius: 3.2 }) },
+      { label: 'CAD: Smooth Subdivide Selected Mesh', category: 'CAD Mesh', shortcut: 'Subdivide', run: () => this.subdivideSelected(1, 0.45) },
+      { label: 'View: Cycle Viewport Lighting Mood (Studio / Golden / Dusk / Noon)', category: 'Viewport', shortcut: 'Light', run: () => this.cycleLightingMood() },
+      { label: 'View: Toggle Turntable Auto-Orbit', category: 'Viewport', shortcut: 'Turn', run: () => this.toggleTurntable() },
+      { label: 'View: Toggle Bounding Box Overlay', category: 'Viewport', shortcut: 'Bounds', run: () => this.toggleBoundsHelper() },
+      { label: 'Project: Export Selected as GLB Binary', category: 'Export', shortcut: 'GLB', run: () => this.exportGlb() },
+      { label: 'Project: Push Edits to Live Michi-Neko Game', category: 'Game Bridge', shortcut: 'Push', run: () => this.pushToGame(true) }
+    ];
+    return commands;
+  }
+
+  openCommandPalette() {
+    const dialog = $('#command-palette');
+    const input = $('#command-palette-input');
+    if (!dialog || !input) return;
+    dialog.classList.remove('hidden');
+    input.value = '';
+    this.renderCommandPalette('');
+    setTimeout(() => input.focus(), 10);
+  }
+
+  closeCommandPalette() {
+    $('#command-palette')?.classList.add('hidden');
+  }
+
+  renderCommandPalette(query = '') {
+    const list = $('#command-palette-list');
+    if (!list) return;
+    const q = query.trim().toLowerCase();
+    const commands = this.getCommands().filter((cmd) => !q || `${cmd.label} ${cmd.category} ${cmd.shortcut}`.toLowerCase().includes(q));
+    list.innerHTML = commands.slice(0, 28).map((cmd, idx) => `
+      <button type="button" data-cmd-idx="${idx}">
+        <span><b>${escapeHtml(cmd.label)}</b> <small style="color:var(--muted);margin-left:6px">${escapeHtml(cmd.category)}</small></span>
+        <kbd>${escapeHtml(cmd.shortcut || '')}</kbd>
+      </button>
+    `).join('') || '<div class="empty-state"><span>No matching commands.</span></div>';
+    $$('button[data-cmd-idx]', list).forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const cmd = commands[Number(btn.dataset.cmdIdx)];
+        this.closeCommandPalette();
+        cmd?.run();
+      });
+    });
+  }
+
   setTool(tool) {
     $$('.tool[data-tool]').forEach((button) => button.classList.toggle('active', button.dataset.tool === tool));
     if (tool === 'select' || tool === 'orbit') this.transform.detach();
@@ -1132,10 +1490,19 @@ class CadApp {
 
   action(action) {
     if (action === 'agent') return this.agentPanel.toggle();
+    if (action === 'studio') return this.setPanel('studio');
     if (action === 'focus') return this.focusObject(this.selected);
     if (action === 'isolate') return this.toggleIsolation();
     if (action === 'duplicate') return this.duplicateSelected();
     if (action === 'delete') return this.deleteSelected();
+    if (action === 'align-ground') return this.alignObjectTransform(this.selected, 'ground');
+    if (action === 'align-center') return this.alignObjectTransform(this.selected, 'center');
+    if (action === 'mirror-x') return this.mirrorObjectClone(this.selected, 'x');
+    if (action === 'mirror-z') return this.mirrorObjectClone(this.selected, 'z');
+    if (action === 'linear-array') return this.arrayCloneObject(this.selected, { mode: 'linear', count: 4, spacing: [1.4, 0, 0] });
+    if (action === 'radial-array') return this.arrayCloneObject(this.selected, { mode: 'radial', count: 6, radius: 2.4 });
+    if (action === 'scatter') return this.scatterCloneObject(this.selected, { count: 7, radius: 3.2 });
+    if (action === 'subdivide') return this.subdivideSelected(1, 0.45);
     if (action === 'reset-transform' && this.selected) {
       const object = this.selected, before = snapshotObject(object); object.position.set(0,0,0); object.rotation.set(0,0,0); object.scale.set(1,1,1); const after = snapshotObject(object);
       this.history.push('Reset transform', () => applySnapshot(object, before), () => applySnapshot(object, after)); this.refreshInspector();
@@ -1231,11 +1598,38 @@ class CadApp {
   showMenu(name, anchor) {
     const menus = {
       file: [['New project','new'],['Open project / package…','open'],['Save browser project','save'],['Export project JSON','export-project'],['Export versioned asset package','export-asset-package'],['Export selected GLB','export-glb'],['Export selected OBJ','export-obj'],['Export game overrides','export-overrides'],['Viewport PNG','screenshot']],
-      edit: [['Undo','undo','Ctrl+Z'],['Redo','redo','Ctrl+Y'],['Duplicate','duplicate','Ctrl+D'],['Remove','delete','Delete'],['Reset transform','reset-transform']],
-      object: [['Add box','add-box'],['Add sphere','add-sphere'],['Add cylinder','add-cylinder'],['Add directional light','add-light'],['Isolate selection','isolate','I'],['Frame selection','focus','F'],['Send runtime object to CAD','send-to-cad'],['Push CAD edits to game','push-game']],
-      view: [['CAD / game environment','toggle-view','Tab'],['Perspective','view-persp','1'],['Front','view-front','2'],['Right','view-side','3'],['Top','view-top','4'],['Grid','grid','G'],['Wireframe','wireframe','X']],
-      agent: [['Open AI design agent','agent-open','A'],['Use local llama-server','agent-local'],['Use MCP/custom gateway','agent-mcp'],['Use OpenAI','agent-openai'],['Use OpenRouter','agent-openrouter'],['Use Anthropic','agent-anthropic']],
-      info: [['About cadJS','about'],['Rescan repository','rescan'],['Reload game preview','reload-game']]
+      edit: [['Command Palette…','command-palette','Ctrl+K'],['Undo','undo','Ctrl+Z'],['Redo','redo','Ctrl+Y'],['Duplicate','duplicate','Ctrl+D'],['Remove','delete','Delete'],['Reset transform','reset-transform']],
+      object: [['Add box','add-box'],['Add sphere','add-sphere'],['Add cylinder','add-cylinder'],['Add directional light','add-light'],['Drop to Ground (Y=0)','align-ground'],['Mirror across X','mirror-x'],['Radial Ring ×6','radial-array'],['Smooth Subdivide','subdivide'],['Isolate selection','isolate','I'],['Frame selection','focus','F'],['Send runtime object to CAD','send-to-cad'],['Push CAD edits to game','push-game']],
+      studio: [
+        ['Open Studio Panel','open-studio'],
+        ['Spawn Vermilion Torii Gate','prefab-torii-gate'],
+        ['Spawn Stone Lantern (Tōrō)','prefab-stone-lantern'],
+        ['Spawn Bamboo Grove','prefab-bamboo-grove'],
+        ['Spawn Sakura Tree','prefab-sakura-tree'],
+        ['Spawn Arched Bridge','prefab-wooden-bridge'],
+        ['Spawn Tea House Pavilion','prefab-tea-house'],
+        ['Spawn Guardian Cat Statue','prefab-komainu-cat'],
+        ['Apply Mossy Granite 256px Texture','tex-moss-stone'],
+        ['Apply Kyoto Shrine Color Palette','pal-kyoto-shrine'],
+        ['Pose Character: Loaf (香箱座り)','pose-loaf']
+      ],
+      view: [['CAD / game environment','toggle-view','Tab'],['Cycle Lighting Mood','lighting-mood'],['Turntable Orbit','turntable'],['Bounding Box Overlay','bounds'],['Perspective','view-persp','1'],['Front','view-front','2'],['Right','view-side','3'],['Top','view-top','4'],['Grid','grid','G'],['Wireframe','wireframe','X']],
+      agent: [
+        ['Open AI Asset Designer','agent-open','A'],
+        ['Probe Local AI Servers','agent-probe'],
+        ['Use Built-in Instant Copilot (Offline)','agent-builtin'],
+        ['Use Local llama-server (8080)','agent-local'],
+        ['Use Local Ollama (11434)','agent-ollama'],
+        ['Use Local LM Studio (1234)','agent-lmstudio'],
+        ['Use OpenAI','agent-openai'],
+        ['Use Anthropic Claude','agent-anthropic'],
+        ['Use Google Gemini','agent-gemini'],
+        ['Use OpenRouter','agent-openrouter'],
+        ['Use Groq','agent-groq'],
+        ['Use DeepSeek','agent-deepseek'],
+        ['Use MCP / Custom Gateway','agent-mcp']
+      ],
+      info: [['Command Palette','command-palette','Ctrl+K'],['About cadJS','about'],['Rescan repository','rescan'],['Reload game preview','reload-game']]
     };
     const host = $('#menu-popover'); host.innerHTML = (menus[name] || []).map(([label, action, key]) => `<button data-menu-action="${action}"><span>${label}</span><kbd>${key || ''}</kbd></button>`).join('');
     const rect = anchor.getBoundingClientRect(); host.style.left = `${rect.left}px`; host.style.top = `${rect.bottom + 4}px`; host.classList.remove('hidden');
@@ -1243,18 +1637,43 @@ class CadApp {
   }
 
   menuAction(action) {
-    const map = { undo: () => this.history.undo(), redo: () => this.history.redo(), duplicate: () => this.duplicateSelected(), delete: () => this.deleteSelected(), 'reset-transform': () => this.action('reset-transform'), isolate: () => this.toggleIsolation(), focus: () => this.focusObject(this.selected),
+    if (action.startsWith('prefab-')) return this.spawnProceduralAsset(action.slice(7));
+    if (action.startsWith('tex-')) return this.applyProceduralTexturePreset(action.slice(4), true);
+    if (action.startsWith('pal-')) return this.applyPalettePreset(action.slice(4));
+    if (action.startsWith('pose-')) return this.applyPosePreset(action.slice(5));
+    const map = {
+      'command-palette': () => this.openCommandPalette(),
+      'open-studio': () => this.setPanel('studio'),
+      undo: () => this.history.undo(), redo: () => this.history.redo(), duplicate: () => this.duplicateSelected(), delete: () => this.deleteSelected(),
+      'reset-transform': () => this.action('reset-transform'), 'align-ground': () => this.action('align-ground'), 'mirror-x': () => this.action('mirror-x'),
+      'radial-array': () => this.action('radial-array'), subdivide: () => this.action('subdivide'),
+      isolate: () => this.toggleIsolation(), focus: () => this.focusObject(this.selected),
       'add-box': () => this.addObject('BoxGeometry'), 'add-sphere': () => this.addObject('SphereGeometry'), 'add-cylinder': () => this.addObject('CylinderGeometry'), 'add-light': () => this.addObject('DirectionalLight'),
-      'toggle-view': () => this.toggleView(), 'view-persp': () => this.setCameraView('perspective'), 'view-front': () => this.setCameraView('front'), 'view-side': () => this.setCameraView('side'), 'view-top': () => this.setCameraView('top'),
+      'toggle-view': () => this.toggleView(), 'lighting-mood': () => this.cycleLightingMood(), turntable: () => this.toggleTurntable(), bounds: () => this.toggleBoundsHelper(),
+      'view-persp': () => this.setCameraView('perspective'), 'view-front': () => this.setCameraView('front'), 'view-side': () => this.setCameraView('side'), 'view-top': () => this.setCameraView('top'),
       'send-to-cad': () => this.sendToCad(this.selected), 'push-live': () => this.pushToGame(false), 'push-game': () => this.pushToGame(true),
       grid: () => $('#grid-toggle').click(), wireframe: () => this.toggleWireframe(), save: () => this.saveProject(), open: () => $('#file-input').click(), 'export-project': () => this.exportProject(), 'export-asset-package': () => this.exportAssetPackage(), 'export-overrides': () => this.exportOverrides(),
       'export-glb': () => this.exportGlb(), 'export-obj': () => this.exportObj(), screenshot: () => this.screenshot(), rescan: () => this.loadCatalog(true), 'reload-game': () => { this.frame.contentWindow.location.reload(); },
-      'agent-open': () => this.agentPanel.open(), 'agent-local': () => this.setAgentProvider('local'), 'agent-mcp': () => this.setAgentProvider('mcp'), 'agent-openai': () => this.setAgentProvider('openai'), 'agent-openrouter': () => this.setAgentProvider('openrouter'), 'agent-anthropic': () => this.setAgentProvider('anthropic'),
-      new: () => this.newProject(), about: () => alert('cadJS\nStandalone Three.js CAD workspace for Michi-Neko.\nAll editor files and saved data remain separate from the game source.') };
+      'agent-open': () => this.agentPanel.open(), 'agent-probe': () => { this.agentPanel.open(); this.agentPanel.probeConnection(true); },
+      'agent-builtin': () => this.setAgentProvider('builtin'), 'agent-local': () => this.setAgentProvider('local'),
+      'agent-ollama': () => this.setAgentProvider('ollama'), 'agent-lmstudio': () => this.setAgentProvider('lmstudio'),
+      'agent-mcp': () => this.setAgentProvider('mcp'), 'agent-openai': () => this.setAgentProvider('openai'),
+      'agent-openrouter': () => this.setAgentProvider('openrouter'), 'agent-anthropic': () => this.setAgentProvider('anthropic'),
+      'agent-gemini': () => this.setAgentProvider('gemini'), 'agent-groq': () => this.setAgentProvider('groq'), 'agent-deepseek': () => this.setAgentProvider('deepseek'),
+      new: () => this.newProject(), about: () => alert('cadJS Studio\nStandalone Three.js CAD + AI Asset Designer for Michi-Neko.\nSupports local llama-server, Ollama, LM Studio, popular cloud APIs, and offline procedural Kyoto asset generation.')
+    };
     map[action]?.();
   }
 
   onKey(event) {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      return this.openCommandPalette();
+    }
+    if (!$('#command-palette')?.classList.contains('hidden')) {
+      if (event.key === 'Escape') { event.preventDefault(); this.closeCommandPalette(); }
+      return;
+    }
     if (/INPUT|SELECT|TEXTAREA/.test(event.target.tagName)) return;
     const key = event.key.toLowerCase();
     // The switch guard is modal: swallow every other shortcut while it is open.
@@ -1385,12 +1804,6 @@ class CadApp {
     this.status('NEW PROJECT — STARTER SCENE RESTORED');
   }
 
-  /**
-   * Empty the CAD workspace — camera, grid and helpers stay, the board goes
-   * blank so an import lands on a clean slate. Records one undo entry so the
-   * clear is reversible, and drops the unsaved-changes flag because the board
-   * no longer holds pending work.
-   */
   clearWorkspace() {
     const before = this.root.toJSON();
     const beforeOverrides = new Map(this.runtimeOverrides);
@@ -1411,17 +1824,12 @@ class CadApp {
     this.workspaceDirty = false;
   }
 
-  /** CLEAR button entry point — settle the unsaved work, then empty the board. */
   async clearWorkspaceRequest() {
     if (!await this.guardWorkspaceSwitch('The CAD workspace has unsaved changes. Clearing the board discards them.')) return this.status('CLEAR CANCELLED — WORKSPACE UNCHANGED');
     this.clearWorkspace();
     this.status('WORKSPACE CLEARED — UNDO BRINGS THE PREVIOUS BOARD BACK');
   }
 
-  /**
-   * Resolve true when the caller may clear the board, false when the user
-   * cancelled. A workspace with no pending edits passes straight through.
-   */
   async guardWorkspaceSwitch(message) {
     if (!this.workspaceDirty) return true;
     const choice = await this.promptSwitchGuard(message || 'The CAD workspace has unsaved changes. Switching clears the board.');
@@ -1435,7 +1843,6 @@ class CadApp {
     $('#switch-guard').addEventListener('pointerdown', (event) => { if (event.target === event.currentTarget) this.resolveSwitchGuard('cancel'); });
   }
 
-  /** Show the guard and hand back a promise settled by the user's choice. */
   promptSwitchGuard(message) {
     const guard = $('#switch-guard');
     if (!guard.classList.contains('hidden')) this.resolveSwitchGuard('cancel');
@@ -1457,10 +1864,6 @@ class CadApp {
     resolve?.(choice);
   }
 
-  /**
-   * SAVE & SWITCH: publish the items that were cloned from the game, otherwise
-   * download the project as a file. Mirrors the hint under the guard buttons.
-   */
   async saveWorkspaceBeforeClear() {
     const linked = this.root.children.filter((child) => this.runtimeLinkFor(child));
     if (linked.length) {
@@ -1480,7 +1883,6 @@ class CadApp {
     this.status(`${applied} RUNTIME OVERRIDES APPLIED`); this.rebuildTree();
   }
 
-  /** Clone a live game object into the CAD workspace for round-trip editing. */
   async sendToCad(object = this.selected) {
     if (!object || this.isEditorObject(object)) return this.status('SELECT A RUNTIME OBJECT FIRST (CLICK ITS TREE ROW)', true);
     const scene = this.runtimeGame?.scene;
@@ -1504,7 +1906,6 @@ class CadApp {
     } catch (error) { this.status(`SEND TO CAD: ${error.message}`, true); }
   }
 
-  /** Locate the live object a CAD clone was made from — name first, path fallback. */
   findRuntimeTarget(source) {
     const scene = this.runtimeGame?.scene; if (!scene || !source) return null;
     const byPath = source.path ? findByPath(scene, source.path) : null;
@@ -1517,10 +1918,6 @@ class CadApp {
     return byPath;
   }
 
-  /**
-   * Push a runtime-linked CAD clone back to the live game, and optionally
-   * publish it to cad-overrides.json via /api/overrides so every boot applies it.
-   */
   async pushToGame(publish) {
     const link = this.runtimeLinkFor(this.selected);
     if (!link) {
@@ -1533,7 +1930,6 @@ class CadApp {
     const name = source.name || target.name;
     if (!name) return this.status('TARGET HAS NO NAME — NAME IT IN THE GAME SOURCE BEFORE PUSHING', true);
 
-    // Apply the clone subtree to the live object, recording each node state.
     const nodes = [];
     const textureTasks = [];
     let droppedParts = 0;
@@ -1541,7 +1937,6 @@ class CadApp {
       if (!dst) return;
       applySnapshot(dst, snapshotObject(src));
       if (!rel) {
-        // The clone root carries a world transform; convert to dst parent space.
         src.updateWorldMatrix(true, false);
         const local = new THREE.Matrix4();
         if (dst.parent) { dst.parent.updateWorldMatrix(true, false); local.copy(dst.parent.matrixWorld).invert(); }
@@ -1561,7 +1956,6 @@ class CadApp {
       const children = (src.children || []).filter((child) => !child.userData?.cadInternal && !child.userData?.helper);
       const used = new Set();
       children.forEach((child, index) => {
-        // Name-match first so added/removed CAD children don't shift siblings.
         let dstChild = child.name ? dst.children.find((c) => c.name === child.name && !used.has(c)) : null;
         if (!dstChild) dstChild = dst.children[index] && !used.has(dst.children[index]) ? dst.children[index] : null;
         if (dstChild) used.add(dstChild); else droppedParts++;
@@ -1625,7 +2019,16 @@ class CadApp {
   updateStatus() { $('#status-message').textContent = `UNDO ${this.history.undoStack.length} / REDO ${this.history.redoStack.length}`; }
 
   animate() {
-    requestAnimationFrame(() => this.animate()); const dt = Math.min(.05, this.clock.getDelta()); this.orbit.update();
+    requestAnimationFrame(() => this.animate()); const dt = Math.min(.05, this.clock.getDelta());
+    if (this.turntable && this.viewMode === 'editor') {
+      const offset = this.camera.position.clone().sub(this.orbit.target);
+      offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), dt * 0.45);
+      this.camera.position.copy(this.orbit.target).add(offset);
+    }
+    if (this.boundsHelper?.visible) {
+      this.boundsHelper.setFromObject(this.selected && this.selected !== this.root ? this.selected : this.root);
+    }
+    this.orbit.update();
     if (this.viewMode === 'editor') this.renderer.render(this.scene, this.camera);
     this.frames++; const now = performance.now(); if (now - this.fpsTime > 500) { $('#render-stats').textContent = `${Math.round(this.frames * 1000 / (now - this.fpsTime))} FPS`; this.frames = 0; this.fpsTime = now; }
   }

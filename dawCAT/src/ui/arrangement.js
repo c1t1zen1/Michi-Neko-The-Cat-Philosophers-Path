@@ -768,17 +768,29 @@ export class Arrangement {
       const inMulti = (st.selection.selectedClipIds || []).includes(hit.clip.id);
       if (!inMulti) st.select(hit.track.id, hit.clip.id);
       const c = hit.clip;
-      ctxMenu(e.clientX, e.clientY, [
+      const items = [
         { label: '✎ Rename…', onClick: () => this.renameClip(c) },
         { label: '⧉ Duplicate', key: 'Ctrl+D', onClick: () => (inMulti ? this.app.duplicateSelection() : st.duplicateClip(hit.track.id, c.id)) },
         { label: '✂ Split at Playhead', onClick: () => st.splitClip(hit.track.id, c.id, Math.round(this.app.transport.position / 4)) },
-        { label: '💾 Save Clip to Library', onClick: () => this.app.browser.saveClipToLibrary(c, hit.track.kind) },
+        { label: '💾 Save Clip to Library', onClick: () => this.app.browser.saveClipToLibrary(c, hit.track.kind) }
+      ];
+      if (c.audio && c.audio.assetId) {
+        items.push('sep', {
+          label: '🌊 Edit Sound Physics in Wave Lab',
+          onClick: () => {
+            if (this.app.waveLab) this.app.waveLab.bindToClip(hit.track.id, c.id);
+            this.app.switchTab('wavelab');
+          }
+        });
+      }
+      items.push(
         'sep',
         { label: c.loop ? '⤓ Unloop clip' : '🔁 Loop clip', onClick: () => st.updateClip(hit.track.id, c.id, { loop: !c.loop }) },
         { label: '▦ Quantize start to grid', onClick: () => this.quantizeSelectedClips(hit.track, c) },
         'sep',
         { label: '🗑 Delete', key: 'Del', onClick: () => this.app.deleteSelection() }
-      ]);
+      );
+      ctxMenu(e.clientX, e.clientY, items);
     } else if (hit.type === 'lane') {
       st.select(hit.track.id);
       ctxMenu(e.clientX, e.clientY, [
@@ -868,6 +880,16 @@ export class Arrangement {
     } else if (data.kind === 'sfxPatch') {
       const t = trackAt(laneIdx);
       this.app.placeSfx(data.sfxId, { trackId: t ? t.id : null, start: bar });
+    } else if (data.kind === 'rhythm') {
+      if (this.app.drumgrid) {
+        this.app.drumgrid.applyRhythmToCurrentSong(data.rhythmId);
+      }
+    } else if (data.kind === 'studioSample') {
+      if (this.app.waveLab) {
+        this.app.waveLab.loadSample(data.assetId, { preview: false }).then(() => {
+          this.app.waveLab.placeInSong();
+        });
+      }
     }
   }
 
@@ -896,7 +918,8 @@ export class Arrangement {
     }
     const meta = {
       id: assetId, name: file.name, mime: file.type,
-      durationSec: buffer.duration, sampleRate: buffer.sampleRate, channels: buffer.numberOfChannels
+      durationSec: buffer.duration, sampleRate: buffer.sampleRate, channels: buffer.numberOfChannels,
+      keepInLibrary: true
     };
     await putAsset(Object.assign({ bytes }, meta));
     st.registerAsset(meta);

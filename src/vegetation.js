@@ -1,7 +1,21 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { barkTextures, texturedMaterial } from './textures.js?v=20261021a';
-import { createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture, buildCanopy, updateFoliage } from './foliage.js?v=20261021a';
+import { barkTextures, texturedMaterial } from './textures.js?v=20261022d';
+import {
+  createFoliageMaterial, createFoliageDepthMaterial, createBranchMaterial, leafSprayTexture, leafMassTexture,
+  buildCanopy, updateFoliage
+} from './foliage.js?v=20261022d';
+
+// Trees past this radius stand in or behind the edge-forest wall and are
+// built as textured leaf masses; inside it they are hero trees with
+// individual leaves on visible twigs.
+const RIM_RADIUS = 39;
+// Hero trees inside this radius keep their own meshes (frustum-culled per
+// tree); the rest bake into the static merges.
+const NEAR_RADIUS = 36;
+// One wind strength for every hero canopy: twig and leaf materials must
+// share it exactly or the leaves would drift off their twigs.
+const TREE_WIND = 1.1;
 
 function mulberry32(a) {
   return function() {
@@ -31,39 +45,7 @@ export class Vegetation {
     this._staticAccum = new Map();
     this.grassMeshes = [];
     this.groundCoverMeshes = [];
-
-    // Bark with deep fissure normal maps
-    this.matTrunks = [
-      texturedMaterial(barkTextures(0x6d4d36, 0x2a1a11, 1), { roughness: 0.95, normalScale: 1.3 }),
-      texturedMaterial(barkTextures(0x7c6650, 0x352518, 2), { roughness: 0.94, normalScale: 1.1 }),
-      texturedMaterial(barkTextures(0x574539, 0x1f1712, 3), { roughness: 0.97, normalScale: 1.4 })
-    ];
-    this.matTrunk = this.matTrunks[0];
-
-    // One painterly foliage shader for every canopy; colours come from
-    // per-vertex tints baked into the merged tuft geometry. Each kind pairs
-    // a tuft-core material with an alpha-cut leaf-spray card material (and
-    // a depth material so the cards throw leaf-shaped shadows).
-    this.matFoliage = createFoliageMaterial({ sss: 0.34, wind: 1.0, mottle: 0.4 });
-    this.matBlossom = createFoliageMaterial({ sss: 0.42, wind: 1.15, mottle: 0.24, bump: 0.44, roughness: 0.85 });
-    this.matNeedle = createFoliageMaterial({ sss: 0.18, wind: 0.6, mottle: 0.42 });
-    this.cardSets = {};
-    for (const [kind, opts] of Object.entries({
-      broadleaf: { sss: 0.4, wind: 1.05, mottle: 0.22, bump: 0.4 },
-      maple: { sss: 0.46, wind: 1.1, mottle: 0.22, bump: 0.4 },
-      sakura: { sss: 0.5, wind: 1.2, mottle: 0.14, bump: 0.28, roughness: 0.85 },
-      needle: { sss: 0.22, wind: 0.65, mottle: 0.26, bump: 0.42 }
-    })) {
-      const map = leafCardTexture(kind);
-      this.cardSets[kind] = {
-        material: createFoliageMaterial(Object.assign({ map, alphaTest: 0.5, side: THREE.DoubleSide }, opts)),
-        depth: createFoliageDepthMaterial(map, 0.5)
-      };
-    }
-    this.colSakura = [0xd27a94, 0xeaa2b6, 0xf6c6d2, 0xfbdde6];
-    this.colMaple = [0x8e2d20, 0xc24a34, 0xe0704a, 0xf09060];
-    this.colLeaf = [0x2f4f1c, 0x3f6626, 0x5a8536, 0x7aa348];
-    this.colPine = [0x24401f, 0x33582f, 0x4a7040, 0x5f8850];
+    this._initMaterials();
 
     this.matBamboo = new THREE.MeshStandardMaterial({ color: 0x6f9e4c, roughness: 0.6 });
     this.matBambooLeaf = new THREE.MeshStandardMaterial({ color: 0x74a04a, roughness: 0.9, side: THREE.DoubleSide });
@@ -106,6 +88,59 @@ export class Vegetation {
 
   random() { return this.rng(); }
 
+  /**
+   * Bark, hero-tree leaf sprays and rim leaf masses. Split out of the
+   * constructor so tools/tree_preview.js can build trees on their own.
+   */
+  _initMaterials() {
+    // Bark with deep fissure normal maps
+    this.matTrunks = [
+      texturedMaterial(barkTextures(0x6d4d36, 0x2a1a11, 1), { roughness: 0.95, normalScale: 1.3 }),
+      texturedMaterial(barkTextures(0x7c6650, 0x352518, 2), { roughness: 0.94, normalScale: 1.1 }),
+      texturedMaterial(barkTextures(0x574539, 0x1f1712, 3), { roughness: 0.97, normalScale: 1.4 })
+    ];
+    this.matTrunk = this.matTrunks[0];
+    // Hero-tree limbs bend in the same wind as the leaves they carry
+    this.matBranches = this.matTrunks.map((m) => createBranchMaterial(m, { wind: TREE_WIND }));
+    this.branchDepth = createFoliageDepthMaterial(null, 0, { flex: true, wind: TREE_WIND });
+
+    // Hero trees: alpha-cut twig sprays (and matching depth materials, so
+    // the shade under a tree is leaf-shaped and moves with the wind).
+    this.sprays = {};
+    for (const [kind, opts] of Object.entries({
+      maple: { sss: 0.46, mottle: 0.16, bump: 0.32 },
+      sakura: { sss: 0.5, mottle: 0.1, bump: 0.22, roughness: 0.85 },
+      needle: { sss: 0.22, mottle: 0.2, bump: 0.36 }
+    })) {
+      const map = leafSprayTexture(kind);
+      this.sprays[kind] = {
+        material: createFoliageMaterial(Object.assign({ map, alphaTest: 0.5, side: THREE.DoubleSide, flex: true, twoSided: true, wind: TREE_WIND }, opts)),
+        depth: createFoliageDepthMaterial(map, 0.5, { flex: true, wind: TREE_WIND })
+      };
+    }
+    // Rim trees: blob canopies painted with leaf-mass textures whose
+    // outlines break into leaves.
+    this.masses = {
+      sakura: createFoliageMaterial({ sss: 0.42, wind: 1.0, mottle: 0.16, bump: 0.35, roughness: 0.85, massMap: leafMassTexture('blossom'), massScale: 1 / 0.9, ragged: 1 }),
+      maple: createFoliageMaterial({ sss: 0.4, wind: 1.0, mottle: 0.22, bump: 0.4, massMap: leafMassTexture('leaf'), massScale: 1 / 1.1, ragged: 1 }),
+      needle: createFoliageMaterial({ sss: 0.18, wind: 0.6, mottle: 0.24, bump: 0.4, massMap: leafMassTexture('needle'), massScale: 1 / 1.2, ragged: 1 })
+    };
+    this.colSakura = [0xd27a94, 0xeaa2b6, 0xf6c6d2, 0xfbdde6];
+    this.colMaple = [0x8e2d20, 0xc24a34, 0xe0704a, 0xf09060];
+    this.colLeaf = [0x2f4f1c, 0x3f6626, 0x5a8536, 0x7aa348];
+    this.colPine = [0x24401f, 0x33582f, 0x4a7040, 0x5f8850];
+  }
+
+  /**
+   * How a tree at (x, z) is built: `rim` trees are leaf masses, the rest
+   * hero trees; `bake` merges a tree into the static meshes instead of
+   * keeping its own.
+   */
+  treeStyle(x, z) {
+    const r = Math.hypot(x, z);
+    return { rim: r > RIM_RADIUS, bake: r >= NEAR_RADIUS };
+  }
+
   addCollider(x, z, r, h = 6) {
     this.colliders.push(new THREE.Box3(
       new THREE.Vector3(x - r, 0, z - r),
@@ -114,17 +149,21 @@ export class Vegetation {
   }
 
   /**
-   * Realistic tree: trunk + branching skeleton whose limbs carry dense leaf
-   * clumps (lumpy cores fringed with alpha-cut leaf sprays). The crown group
-   * sways as one; the branches stay put so limbs never detach.
+   * A tree in one of two styles (see treeStyle):
    *
-   * Trunks and limbs are static for every tree, so they are baked into
-   * per-material merged meshes (one draw call per bark material instead of
-   * two per tree). The ~15 trees nearest the village keep their own crown
-   * group + JS sway; long-tail trees bake their crown into the static merge
-   * too — the foliage shader's wind still animates those canopies.
+   *   hero — trunk + a four-deep twig skeleton carrying only individual
+   *          leaf sprays (`leaves` options). Twigs and leaves share the
+   *          flex wind, so the whole crown bends in the breeze with every
+   *          leaf staying on its twig; no JS sway.
+   *   rim  — the same trunk under textured leaf-mass clumps (`masses`
+   *          options merged over `canopy`); no cards.
+   *
+   * Trunks are static and always bake into the per-material merges. Hero
+   * trees near the village keep their own branch + leaf meshes so they cull
+   * per tree; the rest bake too (the flex wind is per vertex, so baked
+   * canopies sway exactly like the per-tree ones).
    */
-  canopyTree(x, z, scale, { kind, tuftMat, colors, trunk, canopy, sway = 0.02, collider = 0.35 }) {
+  canopyTree(x, z, scale, { kind, colors, trunk, canopy, leaves = {}, masses = {}, collider = 0.35 }) {
     const tree = new THREE.Group();
     const treeIdx = ++this._treeCount;
     tree.name = `${kind.charAt(0).toUpperCase() + kind.slice(1)} Tree ${treeIdx}`;
@@ -132,36 +171,39 @@ export class Vegetation {
     tree.rotation.y = this.random() * Math.PI * 2;
     tree.updateMatrix();
 
-    const trunkMat = this.matTrunks[Math.abs(Math.floor(x * 0.7 + z * 1.3)) % this.matTrunks.length];
+    const barkIdx = Math.abs(Math.floor(x * 0.7 + z * 1.3)) % this.matTrunks.length;
+    const trunkMat = this.matTrunks[barkIdx];
     const trunkMesh = this.trunkMesh(trunk.rTop * scale, trunk.rBot * scale, trunk.h * scale, trunkMat, (this.random() - 0.5) * trunk.lean).children[0];
     trunkMesh.updateMatrix();
     this._bakeStatic(trunkMesh.geometry, new THREE.Matrix4().multiplyMatrices(tree.matrix, trunkMesh.matrix), trunkMat);
 
-    const built = buildCanopy(this.rng, Object.assign({ scale, colors, trunkH: trunk.h, trunkR: trunk.rTop * 1.15 }, canopy));
-    this._bakeStatic(built.branches, tree.matrix, trunkMat);
-
-    if ((x * x + z * z) < 1296) {
-      // Near-village tree: keep the per-tree crown meshes and JS sway.
-      const crown = new THREE.Group();
-      crown.name = `${tree.name} Crown`;
-      const tufts = new THREE.Mesh(built.tufts, tuftMat);
-      tufts.castShadow = true;
-      tufts.receiveShadow = true;
-      crown.add(tufts);
-      const set = this.cardSets[kind];
-      const cards = new THREE.Mesh(built.cards, set.material);
-      cards.customDepthMaterial = set.depth;
-      cards.castShadow = true;
-      cards.receiveShadow = true;
-      crown.add(cards);
-      tree.add(crown);
-      this.swayables.push({ node: crown, amp: sway, freq: 0.7 + this.random() * 0.5, phase: this.random() * 6 });
-      this.scene.add(tree);
+    const { rim, bake } = this.treeStyle(x, z);
+    const base = { scale, colors, trunkH: trunk.h, trunkR: trunk.rTop * 1.15 };
+    if (rim) {
+      const built = buildCanopy(this.rng, Object.assign(base, canopy, masses, { style: 'masses' }));
+      this._bakeStatic(built.branches, tree.matrix, trunkMat);
+      this._bakeStatic(built.tufts, tree.matrix, this.masses[kind]);
     } else {
-      // Long-tail tree: crown baked into the static merges; the foliage
-      // material's vertex-shader wind keeps it moving.
-      this._bakeStatic(built.tufts, tree.matrix, tuftMat);
-      this._bakeStatic(built.cards, tree.matrix, this.cardSets[kind].material, this.cardSets[kind].depth);
+      const built = buildCanopy(this.rng, Object.assign(base, canopy, leaves, { style: 'leaves' }));
+      const branchMat = this.matBranches[barkIdx];
+      const set = this.sprays[kind];
+      if (bake) {
+        this._bakeStatic(built.branches, tree.matrix, branchMat, this.branchDepth, 'Canopy Limbs');
+        this._bakeStatic(built.cards, tree.matrix, set.material, set.depth, 'Canopy Leaves');
+      } else {
+        const branches = new THREE.Mesh(built.branches, branchMat);
+        branches.name = `${tree.name} Limbs`;
+        branches.customDepthMaterial = this.branchDepth;
+        const cards = new THREE.Mesh(built.cards, set.material);
+        cards.name = `${tree.name} Leaves`;
+        cards.customDepthMaterial = set.depth;
+        for (const m of [branches, cards]) {
+          m.castShadow = true;
+          m.receiveShadow = true;
+          tree.add(m);
+        }
+        this.scene.add(tree);
+      }
     }
 
     this.addCollider(x, z, collider * scale);
@@ -169,10 +211,10 @@ export class Vegetation {
   }
 
   /** Accumulate a world-baked geometry for the end-of-build static merge. */
-  _bakeStatic(geo, matrix, material, depthMat = null) {
+  _bakeStatic(geo, matrix, material, depthMat = null, name = 'Trunks & Canopy') {
     let acc = this._staticAccum.get(material.uuid);
     if (!acc) {
-      acc = { geos: [], material, depth: depthMat };
+      acc = { geos: [], material, depth: depthMat, name };
       this._staticAccum.set(material.uuid, acc);
     }
     geo.applyMatrix4(matrix);
@@ -186,7 +228,7 @@ export class Vegetation {
       const merged = mergeGeometries(acc.geos, false);
       merged.computeBoundingSphere();
       const mesh = new THREE.Mesh(merged, acc.material);
-      mesh.name = `Baked ${acc.depth ? 'Canopy Cards' : 'Trunks & Canopy'}`;
+      mesh.name = `Baked ${acc.name}`;
       if (acc.depth) mesh.customDepthMaterial = acc.depth;
       mesh.castShadow = true;
       mesh.receiveShadow = true;
@@ -221,19 +263,19 @@ export class Vegetation {
 
   sakuraTree(x, z, scale = 1) {
     // Somei-yoshino habit: a short trunk forking into wide, slightly
-    // drooping limbs smothered in blossom clusters.
+    // drooping limbs, the dark wood showing through clouds of blossom.
     this.canopyTree(x, z, scale, {
       kind: 'sakura',
-      tuftMat: this.matBlossom,
       colors: this.colSakura,
       trunk: { rTop: 0.13, rBot: 0.22, h: 2.3, lean: 0.14 },
-      canopy: {
-        primaries: 6, tilt: 0.9, tiltVar: 0.2, droop: -0.08, bend: 0.14, branchLen: 1.5,
-        secondaries: 2, twigs: true, crownFill: 3, clumpR: 0.4,
-        tuftsPerClump: [3, 3, 2], cardsPerClump: [11, 10, 7], cardSize: 0.6,
-        tuftFlat: 0.72, lump: 0.34, seed: 11
+      canopy: { primaries: 6, tilt: 0.9, tiltVar: 0.2, droop: -0.08, bend: 0.14, branchLen: 1.5, secondaries: 2 },
+      // Up close the blossom is nearly white with a blush; the deeper pinks
+      // of colSakura stay for the rim masses seen from afar.
+      leaves: {
+        habit: 'cloud', twigsPerLimb: 3, sprigs: 2, sprayLen: 0.46, sprayAspect: 1, density: 11, tipSprays: 3,
+        colors: [0xe4a2b6, 0xf0bccb, 0xf8d4de, 0xfde8ee]
       },
-      sway: 0.02
+      masses: { twigs: false, crownFill: 3, clumpR: 0.5, tuftsPerClump: [3, 3, 2], tuftFlat: 0.74, lump: 0.4, seed: 11 }
     });
   }
 
@@ -521,16 +563,11 @@ export class Vegetation {
     // palmate leaves in crimson-to-coral.
     this.canopyTree(x, z, scale, {
       kind: 'maple',
-      tuftMat: this.matFoliage,
       colors: this.colMaple,
       trunk: { rTop: 0.11, rBot: 0.2, h: 2.0, lean: 0.1 },
-      canopy: {
-        primaries: 5, tilt: 1.02, tiltVar: 0.18, droop: 0.05, bend: 0.1, branchLen: 1.3,
-        secondaries: 2, twigs: true, crownFill: 2, clumpR: 0.36,
-        tuftsPerClump: [3, 2, 2], cardsPerClump: [10, 9, 6], cardSize: 0.58,
-        tuftFlat: 0.5, lump: 0.3, seed: 23
-      },
-      sway: 0.02,
+      canopy: { primaries: 5, tilt: 1.02, tiltVar: 0.18, droop: 0.05, bend: 0.1, branchLen: 1.3, secondaries: 2 },
+      leaves: { habit: 'tier', twigsPerLimb: 3, sprigs: 2, sprayLen: 0.42, density: 14, tipSprays: 3 },
+      masses: { twigs: false, crownFill: 2, clumpR: 0.44, tuftsPerClump: [3, 2, 2], tuftFlat: 0.55, lump: 0.36, seed: 23 },
       collider: 0.3
     });
   }
@@ -540,16 +577,11 @@ export class Vegetation {
     // cloud-pruned needle pads at their ends.
     this.canopyTree(x, z, scale, {
       kind: 'needle',
-      tuftMat: this.matNeedle,
       colors: this.colPine,
       trunk: { rTop: 0.09, rBot: 0.17, h: 1.9, lean: 0.2 },
-      canopy: {
-        primaries: 4, tilt: 1.05, tiltVar: 0.28, droop: 0.12, bend: 0.06, branchLen: 1.45,
-        secondaries: 2, twigs: false, crownFill: 2, clumpR: 0.55,
-        tuftsPerClump: [4, 3, 2], cardsPerClump: [12, 10, 6], cardSize: 0.72,
-        tuftFlat: 0.38, pad: true, lump: 0.3, seed: 37
-      },
-      sway: 0.012,
+      canopy: { primaries: 4, tilt: 1.05, tiltVar: 0.28, droop: 0.12, bend: 0.06, branchLen: 1.45, secondaries: 2 },
+      leaves: { habit: 'pad', sprayLen: 0.36, sprayAspect: 1, padSprays: 30, padR: 0.45 },
+      masses: { twigs: false, crownFill: 2, clumpR: 0.6, tuftsPerClump: [4, 3, 2], tuftFlat: 0.42, pad: true, lump: 0.34, seed: 37 },
       collider: 0.3
     });
   }

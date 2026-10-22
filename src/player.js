@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20261021a';
-import { ColliderGrid } from './collider_grid.js?v=20261021a';
+import { Cat } from './cat.js?v=20261022d';
+import { ColliderGrid } from './collider_grid.js?v=20261022d';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -197,8 +197,14 @@ export class Player {
     // Ledge assist: track platform support so the cat can never accidentally
     // walk off a crate / ledge / roof / railing — only a deliberate jump
     // (jump buffered) or falling lets it leave the surface.
+    const terrainAt = (x, z) => (!isInside && world && world.groundAt)
+      ? world.groundAt(x, z)
+      : 0;
     const supAt = (x, z) => {
-      let top = 0;
+      // Summit geometry lives around y=-1200. Starting at zero silently
+      // rejects every one of its valid platforms, so support must begin at
+      // the active world's actual terrain height.
+      let top = terrainAt(x, z);
       if (!isInside && world && world.platforms) {
         for (const plat of world.platforms) {
           const height = this.getPlatformHeight(plat, x, z, 0.12);
@@ -244,9 +250,10 @@ export class Player {
       if (this.wasGrounded && this.jumpBufferTimer <= 0 && !inWater) {
         const oldSup = supAt(prevX, prevZ);
         const newSup = supAt(this.mesh.position.x, this.mesh.position.z);
+        const oldTerrain = terrainAt(prevX, prevZ);
         // Allow ordinary stairs and smooth ramps to descend naturally. Only
         // cancel a move when it would be a real ledge-sized drop.
-        if (oldSup > 0.05 && newSup < oldSup - 0.55) {
+        if (oldSup > oldTerrain + 0.05 && newSup < oldSup - 0.55) {
           this.mesh.position.x = prevX;
           this.mesh.position.z = prevZ;
         }
@@ -506,7 +513,7 @@ export class Player {
   }
 
   getPlatformNormal(world, x, z, groundY) {
-    if (!world || !world.platforms || groundY <= 0.05) return Y_UP;
+    if (!world || !world.platforms) return Y_UP;
     let best = null;
     let bestDelta = 0.16;
     for (const platform of world.platforms) {
@@ -527,19 +534,22 @@ export class Player {
     if (!world || !world.platforms) return;
     const oldX = this.mesh.position.x;
     const oldZ = this.mesh.position.z;
-    let oldTop = 0;
+    const oldGround = world.groundAt ? world.groundAt(oldX, oldZ) : 0;
+    let oldTop = oldGround;
     for (const platform of world.platforms) {
       const top = this.getPlatformHeight(platform, oldX, oldZ, 0.04);
       if (top != null && top <= this.mesh.position.y + 0.6) oldTop = Math.max(oldTop, top);
     }
     const nextX = oldX + dx;
     const nextZ = oldZ + dz;
-    let nextTop = 0;
+    const nextGround = world.groundAt ? world.groundAt(nextX, nextZ) : 0;
+    let nextTop = nextGround;
     for (const platform of world.platforms) {
       const top = this.getPlatformHeight(platform, nextX, nextZ, 0.04);
       if (top != null && top <= this.mesh.position.y + 0.6) nextTop = Math.max(nextTop, top);
     }
-    if (oldTop <= 0.05 || nextTop >= oldTop - 0.12) {
+    const onElevatedPlatform = oldTop > oldGround + 0.05;
+    if (!onElevatedPlatform || nextTop >= oldTop - 0.12) {
       this.mesh.position.x = nextX;
       this.mesh.position.z = nextZ;
     }

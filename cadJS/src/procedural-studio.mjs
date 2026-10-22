@@ -142,8 +142,26 @@ function mesh(geometry, material, name, pos = [0, 0, 0], rotDeg = [0, 0, 0], sca
   return m;
 }
 
+const PREFAB_ALIASES = {
+  'torii-gate': 'torii',
+  'stone-lantern': 'lantern',
+  'ishi-doro': 'lantern',
+  'bamboo-grove': 'bamboo',
+  'sakura-tree': 'sakura',
+  'wooden-bridge': 'bridge',
+  'tea-house': 'shrine',
+  'komainu-cat': 'cat_statue',
+  'maneki-neko': 'cat_statue',
+  'floating-lantern': 'toro_floating',
+  'stepping-stones': 'stepping_stones',
+  'water-basin': 'water_basin',
+  'rock-garden': 'rock_garden',
+  'ema-board': 'ema_board'
+};
+
 export function buildProceduralAsset(prefab, options = {}) {
-  const type = String(prefab || 'torii').toLowerCase().trim();
+  const rawType = String(prefab || 'torii').toLowerCase().trim();
+  const type = PREFAB_ALIASES[rawType] || rawType.replace(/-/g, '_');
   const seed = Number(options.seed ?? 1);
   const rand = seededRandom(seed);
   const group = new THREE.Group();
@@ -442,8 +460,27 @@ export function buildProceduralAsset(prefab, options = {}) {
  * Generates a 256x256 painterly procedural texture data URL in browser environments
  * (or a deterministic SVG data URL fallback in headless Node tests).
  */
+const TEXTURE_ALIASES = {
+  'moss-stone': 'mossy_stone',
+  'mossy-stone': 'mossy_stone',
+  'weathered-stone': 'weathered_stone',
+  'cedar-wood': 'cedar_wood',
+  'lacquer-wood': 'lacquer_wood',
+  'bamboo-grain': 'bamboo_grain',
+  'shoji-paper': 'shoji_paper',
+  'tatami-weave': 'tatami_weave',
+  'seigaiha-waves': 'seigaiha_waves',
+  'sakura-petals': 'sakura_petals',
+  'autumn-momiji': 'autumn_momiji',
+  'gold-kintsugi': 'gold_kintsugi',
+  'tabby-stripes': 'tabby_stripes',
+  'calico-patches': 'calico_patches',
+  'raked-sand': 'raked_sand'
+};
+
 export function synthesizePainterlyTexture(options = {}) {
-  const pattern = String(options.pattern || 'mossy_stone').toLowerCase();
+  const rawPattern = String(options.pattern || options.preset || 'mossy_stone').toLowerCase().trim();
+  const pattern = TEXTURE_ALIASES[rawPattern] || rawPattern.replace(/-/g, '_');
   const preset = PROCEDURAL_TEXTURES.find((item) => item.id === pattern) || PROCEDURAL_TEXTURES[0];
   const primary = options.primaryColor || preset.primary || '#7d8487';
   const secondary = options.secondaryColor || preset.secondary || '#4d6b3c';
@@ -587,7 +624,8 @@ export function synthesizePainterlyTexture(options = {}) {
  * Applies a color harmony palette across a Three.js object or hierarchy.
  */
 export function applyMaterialPaletteToObject(root, paletteId = 'kyoto_shrine') {
-  const palette = MATERIAL_PALETTES[paletteId] || MATERIAL_PALETTES.kyoto_shrine;
+  const key = String(paletteId || 'kyoto_shrine').toLowerCase().replace(/-/g, '_');
+  const palette = MATERIAL_PALETTES[key] || MATERIAL_PALETTES.kyoto_shrine;
   let index = 0;
   root?.traverse?.((node) => {
     if (!node.isMesh || !node.material) return;

@@ -9,26 +9,26 @@ import { GROOVES, noteName } from './theory.js';
 export const MODES = {
   compose: {
     label: 'Compose',
-    hint: 'Write new music — tracks, chords, melodies and grooves built from your prompt.',
-    guidance: 'MODE: Compose — write NEW material for the request: add tracks and clips with addChordProgression, phrase melodies and addDrumPattern. Reuse the project key/tempo unless the request implies otherwise. Deliver a complete, loopable cue (usually 4–8 bars) with a sensible mix.',
-    groups: ['Project', 'Tracks', 'Clips', 'Compose'],
+    hint: 'Write new music — tracks, chords, melodies, 42 drum rhythms and sample instruments built from your prompt.',
+    guidance: 'MODE: Compose — write NEW material for the request: add tracks and clips with addChordProgression, phrase melodies, addDrumPattern / setDrumRhythm, and createSamplerTrack / manipulateAudio when samples are requested. Reuse the project key/tempo unless the request implies otherwise. Deliver a complete, loopable cue (usually 4–8 bars) with a sensible mix.',
+    groups: ['Project', 'Tracks', 'Clips', 'Compose', 'Wave Lab'],
     chips: [
       'Calm dawn theme: soft pad + koto melody in C pentatonic, 84 BPM, 8 bars',
-      'Rainy night lo-fi loop: soft drums, mellow keys and a warm bass',
-      'Festival day: taiko groove, bright plucks and a flute-like lead',
-      'Tea-house interlude: sparse koto and chimes over a low drone'
+      'Rainy night lo-fi loop: lofi-kyoto drum rhythm, mellow keys and a warm bass',
+      'Festival day: matsuri-taiko drum rhythm, bright plucks and a shakuhachi sampler lead',
+      'Dreamy shrine ambience: 200% stretched temple-bell sample + koto arpeggio'
     ]
   },
   remix: {
     label: 'Remix',
-    hint: 'Rework what is already in the project — reharmonise, re-voice, re-groove, re-mix.',
-    guidance: 'MODE: Remix — rework what is already in DAW CONTEXT: replace clip content with setClipNotes, re-voice chords, transposeClip, retune presets, adjust FX and mix. Keep the piece recognisable; avoid piling on unrelated new tracks unless asked.',
-    groups: ['Project', 'Tracks', 'Clips', 'Compose'],
+    hint: 'Rework what is already in the project — switch drum rhythms, manipulate sample physics, reharmonise, re-mix.',
+    guidance: 'MODE: Remix — rework what is already in DAW CONTEXT: switch grooves with setDrumRhythm, manipulate sample physics with manipulateAudio, replace clip content with setClipNotes, re-voice chords, transposeClip, retune presets, adjust FX and mix. Keep the piece recognisable; avoid piling on unrelated new tracks unless asked.',
+    groups: ['Project', 'Tracks', 'Clips', 'Compose', 'Wave Lab'],
     chips: [
+      'Switch the drum rhythm to bossa-nova with acoustic kit and light swing',
       'Make it feel like dusk: darker voicings, a little slower, more reverb',
-      'Re-harmonise the chords with 7ths and smoother voice leading',
-      'Give the melody more space and variation in the second half',
-      'Turn this into a minimal night version'
+      'Reverse and time-stretch the koto sample into a dreamy 2x ambient texture',
+      'Turn this into a liquid drum & bass remix at 170 BPM'
     ]
   },
   sfx: {
@@ -163,6 +163,7 @@ function compactClip(clip, detail) {
   const base = { id: clip.id, name: clip.name, start: clip.start, length: clip.length };
   if (clip.loop) { base.loop = true; base.loopLen = clip.loopLen; }
   if (clip.sample) base.sample = clip.sample;
+  if (clip.audio) base.audio = clip.audio;
   const notes = clip.notes || [];
   if (detail === 'minimal') {
     if (notes.length) base.noteCount = notes.length;

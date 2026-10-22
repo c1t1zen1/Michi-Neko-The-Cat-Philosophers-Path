@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { Sky } from '../src/sky.js?v=20261021a';
-import { Player } from '../src/player.js?v=20261021a';
-import { Vegetation } from '../src/vegetation.js?v=20261021a';
-import { SummitManager } from '../src/mountaintop.js?v=20261021a';
+import { Sky } from '../src/sky.js?v=20261022d';
+import { Player } from '../src/player.js?v=20261022d';
+import { Vegetation } from '../src/vegetation.js?v=20261022d';
+import { SummitManager } from '../src/mountaintop.js?v=20261022d';
 
 const canvas = document.getElementById('preview');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -32,7 +32,10 @@ const game = {
   scene, camera, renderer, sky, player, vegetation,
   summitPreview: true,
   controls: { enabled: true },
-  ui: { hideAllGuidance() {}, showToast() {} },
+  ui: {
+    hideAllGuidance() {}, showToast() {},
+    setSummitMode() {}, setScenicView() {}
+  },
   audio: null, city: null, waypoints: null, progression: null,
   discover() {}, saveGame() {}, refreshCompassPois() {}
 };
@@ -43,17 +46,40 @@ summit.active = true;
 summit.group.visible = true;
 sky.paletteOverride = summit.skyPalette;
 sky._palStamp = -1;
-player.mesh.position.set(summit.origin.x + 8.5, summit.origin.y + 0.06, summit.origin.z + 11.5);
+player.mesh.position.set(
+  summit.origin.x + summit.perchLocal.x,
+  summit.origin.y + summit.perchLocal.y,
+  summit.origin.z + summit.perchLocal.z
+);
+player.heading = 0;
+player.yaw = 0;
+player.yawPrev = 0;
 player.mesh.rotation.y = 0;
-camera.position.set(summit.origin.x, summit.origin.y + 3.6, summit.origin.z - 5.5);
-camera.lookAt(summit.origin.x, summit.origin.y + 4.8, summit.origin.z + 92);
+player.cat.idleAction = 'sit';
+player.cat.idleActionTimer = 1.4;
+player.cat.idleActionDuration = Infinity;
+// Start the review frame with the pose fully blended instead of relying on
+// the screenshot runner to deliver enough real-time animation frames.
+for (let i = 0; i < 75; i++) player.cat.update(1 / 60, 0, true, false, false, false, null);
+camera.position.set(
+  player.mesh.position.x - 1.65,
+  player.mesh.position.y + 1.36,
+  player.mesh.position.z - 2.95
+);
+camera.fov = 48;
+camera.updateProjectionMatrix();
+summit.setVistaView(true);
+summit.meditateT = 78;
+summit.updateVistaCamera(1);
 
 const clock = new THREE.Clock();
 function frame() {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, clock.getDelta());
   sky.update(dt, player.mesh.position);
+  player.cat.update(dt, 0, true, false, false, false, null);
   summit.update(dt, false);
+  summit.updateVistaCamera(dt);
   renderer.render(scene, camera);
 }
 frame();

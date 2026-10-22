@@ -17,8 +17,10 @@ function buildMenus(app) {
       entries: [
         { label: 'New Empty Project', onClick: () => app.newProject('empty') },
         { label: 'New Starter Sketch', onClick: () => app.newProject('starter') },
+        { label: '🥁 New Song from Drum Rhythm…', onClick: () => { app.switchTab('clip'); app.drumgrid?.openRhythmBrowserModal(); } },
         'sep',
         { label: 'Open Project (JSON)…', onClick: () => app.openProjectDialog() },
+        { label: '📂 Import Audio Sample…', onClick: () => { app.switchTab('wavelab'); app.waveLab?.triggerFileImport(); } },
         { label: 'Save Project (download)', onClick: () => app.saveProjectFile() },
         { label: 'Save to Browser', key: 'Ctrl+S', onClick: () => app.persistProject() },
         'sep',

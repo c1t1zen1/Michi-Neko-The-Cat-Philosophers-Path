@@ -3,7 +3,8 @@ import {
   classifyFile, createCatalog, extractSourceMetadata, fingerprintDescriptor, normalizePath, slugify
 } from '../src/catalog.mjs';
 import {
-  createProviderRequest, extractJson, extractProviderText, normalizeAgentSettings, validateAgentPlan
+  PROVIDER_CATALOG, createProviderRequest, extractJson, extractProviderReasoning, extractProviderText,
+  normalizeAgentSettings, synthesizeBuiltinPlan, validateAgentPlan
 } from '../src/agent-protocol.mjs';
 import {
   changedObjectComponents, changedObjectStates, createAssetPackage, evaluateAssetCompatibility, hashValue, normalizeAssetId,
@@ -117,6 +118,77 @@ test('emits sparse object components instead of duplicating unchanged geometry',
   const current = { ...baseline, transform:{ position:[0,1,0] } };
   assert.deepEqual(changedObjectComponents(baseline, current), { type:'Mesh', transform:{ position:[0,1,0] } });
   assert.equal(changedObjectComponents(baseline, { ...baseline }), null);
+});
+
+test('supports expanded provider catalog including Ollama, LM Studio, Gemini, Groq, DeepSeek, xAI, Mistral, and Builtin', () => {
+  assert.ok(PROVIDER_CATALOG.local);
+  assert.ok(PROVIDER_CATALOG.ollama);
+  assert.ok(PROVIDER_CATALOG.lmstudio);
+  assert.ok(PROVIDER_CATALOG.gemini);
+  assert.ok(PROVIDER_CATALOG.groq);
+  assert.ok(PROVIDER_CATALOG.deepseek);
+  assert.ok(PROVIDER_CATALOG.xai);
+  assert.ok(PROVIDER_CATALOG.mistral);
+  assert.ok(PROVIDER_CATALOG.builtin);
+
+  const ollamaReq = createProviderRequest({ provider: 'ollama', model: 'qwen2.5-coder:7b' }, { instruction: 'add torii gate', context: {} });
+  assert.equal(ollamaReq.url, 'http://127.0.0.1:11434/v1/chat/completions');
+  assert.equal(ollamaReq.body.model, 'qwen2.5-coder:7b');
+
+  const geminiReq = createProviderRequest(
+    { provider: 'gemini', apiKey: 'gem-key', model: 'gemini-2.5-flash' },
+    { instruction: 'add stone lantern', context: {}, references: [{ dataUrl: 'data:image/png;base64,CCCC' }] }
+  );
+  assert.match(geminiReq.url, /generativelanguage\.googleapis\.com\/v1beta\/models\/gemini-2\.5-flash:generateContent\?key=gem-key/);
+  assert.equal(geminiReq.body.generationConfig.responseMimeType, 'application/json');
+  assert.equal(geminiReq.body.contents[0].parts[1].inlineData.mimeType, 'image/png');
+  assert.equal(
+    extractProviderText('gemini', { candidates: [{ content: { parts: [{ text: '{"summary":"ok","actions":[]}' }] } }] }),
+    '{"summary":"ok","actions":[]}'
+  );
+  assert.equal(
+    extractProviderReasoning('deepseek', { choices: [{ message: { content: '{}', reasoning_content: 'step by step' } }] }),
+    'step by step'
+  );
+});
+
+test('validates expanded v2 procedural, texture, palette, pose, and layout CAD actions', () => {
+  const plan = validateAgentPlan({
+    summary: 'Build Kyoto shrine corner',
+    actions: [
+      { type: 'addProceduralAsset', target: 'workspace', params: { prefab: 'torii', position: [0, 0, 0] } },
+      { type: 'generateProceduralTexture', target: 'selection', params: { pattern: 'mossy_stone', scale: 2 } },
+      { type: 'applyPalette', target: 'selection', params: { palette: 'kyoto_shrine' } },
+      { type: 'poseCharacter', target: 'selection', params: { pose: 'loaf', intensity: 1 } },
+      { type: 'alignObject', target: 'selection', params: { mode: 'ground' } },
+      { type: 'mirrorObject', target: 'selection', params: { axis: 'x', offset: 1.5 } },
+      { type: 'arrayClone', target: 'selection', params: { mode: 'radial', count: 6, radius: 2.4 } },
+      { type: 'scatterObjects', target: 'selection', params: { count: 7, radius: 3.2 } },
+      { type: 'subdivideGeometry', target: 'selection', params: { iterations: 1, smoothness: 0.5 } }
+    ]
+  });
+  assert.equal(plan.protocol, 2);
+  assert.equal(plan.actions.length, 9);
+  assert.equal(plan.actions[0].params.prefab, 'torii');
+  assert.equal(plan.actions[6].params.mode, 'radial');
+});
+
+test('synthesizes multi-step Kyoto asset plans with built-in offline copilot', () => {
+  const shrinePlan = synthesizeBuiltinPlan({
+    instruction: 'Build a vermilion Torii gate with stone lanterns and a mossy stone texture, then drop to ground',
+    context: { selectionUuid: '123' }
+  });
+  assert.ok(shrinePlan.actions.length >= 3);
+  assert.ok(shrinePlan.actions.some((a) => a.type === 'addProceduralAsset' && a.params.prefab === 'torii'));
+  assert.ok(shrinePlan.actions.some((a) => a.type === 'addProceduralAsset' && a.params.prefab === 'lantern'));
+  assert.ok(shrinePlan.actions.some((a) => a.type === 'generateProceduralTexture' && a.params.pattern === 'mossy_stone'));
+
+  const posePlan = synthesizeBuiltinPlan({
+    instruction: 'Pose the cat into a cozy cat loaf and apply the sakura spring palette',
+    context: { selectionUuid: 'cat-1' }
+  });
+  assert.ok(posePlan.actions.some((a) => a.type === 'poseCharacter' && a.params.pose === 'loaf'));
+  assert.ok(posePlan.actions.some((a) => a.type === 'applyPalette' && a.params.palette === 'sakura_spring'));
 });
 
 let failures = 0;

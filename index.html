@@ -247,6 +247,17 @@
 
     /* ============ Shared overlay / menu system ============ */
     .hidden { display: none !important; }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
     .overlay {
       position: absolute; inset: 0; z-index: 500;
       display: flex; align-items: center; justify-content: center;
@@ -435,6 +446,30 @@
     body.photo-mode #debug-overlay,
     body.photo-mode .npc-nametag,
     body.photo-mode #prompt { display: none !important; }
+
+    /* Summit exploration stays playable, but mission and HUD information
+       yield to the view. The sitting perch adds .scenic-view below. */
+    body.summit-mode #scroll-wrapper,
+    body.summit-mode #compass,
+    body.summit-mode #toast-stack,
+    body.summit-mode #edge-arrow,
+    body.summit-mode #debug-overlay,
+    body.summit-mode .npc-nametag,
+    body.summit-mode #prompt { display: none !important; }
+
+    /* Scenic view is the fully clean composition. Menus, recovery overlays,
+       photo-mode feedback, and the visual vignette deliberately remain. */
+    body.scenic-view #scroll-wrapper,
+    body.scenic-view #compass,
+    body.scenic-view .touch-zone,
+    body.scenic-view #toast-stack,
+    body.scenic-view #edge-arrow,
+    body.scenic-view #debug-overlay,
+    body.scenic-view .npc-nametag,
+    body.scenic-view #prompt,
+    body.scenic-view #btn-enable-audio { display: none !important; }
+
+    body.scenic-view.audio-blocked #btn-enable-audio { display: block !important; }
 
     #photo-hint {
       position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
@@ -645,6 +680,7 @@
   </div>
   <canvas id="canvas"></canvas>
   <div id="vignette"></div>
+  <div id="scenic-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <!-- Compass strip -->
   <div id="compass"></div>
@@ -802,7 +838,7 @@
 
   <!-- Cache busting: every module import in src/ carries this same ?v= tag.
        Bump them together, or a changed file ships against a cached sibling:
-         sed -i '' -E "s/\?v=[0-9a-z]+/?v=20261021a/g" src/*.js index.html -->
-  <script type="module" src="src/main.js?v=20261021a"></script>
+         sed -i '' -E "s/\?v=[0-9a-z]+/?v=20261022d/g" src/*.js index.html -->
+  <script type="module" src="src/main.js?v=20261022d"></script>
 </body>
 </html>

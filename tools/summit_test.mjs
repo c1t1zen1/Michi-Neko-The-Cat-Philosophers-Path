@@ -28,6 +28,7 @@ const V3 = class {
   clone() { return new V3(this.x, this.y, this.z); }
   add(v) { this.x += v.x; this.y += v.y; this.z += v.z; return this; }
   sub(v) { this.x -= v.x; this.y -= v.y; this.z -= v.z; return this; }
+  lerp(v, t) { this.x += (v.x - this.x) * t; this.y += (v.y - this.y) * t; this.z += (v.z - this.z) * t; return this; }
   lengthSq() { return this.x * this.x + this.y * this.y + this.z * this.z; }
   distanceToSquared(v) { const a = this.x - v.x, b = this.y - v.y, c = this.z - v.z; return a * a + b * b + c * c; }
   addScaledVector() { return this; }
@@ -113,11 +114,11 @@ const THREE = {
   MeshStandardMaterial: class { constructor(o) { Object.assign(this, o); } },
   MeshDepthMaterial: class { constructor(o) { Object.assign(this, o); } },
   SpriteMaterial: class { constructor(o) { Object.assign(this, o); } },
-  DynamicDrawUsage: 35048, DoubleSide: 2, FrontSide: 0, AdditiveBlending: 2, SRGBColorSpace: 'srgb',
+  DynamicDrawUsage: 35048, DoubleSide: 2, BackSide: 1, FrontSide: 0, AdditiveBlending: 2, SRGBColorSpace: 'srgb',
   MathUtils: { clamp: (v, a, b) => Math.max(a, Math.min(b, v)), lerp: (a, b, t) => a + (b - a) * t },
   Sphere: class { constructor(c, r) { this.center = c; this.radius = r; } },
   Box3: class {
-    constructor() { this.min = new V3(Infinity, Infinity, Infinity); this.max = new V3(-Infinity, -Infinity, -Infinity); }
+    constructor(min = new V3(Infinity, Infinity, Infinity), max = new V3(-Infinity, -Infinity, -Infinity)) { this.min = min; this.max = max; }
     setFromObject() { return this; }
     expandByPoint() { return this; }
     getSize(v) { return v.set(0, 0, 0); }
@@ -125,6 +126,12 @@ const THREE = {
   Euler: class { constructor() { this.x = 0; this.y = 0; this.z = 0; } set() { return this; } },
   Matrix4: class { constructor() { this.elements = []; } makeRotationX() { return this; } identity() { return this; } },
   Quaternion: class { constructor() { this.x = 0; this.y = 0; this.z = 0; this.w = 1; } },
+  Shape: class {
+    constructor() { this.points = []; }
+    moveTo(x, y) { this.points.push([x, y]); return this; }
+    lineTo(x, y) { this.points.push([x, y]); return this; }
+    closePath() { return this; }
+  },
   CatmullRomCurve3: class { constructor(points) { this.points = points; this.curveType = ''; this.tension = 0; } },
   Frustum: class { intersectsObject() { return true; } },
   Raycaster: class { constructor() { this.ray = { origin: new V3(), direction: new V3() }; } set() { return this; } },
@@ -133,7 +140,7 @@ const THREE = {
 const mergeGeometries = () => geo3();
 
 const texturesStub = {
-  dirtTextures: () => ({}), stoneTextures: () => ({}), woodTextures: () => ({}),
+  dirtTextures: () => ({}), groundTextures: () => ({}), stoneTextures: () => ({}), woodTextures: () => ({}),
   metalTextures: () => ({}), barkTextures: () => ({}),
   texturedMaterial: (s, o) => mat({ map: s, ...o }),
   worldNoise: () => 0, glowTexture: () => ({}),
@@ -148,6 +155,10 @@ const foliageStub = {
 let src = readFileSync(join(ROOT, 'src', 'mountaintop.js'), 'utf8');
 // Strip imports (some are multi-line, so match `from '...'` through the `;`).
 src = src.replace(/^import[\s\S]*?from\s+['"][^'"]+['"]\s*;?/gm, '');
+// `import.meta.url` keeps module-relative assets working from both the game
+// and `/tools/` preview. The VM runs classic script text, so give it the URL
+// the real module has before evaluation.
+src = src.replace(/import\.meta\.url/g, "'http://localhost/src/mountaintop.js'");
 if (/^\s*import\s/m.test(src)) {
   console.error('import strip failed');
   process.exit(1);
@@ -195,7 +206,7 @@ const overlays = {
 
 const sandbox = {
   THREE, mergeGeometries, console, Math, Date, JSON,
-  Set, Map, Array, Object, String, Boolean, Number, Infinity, isFinite,
+  Set, Map, Array, Object, String, Boolean, Number, Infinity, isFinite, URL,
   Uint8ClampedArray, Uint8Array, Float32Array, parseInt, parseFloat, isNaN,
   setTimeout, clearTimeout, setInterval, clearInterval,
   document: {
@@ -214,7 +225,7 @@ vm.createContext(sandbox);
 // module-scope definition from src/mountaintop.js, so the constants under test
 // are the shipped ones.
 const pre = `
-  const dirtTextures = () => ({}), stoneTextures = () => ({}), woodTextures = () => ({}),
+  const dirtTextures = () => ({}), groundTextures = () => ({}), stoneTextures = () => ({}), woodTextures = () => ({}),
         metalTextures = () => ({}), barkTextures = () => ({}),
         texturedMaterial = (s, o) => Object.assign({ map: s }, o || {}),
         worldNoise = () => 0, glowTexture = () => ({});
@@ -250,11 +261,14 @@ function makeGame() {
       },
     },
     controls: { enabled: true },
-    camera: { position: new V3(), lookAt() {} },
+    camera: { position: new V3(), fov: 49, lookAt() {}, updateProjectionMatrix() {} },
     ui: {
       showToast: (m) => toasts.push(m),
       hideAllGuidance() { this.guidanceHidden = true; },
       guidanceHidden: false,
+      summitModeCalls: [], scenicViewCalls: [],
+      setSummitMode(on) { this.summitModeCalls.push(!!on); },
+      setScenicView(on) { this.scenicViewCalls.push(!!on); },
     },
     audio: {
       playMonkChoir: guard('choir'), playDreamChime: guard('chime'),
@@ -320,6 +334,24 @@ ok('has vista backdrop', !!S.vista);
 ok('has summit-local snow', !!S.snow && !!S.snowMat, 'buildSummitSnow missing');
 ok('snow parks itself when clear', S.snow.visible === false);
 ok('no collectibles on a respite scene', Array.isArray(S.collectibles) && S.collectibles.length === 0);
+ok('has summit-local butterfly visitors', !!S.butterflies && !!S.butterflyMat);
+ok('has a pooled flock of colorful fly-by birds', Array.isArray(S.summitBirds) && S.summitBirds.length === 4);
+ok('a five-stone path leads naturally to the meditation perch',
+  Array.isArray(S.meditationPath) && S.meditationPath.length === 5);
+ok('the meditation perch has a furin, light pool and gathering motes',
+  !!S.furin && !!S.meditationPool && !!S.meditationMotes);
+ok('sakura petals are local to the summit weather system', !!S.petals && !!S.petalMat);
+
+// Wildlife is episodic rather than a permanent screen effect. Force one
+// deterministic visit and verify both pooled systems wake up cleanly.
+S.startBirdFlyby();
+S._butterflyVisitTimer = 0;
+S.updateAmbientWildlife(0.25, 1, g.sky);
+ok('a bird fly-by wakes at least one pooled bird', S.summitBirds.some((b) => b.active));
+ok('a butterfly visit fades in around the perch', S.butterflies.visible && S.butterflyMat.opacity > 0);
+S.resetAmbientWildlife();
+ok('wildlife parks invisibly between visits',
+  !S.butterflies.visible && S.summitBirds.every((b) => !b.active && !b.mesh.visible));
 
 // --- ten-bell unlock ---
 for (let i = 0; i < 9; i++) S.onBellRing();
@@ -351,6 +383,7 @@ ok('summit becomes active', S.active === true);
 ok('summit group becomes visible', S.group.visible === true);
 ok('summit wind bed starts', audioCalls.includes('wind:on'));
 ok('guidance UI is hidden', g.ui.guidanceHidden === true);
+ok('summit mode removes valley guidance chrome', g.ui.summitModeCalls.at(-1) === true);
 ok('weather pool drops rain and mist',
   !!g.sky.weatherPool && g.sky.weatherPool.includes('snow') &&
   !g.sky.weatherPool.includes('rain') && !g.sky.weatherPool.includes('mist'));
@@ -358,33 +391,55 @@ ok('weather durations swapped', g.sky.weatherDurations.clear === 300);
 
 // ORIGIN is (0, -1200, 0), so world z == local z and world y == local y - 1200.
 const pp = g.player.mesh.position;
-ok('cat lands on the torii landing',
-  Math.abs(pp.y - (-1201.6)) < 0.01 && Math.abs(pp.z - (-42.4)) < 0.01,
+ok('cat lands outside the ocean-side torii',
+  Math.abs(pp.y - (-1201.6)) < 0.01 && Math.abs(pp.z - 17.8) < 0.01,
   `y=${pp.y} z=${pp.z}`);
+ok('cat faces uphill toward the clearing',
+  Math.abs(g.player.heading - Math.PI) < 0.001 && Math.abs(g.player.mesh.rotation.y - Math.PI) < 0.001,
+  `heading=${g.player.heading}`);
 
 // The player physics compares groundAt() against the cat's WORLD y — local
 // heights here would snap the cat from the summit pocket to valley level.
-ok('groundAt returns world heights',
-  Math.abs(S.groundAt(0, -42.4) - (-1201.6)) < 0.01 &&
-  Math.abs(S.groundAt(0, 0) - (-1200)) < 0.01,
-  `corridor=${S.groundAt(0, -42.4)} meadow=${S.groundAt(0, 0)}`);
+const stairHeights = Array.from({ length: 7 }, (_, i) =>
+  S.groundAt(0, 8.25 + i * 1.05 + 0.5));
+const regularSteps = stairHeights.every((height, i) =>
+  Math.abs(height - (-1199.92 - i * 0.28)) < 0.011);
+ok('groundAt exposes seven regular 28 cm stair bands', regularSteps,
+  `heights=${stairHeights.map((n) => n.toFixed(2)).join(',')}`);
+ok('groundAt keeps meadow and arrival landing aligned to rendered surfaces',
+  Math.abs(S.groundAt(0, 0) - (-1199.92)) < 0.01 &&
+  Math.abs(S.groundAt(0, 17.8) - (-1201.6)) < 0.01,
+  `landing=${S.groundAt(0, 17.8)} meadow=${S.groundAt(0, 0)}`);
 
 // --- containment: the cat can never wander off the summit ---
 const runaway = { x: 300, y: 0, z: 0 };
 S.constrain(runaway);
 ok('runaway is pulled back inside', Math.abs(runaway.x) < 300, `x=${runaway.x}`);
 
-// --- torii crossing exits (walking back under the gate) ---
-// The trigger band is lz in (GATE_Z-1.6, GATE_Z-0.4) = (-45.6, -44.4).
-g.player.mesh.position.set(0, -1201.6, -45.0);
+// --- torii exit: arrival cannot bounce back out immediately ---------------
+// A real return crossing arms only after the cat has climbed into the clearing.
 S.update(0.016, true);
-ok('crossing the torii starts the descent', S.transitioning === true,
+ok('arrival outside the torii does not immediately trigger descent',
+  S.transitioning === false && S.active === true);
+g.player.mesh.position.set(S.origin.x + S.furin.position.x, -1199.92, S.origin.z + S.furin.position.z);
+S.update(0.016, true);
+const furinChimes = audioCalls.filter((c) => c === 'chime').length;
+S.update(0.016, true);
+ok('entering the shade rings the furin exactly once per visit',
+  furinChimes === 1 && audioCalls.filter((c) => c === 'chime').length === furinChimes);
+g.player.mesh.position.set(0, -1199.92, 9.5);
+S.update(0.016, true);
+ok('reaching the clearing arms the return crossing', S._exitArmed === true);
+g.player.mesh.position.set(0, -1201.6, 17.0);
+S.update(0.016, true);
+ok('walking outward through the torii starts the descent', S.transitioning === true,
   'torii exit trigger did not fire — the cat would be stranded');
 
 // exit() teleports behind a 900 ms veil, then fades it over a further 900 ms.
 await new Promise((r) => setTimeout(r, 2400));
 ok('the summit closes behind the cat', S.active === false);
 ok('summit wind bed stops', audioCalls.includes('wind:off'));
+ok('leaving the summit restores normal UI mode', g.ui.summitModeCalls.at(-1) === false);
 ok('exit places the cat under the valley torii',
   Math.abs(g.player.mesh.position.y) < 0.01 && Math.abs(g.player.mesh.position.z + 23.6) < 0.01,
   `y=${g.player.mesh.position.y} z=${g.player.mesh.position.z}`);
@@ -402,11 +457,15 @@ S.setUnlocked(true, true);
 ok('restore-from-save opens the thicket instantly', g.thicketCalls.includes(1));
 S.enterImmediate();
 
-// Park the cat dead-centre in the meadow heart, sitting and perfectly still.
+// Park the cat at the designed grassy perch under the tree, sitting and still.
 // `cat.idleTimer` must exceed 2.5s for update() to decide the sit for itself,
 // which is exactly the "sit long enough" affordance the design asks for.
 const park = () => {
-  g.player.mesh.position.set(0, -1200, 0);
+  g.player.mesh.position.set(
+    S.origin.x + S.perchLocal.x,
+    S.origin.y + S.perchLocal.y,
+    S.origin.z + S.perchLocal.z
+  );
   g.player.cat.state = 'idle';
   g.player.isGrounded = true;
   g.player.currentSpeed = 0;
@@ -419,6 +478,8 @@ for (let i = 0; i < 40; i++) { park(); S.update(0.5, true); }
 ok('the summit makes the cat sit down on its own',
   g.player.cat.idleAction === 'sit' || S.sleeping,
   `idleAction=${g.player.cat.idleAction}`);
+ok('sitting at the perch engages the clean scenic camera',
+  S.cameraActive === true && g.ui.scenicViewCalls.at(-1) === true);
 
 const med0 = S.meditateT;
 for (let i = 0; i < 40; i++) { park(); S.update(0.5, true); }
@@ -440,6 +501,8 @@ g.player.moveInput.lengthSq = () => 4;
 park();
 S.update(0.5, true);
 ok('walking away breaks the spell', S.sleeping === false);
+ok('movement exits scenic view and restores controls',
+  S.cameraActive === false && g.ui.scenicViewCalls.at(-1) === false);
 
 // --- the sleep can be earned again after waking -----------------------------
 // 400 × 0.5 s = 200 s, comfortably past the 165 s stillness threshold.

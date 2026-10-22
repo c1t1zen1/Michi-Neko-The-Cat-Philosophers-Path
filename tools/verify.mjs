@@ -59,6 +59,8 @@ step(2, 'main.js wiring', () => {
       /classList\.remove\('show', 'fallback', 'quick', 'video-playing', 'fade-out'\)/.test(s)],
     ['summit snow system built', /this\.buildSummitSnow\(\)/.test(s)],
     ['card set keyed by kind (not opts.kind)', /this\.cardSets\[kind\]/.test(s)],
+    ['summit landmark asset is module-relative',
+      /SUMMIT_LANDMARKS_SRC\s*=\s*new URL\([^\n]+import\.meta\.url\)/.test(s)],
   ];
   for (const [name, ok] of checks) {
     console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${name}`);

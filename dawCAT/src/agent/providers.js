@@ -291,3 +291,88 @@ export function parseCompletion(api, json) {
     usage: normalizeUsage(json?.usage)
   };
 }
+
+/* Curated popular model catalog per provider so users can select a model from a
+   dropdown immediately even before scanning or when a cloud endpoint restricts /models. */
+export const POPULAR_MODELS = {
+  local: [
+    'local-model',
+    'qwen3-14b-instruct',
+    'qwen2.5-coder-14b-instruct',
+    'llama-3.3-70b-instruct',
+    'gemma-3-12b-it',
+    'mistral-nemo-12b-instruct',
+    'deepseek-r1-distill-qwen-14b'
+  ],
+  lmstudio: [
+    'local-model',
+    'qwen2.5-14b-instruct',
+    'llama-3.2-8b-instruct',
+    'mistral-7b-instruct'
+  ],
+  ollama: [
+    'qwen3:8b',
+    'qwen3:14b',
+    'qwen2.5-coder:14b',
+    'llama3.2:latest',
+    'gemma3:12b',
+    'mistral:latest',
+    'deepseek-r1:14b'
+  ],
+  custom: ['custom-model', 'local-model'],
+  openai: ['gpt-5.2', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'o3-mini'],
+  anthropic: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-sonnet-4-6', 'claude-haiku-4-5'],
+  openrouter: [
+    'openai/gpt-5.2',
+    'anthropic/claude-sonnet-4-6',
+    'google/gemini-2.5-flash',
+    'meta-llama/llama-3.3-70b-instruct',
+    'deepseek/deepseek-chat'
+  ],
+  gemini: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'],
+  groq: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'qwen-qwq-32b', 'deepseek-r1-distill-llama-70b'],
+  mistral: ['mistral-large-latest', 'codestral-latest', 'ministral-8b-latest'],
+  deepseek: ['deepseek-chat', 'deepseek-reasoner'],
+  xai: ['grok-4', 'grok-3-mini']
+};
+
+/* Probes standard local LLM ports concurrently (llama-server :8080, LM Studio :1234,
+   Ollama :11434, custom :3000) and returns all reachable local servers. */
+export async function autoDetectLocalServers({ fetchImpl = globalThis.fetch, timeoutMs = 1500 } = {}) {
+  const candidates = PROVIDERS.filter((p) => p.group === 'local');
+  const results = await Promise.all(candidates.map(async (prov) => {
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+    try {
+      const req = buildModelsRequest({ provider: prov.id, baseUrl: prov.baseUrl, apiKey: '' });
+      const res = await fetchImpl(req.url, { headers: req.headers, signal: ctrl?.signal });
+      if (!res || !res.ok) return null;
+      const json = await res.json();
+      let models = parseModelList(json);
+      let nCtx = prov.nCtx;
+      if (prov.id === 'local') {
+        try {
+          const pRes = await fetchImpl(`${serverRoot(prov.baseUrl)}/props`, { signal: ctrl?.signal });
+          if (pRes && pRes.ok) {
+            const props = parseProps(await pRes.json());
+            if (props.nCtx) nCtx = props.nCtx;
+            if (props.model && !models.includes(props.model)) models = [props.model, ...models];
+          }
+        } catch { /* optional props */ }
+      }
+      return {
+        provider: prov.id,
+        label: prov.label,
+        baseUrl: prov.baseUrl,
+        models: models.length ? models : [prov.model],
+        model: models[0] || prov.model,
+        nCtx
+      };
+    } catch {
+      return null;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }));
+  return results.filter(Boolean);
+}

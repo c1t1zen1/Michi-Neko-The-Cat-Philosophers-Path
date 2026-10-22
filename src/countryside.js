@@ -4,11 +4,10 @@ import {
   plasterTextures, woodTextures, kawaraTextures, shojiTextures, tatamiTextures,
   cobbleTextures, stoneTextures, groundTextures, dirtTextures, strawTextures,
   metalTextures, texturedMaterial, worldScaleBoxUVs, worldNoise
-} from './textures.js?v=20261021a';
+} from './textures.js?v=20261022d';
 import {
-  createFoliageMaterial, createFoliageDepthMaterial, lumpyTuftGeometry, lumpyConeGeometry,
-  leafCardTexture, buildCanopy
-} from './foliage.js?v=20261021a';
+  createFoliageMaterial, lumpyTuftGeometry, lumpyConeGeometry, leafMassTexture, bushGeometry, buildCanopy
+} from './foliage.js?v=20261022d';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -2087,15 +2086,20 @@ export class Countryside {
     this.addSlopedRoofPlatforms(house, 2.1, w + 0.6, d + 0.4, 0.95, 0.5);
   }
 
-  // --- Street greenery: bushes, moss, bamboo fences & toro stone lanterns ---
-  buildStreetGreenery() {
-    const bushTints = [0x46702f, 0x54803a, 0x628f44, 0x3d6529];
-    const bushGeo = lumpyTuftGeometry(2, 9, 0.32);
+  /**
+   * Street shrubs: thick multi-domed bushes painted with small leaves whose
+   * outlines break up into leaf edges. They rustle when the cat brushes
+   * through (the foliage shader reads the shared player position).
+   */
+  buildStreetBushes() {
+    const bushTints = [0x5c9040, 0x6c9e4a, 0x7cac56, 0x52833a];
+    const bushGeo = bushGeometry(9, { lobes: 8, detail: 2, lump: 0.34 });
     const dummy = new THREE.Object3D();
     const count = 90;
-    // Street bushes rustle when the cat brushes through them (foliage shader
-    // reacts to the shared player position uniform)
-    const swayMat = createFoliageMaterial({ sss: 0.3, wind: 0.9, rustle: 1.0, mottle: 0.28, vertexColors: false });
+    const swayMat = createFoliageMaterial({
+      sss: 0.3, wind: 0.9, rustle: 1.0, mottle: 0.2, bump: 0.45, vertexColors: true,
+      massMap: leafMassTexture('leaf'), massScale: 1 / 0.55, ragged: 1
+    });
     const bushes = new THREE.InstancedMesh(bushGeo, swayMat, count);
     this.bushMat = swayMat;
     this.bushColliderSpots = [];
@@ -2131,6 +2135,12 @@ export class Countryside {
     bushes.receiveShadow = true;
     bushes.name = 'Street Bushes';
     this.scene.add(bushes);
+  }
+
+  // --- Street greenery: bushes, moss, bamboo fences & toro stone lanterns ---
+  buildStreetGreenery() {
+    this.buildStreetBushes();
+    const dummy = new THREE.Object3D();
 
     // Moss / grass patches hugging the road edges
     const mossMat = new THREE.MeshStandardMaterial({ color: 0x48682f, roughness: 1 });
@@ -2902,19 +2912,18 @@ export class Countryside {
 
   buildEdgeForest() {
     // Dense impassable tree wall ringing the playfield just inside the
-    // hard boundary radius. Four hand-built broadleaf variants (branching
-    // limbs carrying leaf clumps fringed with alpha-cut leaf sprays) are
-    // instanced around the ring, so the wall reads as real trees with
-    // leafy, broken silhouettes instead of stacked smooth blobs.
+    // hard boundary radius. Four broadleaf variants are instanced around
+    // the ring as painted leaf masses: scalloped crown clumps on short
+    // limbs, textured with overlapping leaves whose outlines break into
+    // leaf edges. The rim stays abstract so the hero trees inside the
+    // valley — individual leaves on real twigs — carry the detail.
     const count = 260;
     const variantCount = 4;
-    const forestGreens = [0x22441a, 0x2e5823, 0x3e7030, 0x558a3b];
-    const forestMat = createFoliageMaterial({ sss: 0.24, wind: 0.75, mottle: 0.34, vertexColors: true });
-    const cardTex = leafCardTexture('broadleaf');
-    const cardMat = createFoliageMaterial({
-      sss: 0.32, wind: 0.85, mottle: 0.14, bump: 0.3, vertexColors: true, map: cardTex, alphaTest: 0.5, side: THREE.DoubleSide
+    const forestGreens = [0x2e5a24, 0x3b6e2e, 0x4e873c, 0x67a24a];
+    const forestMat = createFoliageMaterial({
+      sss: 0.24, wind: 0.75, mottle: 0.24, bump: 0.42, vertexColors: true,
+      massMap: leafMassTexture('leaf'), massScale: 1 / 1.5, ragged: 1
     });
-    const cardDepth = createFoliageDepthMaterial(cardTex, 0.5);
     const barkMat = texturedMaterial(TEX.woodDark, { color: 0x6a5a48, roughness: 1 });
     const trunkGeo = new THREE.CylinderGeometry(0.12, 0.2, 1.2, 7);
 
@@ -2926,28 +2935,30 @@ export class Countryside {
       assign.push(v);
       perVariant[v]++;
     }
+    // Corridor trees standing behind the shrine lean aside when the tenth
+    // bell opens the way to the summit (setShrineThicketOpen). They get
+    // their own small instanced sets: main.js splits the wide wall sets
+    // into spatial chunks after the build, which would leave a re-posed
+    // instance moving in a mesh no longer in the scene.
     const sets = [];
+    const thicketSets = [];
     for (let v = 0; v < variantCount; v++) {
       const built = buildCanopy(this.rng, {
-        scale: 1, trunkH: 1.15, trunkR: 0.14, primaries: 5, tilt: 0.76 + v * 0.06, tiltVar: 0.22,
+        style: 'masses', scale: 1, trunkH: 1.15, trunkR: 0.14, primaries: 5, tilt: 0.76 + v * 0.06, tiltVar: 0.22,
         droop: -0.02, bend: 0.12, branchLen: 0.78, secondaries: 2, twigs: false, crownFill: 3,
-        colors: forestGreens, clumpR: 0.28, tuftsPerClump: [2, 2, 1], cardsPerClump: [10, 9, 6],
-        cardSize: 0.56, tuftFlat: 0.72, lump: 0.36, seed: 50 + v * 7
+        colors: forestGreens, clumpR: 0.36, tuftsPerClump: [3, 3, 2], tuftFlat: 0.74, lump: 0.4, seed: 50 + v * 7
       });
-      const tufts = new THREE.InstancedMesh(built.tufts, forestMat, perVariant[v]);
-      const cards = new THREE.InstancedMesh(built.cards, cardMat, perVariant[v]);
-      cards.customDepthMaterial = cardDepth;
-      const branches = new THREE.InstancedMesh(built.branches, barkMat, perVariant[v]);
-      tufts.name = `Edge Forest Crown ${v + 1}`;
-      cards.name = `Edge Forest Cards ${v + 1}`;
-      branches.name = `Edge Forest Branches ${v + 1}`;
-      sets.push({ tufts, cards, branches, next: 0 });
+      for (const [list, label] of [[sets, 'Edge Forest'], [thicketSets, 'Shrine Thicket']]) {
+        const tufts = new THREE.InstancedMesh(built.tufts, forestMat, perVariant[v]);
+        const branches = new THREE.InstancedMesh(built.branches, barkMat, perVariant[v]);
+        tufts.name = `${label} Crown ${v + 1}`;
+        branches.name = `${label} Branches ${v + 1}`;
+        list.push({ tufts, branches, next: 0 });
+      }
     }
     const trunks = new THREE.InstancedMesh(trunkGeo, barkMat, count);
     trunks.name = 'Edge Forest Trunks';
     this.edgeForestTrunks = trunks;
-    // Corridor trees standing behind the shrine — they lean aside when the
-    // tenth bell opens the way to the summit (setShrineThicketOpen).
     this.shrineThicketTrees = [];
     const dummy = new THREE.Object3D();
     const col = new THREE.Color();
@@ -2963,7 +2974,8 @@ export class Countryside {
       // village. Their horizontal footprint and collision wall remain untouched.
       const angleDelta = Math.atan2(Math.sin(a - pagodaBearing), Math.cos(a - pagodaBearing));
       const sightlineHeight = Math.abs(angleDelta) < 0.3 ? 0.88 * 0.9 : 1;
-      const set = sets[assign[i]];
+      const inThicket = Math.abs(x) < 3.6 && z < -33;
+      const set = (inThicket ? thicketSets : sets)[assign[i]];
       const idx = set.next++;
       // Captured so the thicket can re-pose this instance later; the call
       // order of the RNG is preserved exactly.
@@ -2976,12 +2988,10 @@ export class Countryside {
       dummy.scale.set(sx, s * sightlineHeight, sz);
       dummy.updateMatrix();
       set.tufts.setMatrixAt(idx, dummy.matrix);
-      set.cards.setMatrixAt(idx, dummy.matrix);
       set.branches.setMatrixAt(idx, dummy.matrix);
       // Per-tree tint rides on top of the baked crown gradient
       col.setRGB(0.88 + this.random() * 0.24, 0.9 + this.random() * 0.2, 0.84 + this.random() * 0.22);
       set.tufts.setColorAt(idx, col);
-      set.cards.setColorAt(idx, col);
       dummy.position.set(x, 0.6 * s * sightlineHeight, z);
       dummy.scale.set(s, s * sightlineHeight, s);
       dummy.rotation.set(0, rotTrunk, 0);
@@ -2993,15 +3003,17 @@ export class Countryside {
         new THREE.Vector3(x + s * 0.35, s * 2.2, z + s * 0.35)
       );
       this.colliders.push(box);
-      if (Math.abs(x) < 3.6 && z < -33) {
+      if (inThicket) {
         this.shrineThicketTrees.push({
           set, idx, trunkIdx: i, x, z, s, sy: s * sightlineHeight,
           sx, sz, rotCrown, rotTrunk, side: x >= 0 ? 1 : -1, box
         });
       }
     }
-    for (const set of sets) {
-      for (const m of [set.tufts, set.cards, set.branches]) {
+    for (const set of sets.concat(thicketSets)) {
+      if (!set.next) continue;
+      for (const m of [set.tufts, set.branches]) {
+        m.count = set.next;
         m.instanceMatrix.needsUpdate = true;
         if (m.instanceColor) m.instanceColor.needsUpdate = true;
         m.castShadow = true;
@@ -3012,29 +3024,43 @@ export class Countryside {
     trunks.instanceMatrix.needsUpdate = true;
     trunks.castShadow = true;
     this.scene.add(trunks);
+    this.buildEdgeUndergrowth();
+  }
 
-    // Undergrowth bushes thickening the wall between trees
-    const bushGeo = lumpyTuftGeometry(1, 7, 0.3);
-    const bushMat = createFoliageMaterial({ sss: 0.2, wind: 0.6, mottle: 0.3, vertexColors: false });
+  /** Undergrowth shrubs thickening the edge-forest wall between trunks. */
+  buildEdgeUndergrowth() {
+    const dummy = new THREE.Object3D();
+    const bushGeo = bushGeometry(7, { lobes: 7, detail: 1, lump: 0.36 });
+    const bushMat = createFoliageMaterial({
+      sss: 0.2, wind: 0.6, mottle: 0.24, bump: 0.42, vertexColors: true,
+      massMap: leafMassTexture('leaf'), massScale: 1 / 0.8, ragged: 1
+    });
     const bushes = new THREE.InstancedMesh(bushGeo, bushMat, 160);
     bushes.name = 'Wall Undergrowth';
-    this.undergrowthMesh = bushes;
-    // Shrubs in the shrine's rear corridor — they part open with the trees.
+    // Shrubs in the shrine's rear corridor part open with the trees; like
+    // the thicket trees they live in their own small set (see
+    // buildEdgeForest) so the wall's chunking can't strand them.
+    const thicket = new THREE.InstancedMesh(bushGeo, bushMat, 160);
+    thicket.name = 'Shrine Thicket Undergrowth';
     this.shrineThicketBushes = [];
     const bushCol = new THREE.Color();
-    for (let i = 0; i < 160; i++) {
+    let nWall = 0, nThicket = 0;
+    for (let n = 0; n < 160; n++) {
       const a = this.random() * Math.PI * 2;
       const r = 35.5 + this.random() * 8;
       const s = 0.9 + this.random() * 1.6;
       const x = Math.cos(a) * r;
       const z = Math.sin(a) * r;
       const rotY = this.random() * Math.PI;
+      const inThicket = Math.abs(x) < 9 && z < -32;
+      const mesh = inThicket ? thicket : bushes;
+      const i = inThicket ? nThicket++ : nWall++;
       dummy.position.set(x, s * 0.5, z);
       dummy.scale.set(s * 1.2, s * 0.8, s * 1.2);
       dummy.rotation.set(0, rotY, 0);
       dummy.updateMatrix();
-      bushes.setMatrixAt(i, dummy.matrix);
-      bushes.setColorAt(i, bushCol.setHex(0x2c5222).offsetHSL((this.random() - 0.5) * 0.03, 0, (this.random() - 0.5) * 0.08));
+      mesh.setMatrixAt(i, dummy.matrix);
+      mesh.setColorAt(i, bushCol.setHex(0x4c7c36).offsetHSL((this.random() - 0.5) * 0.03, 0, (this.random() - 0.5) * 0.08));
       let box = null;
       if (r < 41) {
         box = new THREE.Box3(
@@ -3043,18 +3069,23 @@ export class Countryside {
         );
         this.colliders.push(box);
       }
-      if (Math.abs(x) < 9 && z < -32) {
+      if (inThicket) {
         this.shrineThicketBushes.push({
-          i, x, z, y: s * 0.5, sx: s * 1.2, sy: s * 0.8, sz: s * 1.2,
+          mesh, i, x, z, y: s * 0.5, sx: s * 1.2, sy: s * 0.8, sz: s * 1.2,
           rotY, side: x >= 0 ? 1 : -1, box
         });
       }
     }
-    bushes.instanceMatrix.needsUpdate = true;
-    if (bushes.instanceColor) bushes.instanceColor.needsUpdate = true;
-    bushes.castShadow = true;
-    bushes.receiveShadow = true;
-    this.scene.add(bushes);
+    bushes.count = nWall;
+    thicket.count = nThicket;
+    for (const m of [bushes, thicket]) {
+      if (!m.count) continue;
+      m.instanceMatrix.needsUpdate = true;
+      if (m.instanceColor) m.instanceColor.needsUpdate = true;
+      m.castShadow = true;
+      m.receiveShadow = true;
+      this.scene.add(m);
+    }
   }
 
   /**
@@ -3076,8 +3107,8 @@ export class Countryside {
       dummy.rotation.set(0, b.rotY, b.side * 0.2 * t);
       dummy.scale.set(b.sx, b.sy * (1 - 0.3 * t), b.sz);
       dummy.updateMatrix();
-      this.undergrowthMesh.setMatrixAt(b.i, dummy.matrix);
-      touched.add(this.undergrowthMesh);
+      b.mesh.setMatrixAt(b.i, dummy.matrix);
+      touched.add(b.mesh);
     }
     for (const tr of this.shrineThicketTrees) {
       const dx = tr.side * (3.4 + tr.s * 0.8) * t;
@@ -3087,9 +3118,8 @@ export class Countryside {
       dummy.scale.set(tr.sx, tr.sy, tr.sz);
       dummy.updateMatrix();
       tr.set.tufts.setMatrixAt(tr.idx, dummy.matrix);
-      tr.set.cards.setMatrixAt(tr.idx, dummy.matrix);
       tr.set.branches.setMatrixAt(tr.idx, dummy.matrix);
-      touched.add(tr.set.tufts); touched.add(tr.set.cards); touched.add(tr.set.branches);
+      touched.add(tr.set.tufts); touched.add(tr.set.branches);
       dummy.position.set(tr.x + dx, 0.6 * tr.sy - 0.35 * t, tr.z);
       dummy.rotation.set(0, tr.rotTrunk, lean);
       dummy.scale.set(tr.s, tr.sy, tr.s);
@@ -3154,19 +3184,31 @@ export class Countryside {
         this.scene.add(house);
       }
     }
+    this.buildFoothillForest();
+  }
 
-    // Foothill forest: dense instanced sugi-cedar spires with rounded
-    // broadleaf crowns on the lower slopes, packed tightly so the ridges
-    // read as a wooded carpet rather than a field of green boulders.
+  /**
+   * Foothill forest: dense instanced sugi-cedar spires with rounded
+   * broadleaf crowns on the lower slopes, packed tightly so the ridges
+   * read as a wooded carpet rather than a field of green boulders. Cedars
+   * wear a painted needle mass, the crowns a leaf mass, at a coarse scale
+   * since they are only ever seen from across the valley.
+   */
+  buildFoothillForest() {
     const cedarGeo = lumpyConeGeometry(1, 8, 0.3);
     const cedarGeoB = lumpyConeGeometry(1, 12, 0.34);
     const roundGeo = lumpyTuftGeometry(1, 8, 0.36);
-    const treeMat = createFoliageMaterial({ sss: 0.15, wind: 0.5, mottle: 0.3, vertexColors: false });
+    const cedarMat = createFoliageMaterial({
+      sss: 0.15, wind: 0.5, mottle: 0.24, vertexColors: false, massMap: leafMassTexture('needle'), massScale: 1 / 2.4
+    });
+    const crownMat = createFoliageMaterial({
+      sss: 0.15, wind: 0.5, mottle: 0.24, vertexColors: false, massMap: leafMassTexture('leaf'), massScale: 1 / 3
+    });
     const treeCount = 3800;
     const meshes = [
-      new THREE.InstancedMesh(cedarGeo, treeMat, treeCount),
-      new THREE.InstancedMesh(cedarGeoB, treeMat, treeCount),
-      new THREE.InstancedMesh(roundGeo, treeMat, treeCount)
+      new THREE.InstancedMesh(cedarGeo, cedarMat, treeCount),
+      new THREE.InstancedMesh(cedarGeoB, cedarMat, treeCount),
+      new THREE.InstancedMesh(roundGeo, crownMat, treeCount)
     ];
     meshes[0].name = 'Foothill Forest A';
     meshes[1].name = 'Foothill Forest B';

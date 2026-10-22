@@ -1,5 +1,7 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20261021a';
+import { Cat } from './cat.js?v=20261022d';
+
+const _lookAt = new THREE.Vector3();
 
 export class NPC {
   constructor(scene, name, color, position, dialogueLines, options = {}) {
@@ -22,12 +24,15 @@ export class NPC {
     const eyeColor = options.eyeColor ?? (isLuna ? 0xdec056 : 0xa2ba6e); // Moonlit Amber/Jade eyes for Luna
     const ribbonColor = options.ribbonColor ?? (isLuna ? 0x2b3d63 : 0xc8402a); // Indigo silk ribbon for Luna
 
+    // Each villager has their own build (src/cat_anatomy.js BUILDS): Luna
+    // slender, Mochi round, Kuro long-limbed; anyone else shares Michi's.
     this.cat = new Cat({
       fur: furColor,
       belly: bellyColor,
       accent: accentColor,
       eyeColor: eyeColor,
       ribbonColor: ribbonColor,
+      build: options.build ?? name.toLowerCase(),
       audio: options.audio || null
     });
 
@@ -202,6 +207,14 @@ export class NPC {
     }
     if (Math.abs(this.mesh.position.y - targetY) > 0.01) {
       this.mesh.position.y += (targetY - this.mesh.position.y) * Math.min(1, dt * 2);
+    }
+
+    // Follow the player with the head while they're close
+    if (dist < 6.0) {
+      _lookAt.set(playerPos.x, playerPos.y + 0.55, playerPos.z);
+      this.cat.setLookTarget(_lookAt);
+    } else {
+      this.cat.setLookTarget(null);
     }
 
     // Call Cat.update with proper numeric signature:

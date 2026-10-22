@@ -8,7 +8,8 @@
    connection test, modes with quick-start prompts, the transcript of turn
    cards (live thinking/output, what changed, Apply/Undo/Retry/Listen), and a
    diagnostics log. Closing the panel never cancels a request in flight. */
-import { PROVIDERS, providerInfo, normalizeBaseUrl, buildProbeRequests, parseModelList, parseProps, REASONING_LEVELS, STRUCTURED_MODES, CONTEXT_DETAILS } from '../agent/providers.js';
+import { PROVIDERS, providerInfo, normalizeBaseUrl, buildProbeRequests, parseModelList, parseProps, REASONING_LEVELS, STRUCTURED_MODES, CONTEXT_DETAILS, POPULAR_MODELS, autoDetectLocalServers } from '../agent/providers.js';
+import { DRUM_RHYTHMS } from '../engine/rhythms.js';
 import { diagnoseNetworkFailure, notJsonHint, httpErrorHint, HTTP_SERVE_HINT } from '../agent/diagnose.js';
 import { AgentSession } from '../agent/session.js';
 import { MODES, MODE_IDS, buildSystemPrompt, compactContext, chooseDetail, estimateTokens } from '../agent/prompt.js';
@@ -125,6 +126,7 @@ export class AgentPanel {
         el('input', { id: 'agent-model', spellcheck: 'false', autocomplete: 'off', placeholder: '…or type a model id' })),
       el('div', { class: 'ag-row' },
         el('button', { id: 'agent-test', class: 'ag-btn primary', type: 'button', text: '⚡ Test connection' }),
+        el('button', { id: 'agent-autodetect', class: 'ag-btn', type: 'button', text: '🔍 Auto-Detect Local AI', title: 'Probe llama-server (:8080), LM Studio (:1234) and Ollama (:11434) automatically' }),
         el('div', { class: 'ag-hint', text: 'Checks the server, lists models and reads the context size.' })),
       el('div', { id: 'agent-test-result', class: 'ag-test hidden' }),
       el('details', {},
@@ -150,8 +152,15 @@ export class AgentPanel {
     );
 
     this.modesEl = el('div', { class: 'ag-modes' }, ...MODE_IDS.map((m) => el('button', { type: 'button', 'data-mode': m, text: MODES[m].label, title: MODES[m].hint })));
+    this.instantBarEl = el('div', { class: 'ag-instant-bar' },
+      el('span', { class: 'ag-instant-lbl', text: '⚡ Instant:' }),
+      el('button', { type: 'button', class: 'ag-btn small', title: 'Switch to a fresh pre-programmed drum rhythm (works offline)', onclick: () => this.runInstantAction('groove') }, '🥁 Switch Groove'),
+      el('button', { type: 'button', class: 'ag-btn small', title: 'Generate a Kyoto chord pad + koto phrase in the project key (works offline)', onclick: () => this.runInstantAction('kyoto') }, '⛩ Kyoto Cue'),
+      el('button', { type: 'button', class: 'ag-btn small', title: 'Add a time-stretched dreamy sample texture (works offline)', onclick: () => this.runInstantAction('dreamSample') }, '🌊 Dream Sample'),
+      el('button', { type: 'button', class: 'ag-btn small', title: 'Create a playable chromatic koto sampler instrument track (works offline)', onclick: () => this.runInstantAction('sampler') }, '🎹 Sampler Track')
+    );
     this.transcriptEl = el('div', { class: 'ag-transcript', id: 'agent-transcript' });
-    this.promptEl = el('textarea', { id: 'agent-prompt', spellcheck: 'true', placeholder: 'Describe a cue, a sound, or ask a question…  (Enter to send · Shift+Enter for a new line)' });
+    this.promptEl = el('textarea', { id: 'agent-prompt', spellcheck: 'true', placeholder: 'Describe a cue, a drum rhythm, a sample manipulation, a sound effect, or ask a question…  (Enter to send · Shift+Enter for a new line)' });
 
     r.append(
       el('header', { class: 'ag-head' },
@@ -163,6 +172,7 @@ export class AgentPanel {
           el('button', { id: 'agent-close', class: 'ag-icon', type: 'button', text: '×', title: 'Close (requests keep running)' }))),
       this.settingsEl,
       this.modesEl,
+      this.instantBarEl,
       el('div', { class: 'ag-mode-hint', id: 'agent-mode-hint' }),
       this.transcriptEl,
       el('footer', { class: 'ag-composer' },
@@ -280,11 +290,115 @@ export class AgentPanel {
 
   setModelOptions(models) {
     const select = this.$('agent-model-select');
+    const prov = this.$('agent-provider').value;
     const current = this.$('agent-model').value;
+    const popular = POPULAR_MODELS[prov] || [];
+    const merged = [...new Set([...(models || []), ...popular])];
     select.innerHTML = '';
-    select.append(el('option', { value: '', text: models.length ? `— ${models.length} model(s) — pick one —` : '— ⟳ Scan to list models —' }));
-    for (const m of models) select.append(el('option', { value: m, title: m, text: modelLabel(m) }));
-    select.value = models.includes(current) ? current : '';
+    select.append(el('option', {
+      value: '',
+      text: models && models.length
+        ? `— ${models.length} scanned model(s) + presets —`
+        : `— ${merged.length} preset model(s) (or ⟳ Scan) —`
+    }));
+    for (const m of merged) select.append(el('option', { value: m, title: m, text: modelLabel(m) }));
+    select.value = merged.includes(current) ? current : '';
+  }
+
+  async autoDetectLocal() {
+    const box = this.$('agent-test-result');
+    box.className = 'ag-test busy';
+    box.textContent = 'Scanning local ports (:8080 llama-server, :1234 LM Studio, :11434 Ollama, :3000)…';
+    const found = await autoDetectLocalServers({ fetchImpl: (u, i) => fetch(u, i) });
+    if (!found.length) {
+      box.className = 'ag-test bad';
+      box.textContent = 'No local AI server detected on :8080, :1234, :11434, or :3000. Start llama-server (`llama-server -m model.gguf --port 8080 --ctx-size 16384 --jinja --cors`) or select a Cloud API.';
+      toast('No local server detected — see Settings for start command', true);
+      return;
+    }
+    const best = found[0];
+    this.cfg.provider = best.provider;
+    this.cfg.models[best.provider] = best.models;
+    this.models = best.models;
+    this.session.nCtx = best.nCtx || null;
+    this.cfg.lastTest[best.provider] = { ok: true, at: Date.now(), model: best.model, nCtx: best.nCtx || null };
+    this.cfg.everConnected = true;
+    this.fillForm();
+    this.$('agent-base-url').value = best.baseUrl;
+    this.$('agent-model').value = best.model;
+    this.saveForm();
+    box.className = 'ag-test ok';
+    box.textContent = `✓ Auto-detected ${best.label} at ${best.baseUrl} (${best.models.length} model(s), model: ${modelLabel(best.model)}${best.nCtx ? `, ${best.nCtx} ctx` : ''}).`;
+    this.updatePill();
+    this.renderTranscript();
+    toast(`Connected to ${best.label} (${modelLabel(best.model)})`);
+  }
+
+  runInstantAction(kind) {
+    const p = this.app.state.project;
+    let plan = null;
+    if (kind === 'groove') {
+      const r = DRUM_RHYTHMS[Math.floor(Math.random() * DRUM_RHYTHMS.length)];
+      plan = {
+        summary: `Switched drum groove to "${r.name}" (${r.kit} kit, ${r.bpm} BPM style)`,
+        actions: [
+          { type: 'setDrumRhythm', params: { groove: r.id, drumKit: r.kit } }
+        ]
+      };
+    } else if (kind === 'kyoto') {
+      plan = {
+        summary: `Added Kyoto Dusk Pad & Koto Melody in ${p.key} ${p.scale}`,
+        actions: [
+          { type: 'addTrack', params: { name: 'Shrine Pad', kind: 'synth', preset: 'pad', volume: 0.55 } },
+          { type: 'addChordProgression', target: 'selection', params: { chords: 'i VI III VII', beatsPerChord: 4, octave: 3, loop: true } },
+          { type: 'addTrack', params: { name: 'Philosopher Koto', kind: 'synth', preset: 'pluck', volume: 0.7 } },
+          { type: 'addClip', target: 'selection', params: { name: 'Koto Phrase', start: 0, length: 4, loop: true, degrees: [1, 3, 5, 6, 8, 6, 5, 3], degreeRate: 1, octave: 5 } }
+        ]
+      };
+    } else if (kind === 'dreamSample') {
+      plan = {
+        summary: 'Added 200% Time-Stretched Reversed Temple Bell Texture',
+        actions: [
+          {
+            type: 'manipulateAudio',
+            params: {
+              sampleId: 'starter:temple-bell',
+              name: 'Dream Bell Texture (2x Stretch + Rev)',
+              stretch: 2.0,
+              pitchSemis: -5,
+              reverse: true,
+              loop: true,
+              fadeIn: 0.35,
+              fadeOut: 0.45,
+              lowpass: 4800
+            }
+          }
+        ]
+      };
+    } else if (kind === 'sampler') {
+      plan = {
+        summary: 'Created Chromatic Koto Sampler Track + Pentatonic Phrase',
+        actions: [
+          {
+            type: 'createSamplerTrack',
+            params: {
+              sampleId: 'starter:koto-pluck',
+              name: '🎹 Silk Koto Sampler',
+              rootMidi: 60,
+              phrase: 'C5/1 D5/.5 E5/.5 G5/1 A5/1 G5/.5 E5/.5 D5/1 C5/2'
+            }
+          }
+        ]
+      };
+    }
+    if (!plan) return;
+    try {
+      const result = this.execute(plan);
+      toast(`✦ ${plan.summary}`);
+      this.log(`Instant action applied (${result.count} steps): ${plan.summary}`);
+    } catch (err) {
+      toast(err.message || String(err), true);
+    }
   }
 
   toggleSettings(force) {

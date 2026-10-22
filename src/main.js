@@ -3,34 +3,34 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20261021a';
-import { Player } from './player.js?v=20261021a';
-import { Countryside } from './countryside.js?v=20261021a';
-import { Sky } from './sky.js?v=20261021a';
-import { Vegetation } from './vegetation.js?v=20261021a';
-import { Particles } from './particles.js?v=20261021a';
-import { AmbientLife } from './ambient_life.js?v=20261021a';
-import { Controls } from './controls.js?v=20261021a';
-import { UI } from './ui.js?v=20261021a';
-import { NPC } from './npc.js?v=20261021a';
-import { Dialogue } from './dialogue.js?v=20261021a';
-import { QuestManager } from './quest.js?v=20261021a';
-import { AudioManager } from './audio.js?v=20261021a';
-import { ProgressionManager } from './progression.js?v=20261021a';
-import { ContextActionManager } from './context_actions.js?v=20261021a';
-import { InteriorManager } from './interior.js?v=20261021a';
-import { SaveManager } from './save.js?v=20261021a';
-import { ScentTrail } from './scent.js?v=20261021a';
-import { SettingsManager } from './settings.js?v=20261021a';
-import { isDiscreteGPU } from './settings.js?v=20261021a';
-import { MenuSystem } from './menus.js?v=20261021a';
-import { WaypointSystem, Compass } from './waypoints.js?v=20261021a';
-import { MusicDirector } from './music.js?v=20261021a';
-import { SummitManager } from './mountaintop.js?v=20261021a';
-import { catRimUniforms } from './cat.js?v=20261021a';
-import { chunkSceneInstances } from './instanced_chunks.js?v=20261021a';
-import { setFoliageDetail } from './foliage.js?v=20261021a';
-import { applyCadOverrides } from './cad_overrides.js?v=20261021a';
+import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20261022d';
+import { Player } from './player.js?v=20261022d';
+import { Countryside } from './countryside.js?v=20261022d';
+import { Sky } from './sky.js?v=20261022d';
+import { Vegetation } from './vegetation.js?v=20261022d';
+import { Particles } from './particles.js?v=20261022d';
+import { AmbientLife } from './ambient_life.js?v=20261022d';
+import { Controls } from './controls.js?v=20261022d';
+import { UI } from './ui.js?v=20261022d';
+import { NPC } from './npc.js?v=20261022d';
+import { Dialogue } from './dialogue.js?v=20261022d';
+import { QuestManager } from './quest.js?v=20261022d';
+import { AudioManager } from './audio.js?v=20261022d';
+import { ProgressionManager } from './progression.js?v=20261022d';
+import { ContextActionManager } from './context_actions.js?v=20261022d';
+import { InteriorManager } from './interior.js?v=20261022d';
+import { SaveManager } from './save.js?v=20261022d';
+import { ScentTrail } from './scent.js?v=20261022d';
+import { SettingsManager } from './settings.js?v=20261022d';
+import { isDiscreteGPU } from './settings.js?v=20261022d';
+import { MenuSystem } from './menus.js?v=20261022d';
+import { WaypointSystem, Compass } from './waypoints.js?v=20261022d';
+import { MusicDirector } from './music.js?v=20261022d';
+import { SummitManager } from './mountaintop.js?v=20261022d';
+import { catRimUniforms } from './cat.js?v=20261022d';
+import { chunkSceneInstances } from './instanced_chunks.js?v=20261022d';
+import { setFoliageDetail } from './foliage.js?v=20261022d';
+import { applyCadOverrides } from './cad_overrides.js?v=20261022d';
 
 const AUTOSTART_KEY = 'catwalk_autostart';
 
@@ -1134,8 +1134,10 @@ class Game {
   update(dt) {
     const playing = this.menu.isPlaying;
 
-    // Rest cinematics own the camera while they last (G1.1).
-    this.player.cameraPaused = !!(this.contextActions.rest && playing);
+    // Rest cinematics and the summit's seated vista own the camera while they
+    // last. Player movement still cancels the summit view on the next tick.
+    this.player.cameraPaused = !!(this.contextActions.rest && playing) ||
+      !!(this.summit && this.summit.cameraActive && playing);
 
     this.controls.update(dt);
 
@@ -1159,12 +1161,16 @@ class Game {
       // The summit is a respite scene — no prompts, no verbs, no quest verbs
       // to press E at. updateMeditation() owns the sit/sleep beat there.
       if (onSummit) {
+        // The summit is deliberately wordless. Close anything that was open
+        // before the transition and never run NPC proximity/dialogue logic in
+        // this pocket of the world.
+        if (this.dialogue.active) this.dialogue.close();
         this.contextActions.hideAllPrompts();
       } else {
         this.contextActions.update(dt);
+        this.dialogue.update(dt);
+        this.updateDialogue();
       }
-      this.dialogue.update(dt);
-      this.updateDialogue();
       if (!onSummit) this.checkCollectibles();
       if (!this.toriiMessageSeen && this.progression.rank >= 4 && this.city.toriiTopPos &&
           this.player.mesh.position.y > 5.05 &&

@@ -1,6 +1,9 @@
 /* dawCAT — browser sidebar: sounds, drums, effects, samples, game cues, library */
 import { el, toast, ctxMenu } from './common.js';
 import { SCALES, hzToMidi, midiToName, defaultSynthPreset, uid } from '../state.js';
+import { DRUM_RHYTHMS } from '../engine/rhythms.js';
+import { DRUM_KIT_LIST } from '../engine/drums.js';
+import { STARTER_SAMPLES } from '../engine/manipulator.js';
 
 const PRESETS = [
   { name: 'Koto Pluck', preset: defaultSynthPreset('pluck') },
@@ -8,13 +11,10 @@ const PRESETS = [
   { name: 'Saw Lead', preset: defaultSynthPreset('lead') },
   { name: 'Sub Bass', preset: defaultSynthPreset('bass') },
   { name: 'Soft Keys', preset: defaultSynthPreset('keys') },
-  { name: 'Dream Chime', preset: defaultSynthPreset('chime') }
+  { name: 'Dream Chime', preset: defaultSynthPreset('chime') },
+  { name: 'Chromatic Sampler', preset: defaultSynthPreset('sampler') }
 ];
-const KITS = [
-  { name: 'Soft Kit', kit: 'soft' },
-  { name: 'Punch Kit', kit: 'punch' },
-  { name: 'Lo-fi Kit', kit: 'lofi' }
-];
+const KITS = DRUM_KIT_LIST.map((k) => ({ name: k.name, kit: k.id }));
 const DEVICES = [
   { type: 'eq8', name: 'EQ Eight', icon: '🎚' },
   { type: 'comp', name: 'Compressor', icon: '📉' },
@@ -93,6 +93,28 @@ export class Browser {
       drag: { kind: 'kit', kit: k.kit, name: k.name }
     })));
 
+    this.category('Drum Rhythms', '🥁', [
+      {
+        label: `📚 Browse All ${DRUM_RHYTHMS.length} Rhythms…`, icon: '🥁', sub: 'explorer',
+        onClick: () => { if (this.app.drumgrid) this.app.drumgrid.openRhythmBrowserModal(); }
+      },
+      ...DRUM_RHYTHMS.map((r) => ({
+        label: r.name, icon: '🥁', sub: `${r.bpm}bpm`,
+        onClick: () => {
+          if (this.app.drumgrid) {
+            this.app.drumgrid.applyRhythmToCurrentSong(r);
+            this.app.switchTab('clip');
+          }
+        },
+        drag: { kind: 'rhythm', rhythmId: r.id, name: r.name },
+        ctx: () => [
+          { label: '🥁 Switch Current Song to Rhythm', onClick: () => this.app.drumgrid && this.app.drumgrid.applyRhythmToCurrentSong(r) },
+          { label: `⏱ Switch Rhythm + Match Tempo (${r.bpm} BPM)`, onClick: () => this.app.drumgrid && this.app.drumgrid.applyRhythmToCurrentSong(r, { syncTempo: true }) },
+          { label: '🆕 Start New Song with Rhythm', onClick: () => this.app.drumgrid && this.app.drumgrid.startNewSongWithRhythm(r) }
+        ]
+      }))
+    ]);
+
     this.category('Instruments', '🎛', PRESETS.map((pr) => ({
       label: pr.name, icon: '🎹', sub: 'track',
       onClick: () => this.applyPreset(pr.preset, pr.name),
@@ -119,11 +141,51 @@ export class Browser {
     }
     this.category('MIDI Effects', '🎼', scaleItems);
 
-    this.category('Samples', '📦', SAMPLES.map((s) => ({
-      label: s.name, icon: s.icon, sub: 'loop',
-      onClick: () => this.previewSample(s.sample),
-      drag: { kind: 'sample', sample: s.sample, name: s.name }
-    })));
+    const projectSampleItems = Object.values(p.assets || {}).map((a) => ({
+      label: a.name || a.id, icon: '🎙', sub: `${(a.durationSec || 0).toFixed(1)}s`,
+      onClick: () => {
+        if (this.app.waveLab) {
+          this.app.waveLab.loadSample(a.id, { preview: true });
+          this.app.switchTab('wavelab');
+        }
+      },
+      drag: { kind: 'studioSample', assetId: a.id, name: a.name || a.id },
+      ctx: () => [
+        { label: '🌊 Edit in Wave Lab (Audio Manipulator)', onClick: () => { this.app.waveLab?.loadSample(a.id, { preview: true }); this.app.switchTab('wavelab'); } },
+        { label: '→ Place on Timeline', onClick: () => { this.app.waveLab?.loadSample(a.id).then(() => this.app.waveLab.placeInSong()); } },
+        { label: '🎹 Make Playable Sampler Track', onClick: () => { this.app.waveLab?.loadSample(a.id).then(() => this.app.waveLab.createSamplerTrackFromCurrent()); } },
+        { label: '🗑 Delete Sample', onClick: () => this.app.state.removeAsset(a.id) }
+      ]
+    }));
+
+    const starterSampleItems = STARTER_SAMPLES.map((s) => ({
+      label: s.name, icon: '🌊', sub: s.category,
+      onClick: () => {
+        if (this.app.waveLab) {
+          this.app.waveLab.loadSample(s.id, { preview: true });
+          this.app.switchTab('wavelab');
+        }
+      },
+      drag: { kind: 'studioSample', assetId: s.id, name: s.name },
+      ctx: () => [
+        { label: '🌊 Manipulate in Wave Lab', onClick: () => { this.app.waveLab?.loadSample(s.id, { preview: true }); this.app.switchTab('wavelab'); } },
+        { label: '→ Place on Timeline', onClick: () => { this.app.waveLab?.loadSample(s.id).then(() => this.app.waveLab.placeInSong()); } },
+        { label: '🎹 Make Playable Sampler Track', onClick: () => { this.app.waveLab?.loadSample(s.id).then(() => this.app.waveLab.createSamplerTrackFromCurrent()); } }
+      ]
+    }));
+
+    this.category('Samples', '🌊', [
+      { label: '� Import Audio Sample…', icon: '📂', sub: 'file', onClick: () => { this.app.switchTab('wavelab'); this.app.waveLab?.triggerFileImport(); } },
+      { label: '🎙 Record Microphone…', icon: '🎙', sub: 'mic', onClick: () => { this.app.switchTab('wavelab'); this.app.waveLab?.toggleMicRecording(); } },
+      { label: '⏺ Resample Song Output…', icon: '⏺', sub: 'rec', onClick: () => { this.app.switchTab('wavelab'); this.app.waveLab?.toggleResampleRecording(); } },
+      ...projectSampleItems,
+      ...starterSampleItems,
+      ...SAMPLES.map((s) => ({
+        label: `${s.name} (Ambient)`, icon: s.icon, sub: 'loop',
+        onClick: () => this.previewSample(s.sample),
+        drag: { kind: 'sample', sample: s.sample, name: s.name }
+      }))
+    ]);
 
     this.renderGameCuesTree(cues);
 

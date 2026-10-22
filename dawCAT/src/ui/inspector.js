@@ -1,6 +1,7 @@
 /* dawCAT — inspector: track settings / clip properties */
 import { el, toast, fmtDb } from './common.js';
 import { TRACK_COLORS, NOTE_NAMES, SCALES } from '../state.js';
+import { DRUM_KIT_LIST } from '../engine/drums.js';
 
 export class Inspector {
   constructor(app) {
@@ -167,12 +168,21 @@ export class Inspector {
     let kitRow = null;
     if (t.kind === 'drum') {
       const kitSel = el('select', {});
-      for (const k of ['soft', 'punch', 'lofi']) {
-        kitSel.append(el('option', { value: k, text: k }));
+      for (const k of DRUM_KIT_LIST) {
+        kitSel.append(el('option', { value: k.id, text: k.name }));
       }
       kitSel.value = t.drumKit || 'soft';
       kitSel.addEventListener('change', () => st.updateTrack(t.id, { drumKit: kitSel.value }));
-      kitRow = el('label', { class: 'form-row dim' }, 'Drum kit ', kitSel);
+      kitRow = el('div', {},
+        el('label', { class: 'form-row dim' }, 'Drum kit ', kitSel),
+        el('div', { class: 'form-row' },
+          el('button', {
+            class: 'btn primary',
+            text: '🥁 Browse 42 Drum Rhythms…',
+            onclick: () => { if (this.app.drumgrid) this.app.drumgrid.openRhythmBrowserModal(); }
+          })
+        )
+      );
     }
 
     this.body.append(

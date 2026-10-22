@@ -58,7 +58,8 @@ export function buildClipEvents(p, t, c, rr = new Map()) {
     evs.push({
       beat: clipStartB, kind: 'audio', trackId: t.id, assetId: c.audio.assetId,
       durBeats: c.length * 4, gain: c.gain * (c.audio.gain != null ? c.audio.gain : 1),
-      trimStart: c.audio.trimStart || 0
+      trimStart: c.audio.trimStart || 0,
+      audio: c.audio
     });
   }
   return evs;
@@ -250,7 +251,7 @@ export class Transport extends EventTarget {
     else if (ev.kind === 'sfx') e.sfx(ev.name, time, ev.gain);
     else if (ev.kind === 'sfxPatch') e.sfxPatch(ev.trackId, ev.patch, time, ev.gain, ev.variation);
     else if (ev.kind === 'sample') e.ambient(ev.sample, time, ev.durBeats * this.spb, ev.gain);
-    else if (ev.kind === 'audio') e.playAudioClip(ev.trackId, ev.assetId, time, ev.durBeats * this.spb, ev.gain, ev.trimStart);
+    else if (ev.kind === 'audio') e.playAudioClip(ev.trackId, ev.assetId, time, ev.durBeats * this.spb, ev.gain, ev.trimStart, ev.audio);
   }
 
   applyAutomation(now) {

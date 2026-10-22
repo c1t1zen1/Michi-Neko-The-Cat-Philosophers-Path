@@ -2,7 +2,7 @@
 import { createDeviceNode, makeImpulse } from './fx.js';
 import { playSynthNote, playGameSfx, playAmbient } from './synth.js';
 import { playDrum } from './drums.js';
-import { getCachedBuffer } from './assets.js';
+import { getCachedBuffer, getProcessedBuffer } from './assets.js';
 import { sfxRuntime } from '../sfx/runtime.js';
 
 const SFX = sfxRuntime();
@@ -214,21 +214,54 @@ export class AudioEngine {
     playAmbient(this.pack, this.pack.master, name, when || this.ctx.currentTime, dur, level, (n) => this.register(n));
   }
 
-  /* Plays a dragged-in audio-file clip. The buffer must already be decoded
-     and cached (assets.js decodeAndCache/loadDecodedAsset) — decoding is
-     async and this runs on the lookahead scheduler tick, so a cache miss
-     just silently skips the event rather than blocking playback. */
-  playAudioClip(trackId, assetId, when, dur, gain = 1, trimStart = 0) {
+  /* Plays a dragged-in or manipulated audio clip. Supports full Sound Physics
+     (stretch, speed, pitchSemis, reverse, loop points, fades, etc.) via the
+     cached processed buffer in assets.js. */
+  playAudioClip(trackId, assetId, when, dur, gain = 1, trimStart = 0, audioSpec = null) {
     const dest = this.trackInput(trackId);
-    const buffer = getCachedBuffer(assetId);
+    const buffer = audioSpec
+      ? getProcessedBuffer(this.ctx, assetId, audioSpec)
+      : getCachedBuffer(assetId, this.ctx);
     if (!dest || !buffer) return;
     const src = this.ctx.createBufferSource();
     src.buffer = buffer;
+    if (audioSpec && audioSpec.loop) {
+      src.loop = true;
+      const ls = Math.max(0, Number(audioSpec.loopStart) || 0);
+      const le = Number(audioSpec.loopEnd) || buffer.duration;
+      if (ls < buffer.duration) src.loopStart = ls;
+      if (le > ls && le <= buffer.duration) src.loopEnd = le;
+    }
     const g = this.ctx.createGain();
     g.gain.value = gain;
     src.connect(g); g.connect(dest);
-    src.start(when, Math.max(0, trimStart), Math.max(0.01, dur));
+    // When audioSpec was processed by getProcessedBuffer, trimStart was already
+    // sliced in processAudioBuffer unless no physics were active.
+    const offset = audioSpec && buffer !== getCachedBuffer(assetId, this.ctx) ? 0 : Math.max(0, trimStart);
+    src.start(when, offset, Math.max(0.01, dur));
     this.register(src);
+  }
+
+  /* Plays an AudioBuffer directly through the master bus (used by Wave Lab). */
+  previewBuffer(buffer, { gain = 0.9, loop = false, loopStart = 0, loopEnd = 0, offset = 0, duration = null } = {}) {
+    this.ensure();
+    if (!buffer) return null;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    if (loop) {
+      src.loop = true;
+      if (loopStart > 0 && loopStart < buffer.duration) src.loopStart = loopStart;
+      if (loopEnd > loopStart && loopEnd <= buffer.duration) src.loopEnd = loopEnd;
+    }
+    const g = this.ctx.createGain();
+    g.gain.value = gain;
+    src.connect(g);
+    g.connect(this.pack.master);
+    const t0 = this.ctx.currentTime + 0.01;
+    if (duration != null && !loop) src.start(t0, Math.max(0, offset), Math.max(0.01, duration));
+    else src.start(t0, Math.max(0, offset));
+    this.register(src);
+    return { src, gainNode: g, startTime: t0 };
   }
 
   preview(preset, midi) {

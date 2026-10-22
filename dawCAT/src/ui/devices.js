@@ -1,8 +1,9 @@
 /* dawCAT — device chain: list + editors (synth, EQ8, comp, delay, reverb, filter, chorus, utility) */
 import { el, toast, makeKnob } from './common.js';
-import { defaultSynthPreset } from '../state.js';
+import { defaultSynthPreset, midiToName } from '../state.js';
 import { SYNTH_KINDS, OSC_TYPES } from '../engine/synth.js';
 import { computeEqCurve } from '../engine/fx.js';
+import { STARTER_SAMPLES } from '../engine/manipulator.js';
 
 // Never-started offline context, used purely to construct BiquadFilterNodes for
 // getFrequencyResponse() curve math — works even before the user has clicked "Enable Audio".
@@ -157,12 +158,46 @@ export class Devices {
       K('Level', 'gain', 0, 1, 0.01, null, 0.5)
     );
 
-    this.editor.append(
-      el('div', { class: 'dev-title' }, el('strong', { text: 'Analog' }), el('span', { class: 'dim', text: ` · ${t.name}` })),
-      el('div', { class: 'form-row' },
-        el('label', { class: 'dim' }, 'Preset ', kindSel),
+    const rowItems = [el('label', { class: 'dim' }, 'Preset ', kindSel)];
+    if (p.kind === 'sampler' || p.samplerAssetId) {
+      const smpSel = el('select', { title: 'Sample played chromatically across the keyboard' });
+      for (const a of Object.values(st.project.assets || {})) {
+        smpSel.append(el('option', { value: a.id, text: `🎙 ${a.name || a.id}` }));
+      }
+      for (const s of STARTER_SAMPLES) {
+        smpSel.append(el('option', { value: s.id, text: `🌊 ${s.name}` }));
+      }
+      smpSel.value = p.samplerAssetId || STARTER_SAMPLES[0].id;
+      smpSel.addEventListener('change', () => {
+        setP({ samplerAssetId: smpSel.value });
+        this.app.engine.resume().then(() => this.app.engine.preview(Object.assign({}, p, { samplerAssetId: smpSel.value }), 60));
+      });
+      rowItems.push(
+        el('label', { class: 'dim' }, 'Sample ', smpSel),
+        el('button', {
+          class: 'mini-btn',
+          text: '🌊 Edit in Wave Lab',
+          onclick: () => {
+            if (this.app.waveLab) this.app.waveLab.loadSample(p.samplerAssetId || STARTER_SAMPLES[0].id, { preview: true });
+            this.app.switchTab('wavelab');
+          }
+        })
+      );
+      knobs.prepend(makeKnob({
+        label: 'Root Key', min: 36, max: 84, step: 1, def: 60, value: p.rootMidi || 60,
+        fmt: (v) => midiToName(Math.round(v)),
+        onChange: (v) => setP({ rootMidi: Math.round(v) })
+      }).el);
+    } else {
+      rowItems.push(
         el('label', { class: 'dim' }, 'Osc 1 ', oscSel('osc1')),
-        el('label', { class: 'dim' }, 'Osc 2 ', oscSel('osc2'))),
+        el('label', { class: 'dim' }, 'Osc 2 ', oscSel('osc2'))
+      );
+    }
+
+    this.editor.append(
+      el('div', { class: 'dev-title' }, el('strong', { text: p.kind === 'sampler' ? 'Chromatic Sampler' : 'Analog' }), el('span', { class: 'dim', text: ` · ${t.name}` })),
+      el('div', { class: 'form-row' }, ...rowItems),
       knobs
     );
   }

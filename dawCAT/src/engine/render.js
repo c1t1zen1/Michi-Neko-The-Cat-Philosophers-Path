@@ -2,7 +2,7 @@
 import { buildMasterPack, buildTrackChain, buildDeviceChain } from './core.js';
 import { playSynthNote, playGameSfx, playAmbient } from './synth.js';
 import { playDrum } from './drums.js';
-import { getCachedBuffer, loadDecodedAsset } from './assets.js';
+import { getCachedBuffer, getProcessedBuffer, loadDecodedAsset } from './assets.js';
 import { sfxRuntime } from '../sfx/runtime.js';
 
 const SFX = sfxRuntime();
@@ -78,17 +78,24 @@ export async function scheduleClipContent(ctx, pack, destInput, track, project, 
       playAmbient(pack, destInput, c.sample, clipStartSec, c.length * 4 * spb, c.gain, null);
     }
     if (c.audio && c.audio.assetId) {
-      // AudioBuffers aren't tied to a context, so the in-memory cache from
-      // the live engine can be reused directly; fall back to decoding
-      // against this offline context if it was never played back live.
-      const buffer = getCachedBuffer(c.audio.assetId) || await loadDecodedAsset(ctx, c.audio.assetId);
+      // Ensure base buffer is loaded first, then apply any Sound Physics
+      const baseBuf = getCachedBuffer(c.audio.assetId, ctx) || await loadDecodedAsset(ctx, c.audio.assetId);
+      const buffer = baseBuf ? getProcessedBuffer(ctx, c.audio.assetId, c.audio) : null;
       if (buffer) {
         const src = ctx.createBufferSource();
         src.buffer = buffer;
+        if (c.audio.loop) {
+          src.loop = true;
+          const ls = Math.max(0, Number(c.audio.loopStart) || 0);
+          const le = Number(c.audio.loopEnd) || buffer.duration;
+          if (ls < buffer.duration) src.loopStart = ls;
+          if (le > ls && le <= buffer.duration) src.loopEnd = le;
+        }
         const g = ctx.createGain();
         g.gain.value = c.gain * (c.audio.gain != null ? c.audio.gain : 1);
         src.connect(g); g.connect(destInput);
-        src.start(clipStartSec, Math.max(0, c.audio.trimStart || 0), Math.max(0.01, c.length * 4 * spb));
+        const offset = buffer !== baseBuf ? 0 : Math.max(0, c.audio.trimStart || 0);
+        src.start(clipStartSec, offset, Math.max(0.01, c.length * 4 * spb));
       }
     }
   }

@@ -374,30 +374,32 @@ export function synthesizeBuiltinPlan({ instruction = '', context = {}, referenc
 
   // 1. Check for Kyoto procedural prefab requests
   const prefabMatchers = [
-    { rx: /\b(torii|shrine gate|vermilion gate)\b/, prefab: 'torii', label: 'Kyoto Torii Gate' },
-    { rx: /\b(floating lantern|toro nagashi|river lantern|paper lantern)\b/, prefab: 'toro_floating', label: 'Floating River Lantern' },
-    { rx: /\b(stone lantern|lantern|ishi-?doro|lamp)\b/, prefab: 'lantern', label: 'Stone Lantern (Ishi-Doro)' },
-    { rx: /\b(pagoda|temple tower|tiered tower|five-story|three-tier)\b/, prefab: 'pagoda', label: 'Kyoto Wooden Pagoda' },
-    { rx: /\b(bridge|footbridge|canal bridge)\b/, prefab: 'bridge', label: 'Canal Footbridge' },
-    { rx: /\b(hokora|wayside shrine|small shrine|inari shrine)\b/, prefab: 'shrine', label: 'Wayside Hokora Shrine' },
-    { rx: /\b(bamboo|bamboo grove|culm)\b/, prefab: 'bamboo', label: 'Bamboo Grove Cluster' },
-    { rx: /\b(sakura|cherry blossom|cherry tree|blossom tree)\b/, prefab: 'sakura', label: 'Sakura Blossom Tree' },
-    { rx: /\b(bonsai|potted pine|pine tray)\b/, prefab: 'bonsai', label: 'Sculpted Pine Bonsai' },
-    { rx: /\b(water basin|tsukubai|wash basin|fountain)\b/, prefab: 'water_basin', label: 'Tsukubai Water Basin' },
-    { rx: /\b(stepping stone|tobi-?ishi|garden path)\b/, prefab: 'stepping_stones', label: 'Tobi-Ishi Stepping Stones' },
-    { rx: /\b(rock garden|zen rock|karesansui|gravel garden)\b/, prefab: 'rock_garden', label: 'Zen Rock Cluster' },
-    { rx: /\b(teacup|matcha|tea bowl|chawan)\b/, prefab: 'teacup', label: 'Matcha Chawan Set' },
-    { rx: /\b(maneki|cat statue|neko statue|beckoning cat|guardian cat)\b/, prefab: 'cat_statue', label: 'Guardian Neko Statue' },
-    { rx: /\b(ema|wishing plaque|plaque board)\b/, prefab: 'ema_board', label: 'Ema Wishing Plaque Stand' }
+    { rx: /\b(toriis?|shrine gates?|vermilion gates?)\b/, prefab: 'torii', label: 'Kyoto Torii Gate' },
+    { rx: /\b(floating lanterns?|toro nagashi|river lanterns?|paper lanterns?)\b/, prefab: 'toro_floating', label: 'Floating River Lantern' },
+    { rx: /\b(stone lanterns?|lanterns?|ishi-?doro|lamps?)\b/, prefab: 'lantern', label: 'Stone Lantern (Ishi-Doro)' },
+    { rx: /\b(pagodas?|temple towers?|tiered towers?|five-story|three-tier)\b/, prefab: 'pagoda', label: 'Kyoto Wooden Pagoda' },
+    { rx: /\b(bridges?|footbridges?|canal bridges?)\b/, prefab: 'bridge', label: 'Canal Footbridge' },
+    { rx: /\b(hokoras?|wayside shrines?|small shrines?|inari shrines?)\b/, prefab: 'shrine', label: 'Wayside Hokora Shrine' },
+    { rx: /\b(bamboo|bamboo groves?|culms?)\b/, prefab: 'bamboo', label: 'Bamboo Grove Cluster' },
+    { rx: /\b(sakuras?|cherry blossoms?|cherry trees?|blossom trees?)\b/, prefab: 'sakura', label: 'Sakura Blossom Tree' },
+    { rx: /\b(bonsais?|potted pines?|pine trays?)\b/, prefab: 'bonsai', label: 'Sculpted Pine Bonsai' },
+    { rx: /\b(water basins?|tsukubai|wash basins?|fountains?)\b/, prefab: 'water_basin', label: 'Tsukubai Water Basin' },
+    { rx: /\b(stepping stones?|tobi-?ishi|garden paths?)\b/, prefab: 'stepping_stones', label: 'Tobi-Ishi Stepping Stones' },
+    { rx: /\b(rock gardens?|zen rocks?|karesansui|gravel gardens?)\b/, prefab: 'rock_garden', label: 'Zen Rock Cluster' },
+    { rx: /\b(teacups?|matcha|tea bowls?|chawan)\b/, prefab: 'teacup', label: 'Matcha Chawan Set' },
+    { rx: /\b(maneki|cat statues?|neko statues?|beckoning cats?|guardian cats?)\b/, prefab: 'cat_statue', label: 'Guardian Neko Statue' },
+    { rx: /\b(emas?|wishing plaques?|plaque boards?)\b/, prefab: 'ema_board', label: 'Ema Wishing Plaque Stand' }
   ];
 
+  let prefabOffsetIndex = 0;
   for (const item of prefabMatchers) {
     if (item.rx.test(text)) {
       const tiersMatch = text.match(/(\d+)\s*(?:tier|story|level)/);
       const params = { prefab: item.prefab, name: item.label };
+      if (prefabOffsetIndex > 0) params.position = [prefabOffsetIndex * 1.8, 0, 0];
       if (tiersMatch) params.tiers = Math.min(7, Math.max(2, Number(tiersMatch[1])));
       actions.push({ type: 'addProceduralAsset', target: 'workspace', params });
-      break;
+      prefabOffsetIndex++;
     }
   }
 

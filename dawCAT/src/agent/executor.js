@@ -9,6 +9,8 @@ import { parseChordOrRoman, parsePhrase, degreesToMidi, arpeggiate, voiceLead, p
 import { validatePlan, SYNTH_PRESETS, DRUM_KITS } from './schema.js';
 import { AUTOMATABLE_PARAMS } from '../engine/automatable.js';
 import { createPatch, normalizePatch, GAME_HOOKS, SFX_TEMPLATE_IDS, sfxDuration } from '../sfx/patches.js';
+import { getRhythm } from '../engine/rhythms.js';
+import { STARTER_SAMPLES, normalizePhysicsParams } from '../engine/manipulator.js';
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const r4 = (v) => Math.round(v * 10000) / 10000;
@@ -72,11 +74,16 @@ export class PlanExecutor {
         id: c.id, name: c.name, start: c.start, length: c.length, loop: c.loop || undefined, loopLen: c.loop ? c.loopLen : undefined,
         notes: c.notes && c.notes.length ? c.notes.map((n) => ({ midi: n.midi, start: r4(n.start), len: r4(n.len), vel: r4(n.vel) })) : undefined,
         steps: c.steps ? compactSteps(c.steps) : undefined,
-        sample: c.sample || undefined
+        sample: c.sample || undefined,
+        audio: c.audio ? { assetId: c.audio.assetId, stretch: c.audio.stretch || 1, speed: c.audio.speed || 1, pitchSemis: c.audio.pitchSemis || 0, reverse: !!c.audio.reverse, loop: !!c.audio.loop } : undefined
       }))
     }));
     const cues = ((p.cueScan && p.cueScan.cues) || []).filter((c) => c.kind === 'phase')
       .map((c) => ({ scene: c.scene, timeOfDay: c.timeOfDay, name: c.name, rootHz: c.rootHz, chord: c.chord, scale: c.scale }));
+    const samples = [
+      ...Object.values(p.assets || {}).map((a) => ({ id: a.id, name: a.name, duration: a.durationSec })),
+      ...STARTER_SAMPLES.map((s) => ({ id: s.id, name: s.name, duration: s.duration }))
+    ];
     return {
       editor: 'dawCAT', name: p.name, tempo: p.tempo, key: p.key, scale: p.scale, swing: p.swing,
       timeSig: `${p.timeSigNum}/${p.timeSigDen}`, scene: p.scene, timeOfDay: p.timeOfDay,
@@ -84,6 +91,7 @@ export class PlanExecutor {
       selection: { trackId: st.selection.trackId, clipId: st.selection.clipId, sfxId: st.selection.sfxId },
       master: { volume: p.master.volume },
       tracks,
+      samples: samples.slice(0, 20),
       // Full patches only where sounds are the subject; music modes get a
       // one-line summary so many SFX can't crowd a small model's context.
       sfx: (p.sfx || []).slice(0, 40).map((s) => (['sfx', 'free'].includes(mode) ? s
@@ -412,6 +420,156 @@ export class PlanExecutor {
   do_addDrumPattern(p, target) {
     const t = this.track(target, { kind: 'drum' });
     this.addClipTo(t, { name: p.name || (p.groove ? p.groove : 'Pattern'), start: p.start ?? 0, length: p.bars ?? 4, steps: this.drumSteps(p), loop: false, loopLen: 4 });
+  }
+
+  do_setDrumRhythm(p, target) {
+    const r = p.groove ? getRhythm(p.groove) : null;
+    let t = (target && target !== 'selection') ? this.findTrack(target) : null;
+    if (!t || t.kind !== 'drum') {
+      t = this.project.tracks.find((x) => x.kind === 'drum');
+    }
+    if (!t) {
+      t = this.state.addTrack({
+        name: 'Drums',
+        kind: 'drum',
+        drumKit: p.drumKit || (r && r.kit) || 'soft'
+      });
+      this.created.tracks.push(t.id);
+    } else if (p.drumKit || (r && r.kit)) {
+      this.state.updateTrack(t.id, { drumKit: p.drumKit || r.kit });
+    }
+    if (r && r.swing != null) this.project.swing = r.swing;
+    if (p.syncTempo && r && r.bpm) this.project.tempo = r.bpm;
+
+    const steps = this.drumSteps(p);
+    const clip = t.clips[0];
+    if (clip) {
+      this.state.updateClip(t.id, clip.id, {
+        name: (r && r.name) || p.groove || clip.name || 'Beat',
+        steps,
+        length: p.bars ?? clip.length
+      });
+      this.cursor.trackId = t.id;
+      this.cursor.clipId = clip.id;
+      this.state.select(t.id, clip.id);
+    } else {
+      this.addClipTo(t, {
+        name: (r && r.name) || p.groove || 'Beat',
+        start: 0,
+        length: p.bars ?? 8,
+        steps,
+        loop: true,
+        loopLen: 4
+      });
+    }
+  }
+
+  do_manipulateAudio(p, target) {
+    let targetClip = null;
+    let targetTrack = null;
+    try {
+      const found = this.clip(target);
+      if (found && found.clip && found.clip.audio) {
+        targetTrack = found.track;
+        targetClip = found.clip;
+      }
+    } catch { /* no existing clip targeted — create or find one */ }
+
+    const sampleId = p.sampleId || (targetClip && targetClip.audio && targetClip.audio.assetId) || STARTER_SAMPLES[0].id;
+    const starter = STARTER_SAMPLES.find((s) => s.id === sampleId);
+    const assetMeta = this.project.assets && this.project.assets[sampleId];
+    const baseDur = (assetMeta && assetMeta.durationSec) || (starter && starter.duration) || 2.0;
+
+    if (!assetMeta && starter) {
+      this.state.registerAsset({
+        id: starter.id, name: starter.name, mime: 'audio/wav',
+        durationSec: starter.duration, sampleRate: 44100, channels: 2,
+        keepInLibrary: true, rootMidi: starter.rootMidi || 60
+      });
+    }
+
+    const prevPhysics = (targetClip && targetClip.audio) || {};
+    const physics = normalizePhysicsParams(Object.assign({}, prevPhysics, p), baseDur);
+    const audioObj = Object.assign({ assetId: sampleId }, physics);
+
+    if (targetClip && targetTrack) {
+      const patch = { audio: audioObj };
+      if (p.name) patch.name = p.name;
+      if (p.start != null) patch.start = p.start;
+      if (p.length != null) patch.length = p.length;
+      if (p.loop != null) patch.loop = p.loop;
+      this.state.updateClip(targetTrack.id, targetClip.id, patch);
+      this.cursor.trackId = targetTrack.id;
+      this.cursor.clipId = targetClip.id;
+    } else {
+      let t = (target && target !== 'selection') ? this.findTrack(target) : null;
+      if (!t || t.kind === 'drum') {
+        t = this.project.tracks.find((x) => x.name === 'Samples' && x.kind === 'synth');
+        if (!t) {
+          t = this.state.addTrack({ name: 'Samples', kind: 'synth', color: '#38bdf8' });
+          this.created.tracks.push(t.id);
+        }
+      }
+      const spb = 60 / (this.project.tempo || 110);
+      const effDur = (baseDur * physics.stretch) / physics.speed;
+      const defaultBars = Math.max(1, Math.ceil(effDur / (4 * spb)));
+      this.addClipTo(t, {
+        name: p.name || (starter && starter.name) || (assetMeta && assetMeta.name) || 'Manipulated Sample',
+        start: p.start ?? 0,
+        length: p.length ?? defaultBars,
+        loop: !!physics.loop,
+        loopLen: defaultBars * 4,
+        audio: audioObj
+      });
+    }
+  }
+
+  do_createSamplerTrack(p) {
+    const sampleId = p.sampleId || STARTER_SAMPLES[0].id;
+    const starter = STARTER_SAMPLES.find((s) => s.id === sampleId);
+    const assetMeta = this.project.assets && this.project.assets[sampleId];
+    const baseDur = (assetMeta && assetMeta.durationSec) || (starter && starter.duration) || 2.0;
+
+    if (!assetMeta && starter) {
+      this.state.registerAsset({
+        id: starter.id, name: starter.name, mime: 'audio/wav',
+        durationSec: starter.duration, sampleRate: 44100, channels: 2,
+        keepInLibrary: true, rootMidi: starter.rootMidi || 60
+      });
+    }
+
+    const physics = normalizePhysicsParams(p, baseDur);
+    const preset = Object.assign(defaultSynthPreset('sampler'), {
+      samplerAssetId: sampleId,
+      samplerPhysics: Object.assign({}, physics, { gain: 1 }),
+      rootMidi: p.rootMidi || (starter && starter.rootMidi) || 60,
+      samplerLoop: !!p.loop,
+      cutoff: p.lowpass || 9000
+    });
+
+    const sampleLabel = (starter && starter.name) || (assetMeta && assetMeta.name) || 'Sample';
+    const t = this.state.addTrack({
+      name: p.name || `🎹 ${sampleLabel.slice(0, 22)}`,
+      kind: 'synth',
+      color: '#ec4899',
+      preset
+    });
+    this.cursor.trackId = t.id;
+    this.created.tracks.push(t.id);
+    this.state.select(t.id);
+
+    if (p.phrase) {
+      const notes = this.synthNotes({ phrase: p.phrase });
+      const beats = contentBeats(notes);
+      this.addClipTo(t, {
+        name: `${sampleLabel} Phrase`,
+        start: 0,
+        length: barsFor(beats),
+        loop: true,
+        loopLen: Math.max(4, barsFor(beats) * 4),
+        notes
+      });
+    }
   }
 
   do_addAutomation(p, target) {

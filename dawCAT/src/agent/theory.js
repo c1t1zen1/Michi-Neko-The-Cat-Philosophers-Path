@@ -3,6 +3,7 @@
    write "Cmaj7", "ii7", "E5/1 G5/.5" or "x...x..." and these functions do the
    arithmetic. Pure functions, no DOM — runs in the browser and under Node. */
 import { SCALES, NOTE_NAMES } from '../state.js';
+import { GROOVE_GRIDS } from '../engine/rhythms.js';
 
 export { SCALES, NOTE_NAMES };
 
@@ -337,21 +338,7 @@ export function parseStepGrid(grid) {
 
 /* Named one-bar grooves (16 sixteenth steps). Swing is applied separately by
    the project's groove setting, so these are written straight. */
-export const GROOVES = {
-  'four-on-floor': { kick: 'x...x...x...x...', clap: '....x.......x...', hatC: '..x...x...x...x.' },
-  backbeat: { kick: 'x.......x.x.....', snare: '....x.......x...', hatC: 'x.o.x.o.x.o.x.o.' },
-  'boom-bap': { kick: 'x......x..x.....', snare: '....x.......x...', hatC: 'x.o.x.o.x.o.x.oo' },
-  'half-time': { kick: 'x.........x.....', snare: '........x.......', hatC: 'x.o.x.o.x.o.x.o.' },
-  lofi: { kick: 'x......x.x......', snare: '....x.......x..g', hatC: 'o.g.o.g.o.g.o.g.', rim: '..........g.....' },
-  shuffle: { kick: 'x.....x.x.......', snare: '....x.......x...', hatC: 'x..ox..ox..ox..o' },
-  bossa: { kick: 'x..xx..xx..xx..x', rim: 'x..x..x...x..x..', hatC: 'xoxoxoxoxoxoxoxo' },
-  taiko: { kick: 'x.....x.x...x...', tom: '....x.......x.x.', rim: 'g.g.g.g.g.g.g.g.' },
-  'ambient-pulse': { kick: 'o...............', perc: '........g.......', hatC: '....g.......g...' },
-  festival: { kick: 'x...x...x...x...', tom: '..o...o...o.o.o.', clap: '....x.......x...', perc: 'x.g.x.g.x.g.x.g.' },
-  march: { kick: 'x.......x.......', snare: 'x.gxx.g.x.gxx.xx' },
-  heartbeat: { kick: 'x.o.............', perc: '........g.......' },
-  breakbeat: { kick: 'x.x.......x.....', snare: '....x..g.x..x...', hatC: 'x.x.x.x.x.x.x.x.', hatO: '..............x.' }
-};
+export const GROOVES = GROOVE_GRIDS;
 
 /* Comfortable MIDI ranges per synth preset — stated in the prompt so models
    write bass lines low and chimes high instead of everything around C4. */

@@ -11,6 +11,7 @@
     this.xpFill = document.getElementById('xp-fill');
     this.xpLabel = document.getElementById('xp-label');
     this.toastStack = document.getElementById('toast-stack');
+    this.scenicStatusEl = document.getElementById('scenic-status');
     this.debugOverlay = document.getElementById('debug-overlay');
 
     this.hintsEnabled = true;
@@ -102,6 +103,28 @@
     if (scrollBtn) scrollBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
   }
 
+  /** Hide informational guidance throughout the summit without changing it. */
+  setSummitMode(active) {
+    document.body.classList.toggle('summit-mode', !!active);
+  }
+
+  /**
+   * Give the meditation perch a completely unobstructed view. Visibility is
+   * controlled by a body class so leaving the perch restores the prior UI.
+   */
+  setScenicView(active) {
+    const enabled = !!active;
+    const changed = document.body.classList.contains('scenic-view') !== enabled;
+    document.body.classList.toggle('scenic-view', enabled);
+
+    if (enabled && this.toastStack) this.toastStack.replaceChildren();
+    if (changed && this.scenicStatusEl) {
+      this.scenicStatusEl.textContent = enabled
+        ? 'Scenic view. Gameplay interface hidden. Move or tap the view to return.'
+        : 'Scenic view closed. Gameplay interface restored.';
+    }
+  }
+
   setRank(text) { this.rankEl.textContent = text; }
 
   /** Progress bar between current rank threshold and next rank threshold. */
@@ -135,6 +158,7 @@
 
   /** Stacked toast notifications (max 3 visible, auto-expire). */
   showToast(message, duration = 2600) {
+    if (document.body.classList.contains('scenic-view')) return;
     while (this.toastStack.children.length >= 3) {
       this.toastStack.removeChild(this.toastStack.firstChild);
     }
@@ -170,11 +194,7 @@
    * the WaypointSystem's targets (the off-screen arrow hides itself).
    */
   hideAllGuidance() {
-    this.hidePrompt();
-    for (const id of ['quest-card', 'compass']) {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    }
+    this.setSummitMode(true);
   }
 
   /** Per-frame HUD tick: FPS sampling + debug overlay refresh. */

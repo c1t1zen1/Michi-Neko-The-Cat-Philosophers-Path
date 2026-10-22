@@ -18,6 +18,7 @@ import { Inspector } from './ui/inspector.js';
 import { Devices } from './ui/devices.js';
 import { AgentPanel } from './ui/agent-panel.js';
 import { SfxDesigner } from './ui/sfx-designer.js';
+import { WaveLab } from './ui/wave-lab.js';
 import { el, toast, showModal, download } from './ui/common.js';
 
 function slug(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled'; }
@@ -69,6 +70,7 @@ class App {
       this.inspector = new Inspector(this);
       this.devices = new Devices(this);
       this.sfxDesigner = new SfxDesigner(this);
+      this.waveLab = new WaveLab(this);
       this.ensureAgentPanel();
     } catch (err) {
       console.error('[dawCAT] panel failed to initialize', err);
@@ -121,9 +123,11 @@ class App {
     document.querySelectorAll('.tab[data-tab]').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
     document.querySelectorAll('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + name));
     if (name === 'sfx' && this.sfxDesigner) this.sfxDesigner.onShow();
+    if (name === 'wavelab' && this.waveLab) this.waveLab.onShow();
   }
 
   openSoundDesign() { this.switchTab('sfx'); }
+  openWaveLab() { this.switchTab('wavelab'); }
 
   exportSfxPack() {
     this.switchTab('sfx');
@@ -136,8 +140,14 @@ class App {
     if (!track) return;
     st.select(track.id, clipId);
     const clip = st.selectedClip();
-    if (track.kind === 'drum' || (clip && clip.sample)) this.switchTab('clip');
-    else this.switchTab('pianoroll');
+    if (clip && clip.audio && clip.audio.assetId && !track.frozenActive) {
+      if (this.waveLab) this.waveLab.bindToClip(track.id, clip.id);
+      this.switchTab('wavelab');
+    } else if (track.kind === 'drum' || (clip && clip.sample)) {
+      this.switchTab('clip');
+    } else {
+      this.switchTab('pianoroll');
+    }
   }
 
   wireSnapZoom() {

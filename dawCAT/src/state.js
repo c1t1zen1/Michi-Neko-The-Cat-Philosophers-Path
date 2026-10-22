@@ -10,6 +10,7 @@ export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A',
 export const SCALES = {
   major: [0, 2, 4, 5, 7, 9, 11],
   minor: [0, 2, 3, 5, 7, 8, 10],
+  'harmonic minor': [0, 2, 3, 5, 7, 8, 11],
   dorian: [0, 2, 3, 5, 7, 9, 10],
   'pentatonic minor': [0, 3, 5, 7, 10],
   'pentatonic major': [0, 2, 4, 7, 9],
@@ -53,7 +54,8 @@ export function defaultSynthPreset(kind = 'pluck') {
     lead: { kind: 'lead', osc1: 'sawtooth', osc2: 'square', detune: 8, attack: 0.01, decay: 0.5, sustain: 0.5, release: 0.25, cutoff: 2400, res: 2, gain: 0.4 },
     bass: { kind: 'bass', osc1: 'sine', osc2: 'square', detune: 0, attack: 0.01, decay: 0.4, sustain: 0.6, release: 0.15, cutoff: 500, res: 1, gain: 0.7 },
     keys: { kind: 'keys', osc1: 'sine', osc2: 'sine', detune: 0, attack: 0.01, decay: 1.4, sustain: 0.25, release: 0.6, cutoff: 3200, res: 0.5, gain: 0.5 },
-    chime: { kind: 'chime', osc1: 'sine', osc2: 'sine', detune: 0, attack: 0.005, decay: 2.2, sustain: 0.0, release: 0.5, cutoff: 6000, res: 0.4, gain: 0.4 }
+    chime: { kind: 'chime', osc1: 'sine', osc2: 'sine', detune: 0, attack: 0.005, decay: 2.2, sustain: 0.0, release: 0.5, cutoff: 6000, res: 0.4, gain: 0.4 },
+    sampler: { kind: 'sampler', osc1: 'sine', osc2: 'off', detune: 0, attack: 0.008, decay: 1.2, sustain: 0.85, release: 0.35, cutoff: 8000, res: 0.5, gain: 0.75, samplerAssetId: 'starter:koto-pluck', rootMidi: 60, samplerLoop: false, samplerLoopStart: 0, samplerLoopEnd: 0 }
   };
   return JSON.parse(JSON.stringify(presets[kind] || presets.pluck));
 }
@@ -420,8 +422,12 @@ export class AppState extends EventTarget {
   }
 
   cleanupOrphanAsset(assetId) {
+    const meta = this.project.assets && this.project.assets[assetId];
+    if (meta && meta.keepInLibrary) return;
     const stillUsed = this.project.tracks.some((t) =>
-      t.frozenAssetId === assetId || t.clips.some((c) => c.audio && c.audio.assetId === assetId));
+      t.frozenAssetId === assetId ||
+      (t.preset && t.preset.samplerAssetId === assetId) ||
+      t.clips.some((c) => c.audio && c.audio.assetId === assetId));
     if (!stillUsed) this.removeAsset(assetId);
   }
 

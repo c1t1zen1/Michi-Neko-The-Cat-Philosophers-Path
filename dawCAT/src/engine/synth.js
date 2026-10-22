@@ -1,6 +1,8 @@
 /* dawCAT — synth voices, game SFX approximations, ambient textures */
 
-export const SYNTH_KINDS = ['pad', 'pluck', 'lead', 'bass', 'keys', 'chime'];
+import { getProcessedBuffer } from './assets.js';
+
+export const SYNTH_KINDS = ['pad', 'pluck', 'lead', 'bass', 'keys', 'chime', 'sampler'];
 export const OSC_TYPES = ['sine', 'triangle', 'sawtooth', 'square'];
 
 function noiseBuffer(ctx, seconds = 2) {
@@ -35,6 +37,38 @@ export function playSynthNote(pack, dest, preset, midi, when, dur, vel, reg) {
   const peak = (p.gain || 0.5) * (vel == null ? 0.9 : vel);
   const off = when + Math.max(dur, a + 0.03);
   const stopAt = off + r + 0.25;
+
+  if (p.samplerAssetId) {
+    const sampleBuf = getProcessedBuffer(ctx, p.samplerAssetId, p.samplerPhysics || null);
+    if (sampleBuf) {
+      const src = ctx.createBufferSource();
+      src.buffer = sampleBuf;
+      const rootMidi = p.rootMidi || 60;
+      const rate = Math.pow(2, (midi - rootMidi) / 12);
+      if (src.playbackRate && typeof src.playbackRate.setValueAtTime === 'function') {
+        src.playbackRate.setValueAtTime(rate, when);
+      } else if (src.playbackRate) {
+        src.playbackRate.value = rate;
+      }
+      if (p.samplerLoop) {
+        src.loop = true;
+        if (p.samplerLoopStart != null) src.loopStart = Math.max(0, p.samplerLoopStart);
+        if (p.samplerLoopEnd != null && p.samplerLoopEnd > (p.samplerLoopStart || 0)) {
+          src.loopEnd = Math.min(sampleBuf.duration, p.samplerLoopEnd);
+        }
+      }
+      src.connect(filter);
+      src.start(when);
+      src.stop(stopAt);
+      if (reg) reg(src);
+
+      gain.gain.setValueAtTime(0, when);
+      gain.gain.linearRampToValueAtTime(peak * 1.35, when + a);
+      gain.gain.setTargetAtTime(peak * 1.35 * s, when + a, d / 3);
+      gain.gain.setTargetAtTime(0, off, r / 3);
+      return;
+    }
+  }
 
   const types = [p.osc1 || 'sine', p.osc2 || 'sine'];
   for (let i = 0; i < 2; i++) {

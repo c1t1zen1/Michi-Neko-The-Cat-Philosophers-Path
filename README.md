@@ -68,9 +68,11 @@ The game was created as an experimental art piece — built primarily through **
 </p>
 
 ### The Cat
-- **Fully articulated cat avatar** — segmented body with head, ears, tail, legs, and expressive golden-amber eyes that track objects of interest
-- **Procedural tabby fur shader** — the mackerel coat (flank stripes, spine line, forehead "M", cheek marks, leg and tail rings, cream bib, belly and socks) is painted in baked body space so it flows across every part and rides the animation; soft three-band toon ramp, painterly fur grain, warm sun-keyed rim light and textured amber irises with catchlights
-- **Cat animations** — walk, sprint, jump (with anticipation squash), land (with impact dust), idle sit, meow, prowl stance, tail swish, ear twitch, mood-based expressions (curious, playful, cautious, alert, sleepy)
+- **Sculpted, skinned cat** — one seamless coat sculpted from soft anatomical forms (deep ribcage tucking into the waist, sliding shoulder blades, haunches) and skinned to a feline skeleton: forelegs with a backward elbow, hind legs in the thigh → stifle → hock zig-zag, rounded paws, a six-bone tail about half the body's length, and a round head with cheek fluff and a short muzzle. Luna, Mochi and Kuro each get their own build (slender, round, long-limbed)
+- **Painted Ghibli face** — big amber eyes with heavy ink lids, catchlights, mood-sized pupils, real blinks (and slow "I trust you" blinks), the "ω" mouth that opens to meow and yawn, a pink (or dusky, on black cats) nose, white whiskers, tufted ears; NPCs turn their heads to follow you
+- **Procedural tabby coat** — exactly four bold mackerel stripes across the back, forehead "M", cheek lines, leg bars, tail rings with a dark tip, cream bib, belly and socks, painted in bind-pose space so it rides the animation; three-band toon ramp, painterly grain, a true silhouette rim light keyed to the sun, and a cool sheen that keeps black cats black
+- **Braided silk collar** — a kumihimo cord with gold edge threads and a little bow, carrying an engraved suzu bell (equator band, sound slit, sakura crest); Master Cat rank turns it gold and adds a twin
+- **Cat animations** — paws are placed by leg IK, so they plant without sliding: a lateral-sequence walk that eases into a trot and, when sprinting, a rotary gallop with spine flexion; jump, land, prowl crouch (shoulder blades up, tail low), turn-in-place steps, and the head held level through it all. Idle verbs are real cat poses: sit with the tail wrapped round, lick-a-paw grooming, play-bow stretch, yawn, crouch-to-drink, and a curled-up sleep. Plus ear flicks, tail sway, a bottlebrush tail when startled, and mood expressions (curious, playful, cautious, alert, sleepy)
 - **Prowl mode** — crouch low and move quietly at reduced speed (press C)
 - **Scent trail** — warm particle wisps drift up behind the cat as it moves, fading from gold to amber
 
@@ -191,7 +193,11 @@ Michi-Neko-The-Cat-Philosophers-Path/
 ├── src/
 │   ├── main.js                 # Game class — orchestrates all systems
 │   ├── player.js               # Player controller, camera follow, physics
-│   ├── cat.js                  # Cat avatar model, toon shading, animations
+│   ├── cat.js                  # Cat avatar: skeleton, gait, poses, moods
+│   ├── cat_anatomy.js          # Cat proportions, builds, sculpt + part geometry
+│   ├── cat_sdf.js              # Signed-distance sculpting, surface nets, skin weights
+│   ├── cat_motion.js           # Pose blending and leg IK
+│   ├── cat_shading.js          # Coat / face shader, outlines, collar & bell textures
 │   ├── controls.js             # Keyboard, mouse, touch input handling
 │   ├── countryside.js          # Procedural Kyoto valley world generation
 │   ├── textures.js             # Procedural PBR textures (plaster, timber, tiles, cobbles…) + normal maps
@@ -277,7 +283,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 - **Concept & Design:** Inspired by a honeymoon trip to Kyoto and a lifetime of Studio Ghibli films
 - **Code:** Vibe coded with multiple SOTA AI models
 - **Engine:** Three.js by Ricardo Cabello (Mr.doob) and contributors
-- **Cat avatar:** Custom procedural mesh with Ghibli-style toon shading
+- **Cat avatar:** Procedurally sculpted, skinned mesh with Ghibli-style toon shading
 
 ---
 
