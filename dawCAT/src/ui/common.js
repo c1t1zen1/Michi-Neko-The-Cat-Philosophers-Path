@@ -98,31 +98,51 @@ export function fmtDb(v) {
   return (20 * Math.log10(v)).toFixed(1) + ' dB';
 }
 
-/* Draggable knob control */
-export function makeKnob({ label, min, max, value, step = 0.01, fmt, onChange, def, size = 34 }) {
+/* Draggable knob control. `log: true` maps the sweep logarithmically (for
+   frequencies), `title` adds a hover explanation; once grabbed, the mouse
+   wheel nudges it in fine steps, and double-click resets to `def`. */
+export function makeKnob({ label, min, max, value, step = 0.01, fmt, onChange, def, size = 34, log = false, title }) {
   let val = value;
+  const lo = log ? Math.max(min, 1e-6) : min;
+  const toF = (v) => (log ? Math.log(Math.max(lo, v) / lo) / Math.log(max / lo) : (v - min) / (max - min));
+  const fromF = (f) => (log ? lo * Math.pow(max / lo, f) : min + f * (max - min));
+  const quantize = (v) => {
+    v = Math.min(max, Math.max(min, v));
+    if (log) { const mag = Math.pow(10, Math.floor(Math.log10(Math.max(1e-6, v))) - 2); return Math.round(v / mag) * mag; }
+    return Math.round(v / step) * step;
+  };
   const ind = el('div', { class: 'ind' });
   const dial = el('div', { class: 'knob-dial' }, ind);
   const valEl = el('div', { class: 'knob-val' });
-  const knob = el('div', { class: 'knob' }, dial, el('div', { class: 'knob-label', text: label }), valEl);
+  const knob = el('div', { class: 'knob', title: title || null }, dial, el('div', { class: 'knob-label', text: label }), valEl);
   if (size !== 34) { dial.style.width = dial.style.height = size + 'px'; }
 
   function render() {
-    const f = (val - min) / (max - min);
+    const f = Math.min(1, Math.max(0, toF(val)));
     ind.style.transform = `translateX(-50%) rotate(${45 + f * 270}deg)`;
     valEl.textContent = fmt ? fmt(val) : val.toFixed(2);
   }
 
+  // The wheel fine-tunes only a knob you've grabbed (until the pointer
+  // leaves it), so scrolling a panel past knobs never changes them.
+  let armed = false;
+  knob.addEventListener('pointerleave', () => { armed = false; });
+  dial.addEventListener('wheel', (e) => {
+    if (!armed) return;
+    e.preventDefault();
+    val = quantize(fromF(Math.min(1, Math.max(0, toF(val) - Math.sign(e.deltaY) * 0.01))));
+    render();
+    onChange(val);
+  }, { passive: false });
+
   dial.addEventListener('pointerdown', (e) => {
     e.preventDefault();
+    armed = true;
     const startY = e.clientY;
-    const startVal = val;
+    const startF = toF(val);
     const onMove = (ev) => {
       const dy = startY - ev.clientY;
-      let v = startVal + dy * (max - min) / 140;
-      v = Math.min(max, Math.max(min, v));
-      v = Math.round(v / step) * step;
-      val = v;
+      val = quantize(fromF(Math.min(1, Math.max(0, startF + dy / 140))));
       render();
       onChange(val);
     };

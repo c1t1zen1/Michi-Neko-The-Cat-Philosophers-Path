@@ -1,30 +1,30 @@
-# dawCAT · Web Audio Studio
+# dawCAT 2.0 · Audio Asset Studio
 
-A tiny Ableton-style DAW built for **Michi-Neko: The Cat Philosopher's Path**. Compose with the game's own musical DNA, then export straight back into it — **without modifying any game code** (except optionally replacing `src/music.js` with the generated drop-in). An optional [AI composition agent](#ai-composition-agent) turns natural-language prompts into validated melody/rhythm/mix plans, calling a local llama-server, Anthropic, OpenAI, or any OpenAI-compatible API directly from the browser — no server of dawCAT's own involved.
+The audio workbench for **Michi-Neko: The Cat Philosopher's Path**. Compose music cues with the game's own musical DNA, design **procedural sound effects**, and let an **AI assistant** do the heavy lifting — then export straight back into the game **without modifying any game code**.
 
-Pure Web Audio API + vanilla ES modules. No npm dependencies, no build step.
+- **Compose** — an Ableton-style DAW: arrangement, piano roll, drum grid, mixer, device chain, automation.
+- **✦ Sound Design** — layered procedural SFX (tones, FM, filtered noise, plucked strings) with variations, exported as a zero-file `sfx-pack.js` that can replace the game's own sounds.
+- **✦ AI assistant** — describe a cue or a sound in plain words. Works with a local **llama-server**, LM Studio, Ollama, or **Anthropic, OpenAI, Gemini, OpenRouter, Groq, Mistral, DeepSeek, xAI**. Streams live, keeps a conversation, fixes its own mistakes, and every change is one Ctrl+Z away.
+
+Pure Web Audio + vanilla ES modules. No runtime dependencies, no build step, no server of its own.
 
 ---
 
 ## Run it
 
-Serve the **game root** (not the dawCAT folder) so both the game and the DAW share one origin — any static server works, no Node/npm needed anywhere in dawCAT:
+Serve the **game root** (not the dawCAT folder) so the game and dawCAT share one origin:
 
 ```
 # from the repo root (Michi-Neko-The-Cat-Philosophers-Path/)
 python -m http.server 8000
 ```
 
-Then open:
-
-- **DAW:** `http://localhost:8000/dawCAT/`
+- **dawCAT:** `http://localhost:8000/dawCAT/`
 - **Game:** `http://localhost:8000/`
 
-> Port 8000, not 8080, on purpose: **8080 is llama-server's default port**. Serving dawCAT there too means one of the two can't bind, and the AI agent's Base URL ends up pointing at dawCAT's own file server instead of your model.
+> Port 8000, not 8080, on purpose: **8080 is llama-server's default port**. Serving dawCAT there too means one of them can't bind.
 
-> Serving over HTTP is required for the game-cue scanner (`fetch('../src/*.js')`). Opening `dawCAT/index.html` directly from disk (`file://`) works for composing, but scanning and hot-swap preview need the shared server.
-
-The [AI composition agent](#ai-composition-agent) needs nothing extra either — it calls your chosen provider (local llama-server, OpenAI, Anthropic, ...) directly from the page with `fetch()`, the same as any other static-file app. There's no proxy to run and no API key ever leaves the browser for anywhere but the provider you configured. If it can't reach your server, see [Connecting to a local server](#connecting-to-a-local-server).
+> HTTP (not `file://`) is required for the game-cue scanner and the AI assistant. Plain **http** matters too: a page served over https is blocked by the browser from reaching local model servers.
 
 ---
 
@@ -32,147 +32,151 @@ The [AI composition agent](#ai-composition-agent) needs nothing extra either —
 
 | Area | What it does |
 |---|---|
-| **Browser** (left) | Sounds, drum kits, instruments, audio effects, scales, ambient samples, **Game Cues**, clip library, grooves, templates, user library, current project tree. Search box filters live across every category. Drag anything onto the arrangement — including audio files from Finder/Explorer. |
-| **Arrangement** | Canvas timeline: drag/resize/alt-duplicate clips, marquee-drag or shift-click to multi-select clips, loop region on the ruler, automation lanes (volume/pan/master **and any automatable device parameter**), waveform-accurate audio clips, right-click a track to freeze/unfreeze or quantize. |
-| **Piano Roll** | Double-click a synth clip (or select it → Piano Roll tab). Click to add notes, drag to move, edges to resize, right-click to delete or quantize to the current grid, velocity lane at the bottom. |
-| **Clip tab** | Drum step sequencer for drum clips (click = toggle, Shift = full velocity, drag paints) and sample-clip properties. |
-| **Mix** | Channel strips with faders, pan, reverb/delay sends, mute/solo, live meters, master fader. |
-| **Inspector** | Three tabs: **Track** (name, color, M/S/arm, sends, kit) and clip properties, **Mixer** (compact strip for the selected track), **Plugins** (chip list of the track's device chain, click to jump to Device Chain), **Metadata** (project name, tempo, time signature, key/scale, day-phase section markers, cue-scan summary). |
-| **Device Chain** (bottom) | Per-track rack: Analog synth editor, EQ Eight (real filter-response curve, including the high-pass stage), Compressor, Delay, Reverb, Auto Filter, Chorus, Utility. Automatable parameters can be drawn onto arrangement automation lanes. |
-| **Transport** | Play/stop/record, loop, metronome, tempo (click to edit), position, CPU/VOX meters. |
-| **✦ AI Agent** (menu bar) | One click opens the [AI composition agent](#ai-composition-agent) — pick a provider, scan its models, choose Remix / Write / Free, and prompt. |
+| **Browser** (left) | Sounds, drum kits, instruments, effects, scales, ambient samples, **Sound Design** (your SFX — click to hear, drag onto the timeline), **Game Cues**, clip library, grooves, templates, user library, current project. Search filters every category. |
+| **Arrangement** | Canvas timeline: drag/resize/alt-duplicate clips, marquee or shift-click multi-select, loop region, automation lanes (volume, pan, master, any automatable device parameter), audio clips, freeze/unfreeze, quantize. |
+| **Piano Roll / Clip** | Note editing with velocity lane; drum step sequencer. |
+| **Mix** | Faders, pan, reverb/delay sends, mute/solo, meters, master. |
+| **✦ Sound Design** (tab) | The SFX studio — see [Sound Design](#-sound-design). |
+| **Inspector / Device Chain** | Track & clip properties, metadata; per-track synth + EQ Eight, compressor, delay, reverb, filter, chorus, utility. |
+| **✦ AI Agent** (menu bar, **Ctrl+K**) | The assistant — see [AI assistant](#-ai-assistant). |
 
-### Game Cues (the fun part)
+### Game Cues
 
-Press **⟳ Rescan** in the browser header. dawCAT fetches the game's source over HTTP (`../index.html` → entry module → its imports, always including `src/music.js` + `src/audio.js`) and extracts:
-
-- **Phases** — the MusicDirector's `dawn/day/dusk/night` objects (root Hz, chord, scale, density, cutoff)
-- **SFX** — every `playXxx()` method in `audio.js` (meow, bell, collect, dream chime, splash, door, …) with its oscillator types and frequencies
-- **Ambient** — `startRain/WindChimes/Birds/Ambient/Lapping` loops
-- **Melodies / chords / scales** — any standalone frequency array in the game code
-
-The browser groups cues **Scene → Time of Day / Sounds** (today just one scene, "Overworld" — a later scene gets its own group automatically). Each cue can be **previewed** (click), **dragged** into the arrangement as a clip (phases become pluck patterns in the game's own scale, chords become pads, SFX become one-shot clips, ambient loops become sample clips), or converted into an instrument preset (right-click). Right-click a **Dawn/Day/Dusk/Night** cue for **Load as new project** — clears the current project and rebuilds it as a fresh Pad + Pluck arrangement voicing that phase's chord/scale, ready to remix. Rescan any time the game code changes.
+Press **⟳ Rescan** in the browser header. dawCAT reads the game's source over HTTP and extracts the MusicDirector's **dawn/day/dusk/night phases** (root, chord, scale, density, cutoff), every **`playXxx()` SFX** in `audio.js`, the **ambient loops**, and any melody/chord/scale arrays. Preview a cue (click), drag it into the arrangement, turn it into an instrument preset, or right-click a phase ▸ **Load as new project**. The AI assistant sees the phase cues too, so "make it fit dusk" uses the game's real dusk scale.
 
 ---
 
-## Exporting back into the game
+## ✦ Sound Design
 
-**File ▸ Export to Game…** gives you three paths, zero game-code edits required:
+The **✦ Sound Design** tab designs the game's sound effects procedurally — nothing is sampled, so a whole pack costs a few kilobytes to ship and every sound can vary each time it plays.
 
-1. **Hot-swap snippet (instant preview)** — click the game tab once (unlocks audio), open its DevTools console, paste the snippet, Enter. Your arrangement replaces the running music immediately. Nothing is written to disk; reload the game to get the original back.
-2. **Drop-in `music.js`** — download it and replace the game's `src/music.js`, then hard-refresh the game. The generated file implements the exact `MusicDirector` API the game already calls (`start / stop / update(dayTime) / setDucked`), so no other game code changes.
-3. **Track JSON** (`*.dawcat-export.json`) — a flattened archival dump, not an editable project file (it can't be re-opened via File ▸ Open — use **Save Project** for that).
+**Start a sound** from one of 24 templates modelled on Michi-Neko's own sounds — *Meow, Purr, Trill, Hiss, Chirp, Paw step, Bell, Collect, Dream chime, Unlock chime, Sparkle, Splash, Water drop, Shoji door, Page turn, Wind gust, Cricket, Koto pluck, Temple gong, Singing bowl, UI click/confirm/back*, or Blank — or ask the AI in Sound Design mode ("soft paw steps on wood, 4 variations").
 
-Both the hot-swap snippet and `music.js` carry each track's full **device chain** (EQ/compressor/delay/reverb/filter/chorus/utility) and **volume/pan/device-parameter automation**, so what you hear in dawCAT is what plays in the game. The one thing that never survives game export is drag-and-dropped audio clips (synth notes, drum steps and built-in samples only) — the export dialog warns you if a project has any.
+**A sound is a stack of layers**, each one of:
 
-**Day phases:** in the export dialog, map `dawn / day / dusk / night` to arrangement bars. The exported player seeks to each section as the in-game clock changes (same hour thresholds as the original director: night <5.5h, dawn <7.5h, day <17h, dusk after). Leave −1 to ignore a phase and just loop the whole track.
-
-**Scene / Time of Day:** every project carries a `scene` (free text — the game only has one, "Overworld", today) and a `timeOfDay` (`dawn/day/dusk/night`, or "All" for the classic full-cycle export). Picking a specific Time of Day tags the export and makes it just loop that one variant instead of seeking phases — the day-phase mapping above only applies to "All" exports. Downloaded filenames disambiguate by scene/time (e.g. `music.overworld.dawn.js`) so variants don't overwrite each other; this is prep for scenes the game doesn't have yet — right-click a **Dawn/Day/Dusk/Night** Game Cue ▸ **Load as new project** to start one.
-
----
-
-## AI composition agent
-
-Open it with the **✦ AI Agent** button in the top menu bar. It's a button, not a menu — one click opens the agent, there's no dropdown entry to hunt for — and it lights up while the panel is open. The panel floats above whatever view you're in rather than swapping it, so your arrangement stays visible underneath. **Closing the panel doesn't stop a request in flight** — it keeps generating in the background; click **✦ AI Agent** again to see where it's at.
-
-Describe a melody, rhythm, or idea in plain language; the agent turns it into a constrained JSON plan of DAW actions — new or reworked tracks, clips (notes or drum steps), presets, FX, mix levels, tempo/key/scale/swing, the master fader — that dawCAT validates and **applies automatically the moment the full response comes back**, no separate confirm step. It cannot execute arbitrary JavaScript, touch game or project files, or do anything outside the action list below. `Ctrl+Z` or **Undo Last** reverts the whole plan in one step if you don't like the result. Same harness shape as cadJS's design agent, adapted for music instead of geometry.
-
-No server, no npm, no build step — the panel calls your configured provider's API **directly from the browser** with `fetch()`, exactly like curling it yourself. That means it lives or dies by that provider's own CORS policy: a local inference server (llama-server, LM Studio, Ollama's OpenAI-compatible endpoint) overwhelmingly allows cross-origin requests by default, which is the whole point of running one, so this just works for the common case. A cloud provider that blocks browser origins will surface as a plain network error in the panel — there's no proxy left to paper over that, and dawCAT doesn't ship one.
-
-### Remix / Write / Free
-
-Three buttons above the prompt box pick how the request is framed (the line under them spells out what the selected mode does) — all three see the same full context (every track's real clip content, not just a count), so any of them can act on what's already in the project:
-
-| Mode | What it tells the model |
+| Layer | Use it for |
 |---|---|
-| **Remix** | Rework the existing composition — prefer altering what's there (swap a clip's content, retune a preset, tweak a device, adjust mix) over piling on unrelated new tracks. |
-| **Write** | Compose something new — prefer adding fresh tracks/clips, only touching existing ones if the request needs it. |
-| **Free** | Follow the request exactly as given — adjust anything in the composition: add or remove tracks, clips, devices, mix, tempo. A one-line tweak, a full remix, a new composition, or all of the above. |
+| **tone** | An oscillator with pitch sweep and vibrato — chirps, blips, chimes, meows. |
+| **noise** | White / pink / brown noise through a sweepable filter — footsteps, whooshes, splashes, wind. |
+| **fm** | A modulated oscillator whose brightness decays like a struck object — bells, gongs, glassy hits. |
+| **pluck** | A plucked string (Karplus–Strong) — koto, harp, pizzicato stings. |
 
-### Providers
+Every layer has an envelope (attack, hold, decay, sustain, release), an optional filter with its own sweep, vibrato and tremolo (a ~26 Hz tremolo is what makes the purr), level, pan, start offset and **repeats** (count, interval, pitch step, fade — arpeggios, trills, rattles). The master section adds gain, low/high-pass, reverb, drive and **variation** (pitch, timing and level spread).
 
-| Provider | Default base URL | Default model | Key |
-|---|---|---|---|
-| Local / llama-server | `http://127.0.0.1:8080/v1` | `local-model` | Normally none |
-| Custom / OpenAI-compatible | `http://127.0.0.1:3000/v1` | `custom-model` | Gateway-dependent |
-| OpenAI | `https://api.openai.com/v1` | `gpt-5.2` | Required |
-| OpenRouter | `https://openrouter.ai/api/v1` | `openai/gpt-5.2` | Required |
-| Anthropic | `https://api.anthropic.com/v1` | `claude-opus-5` | Required |
+**Variations:** sounds with variation amounts play a different round-robin take each time — in the game, on the timeline, and with **🎲 Variation** in the editor. **Make 3 variations** (right-click a sound) bakes distinct copies instead.
 
-Base URLs are editable and may need updates as provider availability changes. API keys are kept in browser `sessionStorage` only — never written to project JSON, never logged, and only ever sent to the Base URL you set.
+The waveform is rendered offline with exactly the code the game will run, with one coloured lane per layer showing when it sounds. **Enter** previews; **Auto-preview** plays after every tweak; knobs show a tooltip, turn with drag or mouse wheel, and reset on double-click. Edits are undoable (one Ctrl+Z per knob gesture).
 
-Local llama.cpp example:
+**Use your sounds:**
+- **→ Timeline** places the sound as a clip on an "SFX" track (it plays through that track's effects); or drag it from the list or the browser.
+- **⬇ WAV** renders one sound.
+- **Game hook** (header dropdown) marks the game sound this one replaces — e.g. `playMeow`, or `playFootstep:wood` for one surface only.
+- **⬇ Export SFX pack…** (also File ▸ Export SFX Pack…) zips:
+  - `sfx-pack.js` — drop it in the game's `src/`. It embeds the SFX synth and your sounds; nothing else to ship.
+    ```js
+    import { playSfx, installSfxOverrides } from './sfx-pack.js';
+    playSfx(this.audio, 'leaf-sparkle');   // play any pack sound on the game's SFX bus
+    installSfxOverrides(this.audio);       // swap hooked game sounds (playMeow, playFootstep…)
+    ```
+    Overrides keep the game's own behaviour where it matters: footsteps stay throttled to one per 0.28 s and water still laps.
+  - `sfx/*.wav` renders (plus `.v2`, `.v3`… variations) for trailers or other tools, `sfx-manifest.json`, and a README.
+  - **Pack level** (default 35 %) scales sounds to sit at the game's quiet SFX loudness.
+- **🎮 Hot-swap into game** copies a console snippet: paste it into the running game's DevTools console and your hooked sounds replace the originals immediately (`dawcatSfx.play('name')` to audition, `dawcatSfx.uninstall()` to restore, or just reload).
 
-```powershell
-llama-server -m C:\models\your-model.gguf --host 127.0.0.1 --port 8080
-```
+---
 
-Then set Base URL to `http://127.0.0.1:8080/v1` and press **⟳ SCAN MODELS**. See [Connecting to a local server](#connecting-to-a-local-server) if it doesn't connect.
+## ✦ AI assistant
 
-### Picking a model
+Open it with **✦ AI Agent** in the menu bar or **Ctrl+K**. It floats over whatever you are doing, and closing it never cancels a request in flight.
 
-Click **⟳ SCAN MODELS** next to the Model label: dawCAT does a `GET {Base URL}/models` against whatever provider you've configured and loads **every model that API offers** into the dropdown below it — pick one and it drops into the model field. Works for local servers, OpenAI, OpenRouter, and Anthropic (its own `/v1/models` endpoint) alike, and understands the OpenAI (`{data:[{id}]}`), bare-array, and Ollama (`{models:[{name}]}`) response shapes.
+### Connect a model
 
-The text field under the dropdown is the model id actually sent, so you can always just type one — useful if a provider doesn't implement `/models`, or if you want a model that isn't listed. Switching Service resets the list, since another provider's model ids don't exist on the new endpoint.
+Open **⚙ Settings** in the panel, pick a service, and press **⚡ Test connection** — it checks the server, lists its models, and (for llama-server) reads the loaded model and its **context window**, which dawCAT uses to size what it sends.
 
-### Connecting to a local server
+| Service | Default base URL | Notes |
+|---|---|---|
+| **llama-server** (llama.cpp) | `http://127.0.0.1:8080/v1` | Free and private. `llama-server -m model.gguf --port 8080 --ctx-size 16384 --jinja` |
+| **LM Studio** | `http://127.0.0.1:1234/v1` | Start the server in the Developer tab; enable CORS. |
+| **Ollama** | `http://127.0.0.1:11434/v1` | Set `OLLAMA_ORIGINS=*` and `OLLAMA_CONTEXT_LENGTH=16384` (its default is 4k). |
+| Custom OpenAI-compatible | `http://127.0.0.1:3000/v1` | vLLM, Jan, KoboldCpp, gateways… |
+| **Anthropic** | `https://api.anthropic.com/v1` | Default model `claude-opus-5-5`. |
+| **OpenAI** | `https://api.openai.com/v1` | |
+| **Google Gemini** | `https://generativelanguage.googleapis.com/v1beta/openai` | |
+| **OpenRouter** | `https://openrouter.ai/api/v1` | Any model on OpenRouter. |
+| **Groq**, **Mistral**, **DeepSeek**, **xAI** | their `/v1` endpoints | |
 
-llama-server prints the address it **bound** on startup — `http://0.0.0.0:8080`. That is not an address you can connect to: `0.0.0.0` means "listen on every interface". dawCAT rewrites it to `127.0.0.1` for you (and shows the corrected value back in the field), but the distinction matters when you're checking things by hand.
+Each service remembers its own base URL and model. API keys stay in the browser — in session storage by default (gone when the tab closes), or on this device if you tick **Remember API keys** — and are only ever sent to the base URL you set. dawCAT calls providers **directly from the page** (no proxy), so a provider must allow browser (CORS) requests. The local servers above do (LM Studio and Ollama after the setting noted); Anthropic explicitly supports it; for any other cloud API that doesn't, the connection test reports a CORS block rather than a vague error.
 
-Use **`http://127.0.0.1:8080/v1`**. Four addresses that look equivalent are not:
+**Which local model?** Any instruct model of 7B+ works; 14B+ composes noticeably better. A context of 16k tokens is comfortable; dawCAT shrinks what it sends to fit smaller windows automatically.
 
-| Base URL | Result |
+If a connection fails, the panel says why instead of "failed to fetch": nothing listening vs. a CORS block, `localhost` resolving to IPv6, a missing port, an https page blocked from local servers, or the base URL pointing at dawCAT's own file server. `0.0.0.0` (what llama-server prints) is rewritten to `127.0.0.1` for you.
+
+### Modes
+
+| Mode | For |
 |---|---|
-| `http://127.0.0.1:8080/v1` | ✅ What you want. |
-| `http://0.0.0.0:8080/v1` | Rewritten to `127.0.0.1` on use. Chrome silently treats it as localhost anyway; Safari and Firefox do not. |
-| `http://localhost:8080/v1` | ⚠️ Can fail even when the server is up: `localhost` may resolve to the IPv6 address `::1`, and `--host 0.0.0.0` binds **IPv4 only**, so nothing answers. |
-| `http://127.0.0.1/v1` | ❌ No port — goes to port 80, not 8080. |
+| **Compose** | New music: tracks, chord progressions, melodies, grooves — a complete loopable cue. |
+| **Remix** | Rework what's in the project: re-voice, reharmonise, re-groove, re-mix. |
+| **Sound Design** | Create and edit SFX patches (see above). |
+| **Mix** | Levels, EQ, compression, space, automation — notes untouched. |
+| **Ask** | Questions about music, the project, the game or dawCAT. Nothing changes. |
+| **Free** | Anything, exactly as asked. |
 
-If a scan fails, the panel tells you which of these it actually was rather than a generic "could not reach": it re-probes the address to separate *nothing is listening there* from *the server answered but blocked the browser from reading it (CORS)*, and names mixed content when dawCAT is on `https://` and the server is on plain `http://` — which browsers block outright, so the request never leaves the page.
+Each mode offers quick-start prompts. **Enter** sends, **Shift+Enter** adds a line.
 
-Two more things worth checking if nothing connects:
+### What happens when you send
 
-- **Don't serve dawCAT on port 8080.** That's llama-server's default; if dawCAT is there too, `http://127.0.0.1:8080/v1/models` reaches dawCAT's static file server and returns its HTML 404. The panel calls this out by name when it happens.
-- **Being able to open the server in a browser tab doesn't prove the agent can reach it.** Typing the URL in the address bar is a top-level navigation, which is exempt from CORS; a `fetch()` from a page is not. A server can load fine in a tab and still refuse the agent.
+1. dawCAT sends a mode-specific system prompt, your recent conversation, and the project — tracks, clips with their notes and drum grids, SFX, game cues — compacted to fit the model's context window (the status line shows the estimate).
+2. The reply **streams** into the turn card, with the model's thinking in a collapsible pane.
+3. The JSON plan is validated. If the model wrote an unknown action, a bad chord symbol or a missing parameter — or the plan fails while applying — dawCAT sends the exact error back and asks for a corrected plan (**Self-repair tries**, default 2). This is what makes small local models dependable.
+4. The plan applies as **one undo step** (or waits for **✓ Apply** if *Apply plans: after I review* is set). A failed plan rolls back completely.
 
-Anthropic calls include the `anthropic-dangerous-direct-browser-access` header, which is what Anthropic requires to allow a page like this one to call its API straight from a browser with a user-supplied key instead of going through a backend.
+The turn card lists every change in plain words, with **▶ Listen** (plays what was made), **↶ Undo**, **↻ Retry**, **Copy JSON** and, for new sounds, **Open in Sound Design**. The conversation survives a page reload; **New chat** starts fresh without touching the project.
 
-### Context sent to the model
+### Musical notation the model can use
 
-The whole project's actual musical content, not just a summary: tempo/key/scale/swing/time signature, the master fader, and every track (id, name, kind, preset or drum kit, volume/pan/mute/solo, device list) **with its real clips** — id, timing, and the full note list or drum-step pattern — plus up to 12 of the scanned Game Cues' phase data (scene, time of day, root Hz, chord, scale). That's what lets Remix mode meaningfully rework a clip that's already there instead of only ever bolting new material on, and lets any mode match a Game Cue's mood on request.
+Models are bad at MIDI arithmetic, so the assistant writes music the way musicians do and dawCAT does the maths:
 
-### Supported actions
+- **Chords:** `Cmaj7 Am7 Dm7 G7`, slash chords `D/F#`, or roman numerals in the project key `I vi ii7 V7 bVII` — voice-led automatically, as block chords or arpeggios (`up`, `down`, `updown`, `broken`, `pulse`, `strum`).
+- **Melodies:** `E5/1 G5/.5 r/.5 [C5 E5]/2@0.6` (note/beats@velocity, `r` = rest, `q`/`e`/`h` durations), or scale degrees `[1, 3, 5, "b7", 8]`.
+- **Drums:** grids like `kick: "x...x...x...x..."` or named grooves (`four-on-floor`, `backbeat`, `boom-bap`, `lofi`, `bossa`, `taiko`, `festival`, `ambient-pulse`…).
 
-`addTrack` (synth or drum, with a preset/kit), `renameTrack`, `deleteTrack`, `setTrackMix` (volume/pan/mute/solo/sends), `setTrackPreset`, `addDevice` (EQ/comp/delay/reverb/filter/chorus/utility), `setDeviceParams` (tweaks the first device of a given type already on the track, adding one if it's missing — no duplicate stacking), `addClip` (note melody on a synth track, or a 16-step rhythm on a drum track — pairing `deleteClip` + `addClip` on the same track is how a remix replaces a clip's content), `deleteClip`, `setTempo`, `setKeyScale`, `setSwing`, `setMaster` (master fader). Plans are limited to 40 actions and applied as **one undoable transaction** — a plan that fails partway rolls the project back completely rather than leaving a half-applied mess.
+### Actions it can take
 
-### Example prompt
+Project (tempo, key/scale, swing, master, loop, scene/time of day), tracks (add, rename, delete, mix, synth preset/patch, add/tune/remove effects), clips (add, rewrite, delete, transpose, duplicate, move), composition helpers (`addChordProgression`, `addDrumPattern`, `addAutomation` ramps such as filter sweeps), and sound design (`addSfx` from a template or from layers, `updateSfx`, `deleteSfx`, `placeSfx`). Up to 60 actions per plan. It cannot run code or touch files.
 
-```text
-Add a warm pad track voicing a Cmaj9 chord and a koto pluck track playing a
-sparse pentatonic-major melody around it, both around 90 BPM, plus a light
-four-on-the-floor drum groove on a soft kit. Keep it calm — this is for a
-dawn scene.
-```
+### Advanced settings
+
+Temperature, top-p, max tokens, reasoning effort, structured output (auto / JSON schema / JSON mode / off — if a server rejects one, dawCAT retries without it), self-repair tries, apply mode, context detail and streaming. **Diagnostics** shows an activity log and copies the last request and response (key redacted) for debugging a model or server.
+
+With **Anthropic**, current Claude models use adaptive thinking and *Reasoning* sets the effort ("none" means the lightest effort, since thinking can't be switched off on the newest models); on Claude Opus 5.5, Opus 5, Sonnet 5.5 and Fable 5.1 a declined request falls back to another model server-side. With reasoning models in general, give *Max tokens* room for both thinking and the answer (8000+).
+
+---
+
+## Exporting music back into the game
+
+**File ▸ Export to Game…**
+
+1. **Hot-swap snippet** — paste into the game's DevTools console; your arrangement replaces the running music immediately. Reload to undo.
+2. **Drop-in `music.js`** — replace the game's `src/music.js` and hard-refresh. It implements the exact `MusicDirector` API the game already calls (`start / stop / update(dayTime) / setDucked`).
+3. **Track JSON** — a flattened archival dump (not re-openable; use Save Project for that).
+
+Both carry each track's device chain and automation. Map **dawn / day / dusk / night** to arrangement bars for a full-day-cycle export, or pick one Time of Day to export a single looping variant (`music.<scene>.<time>.js`). Drag-and-dropped audio clips and Sound Design SFX clips are not part of the music export — SFX ship with the SFX pack.
 
 ---
 
-## Audio import, freezing, and MIDI
+## Audio import, freezing and MIDI
 
-- **Drag audio in** — drop a `.wav`/`.mp3`/`.ogg` file from Finder/Explorer straight onto the arrangement to create a waveform clip on the lane you dropped it on (or a new track). Files are decoded once, cached for the session, and their bytes live in IndexedDB (not localStorage) so autosave never chokes on embedded audio.
-- **Freeze a track** — right-click a track header ▸ **Freeze track (bounce to audio)** to render its instrument + FX chain to a buffer, cutting CPU usage for busy tracks. Volume, pan, mute/solo and sends stay live so the mixer is still editable; right-click ▸ **Unfreeze** to go back to the live signal chain.
-- **MIDI import/export** — **File ▸ Import MIDI (.mid)…** reads a Standard MIDI File (Format 0/1) and creates one new synth track per MIDI track. **File ▸ Export MIDI (.mid)** writes your synth tracks out as a Format-1 SMF. Notes only — drum-lane steps, FX chains and automation don't round-trip through `.mid`.
-
----
+- **Drag audio in** — drop a `.wav` / `.mp3` / `.ogg` onto the arrangement. Bytes live in IndexedDB so autosave never chokes.
+- **Freeze a track** — right-click a track ▸ Freeze to render its instrument + effects; mixer stays live.
+- **MIDI** — File ▸ Import / Export MIDI (notes only).
 
 ## Workflow tips
 
-- The **starter sketch** (default project) already plays — hit `Space`.
-- Double-click an empty lane to create a clip; double-click a clip to open its editor (Piano Roll for synth, step grid for drums).
-- `Alt+drag` a clip to duplicate it. Shift-click or marquee-drag across a blank part of a lane to select multiple clips, then drag/duplicate/delete them as a group. Right-click clips/tracks for the full context menu.
-- Right-click a piano-roll note selection or an arrangement clip to **quantize** it to the current snap grid.
-- Record-arm a synth track and play **A W S E D F…** (musical typing) while the transport runs to capture notes into the selected clip.
-- Snap and zoom live in the tab bar; `Ctrl+Wheel` zooms the timeline.
-- Everything autosaves to browser storage; `Ctrl+S` saves immediately. Use User Library in the browser for named snapshots.
+- The starter sketch already plays — hit `Space`.
+- Double-click an empty lane for a clip; double-click a clip to edit it.
+- Record-arm a synth track and play **A W S E D F…** while the transport runs to record.
+- Everything autosaves to the browser; `Ctrl+S` saves now. User Library keeps named snapshots.
 
 ## Keyboard shortcuts
 
@@ -180,10 +184,12 @@ dawn scene.
 |---|---|
 | `Space` | Play / stop |
 | `Home` | Return to start |
-| `Ctrl+Z` / `Ctrl+Shift+Z` | Undo / redo |
+| `Ctrl+Z` / `Ctrl+Shift+Z` | Undo / redo (AI plans are one step) |
 | `Ctrl+D` | Duplicate selected clip |
 | `Delete` | Delete selected clip / note |
 | `Ctrl+S` | Save to browser |
+| `Ctrl+K` | Open / close the AI assistant |
+| `Enter` | Send (in the assistant) · Preview sound (in Sound Design) |
 | `A W S E D F T G Y H U J K` | Musical typing |
 | `Ctrl+Wheel` | Zoom timeline |
 
@@ -193,26 +199,41 @@ dawn scene.
 
 ```
 dawCAT/
-  index.html          shell
-  styles.css          Nebula-DAW theme
+  index.html, styles.css
+  package.json          marks src/ as ES modules for Node tests — no dependencies
   src/
-    main.js            bootstrap + shortcuts + wiring + AI agent execution
-    state.js           project model, undo/redo (+ applyBatch for AI plans), persistence
-    scanner.js         game cue scanner (phases, SFX, scales)
-    bridge.js          export: drop-in music.js + hot-swap snippet + JSON
-    midi.js            Standard MIDI File (.mid) import/export
-    agent-protocol.js  AI agent: direct-to-provider request building, prompt, plan validation
-    engine/
-      core.js         context, master bus, track chains, meters
-      synth.js        synth voices, game SFX approximations, ambience
-      drums.js        synthesized drum kits
-      fx.js           EQ8 / comp / delay / reverb / filter / chorus / utility
-      automatable.js  table of automatable device-parameter ranges
-      assets.js       IndexedDB-backed audio asset store + decode/peak cache
-      transport.js    lookahead scheduler (tempo, loop, metronome, automation)
-      render.js       OfflineAudioContext → WAV, per-track freeze bounce
-    ui/               browser, arrangement, pianoroll, drumgrid, mixer,
-                      inspector, devices, transport-ui, agent-panel, common helpers
+    main.js             bootstrap, shortcuts, wiring
+    state.js            project model, undo/redo, persistence, SFX patches
+    scanner.js          game cue scanner
+    bridge.js           music export: drop-in music.js, hot-swap, JSON
+    midi.js             Standard MIDI File import/export
+    zip.js              store-only ZIP writer (SFX packs)
+    agent/              AI assistant core (DOM-free, unit-tested)
+      providers.js      provider catalog, request building, response parsing
+      stream.js         SSE streaming for OpenAI-style and Anthropic APIs
+      diagnose.js       connection / HTTP error explanations
+      theory.js         note names, chords, roman numerals, voice leading, phrases, grooves
+      schema.js         action catalog → prompt reference, JSON schema, validation
+      prompt.js         modes, system prompt, context compaction
+      session.js        conversation, streaming call, self-repair loop
+      executor.js       applies plans to the project (one undo step)
+      describe.js       plain-language action descriptions
+      settings-store.js per-provider settings, v1 migration
+    sfx/
+      runtime.js        self-contained SFX synth (embedded verbatim in exports)
+      patches.js        patch model, templates, game hooks
+      export.js         sfx-pack.js, hot-swap snippet, manifest, pack contents
+    engine/             audio engine: core, synth, drums, fx, transport, render, assets
+    ui/                 browser, arrangement, piano roll, drum grid, mixer, inspector,
+                        devices, transport bar, agent-panel, sfx-designer, common
+  tests/                dependency-free Node test suites
 ```
 
-No dependencies, no build step — just static files, AI agent included.
+## Tests
+
+```
+cd dawCAT
+npm test            # or: node tests/run.mjs [filter]
+```
+
+Runs on Node 16+, no install needed. Covers music theory, plan validation, provider request building, SSE parsing (including chunks split mid-character), the self-repair session loop, the plan executor against a real project state, undo, the SFX synth (every template through a strict fake AudioContext), SFX pack generation and the ZIP writer.

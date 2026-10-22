@@ -1,5 +1,10 @@
 /* dawCAT — project state, persistence, undo/redo */
 import { deleteAsset } from './engine/assets.js';
+import { sfxRuntime } from './sfx/runtime.js';
+
+// Only normalize() is used here; the runtime is self-contained, so importing
+// it creates no cycle with sfx/patches.js (which imports uid from this file).
+const SFX = sfxRuntime();
 
 export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 export const SCALES = {
@@ -141,7 +146,10 @@ export function defaultProject() {
     // Metadata only — { [id]: {name, mime, durationSec, sampleRate, channels} }.
     // The actual audio bytes live in IndexedDB (src/engine/assets.js) and are
     // only ever inlined as base64 when explicitly downloading a project file.
-    assets: {}
+    assets: {},
+    // Procedural SFX patches designed in the Sound Design view (sfx/runtime.js).
+    // Placed on the timeline as clips with sample "sfxp:<id>".
+    sfx: []
   };
 }
 
@@ -185,6 +193,9 @@ function migrateProject(p) {
   if (!p.assets || typeof p.assets !== 'object') p.assets = {};
   if (typeof p.scene !== 'string') p.scene = 'Overworld';
   if (typeof p.timeOfDay !== 'string') p.timeOfDay = null;
+  p.sfx = (Array.isArray(p.sfx) ? p.sfx : [])
+    .filter((s) => s && typeof s === 'object')
+    .map((s) => Object.assign(SFX.normalize(s), { id: s.id || uid('sfx') }));
 }
 
 /* ---------------- app state ---------------- */
@@ -193,7 +204,7 @@ export class AppState extends EventTarget {
   constructor() {
     super();
     this.project = null;
-    this.selection = { trackId: null, clipId: null, selectedClipIds: [], noteId: null, deviceId: null, eqBand: 1 };
+    this.selection = { trackId: null, clipId: null, selectedClipIds: [], noteId: null, deviceId: null, eqBand: 1, sfxId: null };
     this.undoStack = [];
     this.redoStack = [];
     this._undoTimer = null;
@@ -204,9 +215,11 @@ export class AppState extends EventTarget {
   /* ---------- project lifecycle ---------- */
 
   setProject(p, { resetUndo = true } = {}) {
+    if (!Array.isArray(p.sfx)) p.sfx = [];
+    const keepSfx = this.selection && p.sfx.some((s) => s.id === this.selection.sfxId) ? this.selection.sfxId : null;
     this.project = p;
-    this.selection = { trackId: p.tracks[0] ? p.tracks[0].id : null, clipId: null, selectedClipIds: [], noteId: null, deviceId: null, eqBand: 1 };
-    if (resetUndo) { this.undoStack = []; this.redoStack = []; }
+    this.selection = { trackId: p.tracks[0] ? p.tracks[0].id : null, clipId: null, selectedClipIds: [], noteId: null, deviceId: null, eqBand: 1, sfxId: keepSfx || (p.sfx[0] ? p.sfx[0].id : null) };
+    if (resetUndo) { this.undoStack = []; this.redoStack = []; clearTimeout(this._undoTimer); this._pendingUndo = null; }
     this.emit('project');
     this.emit('selection');
   }
@@ -250,13 +263,25 @@ export class AppState extends EventTarget {
 
   /* ---------- undo/redo ---------- */
 
+  /* Called just BEFORE a mutation. The first call of a burst (a knob drag, a
+     note drag) snapshots the pre-edit project; the snapshot is committed to
+     the undo stack once the burst has been quiet for 250 ms, so the whole
+     burst is one undo step back to where it started. (It used to snapshot
+     250 ms after the edit — i.e. the post-edit state — which left every
+     manual undo one step behind.) */
   pushUndo() {
+    if (this._pendingUndo == null) this._pendingUndo = JSON.stringify(this.project);
     clearTimeout(this._undoTimer);
-    this._undoTimer = setTimeout(() => {
-      this.undoStack.push(JSON.stringify(this.project));
-      if (this.undoStack.length > 80) this.undoStack.shift();
-      this.redoStack = [];
-    }, 250);
+    this._undoTimer = setTimeout(() => this.flushUndo(), 250);
+  }
+
+  flushUndo() {
+    clearTimeout(this._undoTimer);
+    if (this._pendingUndo == null) return;
+    this.undoStack.push(this._pendingUndo);
+    this._pendingUndo = null;
+    if (this.undoStack.length > 80) this.undoStack.shift();
+    this.redoStack = [];
   }
 
   /* Runs `mutate` (any number of state-mutating calls — addTrack, addClip, ...)
@@ -266,23 +291,26 @@ export class AppState extends EventTarget {
      pushUndo()-debounced calls happened inside. Used to apply a whole AI agent
      plan as one Ctrl+Z, matching cadJS's agent-plan transaction pattern. */
   applyBatch(mutate) {
-    clearTimeout(this._undoTimer);
+    this.flushUndo();
     const before = JSON.stringify(this.project);
     try {
       mutate();
     } catch (e) {
       clearTimeout(this._undoTimer);
+      this._pendingUndo = null;
       this.project = JSON.parse(before);
       this.emit('project'); this.emit('selection');
       throw e;
     }
     clearTimeout(this._undoTimer);
+    this._pendingUndo = null;
     this.undoStack.push(before);
     if (this.undoStack.length > 80) this.undoStack.shift();
     this.redoStack = [];
   }
 
   undo() {
+    this.flushUndo();
     if (!this.undoStack.length) return false;
     this.redoStack.push(JSON.stringify(this.project));
     this.setProject(JSON.parse(this.undoStack.pop()), { resetUndo: false });
@@ -291,6 +319,8 @@ export class AppState extends EventTarget {
   }
 
   redo() {
+    // An edit made since the undo commits here and (correctly) clears redo.
+    this.flushUndo();
     if (!this.redoStack.length) return false;
     this.undoStack.push(JSON.stringify(this.project));
     this.setProject(JSON.parse(this.redoStack.pop()), { resetUndo: false });
@@ -543,6 +573,50 @@ export class AppState extends EventTarget {
     }
     this.emit('project');
     deleteAsset(id).catch(() => { /* best-effort IndexedDB cleanup */ });
+  }
+
+  /* ---------- SFX patches (Sound Design) ---------- */
+
+  sfxById(id) { return (this.project.sfx || []).find((s) => s.id === id) || null; }
+  selectedSfx() { return this.sfxById(this.selection.sfxId); }
+
+  addSfx(patch) {
+    this.pushUndo();
+    const s = Object.assign(SFX.normalize(patch), { id: patch.id || uid('sfx') });
+    this.project.sfx.push(s);
+    this.selection.sfxId = s.id;
+    this.emit('project'); this.emit('sfx', s.id); this.emit('selection');
+    return s;
+  }
+
+  /* Shallow-merges `patch` (nested fx/variation merged one level) and
+     re-normalizes, so any edit — knob, AI action, JSON paste — stays valid. */
+  updateSfx(id, patch, { undo = true } = {}) {
+    const i = this.project.sfx.findIndex((s) => s.id === id);
+    if (i < 0) return null;
+    if (undo) this.pushUndo();
+    const cur = this.project.sfx[i];
+    const next = Object.assign({}, cur, patch);
+    if (patch.fx) next.fx = Object.assign({}, cur.fx, patch.fx);
+    if (patch.variation) next.variation = Object.assign({}, cur.variation, patch.variation);
+    this.project.sfx[i] = Object.assign(SFX.normalize(next), { id });
+    this.emit('project'); this.emit('sfx', id);
+    return this.project.sfx[i];
+  }
+
+  /* Removes the patch and any timeline clips that play it. */
+  removeSfx(id) {
+    if (!this.sfxById(id)) return;
+    this.pushUndo();
+    this.project.sfx = this.project.sfx.filter((s) => s.id !== id);
+    for (const t of this.project.tracks) t.clips = t.clips.filter((c) => c.sample !== `sfxp:${id}`);
+    if (this.selection.sfxId === id) this.selection.sfxId = this.project.sfx[0] ? this.project.sfx[0].id : null;
+    this.emit('project'); this.emit('sfx', id); this.emit('selection');
+  }
+
+  selectSfx(id) {
+    this.selection.sfxId = this.sfxById(id) ? id : null;
+    this.emit('selection'); this.emit('sfx', id);
   }
 
   /* ---------- automation ---------- */

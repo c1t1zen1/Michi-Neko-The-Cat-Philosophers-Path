@@ -29,6 +29,7 @@ function buildMenus(app) {
         { label: 'Export MIDI (.mid)', onClick: () => app.exportMidi() },
         'sep',
         { label: 'Export to Game…', onClick: () => app.exportToGameDialog() },
+        { label: 'Export SFX Pack…', onClick: () => app.exportSfxPack() },
         'sep',
         { label: 'Rescan Game Cues', onClick: () => app.rescanCues() }
       ]
@@ -61,6 +62,7 @@ function buildMenus(app) {
         { label: 'Enable Audio', onClick: () => app.enableAudio() },
         { label: 'Toggle Metronome', onClick: () => app.toggleMetronome() },
         'sep',
+        { label: '✦ Sound Design', onClick: () => app.openSoundDesign() },
         { label: 'Preview Game SFX ▸', onClick: () => app.previewSfxDialog() }
       ]
     },
@@ -71,7 +73,7 @@ function buildMenus(app) {
       name: '✦ AI Agent',
       action: true,
       id: 'menu-ai-agent',
-      title: 'Open the AI composition agent — Remix / Write / Free',
+      title: 'AI assistant — compose, remix, design sounds, mix, or ask (Ctrl+K)',
       onClick: () => app.openAgent()
     },
     {

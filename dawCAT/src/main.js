@@ -1,5 +1,6 @@
 /* dawCAT — app bootstrap */
-import { AppState, defaultProject, defaultSynthPreset, uid, SCALES, DRUM_LANES } from './state.js';
+import { AppState, defaultProject, uid } from './state.js';
+import { PlanExecutor } from './agent/executor.js';
 import { AudioEngine } from './engine/core.js';
 import { Transport } from './engine/transport.js';
 import { preloadProjectAssets, putAsset, cacheBuffer } from './engine/assets.js';
@@ -16,6 +17,7 @@ import { Mixer } from './ui/mixer.js';
 import { Inspector } from './ui/inspector.js';
 import { Devices } from './ui/devices.js';
 import { AgentPanel } from './ui/agent-panel.js';
+import { SfxDesigner } from './ui/sfx-designer.js';
 import { el, toast, showModal, download } from './ui/common.js';
 
 function slug(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled'; }
@@ -33,44 +35,10 @@ function jsonFileName(project) {
   return `${project.name || 'track'}.${tag}.dawcat-export.json`;
 }
 
-function clampRange(v, min, max) { return Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : min; }
-
-// Builds a full 8-lane, 16-step drum pattern from the AI's sparse
-// {lane: [[stepIndex, velocity], ...]} shorthand — mirrors state.js's private
-// mkSteps() so an agent-authored clip has the exact shape AppState.addClip()
-// expects (it doesn't normalize a caller-supplied `steps` object itself).
-function buildStepsFromPattern(pattern) {
-  const steps = {};
-  for (const lane of DRUM_LANES) steps[lane.id] = new Array(16).fill(0);
-  if (pattern && typeof pattern === 'object') {
-    for (const [laneId, hits] of Object.entries(pattern)) {
-      if (!steps[laneId] || !Array.isArray(hits)) continue;
-      for (const hit of hits) {
-        const [i, v] = Array.isArray(hit) ? hit : [hit, 1];
-        const idx = clampRange(Math.round(Number(i)), 0, 15);
-        steps[laneId][idx] = clampRange(Number(v ?? 1), 0, 1);
-      }
-    }
-  }
-  return steps;
-}
-
-// Inverse of buildStepsFromPattern — reduces a full 8-lane, 16-step drum grid
-// down to only its non-zero hits, in the same shorthand the addClip action
-// schema expects, so it can be sent as context and handed straight back in a
-// remix plan without the model having to reconstruct 128 mostly-zero values.
-function compactSteps(steps) {
-  const out = {};
-  for (const [lane, arr] of Object.entries(steps)) {
-    const hits = arr.map((v, i) => (v ? [i, v] : null)).filter(Boolean);
-    if (hits.length) out[lane] = hits;
-  }
-  return out;
-}
-
 class App {
   constructor() {
     this.state = new AppState();
+    this.executor = new PlanExecutor(this.state);
     this.engine = new AudioEngine();
     this.transport = new Transport(this.engine, this.state);
     this.snap = 'beat';
@@ -100,6 +68,7 @@ class App {
       this.mixer = new Mixer(this);
       this.inspector = new Inspector(this);
       this.devices = new Devices(this);
+      this.sfxDesigner = new SfxDesigner(this);
       this.ensureAgentPanel();
     } catch (err) {
       console.error('[dawCAT] panel failed to initialize', err);
@@ -151,6 +120,14 @@ class App {
     this.activeTab = name;
     document.querySelectorAll('.tab[data-tab]').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
     document.querySelectorAll('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + name));
+    if (name === 'sfx' && this.sfxDesigner) this.sfxDesigner.onShow();
+  }
+
+  openSoundDesign() { this.switchTab('sfx'); }
+
+  exportSfxPack() {
+    this.switchTab('sfx');
+    this.sfxDesigner.exportPackDialog();
   }
 
   openClipEditor(clipId) {
@@ -428,6 +405,7 @@ class App {
     syncSecRowVisibility();
 
     const hasImportedAudio = p.tracks.some((t) => t.clips.some((c) => c.audio && c.audio.assetId));
+    const hasDesignedSfx = p.tracks.some((t) => t.clips.some((c) => c.sample && c.sample.startsWith('sfxp:')));
     const note = el('div', { class: 'hintbox' });
     note.innerHTML = [
       '<b>1 · Instant preview (no file changes):</b> click the game tab once to unlock audio, open its DevTools console, paste the hot-swap snippet, press Enter.',
@@ -435,7 +413,8 @@ class App {
       '<b>3 · Archive:</b> download the flattened track JSON for reference/tooling — it is <b>not</b> a project file and can\'t be re-opened as an editable project; use File ▸ Save Project for that.',
       '<b>Scene / Time of Day:</b> tags this export so you can tell variations apart. Picking a specific Time of Day ignores the day-phase seeking below and just loops that one variant — the game only has one scene/cycle today, so other variants are for scenes it grows into later.',
       'Day-phase seeking (full-cycle exports only): set the bar where each phase starts (−1 = ignore that phase).',
-      hasImportedAudio ? '⚠ This project has drag-and-dropped audio clips — those play back in the editor but are <b>not</b> included in any game export (synth notes, drum steps and built-in samples only).' : ''
+      hasImportedAudio ? '⚠ This project has drag-and-dropped audio clips — those play back in the editor but are <b>not</b> included in any game export (synth notes, drum steps and built-in samples only).' : '',
+      hasDesignedSfx ? '⚠ This arrangement has Sound Design SFX clips — they are not part of the music export. Ship them with <b>File ▸ Export SFX Pack…</b>, which installs them as game sound effects.' : ''
     ].filter(Boolean).map((s) => `<div>${s}</div>`).join('');
 
     const copyBtn = el('button', { class: 'btn primary', text: '📋 Copy Hot-Swap Snippet' });
@@ -476,6 +455,24 @@ class App {
     });
   }
 
+  /* ---------- Sound Design → timeline ---------- */
+
+  /* Places a designed SFX patch as a clip (on `trackId`, else the "SFX"
+     track, created on demand) at `start` bars, defaulting to the playhead.
+     Goes through the agent executor so it is the same undoable code path the
+     AI's placeSfx action uses. */
+  placeSfx(sfxId, { trackId = null, start = null } = {}) {
+    const patch = this.state.sfxById(sfxId);
+    if (!patch) { toast('That sound no longer exists', true); return; }
+    const bar = start != null ? start : Math.floor(Math.max(0, this.transport.position) / 4);
+    try {
+      this.executor.execute({ actions: [{ type: 'placeSfx', target: sfxId, params: { trackId: trackId || undefined, start: bar } }] });
+      toast(`"${patch.name}" placed at bar ${bar + 1}`);
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }
+
   /* ---------- AI composition agent ---------- */
 
   // Built during init(), but built lazily here too so the "✦ AI Agent" button
@@ -484,174 +481,29 @@ class App {
   // init() left this.agentPanel undefined and the menu entry threw on click.
   ensureAgentPanel() {
     if (this.agentPanel) return this.agentPanel;
-    this.agentPanel = new AgentPanel({
-      getContext: () => this.getAgentContext(),
-      executePlan: (plan) => this.executeAgentPlan(plan),
-      undo: () => this.state.undo(),
-      onToggle: (open) => document.getElementById('menu-ai-agent')?.classList.toggle('on', open)
-    });
+    this.agentPanel = new AgentPanel(this);
     return this.agentPanel;
   }
 
-  openAgent() {
+  /* opts: { mode, prompt } — e.g. Sound Design's "✦ Ask AI" opens it in
+     Sound Design mode with a prompt started. Plain clicks toggle. */
+  openAgent(opts) {
     try {
-      this.ensureAgentPanel().toggle();
+      this.ensureAgentPanel().toggle(opts);
     } catch (err) {
       console.error('[dawCAT] AI agent failed to open', err);
       toast(`AI agent failed to open: ${err.message}`, true);
     }
   }
 
-  getAgentContext() {
-    const p = this.state.project;
-    const gameCues = ((p.cueScan && p.cueScan.cues) || [])
-      .filter((c) => c.kind === 'phase')
-      .map((c) => ({ scene: c.scene, timeOfDay: c.timeOfDay, name: c.name, rootHz: c.rootHz, chord: c.chord, scale: c.scale }));
-    // Full clip content (not just a count) so Remix mode has real material to
-    // rework — actual note/step data, capped generously so a normal project
-    // never truncates but a pathological one can't blow up the request.
-    const tracksTruncated = p.tracks.length > 24;
-    const tracks = p.tracks.slice(0, 24).map((t) => {
-      const clipsTruncated = t.clips.length > 16;
-      return {
-        id: t.id, name: t.name, kind: t.kind,
-        preset: t.kind === 'synth' ? t.preset.kind : null,
-        drumKit: t.kind === 'drum' ? t.drumKit : null,
-        volume: t.volume, pan: t.pan, mute: t.mute, solo: t.solo,
-        devices: t.devices.map((d) => d.type),
-        clips: t.clips.slice(0, 16).map((c) => {
-          const notesTruncated = !!(c.notes && c.notes.length > 64);
-          return {
-            id: c.id, name: c.name, start: c.start, length: c.length, loop: c.loop, loopLen: c.loopLen,
-            notes: c.notes && c.notes.length ? c.notes.slice(0, 64).map((n) => ({ midi: n.midi, start: n.start, len: n.len, vel: n.vel })) : undefined,
-            notesTruncated: notesTruncated || undefined,
-            steps: c.steps ? compactSteps(c.steps) : undefined,
-            sample: c.sample || undefined
-          };
-        }),
-        clipsTruncated: clipsTruncated || undefined
-      };
-    });
-    return {
-      editor: 'dawCAT',
-      tempo: p.tempo, key: p.key, scale: p.scale, swing: p.swing, timeSig: `${p.timeSigNum}/${p.timeSigDen}`,
-      selection: this.state.selection.trackId,
-      master: { volume: p.master.volume },
-      tracks, tracksTruncated: tracksTruncated || undefined,
-      gameCues: gameCues.slice(0, 12),
-      constraints: { maxActions: 40, reversible: true }
-    };
+  /* The model's view of the project, and plan execution — both live in
+     agent/executor.js so they are unit-tested against a real AppState. */
+  getAgentContext(opts = {}) {
+    return this.executor.buildContext(opts);
   }
 
-  findAgentTrack(target) {
-    const st = this.state;
-    if (!target || target === 'selection') return st.selectedTrack();
-    return st.track(target);
-  }
-
-  executeAgentAction(action) {
-    const st = this.state;
-    const p = action.params || {};
-    if (action.type === 'addTrack') {
-      const kind = p.kind === 'drum' ? 'drum' : 'synth';
-      const presetKind = ['pluck', 'pad', 'lead', 'bass', 'keys', 'chime'].includes(p.preset) ? p.preset : 'pluck';
-      const t = st.addTrack({
-        name: String(p.name || (kind === 'drum' ? 'Drums' : 'Synth')),
-        kind,
-        preset: kind === 'synth' ? defaultSynthPreset(presetKind) : null,
-        drumKit: ['soft', 'punch', 'lofi'].includes(p.drumKit) ? p.drumKit : 'soft'
-      });
-      st.select(t.id);
-      return;
-    }
-    if (action.type === 'deleteClip') {
-      const [trackId, clipId] = String(action.target || '').split(':');
-      if (!trackId || !clipId) throw new Error('deleteClip target must be "trackId:clipId"');
-      st.removeClip(trackId, clipId);
-      return;
-    }
-    // Project-level actions need no track at all — must run before the
-    // findAgentTrack requirement below, or a plan containing only one of
-    // these (nothing selected yet) would wrongly fail to resolve "selection".
-    if (action.type === 'setTempo') { st.project.tempo = clampRange(Number(p.bpm), 40, 220); st.emit('project'); return; }
-    if (action.type === 'setKeyScale') {
-      if (p.key) st.project.key = String(p.key);
-      if (p.scale && SCALES[p.scale]) st.project.scale = p.scale;
-      st.emit('project');
-      return;
-    }
-    if (action.type === 'setSwing') { st.project.swing = clampRange(Number(p.swing), 0, 1); st.emit('project'); return; }
-    if (action.type === 'setMaster') { st.project.master.volume = clampRange(Number(p.volume), 0, 1); st.emit('project'); return; }
-    const t = this.findAgentTrack(action.target);
-    if (!t) throw new Error(`Agent target track not found: ${action.target}`);
-    if (action.type === 'renameTrack') { st.updateTrack(t.id, { name: String(p.name || t.name) }); return; }
-    if (action.type === 'deleteTrack') { st.removeTrack(t.id); return; }
-    if (action.type === 'setTrackMix') {
-      const patch = {};
-      if (p.volume != null) patch.volume = clampRange(Number(p.volume), 0, 1);
-      if (p.pan != null) patch.pan = clampRange(Number(p.pan), -1, 1);
-      if (p.mute != null) patch.mute = Boolean(p.mute);
-      if (p.solo != null) patch.solo = Boolean(p.solo);
-      if (p.sends) patch.sends = { a: clampRange(Number(p.sends.a ?? t.sends.a), 0, 1), b: clampRange(Number(p.sends.b ?? t.sends.b), 0, 1) };
-      st.updateTrack(t.id, patch);
-      return;
-    }
-    if (action.type === 'setTrackPreset') {
-      if (t.kind !== 'synth') throw new Error(`setTrackPreset needs a synth track, "${t.name}" is a drum track`);
-      const kind = ['pluck', 'pad', 'lead', 'bass', 'keys', 'chime'].includes(p.preset) ? p.preset : t.preset.kind;
-      const preset = Object.assign(defaultSynthPreset(kind), p.patch && typeof p.patch === 'object' ? p.patch : {});
-      st.updateTrack(t.id, { preset });
-      return;
-    }
-    if (action.type === 'addDevice') {
-      const type = ['eq8', 'comp', 'delay', 'reverb', 'filter', 'chorus', 'utility'].includes(p.type) ? p.type : null;
-      if (!type) throw new Error(`Unknown device type: ${p.type}`);
-      st.addDevice(t.id, type);
-      return;
-    }
-    if (action.type === 'setDeviceParams') {
-      const type = ['eq8', 'comp', 'delay', 'reverb', 'filter', 'chorus', 'utility'].includes(p.type) ? p.type : null;
-      if (!type) throw new Error(`Unknown device type: ${p.type}`);
-      let dev = t.devices.find((d) => d.type === type);
-      if (!dev) dev = st.addDevice(t.id, type);
-      const params = Object.assign({}, dev.params, p.params && typeof p.params === 'object' ? p.params : {});
-      st.updateDevice(t.id, dev.id, { params });
-      return;
-    }
-    if (action.type === 'addClip') {
-      const length = Math.max(0.25, Number(p.length ?? 4));
-      const patch = {
-        name: p.name ? String(p.name) : undefined,
-        start: Math.max(0, Number(p.start ?? 0)),
-        length,
-        loop: !!p.loop,
-        loopLen: Math.max(1, Number(p.loopLen ?? length * 4))
-      };
-      if (t.kind === 'drum') {
-        patch.steps = buildStepsFromPattern(p.steps);
-      } else {
-        if (!Array.isArray(p.notes) || !p.notes.length) throw new Error(`addClip on synth track "${t.name}" needs a notes array`);
-        patch.notes = p.notes.map((n) => ({
-          id: uid('n'),
-          midi: clampRange(Math.round(Number(n.midi)), 0, 127),
-          start: Math.max(0, Number(n.start ?? 0)),
-          len: Math.max(0.05, Number(n.len ?? 0.5)),
-          vel: clampRange(Number(n.vel ?? 0.8), 0, 1)
-        }));
-      }
-      const clip = st.addClip(t.id, patch);
-      st.select(t.id, clip.id);
-      return;
-    }
-  }
-
-  async executeAgentPlan(plan) {
-    const st = this.state;
-    let count = 0;
-    st.applyBatch(() => {
-      for (const action of plan.actions) { this.executeAgentAction(action); count++; }
-    });
-    return count;
+  executeAgentPlan(plan) {
+    return this.executor.execute(plan);
   }
 
   previewSfxDialog() {
@@ -679,7 +531,10 @@ class App {
       ['Ctrl+S', 'Save to browser'],
       ['A W S E D F T G Y H U J K', 'Musical typing (records when armed)'],
       ['Ctrl+Wheel', 'Zoom timeline'],
-      ['Alt+drag clip', 'Duplicate on drop']
+      ['Alt+drag clip', 'Duplicate on drop'],
+      ['Ctrl+K', 'Open / close the ✦ AI assistant'],
+      ['Enter (in prompt)', 'Send to the AI · Shift+Enter for a new line'],
+      ['Enter (Sound Design)', 'Preview the selected sound']
     ];
     const body = el('div', { class: 'kbd-list' });
     for (const [k, d] of rows) {
@@ -706,8 +561,8 @@ class App {
 
   showAbout() {
     const box = el('div', { class: 'hintbox' });
-    box.innerHTML = 'A tiny Ableton-style DAW built for <i>Michi-Neko: The Cat Philosopher\'s Path</i>. Compose with the game\'s own musical DNA, then export straight back into it. Pure Web Audio — no dependencies, no build step.';
-    showModal({ title: 'dawCAT · Web Audio Studio', body: box, buttons: [{ label: 'Close' }] });
+    box.innerHTML = 'An audio asset studio built for <i>Michi-Neko: The Cat Philosopher\'s Path</i>. Compose music cues with the game\'s own musical DNA, design procedural sound effects in <b>✦ Sound Design</b>, and let the <b>✦ AI assistant</b> (local llama-server or a cloud API) do the heavy lifting — then export straight back into the game. Pure Web Audio — no dependencies, no build step.';
+    showModal({ title: 'dawCAT 2.0 · Audio Asset Studio', body: box, buttons: [{ label: 'Close' }] });
   }
 
   /* ---------- shortcuts ---------- */
@@ -715,6 +570,12 @@ class App {
   wireShortcuts() {
     const TYPE_KEYS = { a: 60, w: 61, s: 62, e: 63, d: 64, f: 65, t: 66, g: 67, y: 68, h: 69, u: 70, j: 71, k: 72, o: 72, l: 74, p: 76 };
     window.addEventListener('keydown', (e) => {
+      // Ctrl+K toggles the AI assistant from anywhere, even while typing.
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        this.openAgent();
+        return;
+      }
       const tag = document.activeElement ? document.activeElement.tagName : '';
       if (/^(INPUT|SELECT|TEXTAREA)$/.test(tag)) return;
       const st = this.state;
@@ -737,7 +598,11 @@ class App {
         e.preventDefault();
         st.persist();
         toast('Saved to browser');
+      } else if (e.key === 'Enter' && this.activeTab === 'sfx') {
+        e.preventDefault();
+        this.sfxDesigner.preview();
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (this.activeTab === 'sfx') return;
         this.deleteSelection();
       } else if (TYPE_KEYS[e.key.toLowerCase()] != null && !e.ctrlKey && !e.metaKey) {
         const midi = TYPE_KEYS[e.key.toLowerCase()];

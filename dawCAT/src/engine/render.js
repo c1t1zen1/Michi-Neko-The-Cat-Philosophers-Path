@@ -3,6 +3,9 @@ import { buildMasterPack, buildTrackChain, buildDeviceChain } from './core.js';
 import { playSynthNote, playGameSfx, playAmbient } from './synth.js';
 import { playDrum } from './drums.js';
 import { getCachedBuffer, loadDecodedAsset } from './assets.js';
+import { sfxRuntime } from '../sfx/runtime.js';
+
+const SFX = sfxRuntime();
 
 function maxNoteEnd(notes) {
   let m = 0.25;
@@ -18,11 +21,23 @@ export function songEndBeat(project) {
   return end;
 }
 
+/* Renders one SFX patch (optionally a round-robin variation) to an
+   AudioBuffer — for the Sound Design waveform, WAV export and SFX packs. */
+export async function renderSfxToBuffer(patch, { variation = 0, sampleRate = 44100 } = {}) {
+  const OfflineAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!OfflineAC) throw new Error('OfflineAudioContext not supported');
+  const seconds = Math.min(30, SFX.duration(patch) + 0.05);
+  const ctx = new OfflineAC(2, Math.max(1, Math.ceil(seconds * sampleRate)), sampleRate);
+  SFX.play(ctx, ctx.destination, patch, 0, { variation });
+  return ctx.startRendering();
+}
+
 /* Schedules one track's clip content (drum steps / notes / built-in samples
    / imported audio) into `destInput`. Shared by renderProject's per-track
    loop and renderTrackToBuffer's freeze render, so the two never drift on
    how a clip's content maps to playback. */
-async function scheduleClipContent(ctx, pack, destInput, track, project, spb) {
+export async function scheduleClipContent(ctx, pack, destInput, track, project, spb) {
+  const rr = new Map();
   for (const c of track.clips) {
     const clipStartSec = c.start * 4 * spb;
     if (track.kind === 'drum' && c.steps) {
@@ -49,7 +64,19 @@ async function scheduleClipContent(ctx, pack, destInput, track, project, spb) {
         }
       }
     }
-    if (c.sample) playAmbient(pack, destInput, c.sample, clipStartSec, c.length * 4 * spb, c.gain, null);
+    if (c.sample && c.sample.startsWith('sfxp:')) {
+      const patch = (project.sfx || []).find((s) => s.id === c.sample.slice(5));
+      if (patch) {
+        const v = patch.variation || {};
+        const n = (rr.get(patch.id) || 0) + 1;
+        rr.set(patch.id, n);
+        SFX.play(ctx, destInput, patch, clipStartSec, { gain: c.gain, variation: v.pitch || v.time || v.gain ? ((n - 1) % 4) + 1 : 0 });
+      }
+    } else if (c.sample && c.sample.startsWith('sfx:')) {
+      playGameSfx(pack, destInput, c.sample.slice(4), clipStartSec, c.gain, null);
+    } else if (c.sample) {
+      playAmbient(pack, destInput, c.sample, clipStartSec, c.length * 4 * spb, c.gain, null);
+    }
     if (c.audio && c.audio.assetId) {
       // AudioBuffers aren't tied to a context, so the in-memory cache from
       // the live engine can be reused directly; fall back to decoding

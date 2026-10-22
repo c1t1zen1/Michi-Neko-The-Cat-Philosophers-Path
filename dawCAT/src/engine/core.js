@@ -3,6 +3,9 @@ import { createDeviceNode, makeImpulse } from './fx.js';
 import { playSynthNote, playGameSfx, playAmbient } from './synth.js';
 import { playDrum } from './drums.js';
 import { getCachedBuffer } from './assets.js';
+import { sfxRuntime } from '../sfx/runtime.js';
+
+const SFX = sfxRuntime();
 
 export function buildMasterPack(ctx) {
   const master = ctx.createGain();
@@ -190,6 +193,20 @@ export class AudioEngine {
   sfx(name, when, level = 1) {
     this.ensure();
     playGameSfx(this.pack, this.pack.master, name, when || this.ctx.currentTime, level, (n) => this.register(n));
+  }
+
+  /* A designed SFX patch placed on a track: plays through that track's
+     devices, fader and sends like any other clip content. */
+  sfxPatch(trackId, patch, when, gain = 1, variation = 0) {
+    const dest = this.trackInput(trackId);
+    if (!dest || !patch) return;
+    SFX.play(this.ctx, dest, patch, when, { gain, variation, register: (n) => this.register(n) });
+  }
+
+  /* Sound Design preview straight to the master bus. Returns {start, end}. */
+  previewSfx(patch, opts = {}) {
+    this.ensure();
+    return SFX.play(this.ctx, this.pack.master, patch, this.ctx.currentTime + 0.02, { ...opts, register: (n) => this.register(n) });
   }
 
   ambient(name, when, dur, level = 1) {

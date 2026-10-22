@@ -47,7 +47,7 @@ export class Browser {
     this.app = app;
     this.tree = document.getElementById('browser-tree');
     this.searchInput = document.getElementById('browser-search');
-    this.openCats = new Set(['Sounds', 'Game Cues', 'Game Cues:Overworld', 'Game Cues:Overworld:tod', 'Current Project']);
+    this.openCats = new Set(['Sounds', 'Sound Design', 'Game Cues', 'Game Cues:Overworld', 'Game Cues:Overworld:tod', 'Current Project']);
     this.filter = '';
 
     document.getElementById('btn-rescan').addEventListener('click', () => this.app.rescanCues());
@@ -126,6 +126,20 @@ export class Browser {
     })));
 
     this.renderGameCuesTree(cues);
+
+    // Designed SFX: click to preview, drag onto the arrangement to place.
+    this.category('Sound Design', '✦', [
+      { label: '＋ New sound…', icon: '✦', sub: 'open', onClick: () => this.app.openSoundDesign() },
+      ...(p.sfx || []).map((s) => ({
+        label: s.name, icon: '🔊', sub: s.category,
+        onClick: () => { this.app.state.selectSfx(s.id); this.app.engine.resume().then(() => this.app.engine.previewSfx(s)); },
+        drag: { kind: 'sfxPatch', sfxId: s.id },
+        ctx: () => [
+          { label: 'Edit in Sound Design', onClick: () => { this.app.state.selectSfx(s.id); this.app.openSoundDesign(); } },
+          { label: 'Place at playhead', onClick: () => this.app.placeSfx(s.id) }
+        ]
+      }))
+    ]);
 
     this.category('Clips', '📋', this.savedClips().map((sc) => ({
       label: sc.name, icon: '📎', sub: sc.kind,
