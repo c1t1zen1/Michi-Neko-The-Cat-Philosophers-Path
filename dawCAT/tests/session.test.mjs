@@ -141,6 +141,17 @@ test('later turns include earlier turns as history', async () => {
   assert.ok(msgs.some((m) => m.role === 'user' && /slower/.test(m.content)));
 });
 
+test('a turn the user undid is reported as undone in later history', async () => {
+  const { session, requests } = harness([
+    openaiJson(plan([{ type: 'setTempo', params: { bpm: 90 } }])),
+    openaiJson(plan([{ type: 'setSwing', params: { swing: 0.1 } }]))
+  ]);
+  const first = await session.send('slower', 'free');
+  session.markUndone(first.id);
+  await session.send('again', 'free');
+  assert.ok(requests[1].body.messages.some((m) => m.role === 'assistant' && /undone/i.test(m.content)));
+});
+
 test('a truncated response fails with a Max tokens fix', async () => {
   const { session } = harness([openaiJson('{"actions":[{"type":"addTrack","params":{"na', 'length')]);
   const turn = await session.send('big', 'compose');
@@ -185,6 +196,14 @@ test('streaming deltas are emitted while the response arrives', async () => {
   const turn = await session.send('x', 'free');
   assert.equal(turn.status, 'answered');
   assert.ok(seen.length >= 2);
+});
+
+test('a busy event reports when a request starts and fully finishes', async () => {
+  const { session } = harness([openaiJson(plan([{ type: 'setSwing', params: { swing: 0 } }]))]);
+  const seen = [];
+  session.addEventListener('busy', (e) => seen.push([e.detail, session.busy]));
+  await session.send('x', 'free');
+  assert.deepEqual(seen, [[true, true], [false, false]]);
 });
 
 test('turns survive a toJSON/load round trip', async () => {

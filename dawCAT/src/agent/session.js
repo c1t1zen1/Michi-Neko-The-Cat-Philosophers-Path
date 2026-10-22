@@ -38,7 +38,7 @@ function historyFor(turn) {
   if (p && p.summary) parts.push(`summary: ${p.summary}`);
   if (p && p.reply) parts.push(`reply: ${p.reply.slice(0, 600)}`);
   if (p && p.actions && p.actions.length) parts.push(`actions: ${p.actions.map((a) => `${a.type}${a.target && a.target !== 'selection' ? `(${a.target})` : ''}`).join(', ')}`);
-  const outcome = { applied: 'applied OK', answered: 'answered', review: 'waiting for the user to apply', failed: `failed — ${turn.message || 'error'}`, stopped: 'stopped by the user' }[turn.status] || turn.status;
+  const outcome = { applied: 'applied OK', answered: 'answered', review: 'waiting for the user to apply', failed: `failed — ${turn.message || 'error'}`, stopped: 'stopped by the user', undone: 'applied, then undone by the user (the project no longer has these changes)' }[turn.status] || turn.status;
   parts.push(`outcome: ${outcome}`);
   msgs.push({ role: 'assistant', content: parts.join('\n') });
   return msgs;
@@ -91,6 +91,7 @@ export class AgentSession extends EventTarget {
     this.emit('turn', turn);
     const controller = new AbortController();
     this.controller = controller;
+    this.emit('busy', true);
     try {
       const settings = normalizeSettings(this.getSettings());
       const info = providerInfo(settings.provider);
@@ -100,7 +101,9 @@ export class AgentSession extends EventTarget {
       if (err && err.name === 'AbortError') this.setStatus(turn, 'stopped', 'Stopped.');
       else this.setStatus(turn, 'failed', err && err.message ? err.message : String(err));
     } finally {
-      if (this.controller === controller) this.controller = null;
+      // Only the request that still owns the controller reports idle — a
+      // send() that superseded this one is still running.
+      if (this.controller === controller) { this.controller = null; this.emit('busy', false); }
     }
     return turn;
   }
@@ -222,6 +225,13 @@ export class AgentSession extends EventTarget {
       this.setStatus(turn, 'failed', `Plan failed and was rolled back: ${err.message}`);
     }
     return turn;
+  }
+
+  /* The user reverted an applied turn (Undo) — remembered so the model
+     doesn't assume those changes are still in the project. */
+  markUndone(id) {
+    const turn = this.turn(id);
+    if (turn && turn.status === 'applied') this.setStatus(turn, 'undone', 'Undone.');
   }
 
   discardTurn(id) {

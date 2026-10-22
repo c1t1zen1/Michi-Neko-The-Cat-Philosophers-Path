@@ -73,7 +73,7 @@ function buildMenus(app) {
       name: '✦ AI Agent',
       action: true,
       id: 'menu-ai-agent',
-      title: 'Open the AI composition agent — Remix / Write / Free',
+      title: 'AI assistant — compose, remix, design sounds, mix, or ask (Ctrl+K)',
       onClick: () => app.openAgent()
     },
     {

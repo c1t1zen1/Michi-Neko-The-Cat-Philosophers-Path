@@ -481,18 +481,15 @@ class App {
   // init() left this.agentPanel undefined and the menu entry threw on click.
   ensureAgentPanel() {
     if (this.agentPanel) return this.agentPanel;
-    this.agentPanel = new AgentPanel({
-      getContext: () => this.getAgentContext(),
-      executePlan: (plan) => this.executeAgentPlan(plan).count,
-      undo: () => this.state.undo(),
-      onToggle: (open) => document.getElementById('menu-ai-agent')?.classList.toggle('on', open)
-    });
+    this.agentPanel = new AgentPanel(this);
     return this.agentPanel;
   }
 
-  openAgent() {
+  /* opts: { mode, prompt } — e.g. Sound Design's "✦ Ask AI" opens it in
+     Sound Design mode with a prompt started. Plain clicks toggle. */
+  openAgent(opts) {
     try {
-      this.ensureAgentPanel().toggle();
+      this.ensureAgentPanel().toggle(opts);
     } catch (err) {
       console.error('[dawCAT] AI agent failed to open', err);
       toast(`AI agent failed to open: ${err.message}`, true);
@@ -534,7 +531,10 @@ class App {
       ['Ctrl+S', 'Save to browser'],
       ['A W S E D F T G Y H U J K', 'Musical typing (records when armed)'],
       ['Ctrl+Wheel', 'Zoom timeline'],
-      ['Alt+drag clip', 'Duplicate on drop']
+      ['Alt+drag clip', 'Duplicate on drop'],
+      ['Ctrl+K', 'Open / close the ✦ AI assistant'],
+      ['Enter (in prompt)', 'Send to the AI · Shift+Enter for a new line'],
+      ['Enter (Sound Design)', 'Preview the selected sound']
     ];
     const body = el('div', { class: 'kbd-list' });
     for (const [k, d] of rows) {
@@ -570,6 +570,12 @@ class App {
   wireShortcuts() {
     const TYPE_KEYS = { a: 60, w: 61, s: 62, e: 63, d: 64, f: 65, t: 66, g: 67, y: 68, h: 69, u: 70, j: 71, k: 72, o: 72, l: 74, p: 76 };
     window.addEventListener('keydown', (e) => {
+      // Ctrl+K toggles the AI assistant from anywhere, even while typing.
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        this.openAgent();
+        return;
+      }
       const tag = document.activeElement ? document.activeElement.tagName : '';
       if (/^(INPUT|SELECT|TEXTAREA)$/.test(tag)) return;
       const st = this.state;
