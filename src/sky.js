@@ -495,6 +495,16 @@ export class Sky {
     if (this._palStamp === this._palFrame) return this._pal;
     this._palStamp = this._palFrame;
 
+    // Pocket scenes may intentionally carry their own air colour while still
+    // using the live sun, clouds and weather machinery. The summit uses this
+    // to open on crisp blue Kyoto-bay light without recolouring the valley.
+    if (this.paletteOverride) {
+      const out = this._pal;
+      for (const k of PALETTE_KEYS) out[k].copy(this.paletteOverride[k]);
+      out.cloudOpacity = this.paletteOverride.cloudOpacity;
+      return out;
+    }
+
     const { phase, phaseBlend } = this.getDayPhase();
     const dayPal = this.palettes.day;
     const sunsetPal = this.palettes.sunset;

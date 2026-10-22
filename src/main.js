@@ -1227,7 +1227,12 @@ class Game {
       this.city.update(dt, this.player.mesh.position, this.sky);
     }
     this.sky.update(dt, this.player.mesh.position);
-    this.atmosphere.updateFromSky(this.sky, this.camera, this.postStrengths || { ao: 1, shafts: 1 });
+    this.atmosphere.updateFromSky(
+      this.sky,
+      this.camera,
+      this.postStrengths || { ao: 1, shafts: 1 },
+      this.summit.active ? this.summit.atmosphereSettings : null
+    );
     // Golden-hour rim light on the cat follows the sun palette (C1.11: the
     // already-resolved frame palette, never a second resolvePalette pass).
     {

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   dirtTextures, stoneTextures, woodTextures, metalTextures, barkTextures,
   texturedMaterial, worldNoise, glowTexture
@@ -52,6 +53,7 @@ const SUMMIT_WEATHER_DURATIONS = { clear: 300, cloudy: 260, snow: 200 };
 
 // Seconds of stillness in the meadow heart before the cat curls up to sleep.
 const MEDITATE_SECONDS = 165;
+const SUMMIT_LANDMARKS_SRC = '/assets/models/summit_kyoto_landmarks.glb?v=20261021a';
 
 /**
  * The hidden summit clearing — a wind-combed grass field above Kyoto with
@@ -88,6 +90,7 @@ export class SummitManager {
     this.collectibles = [];   // player.update probes this — the summit has none
     this.swayables = [];
     this.rng = mulberry32(20261004);
+    this.previewQuality = game.summitPreview === true;
 
     // Shared materials — kept local so a quality/texture change upstream
     // doesn't ripple into the valley's merge sets.
@@ -135,14 +138,37 @@ export class SummitManager {
 
     this._localPlayer = new THREE.Vector3();
     this._grassTime = 0;
+    // The global atmosphere integrates from absolute world height.  The
+    // summit is deliberately parked at y=-1200, so it supplies a local fog
+    // datum or the exponential term saturates the entire frame.
+    this.atmosphereSettings = {
+      fogBase: this.origin.y - 0.5,
+      densityScale: 0.56,
+      heightFalloff: 0.105
+    };
+    this.skyPalette = {
+      top: new THREE.Color(0x168edf),
+      mid: new THREE.Color(0x58b9eb),
+      horizon: new THREE.Color(0xc9e9f3),
+      warm: new THREE.Color(0xffdda0),
+      sun: new THREE.Color(0xffefc7),
+      hemiSky: new THREE.Color(0xb9e2f5),
+      hemiGround: new THREE.Color(0x6f8748),
+      fog: new THREE.Color(0xb7d6df),
+      cloud: new THREE.Color(0xfff9e9),
+      cloudOpacity: 0.86
+    };
 
+    this.buildSummitLight();
     this.buildMeadow();
     this.buildStepsAndGate();
+    this.buildVistaApproach();
     this.buildRocksAndTrees();
     this.buildGrassField();
     this.buildSusukiAndFlowers();
     this.buildMeditationStone();
     this.buildSkirtAndVista();
+    this.loadVistaLandmarks();
     this.buildSummitClouds();
     this.buildPollen();
     this.buildSummitSnow();
@@ -201,6 +227,23 @@ export class SummitManager {
   }
 
   /* ================= Terrain & architecture ================= */
+
+  buildSummitLight() {
+    // A high mountain bounce keeps the meadow readable even when the valley
+    // clock is near dawn or dusk.  These do not cast another shadow map; the
+    // live sky sun still supplies the moving key and all long shadows.
+    const skyFill = new THREE.HemisphereLight(0xbfe5ff, 0x5b6638, 1.15);
+    skyFill.name = 'Summit Open Sky Fill';
+    this.group.add(skyFill);
+
+    const warmFill = new THREE.DirectionalLight(0xffedc2, 1.1);
+    warmFill.name = 'Summit Warm Rim Fill';
+    warmFill.position.set(-32, 42, -18);
+    warmFill.castShadow = false;
+    warmFill.target.position.set(5, 0, 18);
+    this.group.add(warmFill, warmFill.target);
+    this.summitWarmFill = warmFill;
+  }
 
   buildMeadow() {
     // Slightly crowned disc so the clearing reads as a hilltop brow.
@@ -328,6 +371,77 @@ export class SummitManager {
     }
   }
 
+  buildVistaApproach() {
+    // A second, purely scenic stair cuts down the sunny face of the hill.
+    // It is the strong central line in the reference: meadow -> torii ->
+    // tiled neighbourhood -> pagoda -> bay.  The playable boundary ends
+    // before the drop, so these slabs never become accidental platforms.
+    const g = new THREE.Group();
+    g.name = 'Vista Descent';
+    const stepMat = this.MAT.stoneWarm;
+    for (let i = 0; i < 15; i++) {
+      const z = 25.4 + i * 1.38;
+      const y = i < 5 ? 0.24 - i * 0.025 : 0.14 - (i - 4) * 0.31;
+      const w = 5.2 - i * 0.065;
+      const slab = box(w, 0.34, 1.52, stepMat, 0, y, z);
+      slab.rotation.y = (this.rng() - 0.5) * 0.035;
+      slab.rotation.z = (this.rng() - 0.5) * 0.02;
+      g.add(slab);
+    }
+
+    const postMat = this.MAT.timberDark;
+    const ropeMat = new THREE.MeshStandardMaterial({ color: 0x5b4933, roughness: 1 });
+    const postGeo = new THREE.CylinderGeometry(0.075, 0.105, 1.15, 7);
+    for (const side of [-1, 1]) {
+      const points = [];
+      for (let i = 0; i < 7; i++) {
+        const z = 26.0 + i * 3.05;
+        const stairY = z < 31.5 ? 0.16 : 0.16 - (z - 31.5) * 0.225;
+        const y = stairY + 0.56;
+        const x = side * (3.35 - i * 0.035);
+        const post = new THREE.Mesh(postGeo, postMat);
+        post.position.set(x, y, z);
+        post.rotation.z = -side * 0.025;
+        post.castShadow = true;
+        g.add(post);
+        points.push(new THREE.Vector3(x, y + 0.44, z));
+      }
+      const curve = new THREE.CatmullRomCurve3(points);
+      curve.curveType = 'catmullrom';
+      curve.tension = 0.3;
+      // A slightly sagging twin rope reads at distance without thick rails.
+      for (const dy of [0, -0.34]) {
+        const sagged = points.map((p, i) => p.clone().add(new THREE.Vector3(0,
+          dy - (i > 0 && i < points.length - 1 ? 0.13 : 0), 0)));
+        const rope = new THREE.Mesh(
+          new THREE.TubeGeometry(new THREE.CatmullRomCurve3(sagged), 42, 0.025, 5, false),
+          ropeMat
+        );
+        g.add(rope);
+      }
+    }
+
+    // The vermilion gate sits below the brow so it never competes with the
+    // exit gate behind the player; from the meadow it frames the pagoda.
+    const torii = new THREE.Group();
+    torii.name = 'Vista Torii';
+    const pillarGeo = new THREE.CylinderGeometry(0.18, 0.24, 4.2, 10);
+    for (const side of [-1, 1]) {
+      const pillar = new THREE.Mesh(pillarGeo, this.MAT.vermilion);
+      pillar.position.set(side * 1.65, 2.05, 0);
+      pillar.castShadow = true;
+      torii.add(pillar);
+    }
+    torii.add(box(5.2, 0.3, 0.38, this.MAT.vermilion, 0, 4.2, 0));
+    torii.add(box(5.75, 0.22, 0.45, this.MAT.vermilion, 0, 4.58, 0));
+    torii.add(box(0.72, 0.26, 0.28, this.MAT.vermilion, 0, 3.88, 0));
+    torii.position.set(0, -2.9, 43.2);
+    g.add(torii);
+
+    this.group.add(g);
+    this.vistaApproach = g;
+  }
+
   /* ================= Flora ================= */
 
   _tree(x, z, scale, kind, opts) {
@@ -400,14 +514,14 @@ export class SummitManager {
     });
     // The shade tree over the sitting spot — the reference art's broad
     // green crown, open over the meditation stone and the vista.
-    this._tree(7.4, 8.4, 1.75, 'broadleaf', {
+    this._tree(12.5, 18, 2.6, 'broadleaf', {
       colors: this.colLeaf, tuftMat: this.matFoliage,
-      trunk: { rTop: 0.16, rBot: 0.3, h: 2.6, lean: 0.08 },
-      canopy: { primaries: 7, tilt: 0.82, tiltVar: 0.2, droop: -0.04, bend: 0.12, branchLen: 1.7, secondaries: 2, twigs: true, crownFill: 3, clumpR: 0.52, tuftsPerClump: [3, 3, 2], cardsPerClump: [12, 10, 7], cardSize: 0.7, tuftFlat: 0.62, lump: 0.32, seed: 63 },
-      sway: 0.05, collider: 0.44
+      trunk: { rTop: 0.2, rBot: 0.38, h: 2.9, lean: -0.13 },
+      canopy: { primaries: 8, tilt: 0.78, tiltVar: 0.22, droop: -0.05, bend: 0.15, branchLen: 2.05, secondaries: 3, twigs: true, crownFill: 4, clumpR: 0.58, tuftsPerClump: [4, 3, 2], cardsPerClump: [14, 11, 8], cardSize: 0.78, tuftFlat: 0.64, lump: 0.34, seed: 63 },
+      sway: 0.045, collider: 0.48
     });
     // The leaning sakura on the eastern brow — the framing tree of the vista.
-    this._tree(22.5, 11, 1.35, 'sakura', {
+    this._tree(-22.5, 11, 1.35, 'sakura', {
       colors: this.colSakura, tuftMat: this.matBlossom,
       trunk: { rTop: 0.13, rBot: 0.22, h: 2.3, lean: 0.16 },
       canopy: { primaries: 6, tilt: 0.9, tiltVar: 0.2, droop: -0.08, bend: 0.14, branchLen: 1.5, secondaries: 2, twigs: true, crownFill: 3, clumpR: 0.4, tuftsPerClump: [3, 3, 2], cardsPerClump: [11, 10, 7], cardSize: 0.6, tuftFlat: 0.72, lump: 0.34, seed: 11 },
@@ -471,6 +585,9 @@ export class SummitManager {
       { cx: 0, cz: 20, size: 20, count: 3600 },
       { cx: 20, cz: 20, size: 20, count: 3600 }
     ];
+    if (this.previewQuality) {
+      for (const ch of chunks) ch.count = Math.max(80, Math.round(ch.count * 0.055));
+    }
     const dummy = new THREE.Object3D();
     for (const ch of chunks) {
       const geo = bladeGeo.clone();
@@ -533,10 +650,11 @@ export class SummitManager {
     // Cylinders and cones share the same attribute layout — safe to merge.
     const merged = mergeGeometries([stalkGeo, plumeGeo], false);
     const susukiMat = new THREE.MeshStandardMaterial({ color: 0xe4d9b4, roughness: 0.9 });
-    const susuki = new THREE.InstancedMesh(merged, susukiMat, 170);
+    const susukiCount = this.previewQuality ? 28 : 170;
+    const susuki = new THREE.InstancedMesh(merged, susukiMat, susukiCount);
     const dummy = new THREE.Object3D();
     let placed = 0;
-    for (let i = 0; i < 700 && placed < 170; i++) {
+    for (let i = 0; i < 700 && placed < susukiCount; i++) {
       const a = this.rng() * Math.PI * 2;
       const r = 10 + Math.sqrt(this.rng()) * 20;
       const x = Math.cos(a) * r, z = Math.sin(a) * r;
@@ -574,11 +692,12 @@ export class SummitManager {
     parts.push(stem);
     const flowerGeo = mergeGeometries(parts, false);
     const flowerMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.75, side: THREE.DoubleSide, emissive: 0x222222, emissiveIntensity: 0.25 });
-    const flowers = new THREE.InstancedMesh(flowerGeo, flowerMat, 380);
+    const flowerCount = this.previewQuality ? 72 : 380;
+    const flowers = new THREE.InstancedMesh(flowerGeo, flowerMat, flowerCount);
     const palette = [0xf288a8, 0xf7a8c4, 0x6478cc, 0x7894e6, 0xf5ba38, 0xffde59, 0xfffaee, 0xe8f0d8];
     const color = new THREE.Color();
     let fp = 0;
-    for (let i = 0; i < 1200 && fp < 380; i++) {
+    for (let i = 0; i < 1200 && fp < flowerCount; i++) {
       const a = this.rng() * Math.PI * 2;
       const r = 2 + Math.sqrt(this.rng()) * 28;
       const x = Math.cos(a) * r, z = Math.sin(a) * r;
@@ -649,27 +768,30 @@ export class SummitManager {
     // The panorama: Kyoto below, the Yodo river, Osaka's towers at the bay,
     // and the sea glint — painted once onto a curved matte backdrop.
     const tex = this.makeVistaTexture();
-    const geo = new THREE.PlaneGeometry(430, 132, 24, 1);
+    const geo = new THREE.PlaneGeometry(430, 154, 32, 1);
     const vp = geo.attributes.position;
     for (let i = 0; i < vp.count; i++) {
       const x = vp.getX(i);
       vp.setZ(i, -(x / 215) * (x / 215) * 46); // wrap the horizon around the viewpoint
     }
-    const mat = new THREE.MeshLambertMaterial({
+    // Unlit by design: this is distant painted atmosphere, not a wall that
+    // should flip from black to white as the directional light moves.
+    const mat = new THREE.MeshBasicMaterial({
       map: tex, transparent: true, depthWrite: false, fog: false,
       side: THREE.DoubleSide
     });
     const vista = new THREE.Mesh(geo, mat);
     vista.name = 'Kyoto–Osaka Vista';
-    vista.position.set(0, -12, 236);
+    vista.position.set(0, 7, 236);
     vista.renderOrder = -1;
     this.group.add(vista);
     this.vista = vista;
+    this.buildVistaFoliage();
   }
 
   /** Painted backdrop: foothills → Kyoto sprawl → bay/Osaka → sea → sky fade. */
   makeVistaTexture() {
-    const w = 1600, h = 560;
+    const w = 1600, h = 640;
     const canvas = document.createElement('canvas');
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext('2d');
@@ -678,17 +800,38 @@ export class SummitManager {
     // Sky-melt top: transparent so the live sky dome shows through.
     ctx.clearRect(0, 0, w, h);
 
+    // Three blue ranges sit beyond the water. Separate silhouettes and a
+    // transparent upper edge stop the vista reading as one flat grey strip.
+    const ridge = (base, amp, color, step, seed, bottom) => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(0, bottom);
+      for (let x = 0; x <= w; x += step) {
+        const broad = Math.sin(x * 0.006 + seed) * amp * 0.42;
+        const detail = worldNoise(x, seed * 71, 0.009, 3, seed) * amp;
+        ctx.lineTo(x, base - broad - detail);
+      }
+      ctx.lineTo(w, bottom); ctx.closePath(); ctx.fill();
+    };
+    ridge(142, 23, 'rgba(122,174,207,0.7)', 34, 9, 238);
+    ridge(166, 34, 'rgba(78,140,181,0.82)', 28, 17, 254);
+    ridge(196, 44, 'rgba(50,108,150,0.9)', 24, 27, 276);
+
     // Distant sea band + glints
-    let y0 = 150;
+    let y0 = 180;
     const seaGrad = ctx.createLinearGradient(0, y0, 0, y0 + 90);
-    seaGrad.addColorStop(0, 'rgba(196,214,228,0.9)');
-    seaGrad.addColorStop(1, 'rgba(168,190,208,0.95)');
+    seaGrad.addColorStop(0, 'rgba(105,188,230,0.96)');
+    seaGrad.addColorStop(0.48, 'rgba(76,157,207,0.98)');
+    seaGrad.addColorStop(1, 'rgba(132,185,210,0.98)');
     ctx.fillStyle = seaGrad;
-    ctx.fillRect(0, y0, w, 96);
+    ctx.fillRect(0, y0, w, 118);
     ctx.fillStyle = 'rgba(255,250,235,0.5)';
-    for (let i = 0; i < 90; i++) {
-      const gx = rnd() * w, gy = y0 + 8 + rnd() * 60, gw = 12 + rnd() * 55;
-      ctx.fillRect(gx, gy, gw, 1.4);
+    for (let i = 0; i < 170; i++) {
+      const gx = rnd() * w, gy = y0 + 8 + rnd() * 96;
+      const lane = Math.max(0, 1 - Math.abs(gx - 1320) / 420);
+      const gw = 7 + rnd() * (22 + lane * 58);
+      ctx.fillStyle = `rgba(255,247,215,${0.15 + lane * 0.42})`;
+      ctx.fillRect(gx, gy, gw, 1.2 + rnd());
     }
 
     // Osaka shoreline skyline — pale slate towers rising from the bay
@@ -706,31 +849,46 @@ export class SummitManager {
     ctx.beginPath(); ctx.arc(w * 0.93, y0 + 40, 16, 0, Math.PI * 2); ctx.stroke();
 
     // Kyoto basin: a wash of roofs fading toward the mountains
-    const cityGrad = ctx.createLinearGradient(0, 236, 0, 400);
-    cityGrad.addColorStop(0, 'rgba(148,150,158,0.65)');
-    cityGrad.addColorStop(0.5, 'rgba(126,128,138,0.85)');
-    cityGrad.addColorStop(1, 'rgba(110,116,124,0.95)');
+    const cityGrad = ctx.createLinearGradient(0, 252, 0, 472);
+    cityGrad.addColorStop(0, 'rgba(169,174,166,0.84)');
+    cityGrad.addColorStop(0.5, 'rgba(130,142,128,0.94)');
+    cityGrad.addColorStop(1, 'rgba(91,113,83,0.98)');
     ctx.fillStyle = cityGrad;
-    ctx.fillRect(0, 236, w, 170);
-    // Dense stipple of rooftops
-    for (let i = 0; i < 2600; i++) {
+    ctx.fillRect(0, 250, w, 230);
+    // Dense field of small sunlit walls and blue-grey hipped roofs.
+    for (let i = 0; i < 1850; i++) {
       const bx = rnd() * w;
-      const by = 240 + Math.pow(rnd(), 0.6) * 150;
-      const s = 1.5 + rnd() * 4.5;
-      const v = 96 + rnd() * 70;
-      ctx.fillStyle = `rgba(${v * 0.94 | 0},${v | 0},${v * 1.05 | 0},${0.35 + rnd() * 0.4})`;
-      ctx.fillRect(bx, by, s * 1.8, s);
+      const by = 258 + Math.pow(rnd(), 0.68) * 216;
+      const near = smoothstep(258, 474, by);
+      const bw = 2.2 + rnd() * (4.5 + near * 8.5);
+      const bh = 1.6 + rnd() * (2.5 + near * 4.2);
+      const warm = 136 + (rnd() * 45 | 0);
+      ctx.fillStyle = `rgba(${warm},${warm - 8},${warm - 18},${0.42 + near * 0.38})`;
+      ctx.fillRect(bx - bw * 0.42, by, bw * 0.84, bh);
+      const slate = 72 + (rnd() * 34 | 0);
+      ctx.fillStyle = `rgba(${slate - 8},${slate},${slate + 12},${0.52 + near * 0.4})`;
+      ctx.beginPath();
+      ctx.moveTo(bx - bw * 0.62, by);
+      ctx.lineTo(bx, by - bh * (0.75 + rnd() * 0.45));
+      ctx.lineTo(bx + bw * 0.62, by);
+      ctx.closePath(); ctx.fill();
     }
     // Temple roofs & the pagoda silhouette
     ctx.fillStyle = 'rgba(66,62,70,0.9)';
-    const pagX = w * 0.30, pagY = 300;
+    const pagX = w * 0.69, pagY = 385;
     for (let t = 0; t < 5; t++) {
-      const tw = 46 - t * 7;
-      ctx.fillRect(pagX - tw / 2, pagY - t * 12, tw, 5);
-      ctx.fillRect(pagX - tw * 0.32, pagY - t * 12 + 5, tw * 0.64, 7);
+      const tw = 70 - t * 8;
+      const py = pagY - t * 22;
+      ctx.beginPath();
+      ctx.moveTo(pagX - tw * 0.55, py);
+      ctx.lineTo(pagX, py - 8);
+      ctx.lineTo(pagX + tw * 0.55, py);
+      ctx.closePath(); ctx.fill();
+      ctx.fillRect(pagX - tw * 0.25, py, tw * 0.5, 14);
     }
+    ctx.fillRect(pagX - 2, pagY - 122, 4, 30);
     for (let i = 0; i < 26; i++) {
-      const tx = rnd() * w, ty = 300 + rnd() * 60;
+      const tx = rnd() * w, ty = 330 + rnd() * 118;
       ctx.fillStyle = 'rgba(80,74,82,0.75)';
       ctx.beginPath();
       ctx.moveTo(tx - 12, ty); ctx.lineTo(tx, ty - 7); ctx.lineTo(tx + 12, ty); ctx.closePath(); ctx.fill();
@@ -739,15 +897,15 @@ export class SummitManager {
     ctx.strokeStyle = 'rgba(214,226,232,0.8)';
     ctx.lineWidth = 7;
     ctx.beginPath();
-    ctx.moveTo(w * 0.08, 400);
-    ctx.bezierCurveTo(w * 0.3, 340, w * 0.55, 330, w * 0.8, 268);
+    ctx.moveTo(w * 0.04, 472);
+    ctx.bezierCurveTo(w * 0.28, 388, w * 0.56, 382, w * 0.84, 292);
     ctx.stroke();
 
     // Forested foothills, three deepening bands toward the viewer
     const bands = [
-      [400, 470, 'rgba(84,104,70,0.92)'],
-      [452, 520, 'rgba(64,86,54,0.96)'],
-      [508, 580, 'rgba(50,72,44,1)']
+      [446, 526, 'rgba(68,112,58,0.94)'],
+      [500, 586, 'rgba(46,88,43,0.97)'],
+      [558, 650, 'rgba(30,65,35,1)']
     ];
     for (const [top, bot, col] of bands) {
       ctx.fillStyle = col;
@@ -761,9 +919,10 @@ export class SummitManager {
       ctx.fill();
       // tree speckle
       ctx.fillStyle = 'rgba(38,56,34,0.5)';
-      for (let i = 0; i < 240; i++) {
+      for (let i = 0; i < 360; i++) {
         const sx = rnd() * w, sy = top + rnd() * (bot - top);
-        ctx.fillRect(sx, sy, 2.5, 3.5);
+        const sr = 1.5 + rnd() * 4;
+        ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
       }
     }
 
@@ -773,30 +932,114 @@ export class SummitManager {
     fade.addColorStop(1, 'rgba(0,0,0,1)');
     ctx.globalCompositeOperation = 'destination-in';
     ctx.fillStyle = fade;
-    ctx.fillRect(0, 0, w, 130);
+    // Fill the whole canvas: after the last colour stop the mask remains
+    // opaque, preserving the bay/city/forest below the softened top edge.
+    ctx.fillRect(0, 0, w, h);
     ctx.globalCompositeOperation = 'source-over';
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.wrapS = THREE.ClampToEdgeWrapping;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.anisotropy = 4;
     return tex;
+  }
+
+  buildVistaFoliage() {
+    // Low-poly crowns bridge the dimensional meadow and painted panorama.
+    // Their parallax is subtle but crucial: the city now sits *inside* a
+    // wooded Kyoto basin instead of on the same flat card as the sky.
+    const crownGeo = new THREE.IcosahedronGeometry(1, 1);
+    const pineGeo = new THREE.ConeGeometry(1, 3.4, 7, 2);
+    const mats = [
+      new THREE.MeshLambertMaterial({ color: 0x315f35 }),
+      new THREE.MeshLambertMaterial({ color: 0x4f7d3d }),
+      new THREE.MeshLambertMaterial({ color: 0x6d9448 })
+    ];
+    const counts = this.previewQuality ? [28, 24, 20] : [120, 110, 90];
+    const dummy = new THREE.Object3D();
+    this.vistaForest = [];
+    for (let layer = 0; layer < counts.length; layer++) {
+      const mesh = new THREE.InstancedMesh(layer === 0 ? pineGeo : crownGeo, mats[layer], counts[layer]);
+      let placed = 0, guard = 0;
+      while (placed < counts[layer] && guard++ < counts[layer] * 12) {
+        const z = 47 + this.rng() * 69;
+        const spread = 34 + (z - 47) * 0.78;
+        const x = (this.rng() - 0.5) * spread * 2;
+        // Preserve a readable slot around the torii, 3D roof kit and pagoda.
+        if (z < 57 && Math.abs(x) < 6.5) continue;
+        if (z > 72 && z < 106 && x > -27 && x < 30 && this.rng() < 0.73) continue;
+        const downhill = -5.0 - (z - 47) * 0.115;
+        const s = (1.05 + this.rng() * 1.8) * (1 - layer * 0.07);
+        dummy.position.set(x, downhill + (this.rng() - 0.5) * 2.8 + s, z);
+        dummy.rotation.set((this.rng() - 0.5) * 0.08, this.rng() * Math.PI * 2, (this.rng() - 0.5) * 0.08);
+        dummy.scale.set(s * (0.82 + this.rng() * 0.35), s * (0.8 + this.rng() * 0.5), s);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(placed++, dummy.matrix);
+      }
+      mesh.count = placed;
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+      mesh.name = `Vista Forest Layer ${layer + 1}`;
+      this.group.add(mesh);
+      this.vistaForest.push(mesh);
+    }
+  }
+
+  loadVistaLandmarks() {
+    // Authored in Blender, merged to one mesh with six material primitives.
+    // The panorama remains a graceful fallback if a local asset is missing.
+    const loader = new GLTFLoader();
+    loader.load(SUMMIT_LANDMARKS_SRC, (gltf) => {
+      const landmark = gltf.scene;
+      landmark.name = 'Blender Kyoto Roofscape';
+      landmark.position.set(0, 1.2, 78);
+      landmark.rotation.y = Math.PI;
+      landmark.scale.setScalar(0.76);
+      landmark.traverse((o) => {
+        if (!o.isMesh) return;
+        o.castShadow = false;
+        o.receiveShadow = false;
+        o.frustumCulled = true;
+        const materials = Array.isArray(o.material) ? o.material : [o.material];
+        for (const mat of materials) {
+          if (!mat) continue;
+          mat.roughness = Math.max(0.72, mat.roughness == null ? 0.9 : mat.roughness);
+          mat.envMapIntensity = 0.28;
+          if (mat.name && mat.name.includes('plaster')) mat.color.multiplyScalar(0.72);
+          if (mat.name && mat.name.includes('kawara')) mat.color.multiplyScalar(0.82);
+        }
+      });
+      this.group.add(landmark);
+      this.vistaLandmarks = landmark;
+    }, undefined, (error) => {
+      console.warn('Summit landmark layer could not be loaded; using the painted vista fallback.', error);
+    });
   }
 
   buildSummitClouds() {
     // A few local cumulus that drift through the saddle — the sky's own
     // clouds stay near the valley, so the summit keeps its own weather.
     this.summitClouds = [];
-    for (let i = 0; i < 5; i++) {
+    const defs = [
+      [-82, 23, 132, 56, 15, 0.5], [-45, 31, 166, 70, 21, 0.58],
+      [-8, 20, 142, 43, 13, 0.46], [42, 35, 174, 88, 31, 0.82],
+      [80, 28, 152, 62, 22, 0.68], [112, 19, 184, 48, 14, 0.48],
+      [-118, 41, 196, 76, 24, 0.55]
+    ];
+    for (let i = 0; i < defs.length; i++) {
       const tex = this.game.sky.buildCloudTexture(3 + i);
       const spr = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: tex, transparent: true, opacity: 0.5 + this.rng() * 0.25,
+        map: tex, transparent: true, opacity: defs[i][5],
         fog: false, depthWrite: false
       }));
-      const a = this.rng() * Math.PI * 2;
-      spr.position.set(Math.cos(a) * 60, 14 + this.rng() * 26, Math.sin(a) * 60);
-      spr.scale.set(34 + this.rng() * 30, 12 + this.rng() * 9, 1);
+      const [x, y, z, sx, sy] = defs[i];
+      spr.position.set(x, y, z);
+      spr.scale.set(sx, sy, 1);
       this.group.add(spr);
-      this.summitClouds.push({ spr, speed: 0.6 + this.rng() * 0.7 });
+      this.summitClouds.push({ spr, speed: 0.32 + this.rng() * 0.35, minX: x - 38, maxX: x + 38 });
     }
   }
 
@@ -1192,11 +1435,29 @@ export class SummitManager {
     this.setValleyVisible(!on);
     const sky = this.game.sky;
     if (on) {
+      this._savedSkyState = {
+        dayTime: sky.dayTime,
+        weather: sky.weather,
+        previousWeather: sky.previousWeather,
+        targetWeather: sky.targetWeather,
+        weatherBlend: sky.weatherBlend,
+        weatherTimer: sky.weatherTimer,
+        paletteOverride: sky.paletteOverride || null
+      };
       this._savedDurations = sky.weatherDurations;
       sky.weatherDurations = SUMMIT_WEATHER_DURATIONS;
       sky.weatherPool = SUMMIT_WEATHER_POOL;
-      if (!SUMMIT_WEATHER_POOL.includes(sky.targetWeather)) sky.setWeather('clear');
-      sky.weatherTimer = Math.min(sky.weatherTimer, 140);
+      // Crossing the portal opens on the reference's clear late-morning
+      // light. The summit's own weather may evolve later, but the reveal is
+      // never an unreadable night or an overexposed weather transition.
+      sky.dayTime = 10.35;
+      sky.weather = 'clear';
+      sky.previousWeather = 'clear';
+      sky.targetWeather = 'clear';
+      sky.weatherBlend = 1;
+      sky.weatherTimer = 190;
+      sky.paletteOverride = this.skyPalette;
+      sky._palStamp = -1;
       if (this.game.audio) this.game.audio.setSummitWind(true);
       // No hints, no missions, no waypoint arrows — a respite scene.
       this.game.ui.hideAllGuidance();
@@ -1206,6 +1467,17 @@ export class SummitManager {
     } else {
       sky.weatherDurations = this._savedDurations || sky.weatherDurations;
       sky.weatherPool = null;
+      if (this._savedSkyState) {
+        sky.dayTime = this._savedSkyState.dayTime;
+        sky.weather = this._savedSkyState.weather;
+        sky.previousWeather = this._savedSkyState.previousWeather;
+        sky.targetWeather = this._savedSkyState.targetWeather;
+        sky.weatherBlend = this._savedSkyState.weatherBlend;
+        sky.weatherTimer = this._savedSkyState.weatherTimer;
+        sky.paletteOverride = this._savedSkyState.paletteOverride;
+        sky._palStamp = -1;
+        this._savedSkyState = null;
+      }
       if (this.game.audio) this.game.audio.setSummitWind(false);
       // Restore the valley's guidance, and re-seed the compass so its POIs
       // come back where they were.
@@ -1290,7 +1562,7 @@ export class SummitManager {
     // Clouds drift through on the wind; pollen rides it visibly.
     for (const c of this.summitClouds) {
       c.spr.position.x += c.speed * dt * 1.8;
-      if (c.spr.position.x > 95) c.spr.position.x = -95;
+      if (c.spr.position.x > c.maxX) c.spr.position.x = c.minX;
     }
     if (this.pollen) {
       const pp = this.pollen.geometry.attributes.position;

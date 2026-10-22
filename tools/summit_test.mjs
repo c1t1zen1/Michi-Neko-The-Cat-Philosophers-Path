@@ -26,6 +26,7 @@ const V3 = class {
   set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; }
   copy(v) { this.x = v.x; this.y = v.y; this.z = v.z; return this; }
   clone() { return new V3(this.x, this.y, this.z); }
+  add(v) { this.x += v.x; this.y += v.y; this.z += v.z; return this; }
   sub(v) { this.x -= v.x; this.y -= v.y; this.z -= v.z; return this; }
   lengthSq() { return this.x * this.x + this.y * this.y + this.z * this.z; }
   distanceToSquared(v) { const a = this.x - v.x, b = this.y - v.y, c = this.z - v.z; return a * a + b * b + c * c; }
@@ -84,6 +85,8 @@ const THREE = {
   Mesh: class { constructor(g, m) { Object.assign(this, node3()); this.geometry = g; this.material = m; } },
   Points: class { constructor(g, m) { Object.assign(this, node3()); this.geometry = g; this.material = m; } },
   Sprite: class { constructor(m) { Object.assign(this, node3()); this.material = m; } },
+  HemisphereLight: class { constructor() { Object.assign(this, node3()); } },
+  DirectionalLight: class { constructor() { Object.assign(this, node3()); this.target = node3(); this.castShadow = false; } },
   InstancedMesh: class {
     constructor(g, m, n) {
       Object.assign(this, node3());
@@ -98,6 +101,7 @@ const THREE = {
   InstancedBufferGeometry: Geo, BufferGeometry: Geo,
   BoxGeometry: Geo, CylinderGeometry: Geo, SphereGeometry: Geo, CircleGeometry: Geo,
   ConeGeometry: Geo, PlaneGeometry: Geo, RingGeometry: Geo, TorusGeometry: Geo,
+  TubeGeometry: Geo,
   LatheGeometry: Geo, TetrahedronGeometry: Geo, IcosahedronGeometry: Geo,
   CapsuleGeometry: Geo, ExtrudeGeometry: Geo, ShapeGeometry: Geo,
   BufferAttribute: class { constructor(a, n) { this.array = a; this.itemSize = n; this.count = a.length / n; } },
@@ -121,6 +125,7 @@ const THREE = {
   Euler: class { constructor() { this.x = 0; this.y = 0; this.z = 0; } set() { return this; } },
   Matrix4: class { constructor() { this.elements = []; } makeRotationX() { return this; } identity() { return this; } },
   Quaternion: class { constructor() { this.x = 0; this.y = 0; this.z = 0; this.w = 1; } },
+  CatmullRomCurve3: class { constructor(points) { this.points = points; this.curveType = ''; this.tension = 0; } },
   Frustum: class { intersectsObject() { return true; } },
   Raycaster: class { constructor() { this.ray = { origin: new V3(), direction: new V3() }; } set() { return this; } },
 };
@@ -217,6 +222,7 @@ const pre = `
         leafCardTexture = () => ({}), leafCardGeometry = () => ({}),
         buildCanopy = () => ({ branches: new THREE.BufferGeometry(), tufts: new THREE.BufferGeometry(), cards: new THREE.BufferGeometry(), extents: null }),
         updateFoliage = () => {}, lumpyTuftGeometry = () => ({});
+  const GLTFLoader = class { load() {} };
 `;
 vm.runInContext(pre + src.replace('export class SummitManager', 'class SummitManager') +
   '\nthis.SummitManager = SummitManager;', sandbox);

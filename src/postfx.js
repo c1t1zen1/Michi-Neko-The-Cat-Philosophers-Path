@@ -400,7 +400,7 @@ export class AtmospherePass extends Pass {
    * Pull fog + sun state from the sky each frame. `strengths` lets the
    * quality tier scale AO and shafts (0 disables).
    */
-  updateFromSky(sky, camera, { ao = 1, shafts = 1 } = {}) {
+  updateFromSky(sky, camera, { ao = 1, shafts = 1 } = {}, environment = null) {
     const u = this.material.uniforms;
     const p = sky.resolvePalette();
     const sunY = sky.sunDir.y;
@@ -422,9 +422,15 @@ export class AtmospherePass extends Pass {
     const from = weatherFog[sky.weather] || 1;
     const to = weatherFog[sky.targetWeather] || 1;
     const wf = from + (to - from) * (sky.weatherBlend != null ? sky.weatherBlend : 1);
-    u.uDensity.value = (0.0034 + golden * 0.0026 - night * 0.0008) * wf;
-    u.uHeightFalloff.value = 0.16 - (wf > 2 ? 0.06 : 0);
-    u.uFogBase.value = -0.5;
+    const densityScale = environment && environment.densityScale != null ? environment.densityScale : 1;
+    u.uDensity.value = (0.0034 + golden * 0.0026 - night * 0.0008) * wf * densityScale;
+    u.uHeightFalloff.value = environment && environment.heightFalloff != null
+      ? environment.heightFalloff
+      : 0.16 - (wf > 2 ? 0.06 : 0);
+    // Pocket scenes may live far away from world y=0.  Supplying their local
+    // ground datum prevents exp(-camH*b) from overflowing and veiling every
+    // pixel in a flat fog colour.
+    u.uFogBase.value = environment && environment.fogBase != null ? environment.fogBase : -0.5;
     u.uAOStrength.value = this.aoStrength * ao;
     u.uShaftStrength.value = (0.22 + golden * 0.5 + (wf > 2 ? 0.25 : 0)) * shafts * (1 - night);
     u.uSunVisible.value = sunUp > 0.01 ? Math.min(1, sunUp / 0.05) : 0;
