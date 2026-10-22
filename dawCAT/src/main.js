@@ -1,5 +1,6 @@
 /* dawCAT — app bootstrap */
-import { AppState, defaultProject, defaultSynthPreset, uid, SCALES, DRUM_LANES } from './state.js';
+import { AppState, defaultProject, uid } from './state.js';
+import { PlanExecutor } from './agent/executor.js';
 import { AudioEngine } from './engine/core.js';
 import { Transport } from './engine/transport.js';
 import { preloadProjectAssets, putAsset, cacheBuffer } from './engine/assets.js';
@@ -33,44 +34,10 @@ function jsonFileName(project) {
   return `${project.name || 'track'}.${tag}.dawcat-export.json`;
 }
 
-function clampRange(v, min, max) { return Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : min; }
-
-// Builds a full 8-lane, 16-step drum pattern from the AI's sparse
-// {lane: [[stepIndex, velocity], ...]} shorthand — mirrors state.js's private
-// mkSteps() so an agent-authored clip has the exact shape AppState.addClip()
-// expects (it doesn't normalize a caller-supplied `steps` object itself).
-function buildStepsFromPattern(pattern) {
-  const steps = {};
-  for (const lane of DRUM_LANES) steps[lane.id] = new Array(16).fill(0);
-  if (pattern && typeof pattern === 'object') {
-    for (const [laneId, hits] of Object.entries(pattern)) {
-      if (!steps[laneId] || !Array.isArray(hits)) continue;
-      for (const hit of hits) {
-        const [i, v] = Array.isArray(hit) ? hit : [hit, 1];
-        const idx = clampRange(Math.round(Number(i)), 0, 15);
-        steps[laneId][idx] = clampRange(Number(v ?? 1), 0, 1);
-      }
-    }
-  }
-  return steps;
-}
-
-// Inverse of buildStepsFromPattern — reduces a full 8-lane, 16-step drum grid
-// down to only its non-zero hits, in the same shorthand the addClip action
-// schema expects, so it can be sent as context and handed straight back in a
-// remix plan without the model having to reconstruct 128 mostly-zero values.
-function compactSteps(steps) {
-  const out = {};
-  for (const [lane, arr] of Object.entries(steps)) {
-    const hits = arr.map((v, i) => (v ? [i, v] : null)).filter(Boolean);
-    if (hits.length) out[lane] = hits;
-  }
-  return out;
-}
-
 class App {
   constructor() {
     this.state = new AppState();
+    this.executor = new PlanExecutor(this.state);
     this.engine = new AudioEngine();
     this.transport = new Transport(this.engine, this.state);
     this.snap = 'beat';
@@ -486,7 +453,7 @@ class App {
     if (this.agentPanel) return this.agentPanel;
     this.agentPanel = new AgentPanel({
       getContext: () => this.getAgentContext(),
-      executePlan: (plan) => this.executeAgentPlan(plan),
+      executePlan: (plan) => this.executeAgentPlan(plan).count,
       undo: () => this.state.undo(),
       onToggle: (open) => document.getElementById('menu-ai-agent')?.classList.toggle('on', open)
     });
@@ -502,156 +469,14 @@ class App {
     }
   }
 
-  getAgentContext() {
-    const p = this.state.project;
-    const gameCues = ((p.cueScan && p.cueScan.cues) || [])
-      .filter((c) => c.kind === 'phase')
-      .map((c) => ({ scene: c.scene, timeOfDay: c.timeOfDay, name: c.name, rootHz: c.rootHz, chord: c.chord, scale: c.scale }));
-    // Full clip content (not just a count) so Remix mode has real material to
-    // rework — actual note/step data, capped generously so a normal project
-    // never truncates but a pathological one can't blow up the request.
-    const tracksTruncated = p.tracks.length > 24;
-    const tracks = p.tracks.slice(0, 24).map((t) => {
-      const clipsTruncated = t.clips.length > 16;
-      return {
-        id: t.id, name: t.name, kind: t.kind,
-        preset: t.kind === 'synth' ? t.preset.kind : null,
-        drumKit: t.kind === 'drum' ? t.drumKit : null,
-        volume: t.volume, pan: t.pan, mute: t.mute, solo: t.solo,
-        devices: t.devices.map((d) => d.type),
-        clips: t.clips.slice(0, 16).map((c) => {
-          const notesTruncated = !!(c.notes && c.notes.length > 64);
-          return {
-            id: c.id, name: c.name, start: c.start, length: c.length, loop: c.loop, loopLen: c.loopLen,
-            notes: c.notes && c.notes.length ? c.notes.slice(0, 64).map((n) => ({ midi: n.midi, start: n.start, len: n.len, vel: n.vel })) : undefined,
-            notesTruncated: notesTruncated || undefined,
-            steps: c.steps ? compactSteps(c.steps) : undefined,
-            sample: c.sample || undefined
-          };
-        }),
-        clipsTruncated: clipsTruncated || undefined
-      };
-    });
-    return {
-      editor: 'dawCAT',
-      tempo: p.tempo, key: p.key, scale: p.scale, swing: p.swing, timeSig: `${p.timeSigNum}/${p.timeSigDen}`,
-      selection: this.state.selection.trackId,
-      master: { volume: p.master.volume },
-      tracks, tracksTruncated: tracksTruncated || undefined,
-      gameCues: gameCues.slice(0, 12),
-      constraints: { maxActions: 40, reversible: true }
-    };
+  /* The model's view of the project, and plan execution — both live in
+     agent/executor.js so they are unit-tested against a real AppState. */
+  getAgentContext(opts = {}) {
+    return this.executor.buildContext(opts);
   }
 
-  findAgentTrack(target) {
-    const st = this.state;
-    if (!target || target === 'selection') return st.selectedTrack();
-    return st.track(target);
-  }
-
-  executeAgentAction(action) {
-    const st = this.state;
-    const p = action.params || {};
-    if (action.type === 'addTrack') {
-      const kind = p.kind === 'drum' ? 'drum' : 'synth';
-      const presetKind = ['pluck', 'pad', 'lead', 'bass', 'keys', 'chime'].includes(p.preset) ? p.preset : 'pluck';
-      const t = st.addTrack({
-        name: String(p.name || (kind === 'drum' ? 'Drums' : 'Synth')),
-        kind,
-        preset: kind === 'synth' ? defaultSynthPreset(presetKind) : null,
-        drumKit: ['soft', 'punch', 'lofi'].includes(p.drumKit) ? p.drumKit : 'soft'
-      });
-      st.select(t.id);
-      return;
-    }
-    if (action.type === 'deleteClip') {
-      const [trackId, clipId] = String(action.target || '').split(':');
-      if (!trackId || !clipId) throw new Error('deleteClip target must be "trackId:clipId"');
-      st.removeClip(trackId, clipId);
-      return;
-    }
-    // Project-level actions need no track at all — must run before the
-    // findAgentTrack requirement below, or a plan containing only one of
-    // these (nothing selected yet) would wrongly fail to resolve "selection".
-    if (action.type === 'setTempo') { st.project.tempo = clampRange(Number(p.bpm), 40, 220); st.emit('project'); return; }
-    if (action.type === 'setKeyScale') {
-      if (p.key) st.project.key = String(p.key);
-      if (p.scale && SCALES[p.scale]) st.project.scale = p.scale;
-      st.emit('project');
-      return;
-    }
-    if (action.type === 'setSwing') { st.project.swing = clampRange(Number(p.swing), 0, 1); st.emit('project'); return; }
-    if (action.type === 'setMaster') { st.project.master.volume = clampRange(Number(p.volume), 0, 1); st.emit('project'); return; }
-    const t = this.findAgentTrack(action.target);
-    if (!t) throw new Error(`Agent target track not found: ${action.target}`);
-    if (action.type === 'renameTrack') { st.updateTrack(t.id, { name: String(p.name || t.name) }); return; }
-    if (action.type === 'deleteTrack') { st.removeTrack(t.id); return; }
-    if (action.type === 'setTrackMix') {
-      const patch = {};
-      if (p.volume != null) patch.volume = clampRange(Number(p.volume), 0, 1);
-      if (p.pan != null) patch.pan = clampRange(Number(p.pan), -1, 1);
-      if (p.mute != null) patch.mute = Boolean(p.mute);
-      if (p.solo != null) patch.solo = Boolean(p.solo);
-      if (p.sends) patch.sends = { a: clampRange(Number(p.sends.a ?? t.sends.a), 0, 1), b: clampRange(Number(p.sends.b ?? t.sends.b), 0, 1) };
-      st.updateTrack(t.id, patch);
-      return;
-    }
-    if (action.type === 'setTrackPreset') {
-      if (t.kind !== 'synth') throw new Error(`setTrackPreset needs a synth track, "${t.name}" is a drum track`);
-      const kind = ['pluck', 'pad', 'lead', 'bass', 'keys', 'chime'].includes(p.preset) ? p.preset : t.preset.kind;
-      const preset = Object.assign(defaultSynthPreset(kind), p.patch && typeof p.patch === 'object' ? p.patch : {});
-      st.updateTrack(t.id, { preset });
-      return;
-    }
-    if (action.type === 'addDevice') {
-      const type = ['eq8', 'comp', 'delay', 'reverb', 'filter', 'chorus', 'utility'].includes(p.type) ? p.type : null;
-      if (!type) throw new Error(`Unknown device type: ${p.type}`);
-      st.addDevice(t.id, type);
-      return;
-    }
-    if (action.type === 'setDeviceParams') {
-      const type = ['eq8', 'comp', 'delay', 'reverb', 'filter', 'chorus', 'utility'].includes(p.type) ? p.type : null;
-      if (!type) throw new Error(`Unknown device type: ${p.type}`);
-      let dev = t.devices.find((d) => d.type === type);
-      if (!dev) dev = st.addDevice(t.id, type);
-      const params = Object.assign({}, dev.params, p.params && typeof p.params === 'object' ? p.params : {});
-      st.updateDevice(t.id, dev.id, { params });
-      return;
-    }
-    if (action.type === 'addClip') {
-      const length = Math.max(0.25, Number(p.length ?? 4));
-      const patch = {
-        name: p.name ? String(p.name) : undefined,
-        start: Math.max(0, Number(p.start ?? 0)),
-        length,
-        loop: !!p.loop,
-        loopLen: Math.max(1, Number(p.loopLen ?? length * 4))
-      };
-      if (t.kind === 'drum') {
-        patch.steps = buildStepsFromPattern(p.steps);
-      } else {
-        if (!Array.isArray(p.notes) || !p.notes.length) throw new Error(`addClip on synth track "${t.name}" needs a notes array`);
-        patch.notes = p.notes.map((n) => ({
-          id: uid('n'),
-          midi: clampRange(Math.round(Number(n.midi)), 0, 127),
-          start: Math.max(0, Number(n.start ?? 0)),
-          len: Math.max(0.05, Number(n.len ?? 0.5)),
-          vel: clampRange(Number(n.vel ?? 0.8), 0, 1)
-        }));
-      }
-      const clip = st.addClip(t.id, patch);
-      st.select(t.id, clip.id);
-      return;
-    }
-  }
-
-  async executeAgentPlan(plan) {
-    const st = this.state;
-    let count = 0;
-    st.applyBatch(() => {
-      for (const action of plan.actions) { this.executeAgentAction(action); count++; }
-    });
-    return count;
+  executeAgentPlan(plan) {
+    return this.executor.execute(plan);
   }
 
   previewSfxDialog() {
