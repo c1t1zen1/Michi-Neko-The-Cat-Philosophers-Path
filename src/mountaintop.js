@@ -4,11 +4,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   dirtTextures, stoneTextures, woodTextures, metalTextures, barkTextures,
   texturedMaterial, worldNoise, glowTexture
-} from './textures.js?v=20261005a';
+} from './textures.js?v=20261021a';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture,
   leafCardGeometry, buildCanopy, updateFoliage, lumpyTuftGeometry
-} from './foliage.js?v=20261005a';
+} from './foliage.js?v=20261021a';
 
 function mulberry32(a) {
   return function() {
@@ -406,9 +406,6 @@ export class SummitManager {
         g.add(post);
         points.push(new THREE.Vector3(x, y + 0.44, z));
       }
-      const curve = new THREE.CatmullRomCurve3(points);
-      curve.curveType = 'catmullrom';
-      curve.tension = 0.3;
       // A slightly sagging twin rope reads at distance without thick rails.
       for (const dy of [0, -0.34]) {
         const sagged = points.map((p, i) => p.clone().add(new THREE.Vector3(0,
@@ -438,6 +435,7 @@ export class SummitManager {
     torii.position.set(0, -2.9, 43.2);
     g.add(torii);
 
+    g.position.x = -7.0;
     this.group.add(g);
     this.vistaApproach = g;
   }
@@ -873,11 +871,44 @@ export class SummitManager {
       ctx.lineTo(bx + bw * 0.62, by);
       ctx.closePath(); ctx.fill();
     }
+    // Leafy temple gardens break up the roof field. A few pale blossom
+    // crowns echo Kyoto's shrine grounds without turning the vista pink.
+    const gardenCols = [
+      'rgba(48,101,48,0.72)', 'rgba(69,126,55,0.68)',
+      'rgba(90,145,65,0.62)', 'rgba(126,165,73,0.56)'
+    ];
+    for (let i = 0; i < 250; i++) {
+      const gx = rnd() * w;
+      const gy = 292 + Math.pow(rnd(), 0.76) * 190;
+      const near = smoothstep(292, 482, gy);
+      const gr = 2.1 + rnd() * (3.1 + near * 4.8);
+      ctx.fillStyle = rnd() < 0.07
+        ? (rnd() < 0.5 ? 'rgba(236,173,188,0.7)' : 'rgba(244,207,207,0.68)')
+        : gardenCols[Math.floor(rnd() * gardenCols.length)];
+      const lobes = 3 + Math.floor(rnd() * 4);
+      for (let l = 0; l < lobes; l++) {
+        const a = rnd() * Math.PI * 2;
+        const d = rnd() * gr * 0.9;
+        const lr = gr * (0.56 + rnd() * 0.52);
+        ctx.beginPath();
+        ctx.arc(gx + Math.cos(a) * d, gy + Math.sin(a) * d * 0.58, lr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    // Tiny vermilion shrine strokes remain legible through the greenery.
+    ctx.fillStyle = 'rgba(185,56,34,0.76)';
+    for (let i = 0; i < 22; i++) {
+      const tx = 40 + rnd() * (w - 80), ty = 330 + rnd() * 122;
+      const s = 2 + rnd() * 2.5;
+      ctx.fillRect(tx - s, ty - s * 2.6, s * 0.55, s * 2.6);
+      ctx.fillRect(tx + s * 0.45, ty - s * 2.6, s * 0.55, s * 2.6);
+      ctx.fillRect(tx - s * 1.35, ty - s * 3.0, s * 3.1, s * 0.5);
+    }
     // Temple roofs & the pagoda silhouette
     ctx.fillStyle = 'rgba(66,62,70,0.9)';
-    const pagX = w * 0.69, pagY = 385;
+    const pagX = w * 0.31, pagY = 385;
     for (let t = 0; t < 5; t++) {
-      const tw = 70 - t * 8;
+      const tw = 64 - t * 7;
       const py = pagY - t * 22;
       ctx.beginPath();
       ctx.moveTo(pagX - tw * 0.55, py);

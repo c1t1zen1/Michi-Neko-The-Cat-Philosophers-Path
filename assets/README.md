@@ -3,6 +3,18 @@
 Optional runtime media for **Michi-Neko**. Nothing here is required for the
 game to boot — every slot has a graceful fallback.
 
+## `models/summit_kyoto_landmarks.glb`
+
+Compact Blender-authored middle-distance roofscape for the summit panorama:
+five terraced rows of machiya, blue-grey kawara roofs, a hillside torii and a
+five-storey pagoda. The editable source and repeatable export script live at
+`data/misc/summit_vista_landmarks/` and
+`tools/blender/summit_vista_landmarks.py`.
+
+The model is merged into one mesh with six material primitives (about 292 KB)
+and loaded only by `SummitManager`. If it cannot load, the procedural painted
+Kyoto backdrop still carries the complete vista.
+
 ## `summit-transition.mp4` (optional)
 
 Plays full-screen during the ascent to the mountain top clearing (天上), over
