@@ -1,5 +1,69 @@
 /* dawCAT — transport: lookahead scheduler, tempo, loop, metronome, automation */
 
+function maxNoteEnd(notes) {
+  let m = 0.25;
+  for (const n of notes) m = Math.max(m, n.start + n.len);
+  return m;
+}
+
+/* Flattens one clip into beat-stamped playback events. Pure, so it is unit
+   tested. `rr` (patch id → count) gives repeated placements of one SFX patch
+   successive round-robin variations, the way the exported game pack does;
+   a clip whose patch no longer exists simply yields no SFX event. */
+export function buildClipEvents(p, t, c, rr = new Map()) {
+  const evs = [];
+  const clipStartB = c.start * 4;
+  const clipEndB = (c.start + c.length) * 4;
+  if (t.kind === 'drum' && c.steps) {
+    for (let bar = 0; bar < c.length; bar++) {
+      for (const [lane, arr] of Object.entries(c.steps)) {
+        for (let s = 0; s < 16; s++) {
+          const v = arr[s];
+          if (!v) continue;
+          let beat = clipStartB + bar * 4 + s * 0.25;
+          if (s % 2 === 1 && p.swing > 0) beat += p.swing * 0.125;
+          if (beat < clipEndB) evs.push({ beat, kind: 'drum', trackId: t.id, lane, vel: v * c.gain, kit: t.drumKit });
+        }
+      }
+    }
+  } else if (c.notes && c.notes.length) {
+    const contentLen = c.loop ? Math.max(0.25, c.loopLen) : Math.max(0.25, maxNoteEnd(c.notes));
+    const totalBeats = c.length * 4;
+    const reps = c.loop ? Math.ceil(totalBeats / contentLen) : 1;
+    for (let r = 0; r < reps; r++) {
+      for (const n of c.notes) {
+        const beat = clipStartB + r * contentLen + n.start;
+        if (beat >= clipEndB) continue;
+        evs.push({ beat, kind: 'note', trackId: t.id, midi: n.midi, vel: n.vel * c.gain, len: n.len, preset: t.preset });
+      }
+    }
+  }
+  if (c.sample) {
+    if (c.sample.startsWith('sfxp:')) {
+      const patch = (p.sfx || []).find((s) => s.id === c.sample.slice(5));
+      if (patch) {
+        const v = patch.variation || {};
+        const varies = v.pitch || v.time || v.gain;
+        const n = (rr.get(patch.id) || 0) + 1;
+        rr.set(patch.id, n);
+        evs.push({ beat: clipStartB, kind: 'sfxPatch', trackId: t.id, patch, gain: c.gain, variation: varies ? ((n - 1) % 4) + 1 : 0 });
+      }
+    } else if (c.sample.startsWith('sfx:')) {
+      evs.push({ beat: clipStartB, kind: 'sfx', trackId: t.id, name: c.sample.slice(4), gain: c.gain });
+    } else {
+      evs.push({ beat: clipStartB, kind: 'sample', trackId: t.id, sample: c.sample, durBeats: c.length * 4, gain: c.gain });
+    }
+  }
+  if (c.audio && c.audio.assetId) {
+    evs.push({
+      beat: clipStartB, kind: 'audio', trackId: t.id, assetId: c.audio.assetId,
+      durBeats: c.length * 4, gain: c.gain * (c.audio.gain != null ? c.audio.gain : 1),
+      trimStart: c.audio.trimStart || 0
+    });
+  }
+  return evs;
+}
+
 export class Transport extends EventTarget {
   constructor(engine, state) {
     super();
@@ -93,16 +157,11 @@ export class Transport extends EventTarget {
 
   /* ---------- event flattening ---------- */
 
-  maxNoteEnd(notes) {
-    let m = 0.25;
-    for (const n of notes) m = Math.max(m, n.start + n.len);
-    return m;
-  }
-
   rebuildEvents() {
     const p = this.project;
     const soloed = p.tracks.some((t) => t.solo);
     const evs = [];
+    const rr = new Map();
     for (const t of p.tracks) {
       if (t.mute || (soloed && !t.solo)) continue;
       if (t.frozenActive && t.frozenAssetId) {
@@ -114,48 +173,7 @@ export class Transport extends EventTarget {
         evs.push({ beat: 0, kind: 'audio', trackId: t.id, assetId: t.frozenAssetId, durBeats: endBeat, gain: 1, trimStart: 0 });
         continue;
       }
-      for (const c of t.clips) {
-        const clipStartB = c.start * 4;
-        const clipEndB = (c.start + c.length) * 4;
-        if (t.kind === 'drum' && c.steps) {
-          for (let bar = 0; bar < c.length; bar++) {
-            for (const [lane, arr] of Object.entries(c.steps)) {
-              for (let s = 0; s < 16; s++) {
-                const v = arr[s];
-                if (!v) continue;
-                let beat = clipStartB + bar * 4 + s * 0.25;
-                if (s % 2 === 1 && p.swing > 0) beat += p.swing * 0.125;
-                if (beat < clipEndB) evs.push({ beat, kind: 'drum', trackId: t.id, lane, vel: v * c.gain, kit: t.drumKit });
-              }
-            }
-          }
-        } else {
-          const contentLen = c.loop ? Math.max(0.25, c.loopLen) : Math.max(0.25, this.maxNoteEnd(c.notes));
-          const totalBeats = c.length * 4;
-          const reps = c.loop ? Math.ceil(totalBeats / contentLen) : 1;
-          for (let r = 0; r < reps; r++) {
-            for (const n of c.notes) {
-              const beat = clipStartB + r * contentLen + n.start;
-              if (beat >= clipEndB) continue;
-              evs.push({ beat, kind: 'note', trackId: t.id, midi: n.midi, vel: n.vel * c.gain, len: n.len, preset: t.preset });
-            }
-          }
-        }
-        if (c.sample) {
-          if (c.sample.startsWith('sfx:')) {
-            evs.push({ beat: clipStartB, kind: 'sfx', trackId: t.id, name: c.sample.slice(4), gain: c.gain });
-          } else {
-            evs.push({ beat: clipStartB, kind: 'sample', trackId: t.id, sample: c.sample, durBeats: c.length * 4, gain: c.gain });
-          }
-        }
-        if (c.audio && c.audio.assetId) {
-          evs.push({
-            beat: clipStartB, kind: 'audio', trackId: t.id, assetId: c.audio.assetId,
-            durBeats: c.length * 4, gain: c.gain * (c.audio.gain != null ? c.audio.gain : 1),
-            trimStart: c.audio.trimStart || 0
-          });
-        }
-      }
+      for (const c of t.clips) evs.push(...buildClipEvents(p, t, c, rr));
     }
     evs.sort((a, b) => a.beat - b.beat);
     this.events = evs;
@@ -230,6 +248,7 @@ export class Transport extends EventTarget {
     if (ev.kind === 'note') e.synthNote(ev.trackId, ev.preset, ev.midi, time, ev.len * this.spb, ev.vel);
     else if (ev.kind === 'drum') e.drum(ev.trackId, ev.lane, time, ev.vel, ev.kit);
     else if (ev.kind === 'sfx') e.sfx(ev.name, time, ev.gain);
+    else if (ev.kind === 'sfxPatch') e.sfxPatch(ev.trackId, ev.patch, time, ev.gain, ev.variation);
     else if (ev.kind === 'sample') e.ambient(ev.sample, time, ev.durBeats * this.spb, ev.gain);
     else if (ev.kind === 'audio') e.playAudioClip(ev.trackId, ev.assetId, time, ev.durBeats * this.spb, ev.gain, ev.trimStart);
   }

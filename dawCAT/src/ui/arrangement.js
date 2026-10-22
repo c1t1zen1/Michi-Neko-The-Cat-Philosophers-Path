@@ -334,7 +334,9 @@ export class Arrangement {
     } else if (c.sample) {
       g.fillStyle = 'rgba(255,255,255,.6)';
       g.font = '9px system-ui';
-      g.fillText('∿ ' + (c.sample.startsWith('sfx:') ? c.sample.slice(4) : c.sample), x0 + 6, y + 30);
+      const designed = c.sample.startsWith('sfxp:') ? this.app.state.sfxById(c.sample.slice(5)) : null;
+      const label = c.sample.startsWith('sfxp:') ? (designed ? '✦ ' + designed.name : '✦ (deleted SFX)') : c.sample.startsWith('sfx:') ? c.sample.slice(4) : c.sample;
+      g.fillText('∿ ' + label, x0 + 6, y + 30);
       g.fillStyle = 'rgba(255,255,255,.4)';
       for (let i = 0; i < 24; i++) {
         const bx = x0 + 6 + i * ((w - 12) / 24);
@@ -863,6 +865,9 @@ export class Arrangement {
       const t = trackAt(laneIdx) || st.selectedTrack();
       if (!t) { toast('Drop onto a track', true); return; }
       this.app.browser.pasteClip(data.clip, t.id, bar);
+    } else if (data.kind === 'sfxPatch') {
+      const t = trackAt(laneIdx);
+      this.app.placeSfx(data.sfxId, { trackId: t ? t.id : null, start: bar });
     }
   }
 

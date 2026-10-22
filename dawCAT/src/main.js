@@ -395,6 +395,7 @@ class App {
     syncSecRowVisibility();
 
     const hasImportedAudio = p.tracks.some((t) => t.clips.some((c) => c.audio && c.audio.assetId));
+    const hasDesignedSfx = p.tracks.some((t) => t.clips.some((c) => c.sample && c.sample.startsWith('sfxp:')));
     const note = el('div', { class: 'hintbox' });
     note.innerHTML = [
       '<b>1 · Instant preview (no file changes):</b> click the game tab once to unlock audio, open its DevTools console, paste the hot-swap snippet, press Enter.',
@@ -402,7 +403,8 @@ class App {
       '<b>3 · Archive:</b> download the flattened track JSON for reference/tooling — it is <b>not</b> a project file and can\'t be re-opened as an editable project; use File ▸ Save Project for that.',
       '<b>Scene / Time of Day:</b> tags this export so you can tell variations apart. Picking a specific Time of Day ignores the day-phase seeking below and just loops that one variant — the game only has one scene/cycle today, so other variants are for scenes it grows into later.',
       'Day-phase seeking (full-cycle exports only): set the bar where each phase starts (−1 = ignore that phase).',
-      hasImportedAudio ? '⚠ This project has drag-and-dropped audio clips — those play back in the editor but are <b>not</b> included in any game export (synth notes, drum steps and built-in samples only).' : ''
+      hasImportedAudio ? '⚠ This project has drag-and-dropped audio clips — those play back in the editor but are <b>not</b> included in any game export (synth notes, drum steps and built-in samples only).' : '',
+      hasDesignedSfx ? '⚠ This arrangement has Sound Design SFX clips — they are not part of the music export. Ship them with <b>File ▸ Export SFX Pack…</b>, which installs them as game sound effects.' : ''
     ].filter(Boolean).map((s) => `<div>${s}</div>`).join('');
 
     const copyBtn = el('button', { class: 'btn primary', text: '📋 Copy Hot-Swap Snippet' });
@@ -441,6 +443,24 @@ class App {
       body: el('div', {}, targetRow, secRow, note, el('div', { class: 'form-row' }, copyBtn, musicBtn, jsonBtn)),
       buttons: [{ label: 'Close' }]
     });
+  }
+
+  /* ---------- Sound Design → timeline ---------- */
+
+  /* Places a designed SFX patch as a clip (on `trackId`, else the "SFX"
+     track, created on demand) at `start` bars, defaulting to the playhead.
+     Goes through the agent executor so it is the same undoable code path the
+     AI's placeSfx action uses. */
+  placeSfx(sfxId, { trackId = null, start = null } = {}) {
+    const patch = this.state.sfxById(sfxId);
+    if (!patch) { toast('That sound no longer exists', true); return; }
+    const bar = start != null ? start : Math.floor(Math.max(0, this.transport.position) / 4);
+    try {
+      this.executor.execute({ actions: [{ type: 'placeSfx', target: sfxId, params: { trackId: trackId || undefined, start: bar } }] });
+      toast(`"${patch.name}" placed at bar ${bar + 1}`);
+    } catch (err) {
+      toast(err.message, true);
+    }
   }
 
   /* ---------- AI composition agent ---------- */
