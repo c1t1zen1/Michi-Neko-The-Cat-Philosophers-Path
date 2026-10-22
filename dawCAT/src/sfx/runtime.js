@@ -76,7 +76,8 @@ export function sfxRuntime() {
       tags: Array.isArray(p.tags) ? p.tags.map(String).slice(0, 8) : [],
       gain: clamp(p.gain, 0, 2, 0.8),
       seed: Math.round(clamp(p.seed, 1, 2147483646, 1)),
-      gameHook: typeof p.gameHook === 'string' ? p.gameHook.replace(/[^\w$]/g, '').slice(0, 60) : '',
+      // "playMeow", or "playFootstep:wood" to replace only one argument's sound.
+      gameHook: typeof p.gameHook === 'string' ? p.gameHook.replace(/[^\w$:]/g, '').slice(0, 60) : '',
       variation: { pitch: clamp(v.pitch, 0, 1200, 0), time: clamp(v.time, 0, 1, 0), gain: clamp(v.gain, 0, 1, 0) },
       fx: { lowpass: clamp(fx.lowpass, 200, 20000, 20000), highpass: clamp(fx.highpass, 20, 8000, 20), reverb: clamp(fx.reverb, 0, 1, 0), reverbTime: clamp(fx.reverbTime, 0.1, 8, 1.5), drive: clamp(fx.drive, 0, 1, 0) },
       layers: (Array.isArray(p.layers) ? p.layers : []).slice(0, 12).map(normLayer)

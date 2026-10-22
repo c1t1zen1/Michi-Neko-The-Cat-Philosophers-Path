@@ -15,7 +15,8 @@ export const SFX_CATEGORIES = ['UI', 'Cat', 'Footsteps', 'Nature', 'Magic', 'Obj
 export const GAME_HOOKS = [
   'playMeow', 'playPurr', 'playTrill', 'playHiss', 'playChirp', 'playLap', 'playEat', 'playSquawk',
   'playBell', 'playKeyChime', 'playUnlockChime', 'playCollect', 'playDreamChime', 'playSplash',
-  'playDoorSlide', 'playFootstep', 'playSingingBowl', 'playMonkChoir'
+  'playDoorSlide', 'playFootstep', 'playFootstep:grass', 'playFootstep:wood', 'playFootstep:stone',
+  'playSingingBowl', 'playMonkChoir'
 ];
 
 export const LAYER_KINDS = ['tone', 'noise', 'fm', 'pluck'];
