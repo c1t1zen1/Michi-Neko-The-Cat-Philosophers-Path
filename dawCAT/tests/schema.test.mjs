@@ -118,3 +118,9 @@ test('the action reference documents every action', () => {
   const ref = actionReference();
   for (const a of ACTIONS) assert.ok(ref.includes(a.type), a.type);
 });
+
+test('the action reference can be limited to groups', () => {
+  const ref = actionReference({ groups: ['Sound design'] });
+  assert.ok(ref.includes('addSfx'));
+  assert.ok(!ref.includes('addChordProgression'));
+});

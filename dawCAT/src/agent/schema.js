@@ -108,11 +108,15 @@ function describeField(name, spec) {
   return `${name}${spec.required ? '*' : ''}${bits ? ': ' + bits : ''}`;
 }
 
+export const ACTION_GROUPS = [...new Set(ACTIONS.map((a) => a.group))];
+
 /* Human-readable action reference for the system prompt, grouped. `*` marks
-   required params, `=x` defaults. */
-export function actionReference() {
+   required params, `=x` defaults. `groups` limits it to some groups, which
+   keeps the prompt small for local models with short context windows. */
+export function actionReference({ groups: only } = {}) {
   const groups = new Map();
   for (const a of ACTIONS) {
+    if (only && !only.includes(a.group)) continue;
     if (!groups.has(a.group)) groups.set(a.group, []);
     const params = Object.entries(a.params).map(([k, s]) => describeField(k, s)).join('; ');
     const target = { none: '', track: ' [target: track]', clip: ' [target: "trackId:clipId"]', sfx: ' [target: sfx id]' }[a.target];
