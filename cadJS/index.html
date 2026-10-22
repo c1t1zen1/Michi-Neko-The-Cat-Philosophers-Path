@@ -21,12 +21,14 @@
       <div class="brand"><span class="brand-mark">C<span>Δ</span>D</span><small>JS / MICHI-NEKO</small></div>
       <nav id="menu-bar" aria-label="Application menu">
         <button data-menu="file">FILE</button><button data-menu="edit">EDIT</button><button data-menu="object">OBJECT</button>
-        <button data-menu="view">VIEW</button><button data-menu="agent">AI AGENT</button><button data-menu="info">INFO</button>
+        <button data-menu="studio">STUDIO</button><button data-menu="view">VIEW</button><button data-menu="agent">AI AGENT</button><button data-menu="info">INFO</button>
       </nav>
       <div class="top-actions">
+        <button id="command-palette-btn" title="Open Command Palette (Ctrl+K)">⌘ COMMAND</button>
         <select id="catalog-select" aria-label="Discovered objects"><option>Scanning game…</option></select>
         <button id="refresh-catalog" title="Rescan source and assets">↻ SCAN</button>
         <button id="clear-workspace" title="Clear all items from the CAD workspace (keeps the board) — create from scratch">✕ CLEAR</button>
+        <button id="open-agent-top" class="accent" title="Toggle AI Asset Designer Harness (A)">✦ AI COPILOT</button>
         <button id="export-game" class="accent" title="Push the selected CAD object to the live game and save it permanently (cad-overrides.json, applied at every game boot)">⤓ EXPORT TO GAME</button>
         <button id="mode-toggle" class="accent" title="Switch editor/game view (Tab)">GAME / TAB</button>
       </div>
@@ -44,6 +46,9 @@
       <div class="rail-rule"></div>
       <button class="tool" data-action="focus" title="Frame selected (F)">⌖<span>FRAME</span></button>
       <button class="tool" data-action="isolate" title="Isolate selected (I)">◇<span>ISOLATE</span></button>
+      <button class="tool" data-action="align-ground" title="Drop selected to ground plane (End)">⤓<span>GROUND</span></button>
+      <button class="tool" data-action="mirror-x" title="Mirror selected across X axis">⇌<span>MIRROR</span></button>
+      <button class="tool" data-action="radial-array" title="Create radial array from selected">∷<span>ARRAY</span></button>
       <button class="tool" data-action="duplicate" title="Duplicate (Ctrl+D)">▣<span>CLONE</span></button>
       <button class="tool" data-action="delete" title="Remove (Delete)">×<span>REMOVE</span></button>
       <div class="rail-rule"></div>
@@ -64,9 +69,12 @@
           <button data-view="perspective" class="active">PERSP</button><button data-view="front">FRONT</button>
           <button data-view="side">RIGHT</button><button data-view="top">TOP</button>
           <button id="wire-toggle">WIREFRAME</button><button id="grid-toggle" class="active">GRID</button>
+          <button id="bounds-toggle" title="Show selection bounding box & dimensions">BOUNDS</button>
           <button id="snap-toggle">SNAP 0.1</button>
+          <button id="turntable-toggle" title="Spin camera around target for asset inspection">TURNTABLE</button>
+          <button id="lighting-cycle" title="Cycle viewport lighting mood">LIGHT: STUDIO</button>
         </div>
-        <div id="viewport-label"><b>ISOLATION</b><span>WORLD / LOCAL</span></div>
+        <div id="viewport-label"><b>ISOLATION</b><span>WORLD / LOCAL · PRESS CTRL+K FOR COMMANDS</span></div>
         <div id="selection-box" class="selection-readout">NO SELECTION</div>
       </section>
       <section id="game-view" class="viewport">
@@ -79,10 +87,18 @@
     </main>
 
     <aside class="right-panel panel-glass">
-      <div class="panel-tabs"><button class="active" data-panel="scene">SCENE</button><button data-panel="assets">CATALOG</button></div>
+      <div class="panel-tabs">
+        <button class="active" data-panel="scene">SCENE</button>
+        <button data-panel="studio">STUDIO</button>
+        <button data-panel="assets">CATALOG</button>
+      </div>
       <section id="scene-panel" class="panel-page active">
         <div class="filter-row"><input id="tree-filter" placeholder="FILTER OBJECTS" autocomplete="off"><button id="runtime-source" title="Toggle editor/runtime tree">EDITOR</button></div>
         <div id="scene-tree" class="scene-tree"></div>
+      </section>
+      <section id="studio-panel" class="panel-page">
+        <div class="filter-row"><input id="studio-filter" placeholder="SEARCH PREFABS, TEXTURES, PALETTES" autocomplete="off"></div>
+        <div id="studio-list" class="studio-list"></div>
       </section>
       <section id="assets-panel" class="panel-page">
         <div class="filter-row"><input id="asset-filter" placeholder="FILTER CATALOG" autocomplete="off"></div>
@@ -96,35 +112,115 @@
     </aside>
 
     <aside id="agent-panel" class="agent-panel panel-glass" aria-label="AI design agent">
-      <header><div><b>AI DESIGN AGENT</b><small>CONSTRAINED CAD ACTION HARNESS</small></div><button id="agent-close" title="Close">×</button></header>
+      <header>
+        <div>
+          <b>AI ASSET DESIGNER HARNESS</b>
+          <small>LLAMA-SERVER · POPULAR APIS · PROCEDURAL CAD COPILOT</small>
+        </div>
+        <div class="agent-header-actions">
+          <span id="agent-conn-badge" class="conn-badge" title="Connection status">READY</span>
+          <button id="agent-close" title="Close">×</button>
+        </div>
+      </header>
       <div class="agent-scroll">
         <section class="agent-block">
-          <h3>PROVIDER</h3>
-          <div class="agent-grid two"><label>Service<select id="agent-provider"><option value="local">Local / llama-server</option><option value="mcp">MCP / custom gateway</option><option value="openai">OpenAI</option><option value="openrouter">OpenRouter</option><option value="anthropic">Anthropic</option></select></label><label>Model<input id="agent-model"></label></div>
-          <label>Base URL<input id="agent-base-url" spellcheck="false"></label>
-          <label>API key<input id="agent-api-key" type="password" autocomplete="off" placeholder="Kept in this browser session only"></label>
-          <div class="agent-grid four"><label>Temperature<input id="agent-temperature" type="number" min="0" max="2" step="0.05"></label><label>Top P<input id="agent-top-p" type="number" min="0.01" max="1" step="0.05"></label><label>Max tokens<input id="agent-max-tokens" type="number" min="128" max="32000" step="128"></label><label>Reasoning<select id="agent-reasoning"><option>none</option><option>low</option><option selected>medium</option><option>high</option></select></label></div>
-          <div class="agent-grid two"><label>Execution<select id="agent-autonomy"><option value="plan">Plan only</option><option value="confirm" selected>Confirm before run</option><option value="auto">Auto-run valid plans</option></select></label><label>Context<select id="agent-context"><option value="selection">Selection + nearby scene</option><option value="character">Whole selected character/group</option><option value="workspace">Whole workspace</option></select></label></div>
+          <div class="agent-section-head">
+            <h3>AI PROVIDER &amp; LOCAL LLAMA-SERVER</h3>
+            <div class="mini-actions">
+              <button id="agent-probe" title="Auto-detect local llama-server (:8080), Ollama (:11434), LM Studio (:1234), or test current endpoint">⚡ AUTO-DETECT</button>
+              <button id="agent-fetch-models" title="Fetch available models from provider">↻ MODELS</button>
+            </div>
+          </div>
+          <div class="agent-grid two">
+            <label>Service
+              <select id="agent-provider">
+                <option value="local">Local / llama-server (llama.cpp)</option>
+                <option value="ollama">Local / Ollama (:11434)</option>
+                <option value="lmstudio">Local / LM Studio (:1234)</option>
+                <option value="builtin">Built-in Instant CAD Copilot (Offline)</option>
+                <option value="openai">OpenAI (GPT-5.2 / o3)</option>
+                <option value="anthropic">Anthropic (Claude 4.6)</option>
+                <option value="gemini">Google Gemini (2.5 Pro/Flash)</option>
+                <option value="openrouter">OpenRouter (Any Model)</option>
+                <option value="groq">Groq Cloud (Fast Llama/DeepSeek)</option>
+                <option value="deepseek">DeepSeek API (Chat / R1)</option>
+                <option value="xai">xAI Grok</option>
+                <option value="mistral">Mistral / Codestral</option>
+                <option value="mcp">MCP / Custom Gateway</option>
+              </select>
+            </label>
+            <label>Model
+              <input id="agent-model" list="agent-model-list" placeholder="e.g. qwen2.5-coder-14b">
+              <datalist id="agent-model-list"></datalist>
+            </label>
+          </div>
+          <div class="agent-grid two">
+            <label>Base URL<input id="agent-base-url" spellcheck="false"></label>
+            <label>API key<input id="agent-api-key" type="password" autocomplete="off" placeholder="Optional for local servers"></label>
+          </div>
+          <div id="agent-discovered-bar" class="discovered-bar hidden"></div>
+          <div class="agent-grid four">
+            <label>Temperature<input id="agent-temperature" type="number" min="0" max="2" step="0.05"></label>
+            <label>Top P<input id="agent-top-p" type="number" min="0.01" max="1" step="0.05"></label>
+            <label>Max tokens<input id="agent-max-tokens" type="number" min="128" max="32000" step="128"></label>
+            <label>Reasoning<select id="agent-reasoning"><option>none</option><option>low</option><option selected>medium</option><option>high</option></select></label>
+          </div>
+          <div class="agent-grid three">
+            <label>Execution<select id="agent-autonomy"><option value="plan">Plan only</option><option value="confirm" selected>Confirm before run</option><option value="auto">Auto-run valid plans</option></select></label>
+            <label>Context<select id="agent-context"><option value="selection">Selection + nearby scene</option><option value="character">Whole selected character/group</option><option value="workspace">Whole workspace</option></select></label>
+            <label title="If local llama-server is offline, automatically generate a plan with the Built-in CAD Copilot">Offline Fallback<select id="agent-fallback"><option value="true" selected>Smart Copilot Fallback</option><option value="false">Strict Provider Only</option></select></label>
+          </div>
         </section>
         <section class="agent-block">
-          <h3>REFERENCE IMAGES</h3>
-          <div id="agent-references" class="reference-strip"><span>Drop or upload PNG/JPEG/WebP references.</span></div>
+          <div class="agent-section-head">
+            <h3>VISION REFERENCES &amp; VIEWPORT SNAPSHOT</h3>
+            <div class="mini-actions">
+              <button id="agent-snap-viewport" title="Capture current 3D CAD viewport as a reference image for Vision models">📷 SNAP VIEWPORT</button>
+            </div>
+          </div>
+          <div id="agent-references" class="reference-strip"><span>Drop/upload PNG/JPEG/WebP or click SNAP VIEWPORT.</span></div>
           <div class="button-grid"><button id="agent-upload">UPLOAD IMAGES</button><button id="agent-clear-images">CLEAR</button></div>
         </section>
         <section class="agent-block grow">
-          <h3>NATURAL-LANGUAGE TASK</h3>
-          <textarea id="agent-prompt" placeholder="Example: Redesign the selected cat from the references. Make the head rounder, enlarge the eyes, add warm striped textures, and keep the silhouette game-ready."></textarea>
-          <div class="agent-actions"><button id="agent-send" class="primary">GENERATE PLAN</button><button id="agent-stop">STOP</button></div>
+          <div class="agent-section-head">
+            <h3>ASSET DESIGN PROMPT &amp; QUICK RECIPES</h3>
+            <div class="mini-actions">
+              <button id="agent-clear-chat" title="Clear multi-turn conversation memory">CLEAR MEMORY (0)</button>
+            </div>
+          </div>
+          <div id="agent-recipes" class="recipe-chips">
+            <button type="button" data-recipe="Build a vermilion Kyoto Torii gate on the ground and frame it">⛩ Torii Gate</button>
+            <button type="button" data-recipe="Create a mossy stone lantern (Ishi-Doro) with warm glowing firebox">🏮 Stone Lantern</button>
+            <button type="button" data-recipe="Build a 3-tier wooden Kyoto pagoda tower">🏯 3-Tier Pagoda</button>
+            <button type="button" data-recipe="Create a Sakura cherry blossom tree with pink canopy clouds">🌸 Sakura Tree</button>
+            <button type="button" data-recipe="Restyle the cat with a rounder head, larger expressive eyes, polite sitting pose, and calico fur patches texture">🐱 Calico Cat Restyle</button>
+            <button type="button" data-recipe="Apply 256px painterly mossy Kyoto stone texture to the selected asset and snap it to the ground">🎨 Mossy Stone Texture</button>
+            <button type="button" data-recipe="Arrange a radial circle of 6 clones around the center with radius 2.5">∷ Radial Circle ×6</button>
+            <button type="button" data-recipe="Create a sculpted pine bonsai in a celadon ceramic tray">🪴 Pine Bonsai</button>
+          </div>
+          <textarea id="agent-prompt" placeholder="Describe what to build, sculpt, texture, pose, or kitbash (Ctrl+Enter to generate)…"></textarea>
+          <div class="agent-actions"><button id="agent-send" class="primary">✦ GENERATE PLAN</button><button id="agent-instant" title="Run immediately using Built-in Instant CAD Copilot">⚡ INSTANT COPILOT</button><button id="agent-stop">STOP</button></div>
           <div id="agent-state" class="agent-state">Ready. Model output is validated before any scene change.</div>
         </section>
         <section class="agent-block">
           <h3>PLAN PREVIEW</h3>
+          <div id="agent-reasoning-box" class="agent-reasoning hidden"></div>
           <div id="agent-plan" class="agent-plan"><span>No plan generated.</span></div>
-          <div class="agent-actions"><button id="agent-run" class="primary" disabled>RUN PLAN</button><button id="agent-undo">UNDO LAST</button><button id="agent-export-plan">EXPORT</button></div>
+          <div class="agent-actions"><button id="agent-run" class="primary" disabled>▶ RUN PLAN</button><button id="agent-undo">↶ UNDO LAST</button><button id="agent-export-plan">⤓ EXPORT</button></div>
         </section>
         <section class="agent-block"><h3>ACTIVITY</h3><div id="agent-log" class="agent-log"></div></section>
       </div>
     </aside>
+
+    <div id="command-palette" class="command-palette hidden" role="dialog" aria-label="Command palette">
+      <div class="command-card panel-glass">
+        <div class="command-search-row">
+          <span>⌘</span>
+          <input id="command-input" placeholder="Type a command, Kyoto prefab, texture, palette, or game asset… (Esc to close)" autocomplete="off">
+        </div>
+        <div id="command-list" class="command-list"></div>
+      </div>
+    </div>
 
     <footer class="statusbar panel-glass">
       <span id="status-message">READY</span><span id="object-stats">0 OBJECTS</span><span id="render-stats">0 FPS</span>

@@ -12,6 +12,10 @@ import {
   ASSET_PACKAGE_FORMAT, changedObjectComponents, createAssetPackage, evaluateAssetCompatibility,
   hashValue, normalizeAssetId, validateAssetPackage
 } from './asset-package.mjs';
+import {
+  CHARACTER_POSES, MATERIAL_PALETTES, PROCEDURAL_PREFABS, PROCEDURAL_TEXTURES,
+  applyCharacterPose, applyMaterialPaletteToObject, buildProceduralAsset, synthesizePainterlyTexture
+} from './procedural-studio.mjs';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -285,9 +289,12 @@ class CadApp {
     this.grid = new THREE.GridHelper(200, 200, 0x315f82, 0x203847);
     this.grid.material.transparent = true; this.grid.material.opacity = 0.48; this.scene.add(this.grid);
     this.axes = new THREE.AxesHelper(3); this.scene.add(this.axes);
-    const hemi = new THREE.HemisphereLight(0x9fc9ee, 0x20252a, 1.55); hemi.name = 'Editor Hemisphere'; this.scene.add(hemi);
-    const key = new THREE.DirectionalLight(0xdcecff, 2.3); key.name = 'Editor Key'; key.position.set(5, 9, 6); key.castShadow = true; this.scene.add(key);
-    const fill = new THREE.DirectionalLight(0x4f7ead, 0.65); fill.position.set(-6, 2, -5); this.scene.add(fill);
+    this.hemiLight = new THREE.HemisphereLight(0x9fc9ee, 0x20252a, 1.55); this.hemiLight.name = 'Editor Hemisphere'; this.scene.add(this.hemiLight);
+    this.keyLight = new THREE.DirectionalLight(0xdcecff, 2.3); this.keyLight.name = 'Editor Key'; this.keyLight.position.set(5, 9, 6); this.keyLight.castShadow = true; this.scene.add(this.keyLight);
+    this.fillLight = new THREE.DirectionalLight(0x4f7ead, 0.65); this.fillLight.position.set(-6, 2, -5); this.scene.add(this.fillLight);
+    this.boundsHelper = new THREE.BoxHelper(this.root, 0x5fc8df); this.boundsHelper.visible = false; this.scene.add(this.boundsHelper);
+    this.turntable = false;
+    this.lightingModeIndex = 0;
     this.orbit = new OrbitControls(this.camera, this.canvas); this.orbit.enableDamping = true; this.orbit.dampingFactor = 0.08;
     this.transform = new TransformControls(this.camera, this.canvas); this.transform.setSize(0.78); this.scene.add(this.transform);
     this.transform.addEventListener('dragging-changed', (event) => { this.orbit.enabled = !event.value; });
@@ -443,16 +450,21 @@ class CadApp {
     this.agentPanel = new AgentPanel({
       getContext: (scope) => this.getAgentContext(scope),
       executePlan: (plan, references) => this.executeAgentPlan(plan, references),
-      undo: () => this.history.undo()
+      undo: () => this.history.undo(),
+      captureViewport: () => this.captureViewportForAgent()
     });
     $('#refresh-catalog').addEventListener('click', () => this.loadCatalog(true));
     $('#mode-toggle').addEventListener('click', () => this.toggleView());
     $('#scan-runtime').addEventListener('click', () => this.scanRuntime());
     $('#export-game').addEventListener('click', () => this.pushToGame(true));
     $('#clear-workspace').addEventListener('click', () => this.clearWorkspaceRequest());
+    $('#open-agent-top')?.addEventListener('click', () => this.agentPanel.toggle());
+    $('#command-palette-btn')?.addEventListener('click', () => this.openCommandPalette());
     this.bindSwitchGuard();
+    this.bindCommandPalette();
     $('#runtime-source').addEventListener('click', () => this.toggleTreeSource());
     $('#tree-filter').addEventListener('input', () => this.rebuildTree());
+    $('#studio-filter')?.addEventListener('input', () => this.renderStudio());
     $('#asset-filter').addEventListener('input', () => this.renderCatalog());
     $('#catalog-select').addEventListener('change', (event) => this.openCatalogEntry(event.target.value));
     $$('.tool[data-tool]').forEach((button) => button.addEventListener('click', () => this.setTool(button.dataset.tool)));
@@ -461,7 +473,10 @@ class CadApp {
     $$('[data-view]').forEach((button) => button.addEventListener('click', () => this.setCameraView(button.dataset.view)));
     $('#wire-toggle').addEventListener('click', () => this.toggleWireframe());
     $('#grid-toggle').addEventListener('click', () => { this.grid.visible = !this.grid.visible; $('#grid-toggle').classList.toggle('active', this.grid.visible); });
+    $('#bounds-toggle')?.addEventListener('click', () => this.toggleBoundsHelper());
     $('#snap-toggle').addEventListener('click', () => this.toggleSnap());
+    $('#turntable-toggle')?.addEventListener('click', () => this.toggleTurntable());
+    $('#lighting-cycle')?.addEventListener('click', () => this.cycleLightingMood());
     $$('.panel-tabs button[data-panel]').forEach((button) => button.addEventListener('click', () => this.setPanel(button.dataset.panel)));
     $$('#menu-bar button').forEach((button) => button.addEventListener('click', (event) => this.showMenu(button.dataset.menu, event.currentTarget)));
     document.addEventListener('pointerdown', (event) => { if (!event.target.closest('#menu-bar, #menu-popover')) $('#menu-popover').classList.add('hidden'); });
@@ -469,6 +484,80 @@ class CadApp {
     $('#file-input').addEventListener('change', (event) => this.openFile(event.target.files[0]));
     $('#texture-input').addEventListener('change', (event) => { const file = event.target.files[0]; const descendants = event.target.dataset.descendants === 'true'; if (file) this.applyTextureFile(file, descendants); event.target.value = ''; delete event.target.dataset.descendants; });
     this.frame.addEventListener('load', () => { $('#bridge-state').textContent = 'Game loaded — runtime available'; this.installRuntimePicking(); setTimeout(() => this.scanRuntime(), 1200); });
+    this.renderStudio();
+  }
+
+  captureViewportForAgent() {
+    this.renderer.render(this.scene, this.camera);
+    const dataUrl = this.canvas.toDataURL('image/png');
+    return {
+      name: `viewport-${new Date().toISOString().slice(11, 19).replace(/:/g, '')}.png`,
+      type: 'image/png',
+      width: this.canvas.width,
+      height: this.canvas.height,
+      dataUrl
+    };
+  }
+
+  renderStudio() {
+    const host = $('#studio-list');
+    if (!host) return;
+    const filter = ($('#studio-filter')?.value || '').trim().toLowerCase();
+    const match = (text) => !filter || text.toLowerCase().includes(filter);
+
+    const prefabs = PROCEDURAL_PREFABS.filter((item) => match(`${item.label} ${item.category} ${item.description}`));
+    const textures = PROCEDURAL_TEXTURES.filter((item) => match(`${item.label} ${item.category}`));
+    const palettes = Object.entries(MATERIAL_PALETTES).filter(([id, item]) => match(`${id} ${item.label}`));
+    const poses = CHARACTER_POSES.filter((item) => match(item.label));
+
+    let html = '';
+    if (prefabs.length) {
+      html += `<div class="studio-group-title">KYOTO PROCEDURAL PREFABS (${prefabs.length})</div><div class="studio-grid">`;
+      for (const item of prefabs) {
+        html += `<button type="button" class="studio-card" data-studio-prefab="${escapeHtml(item.id)}"><b><span>${item.icon}</span>${escapeHtml(item.label)}</b><small>${escapeHtml(item.description)}</small></button>`;
+      }
+      html += `</div>`;
+    }
+    if (textures.length) {
+      html += `<div class="studio-group-title">256PX PAINTERLY TEXTURES (${textures.length})</div><div class="studio-grid">`;
+      for (const item of textures) {
+        html += `<button type="button" class="studio-card" data-studio-texture="${escapeHtml(item.id)}"><b>▧ ${escapeHtml(item.label)}</b><small>${escapeHtml(item.category)} · 256px procedural</small><div class="swatch-strip"><span style="background:${item.primary}"></span><span style="background:${item.secondary}"></span><span style="background:${item.accent}"></span></div></button>`;
+      }
+      html += `</div>`;
+    }
+    if (palettes.length) {
+      html += `<div class="studio-group-title">MATERIAL HARMONY PALETTES (${palettes.length})</div><div class="studio-grid">`;
+      for (const [id, item] of palettes) {
+        html += `<button type="button" class="studio-card" data-studio-palette="${escapeHtml(id)}"><b>🎨 ${escapeHtml(item.label)}</b><div class="swatch-strip">${item.colors.map((c) => `<span style="background:${c}"></span>`).join('')}</div></button>`;
+      }
+      html += `</div>`;
+    }
+    if (poses.length) {
+      html += `<div class="studio-group-title">CHARACTER RIG POSES</div><div class="studio-grid">`;
+      for (const item of poses) {
+        html += `<button type="button" class="studio-card" data-studio-pose="${escapeHtml(item.id)}"><b>🐾 ${escapeHtml(item.label)}</b><small>Apply pose to character</small></button>`;
+      }
+      html += `</div>`;
+    }
+    if (match('align ground center mirror array scatter subdivide modifiers')) {
+      html += `<div class="studio-group-title">SMART CAD LAYOUT &amp; MODIFIERS</div><div class="studio-grid">
+        <button type="button" class="studio-card" data-studio-action="align-ground"><b>⤓ Drop to Ground</b><small>Snap bottom of bounds to Y = 0</small></button>
+        <button type="button" class="studio-card" data-studio-action="align-center"><b>⊕ Center Origin</b><small>Align XZ bounds center to 0,0</small></button>
+        <button type="button" class="studio-card" data-studio-action="mirror-x"><b>⇌ Mirror X</b><small>Symmetric duplicate across X</small></button>
+        <button type="button" class="studio-card" data-studio-action="mirror-z"><b>⇅ Mirror Z</b><small>Symmetric duplicate across Z</small></button>
+        <button type="button" class="studio-card" data-studio-action="linear-array"><b>⋯ Linear Array ×4</b><small>Row of 4 evenly spaced clones</small></button>
+        <button type="button" class="studio-card" data-studio-action="radial-array"><b>∷ Radial Ring ×6</b><small>Circle of 6 clones facing center</small></button>
+        <button type="button" class="studio-card" data-studio-action="scatter"><b>⁙ Organic Scatter ×7</b><small>Natural cluster with scale variation</small></button>
+        <button type="button" class="studio-card" data-studio-action="subdivide"><b>◈ Smooth Subdivide</b><small>Refine selected mesh vertices</small></button>
+      </div>`;
+    }
+    host.innerHTML = html || '<div class="empty-state"><span>No matching Studio tools.</span></div>';
+
+    $$('[data-studio-prefab]', host).forEach((btn) => btn.addEventListener('click', () => this.spawnProceduralAsset(btn.dataset.studioPrefab)));
+    $$('[data-studio-texture]', host).forEach((btn) => btn.addEventListener('click', () => this.applyProceduralTexturePreset(btn.dataset.studioTexture, true)));
+    $$('[data-studio-palette]', host).forEach((btn) => btn.addEventListener('click', () => this.applyPalettePreset(btn.dataset.studioPalette)));
+    $$('[data-studio-pose]', host).forEach((btn) => btn.addEventListener('click', () => this.applyPosePreset(btn.dataset.studioPose)));
+    $$('[data-studio-action]', host).forEach((btn) => btn.addEventListener('click', () => this.action(btn.dataset.studioAction)));
   }
 
   async loadCatalog(refresh = false) {
