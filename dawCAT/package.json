@@ -1,0 +1,10 @@
+{
+  "name": "dawcat",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "dawCAT web audio studio for Michi-Neko. No dependencies — this file only marks src/ as ES modules for Node and declares the test script.",
+  "scripts": {
+    "test": "node tests/run.mjs"
+  }
+}
