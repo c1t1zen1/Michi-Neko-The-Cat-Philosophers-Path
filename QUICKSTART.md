@@ -36,6 +36,7 @@
 | `M` | Meow | The cat meows with an animated mouth open |
 | `C` | Toggle prowl | Crouch low, move quietly at 45% speed |
 | `P` | Photo mode | Free camera orbit, zoom, capture PNG screenshots |
+| `J` | Discovery journal | Places, quiet moments, photographs, keepsakes, weather memories |
 | `Esc` | Pause menu | Save & quit, settings, resume |
 | `F3` | Debug overlay | FPS, draw calls, triangles, GPU memory |
 | Mouse drag | Camera rotate | Yaw (horizontal) + pitch (vertical) |
@@ -133,24 +134,34 @@ Explore → Discover → Interact → Collect → Progress → Repeat
 
 ### Luna (月) — The Moonlight Cat
 - **Location:** Near the center of the valley (by the spawn point)
-- **Fur:** Dark charcoal with moonlit amber eyes and indigo silk ribbon
+- **Fur:** Silver smoke-grey with a soft tabby pattern, moonlit amber eyes and an indigo silk ribbon; slender build
+- **Habits:** Dignified — grooms and sits, greets you with a slow blink. At night she walks to the old bridge to watch the moon
 - **Personality:** Mysterious, wise, speaks in riddles about the valley's secrets
 - **Quest:** Gives you **"Luna's Yarn Hunt"** — collect 3 yarn balls
 - **Tip:** Approach her to trigger automatic dialogue on first meeting. Press E to greet her again anytime.
 
 ### Mochi (🍡) — The Bamboo Grove Cat
 - **Location:** East side of the valley near the bamboo grove
-- **Fur:** Warm golden-orange with cream belly
+- **Fur:** Warm golden-orange tabby with cream belly; round build
+- **Habits:** Stretches, yawns, bounds up to say hello, chases bamboo leaves when the wind picks up, and curls up to sleep at night — tiptoe close and he wakes with a yawn
 - **Personality:** Cheerful, chatty, loves bamboo whispers
 - **Hint:** "They say a hidden house appears for cats who explore..."
 - **Tip:** He mentions seeing something shiny near the old torii gate — this is a clue about the Antique Key
 
 ### Kuro (⚫) — The River Guardian
 - **Location:** North side of the valley near the river
-- **Fur:** Jet black with dark golden eyes
+- **Fur:** Solid jet black with dark golden eyes; long-limbed
+- **Habits:** Sits and watches. Wary at first, he warms to you the longer you linger (try prowl mode). Visits the river in mist and shelters under the tea-house eave in rain
+- **Quest:** After Luna's yarn hunt he gives you **Bokuchi's Offering Bells** — find five hidden bells
 - **Personality:** Quiet, observant, speaks in short sentences
 - **Hint:** "Follow the red shrine gates when the mist rolls in"
 - **Tip:** Kuro walks slowly and stays near the water. Approach quietly (try prowl mode with C)
+
+---
+
+## Reactions & Routines
+
+The villagers notice you. Each cat looks up as you approach, reacts when you come close (Luna slow-blinks, Mochi turns playful, Kuro stays cautious), and is startled if you sprint right past. They also keep a schedule: Luna at the old bridge by night, Kuro at the river in mist and under the eave in rain, Mochi asleep after dark. Slow-blink back at a cat (E when prompted) for a small friendship moment, or gift a yarn ball.
 
 ---
 
@@ -327,11 +338,58 @@ Press **P** at any time during gameplay to enter photo mode.
 
 ---
 
+## Rest & Watch, Stillness Moments and the Journal
+
+Some places invite you to simply sit. When the prompt says **sit & watch** (or **watch the sunset** near dusk), press E and stay still: the camera drifts slowly, the music swells, and after about eight quiet seconds a *stillness moment* arrives — a line written for the hour and the weather. Moving, jumping or talking ends it gently.
+
+Rest spots: the shrine steps, the old bridge, the rooftop perch, the bamboo clearing, the tea-house porch, the two hidden places below, and — once you are a City Legend — the torii crown.
+
+Press **J** to open the **discovery journal**. It is a keepsake book, not a checklist: places you have found, quiet moments, photographs stamped when you take a picture at a rest spot (press P near one), weather you have lived through, and keepsakes.
+
+---
+
+## Hidden Places
+
+Two secrets sit on the valley floor with no marker pointing to them. The scent trail only starts to flow within about ten metres, so the best way to find them is to wander off the path.
+
+- **The Moon Pool** — a still spring tucked west of the shrine grove. By day, turquoise light wanders across the water and lotus pads drift; by night the moon pools on the surface and pale motes lift off it. Listen for glassy, pentatonic drops.
+- **The Lantern Glade** — a ring of tall bamboo west of the tea house with an opening toward the valley. Paper lanterns kindle one after another at dusk, fireflies gather, and the bamboo knocks softly against itself.
+
+Each gives a journal entry and a little XP the first time you arrive, and is a sit-and-watch spot with its own stillness moments for day, night and rain.
+
+### The Summit
+A last secret waits above the shrine. Ring the shrine bell ten times and step into the light: you arrive in a wind-combed meadow high above Kyoto, with the city, Osaka and the bay stretching away. There are no quests, no hints and no NPCs — sit still and the cat will sleep. Walk back under the torii at the foot of the shrine steps to return. *(This scene is still being developed.)*
+
+---
+
+## Settings & Accessibility
+
+Open **Settings** from the title screen or pause menu (Esc). Everything applies live and is remembered.
+
+| Setting | What it does |
+|---------|--------------|
+| Master / Music / SFX / Ambient volume | Four independent sliders |
+| Camera sensitivity, Invert look Y | Camera feel |
+| Graphics quality | Auto-detect, Low, Medium or High. Auto picks by device; the game also adapts resolution on the fly |
+| Show hints | Control hints and waypoint arrows |
+| Interface mode | *Minimal* (just the context prompt) or *Guided* (parchment scroll + markers) |
+| **Field of view** | 40–90° |
+| **Interface size** | 80–150% for the parchment, prompts, toasts and dialogue |
+| **Larger dialogue text** | Bigger, roomier conversation text |
+| **High-contrast prompts** | Black-and-white prompts and dialogue boxes |
+| **Reduce motion** | *Follow system* (default), *On* or *Off*. On holds the camera still: no sprint/jump FOV kicks, no automatic swing behind the cat, a still title backdrop, no rest-camera drift, no film grain or lens fringe, and calmer UI animation |
+| **Film grain / Lens fringe** | Individual toggles (fringe is a High-quality effect) |
+| Save data | Export or import your save as a JSON file |
+
+---
+
 ## Save System
 
-- The game **auto-saves every 12 seconds** during gameplay
-- Saves are stored in your browser's `localStorage`
-- Your position, yarn count, XP, rank, quest progress, collected items, world state (key/tea house/feather), time of day, and weather are all saved
+- The game **auto-saves every 12 seconds** during gameplay, and whenever the tab is hidden or closed
+- Saves are stored in your browser's `localStorage` with a rotating **backup copy**: if the main save is ever damaged, the game restores the last good one automatically
+- Your position, yarn count, XP, rank, quest progress, collected items, world state (key/tea house/feather), journal, visited rest spots, time of day, and weather are all saved
+- **Export / Import** (Settings → Save Data) moves a save between browsers or devices as a JSON file
+- If your graphics context is ever lost (common on phones), the game saves, shows a calm "the valley is resting" screen, and recovers on its own
 - Click **"Save & Quit to Title"** in the pause menu to save and return to the title screen
 - Click **"Continue"** on the title screen to resume from your last save
 - **New Game** clears your save and starts fresh
@@ -354,6 +412,12 @@ No. Cat Walk is an exploration game with no combat, no enemies, and no fail stat
 
 ### How long is the game?
 The current alpha content can be explored thoroughly in 30–60 minutes. The secret tea house quest takes about 15–20 minutes if you know where to go. Future updates will add more zones, NPCs, and story content.
+
+### Where is my progress book?
+Press **J** for the discovery journal. It records places, quiet moments, photographs, weather memories and keepsakes.
+
+### The camera makes me dizzy
+Open Settings and set **Reduce motion** to *On*, lower the **Field of view**, and turn off film grain. Reduce motion is also switched on automatically if your system asks for reduced motion.
 
 ### Can I customize my cat?
 Not yet — the player cat is a fixed brown tabby with a red ribbon and golden bell. Customization (fur colors, collars, accessories) is planned for future updates.

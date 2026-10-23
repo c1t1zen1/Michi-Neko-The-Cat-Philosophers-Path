@@ -1,5 +1,7 @@
 # Michi Neko: NPC Tasks, Dialogue Riddles & End-Game Content Guide
 
+> **Status (2026-10-23):** Updated for personalities, routines, Bokuchi's Offering Bells (implemented), rest spots, hidden places and the summit. Quest #13 below moved from "planned" to "implemented"; the Tokyo-era quests remain future work.
+
 > A comprehensive investigation of all NPC cat task systems, dialogue riddles, and completion rewards in the Michi Neko codebase.
 
 ---
@@ -29,6 +31,8 @@
 
 **Rewards:** +50 XP (quest completion), **Jump Boost** ability (Luna's Leap), then directs you to the Turtle Corral for the Jade Paw
 
+**Look & manner (2026-10-23):** silver smoke-grey coat with a soft tabby pattern, slender build. Grooms and sits; greets with a slow blink. **Routine:** walks to the old bridge deck at night to watch the moon.
+
 ---
 
 #### 2. Mochi — The Bamboo Grove Cat
@@ -44,6 +48,8 @@
 > **Riddle meaning:** The bamboo "whispers" — hinting that something is hidden. The shiny object near the torii gate is the **Antique Key** that unlocks the secret Tea House.
 
 **Task:** No formal quest — provides a **hint** about the Antique Key location
+
+**Look & manner (2026-10-23):** ginger tabby, round and slightly smaller. Stretches and yawns often, turns playful when you approach, startles at a sprinting cat. **Routine:** plays with bamboo leaves in wind (cloudy/rain), has weather-reactive lines for rain, mist and snow, and **curls up to sleep at night** (wakes with a yawn if you come within ~3 m).
 
 **Rewards:** +5 XP (first meeting friend bonus), +15 XP (greeting)
 
@@ -61,7 +67,9 @@
 
 > **Riddle meaning:** References "old secrets" kept by the river — this is a hint toward future content (the Fushimi Inari shrine expansion). The "red shrine gates" are the torii gates, which don't exist yet in the current alpha but are planned.
 
-**Task:** No formal quest — provides atmospheric dialogue and hints
+**Task:** **Bokuchi's Offering Bells** — unlocked once Luna's yarn hunt is complete. Kuro explains that the forest spirit Bokuchi hid five offering bells in the valley; find all five and report back. Outside the quest he gives weather-reactive atmospheric lines and, in mist, hints at the spirit altar behind the shrine.
+
+**Look & manner (2026-10-23):** solid black coat, long-limbed. Sits and watches; cautious at first, warming the longer you stay near. **Routine:** visits the river in mist, shelters under the tea-house eave in rain.
 
 **Rewards:** +5 XP (first meeting), +15 XP (greeting)
 
@@ -83,6 +91,10 @@
 | 10 | **Paw at Koi** — In the river | +5 | — |
 | 11 | **Drink Fresh Water** — At riverbank | +2 | — |
 | 12 | **Bat Yarn Balls** — Knock yarn around | (mood boost) | — |
+| 13 | **Bokuchi's Offering Bells** — Find five hidden bells for Kuro | +10 per bell, +50 on turn-in | Bokuchi's Blessing keepsake (the forest hums where you walk) |
+| 14 | **Touch the Spirit Altar** — Only visible while mist holds the valley | (journal) | Mist Charm keepsake |
+| 15 | **Rest & Watch** — Sit at a rest spot for ~8 s | +20 first visit, +15 per stillness moment | Journal entries, photo stamps |
+| 16 | **Find the Moon Pool / Lantern Glade** — Hidden valley places | +25 each | Journal entries, stillness moments |
 
 ---
 
@@ -90,7 +102,7 @@
 
 | # | NPC | Quest | Task | Riddle/Dialogue | Rewards |
 |---|-----|-------|------|-----------------|---------|
-| 13 | **Bokuchi (木地)** | "The Bamboo Whisper" | Collect 5 Offering Bells in forest | Speaks in riddles as forest spirit | +120 XP, Wind Whisper ability, Forest Spirit badge |
+| 13 | **Bokuchi (木地)** | "The Bamboo Whisper" (expanded form) | *The core bell hunt shipped as Bokuchi's Offering Bells via Kuro; a full Bokuchi NPC and the Wind Whisper ability are still planned* | Speaks in riddles as forest spirit | +120 XP, Wind Whisper ability, Forest Spirit badge |
 | 14 | **Inari (稲荷)** | "The Thousand Torii" | Count/touch 50 torii gates, find hidden altar | *"The foxes run between cities. Follow the iron snake..."* | +150 XP, Fox Charm, Inari & Kitsune badges |
 | 15 | **Kitsune (狐)** | (Inari's companion) | Hints and guidance | Young, energetic, curious | — |
 | 16 | **Eki (駅)** | "The Station Cat" | Obtain Shinkansen Ticket | Train metaphors | Unlocks bullet train sequence |
@@ -130,9 +142,8 @@
 | Rooftop Wanderer | 150 | Speed Up (5.5 base, 1.9x sprint) |
 | City Legend | 250 | Master Cat mode |
 
-- **Torii Gate Completion Message** (highest current content): When you reach the top of the torii gate at Rank 4:
-  > *"I can see beyond this valley, I wonder what's out there?"*
-  This is the closest thing to a "completion" moment in the current alpha — it hints at the Tokyo expansion that's planned.
+- **Torii Crown completion moment** (City Legend only): sit and watch from the top of the torii gate and the stillness moment reads *"Every path becomes a home when someone remembers your pawprints,"* granting the **Valley Became Home** keepsake. It is a local completion beat — arrival, not an ending — and still hints at the planned Tokyo expansion.
+- **The Summit (天上):** a secret respite scene reached by ringing the shrine bell ten times. No quests or reward — only stillness. (Under active development.)
 
 ### Planned (Future) — Full Ending
 

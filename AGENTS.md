@@ -1,5 +1,23 @@
 # AGENTS.md — Michi-Neko
 
+Browser game (Three.js r160, vanilla ES modules, no build step) plus two
+companion apps. Last reviewed 2026-10-23.
+
+## Layout
+
+| Path | What lives there |
+|------|------------------|
+| `index.html`, `src/` | The game. `main.js` orchestrates; see the README's project tree for every module |
+| `src/mountaintop.js` | The summit clearing (天上). **Owned by a separate effort — don't edit it, or the summit UI in `index.html`/`ui.js`, unless asked.** Cache-tag bumps are the one exception (import lines only) |
+| `src/hidden_places.js` | Moon Pool + Lantern Glade (valley floor, never a hilltop) |
+| `tools/` | Review sheets (`cat_`, `tree_`, `town_`, `hidden_`, `summit_preview`) and `verify.mjs` / `check_syntax.mjs` / `summit_test.mjs` |
+| `dawCAT/` | Audio studio: compose, Sound Design, Wave Lab, AI assistant. `cd dawCAT && npm test` |
+| `cadJS/` | CAD workspace: Procedural Studio, push-to-game, AI agent. `cd cadJS && npm test` (`npm run check` also loads the server modules) |
+| `assets/` | Optional runtime media (summit vista GLB, transition mp4); every slot has a fallback |
+| `docs/` | Reviews, the build guide, checklists, social posts, README artwork |
+| `data/` | Reference screenshots and Blender sources |
+| `OLD/` | Archived predecessor project — not this game |
+
 ## Run
 
 Static site — serve the repo root over HTTP (ES modules + import map require
@@ -21,7 +39,11 @@ Every module import carries `?v=<tag>`. Keep all tags in sync when editing:
 sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDD<letter>/g" src/*.js index.html
 ```
 
-Current tag: `20261022f` (also used by every `tools/*_preview.*`).
+Current tag: `20261022f` (also used by every `tools/*_preview.*`). A tag
+bump touches every module's import lines, including `mountaintop.js` — change
+only the `?v=` strings there.
+
+Companion apps (`dawCAT/`, `cadJS/`) import their own files without tags.
 
 On Windows do NOT bulk-rewrite with PowerShell `Get-Content`/`Set-Content` —
 it re-encodes and corrupts em-dashes/Japanese text. Use Node (byte-safe):
@@ -32,15 +54,17 @@ node -e "const fs=require('fs');const files=fs.readdirSync('src').filter(f=>f.en
 
 ## Verification
 
-Syntax check ES modules (Node can't `--check` ESM directly):
+Syntax check ES modules (Node can't `--check` ESM directly). Either:
 
 ```
+node tools/check_syntax.mjs      # all 35 modules, BOM-safe, works on Windows
+node tools/verify.mjs            # syntax + static wiring + summit state machine + index.html sanity
 for f in src/*.js; do node --input-type=module --check < "$f" >/dev/null || echo "FAIL $f"; done
 ```
 
 Cat model review: `tools/cat_preview.html?sheet=<name>` renders posed cats
 from fixed angles (sheets: anatomy, face, gait, stride, poses, sleep,
-closeup, npcs; add `&raw=1` for bare sculpts, `&golden=1` for sunset light,
+closeup, coat, npcs; add `&raw=1` for bare sculpts, `&golden=1` for sunset light,
 `&perf=1` for build/update timings). Everything is driven through the real
 `Cat` API with seeded randomness, so captures are repeatable.
 
@@ -73,6 +97,30 @@ Comfort settings (FOV, interface size, larger dialogue text, high-contrast
 prompts, reduce motion, grain/fringe) live in `src/settings.js` and are applied
 in `Game.applyComfort()`; reduce-motion defaults to the OS preference.
 
+Villagers (`src/npc.js`): each cat has a `PERSONALITIES` entry (coat stripes,
+body scale, idle verb weights and pacing, greeting, startle). Night sleep is
+opt-in per cat through `schedule.sleepAtNight`. `tools/cat_preview.js` mirrors
+the coat palettes — keep both in step when recolouring a villager.
+
+Water/time of day (`src/countryside.js`): raindrop rings use their own pool
+(`rainRipples`) so they never evict the cat's or the koi's ripples; dawn river
+mist is `dawnMists`; lanterns kindle with a per-lantern onset.
+
+Textures: `namakoTextures` and `lacquerTextures` in `src/textures.js` feed
+`MAT.namako` / `MAT.lacquer`. New materials must be in `MAT` or
+`_mergeStatics()` will not merge their meshes.
+
+Scratch dirs: write temporary captures/scripts outside the repo. Edits to
+CRLF files must preserve line endings (use a byte-safe Node script, not
+PowerShell `Set-Content`).
+
+Full-game headless boot (the only check that exercises `main.js` wiring): serve
+the repo, load `/__boot.html` — a tiny page that sets
+`sessionStorage.catwalk_autostart='new'` then redirects to `/index.html` — in
+headless Chromium with SwiftShader and `--enable-logging=stderr --v=0`. It takes
+15–20 minutes on a weak laptop; look for anything other than the AudioContext
+autoplay warnings. Last run clean on 2026-10-23.
+
 Browser smoke suites live outside the repo (Playwright harness in
 `/tmp/michi-test/smoke.js` + `smoke2.js`, 44 checks total — see
 `docs/VERIFICATION_REPORT_2026-09-11.md`). They serve the repo root on a local
@@ -88,6 +136,19 @@ port and drive headless Chromium.
 ## Status
 
 Checklist state lives in `docs/BUILD_GUIDE_2026-09-11_041436.md`;
-measured results in `docs/VERIFICATION_REPORT_2026-09-11.md`.
-Accessibility settings (U2.x) and real-device benchmarks are the main
-remaining gaps.
+measured results in `docs/VERIFICATION_REPORT_2026-09-11.md`; the latest
+upgrade pass in `docs/NEXT_STEPS_CHECKLIST_2026-10-22.md`.
+
+Shipped: perf governor (two-stage adaptive, eco floor, tiers, chunking,
+collider grid), save hardening, context-loss recovery, rest spots / stillness
+moments / journal, villager personalities and routines, hidden valley places,
+dawn mist / rain rings / staggered lanterns, namako + lacquer town pass,
+comfort settings (FOV, interface size, large text, contrast, reduce motion,
+grain/fringe), cat rebuild, summit clearing (in progress elsewhere),
+dawCAT 2.0 (Sound Design, Wave Lab, AI assistant), cadJS Procedural Studio and
+push-to-game.
+
+Open: real-device benchmarks (V1.1/V1.3), input remapping / gamepad /
+left-handed touch layout (U2.1), information-access items (U2.4: sound
+indicators, dialogue history), skirt walls and fence/lantern detail for the
+tea house and craftsman residence, PWA/offline.

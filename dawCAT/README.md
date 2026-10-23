@@ -3,6 +3,7 @@
 The audio workbench for **Michi-Neko: The Cat Philosopher's Path**. Compose music cues with the game's own musical DNA, design **procedural sound effects**, and let an **AI assistant** do the heavy lifting — then export straight back into the game **without modifying any game code**.
 
 - **Compose** — an Ableton-style DAW: arrangement, piano roll, drum grid, mixer, device chain, automation.
+- **🌊 Wave Lab** — an Audacity-style sample manipulator, recorder and chromatic-sampler builder.
 - **✦ Sound Design** — layered procedural SFX (tones, FM, filtered noise, plucked strings) with variations, exported as a zero-file `sfx-pack.js` that can replace the game's own sounds.
 - **✦ AI assistant** — describe a cue or a sound in plain words. Works with a local **llama-server**, LM Studio, Ollama, or **Anthropic, OpenAI, Gemini, OpenRouter, Groq, Mistral, DeepSeek, xAI**. Streams live, keeps a conversation, fixes its own mistakes, and every change is one Ctrl+Z away.
 
@@ -37,6 +38,7 @@ python -m http.server 8000
 | **Piano Roll / Clip** | Note editing with velocity lane; drum step sequencer. |
 | **Mix** | Faders, pan, reverb/delay sends, mute/solo, meters, master. |
 | **✦ Sound Design** (tab) | The SFX studio — see [Sound Design](#-sound-design). |
+| **🌊 Wave Lab** (tab) | Import, record or resample audio and reshape it — see [Wave Lab](#-wave-lab). |
 | **Inspector / Device Chain** | Track & clip properties, metadata; per-track synth + EQ Eight, compressor, delay, reverb, filter, chorus, utility. |
 | **✦ AI Agent** (menu bar, **Ctrl+K**) | The assistant — see [AI assistant](#-ai-assistant). |
 
@@ -82,6 +84,34 @@ The waveform is rendered offline with exactly the code the game will run, with o
   - `sfx/*.wav` renders (plus `.v2`, `.v3`… variations) for trailers or other tools, `sfx-manifest.json`, and a README.
   - **Pack level** (default 35 %) scales sounds to sit at the game's quiet SFX loudness.
 - **🎮 Hot-swap into game** copies a console snippet: paste it into the running game's DevTools console and your hooked sounds replace the originals immediately (`dawcatSfx.play('name')` to audition, `dawcatSfx.uninstall()` to restore, or just reload).
+
+---
+
+## 🌊 Wave Lab
+
+The **🌊 Wave Lab** tab is a sample workbench. Bring audio in, reshape it, then put it to work in a song.
+
+**Get audio in**
+
+- **Import** .wav, .mp3, .ogg, .flac, .m4a or .webm files.
+- **Record** live from the microphone (PCM capture with a live meter and waveform).
+- **Record What You Hear** — resample dawCAT's own master output.
+- Start from one of **8 built-in procedural starter samples**: koto pluck, shakuhachi, temple bell, a cat meow, taiko hit, shrine-chime phrase, a lo-fi Rhodes chord and a rain-and-vinyl loop.
+- Edit a clip already on the timeline directly (it stays bound to the clip).
+
+**Sound physics** — all pure, synchronous DSP on AudioBuffers (no libraries):
+
+| Group | Tools |
+|---|---|
+| Time & pitch | WSOLA time-stretch (duration without pitch change), pitch shift (±24 semitones plus fine cents), varispeed tape (0.25×–4×), reverse |
+| Shape | Trim / crop, silence a region, fade in/out (linear, exponential, S-curve), loop points with ping-pong, normalize and gain |
+| Colour | High/low-pass filter, tape drive (soft saturation), bitcrush and sample-rate decimation, ring modulation, tremolo, baked echo |
+
+There are 10 one-click **physics presets** (half-speed tape, double-speed chipmunk, dream time-stretch and more), live auto-preview, and zoom/scroll on the waveform.
+
+**Put it to work** — place it as an audio clip on the timeline, sync-stretch it to 1, 2 or 4 bars, turn it into a **chromatic playable sampler track**, bake the result to a new sample, or export a WAV.
+
+**Drum rhythm library** — the Drum Grid and Browser also carry **42 pre-programmed grooves** across six categories (Kyoto & Traditional, Lo-Fi & Chillhop, Electronic & Club, Breaks/Funk/Rock, World & Jazz, Ambient & Cinematic), each with a suggested tempo, swing, kit, key and scale. The AI assistant can name and apply them.
 
 ---
 
@@ -223,9 +253,10 @@ dawCAT/
       runtime.js        self-contained SFX synth (embedded verbatim in exports)
       patches.js        patch model, templates, game hooks
       export.js         sfx-pack.js, hot-swap snippet, manifest, pack contents
-    engine/             audio engine: core, synth, drums, fx, transport, render, assets
+    engine/             audio engine: core, synth, drums, fx, transport, render, assets,
+                        manipulator (Wave Lab DSP), rhythms (drum groove library), automatable
     ui/                 browser, arrangement, piano roll, drum grid, mixer, inspector,
-                        devices, transport bar, agent-panel, sfx-designer, common
+                        devices, transport bar, agent-panel, sfx-designer, wave-lab, common
   tests/                dependency-free Node test suites
 ```
 
@@ -236,4 +267,4 @@ cd dawCAT
 npm test            # or: node tests/run.mjs [filter]
 ```
 
-Runs on Node 16+, no install needed. Covers music theory, plan validation, provider request building, SSE parsing (including chunks split mid-character), the self-repair session loop, the plan executor against a real project state, undo, the SFX synth (every template through a strict fake AudioContext), SFX pack generation and the ZIP writer.
+Runs on Node 16+, no install needed. Covers music theory, plan validation, provider request building, SSE parsing (including chunks split mid-character), the self-repair session loop, the plan executor against a real project state, undo, the SFX synth (every template through a strict fake AudioContext), SFX pack generation and the ZIP writer, plus the Wave Lab rhythm library (`wavelab-rhythms.test.mjs`).

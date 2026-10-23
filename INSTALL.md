@@ -210,6 +210,8 @@ If you want to modify the game:
 2. **File cache busting** — source files use `?v=` query params in imports. When editing, either change the version string or do a hard refresh (`Ctrl+Shift+R`)
 3. **Debug overlay** — press `F3` in-game to see FPS, draw calls, triangle count, and GPU memory
 4. **Console access** — the game instance is exposed as `window.game` for debugging
+5. **Review sheets** — `/tools/cat_preview.html?sheet=npcs`, `/tools/town_preview.html?sheet=street`, `/tools/hidden_preview.html`, `/tools/tree_preview.html?sheet=hero` render seeded, repeatable views through the real game classes
+6. **Checks** — `node tools/check_syntax.mjs` (all modules) and `node tools/verify.mjs` (syntax, wiring, summit suite); companion tests: `cd dawCAT && npm test`, `cd cadJS && npm test`
 
 ### File Structure Overview
 
@@ -222,8 +224,13 @@ Michi-Neko-The-Cat-Philosophers-Path/
 │   ├── cat.js          # Cat avatar model & animation
 │   ├── countryside.js  # World generation (Kyoto valley)
 │   ├── sky.js          # Sky, day/night, weather
-│   └── ...             # 20+ other game modules
-├── docs/               # Performance reviews & inspiration artwork
+│   ├── hidden_places.js# Moon Pool & Lantern Glade
+│   └── ...             # 25+ other game modules
+├── tools/              # Review sheets (cat/tree/town/hidden/summit) and verify scripts
+├── dawCAT/             # Optional audio studio — serve the repo root, open /dawCAT/
+├── cadJS/              # Optional CAD workspace — `cd cadJS && npm start`
+├── assets/             # Optional runtime media (summit vista, transition video)
+├── docs/               # Reviews, build guide, checklists, social posts, artwork
 └── OLD/
     └── archive-cat-city/  # Archived predecessor project (not this game)
 ```

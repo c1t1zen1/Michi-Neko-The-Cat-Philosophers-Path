@@ -82,5 +82,6 @@ The feedback was written from the 2026-09-11 master review. Checked against the 
 - [x] Cache tag bumped byte-safely to `20261022f`
 - [x] README "From the build" captures (real builder renders) added
 - [x] AGENTS.md updated
-- [ ] Full headless boot verified (see the status note in the commit message)
-- [ ] Commit only my files; push to GitHub
+- [x] Full headless boot verified clean (2026-10-23: no JS errors, only AudioContext autoplay warnings)
+- [x] Committed and pushed (`6cf859c`)
+- [x] README, AGENTS, QUICKSTART, INSTALL, NPC guide, FUTURE_QUESTS, build guide, dawCAT and cadJS docs brought up to date

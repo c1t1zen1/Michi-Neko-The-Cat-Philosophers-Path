@@ -16,18 +16,19 @@ cadJS is the standalone, non-destructive Three.js CAD workspace for **Michi-Neko
 8. [Geometry editing](#geometry-editing)
 9. [Materials and textures](#materials-and-textures)
 10. [Lights, cameras, and instances](#lights-cameras-and-instances)
-11. [Repository catalogue](#repository-catalogue)
-12. [Importing external models](#importing-external-models)
-13. [Live game inspection](#live-game-inspection)
-14. [Projects and persistence](#projects-and-persistence)
-15. [Versioned asset packages](#versioned-asset-packages)
-16. [Model and image exports](#model-and-image-exports)
-17. [AI design agent](#ai-design-agent)
-18. [Menus and shortcuts](#menus-and-shortcuts)
-19. [Recommended workflows](#recommended-workflows)
-20. [Troubleshooting](#troubleshooting)
-21. [Security and privacy](#security-and-privacy)
-22. [Developer checks](#developer-checks)
+11. [Procedural Studio](#procedural-studio)
+12. [Repository catalogue](#repository-catalogue)
+13. [Importing external models](#importing-external-models)
+14. [Live game inspection](#live-game-inspection)
+15. [Projects and persistence](#projects-and-persistence)
+16. [Versioned asset packages](#versioned-asset-packages)
+17. [Model and image exports](#model-and-image-exports)
+18. [AI design agent](#ai-design-agent)
+19. [Menus and shortcuts](#menus-and-shortcuts)
+20. [Recommended workflows](#recommended-workflows)
+21. [Troubleshooting](#troubleshooting)
+22. [Security and privacy](#security-and-privacy)
+23. [Developer checks](#developer-checks)
 
 ---
 
@@ -48,6 +49,7 @@ cadJS is the standalone, non-destructive Three.js CAD workspace for **Michi-Neko
 - Import GLB, glTF, OBJ, and STL files.
 - Export complete CAD projects, versioned asset packages, runtime overrides, GLB, OBJ, and PNG.
 - Use a constrained AI design agent that returns validated CAD action plans.
+- Build Kyoto prefabs, painterly textures, material palettes and cat poses from the **Procedural Studio**, by hand or through the agent.
 - Undo and redo most edits made during the current session.
 
 ### Current boundaries
@@ -378,6 +380,22 @@ Available fields can include field of view, near/far clipping planes, and zoom. 
 ### Instanced meshes
 
 An `InstancedMesh` inspector shows its count and an instance index. **EXTRACT INSTANCE AS MESH** clones the selected instance's geometry/material into an independent CAD mesh. The original instance remains in the source `InstancedMesh`.
+
+---
+
+## Procedural Studio
+
+The **STUDIO** menu / right-panel tab (search box: *Search prefabs, textures, palettes*) generates Michi-Neko-flavoured assets without any external files. Everything is built in code (`src/procedural-studio.mjs`) and lands in the CAD workspace as ordinary, undoable, editable objects.
+
+**15 Kyoto prefabs** — Torii Gate, Stone Lantern (ishi-dōrō), Wooden Pagoda, Canal Footbridge, Wayside Hokora Shrine, Bamboo Grove Cluster, Sakura Blossom Tree, Pine Bonsai, Tsukubai Water Basin, Tobi-ishi Stepping Stones, Zen Rock Garden, Matcha Chawan Set, Guardian Neko Statue, Floating River Lantern (toro nagashi) and an Ema Wishing Plaque Stand.
+
+**16 painterly textures** — tabby stripes, calico patches, tortoiseshell, soft brushwork fur, weathered granite, moss-dappled stone, karesansui raked gravel, hinoki cedar, vermilion shrine lacquer, fresh bamboo, warm shoji, igusa tatami, seigaiha waves, sakura canopy, autumn momiji and gold kintsugi. Textures are synthesised on a canvas (`generateProceduralTexture`).
+
+**10 material palettes** — one-click colour/roughness/metalness sets (for example *Kyoto Vermilion Shrine* and *Sakura Spring Blossom*) applied to a whole object tree.
+
+**8 cat poses** — neutral stand, polite sit, strolling stride, morning stretch, cozy loaf, curious head tilt, playful pounce and sleep curl, with an intensity control, applied to the loaded cat.
+
+**Through the AI agent.** The agent's action vocabulary includes `addProceduralAsset`, `generateProceduralTexture`, `applyPalette` and `poseCharacter`, so a plain-language request that mentions a lantern, a palette or a sitting cat becomes a validated plan you can review and undo. The Procedural Studio uses the same protocol as the rest of the agent, including its local-model and hosted-provider support.
 
 ---
 

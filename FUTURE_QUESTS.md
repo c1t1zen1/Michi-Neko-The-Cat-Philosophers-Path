@@ -6,6 +6,8 @@
 **Scope:** New gameplay challenges, item quests, set-piece sequences, and world expansion from Kyoto to Tokyo
 **Design Pillars:** Ghibli whimsy · All-ages accessible · Mobile-first controls · Sanguine storytelling
 
+> **Implementation status (2026-10-23):** this is still a forward-looking draft, but parts have shipped in a smaller form. **Shipped:** Bokuchi's Offering Bells (via Kuro), the mist-gated spirit altar, rest-and-watch spots, a discovery journal, rain-shelter routines for the villagers, weather-reactive NPC lines, two hidden valley places (Moon Pool, Lantern Glade), a secret summit clearing, and comfort settings. **Still future:** the Tokyo expansion, the bullet-train and parade-float sequences, the forest chase, and all the Act II/III NPCs. The guardrail stands: deepen Kyoto first.
+
 ---
 
 ## Table of Contents

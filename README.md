@@ -20,6 +20,7 @@
 > **Inspiration:** Studio Ghibli films and a honeymoon trip to Kyoto, Japan  
 > **Engine:** Three.js (r160) · WebGL 2.0 · Pure browser — no dependencies to install  
 > **License:** MIT
+> **Last updated:** 2026-10-23 · cache tag `20261022f` · see [Recent Updates](#-recent-updates)
 
 ---
 
@@ -44,6 +45,33 @@
 <p align="center">
   <img src="docs/images/capture-hidden-places.jpg" width="90%" alt="Capture from the build: the Moon Pool and the Lantern Glade, each by day and by night"/>
 </p>
+
+---
+
+## 🆕 Recent Updates
+
+A running log of what has landed since the first public alpha. Status key: ✅ shipped · 🟡 shipped, still being tuned · 🔲 not started.
+
+| Date | Update | Status |
+|------|--------|--------|
+| 2026-10-23 | **Comfort & accessibility settings** — field of view, interface size, larger dialogue text, high-contrast prompts, *Reduce Motion* (follows your OS setting), film-grain and lens-fringe toggles | ✅ |
+| 2026-10-23 | **Villager personalities** — Luna is now silver smoke-grey, Mochi ginger, Kuro solid black; each cat has its own size, idle habits and greeting; Mochi curls up to sleep at night | ✅ |
+| 2026-10-23 | **Hidden valley places** — the *Moon Pool* and the *Lantern Glade*, each with its own light, sound, journal entry and stillness moment | ✅ |
+| 2026-10-23 | **Light & water** — lanterns kindle one after another at dusk, low river mist at dawn, raindrop rings on the river and ponds | ✅ |
+| 2026-10-23 | **Town quality pass** — namako-kabe skirt walls, eave beams and wall studs on the village machiya; lacquered torii with swept *kasagi* and black base collars | ✅ |
+| 2026-10-23 | **Review tools** — `town_preview` and `hidden_preview` sheets; real build captures in this README | ✅ |
+| 2026-10-22 | **Cat rebuild** — sculpted-and-skinned body, leg-IK gait, painted face, braided collar and bell, per-villager builds ([glow-up video](docs/social/cat-anatomy-glow-up/README.md)) | ✅ |
+| 2026-10-22 | **cadJS Procedural Studio** — 15 Kyoto prefabs, 16 painterly textures, 10 material palettes and 8 cat poses, driven from the menu or the AI agent | ✅ |
+| 2026-10-22 | **dawCAT Wave Lab** — Audacity-style sample manipulator, recorder and chromatic-sampler builder, plus a 42-groove drum rhythm library | ✅ |
+| 2026-10-21 | **dawCAT 2.0** — procedural *Sound Design* studio (24 templates, zero-file `sfx-pack.js`) and a streaming, self-repairing AI assistant | ✅ |
+| 2026-10-05 | **Summit Clearing (天上)** — a secret wind-combed meadow above Kyoto, reached by ringing the shrine bell ten times; Kyoto vista polished 2026-10-22 | 🟡 |
+| 2026-09-29 | cadJS single-item workspace, teaser video v3, tea-house bonsai | ✅ |
+| 2026-09-26 | **cadJS ↔ game round trip** — import catalog symbols, "Push to game" publishes `cad-overrides.json`, applied at load by `src/cad_overrides.js` | ✅ |
+| 2026-09-12 | Walkable bamboo grove; quest-giver cats always talk until the quest is claimed | ✅ |
+| 2026-09-11 | **Build-guide phases** — versioned saves with backup, rest-and-watch spots, stillness moments, discovery journal, cat verbs, Offering Bell quest, weather-reactive dialogue | ✅ |
+| 2026-09-10 | **Performance pass** — two-stage adaptive resolution, tiered quality, spatially chunked instancing, collider grid, context-loss recovery | ✅ |
+| — | Real-device performance benchmarks (phones, iGPUs) | 🔲 |
+| — | Input remapping, gamepad, left-handed touch layout | 🔲 |
 
 ---
 
@@ -79,7 +107,11 @@ The game was created as an experimental art piece — built primarily through **
 - **Living river** — a fresnel water shader with sun-tracking specular, drifting sparkle, lapping bank foam and molten dusk tones
 - **Cinematic post stack** — depth-based ambient occlusion, exponential height fog with sun in-scatter, screen-space crepuscular light shafts, bloom, ACES tone mapping and a filmic grade (split-toning, vignette, grain)
 - **Image-based lighting** — the sky dome is re-baked into a prefiltered environment map as the day cycles, so tiles, lacquer, water and bronze reflect the real sky and sun
-- **Night lanterns that light the street** — a pool of point lights hops between the lanterns nearest the cat, flickering warm pools onto the cobbles after dusk
+- **Night lanterns that light the street** — a pool of point lights hops between the lanterns nearest the cat, flickering warm pools onto the cobbles after dusk; each lantern kindles at its own moment as the light fails, and village windows glow behind them
+- **Dawn river mist** — low, drifting mist hugs the water around 06:15 and burns off by mid-morning (thicker in misty weather)
+- **Rain on water** — a dedicated pool of raindrop rings dimples the river and ponds during rain, separate from the cat's and koi's ripples
+- **Edo skirt walls** — village machiya wear *namako-kabe* (dark slate tiles in raised white joints), eave beams and wall studs; the torii has brushed-lacquer grain, a swept *kasagi* and black base collars
+- **Hidden valley places** — the **Moon Pool** (a still spring west of the shrine grove: turquoise caustics by day, moon-glow and rising motes by night, glassy pentatonic drops) and the **Lantern Glade** (a bamboo ring with paper lanterns that kindle in turn, fireflies, hollow bamboo knocks and breaths of leaves). No markers point to them — wander, or follow the scent trail when you get close
 
 <p align="center">
   <img src="docs/images/lantern-lit-village-path-dusk.jpg" width="90%" alt="Inspiration art: a lantern-lit stone path winding through the village at dusk, cherry petals drifting past machiya townhouses"/>
@@ -91,6 +123,7 @@ The game was created as an experimental art piece — built primarily through **
 - **Procedural tabby coat** — exactly four bold mackerel stripes across the back, forehead "M", cheek lines, leg bars, tail rings with a dark tip, cream bib, belly and socks, painted in bind-pose space so it rides the animation; three-band toon ramp, painterly grain, a true silhouette rim light keyed to the sun, and a cool sheen that keeps black cats black
 - **Braided silk collar** — a kumihimo cord with gold edge threads and a little bow, carrying an engraved suzu bell (equator band, sound slit, sakura crest); Master Cat rank turns it gold and adds a twin
 - **Cat animations** — paws are placed by leg IK, so they plant without sliding: a lateral-sequence walk that eases into a trot and, when sprinting, a rotary gallop with spine flexion; jump, land, prowl crouch (shoulder blades up, tail low), turn-in-place steps, and the head held level through it all. Idle verbs are real cat poses: sit with the tail wrapped round, lick-a-paw grooming, play-bow stretch, yawn, crouch-to-drink, and a curled-up sleep. Plus ear flicks, tail sway, a bottlebrush tail when startled, and mood expressions (curious, playful, cautious, alert, sleepy)
+- **Villager personalities** — Luna (silver smoke-grey, slender) grooms and sits, and greets with a slow blink; Mochi (ginger, round) stretches, yawns and bounds up playfully, and curls up to sleep at night; Kuro (solid black, long-limbed) sits and watches, wary at first, warming as you linger. Each reacts to being noticed, greeted, or startled by a sprinting cat
 - **Prowl mode** — crouch low and move quietly at reduced speed (press C)
 - **Scent trail** — warm particle wisps drift up behind the cat as it moves, fading from gold to amber
 
@@ -98,7 +131,12 @@ The game was created as an experimental art piece — built primarily through **
 - **Yarn ball collectibles** — scattered throughout the valley, each gives XP and triggers a satisfying chime
 - **Quest system** — Luna's Yarn Hunt introduces the world and rewards exploration
 - **Progression ranks** — Kitten → Curious Cat → Backyard Explorer → Rooftop Wanderer → City Legend, each unlocking sprint, jump boost, and speed upgrades
-- **Three NPC cats** — Luna (mysterious moonlight cat), Mochi (cheerful bamboo grove cat), and Kuro (quiet river guardian) — each with unique fur colors, dialogue, and wandering AI
+- **Three NPC cats** — Luna (mysterious moonlight cat), Mochi (cheerful bamboo grove cat), and Kuro (quiet river guardian) — each with their own coat, build, dialogue and daily routine: Luna keeps watch from the old bridge at night, Kuro visits the river in mist and shelters under the tea-house eave in rain, Mochi chases bamboo leaves in the wind and sleeps at night
+- **Quests and secrets** — Luna's Yarn Hunt (and Luna's Leap, which leads to the turtle corral and the Jade Paw), Kuro's Offering Bell quest, the spirit altar that only appears in mist, the golden feather on the rooftop nest — see [NPC_TASKS_AND_ENDGAME_GUIDE.md](NPC_TASKS_AND_ENDGAME_GUIDE.md)
+- **Rest & watch spots** — sit and watch at the shrine steps, old bridge, rooftop perch, bamboo clearing, tea-house porch, the two hidden places (and the torii crown, once you are a City Legend). Stay still for about eight seconds and a *stillness moment* arrives, written for the time of day and the weather
+- **Discovery journal (press J)** — a keepsake memory of the valley, not a checklist: places found, quiet moments, photographs stamped at rest spots, weather memories, keepsakes
+- **Cat verbs and micro-interactions** — sit / groom / stretch, slow-blink at an NPC, gift a yarn ball, bat the furin chime, tip the shishi-odoshi, scratch the bamboo and fence post
+- **Secret summit clearing (天上)** — ring the shrine bell ten times and step into the light to reach a wind-combed meadow above Kyoto with the city, Osaka and the bay descending through layered distance. No quests, no hints, no NPCs: sit still and the cat sleeps. *(Under active development; has its own sound-bath music mood, monk-choir and singing-bowl audio, and an optional transition video.)*
 - **Secret tea house** — find the antique key hidden near the bamboo shrine, unlock the machiya door, and step inside a fully modeled Japanese interior with tatami mats, tokonoma alcove, hanging scroll, bonsai, and a zen rock garden
 - **Interior interactions** — eat grilled sea bream for a speed boost, curl up on a zabuton cushion for a cozy nap that advances time by 4 hours
 - **Rooftop bird's nest** — climb to the highest point to discover a nest with a guardian's feather trophy
@@ -114,24 +152,33 @@ The game was created as an experimental art piece — built primarily through **
 - **Generative day-phase music** — a real-time music director that layers a warm pad drone with sparse koto-style plucks, shifting key and mood across dawn, day, dusk, and night
 - **Procedural sound effects** — footsteps (grass/water), meow, jump, land, collect chime, bell, splash, purr, door slide, key chime, dream chime, eat, lap water, trill — all synthesized via Web Audio API, no audio files needed
 - **Adaptive ambient** — weather-aware ambient layers that crossfade between clear, rain, and mist soundscapes
+- **Place-specific sound** — the Moon Pool's glassy drops and the Lantern Glade's bamboo knocks and leaf breaths are synthesised live and fade with distance; the Tea House and the summit each get their own music mood
+- **Replaceable by design** — [dawCAT](#-companion-tools) can scan the game's music and sound effects and export drop-in replacements (`music.js`, `sfx-pack.js`) without touching game code
 
 ### UI & UX
 - **Japanese parchment scroll HUD** — an emakimono-style collapsible scroll showing yarn count, rank, XP bar, active quest, time/weather, and inventory badges
 - **Compass strip** — top-center compass with cardinal directions and POI icons for NPCs, the tea house, and collectibles
 - **Objective markers** — screen-space waypoint icons with distance labels and an off-screen edge arrow
 - **Title screen** — animated paw logo, cinematic orbit camera, and New Game / Continue / Settings menu
-- **Settings panel** — master/music/SFX/ambient volume sliders, camera sensitivity, invert Y, graphics quality (auto/low/medium/high), and hint toggle — all persisted to localStorage
+- **Settings panel** — master/music/SFX/ambient volume sliders, camera sensitivity, invert Y, graphics quality (auto/low/medium/high), hint toggle, interface mode (*Minimal* keeps only the context prompt; *Guided* adds the parchment and markers), and save export/import — all persisted to localStorage
+- **Comfort & accessibility** — field of view (40–90°), interface size (80–150%), larger dialogue text, high-contrast prompts and dialogue, *Reduce Motion* (follows your OS preference unless you override it: stills FOV kicks, camera auto-follow swing, the title orbit, rest-camera drift, film grain, lens fringe and CSS animation), grain and fringe toggles
+- **Soft guidance** — waypoint arrows only guide when hints are on; the scent trail only flows near things worth finding
 - **Touch controls** — virtual joystick, JUMP, ACT, and MEOW buttons for mobile play
 - **Debug overlay** — press F3 for FPS, draw calls, triangle count, and GPU memory info
 
 ### Technical
-- **Adaptive resolution** — dynamically scales pixel ratio based on measured FPS to maintain smooth performance
+- **Adaptive resolution** — two-stage governor: stage 1 sheds light shafts and quarters the bloom, stage 2 scales the framebuffer; recovers with hysteresis. An eco frame floor (30 fps) protects long sessions from heat, and touch devices run the title screen at half rate
 - **Graphics quality tiers** — Low: 1024 shadow map, height fog only; Medium: 2048 shadows, half-resolution ambient occlusion (8 samples), light shafts, bloom; High: 4096 shadows, 14-sample AO, full light shafts, chromatic fringe. MSAA (4x) is kept through the post chain via a multisampled HDR target with a resolved depth attachment
 - **Camera collision** — soft raycast camera collision prevents clipping through walls
 - **Platformer physics** — coyote time, jump buffering, and variable jump height for responsive platforming
-- **Save/load** — auto-saves every 12 seconds to localStorage (position, score, XP, quest state, collected items, world state, time of day, weather)
+- **Save/load** — auto-saves every 12 seconds and on page-hide to localStorage (position, score, XP, quest state, collected items, world state, journal, time of day, weather). Versioned schema with migration, a rotating backup copy, validation on read, and JSON export/import
+- **WebGL context-loss recovery** — a calm "the valley is resting" screen, an immediate save, and automatic restore (or reload-and-continue)
+- **Spatial culling** — wide instanced vegetation sets are split into spatial chunks so frustum culling works, and a uniform grid answers collision and camera-ray queries instead of scanning every box
+- **Startup calibration** — the title screen's frame rate is sampled once to pick a safe starting tier on weak devices
+- **CAD overrides hook** — `cad-overrides.json` published by cadJS is applied by name at load; a missing file is ignored
 - **Seeded procedural generation** — deterministic world layout using mulberry32 PRNG
-- **Instanced particles** — rain, snow, cherry petals, fireflies, dust, and water ripples using pooled instanced meshes
+- **Instanced particles** — rain, snow, cherry petals, fireflies, dust, and water ripples using pooled instanced meshes; each tier caps both the drawn *and* the simulated count
+- **Verification** — 35-module syntax check, a headless summit state-machine suite, review sheets for the cat, trees, town and hidden places, and a 44-check browser smoke suite (see [docs/VERIFICATION_REPORT_2026-09-11.md](docs/VERIFICATION_REPORT_2026-09-11.md)); a full headless boot was re-verified clean on 2026-10-23
 
 ---
 
@@ -163,7 +210,19 @@ Then open **http://127.0.0.1:8080** in your browser.
 | [QUICKSTART.md](QUICKSTART.md) | Extended gameplay manual — controls, progression, secrets |
 | [NPC_TASKS_AND_ENDGAME_GUIDE.md](NPC_TASKS_AND_ENDGAME_GUIDE.md) | Every NPC task, dialogue riddle and end-game reward |
 | [FUTURE_QUESTS.md](FUTURE_QUESTS.md) | Planned quests, world expansion and story direction |
-| [docs/PERFORMANCE_REVIEW_2026-09-09_023812.md](docs/PERFORMANCE_REVIEW_2026-09-09_023812.md) | Mobile-first performance audit & optimisation plan |
+| [AGENTS.md](AGENTS.md) | Contributor / agent notes: run, cache-busting, verification sheets, guardrails, status |
+| [docs/NEXT_STEPS_CHECKLIST_2026-10-22.md](docs/NEXT_STEPS_CHECKLIST_2026-10-22.md) | The 2026-10-23 upgrade checklist, with what shipped and what is still open |
+| [docs/NEXT_STEPS_FEEDBACK_2026-10-22_195413.md](docs/NEXT_STEPS_FEEDBACK_2026-10-22_195413.md) | The feedback that drove that checklist |
+| [docs/BUILD_GUIDE_2026-09-11_041436.md](docs/BUILD_GUIDE_2026-09-11_041436.md) | Parallel-agent build checklist (workstreams A/S/P/AU/C/N/G/U/V) with live status |
+| [docs/GAME_MASTER_REVIEW_2026-09-11.md](docs/GAME_MASTER_REVIEW_2026-09-11.md) | Merged master review the build guide came from |
+| [docs/VERIFICATION_REPORT_2026-09-11.md](docs/VERIFICATION_REPORT_2026-09-11.md) | Measured results of the 44-check browser suites |
+| [docs/PERFORMANCE_REVIEW_2026-09-10_022247.md](docs/PERFORMANCE_REVIEW_2026-09-10_022247.md) | Mobile-first performance audit & optimisation plan |
+| [docs/SBA_REVIEW_20260927_031251.md](docs/SBA_REVIEW_20260927_031251.md) | Senior build assessment (mobile-first lens) |
+| [docs/DAW_CADJS_DEEP_REVIEW_2026-09-20.md](docs/DAW_CADJS_DEEP_REVIEW_2026-09-20.md) | Feature-completeness review of dawCAT and cadJS |
+| [docs/SOCIAL_POST_PLAN_2026-10-22_195413.md](docs/SOCIAL_POST_PLAN_2026-10-22_195413.md) | Build-in-public post plan; finished posts live in [docs/social/](docs/social/) |
+| [dawCAT/README.md](dawCAT/README.md) | dawCAT 2.0 audio studio manual |
+| [cadJS/README.md](cadJS/README.md) · [cadJS/BUILD_GUIDE.md](cadJS/BUILD_GUIDE.md) | cadJS CAD workspace manual and build guide |
+| [assets/README.md](assets/README.md) | Optional runtime media (summit vista model, transition video) |
 
 > 🗄️ `OLD/archive-cat-city/` holds design docs and prototype code from the **predecessor
 > project** (a first-person "Cat City FPS" concept). It is **not** this game — see
@@ -184,6 +243,7 @@ Then open **http://127.0.0.1:8080** in your browser.
 | `M` | Meow |
 | `C` | Toggle prowl mode |
 | `P` | Photo mode (orbit camera, capture screenshots) |
+| `J` | Discovery journal |
 | `Esc` | Pause menu |
 | `F3` | Debug overlay |
 | Mouse drag | Rotate camera (yaw + pitch) |
@@ -216,6 +276,11 @@ Michi-Neko-The-Cat-Philosophers-Path/
 │   ├── cat_sdf.js              # Signed-distance sculpting, surface nets, skin weights
 │   ├── cat_motion.js           # Pose blending and leg IK
 │   ├── cat_shading.js          # Coat / face shader, outlines, collar & bell textures
+│   ├── hidden_places.js        # Moon Pool + Lantern Glade (light, sound, discovery)
+│   ├── mountaintop.js          # Secret summit clearing (天上) scene & transitions
+│   ├── instanced_chunks.js     # Splits wide instanced meshes into culling chunks
+│   ├── collider_grid.js        # Uniform grid for collision / camera-ray queries
+│   ├── cad_overrides.js        # Applies cadJS "push to game" overrides at load
 │   ├── controls.js             # Keyboard, mouse, touch input handling
 │   ├── countryside.js          # Procedural Kyoto valley world generation
 │   ├── textures.js             # Procedural PBR textures (plaster, timber, tiles, cobbles…) + normal maps
@@ -227,7 +292,7 @@ Michi-Neko-The-Cat-Philosophers-Path/
 │   ├── ambient_life.js         # Birds, butterflies, koi fish, guardian crows
 │   ├── interior.js             # Tea house interior scene & transitions
 │   ├── context_actions.js      # Context-sensitive interaction system
-│   ├── npc.js                  # NPC cats with wandering AI & name tags
+│   ├── npc.js                  # NPC cats: personalities, routines, reactions, sleep
 │   ├── dialogue.js             # Dialogue box system
 │   ├── quest.js                # Quest tracking
 │   ├── progression.js          # XP, ranks, skill unlocks
@@ -236,16 +301,34 @@ Michi-Neko-The-Cat-Philosophers-Path/
 │   ├── scent.js                # Scent trail particle system
 │   ├── ui.js                   # HUD updates, toasts, debug overlay
 │   ├── menus.js                # Title screen, pause menu, settings
-│   ├── settings.js             # Settings persistence (localStorage)
-│   ├── save.js                 # Save/load manager (localStorage)
+│   ├── settings.js             # Settings persistence, comfort options, quality tiers
+│   ├── save.js                 # Versioned save/load with backup, export/import
 │   └── waypoints.js            # Screen-space objective markers & compass
-├── docs/                       # Performance reviews & inspiration artwork
-├── data/                       # Development reference screenshots
-├── dawCAT/                     # Companion browser DAW (separate mini-app)
-├── cadJS/                      # Companion CAD/agent scratch tool (separate mini-app)
+├── tools/                      # Review sheets (cat, tree, town, hidden places, summit) + verify scripts
+├── assets/                     # Optional runtime media (summit vista GLB, transition video)
+├── docs/                       # Reviews, build guide, checklists, social posts, artwork
+├── data/                       # Development reference screenshots & Blender sources
+├── dawCAT/                     # Companion audio studio — music, sound design, Wave Lab, AI assistant
+├── cadJS/                      # Companion CAD workspace — Procedural Studio, push-to-game, AI agent
+├── AGENTS.md                   # Contributor / agent notes
 └── OLD/
     └── archive-cat-city/       # 🗄️ Archived predecessor project — see its README
 ```
+
+---
+
+## 🧰 Companion Tools
+
+Two standalone browser apps live in the repo. Neither is needed to play, and neither writes to the game's source.
+
+### dawCAT 2.0 — audio asset studio (`dawCAT/`)
+An Ableton-style DAW built from the game's own musical DNA. **Compose** (arrangement, piano roll, drum grid, mixer, devices, automation), **✦ Sound Design** (layered procedural SFX from 24 templates modelled on the game's sounds, exported as a zero-file `sfx-pack.js`), **🌊 Wave Lab** (import, record or resample audio; time-stretch, pitch, reverse, loop, filter, bitcrush; turn a sample into a chromatic sampler), a 42-groove drum rhythm library, and an **✦ AI assistant** that works with local models (llama-server, LM Studio, Ollama) or hosted providers, streams, self-repairs, and keeps every change one Ctrl+Z away. Run it at `/dawCAT/` from the game root. See [dawCAT/README.md](dawCAT/README.md).
+
+### cadJS — CAD workspace (`cadJS/`)
+A non-destructive Three.js workspace for inspecting, creating, reshaping, texturing, importing and exporting assets. It loads the real cat, scans the repo, picks objects out of the live game scene and can *push to game* as `cad-overrides.json`. The **Procedural Studio** adds 15 Kyoto prefabs (torii, pagoda, ishi-doro, bridge, hokora shrine, bamboo, sakura, bonsai, tsukubai, rock garden, neko statue and more), 16 painterly textures, 10 material palettes and 8 cat poses, all reachable from the AI design agent. See [cadJS/README.md](cadJS/README.md).
+
+### Review sheets (`tools/`)
+Seeded, repeatable renders built through the real game classes: `cat_preview.html` (anatomy, face, coat, gait, poses, sleep, npcs), `tree_preview.html`, `town_preview.html` (street, landmarks, props), `hidden_preview.html`, `summit_preview.html`. Run `node tools/verify.mjs` for the syntax, wiring and summit suites.
 
 ---
 
@@ -264,17 +347,26 @@ Michi-Neko-The-Cat-Philosophers-Path/
 | Feature | Status |
 |---------|--------|
 | Core world & cat avatar | ✅ Done |
-| Day/night & weather | ✅ Done |
+| Day/night & weather (incl. dawn mist, rain on water) | ✅ Done |
 | NPCs, dialogue, quests | ✅ Done |
+| Villager personalities, routines & reactions | ✅ Done |
 | Interior (tea house) | ✅ Done |
-| Progression & save/load | ✅ Done |
+| Progression & save/load (versioned, backup, export/import) | ✅ Done |
 | Photo mode | ✅ Done |
 | Generative music | ✅ Done |
-| Additional zones (park, commercial, industrial) | 🔲 Planned |
+| Cat anatomy rebuild, IK gait & idle poses | ✅ Done |
+| Rest & watch spots, stillness moments, discovery journal | ✅ Done |
+| Hidden valley places (Moon Pool, Lantern Glade) | ✅ Done |
+| Comfort settings (FOV, UI size, text, contrast, reduce motion) | ✅ Done |
+| Town quality pass (village machiya, torii) | 🟡 In progress — tea house & residence skirt walls, fences and lanterns next |
+| Summit clearing (天上) | 🟡 In progress |
+| dawCAT 2.0 & cadJS Procedural Studio | ✅ Done |
+| Mobile performance levers (tiers, adaptive stages, chunking) | ✅ Done |
+| Real-device performance benchmarks | 🔲 Planned — needs a device matrix |
+| Input remapping, gamepad, left-handed touch layout | 🔲 Planned |
+| Additional zones (park, commercial, industrial) | 🔲 Planned — deepen Kyoto first |
 | More NPCs & story arcs | 🔲 Planned |
-| Cat idle/walk animation polish | 🔲 Planned |
 | PWA manifest & offline caching | 🔲 Planned |
-| Mobile performance pass | 🔲 Planned |
 
 ---
 
@@ -302,6 +394,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 - **Code:** Vibe coded with multiple SOTA AI models
 - **Engine:** Three.js by Ricardo Cabello (Mr.doob) and contributors
 - **Cat avatar:** Procedurally sculpted, skinned mesh with Ghibli-style toon shading
+- **Companion tools:** dawCAT and cadJS, built with the same vibe-coding workflow
 
 ---
 
