@@ -1,0 +1,7 @@
+60 days of cat anatomy in 50 seconds 🐾
+
+The cat in Michi-Neko started as 77 rigid spheres, tubes and cones. I just tore it down and rebuilt it: a 29-bone skeleton, 50 soft SDF primitives sculpted into one seamless coat at load time, skin weights baked from the same shapes, and a tabby coat + anime face painted in the shader.
+
+Every in-game shot is rendered from that day's real commit. Even the soundtrack is synthesized in code.
+
+github.com/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>capture</title>
+  <style>html,body{margin:0;background:transparent;overflow:hidden}canvas{display:block}</style>
+  <script type="importmap">
+    {"imports":{"three":"/vendor/three.module.js","three/addons/":"/vendor/addons/"}}
+  </script>
+</head>
+<body>
+  <script>
+    window.addEventListener('error', (e) => {
+      fetch('/log', { method: 'POST', body: 'ERROR ' + (e.message || e) + ' @ ' + (e.filename || '') + ':' + (e.lineno || '') });
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      fetch('/log', { method: 'POST', body: 'REJECT ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason) });
+    });
+  </script>
+  <script type="module" src="capture.js"></script>
+</body>
+</html>
