@@ -21,8 +21,7 @@ Every module import carries `?v=<tag>`. Keep all tags in sync when editing:
 sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDD<letter>/g" src/*.js index.html
 ```
 
-Current tag: `20261022e` (also used by `tools/cat_preview.*` and
-`tools/summit_preview.*`).
+Current tag: `20261022f` (also used by every `tools/*_preview.*`).
 
 On Windows do NOT bulk-rewrite with PowerShell `Get-Content`/`Set-Content` —
 it re-encodes and corrupts em-dashes/Japanese text. Use Node (byte-safe):
@@ -56,6 +55,23 @@ builders with seeded randomness. Hero trees inside the play field are
 individual leaf sprays on twigs (`buildCanopy` style `'leaves'`); the rim
 (edge forest, foothills, shrubs, trees past r≈39) is painted leaf masses
 (`'masses'`, `bushGeometry`). The summit still uses the default `'clumps'`.
+
+Town and hidden-place review: `tools/town_preview.html?sheet=<name>` (sheets:
+street, landmarks, props; `&golden=1`, `&night=1`) and
+`tools/hidden_preview.html?sheet=<pool|glade|both>`. Both build the real
+`Countryside` (and `HiddenPlaces`) with seeded randomness, so captures
+repeat. The README's "From the build" images come from these sheets and the
+`npcs` cat sheet.
+
+Hidden valley places (Moon Pool, Lantern Glade) live in `src/hidden_places.js`
+— built before `Vegetation` (they register exclusion/water rects), attached to
+the game after `ContextActionManager` exists. They never touch the summit.
+New `Countryside` code must not add `this.random()` calls mid-build: the
+valley layout is seeded and any extra draw shifts everything built after it.
+
+Comfort settings (FOV, interface size, larger dialogue text, high-contrast
+prompts, reduce motion, grain/fringe) live in `src/settings.js` and are applied
+in `Game.applyComfort()`; reduce-motion defaults to the OS preference.
 
 Browser smoke suites live outside the repo (Playwright harness in
 `/tmp/michi-test/smoke.js` + `smoke2.js`, 44 checks total — see

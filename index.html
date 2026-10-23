@@ -355,6 +355,24 @@
       border: 1px solid #7c4c28; background: #f6ecd9; color: #3d2b1f; cursor: pointer;
     }
     .settings-value { font-size: 11px; color: #8a684c; min-width: 36px; text-align: right; }
+    .settings-group-title { margin: 12px 0 2px; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #8a684c; border-bottom: 1px solid rgba(120,80,40,0.35); padding-bottom: 3px; }
+
+    /* ============ Comfort & accessibility (U2.x) ============ */
+    /* Interface size scales the overlay chrome only — never the 3D canvas. */
+    #scroll-wrapper, #prompt, #toast-stack, .dialogue-box { zoom: var(--ui-scale, 1); }
+    body.large-text .dialogue-text { font-size: 19px !important; line-height: 1.7 !important; }
+    body.large-text #prompt, body.large-text #toast-stack { font-size: 16px; }
+    body.high-contrast #prompt, body.high-contrast #toast-stack > * {
+      background: #000; color: #fff; border: 2px solid #fff; font-weight: bold;
+    }
+    body.high-contrast .dialogue-box {
+      background: #fff !important; color: #000 !important; border: 3px solid #000 !important;
+    }
+    body.high-contrast .dialogue-text { color: #000 !important; }
+    body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after {
+      animation-duration: 0.001s !important; animation-iteration-count: 1 !important;
+      transition-duration: 0.001s !important;
+    }
 
     /* ============ Compass strip ============ */
     #compass {
@@ -807,6 +825,20 @@
           <option value="guided">Guided — parchment + markers</option>
         </select>
       </div>
+      <div class="settings-group-title">Comfort &amp; accessibility</div>
+      <div class="settings-row"><label for="set-fov">Field of View</label><input type="range" id="set-fov" min="40" max="90"><span class="settings-value" id="val-fov"></span></div>
+      <div class="settings-row"><label for="set-uiscale">Interface Size</label><input type="range" id="set-uiscale" min="80" max="150" step="5"><span class="settings-value" id="val-uiscale"></span></div>
+      <div class="settings-row"><label for="set-largetext">Larger Dialogue Text</label><input type="checkbox" id="set-largetext"></div>
+      <div class="settings-row"><label for="set-contrast">High-Contrast Prompts</label><input type="checkbox" id="set-contrast"></div>
+      <div class="settings-row"><label for="set-reducemotion">Reduce Motion</label>
+        <select id="set-reducemotion">
+          <option value="auto">Follow system</option>
+          <option value="on">On — still camera</option>
+          <option value="off">Off</option>
+        </select>
+      </div>
+      <div class="settings-row"><label for="set-grain">Film Grain</label><input type="checkbox" id="set-grain"></div>
+      <div class="settings-row"><label for="set-fringe">Lens Fringe (High)</label><input type="checkbox" id="set-fringe"></div>
       <div class="settings-row"><label>Save Data</label>
         <button id="btn-export-save" class="menu-btn" style="padding:6px 14px;">Export</button>
         <button id="btn-import-save" class="menu-btn" style="padding:6px 14px;">Import</button>
@@ -838,7 +870,7 @@
 
   <!-- Cache busting: every module import in src/ carries this same ?v= tag.
        Bump them together, or a changed file ships against a cached sibling:
-         sed -i '' -E "s/\?v=[0-9a-z]+/?v=20261022e/g" src/*.js index.html -->
-  <script type="module" src="src/main.js?v=20261022e"></script>
+         sed -i '' -E "s/\?v=[0-9a-z]+/?v=20261022f/g" src/*.js index.html -->
+  <script type="module" src="src/main.js?v=20261022f"></script>
 </body>
 </html>

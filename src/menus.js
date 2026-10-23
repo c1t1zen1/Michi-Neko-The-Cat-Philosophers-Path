@@ -116,6 +116,13 @@ export class MenuSystem {
     $('set-quality').value = v.quality;
     $('set-hints').checked = v.hints;
     if ($('set-hudmode')) $('set-hudmode').value = v.hudMode;
+    if ($('set-fov')) $('set-fov').value = v.fov;
+    if ($('set-uiscale')) $('set-uiscale').value = v.uiScale;
+    if ($('set-largetext')) $('set-largetext').checked = !!v.largeText;
+    if ($('set-contrast')) $('set-contrast').checked = !!v.highContrast;
+    if ($('set-reducemotion')) $('set-reducemotion').value = v.reduceMotion === true ? 'on' : v.reduceMotion === false ? 'off' : 'auto';
+    if ($('set-grain')) $('set-grain').checked = !!v.grain;
+    if ($('set-fringe')) $('set-fringe').checked = !!v.fringe;
     this.updateValueLabels();
   }
 
@@ -126,6 +133,8 @@ export class MenuSystem {
     $('val-sfx').textContent = `${v.sfx}%`;
     $('val-ambient').textContent = `${v.ambient}%`;
     $('val-sensitivity').textContent = `${v.sensitivity}%`;
+    if ($('val-fov')) $('val-fov').textContent = `${v.fov}°`;
+    if ($('val-uiscale')) $('val-uiscale').textContent = `${v.uiScale}%`;
   }
 
   buildSettings() {
@@ -145,6 +154,23 @@ export class MenuSystem {
     $('set-inverty').addEventListener('change', (e) => { this.settings.set('invertY', e.target.checked); this.cb.onApplySettings(); });
     $('set-quality').addEventListener('change', (e) => { this.settings.set('quality', e.target.value); this.cb.onApplySettings(); });
     $('set-hints').addEventListener('change', (e) => { this.settings.set('hints', e.target.checked); this.cb.onApplySettings(); });
+    // Comfort & accessibility (U2.x) — rows are optional so older markup still boots.
+    if ($('set-fov')) bind('set-fov', 'fov');
+    if ($('set-uiscale')) bind('set-uiscale', 'uiScale');
+    const check = (id, key) => {
+      if ($(id)) $(id).addEventListener('change', (e) => { this.settings.set(key, e.target.checked); this.cb.onApplySettings(); });
+    };
+    check('set-largetext', 'largeText');
+    check('set-contrast', 'highContrast');
+    check('set-grain', 'grain');
+    check('set-fringe', 'fringe');
+    if ($('set-reducemotion')) {
+      $('set-reducemotion').addEventListener('change', (e) => {
+        const val = e.target.value;
+        this.settings.set('reduceMotion', val === 'on' ? true : val === 'off' ? false : null);
+        this.cb.onApplySettings();
+      });
+    }
     if ($('set-hudmode')) {
       $('set-hudmode').addEventListener('change', (e) => { this.settings.set('hudMode', e.target.value); this.cb.onApplySettings(); });
     }

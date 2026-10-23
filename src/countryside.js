@@ -3,11 +3,11 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   plasterTextures, woodTextures, kawaraTextures, shojiTextures, tatamiTextures,
   cobbleTextures, stoneTextures, groundTextures, dirtTextures, strawTextures,
-  metalTextures, texturedMaterial, worldScaleBoxUVs, worldNoise
-} from './textures.js?v=20261022e';
+  metalTextures, namakoTextures, lacquerTextures, texturedMaterial, worldScaleBoxUVs, worldNoise
+} from './textures.js?v=20261022f';
 import {
   createFoliageMaterial, lumpyTuftGeometry, lumpyConeGeometry, leafMassTexture, bushGeometry, buildCanopy
-} from './foliage.js?v=20261022e';
+} from './foliage.js?v=20261022f';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -67,7 +67,9 @@ const TEX = {
   dirt: dirtTextures(7),
   straw: strawTextures(0xd0b070),
   gold: metalTextures(0xd9ad4c),
-  bronze: metalTextures(0xb28538)
+  bronze: metalTextures(0xb28538),
+  namako: namakoTextures(),
+  lacquer: lacquerTextures()
 };
 
 // Materials whose textures are laid out per panel (lattice frames, mats)
@@ -90,6 +92,10 @@ const MAT = {
   roofRidge: texturedMaterial(TEX.stoneDark, { color: 0x3a4149, roughness: 0.5, normalScale: 0.5 }),
   roofThatch: texturedMaterial(TEX.straw, { color: 0x9a8352, roughness: 1 }),
   vermilion: texturedMaterial({ normalMap: TEX.woodMedium.normalMap }, { color: 0xd8482c, roughness: 0.42, normalScale: 0.3, envMapIntensity: 0.5 }),
+  // Torii lacquer: brushed vermilion with a soft sheen (src/textures.js)
+  lacquer: texturedMaterial(TEX.lacquer, { roughness: 0.34, normalScale: 0.4, envMapIntensity: 0.8 }),
+  // Namako-kabe skirt walls: slate tiles in raised white joints
+  namako: texturedMaterial(TEX.namako, { roughness: 0.62, normalScale: 1.1, envMapIntensity: 0.6 }),
   stone: texturedMaterial(TEX.stone, { roughness: 0.92, normalScale: 0.9 }),
   stoneDark: texturedMaterial(TEX.stoneDark, { roughness: 0.94, normalScale: 0.9 }),
   stonePlinth: texturedMaterial(TEX.stone, { color: 0xbdbdb4, roughness: 0.9 }),
@@ -154,6 +160,7 @@ export class Countryside {
     this.lanternHalos = [];
     this.lanternHaloTex = this.makeGlowBallTexture();
     this.buildRipplePool();
+    this.buildRainRipplePool();
 
     // Secret Machiya & Interactive State
     this.hasSecretKey = false;
@@ -622,6 +629,85 @@ export class Countryside {
       ring.renderOrder = 2;
       this.scene.add(ring);
       this.ripples.push({ mesh: ring, age: 0, life: 0, strength: 1 });
+    }
+  }
+
+  /**
+   * Rain on water: a dedicated pool of small, quick rings so a downpour
+   * never evicts the cat's and the koi's ripples from the shared pool.
+   */
+  buildRainRipplePool() {
+    const geo = new THREE.RingGeometry(0.72, 1, 18);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xeef7f8, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide
+    });
+    this.rainRipples = [];
+    for (let i = 0; i < 28; i++) {
+      const ring = new THREE.Mesh(geo, mat.clone());
+      ring.name = `Raindrop Ring ${i + 1}`;
+      ring.rotation.x = -Math.PI / 2;
+      ring.visible = false;
+      ring.renderOrder = 2;
+      this.scene.add(ring);
+      this.rainRipples.push({ mesh: ring, age: 0, life: 0, dur: 0.8, size: 0.4 });
+    }
+    this.rainDropAccum = 0;
+  }
+
+  /** A random wet spot (river or pond) within `range` of the player, or null. */
+  pickRainSpot(playerPos, range) {
+    for (let tries = 0; tries < 5; tries++) {
+      let x, z;
+      if (this.riverSamples.length && (!this.waterRects.length || Math.random() < 0.7)) {
+        const s = this.riverSamples[Math.floor(Math.random() * this.riverSamples.length)];
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.sqrt(Math.random()) * 2.5;
+        x = s.x + Math.cos(a) * r;
+        z = s.z + Math.sin(a) * r;
+      } else if (this.waterRects.length) {
+        const [px, pz, w, d] = this.waterRects[Math.floor(Math.random() * this.waterRects.length)];
+        x = px + (Math.random() - 0.5) * w * 0.9;
+        z = pz + (Math.random() - 0.5) * d * 0.9;
+      } else return null;
+      const dx = x - playerPos.x, dz = z - playerPos.z;
+      if (dx * dx + dz * dz > range * range) continue;
+      if (this.shoreDistance(x, z) < 0.4) continue;
+      return { x, z };
+    }
+    return null;
+  }
+
+  updateRainRipples(dt, playerPos, sky) {
+    if (!this.rainRipples) return;
+    const raining = !!sky && sky.weather === 'rain' && !!playerPos;
+    // Raindrops land at a rate that follows the downpour's weight.
+    if (raining) {
+      const blend = typeof sky.weatherBlend === 'number' ? sky.weatherBlend : 1;
+      this.rainDropAccum += dt * 16 * Math.min(1, blend);
+      while (this.rainDropAccum >= 1) {
+        this.rainDropAccum -= 1;
+        const spot = this.pickRainSpot(playerPos, 24);
+        if (!spot) continue;
+        const slot = this.rainRipples.find((r) => r.life <= 0);
+        if (!slot) break;
+        slot.mesh.position.set(spot.x, 0.047, spot.z);
+        slot.mesh.visible = true;
+        slot.age = 0;
+        slot.dur = 0.55 + Math.random() * 0.35;
+        slot.life = slot.dur;
+        slot.size = 0.22 + Math.random() * 0.3;
+      }
+    } else {
+      this.rainDropAccum = 0;
+    }
+    for (const r of this.rainRipples) {
+      if (r.life <= 0) continue;
+      r.age += dt;
+      r.life -= dt;
+      const t = Math.min(1, r.age / r.dur);
+      r.mesh.scale.setScalar(0.04 + r.size * (1 - (1 - t) * (1 - t)));
+      r.mesh.material.opacity = 0.42 * (1 - t) * (1 - t);
+      if (r.life <= 0) { r.mesh.visible = false; r.life = 0; }
     }
   }
 
@@ -2054,6 +2140,23 @@ export class Countryside {
       }
     }
 
+    // Namako-kabe skirt (slate tiles in white joints) up the lower wall — on
+    // the sides and back in full, and either side of the door on the facade.
+    const skirtH = 0.92, skirtY = 0.26 + skirtH / 2;
+    const skirtOut = 0.022;
+    house.add(box(w - 0.5, skirtH, 0.04, MAT.namako, 0, skirtY, -(d / 2 + skirtOut)));
+    for (const sx of [-1, 1]) {
+      house.add(box(0.04, skirtH, d - 0.5, MAT.namako, sx * (w / 2 + skirtOut), skirtY, 0));
+      const fw = (w - 0.5) / 2 - 0.85;
+      if (fw > 0.2) house.add(box(fw, skirtH, 0.04, MAT.namako, sx * (0.85 + fw / 2), skirtY, d / 2 + skirtOut));
+    }
+    // Eave beam and a pair of wall studs break up the flat plaster above it
+    house.add(box(w + 0.12, 0.1, d + 0.12, MAT.timberDark, 0, 2.03, 0));
+    house.add(box(w + 0.1, 0.07, 0.06, MAT.timberDark, 0, 1.2, d / 2 + 0.025));
+    for (const sx of [-1, 1]) {
+      house.add(box(0.1, 0.95, 0.05, MAT.timberDark, sx * w * 0.3, 1.62, d / 2 + 0.02));
+    }
+
     // Street-facing facade: shoji panel + koushi lattice + tiny noren
     house.add(box(1.5, 1.6, 0.07, MAT.shojiOff, 0, 1.05, d / 2 + 0.03));
     const lattice = this.createKoushi(1.7, 1.7, 8);
@@ -2604,30 +2707,47 @@ export class Countryside {
   buildTorii(x, z) {
     const torii = new THREE.Group();
     torii.name = 'Torii Gate';
-    const pillarGeo = new THREE.CylinderGeometry(0.22, 0.28, 4.6, 10);
+    const pillarGeo = new THREE.CylinderGeometry(0.22, 0.28, 4.6, 14);
     for (const s of [-1, 1]) {
-      const p = new THREE.Mesh(pillarGeo, MAT.vermilion);
+      const p = new THREE.Mesh(pillarGeo, MAT.lacquer);
       p.position.set(s * 1.8, 2.3, 0);
       p.castShadow = true;
       torii.add(p);
+      // Black kamebara base collar, where the pillar meets the stone footing
+      const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.31, 0.36, 0.42, 14), MAT.timberDark);
+      collar.position.set(s * 1.8, 0.21, 0);
+      collar.castShadow = true;
+      torii.add(collar);
       this.colliders.push(new THREE.Box3(
         new THREE.Vector3(x + s * 1.8 - 0.3, 0, z - 0.3),
         new THREE.Vector3(x + s * 1.8 + 0.3, 4.6, z + 0.3)
       ));
     }
-    const midLintel = box(5.6, 0.32, 0.4, MAT.vermilion, 0, 4.75, 0);
+    const midLintel = box(5.6, 0.32, 0.4, MAT.lacquer, 0, 4.75, 0);
     torii.add(midLintel);
-    const topLintel = box(6.2, 0.28, 0.5, MAT.vermilion, 0, 5.15, 0);
-    torii.add(topLintel);
-    torii.add(box(0.9, 0.3, 0.3, MAT.vermilion, 0, 4.45, 0));
-    torii.add(box(6.3, 0.1, 0.52, MAT.stoneDark, 0, 5.34, 0));
+    // Kasagi: a straight centre beam with the two ends swept up, as on a real
+    // torii, instead of one flat plank. Black cap (shimaki) rides on top.
+    const wingLen = 1.2, wingTilt = 0.11;
+    torii.add(box(3.8, 0.28, 0.5, MAT.lacquer, 0, 5.15, 0));
+    torii.add(box(3.9, 0.1, 0.52, MAT.timberDark, 0, 5.34, 0));
+    for (const s of [-1, 1]) {
+      const wing = box(wingLen, 0.28, 0.5, MAT.lacquer, s * (1.9 + wingLen * 0.5 * Math.cos(wingTilt)), 5.15 + wingLen * 0.5 * Math.sin(wingTilt), 0);
+      wing.rotation.z = s * wingTilt;
+      torii.add(wing);
+      const cap = box(wingLen + 0.06, 0.1, 0.52, MAT.timberDark, s * (1.9 + wingLen * 0.5 * Math.cos(wingTilt)), 5.34 + wingLen * 0.5 * Math.sin(wingTilt), 0);
+      cap.rotation.z = s * wingTilt;
+      torii.add(cap);
+    }
+    torii.add(box(0.9, 0.3, 0.3, MAT.lacquer, 0, 4.45, 0));
+    // Wedge blocks (kusabi) where the lower tie beam passes through each pillar
+    for (const s of [-1, 1]) torii.add(box(0.5, 0.2, 0.32, MAT.timberDark, s * 1.8, 4.58, 0));
 
     torii.position.set(x, 0, z);
     this.scene.add(torii);
     // Discreet shrine joinery blocks form a late-game climbing route. They are
     // physical supports only at City Legend rank, after every jump upgrade.
     for (const [sx, sy] of [[-1.8, 1.35], [-1.8, 2.55], [1.8, 3.65]]) {
-      const peg = box(0.72, 0.16, 0.72, MAT.vermilion, sx, sy, 0);
+      const peg = box(0.72, 0.16, 0.72, MAT.lacquer, sx, sy, 0);
       torii.add(peg);
       this.addOrientedPlatform(torii, {
         minX: sx - 0.36, maxX: sx + 0.36, minZ: -0.36, maxZ: 0.36
@@ -2785,6 +2905,7 @@ export class Countryside {
     this.buildDistantPagoda(12, 56);
     this.buildVillage();
     this.buildMistRing();
+    this.buildDawnMist();
   }
 
   /**
@@ -3285,6 +3406,49 @@ export class Countryside {
     }
   }
 
+  /**
+   * Low river mist for first light: broad soft sprites hugging the water that
+   * rise with the dawn (and thicken in misty weather), then burn off by
+   * mid-morning — the "valley waking up" beat.
+   */
+  buildDawnMist() {
+    if (!this.riverSamples.length) return;
+    const tex = this.mistTexture();
+    this.dawnMists = [];
+    const n = 12;
+    for (let i = 0; i < n; i++) {
+      const s = this.riverSamples[Math.floor((i + 0.5) / n * (this.riverSamples.length - 1))];
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false, color: 0xf6efe4 });
+      const spr = new THREE.Sprite(mat);
+      const baseY = 0.75 + Math.random() * 0.5;
+      spr.position.set(s.x + (Math.random() - 0.5) * 3, baseY, s.z + (Math.random() - 0.5) * 3);
+      spr.scale.set(15 + Math.random() * 9, 3.2 + Math.random() * 1.6, 1);
+      spr.visible = false;
+      spr.renderOrder = 1;
+      this.scene.add(spr);
+      this.dawnMists.push({ spr, baseX: spr.position.x, baseY, phase: Math.random() * 6, speed: 0.04 + Math.random() * 0.05 });
+    }
+  }
+
+  updateDawnMist(dt, sky) {
+    if (!this.dawnMists || !sky) return;
+    // Bell around 06:15: rises from ~04:45, gone by ~09:15.
+    const h = sky.dayTime;
+    const x = (h - 6.25) / 1.6;
+    const dawn = Math.exp(-x * x);
+    const misty = sky.weather === 'mist' ? Math.min(1, (sky.weatherBlend ?? 1) * 1.4) : 0;
+    const rainy = sky.weather === 'rain' ? 0.25 : 0;
+    const strength = Math.min(1, dawn * 0.85 + misty * 0.6 + rainy);
+    for (const m of this.dawnMists) {
+      const on = strength > 0.02;
+      m.spr.visible = on;
+      if (!on) continue;
+      m.spr.position.x = m.baseX + Math.sin(this.time * m.speed * 3 + m.phase) * 1.6;
+      m.spr.position.y = m.baseY + Math.sin(this.time * m.speed * 2 + m.phase) * 0.12 + (1 - strength) * 0.2;
+      m.spr.material.opacity = strength * (0.5 + Math.sin(this.time * m.speed * 5 + m.phase) * 0.08);
+    }
+  }
+
   buildYarn() {
     let id = 0;
     const yarnSpots = [
@@ -3419,9 +3583,13 @@ export class Countryside {
         this.villageWindowMat.emissiveIntensity = 0.1 + nightness * 2.6;
       }
       // Lantern halo sprites breathe with dusk; a slow warm flicker
+      // Lanterns kindle one after another as the light fails (each has its own
+      // threshold) instead of every flame switching on in the same frame.
       for (let i = 0; i < this.lanternHalos.length; i++) {
         const flicker = 0.85 + Math.sin(this.time * 7.5 + i * 1.7) * 0.15;
-        this.lanternHalos[i].opacity = nightness * 0.55 * flicker;
+        const onset = ((i * 0.618) % 1) * 0.4;
+        const k = Math.min(1, Math.max(0, (nightness - onset) / 0.5));
+        this.lanternHalos[i].opacity = k * k * (3 - 2 * k) * 0.55 * flicker;
       }
       // Far ridges wash toward sky colors so sunsets bleed across them
       if (this.matHazeFar) {
@@ -3434,6 +3602,9 @@ export class Countryside {
       }
       this.updateLanternLights(dt, playerPos, nightness);
     }
+
+    this.updateRainRipples(dt, playerPos, sky);
+    this.updateDawnMist(dt, sky);
 
     // River shader follows time-of-day sun and palette
     if (this.riverUniforms) {

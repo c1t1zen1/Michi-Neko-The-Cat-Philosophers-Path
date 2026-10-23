@@ -3,34 +3,35 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20261022e';
-import { Player } from './player.js?v=20261022e';
-import { Countryside } from './countryside.js?v=20261022e';
-import { Sky } from './sky.js?v=20261022e';
-import { Vegetation } from './vegetation.js?v=20261022e';
-import { Particles } from './particles.js?v=20261022e';
-import { AmbientLife } from './ambient_life.js?v=20261022e';
-import { Controls } from './controls.js?v=20261022e';
-import { UI } from './ui.js?v=20261022e';
-import { NPC } from './npc.js?v=20261022e';
-import { Dialogue } from './dialogue.js?v=20261022e';
-import { QuestManager } from './quest.js?v=20261022e';
-import { AudioManager } from './audio.js?v=20261022e';
-import { ProgressionManager } from './progression.js?v=20261022e';
-import { ContextActionManager } from './context_actions.js?v=20261022e';
-import { InteriorManager } from './interior.js?v=20261022e';
-import { SaveManager } from './save.js?v=20261022e';
-import { ScentTrail } from './scent.js?v=20261022e';
-import { SettingsManager } from './settings.js?v=20261022e';
-import { isDiscreteGPU } from './settings.js?v=20261022e';
-import { MenuSystem } from './menus.js?v=20261022e';
-import { WaypointSystem, Compass } from './waypoints.js?v=20261022e';
-import { MusicDirector } from './music.js?v=20261022e';
-import { SummitManager } from './mountaintop.js?v=20261022e';
-import { catRimUniforms } from './cat.js?v=20261022e';
-import { chunkSceneInstances } from './instanced_chunks.js?v=20261022e';
-import { setFoliageDetail } from './foliage.js?v=20261022e';
-import { applyCadOverrides } from './cad_overrides.js?v=20261022e';
+import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20261022f';
+import { Player } from './player.js?v=20261022f';
+import { Countryside } from './countryside.js?v=20261022f';
+import { Sky } from './sky.js?v=20261022f';
+import { Vegetation } from './vegetation.js?v=20261022f';
+import { Particles } from './particles.js?v=20261022f';
+import { AmbientLife } from './ambient_life.js?v=20261022f';
+import { Controls } from './controls.js?v=20261022f';
+import { UI } from './ui.js?v=20261022f';
+import { NPC } from './npc.js?v=20261022f';
+import { Dialogue } from './dialogue.js?v=20261022f';
+import { QuestManager } from './quest.js?v=20261022f';
+import { AudioManager } from './audio.js?v=20261022f';
+import { ProgressionManager } from './progression.js?v=20261022f';
+import { ContextActionManager } from './context_actions.js?v=20261022f';
+import { InteriorManager } from './interior.js?v=20261022f';
+import { SaveManager } from './save.js?v=20261022f';
+import { ScentTrail } from './scent.js?v=20261022f';
+import { SettingsManager } from './settings.js?v=20261022f';
+import { isDiscreteGPU } from './settings.js?v=20261022f';
+import { MenuSystem } from './menus.js?v=20261022f';
+import { WaypointSystem, Compass } from './waypoints.js?v=20261022f';
+import { MusicDirector } from './music.js?v=20261022f';
+import { SummitManager } from './mountaintop.js?v=20261022f';
+import { catRimUniforms } from './cat.js?v=20261022f';
+import { chunkSceneInstances } from './instanced_chunks.js?v=20261022f';
+import { setFoliageDetail } from './foliage.js?v=20261022f';
+import { applyCadOverrides } from './cad_overrides.js?v=20261022f';
+import { HiddenPlaces } from './hidden_places.js?v=20261022f';
 
 const AUTOSTART_KEY = 'catwalk_autostart';
 
@@ -110,6 +111,9 @@ class Game {
     this.sky = new Sky(this.scene);
     this.sky.attachRenderer(this.renderer);
     this.city = new Countryside(this.scene);
+    // Hidden valley places register their clearings with the world before the
+    // vegetation scatter reads its exclusion and water lists.
+    this.hidden = new HiddenPlaces(this.scene, this.city);
     this.interior = new InteriorManager(this);
     this.vegetation = new Vegetation(this.scene, this.city.colliders, {
       pathSamples: this.city.pathSamples,
@@ -169,7 +173,7 @@ class Game {
       { fur: 0xe8b06a, belly: 0xfaf0dc, accent: 0xb07840, wanderRadius: 5 }
     );
     // Mochi plays with fallen bamboo leaves when the wind picks up (N2.2).
-    this.mochi.schedule = { playInWind: true };
+    this.mochi.schedule = { playInWind: true, sleepAtNight: true };
     this.mochi.dialogueProvider = () => this.getMochiDialogue();
     this.kuro = new NPC(
       this.scene,
@@ -212,6 +216,13 @@ class Game {
     this.contextActions.npcs = this.npcs;
     this.contextActions.onDiscover = (section, entry) => this.discover(section, entry);
     this.contextActions.onMusicSwell = (d) => this.music.swell(d);
+    this.hidden.attach({
+      audio: this.audio,
+      contextActions: this.contextActions,
+      ui: this.ui,
+      progression: this.progression,
+      discover: (section, entry) => this.discover(section, entry)
+    });
 
     // 天上 — the hidden mountain-top clearing. Reached by ringing the shrine
     // bell ten times; left by walking back under the torii at the foot of the
@@ -631,7 +642,29 @@ class Game {
     // Interface mode (U1.2): 'minimal' keeps the parchment rolled up by
     // default and the markers quiet; 'guided' keeps the classic overlay.
     this.ui.setHudMode(v.hudMode || 'minimal');
+    this.applyComfort();
     this.applyQuality();
+  }
+
+  /**
+   * Comfort & accessibility (U2.x): FOV, UI scale, text size, contrast, and
+   * reduce-motion. Reduce-motion stills the camera's own behaviour (FOV
+   * kicks, auto-follow swing, title orbit, rest drift) and the film grain /
+   * chromatic fringe, and doubles as a small perf win.
+   */
+  applyComfort() {
+    const v = this.settings.values;
+    const reduced = this.settings.isReducedMotion();
+    this.reducedMotion = reduced;
+    this.player.fovBase = THREE.MathUtils.clamp(Number(v.fov) || 55, 40, 90);
+    this.player.dynamicFov = !reduced;
+    this.player.autoFollow = !reduced;
+    const body = document.body;
+    body.classList.toggle('large-text', !!v.largeText);
+    body.classList.toggle('high-contrast', !!v.highContrast);
+    body.classList.toggle('reduce-motion', reduced);
+    document.documentElement.style.setProperty('--ui-scale', String(THREE.MathUtils.clamp((Number(v.uiScale) || 100) / 100, 0.8, 1.5)));
+    this.gradePass.uniforms.uGrain.value = v.grain && !reduced ? 0.028 : 0;
   }
 
   applyQuality() {
@@ -710,7 +743,8 @@ class Game {
       ao: q === 'low' ? 0 : q === 'medium' ? 0.85 : 1,
       shafts: this.resolveShaftStrength(q)
     };
-    this.gradePass.uniforms.uFringe.value = q === 'high' ? 0.0012 : 0.0;
+    this.gradePass.uniforms.uFringe.value =
+      q === 'high' && this.settings.values.fringe && !this.settings.isReducedMotion() ? 0.0012 : 0.0;
 
     // Environment re-bake interval. The bake is a cube render plus a mip
     // chain; on a phone that is a visible hitch, and the sky palette moves
@@ -1274,6 +1308,7 @@ class Game {
     if (!this.summit.active && !inside && !(onTitle && this._titleTick)) {
       this.vegetation.update(dt, this.player.mesh.position, this.sky);
       this.particles.update(dt, this.player.mesh.position, this.sky);
+      this.hidden.update(dt, playing ? this.player.mesh.position : null, this.sky);
       this.ambientLife.update(dt, this.player.mesh.position, this.sky, this.player.cat, this.player, this.city);
     }
     // Scent gating (U1.4): the trail only flows near things worth finding.
@@ -1283,7 +1318,7 @@ class Game {
     this.audio.setWeatherTransition(this.sky.getWeatherTransition());
     this.audio.updateListener(this.camera);
     if (!this.summit.active) {
-      for (const n of this.npcs) n.update(dt, this.player.mesh.position, this.camera, this.sky);
+      for (const n of this.npcs) n.update(dt, this.player.mesh.position, this.camera, this.sky, this.player.cat);
     }
 
     // Weather memories (G2.3): the first time each weather is experienced
@@ -1325,7 +1360,7 @@ class Game {
     if (this.contextActions.rest && playing) {
       const r = this.contextActions.rest;
       const p = this.player.mesh.position;
-      this._restYaw = (this._restYaw || 0) + dt * 0.18;
+      this._restYaw = (this._restYaw || 0) + (this.reducedMotion ? 0 : dt * 0.18);
       const rad = 4.2;
       const target = this._restCamTarget || (this._restCamTarget = new THREE.Vector3());
       target.set(
@@ -1341,7 +1376,8 @@ class Game {
 
     // Title screen cinematic orbit camera
     if (onTitle) {
-      const t = this.clock.elapsedTime * 0.07;
+      // Reduce-motion holds the title backdrop as a still.
+      const t = this.reducedMotion ? 0.9 : this.clock.elapsedTime * 0.07;
       const r = 17;
       this.camera.position.set(
         Math.cos(t) * r,

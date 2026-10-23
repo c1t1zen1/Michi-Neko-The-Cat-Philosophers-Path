@@ -25,7 +25,25 @@
 
 ## 🎨 Art & Design Vision
 
-> **✏️ Note on the images in this README:** Michi-Neko is in **very early alpha**. The artwork sprinkled through the sections below is **inspiration art** — it shows the scenery, mood, and style the game's design plans to grow into, not current in-game captures. The playable build already has the heart and the vibe; this is the look it is growing toward.
+> **✏️ Note on the images in this README:** Michi-Neko is in **very early alpha**. The artwork sprinkled through the sections below is mostly **inspiration art** — it shows the scenery, mood, and style the game's design plans to grow into. The captures in the next section are the exception: the first is a real in-game frame, the rest are rendered by the game's own builders (the same `Cat`, `Countryside` and `HiddenPlaces` code that runs in the browser), without the in-game post-processing.
+
+### From the build
+
+<p align="center">
+  <img src="docs/images/capture-in-game.jpg" width="90%" alt="In-game capture: Michi walking the machiya lane toward the torii, Luna and Kuro nearby"/>
+</p>
+<p align="center">
+  <img src="docs/images/capture-villagers.jpg" width="90%" alt="Capture from the build: Luna (silver smoke-grey), Mochi (ginger tabby) and Kuro (solid black) shown from three-quarter, side and close-up views"/>
+</p>
+<p align="center">
+  <img src="docs/images/capture-landmarks.jpg" width="90%" alt="Capture from the build: the vermilion torii with its swept kasagi, the shrine, the tea house and the craftsman machiya"/>
+</p>
+<p align="center">
+  <img src="docs/images/capture-street.jpg" width="90%" alt="Capture from the build: the machiya street with namako-kabe skirt walls, toro lanterns and bamboo fences"/>
+</p>
+<p align="center">
+  <img src="docs/images/capture-hidden-places.jpg" width="90%" alt="Capture from the build: the Moon Pool and the Lantern Glade, each by day and by night"/>
+</p>
 
 ---
 

@@ -1,7 +1,39 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20261022e';
+import { Cat } from './cat.js?v=20261022f';
 
 const _lookAt = new THREE.Vector3();
+
+/**
+ * Villager temperaments. Each cat gets its own idle repertoire, pace, size
+ * and manner of greeting so the three read as individuals standing next to
+ * the player cat rather than recolours of it.
+ *   idle      reweights the idle verbs and the pause between them
+ *   scale     overall body size (silhouette variety on top of the build)
+ *   stripes   how much of the tabby pattern shows (0 = solid coat)
+ *   notice    metres at which the cat first takes notice of the player
+ *   greeting  what it does when the player comes close
+ *   startle   how it reacts to a sprinting player nearby
+ */
+const PERSONALITIES = {
+  // Dignified and tidy: grooms and sits, greets with a slow blink.
+  luna: {
+    scale: 1.0, stripes: 0.3, notice: 8,
+    idle: { weights: { groom: 0.42, sit: 0.4, stretch: 0.1, yawn: 0.08 }, interval: [9, 16] },
+    greeting: 'slowblink', startle: 'alert'
+  },
+  // Round and bouncy: stretches, yawns, bounds up to say hello.
+  mochi: {
+    scale: 0.96, stripes: 1.0, notice: 11,
+    idle: { weights: { stretch: 0.4, yawn: 0.3, groom: 0.15, sit: 0.15 }, interval: [8, 15] },
+    greeting: 'playful', startle: 'startled'
+  },
+  // Aloof and long-limbed: sits and watches, warms up slowly.
+  kuro: {
+    scale: 1.05, stripes: 0.0, notice: 7,
+    idle: { weights: { sit: 0.65, groom: 0.15, stretch: 0.1, yawn: 0.1 }, interval: [14, 24] },
+    greeting: 'wary', startle: 'cautious'
+  }
+};
 
 export class NPC {
   constructor(scene, name, color, position, dialogueLines, options = {}) {
@@ -18,15 +50,21 @@ export class NPC {
 
     // Elegant Kyoto Cat Customization for Luna / NPC Companions
     const isLuna = name.toLowerCase().includes('luna');
-    const furColor = options.fur ?? (isLuna ? 0x22242a : (color || 0x3a3a3f));
-    const bellyColor = options.belly ?? (isLuna ? 0x383b44 : 0xede4d0);
-    const accentColor = options.accent ?? (isLuna ? 0x4f5360 : 0x2e2017);
+    // Luna is a silver smoke-grey (Kuro already owns the black coat), so the
+    // two read as different cats at a glance, day or night.
+    const furColor = options.fur ?? (isLuna ? 0x7f8796 : (color || 0x3a3a3f));
+    const bellyColor = options.belly ?? (isLuna ? 0xdadce2 : 0xede4d0);
+    const accentColor = options.accent ?? (isLuna ? 0x474e5f : 0x2e2017);
     const eyeColor = options.eyeColor ?? (isLuna ? 0xdec056 : 0xa2ba6e); // Moonlit Amber/Jade eyes for Luna
     const ribbonColor = options.ribbonColor ?? (isLuna ? 0x2b3d63 : 0xc8402a); // Indigo silk ribbon for Luna
 
     // Each villager has their own build (src/cat_anatomy.js BUILDS): Luna
     // slender, Mochi round, Kuro long-limbed; anyone else shares Michi's.
+    const persona = PERSONALITIES[name.toLowerCase()] || null;
+    this.persona = persona;
     this.cat = new Cat({
+      stripeAmount: options.stripeAmount ?? (persona ? persona.stripes : undefined),
+      idleProfile: options.idleProfile ?? (persona ? persona.idle : undefined),
       fur: furColor,
       belly: bellyColor,
       accent: accentColor,
@@ -36,6 +74,7 @@ export class NPC {
       audio: options.audio || null
     });
 
+    if (persona && persona.scale !== 1) this.cat.group.scale.setScalar(persona.scale);
     this.mesh.add(this.cat.group);
     this.mesh.position.copy(position);
     this.mesh.position.y = this.baseY;
@@ -66,6 +105,85 @@ export class NPC {
     this._spotPlateau = 1.5;
     this._spotRise = 2.5;
     this.routineIdleTimer = 4 + Math.random() * 8;
+
+    // Reactions to the player (noticing, greeting, being startled) and the
+    // curl-up-for-the-night routine (schedule.sleepAtNight).
+    this.noticed = false;
+    this.greeted = false;
+    this.startleCooldown = 0;
+    this.warmth = 0;       // 0..1, how comfortable the cat is with the player nearby
+    this.sleeping = false;
+  }
+
+  /** Night-time as the villagers see it: after dusk, before first light. */
+  static isNight(sky) {
+    return !!sky && (sky.dayTime >= 19.5 || sky.dayTime < 5.5);
+  }
+
+  /**
+   * Notice / greet / startle. Runs every frame but only acts on edges: the
+   * cat notices once on approach, greets once when the player comes close,
+   * and forgets both when the player wanders off.
+   */
+  reactToPlayer(dt, dist, playerCat) {
+    const p = this.persona;
+    if (!p) return;
+    this.startleCooldown = Math.max(0, this.startleCooldown - dt);
+
+    if (dist > p.notice + 4) {
+      this.noticed = false;
+      this.greeted = false;
+      this.warmth = Math.max(0, this.warmth - dt * 0.05);
+    }
+    if (!this.noticed && dist < p.notice) {
+      this.noticed = true;
+      this.cat.setMood(p.greeting === 'wary' ? 'cautious' : 'curious', 1.6, 1);
+    }
+    if (dist < 5) this.warmth = Math.min(1, this.warmth + dt * (p.greeting === 'wary' ? 0.08 : 0.25));
+    if (!this.greeted && dist < 4.5) {
+      this.greeted = true;
+      if (p.greeting === 'playful') this.cat.setMood('playful', 2.4, 1);
+      else if (p.greeting === 'slowblink') {
+        this.cat.setMood('calm', 0.1, 0);
+        this.cat.slowBlinkTimer = Math.min(this.cat.slowBlinkTimer, 0.4);
+      } else if (p.greeting === 'wary') this.cat.setMood('cautious', 2.0, 1);
+    }
+    // Kuro comes round once he's had time to look the player over.
+    if (p.greeting === 'wary' && this.greeted && this.warmth > 0.7 && dist < 3.5) {
+      this.cat.setMood('curious', 0.6, 1);
+    }
+    if (playerCat && playerCat.isSprinting && dist < 6 && this.startleCooldown <= 0) {
+      this.startleCooldown = 6;
+      this.cat.setMood(p.startle, 0.9, 2);
+    }
+  }
+
+  /** Curl up for the night where the schedule says to; wake when disturbed. */
+  updateSleep(dt, sky, dist, idleNow) {
+    const wants = !!(this.schedule && this.schedule.sleepAtNight) && NPC.isNight(sky);
+    const disturbed = dist < 3.2;
+    if (this.sleeping) {
+      if (!wants || disturbed) {
+        this.sleeping = false;
+        if (this.cat.idleAction === 'sleep') this.cat.endIdleAction();
+        // Wake with a yawn — a small grace note when the player tiptoes in
+        this.cat.startIdleAction('yawn', 1.8);
+      } else if (this.cat.idleAction !== 'sleep') {
+        this.cat.startIdleAction('sleep', 9999);
+      }
+      return;
+    }
+    if (wants && !disturbed && idleNow) {
+      this.sleepDelay = (this.sleepDelay || 0) + dt;
+      if (this.sleepDelay > 4) {
+        this.sleepDelay = 0;
+        this.sleeping = true;
+        this.wanderTarget = null;
+        this.cat.startIdleAction('sleep', 9999);
+      }
+    } else {
+      this.sleepDelay = 0;
+    }
   }
 
   /** The routine-aware home for this moment (night / weather / quest state). */
@@ -117,8 +235,11 @@ export class NPC {
     this.nameTag.style.top = `${y}px`;
   }
 
-  update(dt, playerPos, camera, sky = null) {
+  update(dt, playerPos, camera, sky = null, playerCat = null) {
     this.updateNameTagPosition(camera);
+    const playerDist = this.distanceTo(playerPos);
+    this.reactToPlayer(dt, playerDist, playerCat);
+    this.updateSleep(dt, sky, playerDist, this.moveSpeed === 0 && !this.wanderTarget);
 
     // Routine-aware wandering: the effective home follows the schedule
     // (moon-watching at night, sheltering from rain, river visits in mist).
@@ -143,7 +264,9 @@ export class NPC {
     let isTurning = false;
     this.moveSpeed = 0;
 
-    if (dist < 5.0) {
+    if (this.sleeping) {
+      // Asleep: stay put, no wandering, no turning to watch the player
+    } else if (dist < 5.0) {
       // Player nearby: stop wandering and watch them
       this.wanderTarget = null;
       const dx = playerPos.x - this.mesh.position.x;
@@ -210,7 +333,7 @@ export class NPC {
     }
 
     // Follow the player with the head while they're close
-    if (dist < 6.0) {
+    if (dist < 6.0 && !this.sleeping) {
       _lookAt.set(playerPos.x, playerPos.y + 0.55, playerPos.z);
       this.cat.setLookTarget(_lookAt);
     } else {

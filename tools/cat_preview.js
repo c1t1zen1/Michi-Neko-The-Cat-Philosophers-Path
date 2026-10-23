@@ -9,8 +9,8 @@
 // Extras: &raw=1 (bare sculpts), &golden=1 (sunset light), &debug=1 (bone
 // positions in the console), &perf=1 (build + update timings).
 import * as THREE from 'three';
-import { Cat, catRimUniforms } from '../src/cat.js?v=20261022e';
-import { getCatAnatomy, BUILDS } from '../src/cat_anatomy.js?v=20261022e';
+import { Cat, catRimUniforms } from '../src/cat.js?v=20261022f';
+import { getCatAnatomy, BUILDS } from '../src/cat_anatomy.js?v=20261022f';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 /**
@@ -53,9 +53,10 @@ Math.random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 21
 
 const PALETTES = {
   michi: { fur: 0xae8450, belly: 0xeedcb8, accent: 0x5e3d26 },
-  luna: { fur: 0x22242a, belly: 0x383b44, accent: 0x4f5360, eyeColor: 0xdec056, ribbonColor: 0x2b3d63 },
-  mochi: { fur: 0xe8b06a, belly: 0xfaf0dc, accent: 0xb07840, eyeColor: 0xa2ba6e, ribbonColor: 0xc8402a },
-  kuro: { fur: 0x1c1c22, belly: 0x2e2e38, accent: 0x101014, eyeColor: 0xd8b04a, ribbonColor: 0xc8402a }
+  // Mirrors src/npc.js (coat + PERSONALITIES.stripes)
+  luna: { fur: 0x7f8796, belly: 0xdadce2, accent: 0x474e5f, stripeAmount: 0.3, eyeColor: 0xdec056, ribbonColor: 0x2b3d63 },
+  mochi: { fur: 0xe8b06a, belly: 0xfaf0dc, accent: 0xb07840, stripeAmount: 1.0, eyeColor: 0xa2ba6e, ribbonColor: 0xc8402a },
+  kuro: { fur: 0x1c1c22, belly: 0x2e2e38, accent: 0x101014, stripeAmount: 0.0, eyeColor: 0xd8b04a, ribbonColor: 0xc8402a }
 };
 
 const STEP = 1 / 60;

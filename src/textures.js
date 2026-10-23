@@ -773,3 +773,84 @@ export function worldScaleBoxUVs(geometry, texelsPerMeter = 1) {
   uv.needsUpdate = true;
   return geometry;
 }
+
+
+/**
+ * Namako-kabe: the Edo skirt wall — dark slate tiles set in a grid of raised,
+ * rounded white plaster joints. Laid out so one 256px tile spans one metre of
+ * wall at the world-scaled box UVs, six tiles to a side.
+ */
+export function namakoTextures(tile = 0x2b3036, joint = 0xefe9da, seed = 11) {
+  return cached('namako' + tile + joint + seed, () => {
+    const size = 256;
+    const cells = 6;
+    const cell = size / cells;
+    const t = hexToRgb(tile), j = hexToRgb(joint);
+    const height = new Float32Array(size * size);
+    const jointW = cell * 0.09;
+    const fieldAt = (x, y) => {
+      const fx = ((x % cell) + cell) % cell, fy = ((y % cell) + cell) % cell;
+      const dx = Math.min(fx, cell - fx), dy = Math.min(fy, cell - fy);
+      const d = Math.min(dx, dy);
+      const id = hash2(Math.floor(x / cell), Math.floor(y / cell), seed);
+      return { d, id, fx, fy };
+    };
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const { d } = fieldAt(x, y);
+        // Rounded raised joint, gentle pillow on each tile
+        const ridgeH = d < jointW ? Math.sqrt(1 - Math.pow(1 - d / jointW, 2)) : 0;
+        const pillow = Math.min(1, d / (cell * 0.5)) * 0.25;
+        height[y * size + x] = d < jointW ? 0.55 + ridgeH * 0.45 : 0.3 + pillow;
+      }
+    }
+    const canvas = fieldToCanvas(size, (x, y, o) => {
+      const { d, id, fx, fy } = fieldAt(x, y);
+      if (d < jointW) {
+        const edge = Math.min(1, d / jointW);
+        const grime = (fbm(x / size, y / size, 10, 3, seed + 2) - 0.5) * 0.1;
+        const shade = 0.82 + edge * 0.16 + grime;
+        o[0] = j[0] * shade; o[1] = j[1] * shade; o[2] = j[2] * shade * 0.97;
+      } else {
+        // Each tile its own slate tone, with a soft diagonal sheen
+        const sheen = Math.max(0, 1 - Math.abs((fx + fy) / cell - 1.0) * 1.7) * 0.22;
+        const tone = 0.78 + id * 0.4 + sheen + (fbm(x / size, y / size, 24, 2, seed + 4) - 0.5) * 0.12;
+        const bevel = Math.min(1, (d - jointW) / (cell * 0.08));
+        const k = tone * (0.84 + bevel * 0.16);
+        o[0] = t[0] * k; o[1] = t[1] * k; o[2] = t[2] * (k + 0.04);
+      }
+    });
+    return {
+      map: finishTexture(canvas, { repeat: [1, 1] }),
+      normalMap: heightToNormal(height, size, 2.6)
+    };
+  });
+}
+
+/**
+ * Vermilion lacquer: long vertical streaks of slightly deeper and brighter
+ * red with soft mottling, so torii pillars read as brushed lacquer over
+ * timber instead of one flat colour. Grain runs along V.
+ */
+export function lacquerTextures(color = 0xd8482c, seed = 13) {
+  return cached('lacquer' + color + seed, () => {
+    const size = 256;
+    const base = hexToRgb(color);
+    const height = new Float32Array(size * size);
+    const canvas = fieldToCanvas(size, (x, y, o) => {
+      const u = x / size, v = y / size;
+      const streak = fbm(u, v, 3, 2, seed) * 0.55 + (fbm(u * 24, v * 0.6, 1, 3, seed + 3) - 0.5) * 0.9;
+      const mottle = fbm(u, v, 4, 3, seed + 6);
+      const k = 0.86 + streak * 0.2 + (mottle - 0.5) * 0.12;
+      // Warm highlights where the brush loaded thicker, deeper red in the lows
+      o[0] = base[0] * k * (1 + Math.max(0, streak - 0.35) * 0.18);
+      o[1] = base[1] * k * (0.9 + mottle * 0.2);
+      o[2] = base[2] * k * (0.85 + mottle * 0.2);
+      height[y * size + x] = streak * 0.5 + mottle * 0.15;
+    });
+    return {
+      map: finishTexture(canvas, { repeat: [1, 1] }),
+      normalMap: heightToNormal(height, size, 0.9)
+    };
+  });
+}

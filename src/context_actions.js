@@ -758,6 +758,9 @@ export class ContextActionManager {
       // The local completion beat (G3.2): arrival, not an ending.
       text = 'Every path becomes a home when someone remembers your pawprints.';
       this.discover('keepsakes', { id: 'valley-home', text: 'The valley became home — watched from the torii crown' });
+    } else if (spot.quiet) {
+      // Hidden places write their own stillness moments (src/hidden_places.js).
+      text = (night && spot.quiet.night) || (weather === 'rain' && spot.quiet.rain) || spot.quiet.day;
     } else if (night) {
       text = 'Fireflies gather around you like small, warm thoughts.';
     } else if (weather === 'rain') {

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20261022e';
-import { ColliderGrid } from './collider_grid.js?v=20261022e';
+import { Cat } from './cat.js?v=20261022f';
+import { ColliderGrid } from './collider_grid.js?v=20261022f';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -63,6 +63,11 @@ export class Player {
     this.raycaster = new THREE.Raycaster();
     this.fovBase = 55;
     this.fovCurrent = 55;
+    // Motion comfort: reduce-motion turns off the sprint/jump FOV kicks and
+    // the automatic yaw swing behind the cat, leaving the camera under the
+    // player's hand alone.
+    this.dynamicFov = true;
+    this.autoFollow = true;
 
     // Camera pitch (vertical look)
     this.pitch = 0;
@@ -390,7 +395,7 @@ export class Player {
     // recently, ease yaw around so the camera settles behind the cat.
     const nowSec = performance.now() / 1000;
     const movingNow = this.moveInput.lengthSq() > 0.01;
-    if (movingNow && nowSec - this.lastLookTime > 1.2) {
+    if (this.autoFollow && movingNow && nowSec - this.lastLookTime > 1.2) {
       let yawDiff = this.heading - this.yaw;
       while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
       while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
@@ -485,9 +490,11 @@ export class Player {
 
     // FOV dynamics
     let fov = this.fovBase;
-    if (isSprint) fov += 5;
-    if (this.cat.jumpTime > 0) fov += 2;
-    if (this.cat.landTime > 0) fov -= 2;
+    if (this.dynamicFov) {
+      if (isSprint) fov += 5;
+      if (this.cat.jumpTime > 0) fov += 2;
+      if (this.cat.landTime > 0) fov -= 2;
+    }
     this.fovCurrent += (fov - this.fovCurrent) * Math.min(1, dt * 8);
     this.camera.fov = this.fovCurrent;
     this.camera.updateProjectionMatrix();

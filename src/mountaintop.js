@@ -4,11 +4,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   dirtTextures, groundTextures, stoneTextures, woodTextures, metalTextures, barkTextures,
   texturedMaterial, worldNoise, glowTexture
-} from './textures.js?v=20261022e';
+} from './textures.js?v=20261022f';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture,
   leafCardGeometry, buildCanopy, updateFoliage, lumpyTuftGeometry
-} from './foliage.js?v=20261022e';
+} from './foliage.js?v=20261022f';
 
 function mulberry32(a) {
   return function() {
@@ -87,7 +87,7 @@ const SUMMIT_WEATHER_DURATIONS = {
 const MEDITATE_SECONDS = 165;
 // Resolve from this module rather than the current document: the main game is
 // served from `/`, while the art-review page lives under `/tools/`.
-const SUMMIT_LANDMARKS_SRC = new URL('../assets/models/summit_kyoto_landmarks.glb?v=20261022e', import.meta.url).href;
+const SUMMIT_LANDMARKS_SRC = new URL('../assets/models/summit_kyoto_landmarks.glb?v=20261022f', import.meta.url).href;
 
 /** Smooth amount for a weather type while Sky cross-fades between states. */
 function summitWeatherAmount(sky, type) {

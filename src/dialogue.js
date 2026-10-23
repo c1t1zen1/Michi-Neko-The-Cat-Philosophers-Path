@@ -6,6 +6,7 @@
 export class Dialogue {
   constructor() {
     this.box = document.createElement('div');
+    this.box.className = 'dialogue-box';
     this.box.style.cssText = 'position:absolute;bottom:85px;left:50%;transform:translateX(-50%);width:92%;max-width:560px;background:linear-gradient(175deg,rgba(249,240,226,0.96) 0%,rgba(236,220,195,0.94) 100%);color:#2d1d12;padding:14px 20px;border-radius:6px;font-family:Georgia,serif;display:none;z-index:250;user-select:none;box-shadow:0 8px 30px rgba(20,10,5,0.5),inset 0 0 20px rgba(160,110,60,0.12);border-left:4px solid #c8402a;border-right:2px solid #7c4c28;border-top:1px solid rgba(120,80,40,0.25);border-bottom:1px solid rgba(120,80,40,0.25);';
 
     // Header row: portrait + name
@@ -27,6 +28,7 @@ export class Dialogue {
     header.appendChild(nameWrap);
 
     this.text = document.createElement('div');
+    this.text.className = 'dialogue-text';
     this.text.style.cssText = 'font-size:14px;color:#2c1b12;line-height:1.65;min-height:46px;';
 
     this.hint = document.createElement('div');

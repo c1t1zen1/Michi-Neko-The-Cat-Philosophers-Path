@@ -1,12 +1,12 @@
 ﻿import * as THREE from 'three';
-import { getCatAnatomy, BUILDS, GROUND } from './cat_anatomy.js?v=20261022e';
+import { getCatAnatomy, BUILDS, GROUND } from './cat_anatomy.js?v=20261022f';
 import {
   catRimUniforms, toonMat, furMaterial, FUR_PART, outlineMaterial,
   makeCollarTexture, makeBellTexture, getEarInnerTexture
-} from './cat_shading.js?v=20261022e';
+} from './cat_shading.js?v=20261022f';
 import {
   makePose, copyPose, lerpPose, dampPose, makeLegRig, solveLeg, smoothstep, clamp
-} from './cat_motion.js?v=20261022e';
+} from './cat_motion.js?v=20261022f';
 
 export { catRimUniforms };
 
@@ -140,8 +140,11 @@ export class Cat {
     this.idleAction = null;
     this.idleActionTimer = 0;
     this.idleActionDuration = 0;
-    // Cat stands alert/calm and only sits down after prolonged stillness
-    this.nextIdleTime = 18.0 + Math.random() * 14.0;
+    // Cat stands alert/calm and only sits down after prolonged stillness.
+    // A personality (NPC villagers) can reweight the idle verbs and the
+    // pause between them: { weights: { stretch, yawn, groom, sit }, interval: [min, max] }.
+    this.idleProfile = options.idleProfile || null;
+    this.nextIdleTime = this.rollIdleInterval();
     this.jumpTime = 0;
     this.landTime = 0;
     this.yawnOpen = 0;
@@ -969,10 +972,32 @@ export class Cat {
     if (this.isDrinking && this.idleAction) this.endIdleAction();
   }
 
+  /** Seconds of stillness before the next idle verb. */
+  rollIdleInterval() {
+    const [lo, hi] = (this.idleProfile && this.idleProfile.interval) || [18, 32];
+    return lo + Math.random() * (hi - lo);
+  }
+
+  /** Start a named idle verb now (sit, groom, stretch, yawn, sleep). */
+  startIdleAction(name, duration = 3) {
+    if (this.isDrinking) return;
+    this.idleAction = name;
+    this.idleActionTimer = 0;
+    this.idleActionDuration = duration;
+    this.yawnOpen = 0;
+  }
+
   beginIdleAction() {
     // Balanced idle repertoire (gentle stretches, yawns, occasional grooming/sitting)
     const actions = ['stretch', 'yawn', 'groom', 'sit'];
-    const weights = [0.35, 0.30, 0.20, 0.15];
+    const w = (this.idleProfile && this.idleProfile.weights) || null;
+    const weights = w
+      ? (() => {
+        const raw = actions.map((a) => Math.max(0, w[a] ?? 0));
+        const sum = raw.reduce((x, y) => x + y, 0) || 1;
+        return raw.map((x) => x / sum);
+      })()
+      : [0.35, 0.30, 0.20, 0.15];
     const r = Math.random();
     let choice = 'stretch';
     let c = 0;
@@ -991,7 +1016,7 @@ export class Cat {
     this.idleAction = null;
     this.idleActionTimer = 0;
     this.idleTimer = 0;
-    this.nextIdleTime = 18.0 + Math.random() * 14.0;
+    this.nextIdleTime = this.rollIdleInterval();
     this.yawnOpen = 0;
   }
 

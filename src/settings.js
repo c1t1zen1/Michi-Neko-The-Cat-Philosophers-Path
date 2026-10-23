@@ -9,7 +9,15 @@ const DEFAULTS = {
   invertY: false,
   quality: 'auto',
   hints: true,
-  hudMode: 'minimal'
+  hudMode: 'minimal',
+  // Comfort & accessibility (U2.x)
+  fov: 55,
+  uiScale: 100,
+  largeText: false,
+  highContrast: false,
+  reduceMotion: null,   // null = follow the OS prefers-reduced-motion setting
+  grain: true,
+  fringe: true
 };
 
 export class SettingsManager {
@@ -31,6 +39,14 @@ export class SettingsManager {
   }
 
   get(key) { return this.values[key]; }
+
+  /** Reduced motion: an explicit choice wins, otherwise the OS preference. */
+  isReducedMotion() {
+    const v = this.values.reduceMotion;
+    if (v === true || v === false) return v;
+    try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+    catch (e) { return false; }
+  }
 
   /** Resolve 'auto' quality into a concrete preset based on device capability. */
   resolveQuality() {
