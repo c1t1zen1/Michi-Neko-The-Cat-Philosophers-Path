@@ -330,8 +330,9 @@ ok('has torii', !!S.torii);
 ok('has meadow + vista + rays in the group',
   !!S.vista && !!S.raysGroup && !!S.group.children.length);
 ok('has dense grass field', !!S.grassMat && !!S.grassMat.uniforms);
-ok('has vista backdrop', !!S.vista);
+ok('has layered 3D vista group', !!S.vista && S.vista.name === 'Layered Kyoto Bay Vista');
 ok('has summit-local snow', !!S.snow && !!S.snowMat, 'buildSummitSnow missing');
+ok('has summit-local rain', !!S.rain && !!S.rainMat, 'buildSummitRain missing');
 ok('snow parks itself when clear', S.snow.visible === false);
 ok('no collectibles on a respite scene', Array.isArray(S.collectibles) && S.collectibles.length === 0);
 ok('has summit-local butterfly visitors', !!S.butterflies && !!S.butterflyMat);
@@ -384,10 +385,11 @@ ok('summit group becomes visible', S.group.visible === true);
 ok('summit wind bed starts', audioCalls.includes('wind:on'));
 ok('guidance UI is hidden', g.ui.guidanceHidden === true);
 ok('summit mode removes valley guidance chrome', g.ui.summitModeCalls.at(-1) === true);
-ok('weather pool drops rain and mist',
-  !!g.sky.weatherPool && g.sky.weatherPool.includes('snow') &&
-  !g.sky.weatherPool.includes('rain') && !g.sky.weatherPool.includes('mist'));
-ok('weather durations swapped', g.sky.weatherDurations.clear === 300);
+ok('summit weather pool includes every valley weather',
+  !!g.sky.weatherPool && ['clear', 'cloudy', 'mist', 'rain', 'snow']
+    .every((weather) => g.sky.weatherPool.includes(weather)));
+ok('summit weather durations are installed',
+  g.sky.weatherDurations.clear === 520 && g.sky.weatherDurations.rain === 250);
 
 // ORIGIN is (0, -1200, 0), so world z == local z and world y == local y - 1200.
 const pp = g.player.mesh.position;

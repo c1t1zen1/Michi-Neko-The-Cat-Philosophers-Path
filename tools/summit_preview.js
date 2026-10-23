@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { Sky } from '../src/sky.js?v=20261022d';
-import { Player } from '../src/player.js?v=20261022d';
-import { Vegetation } from '../src/vegetation.js?v=20261022d';
-import { SummitManager } from '../src/mountaintop.js?v=20261022d';
+import { Sky } from '../src/sky.js?v=20261022e';
+import { Player } from '../src/player.js?v=20261022e';
+import { Vegetation } from '../src/vegetation.js?v=20261022e';
+import { SummitManager } from '../src/mountaintop.js?v=20261022e';
 
 const canvas = document.getElementById('preview');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -17,9 +17,26 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(49, innerWidth / innerHeight, 0.1, 700);
 const sky = new Sky(scene);
-sky.dayTime = 10.35;
-sky.weather = sky.previousWeather = sky.targetWeather = 'clear';
+
+const query = new URLSearchParams(location.search);
+const parsedTime = Number(query.get('time'));
+const parsedSpeed = Number(query.get('speed'));
+const requestedWeather = query.get('weather');
+const weatherTypes = new Set(['clear', 'cloudy', 'mist', 'rain', 'snow']);
+const previewTime = query.has('time') && Number.isFinite(parsedTime)
+  ? THREE.MathUtils.clamp(parsedTime, 0, 24)
+  : 10.35;
+const previewWeather = weatherTypes.has(requestedWeather) ? requestedWeather : 'clear';
+const cycleMultiplier = query.has('speed') && Number.isFinite(parsedSpeed)
+  ? Math.max(0, parsedSpeed)
+  : 1;
+
+sky.dayTime = previewTime;
+sky.cycleSpeed *= cycleMultiplier;
+sky.weather = sky.previousWeather = sky.targetWeather = previewWeather;
 sky.weatherBlend = 1;
+if (query.has('weather')) sky.weatherTimer = sky.weatherDurations[previewWeather];
+document.title = `Summit Vista — ${previewWeather}, ${previewTime.toFixed(2)}h, ${cycleMultiplier}×`;
 const player = new Player(scene, camera, null);
 
 // Summit only needs these two geometry/material factories; borrowing the

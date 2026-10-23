@@ -34,8 +34,8 @@ export class Sky {
     this.weatherBlend = 1;
     this.targetWeather = 'clear';
     this.weatherDurations = { clear: 600, cloudy: 420, snow: 300, mist: 360, rain: 300 };
-    // Optional subset/weighted list of weather types the picker may choose
-    // (the summit sets clear/cloudy/snow — no rain or mist up there).
+    // Optional subset/weighted list of weather types the picker may choose.
+    // Pocket scenes may weight the same weather vocabulary differently.
     this.weatherPool = null;
 
     this.palettes = this.buildPalettes();
@@ -50,6 +50,8 @@ export class Sky {
     // fresh object and nine Colors on every call.
     this._pal = paletteBuffer();
     this._palBase = paletteBuffer();
+    this._palWeatherFrom = paletteBuffer();
+    this._palWeatherTo = paletteBuffer();
     this._palFrame = 0;
     this._palStamp = -1;
 
@@ -80,6 +82,18 @@ export class Sky {
     if (this.envTarget) this.envTarget.dispose();
     this.envTarget = target;
     this.scene.environment = target.texture;
+  }
+
+  /**
+   * Retire the resolved palette and make the next outdoor update re-bake the
+   * reflection environment. Pocket scenes call this after changing a palette
+   * override so a coincident sun/weather signature cannot retain the previous
+   * scene's PMREM.
+   */
+  invalidateEnvironment() {
+    this._palStamp = -1;
+    this._envSig = null;
+    this.envTimer = 0;
   }
 
   /**
@@ -132,6 +146,10 @@ export class Sky {
     return new THREE.ShaderMaterial({
       uniforms,
       side: THREE.BackSide,
+      // The dome is a background, not a physical shell. This also allows
+      // long summit vistas to extend beyond its radius without being painted
+      // over by the nearer sphere surface.
+      depthTest: false,
       depthWrite: false,
       fog: false,
       vertexShader: `
@@ -198,8 +216,13 @@ export class Sky {
   }
 
   buildDome() {
-    this.dome = new THREE.Mesh(new THREE.SphereGeometry(240, 48, 28), this.makeDomeMaterial(1.0));
+    // Keep the dome beyond every playable vista layer. The summit's real bay
+    // and mountain geometry reaches almost 600 m from the overlook; the old
+    // 240 m shell physically occluded those meshes and made the view collapse
+    // into a blank horizon even though their camera projections were valid.
+    this.dome = new THREE.Mesh(new THREE.SphereGeometry(650, 48, 28), this.makeDomeMaterial(1.0));
     this.dome.name = 'Sky Dome';
+    this.dome.renderOrder = -1000;
     this.scene.add(this.dome);
   }
 
@@ -466,7 +489,8 @@ export class Sky {
     if (t < 0.20) { phase = 'night'; phaseBlend = t / 0.20; }
     else if (t < 0.30) { phase = 'sunrise'; phaseBlend = (t - 0.20) / 0.10; }
     else if (t < 0.72) { phase = 'day'; phaseBlend = Math.min(1, (t - 0.30) / 0.10); }
-    else if (t < 0.83) { phase = 'sunset'; phaseBlend = (t - 0.72) / 0.11; }
+    else if (t < 0.775) { phase = 'sunset'; phaseBlend = (t - 0.72) / 0.055; }
+    else if (t < 0.83) { phase = 'dusk'; phaseBlend = (t - 0.775) / 0.055; }
     else { phase = 'night2'; phaseBlend = (t - 0.83) / 0.17; }
     return { phase, phaseBlend };
   }
@@ -477,6 +501,48 @@ export class Sky {
       this.lerpColor(a[k] || a.horizon, b[k] || b.horizon, t, out[k]);
     }
     out.cloudOpacity = a.cloudOpacity + (b.cloudOpacity - a.cloudOpacity) * t;
+    return out;
+  }
+
+  /** Continuous amount for a weather type, including both sides of a change. */
+  weatherAmount(type) {
+    const blend = Number.isFinite(this.weatherBlend) ? this.weatherBlend : 1;
+    const from = this.previousWeather == null ? this.weather : this.previousWeather;
+    const to = this.targetWeather == null ? this.weather : this.targetWeather;
+    return (from === type ? 1 - blend : 0) + (to === type ? blend : 0);
+  }
+
+  /**
+   * Apply a weather palette as a colour filter over the live time-of-day
+   * palette. Weather presets are authored against the default day colours;
+   * using their relative tint keeps rainy nights dark and sunset rain warm
+   * instead of replacing every phase with the same daytime grey.
+   */
+  weatherizePalette(base, type, weatherOverride, out) {
+    const weatherPal = type !== 'clear' &&
+      ((weatherOverride && weatherOverride[type]) || this.palettes[type]);
+    if (!weatherPal) return this.lerpPalette(base, base, 0, out);
+
+    const reference = this.palettes.day;
+    const tintStrength = 0.82;
+    for (const k of PALETTE_KEYS) {
+      const bc = base[k] || base.horizon;
+      const wc = weatherPal[k] || bc;
+      const rc = reference[k] || reference.horizon;
+      const tint = (weather, ref) => {
+        const ratio = THREE.MathUtils.clamp(weather / Math.max(0.025, ref), 0.08, 1.7);
+        return 1 + (ratio - 1) * tintStrength;
+      };
+      out[k].setRGB(
+        THREE.MathUtils.clamp(bc.r * tint(wc.r, rc.r), 0, 1),
+        THREE.MathUtils.clamp(bc.g * tint(wc.g, rc.g), 0, 1),
+        THREE.MathUtils.clamp(bc.b * tint(wc.b, rc.b), 0, 1)
+      );
+    }
+    const opacityRatio = weatherPal.cloudOpacity / Math.max(0.05, reference.cloudOpacity);
+    out.cloudOpacity = THREE.MathUtils.clamp(
+      base.cloudOpacity * (1 + (opacityRatio - 1) * tintStrength), 0, 1
+    );
     return out;
   }
 
@@ -495,39 +561,40 @@ export class Sky {
     if (this._palStamp === this._palFrame) return this._pal;
     this._palStamp = this._palFrame;
 
-    // Pocket scenes may intentionally carry their own air colour while still
-    // using the live sun, clouds and weather machinery. The summit uses this
-    // to open on crisp blue Kyoto-bay light without recolouring the valley.
-    if (this.paletteOverride) {
+    // Legacy pocket scenes may intentionally carry one static air colour.
+    // Preserve that behaviour for plain palette overrides. Structured
+    // overrides (`{ phases, weather? }`) continue through the normal
+    // time-of-day and weather blending below.
+    const paletteOverride = this.paletteOverride;
+    const phaseOverride = paletteOverride && paletteOverride.phases;
+    if (paletteOverride && !phaseOverride) {
       const out = this._pal;
-      for (const k of PALETTE_KEYS) out[k].copy(this.paletteOverride[k]);
-      out.cloudOpacity = this.paletteOverride.cloudOpacity;
+      for (const k of PALETTE_KEYS) out[k].copy(paletteOverride[k]);
+      out.cloudOpacity = paletteOverride.cloudOpacity;
       return out;
     }
 
     const { phase, phaseBlend } = this.getDayPhase();
-    const dayPal = this.palettes.day;
-    const sunsetPal = this.palettes.sunset;
-    const nightPal = this.palettes.night;
+    const dayPal = (phaseOverride && phaseOverride.day) || this.palettes.day;
+    const sunsetPal = (phaseOverride && phaseOverride.sunset) || this.palettes.sunset;
+    const nightPal = (phaseOverride && phaseOverride.night) || this.palettes.night;
 
     let base;
     if (phase === 'night' || phase === 'night2') base = nightPal;
     else if (phase === 'sunrise') base = this.lerpPalette(nightPal, dayPal, phaseBlend, this._palBase);
     else if (phase === 'sunset') base = this.lerpPalette(dayPal, sunsetPal, phaseBlend, this._palBase);
+    else if (phase === 'dusk') base = this.lerpPalette(sunsetPal, nightPal, phaseBlend, this._palBase);
     else base = dayPal;
 
-    // Clear weather has no palette of its own: it must resolve to the
-    // time-of-day base, not the day palette, or nights never turn blue.
-    const weatherPal = this.palettes[this.targetWeather] || base;
-    const w = this.weatherBlend;
-    const out = this._pal;
-    for (const k of PALETTE_KEYS) {
-      const bc = base[k] || dayPal[k];
-      const wc = weatherPal[k] || bc;
-      this.lerpColor(bc, wc, w, out[k]);
-    }
-    out.cloudOpacity = base.cloudOpacity + (weatherPal.cloudOpacity - base.cloudOpacity) * w;
-    return out;
+    // Resolve both sides of the transition against the same live phase, then
+    // blend them. This prevents rain -> clear and cloudy -> rain from jumping
+    // through a clear frame at weatherBlend=0.
+    const weatherOverride = paletteOverride && paletteOverride.weather;
+    const fromType = this.previousWeather == null ? this.weather : this.previousWeather;
+    const toType = this.targetWeather == null ? this.weather : this.targetWeather;
+    const from = this.weatherizePalette(base, fromType, weatherOverride, this._palWeatherFrom);
+    const to = this.weatherizePalette(base, toType, weatherOverride, this._palWeatherTo);
+    return this.lerpPalette(from, to, this.weatherBlend, this._pal);
   }
 
   /**
@@ -568,7 +635,7 @@ export class Sky {
       this.previousWeather = this.weather;
       this.targetWeather = types[Math.floor(Math.random() * types.length)];
       this.weatherBlend = 0;
-      this.weatherTimer = this.weatherDurations[this.weather] || 30;
+      this.weatherTimer = this.weatherDurations[this.targetWeather] || 30;
     }
   }
 
@@ -628,7 +695,12 @@ export class Sky {
     this.hemi.intensity = 0.55 + Math.pow(sunUp, 0.7) * 0.95 + moonUp * 0.22 + goldeness * 0.35;
 
     // Warm horizon bounce tracks the sun low across the sky
-    const clearish = 1 - (this.targetWeather === 'clear' ? 0 : this.weatherBlend * 0.55);
+    const cloudyAmount = this.weatherAmount('cloudy');
+    const rainAmount = this.weatherAmount('rain');
+    const snowAmount = this.weatherAmount('snow');
+    const mistAmount = this.weatherAmount('mist');
+    const stormAmount = Math.max(cloudyAmount, rainAmount, snowAmount, mistAmount * 0.72);
+    const clearish = 1 - stormAmount * 0.55;
     this.bounce.intensity = goldeness * 4.2 * clearish;
     // The horizon bounce only exists during the two golden-hour bands; the
     // rest of the cycle it sits at exactly zero and still costs a slot in
@@ -637,8 +709,16 @@ export class Sky {
     const bounceOn = this.bounce.intensity > (this.bounce.visible ? 0.001 : 0.01);
     if (bounceOn !== this.bounce.visible) this.bounce.visible = bounceOn;
     this.bounce.color.copy(p.warm);
-    this.bounce.position.set(-this.sunDir.x * 90, 5, -this.sunDir.z * 90);
-    if (playerPos) this.bounce.target.position.copy(playerPos);
+    if (playerPos) {
+      this.bounce.position.set(
+        playerPos.x - this.sunDir.x * 90,
+        playerPos.y + 5,
+        playerPos.z - this.sunDir.z * 90
+      );
+      this.bounce.target.position.copy(playerPos);
+    } else {
+      this.bounce.position.set(-this.sunDir.x * 90, 5, -this.sunDir.z * 90);
+    }
 
     for (const u of this.domeUniforms) {
       u.topColor.value.copy(p.top);
@@ -667,10 +747,12 @@ export class Sky {
     // Stars + moon only rise once the sun is properly down — no stars in
     // broad dusk light
     const nightness = THREE.MathUtils.clamp((-sunY + 0.02) * 5.0, 0, 1);
-    this.starMat.uniforms.uOpacity.value = nightness * (1 - (this.weather === 'cloudy' || this.weather === 'rain' || this.weather === 'snow' ? this.weatherBlend * 0.85 : 0));
+    const weatherCover = Math.max(cloudyAmount * 0.76, rainAmount * 0.92,
+      snowAmount * 0.82, mistAmount * 0.58);
+    this.starMat.uniforms.uOpacity.value = nightness * (1 - weatherCover);
     this.starMat.uniforms.uTime.value = this.time;
     if (playerPos) this.stars.position.copy(playerPos);
-    this.moonMat.opacity = nightness * 0.95;
+    this.moonMat.opacity = nightness * 0.95 * (1 - weatherCover * 0.68);
     const moonDir = this._moonDir || (this._moonDir = new THREE.Vector3());
     moonDir.set(-this.sunDir.x, Math.max(0.18, -this.sunDir.y + 0.3), -this.sunDir.z).normalize();
     if (playerPos) this.moon.position.copy(playerPos).addScaledVector(moonDir, 205);
@@ -678,17 +760,14 @@ export class Sky {
     this.scene.fog.color.copy(p.fog);
     // Material fog only backs up the post-process atmosphere; it thickens a
     // little in weather so sprites and unlit props still recede.
-    let fogNear = 110, fogFar = 420;
-    if (this.weather === 'mist' && this.weatherBlend > 0.5) { fogNear = 30; fogFar = 140; }
-    else if (this.weather === 'snow' && this.weatherBlend > 0.5) { fogNear = 50; fogFar = 220; }
-    else if (this.weather === 'rain' && this.weatherBlend > 0.5) { fogNear = 40; fogFar = 180; }
+    const fogNear = 110 + mistAmount * (30 - 110) + snowAmount * (50 - 110) + rainAmount * (40 - 110);
+    const fogFar = 420 + mistAmount * (140 - 420) + snowAmount * (220 - 420) + rainAmount * (180 - 420);
     this.scene.fog.near += (fogNear - this.scene.fog.near) * dt * 0.5;
     this.scene.fog.far += (fogFar - this.scene.fog.far) * dt * 0.5;
 
     for (let i = 0; i < this.clouds.length; i++) {
       const c = this.clouds[i];
-      const dark = this.weather === 'snow' || this.weather === 'cloudy' || this.weather === 'rain';
-      c.position.x += dt * ((dark ? 1.4 : 0.6) + i * 0.13);
+      c.position.x += dt * (0.6 + stormAmount * 0.8 + i * 0.13);
       if (c.position.x > 230) c.position.x = -230;
       // Clouds on the sun's side of the sky catch fire at golden hour
       const cxz = c.position.x * this.sunDir.x + c.position.z * this.sunDir.z;

@@ -15,13 +15,13 @@
 // &perf=1 (build timings and leaf counts in the corner), &time=/&wind=
 // (freeze the canopy wind at a moment / strength).
 import * as THREE from 'three';
-import { Vegetation } from '../src/vegetation.js?v=20261022d';
-import { Countryside } from '../src/countryside.js?v=20261022d';
-import { chunkSceneInstances } from '../src/instanced_chunks.js?v=20261022d';
+import { Vegetation } from '../src/vegetation.js?v=20261022e';
+import { Countryside } from '../src/countryside.js?v=20261022e';
+import { chunkSceneInstances } from '../src/instanced_chunks.js?v=20261022e';
 import {
   foliageUniforms, buildCanopy, createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture,
   leafSprayTexture, leafMassTexture
-} from '../src/foliage.js?v=20261022d';
+} from '../src/foliage.js?v=20261022e';
 
 function mulberry32(a) {
   return function() {

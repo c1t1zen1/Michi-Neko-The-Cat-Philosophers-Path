@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {
   compilePrims, sculptGeometry, bakeSkin, evalField, evalGradient,
   compileChain, accumulateChain, writeTopBones
-} from './cat_sdf.js?v=20261022d';
+} from './cat_sdf.js?v=20261022e';
 
 /**
  * Cat anatomy: skeleton landmarks, sculpt primitives and the derived
@@ -283,6 +283,7 @@ function tailGeometry(L, boneIndex) {
   const nrm = [];
   const body = [];
   const sVals = [];
+  const puff = [];
   for (let r = 0; r <= rings; r++) {
     const s = sStart + ((sEnd - sStart) * r) / rings;
     let rad = radius(Math.min(s, total));
@@ -306,6 +307,11 @@ function tailGeometry(L, boneIndex) {
       nrm.push(...n);
       body.push(cx * rad, along / total, cy * rad);
       sVals.push(along);
+      // Bottlebrush (startled): fur on end swells the tube along its
+      // normal, easing in where the tail leaves the rump
+      const e = Math.min(1, Math.max(0, (s + 0.02) / 0.07));
+      const fluff = (radius(Math.min(along, total)) * 0.5 + 0.004) * e * e * (3 - 2 * e);
+      puff.push(n[0] * fluff, n[1] * fluff, n[2] * fluff);
     }
   }
   const index = [];
@@ -323,6 +329,8 @@ function tailGeometry(L, boneIndex) {
   geo.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
   geo.setAttribute('aBody', new THREE.Float32BufferAttribute(body, 3));
   geo.setIndex(index);
+  geo.morphAttributes.position = [new THREE.Float32BufferAttribute(puff, 3)];
+  geo.morphTargetsRelative = true;
   // Skin: soft hand-offs half a segment wide give a continuous curve
   const chain = compileChain({
     joints: L.tail,

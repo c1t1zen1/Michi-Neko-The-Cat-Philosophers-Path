@@ -12,8 +12,9 @@ five-storey pagoda. The editable source and repeatable export script live at
 `tools/blender/summit_vista_landmarks.py`.
 
 The model is merged into one mesh with six material primitives (about 292 KB)
-and loaded only by `SummitManager`. If it cannot load, the procedural painted
-Kyoto backdrop still carries the complete vista.
+and loaded only by `SummitManager`. If it cannot load, the procedural 3D
+districts, gardens, harbour, bay and mountain ranges still carry the complete
+vista; no image-wall fallback is required.
 
 ## `summit-transition.mp4` (optional)
 

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20261022d';
-import { ColliderGrid } from './collider_grid.js?v=20261022d';
+import { Cat } from './cat.js?v=20261022e';
+import { ColliderGrid } from './collider_grid.js?v=20261022e';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -22,7 +22,7 @@ export class Player {
     this.audio = audio;
 
     // Tan coat with light-brown mackerel tabby stripes (Ghibli reference palette)
-    this.cat = new Cat({ fur: 0xc4915a, belly: 0xf3e7d0, accent: 0x6e4424, audio });
+    this.cat = new Cat({ fur: 0xae8450, belly: 0xeedcb8, accent: 0x5e3d26, audio });
     this.mesh = new THREE.Group();
     this.mesh.name = 'Player Character (Michi)';
     this.mesh.add(this.cat.group);

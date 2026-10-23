@@ -21,7 +21,7 @@ Every module import carries `?v=<tag>`. Keep all tags in sync when editing:
 sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDD<letter>/g" src/*.js index.html
 ```
 
-Current tag: `20261022d` (also used by `tools/cat_preview.*` and
+Current tag: `20261022e` (also used by `tools/cat_preview.*` and
 `tools/summit_preview.*`).
 
 On Windows do NOT bulk-rewrite with PowerShell `Get-Content`/`Set-Content` —

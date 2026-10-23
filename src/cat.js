@@ -1,12 +1,12 @@
 ﻿import * as THREE from 'three';
-import { getCatAnatomy, BUILDS, GROUND } from './cat_anatomy.js?v=20261022d';
+import { getCatAnatomy, BUILDS, GROUND } from './cat_anatomy.js?v=20261022e';
 import {
   catRimUniforms, toonMat, furMaterial, FUR_PART, outlineMaterial,
   makeCollarTexture, makeBellTexture, getEarInnerTexture
-} from './cat_shading.js?v=20261022d';
+} from './cat_shading.js?v=20261022e';
 import {
   makePose, copyPose, lerpPose, dampPose, makeLegRig, solveLeg, smoothstep, clamp
-} from './cat_motion.js?v=20261022d';
+} from './cat_motion.js?v=20261022e';
 
 export { catRimUniforms };
 
@@ -43,8 +43,9 @@ const GAIT_WALK = [0.75, 0.25, 0.5, 0.0];   // lateral sequence: LH, LF, RH, RF
 const GAIT_TROT = [1.0, 0.5, 0.5, 0.0];     // diagonal pairs
 const GAIT_GALLOP = [1.42, 0.52, 0.1, 0.0]; // rotary gallop
 
-// The four back stripes (body-space z of their centres over the spine)
-const STRIPE_Z = [0.084, -0.028, -0.14, -0.248];
+// The four back stripes (body-space z of their centres over the spine):
+// withers to saddle, clear of the rump and the tail root
+const STRIPE_Z = [0.165, 0.07, -0.025, -0.12];
 
 const _v1 = new THREE.Vector3();
 const _v2 = new THREE.Vector3();
@@ -60,11 +61,11 @@ let _blobTex = null;
 
 export class Cat {
   constructor(options = {}) {
-    // Warm tabby palette (reference: golden-tan coat, chocolate mackerel
+    // Warm tabby palette (reference: caramel coat, chocolate mackerel
     // stripes, cream bib / muzzle / socks, amber eyes)
-    const fur = options.fur ?? 0xc4915a;
-    const belly = options.belly ?? 0xf3e7d0;
-    const accent = options.accent ?? 0x6e4424;
+    const fur = options.fur ?? 0xae8450;
+    const belly = options.belly ?? 0xeedcb8;
+    const accent = options.accent ?? 0x5e3d26;
     const eyeColor = options.eyeColor ?? 0xebb02a;
     const ribbonColor = options.ribbonColor ?? 0xd63228;
     const build = typeof options.build === 'object' && options.build
@@ -81,7 +82,7 @@ export class Cat {
       stripe: new THREE.Color(accent),
       stripeAmount: options.stripeAmount ?? 1.0,
       stripeZ: new THREE.Vector4(...STRIPE_Z),
-      trunk: new THREE.Vector4(L.chest[1], A.build.girth, A.face.headScale, 6.2)
+      trunk: new THREE.Vector4(L.chest[1], A.build.girth, A.face.headScale, 5.4)
     };
     // Near-black coats read as black (not brown) under warm light with a
     // cool sheen, and get a dusky nose and inner ear
@@ -280,6 +281,7 @@ export class Cat {
         o.bind(this.skeleton, new THREE.Matrix4());
         o.boundingSphere = m.boundingSphere;
         this.group.add(o);
+        m.userData.outline = o;
       }
       return m;
     };
@@ -1115,10 +1117,12 @@ export class Cat {
     this.mouthOpen = approach(this.mouthOpen, mouth, 16, dt);
     this.face.mouth.value = this.mouthOpen;
 
-    // A startled cat's tail fluffs up into a bottlebrush
+    // A startled cat's tail fluffs up into a bottlebrush. The swell is a
+    // morph on the tail tube: scaling the chained tail bones would compound
+    // down the chain (and stretch the tail along its length).
     this.tailPuff = approach(this.tailPuff, this.mood === 'startled' ? 1 : 0, this.mood === 'startled' ? 10 : 2, dt);
-    const puff = 1 + this.tailPuff * 0.55;
-    for (const seg of this.tailSegs) seg.scale.set(puff, 1, puff);
+    this.tailMesh.morphTargetInfluences[0] = this.tailPuff;
+    this.tailMesh.userData.outline.morphTargetInfluences[0] = this.tailPuff;
 
     if (!this.idleAction) {
       const scan = cfg.headScan;

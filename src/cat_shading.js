@@ -153,30 +153,35 @@ const FUR_PARS = /* glsl */`
     float bib = ellipseMask(vec3(p.x, p.y, 0.0), vec3(0.0, trunkY - 0.02, 0.0), vec3(0.058 * g, 0.14, 1.0), 0.3)
               * smoothstep(0.15, 0.2, p.z);
     float throat = ellipseMask(p, vec3(0.0, trunkY + 0.07, 0.27), vec3(0.055 * g, 0.075, 0.07), 0.35);
-    float cream = max(under * (1.0 - leg * 0.6), max(bib, throat));
+    // Legs keep the coat colour on the outside; only the belly is cream
+    float cream = max(under * (1.0 - leg), max(bib, throat));
 
-    // Four back stripes: broad over the spine, tapering to points down the
-    // flank, leaning back slightly as they descend
-    float top = smoothstep(bellyLine + 0.01, bellyLine + 0.07, p.y);
-    float taper = smoothstep(bellyLine, trunkY + 0.12, p.y);
+    // Four back stripes from the withers (just behind the collar) to the
+    // saddle, the rump behind them plain: broad over the spine, tapering
+    // to points part-way down the flank, each reaching a little lower or
+    // higher, leaning back slightly as they descend
+    float reach = bellyLine + 0.035 + n2 * 0.04;
+    float top = smoothstep(reach, reach + 0.04, p.y);
+    float taper = smoothstep(reach, trunkY + 0.12, p.y);
     float zz = p.z + (trunkY + 0.12 - p.y) * 0.32 + (n - 0.5) * 0.018;
-    float w = mix(0.008, 0.026, taper);
+    float w = mix(0.006, 0.028, taper);
     float stripe = 0.0;
     stripe = max(stripe, band(zz - uStripeZ.x, w));
     stripe = max(stripe, band(zz - uStripeZ.y, w));
     stripe = max(stripe, band(zz - uStripeZ.z, w));
     stripe = max(stripe, band(zz - uStripeZ.w, w));
     // Keep them off the chest front and the neck
-    stripe *= top * smoothstep(0.2, 0.15, p.z) * (1.0 - smoothstep(0.55, 0.8, leg * (1.0 - lc)));
+    stripe *= top * smoothstep(0.25, 0.21, p.z) * (1.0 - smoothstep(0.55, 0.8, leg * (1.0 - lc)));
 
-    // Legs: cream paws, softer inner legs, and tabby bars
+    // Legs: cream paws, softer inner legs, and a broad tabby band above
+    // the wrist / hock with a fainter one higher up
     float front = step(0.0, p.z);
     float sock = smoothstep(0.15, 0.11, lc);
     float bars = 0.0;
     if (front > 0.5) {
-      bars = max(band(lc - 0.27, 0.022), band(lc - 0.38, 0.02));
+      bars = max(band(lc - 0.3, 0.03), band(lc - 0.44, 0.016) * 0.7);
     } else {
-      bars = max(max(band(lc - 0.36, 0.02), band(lc - 0.47, 0.022)), band(lc - 0.58, 0.02));
+      bars = max(band(lc - 0.4, 0.028), band(lc - 0.54, 0.018) * 0.7);
     }
     // Bars wrap the outside of the leg and fade on the inside
     float outside = smoothstep(0.045 * g, 0.075 * g, abs(p.x));

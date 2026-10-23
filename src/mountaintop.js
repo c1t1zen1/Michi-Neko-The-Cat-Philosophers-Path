@@ -4,11 +4,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   dirtTextures, groundTextures, stoneTextures, woodTextures, metalTextures, barkTextures,
   texturedMaterial, worldNoise, glowTexture
-} from './textures.js?v=20261022d';
+} from './textures.js?v=20261022e';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture,
   leafCardGeometry, buildCanopy, updateFoliage, lumpyTuftGeometry
-} from './foliage.js?v=20261022d';
+} from './foliage.js?v=20261022e';
 
 function mulberry32(a) {
   return function() {
@@ -72,19 +72,36 @@ const STEP_RISE = 0.28;
 // the asset existing. Never fetched at boot — attached on first use only.
 const SUMMIT_VIDEO_SRC = 'assets/summit-transition.mp4';
 
-// Summit sky: no rain, no mist — wind, drifting clouds, soft snow at times.
-const SUMMIT_WEATHER_POOL = ['clear', 'clear', 'clear', 'cloudy', 'cloudy', 'snow'];
-const SUMMIT_WEATHER_DURATIONS = { clear: 300, cloudy: 260, snow: 200 };
+// The summit shares the valley's full weather vocabulary. Clear skies are
+// still favoured, but a long stay can now pass through rain, mountain mist,
+// cloud and snow without leaving the overlook.
+const SUMMIT_WEATHER_POOL = [
+  'clear', 'clear', 'clear', 'clear',
+  'cloudy', 'cloudy', 'mist', 'rain', 'snow'
+];
+const SUMMIT_WEATHER_DURATIONS = {
+  clear: 520, cloudy: 360, mist: 260, rain: 250, snow: 220
+};
 
 // Seconds of stillness in the meadow heart before the cat curls up to sleep.
 const MEDITATE_SECONDS = 165;
 // Resolve from this module rather than the current document: the main game is
 // served from `/`, while the art-review page lives under `/tools/`.
-const SUMMIT_LANDMARKS_SRC = new URL('../assets/models/summit_kyoto_landmarks.glb?v=20261022d', import.meta.url).href;
+const SUMMIT_LANDMARKS_SRC = new URL('../assets/models/summit_kyoto_landmarks.glb?v=20261022e', import.meta.url).href;
+
+/** Smooth amount for a weather type while Sky cross-fades between states. */
+function summitWeatherAmount(sky, type) {
+  if (!sky) return 0;
+  if (typeof sky.weatherAmount === 'function') return sky.weatherAmount(type);
+  const blend = Number.isFinite(sky.weatherBlend) ? sky.weatherBlend : 1;
+  const from = sky.weather === type ? 1 : 0;
+  const to = (sky.targetWeather == null ? sky.weather : sky.targetWeather) === type ? 1 : 0;
+  return from * (1 - blend) + to * blend;
+}
 
 /**
  * The hidden summit clearing — a wind-combed grass field above Kyoto with
- * the city, Osaka and the bay painted into one hazy panorama. Reached by
+ * the city, Osaka and the bay descending through layered 3D distance. Reached by
  * ringing the shrine bell ten times and stepping into the light; left by
  * walking back under the torii at the foot of the shrine steps.
  *
@@ -188,22 +205,47 @@ export class SummitManager {
     // summit is deliberately parked at y=-1200, so it supplies a local fog
     // datum or the exponential term saturates the entire frame.
     this.atmosphereSettings = {
-      fogBase: this.origin.y - 0.5,
-      densityScale: 0.56,
-      heightFalloff: 0.105
+      // The bay sits below the meadow but must remain visible in clear air.
+      // Weather still thickens this through the shared post-process controls.
+      fogBase: this.origin.y - 8.5,
+      densityScale: 0.42,
+      heightFalloff: 0.09
+    };
+    // A complete palette set rather than a frozen final palette. Sky blends
+    // these phases with its live weather palettes, so the crisp blue summit
+    // day naturally becomes amber dusk and deep moonlit night.
+    const palette = (values) => {
+      const out = {};
+      for (const [key, value] of Object.entries(values)) {
+        out[key] = key === 'cloudOpacity' ? value : new THREE.Color(value);
+      }
+      return out;
     };
     this.skyPalette = {
-      top: new THREE.Color(0x168edf),
-      mid: new THREE.Color(0x58b9eb),
-      horizon: new THREE.Color(0xc9e9f3),
-      warm: new THREE.Color(0xffdda0),
-      sun: new THREE.Color(0xffefc7),
-      hemiSky: new THREE.Color(0xb9e2f5),
-      hemiGround: new THREE.Color(0x6f8748),
-      fog: new THREE.Color(0xb7d6df),
-      cloud: new THREE.Color(0xfff9e9),
-      cloudOpacity: 0.86
+      phases: {
+        day: palette({
+          top: 0x168edf, mid: 0x58b9eb, horizon: 0xc9e9f3,
+          warm: 0xffdda0, sun: 0xffefc7, hemiSky: 0xb9e2f5,
+          hemiGround: 0x6f8748, fog: 0xb7d6df, cloud: 0xfff9e9,
+          cloudOpacity: 0.86
+        }),
+        sunset: palette({
+          top: 0x2d4e8f, mid: 0xd87968, horizon: 0xffb56f,
+          warm: 0xff8538, sun: 0xffc77f, hemiSky: 0x8d91bd,
+          hemiGround: 0x66513e, fog: 0xd88c68, cloud: 0xffc7aa,
+          cloudOpacity: 0.76
+        }),
+        night: palette({
+          top: 0x071229, mid: 0x172d50, horizon: 0x354e6f,
+          warm: 0x2c3b61, sun: 0x93a6ce, hemiSky: 0x314866,
+          hemiGround: 0x252c2c, fog: 0x223247, cloud: 0x566880,
+          cloudOpacity: 0.42
+        })
+      }
     };
+    this._vistaColorA = new THREE.Color();
+    this._vistaColorB = new THREE.Color();
+    this._vistaColorC = new THREE.Color();
 
     this.buildSummitLight();
     this.buildMeadow();
@@ -220,6 +262,7 @@ export class SummitManager {
     this.buildSakuraPetals();
     this.buildAmbientWildlife();
     this.buildSummitSnow();
+    this.buildSummitRain();
     this.buildShrineRays();
     this.markSkyKeepers();
 
@@ -290,6 +333,48 @@ export class SummitManager {
     ));
   }
 
+  /** Quality-tier density without rebuilding any summit geometry. */
+  setQuality(tier = 'high') {
+    const fraction = tier === 'low' ? 0.46 : tier === 'medium' ? 0.74 : 1;
+    if (this.cityWalls && this.cityRoofs) {
+      const count = Math.max(1, Math.floor((this.cityInstanceMax || this.cityWalls.count) * fraction));
+      this.cityWalls.count = count;
+      this.cityRoofs.count = count;
+      if (this.cityEaves) this.cityEaves.count = count;
+    }
+    if (this.cityGardens) {
+      this.cityGardens.count = Math.max(1, Math.floor((this.cityGardenMax || this.cityGardens.count) * fraction));
+    }
+    if (this.harbourSkyline) {
+      this.harbourSkyline.count = Math.max(1, Math.floor((this.harbourSkylineMax || this.harbourSkyline.count) *
+        (tier === 'low' ? 0.58 : tier === 'medium' ? 0.8 : 1)));
+    }
+    for (const cloud of this.summitClouds || []) {
+      const max = cloud.mesh.userData.summitMaxCount || cloud.mesh.count;
+      cloud.mesh.count = Math.max(5, Math.floor(max * (tier === 'low' ? 0.68 : tier === 'medium' ? 0.84 : 1)));
+    }
+    const setPointBudget = (points, amount) => {
+      if (!points || !points.geometry || !points.geometry.attributes.position) return;
+      const max = points.geometry.attributes.position.count;
+      if (points.geometry.setDrawRange) points.geometry.setDrawRange(0, Math.max(1, Math.floor(max * amount)));
+    };
+    setPointBudget(this.cityLights, fraction);
+    setPointBudget(this.harbourLights, fraction);
+    setPointBudget(this.bayGlints, tier === 'low' ? 0.55 : tier === 'medium' ? 0.78 : 1);
+    const weatherFraction = tier === 'low' ? 0.5 : tier === 'medium' ? 0.76 : 1;
+    setPointBudget(this.rain, weatherFraction);
+    setPointBudget(this.snow, weatherFraction);
+    if (this.rain && this.rain.geometry.attributes.position) {
+      this._rainActive = Math.max(1, Math.floor(this.rain.geometry.attributes.position.count * weatherFraction));
+    }
+    if (this.snow && this.snow.geometry.attributes.position) {
+      this._snowActive = Math.max(1, Math.floor(this.snow.geometry.attributes.position.count * weatherFraction));
+    }
+    for (let i = 0; i < (this.vistaBoats || []).length; i++) {
+      this.vistaBoats[i].visible = tier !== 'low' || i < 4;
+    }
+  }
+
   /* ================= Terrain & architecture ================= */
 
   buildSummitLight() {
@@ -299,6 +384,7 @@ export class SummitManager {
     const skyFill = new THREE.HemisphereLight(0xbfe5ff, 0x5b6638, 1.15);
     skyFill.name = 'Summit Open Sky Fill';
     this.group.add(skyFill);
+    this.summitSkyFill = skyFill;
 
     const warmFill = new THREE.DirectionalLight(0xffedc2, 1.1);
     warmFill.name = 'Summit Warm Rim Fill';
@@ -411,7 +497,9 @@ export class SummitManager {
 
     const torii = new THREE.Group();
     torii.name = 'Overlook Entrance Torii';
-    const toriiScale = 0.82;
+    // Keep the threshold human-scale during play but visually subordinate to
+    // the enormous valley from the seated composition.
+    const toriiScale = 0.56;
     const pillarGeo = new THREE.CylinderGeometry(0.22, 0.29, 4.6, 10);
     for (const side of [-1, 1]) {
       const pillar = new THREE.Mesh(pillarGeo, this.MAT.vermilion);
@@ -1188,31 +1276,532 @@ export class SummitManager {
     skirtMesh.name = 'Summit Skirt';
     this.group.add(skirtMesh);
 
-    // The panorama: Kyoto below, the Yodo river, Osaka's towers at the bay,
-    // and the sea glint — painted once onto a curved matte backdrop.
-    const tex = this.makeVistaTexture();
-    // A continuous 210-degree cyclorama replaces the old bent plane. Its only
-    // open edge sits behind the rear brush, so the seated view can pan across
-    // Osaka, the bay, and the ocean without ever revealing a card boundary.
-    const panoramaArc = Math.PI * 210 / 180;
-    const geo = new THREE.CylinderGeometry(
-      236, 236, 154, 128, 1, true,
-      -panoramaArc * 0.5, panoramaArc
-    );
-    // Unlit by design: this is distant painted atmosphere, not a wall that
-    // should flip from black to white as the directional light moves.
-    const mat = new THREE.MeshBasicMaterial({
-      map: tex, transparent: true, alphaTest: 0.015,
-      depthWrite: true, depthTest: true, fog: false,
-      side: THREE.BackSide
-    });
-    const vista = new THREE.Mesh(geo, mat);
-    vista.name = 'Kyoto–Osaka Vista';
-    vista.position.set(0, 7, 0);
-    vista.renderOrder = -10;
+    // The overlook is a stack of real spatial layers rather than a panorama
+    // card: descending basin terrain, hundreds of roof volumes, gardens and
+    // river, open bay, harbour skyline, islands and three mountain ranges.
+    // Their separation produces parallax even during the very slow seated
+    // camera drift, while ordinary lit/fogged materials make every layer
+    // participate in the live day, night and weather systems.
+    const vista = new THREE.Group();
+    vista.name = 'Layered Kyoto Bay Vista';
     this.group.add(vista);
     this.vista = vista;
+    this.buildVistaTerrain();
+    this.buildKyotoCity();
+    this.buildSummitBay();
+    this.buildHarbourAndIslands();
+    this.buildHorizonRanges();
     this.buildVistaFoliage();
+  }
+
+  /** Height of the visible Kyoto basin in summit-local coordinates. */
+  vistaGroundHeight(x, z) {
+    const depth = clamp01((z - 34) / 150);
+    const side = smoothstep(52 + depth * 38, 148, Math.abs(x));
+    const folds = (worldNoise(x, z, 0.026, 3, 271) - 0.5) * (1.8 + side * 7.5);
+    // Drop sharply just beyond the summit shoulder, then flatten into the
+    // basin. This fans the near and far districts apart on screen instead of
+    // compressing every roof into one horizon-thin strip.
+    const basinDrop = smoothstep(0, 0.23, depth) * 8.1 + depth * 1.45;
+    return -3.25 - basinDrop + side * (4.5 + depth * 6.5) + folds;
+  }
+
+  vistaRiverX(z) {
+    return -20 + Math.sin(z * 0.041) * 13 + Math.sin(z * 0.017 + 1.3) * 8;
+  }
+
+  /** A triangulated mountain basin with a genuinely descending horizon. */
+  buildVistaTerrain() {
+    const geo = new THREE.PlaneGeometry(310, 140, 72, 32);
+    geo.rotateX(-Math.PI / 2);
+    const pos = geo.attributes.position;
+    const colors = new Float32Array(pos.count * 3);
+    const low = new THREE.Color(0x667d47);
+    const garden = new THREE.Color(0x82975a);
+    const haze = new THREE.Color(0x8ca18c);
+    const col = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const z = pos.getZ(i) + 100;
+      const y = this.vistaGroundHeight(x, z);
+      pos.setXYZ(i, x, y, z);
+      const depth = clamp01((z - 30) / 140);
+      const patch = worldNoise(x, z, 0.055, 2, 91);
+      col.copy(low).lerp(garden, patch * 0.72).lerp(haze, depth * 0.42);
+      colors[i * 3] = col.r;
+      colors[i * 3 + 1] = col.g;
+      colors[i * 3 + 2] = col.b;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geo.computeVertexNormals();
+    const mat = new THREE.MeshStandardMaterial({
+      vertexColors: true, roughness: 1, metalness: 0
+    });
+    const terrain = new THREE.Mesh(geo, mat);
+    terrain.name = 'Kyoto Basin Terrain';
+    terrain.castShadow = false;
+    terrain.receiveShadow = false;
+    this.vista.add(terrain);
+    this.vistaTerrainMat = mat;
+
+    // The Yodo/Katsura water ribbon winds through several real city blocks.
+    const riverGeo = new THREE.PlaneGeometry(12, 132, 5, 44);
+    riverGeo.rotateX(-Math.PI / 2);
+    const rp = riverGeo.attributes.position;
+    for (let i = 0; i < rp.count; i++) {
+      const z = rp.getZ(i) + 104;
+      const across = rp.getX(i);
+      const width = 0.72 + clamp01((z - 38) / 145) * 0.68;
+      const x = this.vistaRiverX(z) + across * width;
+      rp.setXYZ(i, x, this.vistaGroundHeight(x, z) + 0.14, z);
+    }
+    riverGeo.computeVertexNormals();
+    const riverMat = new THREE.MeshStandardMaterial({
+      color: 0x83bed1, emissive: 0x173d4c, emissiveIntensity: 0.12,
+      roughness: 0.3, metalness: 0.04
+    });
+    const river = new THREE.Mesh(riverGeo, riverMat);
+    river.name = 'Yodo River Ribbon';
+    river.renderOrder = 1;
+    this.vista.add(river);
+    this.vistaRiverMat = riverMat;
+
+    // Long pale streets and cross lanes make the basin read as districts,
+    // while staying cheap: twelve meshes cover the entire road network.
+    const roadMat = new THREE.MeshStandardMaterial({
+      color: 0xb9ad8c, roughness: 1, polygonOffset: true,
+      polygonOffsetFactor: -1, polygonOffsetUnits: -1
+    });
+    const roads = new THREE.Group();
+    roads.name = 'Kyoto Road Ribbons';
+    for (const [x, yaw, width] of [
+      [-69, -0.06, 1.1], [-43, 0.045, 0.72], [-4, -0.025, 0.9],
+      [26, 0.055, 0.76], [57, -0.04, 1.0], [83, 0.025, 0.68]
+    ]) {
+      const roadGeo = new THREE.PlaneGeometry(width, 126, 1, 28);
+      roadGeo.rotateX(-Math.PI / 2);
+      const roadPos = roadGeo.attributes.position;
+      for (let i = 0; i < roadPos.count; i++) {
+        const z = roadPos.getZ(i) + 108;
+        const rx = x + roadPos.getX(i) + (z - 108) * yaw;
+        roadPos.setXYZ(i, rx, this.vistaGroundHeight(rx, z) + 0.2, z);
+      }
+      roadGeo.computeVertexNormals();
+      const road = new THREE.Mesh(roadGeo, roadMat);
+      roads.add(road);
+    }
+    for (const [z, width] of [[57, 0.7], [78, 0.55], [101, 0.8], [128, 0.62], [154, 0.72]]) {
+      const roadGeo = new THREE.PlaneGeometry(190, width, 36, 1);
+      roadGeo.rotateX(-Math.PI / 2);
+      const roadPos = roadGeo.attributes.position;
+      for (let i = 0; i < roadPos.count; i++) {
+        const x = roadPos.getX(i);
+        const rz = z + roadPos.getZ(i);
+        roadPos.setXYZ(i, x, this.vistaGroundHeight(x, rz) + 0.21, rz);
+      }
+      roadGeo.computeVertexNormals();
+      const road = new THREE.Mesh(roadGeo, roadMat);
+      roads.add(road);
+    }
+    this.vista.add(roads);
+    this.vistaRoadMat = roadMat;
+  }
+
+  /** Hundreds of separately placed buildings and gardens in the basin. */
+  buildKyotoCity() {
+    const rnd = mulberry32(202610221);
+    const count = this.previewQuality ? 430 : 920;
+    const wallGeo = new THREE.BoxGeometry(1, 1, 1);
+    const roofGeo = new THREE.ConeGeometry(1, 1, 4);
+    roofGeo.rotateY(Math.PI / 4);
+    const wallMat = new THREE.MeshStandardMaterial({
+      color: 0xc7b995, roughness: 0.92, metalness: 0
+    });
+    const roofMat = new THREE.MeshStandardMaterial({
+      color: 0x53616c, roughness: 0.86, metalness: 0.02
+    });
+    const eaveMat = new THREE.MeshStandardMaterial({
+      color: 0x3d4b56, roughness: 0.9, metalness: 0.01
+    });
+    const walls = new THREE.InstancedMesh(wallGeo, wallMat, count);
+    const roofs = new THREE.InstancedMesh(roofGeo, roofMat, count);
+    const eaves = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), eaveMat, count);
+    const dummy = new THREE.Object3D();
+    const wallCol = new THREE.Color();
+    const roofCol = new THREE.Color();
+    const lights = [];
+    let placed = 0;
+    for (let guard = 0; placed < count && guard < count * 12; guard++) {
+      const z = 42 + Math.pow(rnd(), 0.78) * 118;
+      const halfW = 34 + (z - 42) * 0.72;
+      const x = (rnd() - 0.5) * halfW * 2;
+      const river = this.vistaRiverX(z);
+      if (Math.abs(x - river) < 8.5 || Math.abs(x) > halfW) continue;
+      // Keep several roads and the central temple sightline legible.
+      if (Math.abs(((x + 8) % 26 + 26) % 26 - 13) < 1.15) continue;
+      if (Math.abs(((z - 50) % 23 + 23) % 23 - 11.5) < 0.8) continue;
+      if (z < 73 && Math.abs(x - 17) < 9) continue;
+
+      const near = 1 - clamp01((z - 42) / 126);
+      const w = 0.85 + rnd() * (1.25 + near * 0.8);
+      const d = 0.86 + rnd() * (1.3 + near * 0.72);
+      const h = 0.68 + rnd() * (1.05 + near * 1.1);
+      const y = this.vistaGroundHeight(x, z);
+      const yaw = (rnd() - 0.5) * 0.16 + (rnd() < 0.18 ? Math.PI / 2 : 0);
+
+      dummy.position.set(x, y + h * 0.5, z);
+      dummy.rotation.set(0, yaw, 0);
+      dummy.scale.set(w, h, d);
+      dummy.updateMatrix();
+      walls.setMatrixAt(placed, dummy.matrix);
+      wallCol.setHex([0xd3c39e, 0xc4b48f, 0xd9cfb5, 0xb9aa89][Math.floor(rnd() * 4)]);
+      walls.setColorAt(placed, wallCol);
+
+      const roofH = 0.34 + near * 0.16;
+      dummy.position.set(x, y + h + 0.045, z);
+      dummy.rotation.set(0, yaw, 0);
+      dummy.scale.set(w * 1.1, 0.09 + near * 0.035, d * 1.1);
+      dummy.updateMatrix();
+      eaves.setMatrixAt(placed, dummy.matrix);
+
+      dummy.position.set(x, y + h + roofH * 0.42, z);
+      dummy.rotation.set(0, yaw, 0);
+      dummy.scale.set(w * 0.78, roofH, d * 0.78);
+      dummy.updateMatrix();
+      roofs.setMatrixAt(placed, dummy.matrix);
+      roofCol.setHex([0x495967, 0x5a6570, 0x3f4e5a, 0x68727b][Math.floor(rnd() * 4)]);
+      roofs.setColorAt(placed, roofCol);
+      roofCol.multiplyScalar(0.76);
+      eaves.setColorAt(placed, roofCol);
+
+      if (rnd() < 0.68) {
+        const side = rnd() < 0.5 ? -1 : 1;
+        lights.push(x + side * w * 0.36, y + h * (0.42 + rnd() * 0.28), z - d * 0.51);
+      }
+      placed++;
+    }
+    walls.count = roofs.count = eaves.count = placed;
+    walls.instanceMatrix.needsUpdate = roofs.instanceMatrix.needsUpdate = eaves.instanceMatrix.needsUpdate = true;
+    if (walls.instanceColor) walls.instanceColor.needsUpdate = true;
+    if (roofs.instanceColor) roofs.instanceColor.needsUpdate = true;
+    if (eaves.instanceColor) eaves.instanceColor.needsUpdate = true;
+    walls.name = 'Kyoto Machiya Walls';
+    roofs.name = 'Kyoto Kawara Roofs';
+    eaves.name = 'Kyoto Deep Roof Eaves';
+    walls.castShadow = roofs.castShadow = eaves.castShadow = false;
+    walls.receiveShadow = roofs.receiveShadow = eaves.receiveShadow = false;
+    this.vista.add(walls, eaves, roofs);
+    this.cityWalls = walls;
+    this.cityRoofs = roofs;
+    this.cityEaves = eaves;
+    this.cityInstanceMax = placed;
+    this.cityWallMat = wallMat;
+    this.cityRoofMat = roofMat;
+    this.cityEaveMat = eaveMat;
+
+    const lightGeo = new THREE.BufferGeometry();
+    lightGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(lights), 3));
+    const lightMat = new THREE.PointsMaterial({
+      map: glowTexture(255, 205, 112, 42), color: 0xffc56f,
+      size: 0.34, transparent: true, opacity: 0, depthWrite: false,
+      blending: THREE.AdditiveBlending, sizeAttenuation: true, fog: true
+    });
+    const cityLights = new THREE.Points(lightGeo, lightMat);
+    cityLights.name = 'Kyoto Window Lights';
+    cityLights.visible = false;
+    cityLights.renderOrder = 2;
+    this.vista.add(cityLights);
+    this.cityLights = cityLights;
+    this.cityLightMat = lightMat;
+
+    const treeCount = this.previewQuality ? 160 : 360;
+    const gardenGeo = new THREE.IcosahedronGeometry(1, 1);
+    const gardenMat = new THREE.MeshLambertMaterial({ color: 0x47733d });
+    const gardens = new THREE.InstancedMesh(gardenGeo, gardenMat, treeCount);
+    for (let i = 0; i < treeCount; i++) {
+      const z = 43 + rnd() * 126;
+      const halfW = 31 + (z - 43) * 0.7;
+      const x = (rnd() - 0.5) * halfW * 2;
+      const s = 0.45 + rnd() * (1.25 + (1 - clamp01((z - 43) / 130)) * 0.8);
+      dummy.position.set(x, this.vistaGroundHeight(x, z) + s * 0.72, z);
+      dummy.rotation.set(0, rnd() * Math.PI * 2, 0);
+      dummy.scale.set(s, s * (0.72 + rnd() * 0.45), s);
+      dummy.updateMatrix();
+      gardens.setMatrixAt(i, dummy.matrix);
+      wallCol.setHex([0x315e35, 0x47783d, 0x5f8d49, 0x7a9c50, 0xb98192][Math.floor(rnd() * 5)]);
+      gardens.setColorAt(i, wallCol);
+    }
+    gardens.instanceMatrix.needsUpdate = true;
+    if (gardens.instanceColor) gardens.instanceColor.needsUpdate = true;
+    gardens.name = 'Kyoto Temple Gardens';
+    gardens.castShadow = gardens.receiveShadow = false;
+    this.vista.add(gardens);
+    this.cityGardens = gardens;
+    this.cityGardenMax = treeCount;
+    this.cityGardenMat = gardenMat;
+  }
+
+  makeBayWaterTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    const rnd = mulberry32(7271);
+    ctx.fillStyle = '#4e94b9';
+    ctx.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 420; i++) {
+      const x = rnd() * 256;
+      const y = rnd() * 256;
+      const len = 3 + rnd() * 28;
+      ctx.strokeStyle = rnd() < 0.24
+        ? `rgba(226,245,241,${0.16 + rnd() * 0.3})`
+        : `rgba(18,86,132,${0.1 + rnd() * 0.22})`;
+      ctx.lineWidth = 0.5 + rnd() * 1.3;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + len, y + (rnd() - 0.5) * 1.5);
+      ctx.stroke();
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(22, 10);
+    return tex;
+  }
+
+  /** Actual open water, reflective glints and small moving boats. */
+  buildSummitBay() {
+    const tex = this.makeBayWaterTexture();
+    const geo = new THREE.PlaneGeometry(720, 320, 80, 34);
+    geo.rotateX(-Math.PI / 2);
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const z = pos.getZ(i) + 300;
+      const ripple = Math.sin(x * 0.075 + z * 0.12) * 0.08 +
+        Math.sin(x * 0.021 - z * 0.083) * 0.11;
+      pos.setXYZ(i, x, -12.8 + ripple, z);
+    }
+    geo.computeVertexNormals();
+    const mat = new THREE.MeshStandardMaterial({
+      map: tex, bumpMap: tex, bumpScale: 0.085,
+      color: 0x4f9ec7, emissive: 0x113a55, emissiveIntensity: 0.18,
+      roughness: 0.32, metalness: 0.08, envMapIntensity: 1.15, fog: false
+    });
+    const bay = new THREE.Mesh(geo, mat);
+    bay.name = 'Kyoto Bay Water';
+    bay.receiveShadow = false;
+    bay.castShadow = false;
+    this.vista.add(bay);
+    this.bay = bay;
+    this.bayMat = mat;
+    this.bayTexture = tex;
+
+    const rnd = mulberry32(8842);
+    const glintCount = this.previewQuality ? 80 : 180;
+    const glintPos = new Float32Array(glintCount * 3);
+    for (let i = 0; i < glintCount; i++) {
+      const z = 168 + Math.pow(rnd(), 0.72) * 250;
+      glintPos[i * 3] = (rnd() - 0.5) * (18 + (z - 168) * 0.28);
+      glintPos[i * 3 + 1] = -12.43 + rnd() * 0.12;
+      glintPos[i * 3 + 2] = z;
+    }
+    const glintGeo = new THREE.BufferGeometry();
+    glintGeo.setAttribute('position', new THREE.BufferAttribute(glintPos, 3));
+    const glintMat = new THREE.PointsMaterial({
+      map: glowTexture(255, 242, 194, 56), color: 0xfff0bd,
+      size: 1.05, transparent: true, opacity: 0.34,
+      depthWrite: false, blending: THREE.AdditiveBlending,
+      sizeAttenuation: true, fog: false
+    });
+    const glints = new THREE.Points(glintGeo, glintMat);
+    glints.name = 'Bay Sun Path';
+    this.vista.add(glints);
+    this.bayGlints = glints;
+    this.bayGlintMat = glintMat;
+
+    this.vistaBoats = [];
+    const hullMat = new THREE.MeshStandardMaterial({ color: 0x263d4a, roughness: 0.76 });
+    const sailMat = new THREE.MeshStandardMaterial({ color: 0xf4ecdc, roughness: 0.95, side: THREE.DoubleSide });
+    for (let i = 0; i < 7; i++) {
+      const boat = new THREE.Group();
+      const hull = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.16, 0.36), hullMat);
+      boat.add(hull);
+      if (i < 4) {
+        const sail = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.85), sailMat);
+        sail.position.set(0, 0.5, 0);
+        sail.rotation.y = i % 2 ? 0.25 : -0.2;
+        boat.add(sail);
+      } else {
+        const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.3, 0.26), sailMat);
+        cabin.position.y = 0.22;
+        boat.add(cabin);
+      }
+      const z = 186 + rnd() * 176;
+      boat.position.set((rnd() - 0.5) * (90 + z * 0.24), -12.25, z);
+      boat.scale.setScalar(0.65 + rnd() * 0.75);
+      boat.rotation.y = rnd() < 0.5 ? Math.PI / 2 : -Math.PI / 2;
+      boat.userData.speed = (0.7 + rnd() * 0.9) * (boat.rotation.y > 0 ? 1 : -1);
+      boat.userData.limit = 150 + z * 0.42;
+      this.vista.add(boat);
+      this.vistaBoats.push(boat);
+    }
+  }
+
+  /** Harbour towers, bridge, cranes and islands occupy their own depths. */
+  buildHarbourAndIslands() {
+    const rnd = mulberry32(19271);
+    const skylineCount = this.previewQuality ? 72 : 138;
+    const towerGeo = new THREE.BoxGeometry(1, 1, 1);
+    const towerMat = new THREE.MeshStandardMaterial({
+      color: 0x84949a, roughness: 0.82, metalness: 0.04, fog: false
+    });
+    const skyline = new THREE.InstancedMesh(towerGeo, towerMat, skylineCount);
+    const dummy = new THREE.Object3D();
+    const col = new THREE.Color();
+    const lights = [];
+    for (let i = 0; i < skylineCount; i++) {
+      const z = 178 + rnd() * 48;
+      const x = (rnd() - 0.5) * 245;
+      const landmark = rnd() < 0.12;
+      const w = 0.9 + rnd() * (landmark ? 3.4 : 2.2);
+      const d = 0.8 + rnd() * 2.4;
+      const h = 1.3 + rnd() * rnd() * (landmark ? 15 : 7.5);
+      dummy.position.set(x, -12.45 + h * 0.5, z);
+      dummy.rotation.set(0, (rnd() - 0.5) * 0.08, 0);
+      dummy.scale.set(w, h, d);
+      dummy.updateMatrix();
+      skyline.setMatrixAt(i, dummy.matrix);
+      col.setHex([0x74878f, 0x91a0a1, 0xa2aaa6, 0x6d808b][Math.floor(rnd() * 4)]);
+      skyline.setColorAt(i, col);
+      if (landmark || rnd() < 0.42) {
+        for (let y = 0.8; y < h - 0.2; y += 1.1) {
+          lights.push(x - w * 0.51, -12.45 + y, z);
+        }
+      }
+    }
+    skyline.instanceMatrix.needsUpdate = true;
+    if (skyline.instanceColor) skyline.instanceColor.needsUpdate = true;
+    skyline.name = 'Osaka Harbour Skyline';
+    skyline.castShadow = skyline.receiveShadow = false;
+    this.vista.add(skyline);
+    this.harbourSkyline = skyline;
+    this.harbourSkylineMax = skylineCount;
+    this.skylineMat = towerMat;
+
+    const harbourLightGeo = new THREE.BufferGeometry();
+    harbourLightGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(lights), 3));
+    const harbourLightMat = new THREE.PointsMaterial({
+      map: glowTexture(255, 190, 91, 40), color: 0xffb457,
+      size: 0.42, transparent: true, opacity: 0,
+      depthWrite: false, blending: THREE.AdditiveBlending,
+      sizeAttenuation: true, fog: true
+    });
+    const harbourLights = new THREE.Points(harbourLightGeo, harbourLightMat);
+    harbourLights.name = 'Harbour Window Lights';
+    harbourLights.visible = false;
+    this.vista.add(harbourLights);
+    this.harbourLights = harbourLights;
+    this.harbourLightMat = harbourLightMat;
+
+    const bridgeMat = new THREE.MeshStandardMaterial({ color: 0xb7b9b2, roughness: 0.78, fog: false });
+    const bridge = new THREE.Group();
+    bridge.name = 'Bay Bridge';
+    bridge.position.set(8, 0, 238);
+    bridge.add(box(142, 0.24, 0.9, bridgeMat, 0, -8.95, 0));
+    for (const x of [-42, 42]) {
+      bridge.add(box(0.72, 11, 0.72, bridgeMat, x, -3.55, 0));
+      bridge.add(box(9, 0.36, 0.72, bridgeMat, x, 0.75, 0));
+    }
+    for (let x = -68; x <= 68; x += 8.5) bridge.add(box(0.18, 3.4, 0.18, bridgeMat, x, -7.25, 0));
+    bridge.scale.setScalar(0.82);
+    bridge.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+    this.vista.add(bridge);
+    this.bridgeMat = bridgeMat;
+
+    const islandMat = new THREE.MeshLambertMaterial({ color: 0x477054, fog: false });
+    const islandDefs = [
+      [-128, -13.05, 279, 31, 3.8, 18], [119, -13.25, 305, 43, 4.8, 21],
+      [-38, -13.35, 356, 24, 3.1, 14], [187, -13.45, 382, 56, 5.2, 26]
+    ];
+    this.vistaIslands = [];
+    for (const [x, y, z, sx, sy, sz] of islandDefs) {
+      const island = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 2), islandMat);
+      island.position.set(x, y, z);
+      island.scale.set(sx, sy, sz);
+      island.rotation.y = rnd() * Math.PI;
+      island.castShadow = island.receiveShadow = false;
+      this.vista.add(island);
+      this.vistaIslands.push(island);
+    }
+    this.islandMat = islandMat;
+
+    // A readable ferris wheel provides scale without dominating Kyoto's
+    // traditional foreground landmarks.
+    const wheel = new THREE.Group();
+    wheel.name = 'Harbour Ferris Wheel';
+    wheel.position.set(91, -4.15, 205);
+    const wheelMat = new THREE.MeshStandardMaterial({
+      color: 0xe3dfd0, emissive: 0x614522, emissiveIntensity: 0.05,
+      roughness: 0.72, fog: false
+    });
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(4.8, 0.12, 6, 36), wheelMat);
+    wheel.add(rim);
+    for (let i = 0; i < 8; i++) {
+      const spoke = new THREE.Mesh(new THREE.BoxGeometry(9.4, 0.06, 0.06), wheelMat);
+      spoke.rotation.z = i * Math.PI / 8;
+      wheel.add(spoke);
+    }
+    wheel.add(box(0.34, 9.5, 0.34, wheelMat, 0, -4.6, 0));
+    wheel.scale.setScalar(0.82);
+    this.vista.add(wheel);
+    this.ferrisWheel = wheel;
+    this.ferrisWheelMat = wheelMat;
+  }
+
+  /** Three thick terrain ranges close the bay without a horizon card. */
+  buildHorizonRanges() {
+    const defs = [
+      { x: -58, z: 370, width: 540, depth: 76, base: -14.2, peak: 43, color: 0x4a8195, seed: 41 },
+      { x: 66, z: 475, width: 720, depth: 90, base: -15.1, peak: 37, color: 0x6497aa, seed: 57 },
+      { x: 0, z: 575, width: 900, depth: 100, base: -16, peak: 31, color: 0x86b0c0, seed: 73 }
+    ];
+    this.horizonRangeMats = [];
+    for (let layer = 0; layer < defs.length; layer++) {
+      const def = defs[layer];
+      const geo = new THREE.PlaneGeometry(def.width, def.depth, 88, 10);
+      geo.rotateX(-Math.PI / 2);
+      const pos = geo.attributes.position;
+      const colors = new Float32Array(pos.count * 3);
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i) + def.x;
+        const localZ = pos.getZ(i);
+        const z = localZ + def.z;
+        const profile = Math.pow(Math.max(0, Math.sin((localZ / def.depth + 0.5) * Math.PI)), 0.58);
+        const broad = 0.52 + Math.sin(x * 0.012 + def.seed) * 0.2 +
+          Math.sin(x * 0.029 + def.seed * 0.3) * 0.1;
+        const detail = worldNoise(x, def.seed * 9, 0.014, 4, def.seed) * 0.42;
+        const y = def.base + profile * def.peak * Math.max(0.2, broad + detail);
+        pos.setXYZ(i, x, y, z);
+        const slopeLight = clamp01(0.25 + detail + (x / def.width + 0.5) * 0.28);
+        // Neutral per-vertex relief lets the live material colour carry the
+        // phase/weather tint without multiplying the blue hue twice.
+        const shade = 0.72 + slopeLight * 0.22 + layer * 0.025;
+        colors[i * 3] = shade;
+        colors[i * 3 + 1] = shade;
+        colors[i * 3 + 2] = shade;
+      }
+      geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geo.computeVertexNormals();
+      const mat = new THREE.MeshBasicMaterial({
+        color: def.color, vertexColors: true, fog: false, side: THREE.DoubleSide
+      });
+      mat.userData = { baseColor: new THREE.Color(def.color), layer };
+      const range = new THREE.Mesh(geo, mat);
+      range.name = `Horizon Mountain Range ${layer + 1}`;
+      range.castShadow = range.receiveShadow = false;
+      this.vista.add(range);
+      this.horizonRangeMats.push(mat);
+    }
   }
 
   /**
@@ -1686,10 +2275,10 @@ export class SummitManager {
         const x = (this.rng() - 0.5) * spread * 2;
         // Preserve the broad ocean aperture while building irregular wooded
         // shoulders at the sides of the overlook.
-        const aperture = 8.5 + (z - 21) * 0.18;
-        if (Math.abs(x) < aperture && this.rng() < 0.9) continue;
+        const aperture = 19 + (z - 21) * 0.32;
+        if (Math.abs(x) < aperture && this.rng() < 0.97) continue;
         const downhill = -3.4 - (z - 21) * 0.16;
-        const s = (1.15 + this.rng() * 2.2) * (1 - layer * 0.08);
+        const s = (0.95 + this.rng() * 1.55) * (1 - layer * 0.08);
         dummy.position.set(x, downhill + (this.rng() - 0.5) * 2.8 + s, z);
         dummy.rotation.set((this.rng() - 0.5) * 0.08, this.rng() * Math.PI * 2, (this.rng() - 0.5) * 0.08);
         dummy.scale.set(s * (0.82 + this.rng() * 0.35), s * (0.8 + this.rng() * 0.5), s);
@@ -1701,14 +2290,15 @@ export class SummitManager {
       mesh.castShadow = false;
       mesh.receiveShadow = false;
       mesh.name = `Vista Forest Layer ${layer + 1}`;
-      this.group.add(mesh);
+      this.vista.add(mesh);
       this.vistaForest.push(mesh);
     }
   }
 
   loadVistaLandmarks() {
     // Authored in Blender, merged to one mesh with six material primitives.
-    // The panorama remains a graceful fallback if a local asset is missing.
+    // It is a hero middle-distance district; the procedural city around it
+    // remains complete if the optional asset is unavailable.
     const loader = new GLTFLoader();
     loader.load(SUMMIT_LANDMARKS_SRC, (gltf) => {
       const landmark = gltf.scene;
@@ -1716,6 +2306,7 @@ export class SummitManager {
       landmark.position.set(-7, -7.2, 63);
       landmark.rotation.y = Math.PI;
       landmark.scale.setScalar(0.5);
+      const landmarkMats = new Set();
       landmark.traverse((o) => {
         if (!o.isMesh) return;
         o.castShadow = false;
@@ -1728,43 +2319,74 @@ export class SummitManager {
           mat.envMapIntensity = 0.28;
           if (mat.name && mat.name.includes('plaster')) mat.color.multiplyScalar(0.58);
           if (mat.name && mat.name.includes('kawara')) mat.color.multiplyScalar(0.7);
+          if (!mat.userData) mat.userData = {};
+          mat.userData.summitBaseColor = mat.color.clone();
+          mat.userData.summitBaseRoughness = mat.roughness;
+          landmarkMats.add(mat);
         }
       });
-      this.group.add(landmark);
+      this.vista.add(landmark);
       this.vistaLandmarks = landmark;
+      this.landmarkMats = Array.from(landmarkMats);
     }, undefined, (error) => {
-      console.warn('Summit landmark layer could not be loaded; using the painted vista fallback.', error);
+      console.warn('Summit landmark layer could not be loaded; using the procedural city.', error);
     });
   }
 
   buildSummitClouds() {
-    // A few local cumulus that drift through the saddle — the sky's own
-    // clouds stay near the valley, so the summit keeps its own weather.
+    // Dimensional cumulus banks at several depths. Low-poly lobes catch the
+    // live sun independently and overlap in parallax; no cloud is painted
+    // into the horizon or flattened onto a panorama.
     this.summitClouds = [];
     const defs = [
-      // One towering sunlit mass over the right-hand bay, balanced by
-      // smaller high puffs. Keeping every belly above the ridge preserves a
-      // clean, uninterrupted strip of ocean from the meditation perch.
-      [-92, 64, 194, 58, 25, 0.68],
-      [58, 76, 212, 76, 32, 0.78],
-      [126, 51, 190, 48, 20, 0.56],
-      [-146, 88, 222, 42, 18, 0.48]
+      { x: -98, y: 47, z: 186, sx: 58, sy: 19, lobes: 34 },
+      { x: 64, y: 57, z: 215, sx: 78, sy: 39, lobes: 58 },
+      { x: 151, y: 41, z: 252, sx: 54, sy: 17, lobes: 30 },
+      { x: -168, y: 72, z: 302, sx: 68, sy: 22, lobes: 31 },
+      { x: 0, y: 35, z: 167, sx: 112, sy: 24, lobes: 46, storm: true }
     ];
+    // Rounded lobes retain an illustrated silhouette without exposing the
+    // large triangular facets that made the old banks read as boulders.
+    const cloudGeo = new THREE.SphereGeometry(1, 14, 9);
     for (let i = 0; i < defs.length; i++) {
-      const tex = this.game.sky.buildCloudTexture(3 + i);
-      const spr = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: tex, transparent: true, opacity: defs[i][5],
-        fog: false, depthWrite: false
-      }));
-      const [x, y, z, sx, sy] = defs[i];
-      spr.position.set(x, y, z);
-      spr.scale.set(sx, sy, 1);
-      this.group.add(spr);
+      const def = defs[i];
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xfff9e9, emissive: 0xfff9e9, emissiveIntensity: 0.12,
+        roughness: 1, metalness: 0, transparent: !!def.storm,
+        opacity: def.storm ? 0 : 1, depthWrite: !def.storm, fog: false
+      });
+      const mesh = new THREE.InstancedMesh(cloudGeo, mat, def.lobes);
+      const dummy = new THREE.Object3D();
+      const shade = new THREE.Color();
+      for (let lobe = 0; lobe < def.lobes; lobe++) {
+        const core = lobe < Math.ceil(def.lobes * 0.26);
+        const a = this.rng() * Math.PI * 2;
+        const r = Math.pow(this.rng(), core ? 1.8 : 0.72);
+        const dx = Math.cos(a) * r * def.sx * 0.48;
+        const dz = (this.rng() - 0.5) * def.sx * 0.18;
+        const shelf = 1 - Math.abs(dx) / (def.sx * 0.56);
+        const dy = (this.rng() - 0.42) * def.sy * 0.72 + Math.max(0, shelf) * def.sy * 0.16;
+        const s = (3.5 + this.rng() * 5.4) * (core ? 1.3 : 1);
+        dummy.position.set(dx, dy, dz);
+        dummy.rotation.set(this.rng() * 0.5, this.rng() * Math.PI * 2, this.rng() * 0.5);
+        dummy.scale.set(s * (1.15 + this.rng() * 0.75), s * (0.7 + this.rng() * 0.7), s);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(lobe, dummy.matrix);
+        shade.setHex(dy < -def.sy * 0.08 ? 0xd7e1e3 : (this.rng() < 0.35 ? 0xf8f3e4 : 0xffffff));
+        mesh.setColorAt(lobe, shade);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      mesh.position.set(def.x, def.y, def.z);
+      mesh.castShadow = mesh.receiveShadow = false;
+      mesh.name = def.storm ? 'Summit Weather Cloud Bank' : `Summit Cumulus Bank ${i + 1}`;
+      mesh.userData.summitMaxCount = def.lobes;
+      this.vista.add(mesh);
       this.summitClouds.push({
-        spr,
+        mesh, material: mat, baseOpacity: 1, storm: !!def.storm,
         speed: 0.24 + this.rng() * 0.24,
-        minX: -190 - sx,
-        maxX: 190 + sx
+        minX: -235 - def.sx,
+        maxX: 235 + def.sx
       });
     }
   }
@@ -1819,6 +2441,65 @@ export class SummitManager {
       );
     }
     sp.needsUpdate = true;
+  }
+
+  makeRainStreakTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 32, 64);
+    const fade = ctx.createLinearGradient(0, 0, 0, 64);
+    fade.addColorStop(0, 'rgba(210,232,248,0)');
+    fade.addColorStop(0.18, 'rgba(210,232,248,0.82)');
+    fade.addColorStop(1, 'rgba(167,205,235,0)');
+    ctx.fillStyle = fade;
+    ctx.fillRect(14, 0, 3, 64);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  /** Summit-local rain; the hidden valley particle system cannot be reused. */
+  buildSummitRain() {
+    const count = this.previewQuality ? 360 : 760;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(count * 3);
+    this._rainSeeds = new Float32Array(count * 2);
+    for (let i = 0; i < count; i++) {
+      pos[i * 3] = (this.rng() - 0.5) * 54;
+      pos[i * 3 + 1] = this.rng() * 19;
+      pos[i * 3 + 2] = (this.rng() - 0.5) * 54;
+      this._rainSeeds[i * 2] = 14 + this.rng() * 11;
+      this._rainSeeds[i * 2 + 1] = this.rng() * 100;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 9, 0), 52);
+    const mat = new THREE.PointsMaterial({
+      map: this.makeRainStreakTexture(), color: 0xaacbea,
+      size: 0.82, transparent: true, opacity: 0,
+      depthWrite: false, sizeAttenuation: true, fog: true
+    });
+    const rain = new THREE.Points(geo, mat);
+    rain.name = 'Summit Rainfall';
+    rain.frustumCulled = false;
+    rain.visible = false;
+    this.group.add(rain);
+    this.rain = rain;
+    this.rainMat = mat;
+  }
+
+  reseedRain() {
+    const rp = this.rain.geometry.attributes.position;
+    for (let i = 0; i < rp.count; i++) {
+      rp.setXYZ(
+        i,
+        this._localPlayer.x + (this.rng() - 0.5) * 56,
+        3 + this.rng() * 19,
+        this._localPlayer.z + (this.rng() - 0.5) * 56
+      );
+    }
+    rp.needsUpdate = true;
   }
 
   buildPollen() {
@@ -2038,7 +2719,7 @@ export class SummitManager {
   }
 
   updateAmbientWildlife(dt, t, sky) {
-    const snowing = sky && (sky.weather === 'snow' || sky.targetWeather === 'snow');
+    const snowing = summitWeatherAmount(sky, 'snow') > 0.45;
     this._birdFlybyTimer -= dt;
     if (!snowing && this._birdFlybyTimer <= 0) this.startBirdFlyby();
     for (const bird of this.summitBirds) {
@@ -2128,8 +2809,7 @@ export class SummitManager {
     // of shade rings it once per summit visit, then the breeze keeps it alive
     // visually without repeatedly sounding as the cat circles the tree.
     if (this.furin) {
-      const snowing = sky && (sky.weather === 'snow' || sky.targetWeather === 'snow');
-      const gust = snowing ? 1.2 : 0.8;
+      const gust = 0.8 + summitWeatherAmount(sky, 'snow') * 0.4;
       const motion = this._reducedMotion ? 0.18 : 1;
       this.furin.rotation.z = Math.sin(t * 1.15) * 0.075 * gust * motion;
       this.furin.rotation.x = Math.cos(t * 0.73) * 0.035 * gust * motion;
@@ -2148,8 +2828,7 @@ export class SummitManager {
 
   updateSakuraPetals(dt, t, sky) {
     if (!this.petals || !this.petalMat) return;
-    const snowing = sky && (sky.weather === 'snow' || sky.targetWeather === 'snow');
-    const targetOpacity = snowing ? 0 : 0.7;
+    const targetOpacity = 0.7 * (1 - summitWeatherAmount(sky, 'snow'));
     this.petalMat.opacity += (targetOpacity - this.petalMat.opacity) * Math.min(1, dt * 1.2);
     this.petals.visible = this.petalMat.opacity > 0.01;
     if (!this.petals.visible) return;
@@ -2378,17 +3057,19 @@ export class SummitManager {
     const finish = () => {
       if (finished) return;
       finished = true;
-      overlay.classList.add('fade-out');
+      if (overlay) overlay.classList.add('fade-out');
       setTimeout(() => {
-        overlay.classList.add('hidden');
-        overlay.classList.remove('show', 'fallback', 'fade-out');
+        if (overlay) {
+          overlay.classList.add('hidden');
+          overlay.classList.remove('show', 'fallback', 'fade-out');
+        }
         if (video) { try { video.pause(); video.removeAttribute('src'); video.load(); } catch {} }
         this.transitioning = false;
         g.controls.enabled = true;
         g.player.actionLocked = false;
         g.ui.showToast('The Summit Clearing — only wind and sky live here.', 4200);
         g.saveGame();
-      }, 1100);
+      }, overlay ? 1100 : 0);
     };
 
     if (overlay) {
@@ -2507,28 +3188,18 @@ export class SummitManager {
     if (on) {
       if (this.game.dialogue && this.game.dialogue.active) this.game.dialogue.close();
       this._savedSkyState = {
-        dayTime: sky.dayTime,
-        weather: sky.weather,
-        previousWeather: sky.previousWeather,
-        targetWeather: sky.targetWeather,
-        weatherBlend: sky.weatherBlend,
-        weatherTimer: sky.weatherTimer,
         paletteOverride: sky.paletteOverride || null
       };
       this._savedDurations = sky.weatherDurations;
+      this._savedWeatherPool = sky.weatherPool;
       sky.weatherDurations = SUMMIT_WEATHER_DURATIONS;
       sky.weatherPool = SUMMIT_WEATHER_POOL;
-      // Crossing the portal opens on the reference's clear late-morning
-      // light. The summit's own weather may evolve later, but the reveal is
-      // never an unreadable night or an overexposed weather transition.
-      sky.dayTime = 10.35;
-      sky.weather = 'clear';
-      sky.previousWeather = 'clear';
-      sky.targetWeather = 'clear';
-      sky.weatherBlend = 1;
-      sky.weatherTimer = 190;
+      // The summit is the same day above the valley: entering at dawn, in a
+      // shower or beneath the moon now preserves that exact sky. Only the
+      // local colour phases and weighted weather cadence change.
       sky.paletteOverride = this.skyPalette;
-      sky._palStamp = -1;
+      if (sky.invalidateEnvironment) sky.invalidateEnvironment();
+      else sky._palStamp = -1;
       if (this.game.audio) this.game.audio.setSummitWind(true);
       // No hints, no missions, no waypoint arrows — a respite scene.
       this.game.ui.hideAllGuidance();
@@ -2545,16 +3216,11 @@ export class SummitManager {
       this.resetAmbientWildlife();
     } else {
       sky.weatherDurations = this._savedDurations || sky.weatherDurations;
-      sky.weatherPool = null;
+      sky.weatherPool = this._savedWeatherPool || null;
       if (this._savedSkyState) {
-        sky.dayTime = this._savedSkyState.dayTime;
-        sky.weather = this._savedSkyState.weather;
-        sky.previousWeather = this._savedSkyState.previousWeather;
-        sky.targetWeather = this._savedSkyState.targetWeather;
-        sky.weatherBlend = this._savedSkyState.weatherBlend;
-        sky.weatherTimer = this._savedSkyState.weatherTimer;
         sky.paletteOverride = this._savedSkyState.paletteOverride;
-        sky._palStamp = -1;
+        if (sky.invalidateEnvironment) sky.invalidateEnvironment();
+        else sky._palStamp = -1;
         this._savedSkyState = null;
       }
       if (this.game.audio) this.game.audio.setSummitWind(false);
@@ -2597,9 +3263,9 @@ export class SummitManager {
     // the gaze travels past the torii and pagoda to the unbroken sea band.
     this._vistaDesired.set(p.x - 1.72 + drift, p.y + 1.48, p.z - 3.85);
     this._vistaLookTarget.set(
-      this.origin.x + 2.4 + drift * 3,
-      this.origin.y + 0.8 + Math.sin(this.time * 0.09) * (this._reducedMotion ? 0 : 0.08),
-      this.origin.z + 108
+      this.origin.x + 18.0 + drift * 3,
+      this.origin.y - 1.2 + Math.sin(this.time * 0.09) * (this._reducedMotion ? 0 : 0.08),
+      this.origin.z + 145
     );
     const cameraEase = this._reducedMotion ? 1 : Math.min(1, dt * 1.45);
     g.camera.position.lerp(this._vistaDesired, cameraEase);
@@ -2613,11 +3279,156 @@ export class SummitManager {
 
     // Settle the seated silhouette toward the bay. The shortest-angle form
     // prevents a full turn if the cat arrived facing just west of north.
-    let headingDiff = -g.player.heading;
+    const desiredHeading = -0.16;
+    let headingDiff = desiredHeading - g.player.heading;
     while (headingDiff > Math.PI) headingDiff -= Math.PI * 2;
     while (headingDiff < -Math.PI) headingDiff += Math.PI * 2;
     g.player.heading += headingDiff * (this._reducedMotion ? 1 : Math.min(1, dt * 2.4));
     g.player.mesh.rotation.y = g.player.heading;
+  }
+
+  /**
+   * Re-light the entire distant world from a small shared material set. The
+   * instanced roofs and towers never need per-instance work after creation.
+   */
+  updateVistaEnvironment(dt, t, sky) {
+    if (!sky) return;
+    const pal = sky.currentPalette || (sky.resolvePalette && sky.resolvePalette());
+    const sunY = sky.sunDir ? sky.sunDir.y : 1;
+    const sunUp = Math.max(0, sunY);
+    const dayness = THREE.MathUtils.clamp((sunY + 0.18) * 2.2, 0, 1);
+    const nightness = THREE.MathUtils.clamp(1 - sunUp * 5, 0, 1);
+    const golden = THREE.MathUtils.clamp((0.42 - sunUp) / 0.42, 0, 1) *
+      THREE.MathUtils.clamp(sunUp / 0.06, 0, 1);
+    const rain = summitWeatherAmount(sky, 'rain');
+    const mist = summitWeatherAmount(sky, 'mist');
+    const cloudy = summitWeatherAmount(sky, 'cloudy');
+    const snow = summitWeatherAmount(sky, 'snow');
+
+    // The supplementary summit lights now fall with the sun. Moonlight and
+    // the global sky fill keep silhouettes readable without bleaching night.
+    if (this.summitSkyFill) {
+      this.summitSkyFill.intensity = 0.12 + dayness * 0.62 + nightness * 0.1;
+      if (pal && pal.hemiSky && this.summitSkyFill.color && this.summitSkyFill.color.copy) {
+        this.summitSkyFill.color.copy(pal.hemiSky);
+        this.summitSkyFill.groundColor.copy(pal.hemiGround);
+      }
+    }
+    if (this.summitWarmFill) {
+      this.summitWarmFill.intensity = 0.06 + golden * 0.72 + sunUp * 0.12;
+      if (pal && pal.warm && this.summitWarmFill.color && this.summitWarmFill.color.copy) {
+        this.summitWarmFill.color.copy(pal.warm);
+      }
+    }
+
+    // The headless logic harness supplies only a minimal `sun` palette.
+    // Particle/weather simulation still runs there; material art updates do
+    // not need to manufacture missing colours.
+    if (!pal || !pal.horizon || !pal.top || !pal.cloud) return;
+
+    const setColor = (material, color) => {
+      if (material && material.color && material.color.copy) material.color.copy(color);
+    };
+    const setEmissive = (material, color, strength) => {
+      if (!material) return;
+      if (material.emissive && material.emissive.copy) material.emissive.copy(color);
+      material.emissiveIntensity = strength;
+    };
+
+    const wallColor = this._vistaColorA.copy(pal.hemiGround).lerp(pal.sun, 0.52 + golden * 0.18);
+    wallColor.multiplyScalar(0.38 + dayness * 0.62);
+    setColor(this.cityWallMat, wallColor);
+    const roofColor = this._vistaColorB.copy(pal.top).lerp(pal.horizon, 0.44).multiplyScalar(0.3 + dayness * 0.7);
+    setColor(this.cityRoofMat, roofColor);
+    setColor(this.cityEaveMat, this._vistaColorC.copy(roofColor).multiplyScalar(0.72));
+    if (this.cityRoofMat) this.cityRoofMat.roughness = 0.86 - rain * 0.26;
+    if (this.cityEaveMat) this.cityEaveMat.roughness = 0.9 - rain * 0.24;
+    const greenColor = this._vistaColorC.copy(pal.hemiGround).lerp(pal.horizon, mist * 0.38).multiplyScalar(0.42 + dayness * 0.58);
+    setColor(this.cityGardenMat, greenColor);
+    setColor(this.vistaTerrainMat, greenColor);
+    setColor(this.islandMat, greenColor);
+
+    const waterColor = this._vistaColorA.copy(pal.horizon).lerp(pal.top, 0.32).multiplyScalar(0.5 + dayness * 0.5);
+    setColor(this.bayMat, waterColor);
+    setColor(this.vistaRiverMat, waterColor);
+    setEmissive(this.bayMat, pal.horizon, 0.035 + nightness * 0.16);
+    setEmissive(this.vistaRiverMat, pal.horizon, 0.025 + nightness * 0.12);
+    if (this.bayMat) {
+      this.bayMat.roughness = 0.27 + rain * 0.35 + (cloudy + mist + snow) * 0.08;
+      this.bayMat.envMapIntensity = 0.72 + dayness * 0.65;
+    }
+    if (this.bayTexture && this.bayTexture.offset) {
+      this.bayTexture.offset.x = (this.bayTexture.offset.x + dt * (0.006 + rain * 0.018)) % 1;
+      this.bayTexture.offset.y = (this.bayTexture.offset.y + dt * 0.0025) % 1;
+    }
+    if (this.bayGlints && this.bayGlintMat) {
+      this.bayGlints.position.x = (sky.sunDir ? sky.sunDir.x : 0) * 112;
+      this.bayGlintMat.color.copy(pal.sun);
+      this.bayGlintMat.opacity = (0.04 + Math.pow(sunUp, 0.7) * 0.52 + nightness * 0.04) *
+        (1 - rain * 0.72 - mist * 0.52 - cloudy * 0.3);
+      this.bayGlints.visible = this.bayGlintMat.opacity > 0.01;
+    }
+
+    const lights = nightness * (0.72 + cloudy * 0.18 + rain * 0.1) *
+      (0.92 + Math.sin(t * 1.7) * 0.04);
+    for (const [points, material, scale] of [
+      [this.cityLights, this.cityLightMat, 0.78],
+      [this.harbourLights, this.harbourLightMat, 1]
+    ]) {
+      if (!points || !material) continue;
+      material.opacity = lights * scale;
+      points.visible = material.opacity > 0.012;
+    }
+    setColor(this.skylineMat, this._vistaColorB.copy(pal.horizon).multiplyScalar(0.44 + dayness * 0.56));
+    setColor(this.bridgeMat, this._vistaColorB.copy(pal.horizon).lerp(pal.sun, 0.28).multiplyScalar(0.5 + dayness * 0.5));
+    if (this.ferrisWheelMat) {
+      setColor(this.ferrisWheelMat, this._vistaColorB.copy(pal.horizon).lerp(pal.sun, 0.42).multiplyScalar(0.46 + dayness * 0.54));
+      setEmissive(this.ferrisWheelMat, pal.warm, nightness * 0.75);
+    }
+
+    for (const mat of this.horizonRangeMats || []) {
+      const layer = mat.userData ? mat.userData.layer || 0 : 0;
+      const base = mat.userData && mat.userData.baseColor;
+      if (!base || !mat.color || !mat.color.copy) continue;
+      mat.color.copy(base).lerp(pal.horizon, 0.26 + layer * 0.2 + mist * 0.2);
+      mat.color.multiplyScalar(0.4 + dayness * 0.6);
+    }
+    for (const mat of this.landmarkMats || []) {
+      const base = mat.userData && mat.userData.summitBaseColor;
+      if (base && mat.color && mat.color.copy) mat.color.copy(base).multiplyScalar(0.34 + dayness * 0.66);
+      setEmissive(mat, pal.warm, nightness * 0.08);
+      const baseRoughness = mat.userData && mat.userData.summitBaseRoughness;
+      mat.roughness = Math.max(0.58, (baseRoughness == null ? 0.85 : baseRoughness) - rain * 0.22);
+    }
+
+    for (const cloud of this.summitClouds || []) {
+      const mesh = cloud.mesh;
+      const material = cloud.material;
+      if (!mesh || !material) continue;
+      const sunFacing = sky.sunDir
+        ? clamp01((mesh.position.x * sky.sunDir.x + mesh.position.z * sky.sunDir.z) /
+          Math.max(1, Math.hypot(mesh.position.x, mesh.position.z)) * 0.5 + 0.5)
+        : 0.5;
+      material.color.copy(pal.cloud).lerp(pal.warm, sunFacing * golden * 0.68);
+      setEmissive(material, pal.cloud, 0.16 + nightness * 0.08);
+      const stormOpacity = Math.max(cloudy * 0.62, rain * 0.94, mist * 0.36, snow * 0.72);
+      material.opacity = cloud.storm
+        ? stormOpacity * 0.88
+        : 1;
+      mesh.visible = material.opacity > 0.01;
+    }
+
+    if (this.MAT && this.MAT.lanternGlow) {
+      this.MAT.lanternGlow.emissiveIntensity = 0.18 + nightness * 2.1;
+    }
+    if (this.vistaRoadMat) this.vistaRoadMat.roughness = 1 - rain * 0.36;
+
+    for (const boat of this.vistaBoats || []) {
+      boat.position.x += boat.userData.speed * dt * (1 + rain * 0.35);
+      const limit = boat.userData.limit || 200;
+      if (boat.position.x > limit) boat.position.x = -limit;
+      else if (boat.position.x < -limit) boat.position.x = limit;
+    }
   }
 
   /* ================= Per-frame ================= */
@@ -2670,6 +3481,7 @@ export class SummitManager {
     this.updateAmbientWildlife(dt, t, sky);
     this.updateMeditationAtmosphere(dt, t, playing, sky);
     this.updateSakuraPetals(dt, t, sky);
+    this.updateVistaEnvironment(dt, t, sky);
 
     // Shared foliage clock + a stronger wind base than the valley.
     updateFoliage(t, sky, p);
@@ -2682,7 +3494,10 @@ export class SummitManager {
       u.uTime.value = this._grassTime;
       u.uPlayerPos.value.copy(this._localPlayer);
       let wind = 1.35 + 0.35 * Math.sin(t * 0.23) + 0.2 * Math.sin(t * 0.71);
-      if (sky && (sky.targetWeather === 'snow' || sky.targetWeather === 'cloudy')) wind += sky.weatherBlend * 0.7;
+      if (sky) {
+        wind += Math.max(summitWeatherAmount(sky, 'snow'),
+          summitWeatherAmount(sky, 'cloudy'), summitWeatherAmount(sky, 'rain')) * 0.7;
+      }
       u.uWind.value += (wind - u.uWind.value) * Math.min(1, dt * 1.2);
       if (sky) {
         const pal = sky.resolvePalette();
@@ -2694,8 +3509,8 @@ export class SummitManager {
 
     // Clouds drift through on the wind; pollen rides it visibly.
     for (const c of this.summitClouds) {
-      c.spr.position.x += c.speed * dt * 1.8;
-      if (c.spr.position.x > c.maxX) c.spr.position.x = c.minX;
+      c.mesh.position.x += c.speed * dt * 1.8;
+      if (c.mesh.position.x > c.maxX) c.mesh.position.x = c.minX;
     }
     if (this.pollen) {
       const pp = this.pollen.geometry.attributes.position;
@@ -2715,16 +3530,15 @@ export class SummitManager {
     // Summit-local snow — only while the weather actually says snow. Parks the
     // system (visible=false) otherwise so it costs nothing in clear weather.
     if (this.snow && this.snowMat) {
-      const snowing = sky && (sky.weather === 'snow' ||
-        (sky.weather === 'cloudy' && sky.weatherBlend > 0.65));
-      const target = snowing ? 0.8 : 0;
+      const target = summitWeatherAmount(sky, 'snow') * 0.82;
       this.snowMat.opacity += (target - this.snowMat.opacity) * Math.min(1, dt * 1.4);
       const wasVisible = this.snow.visible;
       this.snow.visible = this.snowMat.opacity > 0.012;
       if (this.snow.visible) {
         const sp = this.snow.geometry.attributes.position;
         if (!wasVisible) this.reseedSnow();
-        for (let i = 0; i < sp.count; i++) {
+        const activeSnow = this._snowActive || sp.count;
+        for (let i = 0; i < activeSnow; i++) {
           const phase = this._snowSeeds[i * 3];
           const fall = this._snowSeeds[i * 3 + 1];
           const amp = this._snowSeeds[i * 3 + 2];
@@ -2740,6 +3554,35 @@ export class SummitManager {
           sp.setXYZ(i, x, y, z);
         }
         sp.needsUpdate = true;
+      }
+    }
+
+    // Wind-slanted rain uses the same cross-faded weather amount as the sky,
+    // so a shower arrives and leaves without a particle pop.
+    if (this.rain && this.rainMat) {
+      const target = summitWeatherAmount(sky, 'rain') * 0.56;
+      this.rainMat.opacity += (target - this.rainMat.opacity) * Math.min(1, dt * 2.1);
+      const wasVisible = this.rain.visible;
+      this.rain.visible = this.rainMat.opacity > 0.01;
+      if (this.rain.visible) {
+        if (!wasVisible) this.reseedRain();
+        const rp = this.rain.geometry.attributes.position;
+        const wind = 2.2 + summitWeatherAmount(sky, 'rain') * 2.8;
+        const activeRain = this._rainActive || rp.count;
+        for (let i = 0; i < activeRain; i++) {
+          const speed = this._rainSeeds[i * 2];
+          const phase = this._rainSeeds[i * 2 + 1];
+          let x = rp.getX(i) + wind * dt;
+          let y = rp.getY(i) - speed * dt;
+          let z = rp.getZ(i) + Math.sin(t * 0.8 + phase) * dt * 0.25;
+          if (y < 0 || Math.abs(x - this._localPlayer.x) > 31 || Math.abs(z - this._localPlayer.z) > 31) {
+            x = this._localPlayer.x - 28 + this.rng() * 56;
+            y = 14 + this.rng() * 9;
+            z = this._localPlayer.z - 28 + this.rng() * 56;
+          }
+          rp.setXYZ(i, x, y, z);
+        }
+        rp.needsUpdate = true;
       }
     }
 

@@ -3,34 +3,34 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20261022d';
-import { Player } from './player.js?v=20261022d';
-import { Countryside } from './countryside.js?v=20261022d';
-import { Sky } from './sky.js?v=20261022d';
-import { Vegetation } from './vegetation.js?v=20261022d';
-import { Particles } from './particles.js?v=20261022d';
-import { AmbientLife } from './ambient_life.js?v=20261022d';
-import { Controls } from './controls.js?v=20261022d';
-import { UI } from './ui.js?v=20261022d';
-import { NPC } from './npc.js?v=20261022d';
-import { Dialogue } from './dialogue.js?v=20261022d';
-import { QuestManager } from './quest.js?v=20261022d';
-import { AudioManager } from './audio.js?v=20261022d';
-import { ProgressionManager } from './progression.js?v=20261022d';
-import { ContextActionManager } from './context_actions.js?v=20261022d';
-import { InteriorManager } from './interior.js?v=20261022d';
-import { SaveManager } from './save.js?v=20261022d';
-import { ScentTrail } from './scent.js?v=20261022d';
-import { SettingsManager } from './settings.js?v=20261022d';
-import { isDiscreteGPU } from './settings.js?v=20261022d';
-import { MenuSystem } from './menus.js?v=20261022d';
-import { WaypointSystem, Compass } from './waypoints.js?v=20261022d';
-import { MusicDirector } from './music.js?v=20261022d';
-import { SummitManager } from './mountaintop.js?v=20261022d';
-import { catRimUniforms } from './cat.js?v=20261022d';
-import { chunkSceneInstances } from './instanced_chunks.js?v=20261022d';
-import { setFoliageDetail } from './foliage.js?v=20261022d';
-import { applyCadOverrides } from './cad_overrides.js?v=20261022d';
+import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20261022e';
+import { Player } from './player.js?v=20261022e';
+import { Countryside } from './countryside.js?v=20261022e';
+import { Sky } from './sky.js?v=20261022e';
+import { Vegetation } from './vegetation.js?v=20261022e';
+import { Particles } from './particles.js?v=20261022e';
+import { AmbientLife } from './ambient_life.js?v=20261022e';
+import { Controls } from './controls.js?v=20261022e';
+import { UI } from './ui.js?v=20261022e';
+import { NPC } from './npc.js?v=20261022e';
+import { Dialogue } from './dialogue.js?v=20261022e';
+import { QuestManager } from './quest.js?v=20261022e';
+import { AudioManager } from './audio.js?v=20261022e';
+import { ProgressionManager } from './progression.js?v=20261022e';
+import { ContextActionManager } from './context_actions.js?v=20261022e';
+import { InteriorManager } from './interior.js?v=20261022e';
+import { SaveManager } from './save.js?v=20261022e';
+import { ScentTrail } from './scent.js?v=20261022e';
+import { SettingsManager } from './settings.js?v=20261022e';
+import { isDiscreteGPU } from './settings.js?v=20261022e';
+import { MenuSystem } from './menus.js?v=20261022e';
+import { WaypointSystem, Compass } from './waypoints.js?v=20261022e';
+import { MusicDirector } from './music.js?v=20261022e';
+import { SummitManager } from './mountaintop.js?v=20261022e';
+import { catRimUniforms } from './cat.js?v=20261022e';
+import { chunkSceneInstances } from './instanced_chunks.js?v=20261022e';
+import { setFoliageDetail } from './foliage.js?v=20261022e';
+import { applyCadOverrides } from './cad_overrides.js?v=20261022e';
 
 const AUTOSTART_KEY = 'catwalk_autostart';
 
@@ -727,6 +727,7 @@ class Game {
     if (this.particles) {
       this.particles.setBudget(q === 'low' ? 0.5 : q === 'medium' ? 0.75 : 1.0);
     }
+    if (this.summit) this.summit.setQuality(q);
     if (this.city) {
       this.city.lanternLightCount = q === 'low' ? 2 : 4;
       // Resize the pool now: the count is the number of lights that exist,
@@ -1207,7 +1208,11 @@ class Game {
       // Title/pause: keep the cat idling in place (no input, no camera takeover)
       const savedInput = this.player.moveInput.clone();
       this.player.moveInput.set(0, 0);
-      this.player.update(dt, this.city.colliders, this.city, this.luna);
+      // A restored summit save reaches this branch while the title is still
+      // showing. Use the active pocket world's ground/colliders or the cat at
+      // y=-1200 is snapped straight back to the hidden valley terrain.
+      const idleWorld = this.summit.active ? this.summit : this.city;
+      this.player.update(dt, idleWorld.colliders, idleWorld, this.luna);
       this.player.moveInput.copy(savedInput);
     }
 
@@ -1217,7 +1222,8 @@ class Game {
     // weather stay continuous for the windows.
     const inside = this.interior.isInside;
     // Last-known-safe spawn: only record grounded, outdoor, dry paws (S1.5).
-    if (playing && !inside && !this.interior.isTransitioning && this.player.isGrounded && !this.player.inWater) {
+    if (playing && !inside && !this.summit.active && !this.interior.isTransitioning &&
+        this.player.isGrounded && !this.player.inWater) {
       const p = this.player.mesh.position;
       this.safePos = { x: p.x, y: p.y, z: p.z };
     }
@@ -1229,8 +1235,13 @@ class Game {
     this.interior.setLightsActive(inside);
     if (inside) {
       this.city.suspendLanternLights();
-    } else {
+    } else if (!this.summit.active) {
       this.city.update(dt, this.player.mesh.position, this.sky);
+    } else {
+      // The complete valley is hidden while the summit pocket is active.
+      // Keep its lantern slots and simulation asleep so the layered vista
+      // gets the frame budget instead of an invisible second city.
+      this.city.suspendLanternLights();
     }
     this.sky.update(dt, this.player.mesh.position);
     this.atmosphere.updateFromSky(

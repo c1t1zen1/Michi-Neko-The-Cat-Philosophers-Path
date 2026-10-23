@@ -3,14 +3,14 @@
 //   python3 -m http.server 8000
 //   open http://localhost:8000/tools/cat_preview.html?sheet=anatomy
 //
-// Sheets: anatomy, face, gait, stride, poses, sleep, closeup, npcs. Every
+// Sheets: anatomy, face, coat, gait, stride, poses, sleep, closeup, npcs. Every
 // cat is posed by driving the real Cat.update() with fixed time steps, and
 // Math.random is seeded so a sheet renders identically on every capture.
 // Extras: &raw=1 (bare sculpts), &golden=1 (sunset light), &debug=1 (bone
 // positions in the console), &perf=1 (build + update timings).
 import * as THREE from 'three';
-import { Cat, catRimUniforms } from '../src/cat.js?v=20261022d';
-import { getCatAnatomy, BUILDS } from '../src/cat_anatomy.js?v=20261022d';
+import { Cat, catRimUniforms } from '../src/cat.js?v=20261022e';
+import { getCatAnatomy, BUILDS } from '../src/cat_anatomy.js?v=20261022e';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 /**
@@ -52,7 +52,7 @@ let seed = 20261022;
 Math.random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
 
 const PALETTES = {
-  michi: { fur: 0xc4915a, belly: 0xf3e7d0, accent: 0x6e4424 },
+  michi: { fur: 0xae8450, belly: 0xeedcb8, accent: 0x5e3d26 },
   luna: { fur: 0x22242a, belly: 0x383b44, accent: 0x4f5360, eyeColor: 0xdec056, ribbonColor: 0x2b3d63 },
   mochi: { fur: 0xe8b06a, belly: 0xfaf0dc, accent: 0xb07840, eyeColor: 0xa2ba6e, ribbonColor: 0xc8402a },
   kuro: { fur: 0x1c1c22, belly: 0x2e2e38, accent: 0x101014, eyeColor: 0xd8b04a, ribbonColor: 0xc8402a }
@@ -94,6 +94,11 @@ function pose(cat, name, phase) {
     case 'drink':
       cat.setDrinking(true);
       run(cat, 0.5, [0, true, false, false]);
+      break;
+    case 'startled':
+      // What a diving bird does: hiss, bottlebrush tail
+      cat.setMood('startled', 10, 3);
+      run(cat, 1.0, [0, true, false, false]);
       break;
     case 'sit': case 'groom': case 'stretch': case 'yawn': case 'sleep':
       cat.idleAction = name;
@@ -142,6 +147,14 @@ const SHEETS = {
     { label: 'jump', pose: 'jump', az: 90, el: 4, dist: 2.1, ty: 0.5 },
     { label: 'drink', pose: 'drink', az: 60, el: 10, dist: 1.8 },
     { label: 'yawn', pose: 'yawn', az: 25, el: 6, dist: 0.9, ty: 0.55, tz: 0.2 }
+  ] },
+  coat: { cols: 3, cells: [
+    { label: 'coat · side', az: 90, el: 4, dist: 1.7 },
+    { label: 'coat · back', az: 90, el: 70, dist: 1.8 },
+    { label: 'coat · rear three-quarter', az: 145, el: 22, dist: 1.7 },
+    { label: 'coat · front three-quarter', az: 35, el: 8, dist: 1.6 },
+    { label: 'startled · side', pose: 'startled', az: 90, el: 6, dist: 1.9, ty: 0.5 },
+    { label: 'startled · rear three-quarter', pose: 'startled', az: 145, el: 22, dist: 1.9, ty: 0.5 }
   ] },
   stride: { cols: 4, cells: [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875].map((ph) => (
     { label: `slow walk ${ph}`, pose: 'slow', phase: ph, az: 90, el: 2, dist: 1.9 }

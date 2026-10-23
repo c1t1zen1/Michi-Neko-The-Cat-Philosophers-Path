@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { barkTextures, texturedMaterial } from './textures.js?v=20261022d';
+import { barkTextures, texturedMaterial } from './textures.js?v=20261022e';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, createBranchMaterial, leafSprayTexture, leafMassTexture,
   buildCanopy, updateFoliage
-} from './foliage.js?v=20261022d';
+} from './foliage.js?v=20261022e';
 
 // Trees past this radius stand in or behind the edge-forest wall and are
 // built as textured leaf masses; inside it they are hero trees with
