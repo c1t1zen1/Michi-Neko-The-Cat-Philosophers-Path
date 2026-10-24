@@ -4,6 +4,6 @@ rem and the import map do not work from file://) on port 8131, then opens the pa
 rem 8131 sits next to the Grass Lab's 8130 so both can run at once.
 cd /d "%~dp0.."
 echo Serving %CD%
-echo Open http://localhost:8131/rooftops/   (Ctrl+C to stop)
-start "" http://localhost:8131/rooftops/
+echo Open http://localhost:8131/kyoto-rooftops.html   (Ctrl+C to stop)
+start "" http://localhost:8131/kyoto-rooftops.html
 python -m http.server 8131

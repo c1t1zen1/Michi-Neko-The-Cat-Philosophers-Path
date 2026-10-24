@@ -71,6 +71,11 @@ html, body {
   font: 400 1.5rem/1.1 var(--serif);
   letter-spacing: 0.01em;
 }
+.mast .sandbox {
+  margin: 4px 0 0;
+  font: italic 400 0.82rem/1.3 var(--serif);
+  color: var(--paper-dim);
+}
 .mast .back {
   pointer-events: auto;
   display: inline-block;

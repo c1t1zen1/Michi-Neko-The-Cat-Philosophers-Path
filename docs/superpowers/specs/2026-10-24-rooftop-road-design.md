@@ -1,6 +1,6 @@
 # The Roof Road (屋根道) — design
 
-**Date:** 2026-10-24 · **Status:** design + playable greybox (`rooftops/`), not yet wired into the game
+**Date:** 2026-10-24 · **Status:** design + playable greybox (`rooftops/`), live as a sandbox at `kyoto-rooftops.html`; not yet wired into the game
 **Research:** `docs/ROOFTOPS_RESEARCH_2026-10-24.md`
 
 ## 1. What was asked, and what I assumed
@@ -208,8 +208,10 @@ Lantern checkpoints sit at each mouth's start. R is a convenience, never needed.
 ### 8.1 Now (this pass): `rooftops/`, a lab like `grass/`
 
 ```
+kyoto-rooftops.html the entry point at the repo root: page shell, import map,
+                    file:// guard, HUD markup; loads rooftops/js/game.js
 rooftops/
-  index.html        page shell, import map, file:// guard, HUD markup
+  index.html        forwards to ../kyoto-rooftops.html, keeping ?flags
   style.css         HUD + touch controls
   package.json      {"type":"module"} so Node can import the pure modules
   serve.cmd         Windows helper (python http.server, opens the page)
@@ -237,6 +239,15 @@ lines (route in red) and walls, `?cat=0` keep the stand-in capsule, `?shadows=0`
 `?shot=1` keep the drawing buffer for captures, `?nohud=1` hide the HUD. Console
 hooks for captures: `roofRoad.at(s)`, `roofRoad.jumpToMouth(n)`,
 `roofRoad.skipFinale()`.
+
+**Soft launch.** The lab is merged to `main` as new files only, behind its own
+entry point, `kyoto-rooftops.html`. GitHub Pages serves it next to the game, but
+the game's `index.html` and `src/` don't change and don't link to it. That is the
+usual way to try an unfinished feature in production without exposing it. Pages
+builds one site from one branch, so preview builds per branch would need an
+Actions workflow this repo doesn't have. Work toward §8.2 continues on the
+`roof-road` branch and lands through a pull request when the game wiring is
+ready.
 
 ### 8.2 Next pass: into the game
 
