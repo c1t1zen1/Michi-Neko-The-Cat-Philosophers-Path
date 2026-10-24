@@ -1,0 +1,276 @@
+/* The Roof Road — HUD over a full-window canvas. Ink and paper, quiet. */
+
+:root {
+  --ink: #1d1712;
+  --paper: #f3ead8;
+  --paper-dim: rgba(243, 234, 216, 0.72);
+  --wash: rgba(24, 19, 15, 0.46);
+  --wash-strong: rgba(18, 14, 11, 0.72);
+  --lacquer: #c8402a;
+  --gold: #d9ad4c;
+  --serif: 'Fraunces', Georgia, serif;
+  --mincho: 'Shippori Mincho', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+  --sans: 'Inter', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #1a1612;
+  color: var(--paper);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+#gl {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  touch-action: none;
+}
+
+.wake {
+  position: fixed;
+  left: 50%;
+  bottom: 18vh;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--wash);
+  font: italic 400 1rem/1.4 var(--serif);
+  color: var(--paper-dim);
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+}
+.wake.gone { opacity: 0; }
+
+/* --- masthead --- */
+.mast {
+  position: fixed;
+  top: 16px;
+  left: 18px;
+  margin: 0;
+  pointer-events: none;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+}
+.mast .kicker {
+  margin: 0;
+  font: 500 0.72rem/1.2 var(--sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
+}
+.mast h1 {
+  margin: 2px 0 0;
+  font: 400 1.5rem/1.1 var(--serif);
+  letter-spacing: 0.01em;
+}
+.mast .back {
+  pointer-events: auto;
+  display: inline-block;
+  margin-bottom: 6px;
+  font: 500 0.78rem/1 var(--sans);
+  color: var(--paper-dim);
+  text-decoration: none;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--wash);
+}
+.mast .back:hover { color: var(--paper); }
+
+/* --- mouth title card --- */
+.card {
+  position: fixed;
+  top: 12vh;
+  left: 50%;
+  transform: translate(-50%, -8px);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.9s ease, transform 0.9s ease;
+  pointer-events: none;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
+}
+.card.show { opacity: 1; transform: translate(-50%, 0); }
+.card p { margin: 0; }
+.card .k { font: 700 clamp(2.4rem, 6vw, 4.2rem)/1 var(--mincho); letter-spacing: 0.12em; }
+.card .r { margin-top: 14px; font: 500 0.82rem/1 var(--sans); letter-spacing: 0.26em; text-transform: uppercase; color: var(--gold); }
+.card .t { margin-top: 4px; font: italic 400 1.35rem/1.3 var(--serif); }
+.card .n { margin-top: 6px; font: 400 0.92rem/1.4 var(--serif); color: var(--paper-dim); }
+
+/* --- seven-mouth strip --- */
+.progress {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: var(--wash);
+  backdrop-filter: blur(4px);
+}
+.progress ol {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.progress li {
+  display: grid;
+  place-items: center;
+  min-width: 2.1rem;
+  height: 1.9rem;
+  padding: 0 4px;
+  border-radius: 8px;
+  font: 500 0.82rem/1 var(--mincho);
+  color: rgba(243, 234, 216, 0.36);
+  border: 1px solid rgba(243, 234, 216, 0.12);
+  white-space: nowrap;
+}
+.progress li.seen { color: var(--paper-dim); border-color: rgba(243, 234, 216, 0.3); }
+.progress li.here { color: var(--ink); background: var(--paper); border-color: var(--paper); }
+.progress .shoki { margin: 0; font: 500 0.82rem/1 var(--mincho); color: var(--gold); white-space: nowrap; }
+.progress .shoki span { font-family: var(--sans); }
+
+/* --- controls hint --- */
+.hint {
+  position: fixed;
+  right: 18px;
+  bottom: 22px;
+  margin: 0;
+  max-width: 46rem;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--wash);
+  font: 400 0.8rem/1.6 var(--sans);
+  color: var(--paper-dim);
+  text-align: right;
+  transition: opacity 1.2s ease;
+}
+.hint.gone { opacity: 0; pointer-events: none; }
+kbd {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 0 5px;
+  margin: 0 1px;
+  border-radius: 5px;
+  border: 1px solid rgba(243, 234, 216, 0.3);
+  font: 500 0.74rem/1.45 var(--sans);
+  color: var(--paper);
+  text-align: center;
+}
+
+/* --- toast --- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 84px;
+  transform: translate(-50%, 6px);
+  margin: 0;
+  max-width: min(36rem, calc(100vw - 32px));
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--wash-strong);
+  font: italic 400 1rem/1.4 var(--serif);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* --- finale --- */
+.finale {
+  position: fixed;
+  left: 50%;
+  bottom: 14vh;
+  transform: translate(-50%, 10px);
+  width: min(30rem, calc(100vw - 32px));
+  padding: 22px 26px 20px;
+  border-radius: 20px;
+  background: var(--wash-strong);
+  backdrop-filter: blur(6px);
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.4s ease, transform 1.4s ease;
+}
+.finale.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.finale .k { margin: 0; font: 700 2.2rem/1 var(--mincho); letter-spacing: 0.18em; color: var(--gold); }
+.finale h2 { margin: 6px 0 0; font: 400 1.7rem/1.2 var(--serif); }
+.finale .count { margin: 8px 0 0; font: 500 0.82rem/1 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--paper-dim); }
+.finale .line { margin: 12px 0 0; font: italic 400 1rem/1.5 var(--serif); color: var(--paper-dim); }
+.finale .buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 16px; }
+.finale button, .finale a {
+  appearance: none;
+  border: 1px solid rgba(243, 234, 216, 0.35);
+  background: transparent;
+  color: var(--paper);
+  font: 500 0.88rem/1 var(--sans);
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.finale button:first-child { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+.finale button:hover, .finale a:hover { border-color: var(--paper); }
+
+/* --- touch --- */
+.touch { display: none; }
+@media (pointer: coarse) {
+  .touch { display: block; }
+  .hint { display: none; }
+  .pad {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 50vw;
+    height: 46vh;
+    touch-action: none;
+  }
+  .pad span {
+    position: absolute;
+    left: 28px;
+    bottom: 80px;
+    font: italic 400 0.9rem/1 var(--serif);
+    color: rgba(243, 234, 216, 0.4);
+  }
+  .btn {
+    position: fixed;
+    border: 1px solid rgba(243, 234, 216, 0.4);
+    background: var(--wash);
+    color: var(--paper);
+    border-radius: 50%;
+    font: 500 0.95rem/1 var(--sans);
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .btn.jump { right: 22px; bottom: 26px; width: 92px; height: 92px; }
+  .btn.down { right: 126px; bottom: 30px; width: 58px; height: 58px; }
+  .progress { bottom: auto; top: 84px; }
+}
+
+/* --- small screens --- */
+@media (max-width: 640px) {
+  .mast h1 { font-size: 1.2rem; }
+  .progress { left: 12px; right: 12px; justify-content: space-between; gap: 8px; padding: 6px 8px; }
+  .progress li { min-width: 0; padding: 0 3px; font-size: 0.7rem; }
+  .card { top: 15vh; width: calc(100vw - 32px); }
+}
+
+/* --- guidance toggles --- */
+body.noguide .guide { display: none; }
+body.nohud .mast, body.nohud .guide, body.nohud .card, body.nohud .toast, body.nohud .wake { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .toast, .finale { transition: opacity 0.4s ease; transform: translate(-50%, 0); }
+}
