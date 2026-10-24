@@ -16,6 +16,12 @@
 
 *Free · No download · No install · Just click and stroll.*
 
+**🌿 New — the Grass Lab:** twenty procedural Three.js grasses, each in a live isometric cube, plus a floating patch where Michi walks through them and bends the blades.
+
+[<img src="https://img.shields.io/badge/%F0%9F%8C%BF%20OPEN%20THE%20GRASS%20LAB-play%20with%20twenty%20grasses-4d7c34?style=for-the-badge&logo=threedotjs&logoColor=white&labelColor=1a1a1a" height="48" alt="Open the Grass Lab in your browser"/>](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/grass/)
+
+*Opens on GitHub Pages · [how it was made &amp; research notes](docs/GRASS_RESEARCH_2026-10-23.md) · [source in `grass/`](grass/)*
+
 > **Status:** Very Early Alpha · Built with vibe coding and several SOTA AI models  
 > **Inspiration:** Studio Ghibli films and a honeymoon trip to Kyoto, Japan  
 > **Engine:** Three.js (r160) · WebGL 2.0 · Pure browser — no dependencies to install  
@@ -54,6 +60,7 @@ A running log of what has landed since the first public alpha. Status key: ✅ s
 
 | Date | Update | Status |
 |------|--------|--------|
+| 2026-10-23 | **[Grass Lab](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/grass/)** — twenty procedural grass designs (five re-grown from the game's meadow, five from the research, five cross-breeds, five experiments) in live isometric cubes with measured CPU stats, plus a hero slab where the real cat walks through them with GPU spring-and-trail grass physics. Not wired into the game yet | 🟡 |
 | 2026-10-23 | **Comfort & accessibility settings** — field of view, interface size, larger dialogue text, high-contrast prompts, *Reduce Motion* (follows your OS setting), film-grain and lens-fringe toggles | ✅ |
 | 2026-10-23 | **Villager personalities** — Luna is now silver smoke-grey, Mochi ginger, Kuro solid black; each cat has its own size, idle habits and greeting; Mochi curls up to sleep at night | ✅ |
 | 2026-10-23 | **Hidden valley places** — the *Moon Pool* and the *Lantern Glade*, each with its own light, sound, journal entry and stillness moment | ✅ |
@@ -220,6 +227,7 @@ Then open **http://127.0.0.1:8080** in your browser.
 | [docs/SBA_REVIEW_20260927_031251.md](docs/SBA_REVIEW_20260927_031251.md) | Senior build assessment (mobile-first lens) |
 | [docs/DAW_CADJS_DEEP_REVIEW_2026-09-20.md](docs/DAW_CADJS_DEEP_REVIEW_2026-09-20.md) | Feature-completeness review of dawCAT and cadJS |
 | [docs/SOCIAL_POST_PLAN_2026-10-22_195413.md](docs/SOCIAL_POST_PLAN_2026-10-22_195413.md) | Build-in-public post plan; finished posts live in [docs/social/](docs/social/) |
+| [docs/GRASS_RESEARCH_2026-10-23.md](docs/GRASS_RESEARCH_2026-10-23.md) | Grass Lab research: what 15 searches found, the numbers, the design decisions, sources |
 | [dawCAT/README.md](dawCAT/README.md) | dawCAT 2.0 audio studio manual |
 | [cadJS/README.md](cadJS/README.md) · [cadJS/BUILD_GUIDE.md](cadJS/BUILD_GUIDE.md) | cadJS CAD workspace manual and build guide |
 | [assets/README.md](assets/README.md) | Optional runtime media (summit vista model, transition video) |
@@ -310,6 +318,7 @@ Michi-Neko-The-Cat-Philosophers-Path/
 ├── data/                       # Development reference screenshots & Blender sources
 ├── dawCAT/                     # Companion audio studio — music, sound design, Wave Lab, AI assistant
 ├── cadJS/                      # Companion CAD workspace — Procedural Studio, push-to-game, AI agent
+├── grass/                      # Grass Lab — 20 procedural grasses in isometric cubes + a cat-walk patch
 ├── AGENTS.md                   # Contributor / agent notes
 └── OLD/
     └── archive-cat-city/       # 🗄️ Archived predecessor project — see its README
@@ -319,13 +328,16 @@ Michi-Neko-The-Cat-Philosophers-Path/
 
 ## 🧰 Companion Tools
 
-Two standalone browser apps live in the repo. Neither is needed to play, and neither writes to the game's source.
+Two standalone browser apps and a grass test bench live in the repo. None is needed to play, and none writes to the game's source.
 
 ### dawCAT 2.0 — audio asset studio (`dawCAT/`)
 An Ableton-style DAW built from the game's own musical DNA. **Compose** (arrangement, piano roll, drum grid, mixer, devices, automation), **✦ Sound Design** (layered procedural SFX from 24 templates modelled on the game's sounds, exported as a zero-file `sfx-pack.js`), **🌊 Wave Lab** (import, record or resample audio; time-stretch, pitch, reverse, loop, filter, bitcrush; turn a sample into a chromatic sampler), a 42-groove drum rhythm library, and an **✦ AI assistant** that works with local models (llama-server, LM Studio, Ollama) or hosted providers, streams, self-repairs, and keeps every change one Ctrl+Z away. Run it at `/dawCAT/` from the game root. See [dawCAT/README.md](dawCAT/README.md).
 
 ### cadJS — CAD workspace (`cadJS/`)
 A non-destructive Three.js workspace for inspecting, creating, reshaping, texturing, importing and exporting assets. It loads the real cat, scans the repo, picks objects out of the live game scene and can *push to game* as `cad-overrides.json`. The **Procedural Studio** adds 15 Kyoto prefabs (torii, pagoda, ishi-doro, bridge, hokora shrine, bamboo, sakura, bonsai, tsukubai, rock garden, neko statue and more), 16 painterly textures, 10 material palettes and 8 cat poses, all reachable from the AI design agent. See [cadJS/README.md](cadJS/README.md).
+
+### Grass Lab — grass test bench (`grass/`)
+**[Open it in your browser →](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/grass/)** Twenty procedural Three.js grasses, each in its own live isometric cube with a how-it's-made note, code excerpt and measured CPU numbers. Blades are placed by a GPU hash (no per-blade buffers), bent by wind, and pushed by a small GPU spring simulation; at the bottom of the page the real `src/cat.js` cat walks a floating slab (walk, wander, tour, figure-eight, prowl, isometric or cat-eye view) on any one grass or on checkerboard, stripe, ring, random and all-twenty layouts. Locally, serve the repo root and open `/grass/` (or double-click `grass/serve.cmd` on Windows). Research and decisions: [docs/GRASS_RESEARCH_2026-10-23.md](docs/GRASS_RESEARCH_2026-10-23.md).
 
 ### Review sheets (`tools/`)
 Seeded, repeatable renders built through the real game classes: `cat_preview.html` (anatomy, face, coat, gait, poses, sleep, npcs), `tree_preview.html`, `town_preview.html` (street, landmarks, props), `hidden_preview.html`, `summit_preview.html`. Run `node tools/verify.mjs` for the syntax, wiring and summit suites.

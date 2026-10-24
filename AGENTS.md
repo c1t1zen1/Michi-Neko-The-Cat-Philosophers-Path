@@ -13,6 +13,7 @@ companion apps. Last reviewed 2026-10-23.
 | `tools/` | Review sheets (`cat_`, `tree_`, `town_`, `hidden_`, `summit_preview`) and `verify.mjs` / `check_syntax.mjs` / `summit_test.mjs` |
 | `dawCAT/` | Audio studio: compose, Sound Design, Wave Lab, AI assistant. `cd dawCAT && npm test` |
 | `cadJS/` | CAD workspace: Procedural Studio, push-to-game, AI agent. `cd cadJS && npm test` (`npm run check` also loads the server modules) |
+| `grass/` | Grass Lab: twenty Three.js grass designs in live isometric cubes, plus a hero slab where the real `src/cat.js` walks through them with GPU spring/trail physics. Open `/grass/index.html` from the served repo root; research in `docs/GRASS_RESEARCH_2026-10-23.md`. Its `../../src/cat.js?v=` import carries the cache tag (bump it with the others); its own modules are untagged |
 | `assets/` | Optional runtime media (summit vista GLB, transition mp4); every slot has a fallback |
 | `docs/` | Reviews, the build guide, checklists, social posts, README artwork |
 | `data/` | Reference screenshots and Blender sources |

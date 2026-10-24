@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Grass Lab — Michi-Neko</title>
+  <meta name="description" content="Twenty procedural Three.js grasses for Michi-Neko, each in a live isometric cube, plus a patch where the game's cat walks through them.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%BF%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <canvas id="gl" aria-hidden="true"></canvas>
+
+  <main class="page">
+    <header class="mast">
+      <p class="kicker">Michi-Neko · Grass Lab</p>
+      <h1>Twenty ways to<br><em>grow a meadow</em></h1>
+      <p class="lede">Every cube below is a live WebGL scene — roughly two thousand blades per square metre, placed by a hash on the GPU, bent by the wind and by a yarn ball rolling through it. Hover one to lift it, click one to let the cat loose on it. Nothing is downloaded; it is all procedural.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#ours">Ours</a><a href="#field">From the field</a><a href="#cross">Cross-bred</a><a href="#wild">Strange &amp; new</a><a href="#walk" class="go">Walk the grass ↓</a>
+      </nav>
+      <div class="controls">
+        <div class="ctl"><span class="ctl-l">Quality</span>
+          <span class="seg" id="seg-quality"><button data-v="auto" class="on">Auto</button><button data-v="eco">Eco</button><button data-v="lush">Lush</button></span>
+        </div>
+        <label class="ctl"><span class="ctl-l">Wind</span><input id="wind" class="range" type="range" min="0" max="2" step="0.05" value="0.8" aria-label="Wind strength"></label>
+        <div class="ctl perf" id="perf" aria-live="off">warming up…</div>
+      </div>
+    </header>
+
+    <div id="families"></div>
+
+    <section class="sources" id="sources">
+      <details>
+        <summary>Research &amp; sources</summary>
+        <p class="src-note">Fifteen searches and a dozen deep reads informed these designs; the notes, numbers and what was only a search snippet are in <code>docs/GRASS_RESEARCH_2026-10-23.md</code>.</p>
+        <ul id="srcList"></ul>
+      </details>
+    </section>
+  </main>
+
+  <section class="hero" id="walk">
+    <div class="hero-head">
+      <p class="kicker">The walk</p>
+      <h2>Let the cat <em>loose</em></h2>
+      <p class="sentence">
+        Michi strolls on <span class="slot" id="slot-a"></span>
+        in a <span class="slot" id="slot-p"></span> layout<span id="with" hidden>, with <span class="slot" id="slot-b"></span></span>.
+      </p>
+    </div>
+    <div class="stage" id="stage">
+      <p class="wake" id="wake">Michi is waking up…</p>
+    </div>
+    <div class="hero-foot">
+      <div class="row">
+        <div class="ctl"><span class="ctl-l">Move</span><span class="seg" id="seg-mode"></span></div>
+        <div class="ctl"><span class="ctl-l">View</span><span class="seg" id="seg-view"><button data-v="iso" class="on">Isometric</button><button data-v="eye">Cat-eye</button></span></div>
+        <div class="ctl"><span class="ctl-l">Gait</span><span class="seg" id="seg-gait"><button data-v="walk" class="on">Walk</button><button data-v="prowl">Prowl</button></span></div>
+        <div class="ctl"><span class="ctl-l">Slab</span><span class="seg"><button id="btn-rotl" title="Turn the slab (Q)">↺ Turn</button><button id="btn-rotr" title="Turn the slab (E)">Turn ↻</button><button id="btn-shuffle" hidden>Shuffle</button></span></div>
+      </div>
+      <p class="keys">WASD / arrows to walk · Shift to sprint · C prowl · V change view · Q E turn the slab · or click the grass and Michi goes there</p>
+      <p class="hero-stats" id="heroStats">&nbsp;</p>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>Grass Lab · built with Three.js r160 · the cat is the real <code>src/cat.js</code> · every texture is painted at load time.</p>
+  </footer>
+
+  <script>
+    // ES modules and the import map are blocked on file:// (that is the CORS error)
+    if (location.protocol === 'file:') {
+      document.body.insertAdjacentHTML('afterbegin',
+        '<div style="position:relative;z-index:100;max-width:44rem;margin:12vh auto;padding:0 24px;font:1.1rem/1.7 Georgia,serif;color:#1b261a">' +
+        '<p style="font-size:2rem;margin:0 0 .4em">This page needs a local web server.</p>' +
+        '<p>Browsers block ES modules opened straight from disk (<code>file://</code>). From the repo root run:</p>' +
+        '<pre style="background:#f4f8ef;padding:14px 16px;border-radius:12px;font-size:.95rem">python -m http.server 8000</pre>' +
+        '<p>then open <b>http://localhost:8000/grass/</b>. In VS Code, the Live Server extension also works (open the repo root, not the grass folder).</p></div>');
+      document.getElementById('gl').remove();
+    } else {
+      const s = document.createElement('script');
+      s.type = 'module'; s.src = 'js/lab.js';
+      document.body.append(s);
+    }
+  </script>
+</body>
+</html>
