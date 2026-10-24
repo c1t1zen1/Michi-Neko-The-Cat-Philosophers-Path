@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>The Roof Road — Michi-Neko</title>
+  <meta name="description" content="A side-scrolling run over the roofs of old Kyoto for Michi-Neko: seven mouths of the city from the bridge to the top of a festival float, where the Okuribi fires kindle on the hills. A prototype, separate from the main game.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9B%A9%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
+  <link rel="stylesheet" href="rooftops/style.css">
+  <script type="importmap">
+    {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <!--
+    Entry point for the Roof Road prototype (sandbox). It loads the lab in
+    rooftops/ and shares nothing with the main game's index.html; the game
+    does not link here yet. rooftops/index.html forwards to this page.
+  -->
+  <canvas id="gl" aria-label="The Roof Road: Michi runs across the roofs of old Kyoto"></canvas>
+
+  <p class="wake" id="wake">Michi is waking up…</p>
+
+  <header class="mast">
+    <a class="back" href="index.html" title="Back to the main game">← valley</a>
+    <p class="kicker">Michi-Neko · 屋根道 · prototype</p>
+    <h1>The Roof Road</h1>
+    <p class="sandbox">A test build of the area past the bridge. Not in the main game yet.</p>
+  </header>
+
+  <section class="card" id="card" aria-live="polite">
+    <p class="k"></p>
+    <p class="r"></p>
+    <p class="t"></p>
+    <p class="n"></p>
+  </section>
+
+  <nav class="progress guide" aria-label="The seven mouths">
+    <ol id="strip"></ol>
+    <p class="shoki" title="Shōki greeted">鍾馗 <span id="shoki-count">0/7</span></p>
+  </nav>
+
+  <p class="hint guide" id="hint">
+    <kbd>←</kbd><kbd>→</kbd> run · <kbd>Space</kbd> jump, hold to go higher · <kbd>Shift</kbd> sprint · <kbd>↓</kbd> drop down · <kbd>R</kbd> last lantern · <kbd>H</kbd> hide this
+  </p>
+
+  <p class="toast" id="toast" aria-live="polite"></p>
+
+  <section class="finale" id="finale" aria-live="polite">
+    <p class="k">屋根道</p>
+    <h2>The Roof Road</h2>
+    <p class="count"></p>
+    <p class="line">Five fires on the hills, one after another. The city sends its summer off.</p>
+    <div class="buttons">
+      <button id="again" type="button">Run it again</button>
+      <button id="stay" type="button">Stay a while</button>
+      <a href="index.html">Back to the valley</a>
+    </div>
+  </section>
+
+  <div class="touch" aria-hidden="true">
+    <div class="pad" id="pad"><span>drag ← →</span></div>
+    <button class="btn down" id="btn-down" type="button" tabindex="-1">↓</button>
+    <button class="btn jump" id="btn-jump" type="button" tabindex="-1">jump</button>
+  </div>
+
+  <script>
+    // ES modules and the import map are blocked on file:// (that is the CORS error)
+    if (location.protocol === 'file:') {
+      document.body.insertAdjacentHTML('afterbegin',
+        '<div style="position:relative;z-index:100;max-width:44rem;margin:12vh auto;padding:0 24px;font:1.1rem/1.7 Georgia,serif;color:#f3ead8">' +
+        '<p style="font-size:2rem;margin:0 0 .4em">This page needs a local web server.</p>' +
+        '<p>Browsers block ES modules opened straight from disk (<code>file://</code>). From the repo root run:</p>' +
+        '<pre style="background:#2a2420;padding:14px 16px;border-radius:12px;font-size:.95rem">python -m http.server 8000</pre>' +
+        '<p>then open <b>http://localhost:8000/kyoto-rooftops.html</b>. On Windows, double-click <code>rooftops/serve.cmd</code>.</p></div>');
+      document.getElementById('gl').remove();
+      document.getElementById('wake').remove();
+    } else {
+      const s = document.createElement('script');
+      s.type = 'module'; s.src = 'rooftops/js/game.js';
+      document.body.append(s);
+    }
+  </script>
+</body>
+</html>

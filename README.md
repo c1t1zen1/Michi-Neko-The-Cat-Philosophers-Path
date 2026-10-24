@@ -22,6 +22,12 @@
 
 *Opens on GitHub Pages · [how it was made &amp; research notes](docs/GRASS_RESEARCH_2026-10-23.md) · [source in `grass/`](grass/)*
 
+**⛩ New — the Roof Road (prototype):** a side-scrolling run over the roofs of old Kyoto, past the valley bridge. It goes through seven real places, from the Sanjō bridge gate to the top of a Gion Matsuri float, and ends with the five Okuribi fires lighting the hills.
+
+[<img src="https://img.shields.io/badge/%E2%9B%A9%20RUN%20THE%20ROOF%20ROAD-a%20rooftop%20prototype-c8402a?style=for-the-badge&logo=threedotjs&logoColor=white&labelColor=1a1a1a" height="48" alt="Run the Roof Road prototype in your browser"/>](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/kyoto-rooftops.html)
+
+*A sandbox entry point, separate from the main game · opens on GitHub Pages · [design](docs/superpowers/specs/2026-10-24-rooftop-road-design.md) · [inner-Kyoto research](docs/ROOFTOPS_RESEARCH_2026-10-24.md) · [source in `rooftops/`](rooftops/)*
+
 > **Status:** Very Early Alpha · Built with vibe coding and several SOTA AI models  
 > **Inspiration:** Studio Ghibli films and a honeymoon trip to Kyoto, Japan  
 > **Engine:** Three.js (r160) · WebGL 2.0 · Pure browser — no dependencies to install  
@@ -51,6 +57,9 @@
 <p align="center">
   <img src="docs/images/capture-hidden-places.jpg" width="90%" alt="Capture from the build: the Moon Pool and the Lantern Glade, each by day and by night"/>
 </p>
+<p align="center">
+  <img src="docs/images/capture-roof-road.jpg" width="90%" alt="Capture from the Roof Road prototype: Michi on the roofs at Awataguchi by day with the guide cat Chidori, on a Kiyamachi roof at sunset, on a drying deck at dusk, and on a festival float at night with the five Okuribi fires on the hills"/>
+</p>
 
 ---
 
@@ -60,6 +69,7 @@ A running log of what has landed since the first public alpha. Status key: ✅ s
 
 | Date | Update | Status |
 |------|--------|--------|
+| 2026-10-24 | **[The Roof Road](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/kyoto-rooftops.html)** (prototype): research into inner Kyoto and a playable greybox of a new area past the bridge. A 2.5D run over machiya roofs through seven "mouths" of the old city (Awataguchi, Pontochō, the Takase canal, the Nishiki canopy, laundry decks, the Gion Matsuri float streets, the Okuribi fires), with turns where the street grid turns. It uses the real cat, a guide cat called Chidori, seven Shōki roof guardians to greet, and the game's own jump physics. A test runs the whole route on autopilot and checks that there are no soft-locks. Not yet in the valley: the unlock (walk the bridge railing post to post until the bamboo on the old earthen wall parts) is designed for the next pass | 🟡 |
 | 2026-10-24 | **The Grass Lab grows in the game** — the old patchy meadow is gone. The valley and the summit clearing now grow every Lab recipe, each in the places it suits: Bezier tufts that keep the cat's trail near the camera, tri-quad clumps and painted cards further out, a shell carpet under the paws, cat-eye thicket along paths and walls, wildflower drifts, susuki on the river banks and the wild rim, mown lawns in the shrine precinct, moss pillows at tree roots and the Moon Pool, lantern fibres that glow at night in the Lantern Glade, yarn curls in the turtle corral, sumi-e brush grass by the summit's ensō stone, and fireflies over the river after dark. A biome mask painted from the real buildings, paths and water decides what grows where. Villagers part the grass too. What to rebuild next: [docs/VISUAL_NEXT_STEPS_2026-10-24.md](docs/VISUAL_NEXT_STEPS_2026-10-24.md) | 🟡 |
 | 2026-10-23 | **[Grass Lab](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/grass/)** — twenty procedural grass designs (five re-grown from the game's meadow, five from the research, five cross-breeds, five experiments) in live isometric cubes with measured CPU stats, plus a hero slab where the real cat walks through them with GPU spring-and-trail grass physics | ✅ |
 | 2026-10-23 | **Comfort & accessibility settings** — field of view, interface size, larger dialogue text, high-contrast prompts, *Reduce Motion* (follows your OS setting), film-grain and lens-fringe toggles | ✅ |
@@ -230,6 +240,8 @@ Then open **http://127.0.0.1:8080** in your browser.
 | [docs/SOCIAL_POST_PLAN_2026-10-22_195413.md](docs/SOCIAL_POST_PLAN_2026-10-22_195413.md) | Build-in-public post plan; finished posts live in [docs/social/](docs/social/) |
 | [docs/GRASS_RESEARCH_2026-10-23.md](docs/GRASS_RESEARCH_2026-10-23.md) | Grass Lab research: what 15 searches found, the numbers, the design decisions, sources |
 | [docs/VISUAL_NEXT_STEPS_2026-10-24.md](docs/VISUAL_NEXT_STEPS_2026-10-24.md) | Ranked list of what to research and rebuild next, after the grass |
+| [docs/ROOFTOPS_RESEARCH_2026-10-24.md](docs/ROOFTOPS_RESEARCH_2026-10-24.md) | Roof Road research: inner Kyoto's walls, gates, machiya roofs, districts and festivals, cat jump numbers, 2.5D path design, sources |
+| [docs/superpowers/specs/2026-10-24-rooftop-road-design.md](docs/superpowers/specs/2026-10-24-rooftop-road-design.md) | Roof Road design: the unlock, the seven mouths, twists and turns, mechanics, how it goes into the game |
 | [dawCAT/README.md](dawCAT/README.md) | dawCAT 2.0 audio studio manual |
 | [cadJS/README.md](cadJS/README.md) · [cadJS/BUILD_GUIDE.md](cadJS/BUILD_GUIDE.md) | cadJS CAD workspace manual and build guide |
 | [assets/README.md](assets/README.md) | Optional runtime media (summit vista model, transition video) |
@@ -322,6 +334,7 @@ Michi-Neko-The-Cat-Philosophers-Path/
 ├── dawCAT/                     # Companion audio studio — music, sound design, Wave Lab, AI assistant
 ├── cadJS/                      # Companion CAD workspace — Procedural Studio, push-to-game, AI agent
 ├── grass/                      # Grass Lab — 20 procedural grasses in isometric cubes + a cat-walk patch
+├── rooftops/                   # The Roof Road — rooftop side-scroller prototype (lab, not yet in the game)
 ├── AGENTS.md                   # Contributor / agent notes
 └── OLD/
     └── archive-cat-city/       # 🗄️ Archived predecessor project — see its README
@@ -331,7 +344,7 @@ Michi-Neko-The-Cat-Philosophers-Path/
 
 ## 🧰 Companion Tools
 
-Two standalone browser apps and a grass test bench live in the repo. None is needed to play, and none writes to the game's source.
+Two standalone browser apps, a grass test bench and a rooftop prototype live in the repo. None is needed to play, and none writes to the game's source.
 
 ### dawCAT 2.0 — audio asset studio (`dawCAT/`)
 An Ableton-style DAW built from the game's own musical DNA. **Compose** (arrangement, piano roll, drum grid, mixer, devices, automation), **✦ Sound Design** (layered procedural SFX from 24 templates modelled on the game's sounds, exported as a zero-file `sfx-pack.js`), **🌊 Wave Lab** (import, record or resample audio; time-stretch, pitch, reverse, loop, filter, bitcrush; turn a sample into a chromatic sampler), a 42-groove drum rhythm library, and an **✦ AI assistant** that works with local models (llama-server, LM Studio, Ollama) or hosted providers, streams, self-repairs, and keeps every change one Ctrl+Z away. Run it at `/dawCAT/` from the game root. See [dawCAT/README.md](dawCAT/README.md).
@@ -341,6 +354,9 @@ A non-destructive Three.js workspace for inspecting, creating, reshaping, textur
 
 ### Grass Lab — grass test bench (`grass/`)
 **[Open it in your browser →](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/grass/)** Twenty procedural Three.js grasses, each in its own live isometric cube with a how-it's-made note, code excerpt and measured CPU numbers. Blades are placed by a GPU hash (no per-blade buffers), bent by wind, and pushed by a small GPU spring simulation; at the bottom of the page the real `src/cat.js` cat walks a floating slab (walk, wander, tour, figure-eight, prowl, isometric or cat-eye view) on any one grass or on checkerboard, stripe, ring, random and all-twenty layouts. Locally, serve the repo root and open `/grass/` (or double-click `grass/serve.cmd` on Windows). Research and decisions: [docs/GRASS_RESEARCH_2026-10-23.md](docs/GRASS_RESEARCH_2026-10-23.md).
+
+### The Roof Road — rooftop run prototype (`rooftops/`)
+**[Run it in your browser →](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/kyoto-rooftops.html)** A playable greybox of the next area: past the valley bridge, over the roofs of old Kyoto, side-on. Seven mouths, each a real place: the bridge gate at Awataguchi, Pontochō's two rows of roofs and its yuka decks, a takasebune drifting down the Takase canal, the long Nishiki canopy, laundry decks with futons to bounce on, and the Gion Matsuri float streets, where the run turns vertical up a hoko. On top, the five Okuribi fires light the hills one by one. The real `src/cat.js` runs it beside a guide cat, Chidori. The jump is the game's own, there is no fail state (the street is always underneath), and `node tools/rooftop_test.mjs` proves every platform can reach the finale. Arrow keys / A D to run, Space to jump, Shift to sprint, ↓ to drop; `?auto=1` lets it play itself. Locally, serve the repo root and open `/kyoto-rooftops.html` (or double-click `rooftops/serve.cmd` on Windows). It is a separate entry point: the main game's `index.html` and `src/` are untouched and do not link to it yet. [Design](docs/superpowers/specs/2026-10-24-rooftop-road-design.md) · [research](docs/ROOFTOPS_RESEARCH_2026-10-24.md).
 
 ### Review sheets (`tools/`)
 Seeded, repeatable renders built through the real game classes: `cat_preview.html` (anatomy, face, coat, gait, poses, sleep, npcs), `tree_preview.html`, `town_preview.html` (street, landmarks, props), `hidden_preview.html`, `summit_preview.html`, `grass_preview.html` (valley grass at chosen spots, `?spots=shrine,river,corral,glade@21.5` for a 2×2 sheet). Run `node tools/verify.mjs` for the syntax, wiring and summit suites.

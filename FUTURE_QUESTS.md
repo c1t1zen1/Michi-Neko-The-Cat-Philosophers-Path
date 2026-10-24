@@ -7,6 +7,8 @@
 **Design Pillars:** Ghibli whimsy · All-ages accessible · Mobile-first controls · Sanguine storytelling
 
 > **Implementation status (2026-10-23):** this is still a forward-looking draft, but parts have shipped in a smaller form. **Shipped:** Bokuchi's Offering Bells (via Kuro), the mist-gated spirit altar, rest-and-watch spots, a discovery journal, rain-shelter routines for the villagers, weather-reactive NPC lines, two hidden valley places (Moon Pool, Lantern Glade), a secret summit clearing, and comfort settings. **Still future:** the Tokyo expansion, the bullet-train and parade-float sequences, the forest chase, and all the Act II/III NPCs. The guardrail stands: deepen Kyoto first.
+>
+> **Prototyped (2026-10-24):** the **Roof Road** (屋根道, `rooftops/`). It is a Kyoto-side sibling of the bullet-train scroller in §4, but it stays in Kyoto: a 2.5D run over the roofs of the old city past the valley bridge, through seven real places (Awataguchi, Pontochō, the Takase canal, the Nishiki canopy, laundry decks, the Gion Matsuri float streets, the Okuribi fires). It keeps this document's rules: no fail state (the street is always underneath), generous jumps, and progress rather than a clock. Design: `docs/superpowers/specs/2026-10-24-rooftop-road-design.md`.
 
 ---
 
