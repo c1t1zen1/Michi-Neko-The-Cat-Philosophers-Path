@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tree & Cat Devlog Capture Harness</title>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  canvas { display: block; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "../vendor/three.module.js",
+    "three/addons/utils/BufferGeometryUtils.js": "../vendor/BufferGeometryUtils.js"
+  }
+}
+</script>
+<script>
+  const shot = new URLSearchParams(location.search).get('shot') || 'unknown';
+  window.addEventListener('error', (e) => {
+    fetch('/error?shot=' + encodeURIComponent(shot), {
+      method: 'POST',
+      body: (e.message || 'Window error') + ' at ' + (e.filename || '') + ':' + (e.lineno || '')
+    });
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    fetch('/error?shot=' + encodeURIComponent(shot), {
+      method: 'POST',
+      body: 'Unhandled rejection: ' + (e.reason && e.reason.stack ? e.reason.stack : e.reason)
+    });
+  });
+</script>
+</head>
+<body>
+<script type="module" src="./capture.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+Every tree and cat in Michi-Neko started as primitive spheres and cylinders — and over the last two months we rebuilt both systems from the ground up in pure procedural JavaScript (Three.js r160, zero external 3D models).
+
+Act I — The 5-Stage Tree & Foliage Evolution:
+• Aug 23 (cc1f7e2): 7-sided trunk cylinder + 26 unmerged flat-shaded Icosahedron blobs (31 draw calls per tree).
+• Sep 06 (a2c4fc6): Parabolic root-flared trunks, 256px procedural bark fissure normals, and merged lumpyTuftGeometry crowns with subsurface scattering.
+• Sep 09 (ce00d8f): Recursive branching boughs fringed with crossed alpha-cut leaf cards.
+• Sep 24 (e4fb486): Diagnosed the "broccoli pillow" problem at cat eye-level — opaque tuft cores blocked sky light and hid inner wood.
+• Oct 22 (112c135): Dual-architecture foliage! Hero trees (r < 39m) grow 4 hierarchy levels of wood with individual curved leaf sprays on twigs sharing a coherent GLSL vertex wind field (branchBend + aSway) so leaves never detach in gusts. Rim forest & street shrubs (r ≥ 39m) use bushGeometry + 256px RGBA leafMassTexture (R: height/highlight, G/B: leaf normal tilt, A: ragged cutout) with live cat-walk rustle.
+
+Act II — The Cat Anatomy & Locomotion Rebuild:
+• Replaced 18 rigid ball-and-peg primitives (which cracked at the seams during stride) with a 3-module procedural pipeline: cat_anatomy.js, cat_sdf.js, and cat_shading.js.
+• 29-Bone Digitigrade Rig: Spine chain (hips → waist → chest → neck → head), 6-bone tail, and anatomical fore/hind limbs with scapula, elbow, wrist, stifle, and hock joints.
+• 50 Anatomical SDF Primitives blended via polynomial smooth-minimum (smin) into a continuous voxel field (9mm body / 4mm head), extracted with dual Surface Nets + 6-pass Taubin λ/μ fairing, and bound with 4-bone geodesic skin weights.
+• Shader-painted tabby coat, vertical slit-pupil eyes with cornea glint & live blink, 3D whisker arcs, 4 villager body builds (Michi, Mochi, Luna, Kuro), and 3 phase-locked feline gaits (4-beat walk, diagonal trot, rotary gallop).
+
+#indiedev #gamedev #threejs #webgl #proceduralgeneration #javascript #creativecoding #devlog
