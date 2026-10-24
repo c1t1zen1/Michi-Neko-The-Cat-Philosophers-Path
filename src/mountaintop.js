@@ -4,11 +4,12 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   dirtTextures, groundTextures, stoneTextures, woodTextures, metalTextures, barkTextures,
   texturedMaterial, worldNoise, glowTexture
-} from './textures.js?v=20261022f';
+} from './textures.js?v=20261024a';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture,
   leafCardGeometry, buildCanopy, updateFoliage, lumpyTuftGeometry
-} from './foliage.js?v=20261022f';
+} from './foliage.js?v=20261024a';
+import { GrassSystem, BiomeMask } from './grass.js?v=20261024a';
 
 function mulberry32(a) {
   return function() {
@@ -87,7 +88,7 @@ const SUMMIT_WEATHER_DURATIONS = {
 const MEDITATE_SECONDS = 165;
 // Resolve from this module rather than the current document: the main game is
 // served from `/`, while the art-review page lives under `/tools/`.
-const SUMMIT_LANDMARKS_SRC = new URL('../assets/models/summit_kyoto_landmarks.glb?v=20261022f', import.meta.url).href;
+const SUMMIT_LANDMARKS_SRC = new URL('../assets/models/summit_kyoto_landmarks.glb?v=20261024a', import.meta.url).href;
 
 /** Smooth amount for a weather type while Sky cross-fades between states. */
 function summitWeatherAmount(sky, type) {
@@ -254,7 +255,6 @@ export class SummitManager {
     this.buildMeditationStone();
     this.buildMeditationAtmosphere();
     this.buildGrassField();
-    this.buildSusukiAndFlowers();
     this.buildSkirtAndVista();
     this.loadVistaLandmarks();
     this.buildSummitClouds();
@@ -336,6 +336,7 @@ export class SummitManager {
   /** Quality-tier density without rebuilding any summit geometry. */
   setQuality(tier = 'high') {
     const fraction = tier === 'low' ? 0.46 : tier === 'medium' ? 0.74 : 1;
+    if (this.grass && !this.previewQuality) this.grass.setDensity(tier === 'low' ? 0.5 : tier === 'medium' ? 0.75 : 1);
     if (this.cityWalls && this.cityRoofs) {
       const count = Math.max(1, Math.floor((this.cityInstanceMax || this.cityWalls.count) * fraction));
       this.cityWalls.count = count;
@@ -853,216 +854,56 @@ export class SummitManager {
     }
   }
 
-  /* ================= Dense wind grass ================= */
+  /* ================= Wind grass (src/grass.js) ================= */
 
+  /**
+   * The clearing's turf, grown from the Grass Lab recipes: painted-meadow
+   * Bezier tufts around the cat over tri-quad clumps that cover the whole
+   * clearing, a shell carpet under the paws, cat-eye thicket and susuki
+   * plumes on the windy rim, alpine wildflower drifts, moss pillows by the
+   * boulders and a moss cushion on the perch, and a ring of sumi-e brush
+   * grass about the ensō stone. Blades are hashed on the GPU, so nothing
+   * here draws from this.rng.
+   */
   buildGrassField() {
-    const veg = this.game.vegetation;
-    const bladeGeo = veg.bladeGeometry(4, 0.05, 1.0, 0.4, 1.3);
-    this.grassMat = veg.grassMaterial();
-    // High-altitude turf: drier, more olive-gold than the valley floor.
-    this.grassMat.uniforms.uRootColor.value.setHex(0x557735);
-    this.grassMat.uniforms.uMidColor.value.setHex(0x8eab4c);
-    this.grassMat.uniforms.uTipColor.value.setHex(0xd5d978);
-    this.grassMat.customProgramCacheKey = () => 'summit-grass';
-
-    // Very dense turf — roughly twice the valley's blade count per metre.
-    const chunks = [
-      { cx: -6, cz: -6, size: 12, count: 1900 },
-      { cx: 6, cz: -6, size: 12, count: 1900 },
-      { cx: -6, cz: 6, size: 12, count: 1750 },
-      { cx: 6, cz: 6, size: 12, count: 1750 }
-    ];
-    if (this.previewQuality) {
-      for (const ch of chunks) ch.count = Math.max(120, Math.round(ch.count * 0.2));
+    const ox = this.origin.x, oz = this.origin.z;
+    const mask = new BiomeMask(-13, -13, 26, 128);
+    for (const c of this.colliders) {
+      mask.box('excl', c.min.x - ox - 0.12, c.min.z - oz - 0.12, c.max.x - ox + 0.12, c.max.z - oz + 0.12);
     }
-    const dummy = new THREE.Object3D();
-    for (const ch of chunks) {
-      const geo = bladeGeo.clone();
-      const phases = new Float32Array(ch.count);
-      const tints = new Float32Array(ch.count * 3);
-      const widthScales = new Float32Array(ch.count);
-      const curveAngles = new Float32Array(ch.count);
-      const mesh = new THREE.InstancedMesh(geo, this.grassMat, ch.count);
-      let placed = 0, guard = 0;
-      while (placed < ch.count && guard < ch.count * 7) {
-        guard++;
-        const x = ch.cx - ch.size / 2 + this.rng() * ch.size;
-        const z = ch.cz - ch.size / 2 + this.rng() * ch.size;
-        if (Math.hypot(x, z) > 11.8) continue;
-        if (Math.abs(x) < CORRIDOR_W + 0.32 && z > CORRIDOR_Z0 - 0.35) continue;
-        if (Math.hypot(x - this.perchLocal.x, z - this.perchLocal.z) < 1.85) continue;
-        if (this.meditationPath.some((stone) => Math.hypot(x - stone.x, z - stone.z) < stone.clearance)) continue;
-        const patch = Math.sin(x * 0.14) * Math.cos(z * 0.16)
-          + 0.55 * Math.sin(x * 0.31 + z * 0.25)
-          + 0.3 * Math.cos((x - z) * 0.22);
-        if (patch < -0.55 && this.rng() < 0.45) continue; // only the barest gaps
-        let s = 0.24 + this.rng() * 0.22;
-        if (patch > 0.35) s *= 1.25 + this.rng() * 0.48;
-        let wScale = 0.4 + this.rng() * 0.3;
-        if (this.rng() > 0.92) wScale = 0.85 + this.rng() * 0.35;
-        dummy.position.set(x, MEADOW_Y, z);
-        dummy.scale.set(1, s, 1);
-        dummy.rotation.set(0, this.rng() * Math.PI * 2, 0);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(placed, dummy.matrix);
-        phases[placed] = this.rng() * Math.PI * 2;
-        widthScales[placed] = wScale;
-        curveAngles[placed] = this.rng() * Math.PI * 2;
-        const f = this.rng();
-        let rM = 0.86 + this.rng() * 0.12, gM = 0.96 + this.rng() * 0.08, bM = 0.72 + this.rng() * 0.12;
-        if (f < 0.3) { rM = 0.62 + this.rng() * 0.1; gM = 0.8 + this.rng() * 0.1; bM = 0.68 + this.rng() * 0.1; }
-        else if (f > 0.82) { rM = 1.04 + this.rng() * 0.08; gM = 0.96 + this.rng() * 0.06; bM = 0.6 + this.rng() * 0.08; }
-        const br = (0.74 + this.rng() * 0.26) * (patch > 0.35 ? 0.85 : 1);
-        tints[placed * 3] = br * rM; tints[placed * 3 + 1] = br * gM; tints[placed * 3 + 2] = br * bM;
-        placed++;
-      }
-      mesh.count = placed;
-      geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases.subarray(0, placed), 1));
-      geo.setAttribute('aTint', new THREE.InstancedBufferAttribute(tints.subarray(0, placed * 3), 3));
-      geo.setAttribute('aWidthScale', new THREE.InstancedBufferAttribute(widthScales.subarray(0, placed), 1));
-      geo.setAttribute('aCurveAngle', new THREE.InstancedBufferAttribute(curveAngles.subarray(0, placed), 1));
-      geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(ch.cx, 0.5, ch.cz), ch.size * 0.75 + 1);
-      mesh.instanceMatrix.needsUpdate = true;
-      mesh.receiveShadow = true;
-      mesh.castShadow = false;
-      mesh.name = 'Summit Grass';
-      this.group.add(mesh);
-    }
-  }
+    mask.box('excl', -(CORRIDOR_W + 0.32), CORRIDOR_Z0 - 0.35, CORRIDOR_W + 0.32, 13);
+    mask.disc('excl', this.perchLocal.x, this.perchLocal.z, 0.85, 1, 0.6);
+    for (const stone of this.meditationPath) mask.disc('excl', stone.x, stone.z, stone.clearance * 0.8, 1, 0.25);
+    mask.paint('wild', (x, z) => THREE.MathUtils.smoothstep(Math.hypot(x, z), 8.4, 11.2));
+    const flowerPatches = [[5.0, 1.2], [1.0, 3.8], [-3.1, 4.4], [-6.7, 1.2], [7.6, 5.4], [-5.8, -4.2], [4.8, -4.8]];
+    for (const [x, z] of flowerPatches) mask.disc('flower', x, z, 1.6, 0.9, 2.6);
+    mask.bake((x, z) => 1 - THREE.MathUtils.smoothstep(Math.hypot(x, z), 11.3, 12.2));
 
-  makeSusukiTexture() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 64;
-    canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-    const rnd = mulberry32(421);
-    ctx.clearRect(0, 0, 64, 128);
-    ctx.lineCap = 'round';
-    // Fine divergent hairs create a feathery silhouette without adding a
-    // forest of geometry. A crossed pair of these cards reads from all sides.
-    for (let i = 0; i < 72; i++) {
-      const rootX = 31 + (rnd() - 0.5) * 5;
-      const rootY = 120 - rnd() * 18;
-      const side = rnd() < 0.5 ? -1 : 1;
-      const reach = (5 + rnd() * 22) * side * (0.35 + (1 - rootY / 128));
-      const tipY = 9 + rnd() * 72;
-      const alpha = 0.2 + rnd() * 0.55;
-      ctx.strokeStyle = `rgba(238,226,194,${alpha})`;
-      ctx.lineWidth = 0.55 + rnd() * 1.05;
-      ctx.beginPath();
-      ctx.moveTo(rootX, rootY);
-      ctx.bezierCurveTo(rootX + reach * 0.18, rootY - 22, rootX + reach * 0.78, tipY + 13, rootX + reach, tipY);
-      ctx.stroke();
-    }
-    ctx.strokeStyle = 'rgba(205,191,151,0.76)';
-    ctx.lineWidth = 1.3;
-    ctx.beginPath();
-    ctx.moveTo(32, 126);
-    ctx.bezierCurveTo(30, 88, 34, 46, 32, 5);
-    ctx.stroke();
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    return tex;
-  }
-
-  buildSusukiAndFlowers() {
-    // Pampas plumes — the signature wind instrument of a Japanese hilltop.
-    const stalkGeo = new THREE.CylinderGeometry(0.014, 0.03, 1.7, 5);
-    stalkGeo.translate(0, 0.85, 0);
-    const plumeGeoA = new THREE.PlaneGeometry(0.22, 0.62);
-    plumeGeoA.translate(0, 1.91, 0);
-    const plumeGeoB = plumeGeoA.clone();
-    plumeGeoB.rotateY(Math.PI / 2);
-    const merged = mergeGeometries([stalkGeo, plumeGeoA, plumeGeoB], true);
-    const stalkMat = new THREE.MeshStandardMaterial({ color: 0x77794d, roughness: 0.96 });
-    const plumeMat = new THREE.MeshStandardMaterial({
-      map: this.makeSusukiTexture(), color: 0xeee4c9,
-      emissive: 0x3c3323, emissiveIntensity: 0.06,
-      roughness: 0.94, transparent: true, alphaTest: 0.08,
-      depthWrite: false, side: THREE.DoubleSide
+    // High-altitude turf: drier, more olive-gold than the valley floor, and
+    // strongly painted by the wind.
+    const grass = this.grass = new GrassSystem(this.group, {
+      mask, groundY: MEADOW_Y, wind: 1.4, gustLit: 0.9,
+      palette: { root: 0x557735, mid: 0x8eab4c, tip: 0xd5d978 }
     });
-    const susukiCount = this.previewQuality ? 24 : 92;
-    const susuki = new THREE.InstancedMesh(merged, [stalkMat, plumeMat, plumeMat], susukiCount);
-    const dummy = new THREE.Object3D();
-    let placed = 0;
-    for (let i = 0; i < 700 && placed < susukiCount; i++) {
-      const a = this.rng() * Math.PI * 2;
-      const r = 5.2 + Math.sqrt(this.rng()) * 6.2;
-      const x = Math.cos(a) * r, z = Math.sin(a) * r;
-      if (Math.abs(x) < CORRIDOR_W + 0.5 && z > CORRIDOR_Z0 - 0.4) continue;
-      const s = 0.72 + this.rng() * 0.5;
-      dummy.position.set(x, MEADOW_Y, z);
-      dummy.scale.setScalar(s);
-      dummy.rotation.set((this.rng() - 0.5) * 0.22, this.rng() * Math.PI * 2, -0.14 - this.rng() * 0.16); // all lean leeward
-      dummy.updateMatrix();
-      susuki.setMatrixAt(placed++, dummy.matrix);
-    }
-    susuki.count = placed;
-    susuki.instanceMatrix.needsUpdate = true;
-    susuki.castShadow = false;
-    susuki.receiveShadow = true;
-    susuki.name = 'Summit Susuki';
-    this.group.add(susuki);
-
-    // Sparse alpine wildflowers echoing the valley's palette
-    const petalGeo = new THREE.CircleGeometry(0.044, 7);
-    const parts = [];
-    for (let k = 0; k < 5; k++) {
-      const a = (k / 5) * Math.PI * 2;
-      const petal = petalGeo.clone();
-      petal.rotateX(-Math.PI / 2 + 0.35);
-      petal.rotateY(a);
-      petal.translate(Math.cos(a) * 0.044, 0.27, Math.sin(a) * 0.044);
-      parts.push(petal);
-    }
-    const centre = new THREE.SphereGeometry(0.022, 7, 5);
-    centre.translate(0, 0.275, 0);
-    parts.push(centre);
-    const stem = new THREE.CylinderGeometry(0.006, 0.009, 0.28, 4);
-    stem.translate(0, 0.14, 0);
-    parts.push(stem);
-    const flowerGeo = mergeGeometries(parts, false);
-    const flowerMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.75, side: THREE.DoubleSide, emissive: 0x222222, emissiveIntensity: 0.25 });
-    const flowerCount = this.previewQuality ? 120 : 360;
-    const flowers = new THREE.InstancedMesh(flowerGeo, flowerMat, flowerCount);
-    const palette = [0xf288a8, 0xf7a8c4, 0x6478cc, 0x7894e6, 0xf5ba38, 0xffde59, 0xfffaee, 0xe8f0d8];
-    const color = new THREE.Color();
-    let fp = 0;
-    const flowerPatches = [
-      [5.0, 1.2], [1.0, 3.8], [-3.1, 4.4], [-6.7, 1.2],
-      [7.6, 5.4], [-5.8, -4.2], [4.8, -4.8]
-    ];
-    for (let i = 0; i < 1900 && fp < flowerCount; i++) {
-      let x, z;
-      if (this.rng() < 0.7) {
-        const patch = flowerPatches[Math.floor(this.rng() * flowerPatches.length)];
-        x = patch[0] + (this.rng() + this.rng() - 1) * 4.6;
-        z = patch[1] + (this.rng() + this.rng() - 1) * 3.8;
-      } else {
-        const a = this.rng() * Math.PI * 2;
-        const r = 1.5 + Math.sqrt(this.rng()) * 8.8;
-        x = Math.cos(a) * r;
-        z = Math.sin(a) * r;
-      }
-      if (Math.hypot(x, z) > 10.5) continue;
-      if (Math.abs(x) < CORRIDOR_W + 0.35 && z > CORRIDOR_Z0 - 0.4) continue;
-      if (this.meditationPath.some((stone) => Math.hypot(x - stone.x, z - stone.z) < stone.clearance * 0.9)) continue;
-      const s = 0.7 + this.rng() * 0.8;
-      dummy.position.set(x, MEADOW_Y + 0.02, z);
-      dummy.scale.set(s, s * (0.8 + this.rng() * 0.5), s);
-      dummy.rotation.set((this.rng() - 0.5) * 0.25, this.rng() * Math.PI * 2, (this.rng() - 0.5) * 0.25);
-      dummy.updateMatrix();
-      flowers.setMatrixAt(fp, dummy.matrix);
-      color.setHex(palette[Math.floor(this.rng() * palette.length)]);
-      flowers.setColorAt(fp, color);
-      fp++;
-    }
-    flowers.count = fp;
-    flowers.instanceMatrix.needsUpdate = true;
-    if (flowers.instanceColor) flowers.instanceColor.needsUpdate = true;
-    flowers.receiveShadow = true;
-    flowers.name = 'Summit Wildflowers';
-    this.group.add(flowers);
+    grass.addRing('near', { radius: 6.5, spacing: 0.1, lead: 0.2 });
+    grass.addZone('mid', { x: 0, z: 0, hw: 12.2, hd: 12.2, spacing: 0.21, inside: 'near' });
+    grass.addShell({ radius: 4, layers: 10, height: 0.09, density: 75, lead: 0.25,
+      palette: { root: 0x2c4a1e, mid: 0x5f7f34, tip: 0xb3c264 } });
+    grass.addZone('thicket', { x: 0, z: 0, hw: 12.2, hd: 12.2, spacing: 0.42,
+      palette: { root: 0x2c4a1e, mid: 0x6b8a3a, tip: 0xc9c66a } });
+    grass.addZone('flowers', { x: 0, z: 0, hw: 11, hd: 11, spacing: 0.26 });
+    grass.addZone('susuki', { x: 0, z: 0, hw: 12.2, hd: 12.2, spacing: 0.8,
+      palette: { root: 0x4a5a2c, mid: 0x93964f, tip: 0xd9c98a } });
+    grass.addZone('sumi', { x: 5.25, z: 3.95, hw: 1.6, hd: 1.6, spacing: 0.15, gustLit: 0,
+      palette: { root: 0x1b1d17, mid: 0x46523f, tip: 0xaab8a0 } });
+    grass.addMoss([
+      { x: this.perchLocal.x, z: this.perchLocal.z, r: 1.35 },
+      { x: 8.8, z: 5.8, r: 1.5 }, { x: -8.7, z: 6.2, r: 1.3 }, { x: -9.4, z: -3.6, r: 1.4 },
+      { x: 9.1, z: -2.8, r: 1.2 }, { x: 5.7, z: 1.9, r: 1.0 }, { x: -4.6, z: 3.2, r: 1.0 },
+      { x: 1.6, z: 5.5, r: 0.9 }
+    ]);
+    if (this.previewQuality) grass.setDensity(0.5);
+    this.grassMat = grass.layers[0].mat;
   }
 
   buildMeditationStone() {
@@ -3592,25 +3433,18 @@ export class SummitManager {
     // Shared foliage clock + a stronger wind base than the valley.
     updateFoliage(t, sky, p);
 
-    // Grass uniforms — player position in summit-local space for the
-    // paw-push term; wind stays gusty and is weather-amplified.
-    if (this.grassMat) {
-      const u = this.grassMat.uniforms;
-      this._grassTime += dt;
-      u.uTime.value = this._grassTime;
-      u.uPlayerPos.value.copy(this._localPlayer);
+    // Grass: rings follow the cat in summit-local space; the paw physics
+    // reads the real cat; wind stays gusty and is weather-amplified.
+    if (this.grass) {
       let wind = 1.35 + 0.35 * Math.sin(t * 0.23) + 0.2 * Math.sin(t * 0.71);
       if (sky) {
         wind += Math.max(summitWeatherAmount(sky, 'snow'),
           summitWeatherAmount(sky, 'cloudy'), summitWeatherAmount(sky, 'rain')) * 0.7;
       }
-      u.uWind.value += (wind - u.uWind.value) * Math.min(1, dt * 1.2);
-      if (sky) {
-        const pal = sky.resolvePalette();
-        const sunUp = Math.max(0, sky.sunDir.y);
-        u.uSunDir.value.copy(sky.sunDir);
-        u.uSunColor.value.copy(pal.sun).multiplyScalar(Math.pow(sunUp, 0.5));
-      }
+      this.grass.update(dt, {
+        renderer: g.renderer, camera: g.camera, focus: this._localPlayer,
+        cat: g.player.cat || null, sky, wind
+      });
     }
 
     // Clouds drift through on the wind; pollen rides it visibly.

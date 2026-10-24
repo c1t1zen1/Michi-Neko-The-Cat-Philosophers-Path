@@ -3,35 +3,35 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20261022f';
-import { Player } from './player.js?v=20261022f';
-import { Countryside } from './countryside.js?v=20261022f';
-import { Sky } from './sky.js?v=20261022f';
-import { Vegetation } from './vegetation.js?v=20261022f';
-import { Particles } from './particles.js?v=20261022f';
-import { AmbientLife } from './ambient_life.js?v=20261022f';
-import { Controls } from './controls.js?v=20261022f';
-import { UI } from './ui.js?v=20261022f';
-import { NPC } from './npc.js?v=20261022f';
-import { Dialogue } from './dialogue.js?v=20261022f';
-import { QuestManager } from './quest.js?v=20261022f';
-import { AudioManager } from './audio.js?v=20261022f';
-import { ProgressionManager } from './progression.js?v=20261022f';
-import { ContextActionManager } from './context_actions.js?v=20261022f';
-import { InteriorManager } from './interior.js?v=20261022f';
-import { SaveManager } from './save.js?v=20261022f';
-import { ScentTrail } from './scent.js?v=20261022f';
-import { SettingsManager } from './settings.js?v=20261022f';
-import { isDiscreteGPU } from './settings.js?v=20261022f';
-import { MenuSystem } from './menus.js?v=20261022f';
-import { WaypointSystem, Compass } from './waypoints.js?v=20261022f';
-import { MusicDirector } from './music.js?v=20261022f';
-import { SummitManager } from './mountaintop.js?v=20261022f';
-import { catRimUniforms } from './cat.js?v=20261022f';
-import { chunkSceneInstances } from './instanced_chunks.js?v=20261022f';
-import { setFoliageDetail } from './foliage.js?v=20261022f';
-import { applyCadOverrides } from './cad_overrides.js?v=20261022f';
-import { HiddenPlaces } from './hidden_places.js?v=20261022f';
+import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20261024a';
+import { Player } from './player.js?v=20261024a';
+import { Countryside } from './countryside.js?v=20261024a';
+import { Sky } from './sky.js?v=20261024a';
+import { Vegetation } from './vegetation.js?v=20261024a';
+import { Particles } from './particles.js?v=20261024a';
+import { AmbientLife } from './ambient_life.js?v=20261024a';
+import { Controls } from './controls.js?v=20261024a';
+import { UI } from './ui.js?v=20261024a';
+import { NPC } from './npc.js?v=20261024a';
+import { Dialogue } from './dialogue.js?v=20261024a';
+import { QuestManager } from './quest.js?v=20261024a';
+import { AudioManager } from './audio.js?v=20261024a';
+import { ProgressionManager } from './progression.js?v=20261024a';
+import { ContextActionManager } from './context_actions.js?v=20261024a';
+import { InteriorManager } from './interior.js?v=20261024a';
+import { SaveManager } from './save.js?v=20261024a';
+import { ScentTrail } from './scent.js?v=20261024a';
+import { SettingsManager } from './settings.js?v=20261024a';
+import { isDiscreteGPU } from './settings.js?v=20261024a';
+import { MenuSystem } from './menus.js?v=20261024a';
+import { WaypointSystem, Compass } from './waypoints.js?v=20261024a';
+import { MusicDirector } from './music.js?v=20261024a';
+import { SummitManager } from './mountaintop.js?v=20261024a';
+import { catRimUniforms } from './cat.js?v=20261024a';
+import { chunkSceneInstances } from './instanced_chunks.js?v=20261024a';
+import { setFoliageDetail } from './foliage.js?v=20261024a';
+import { applyCadOverrides } from './cad_overrides.js?v=20261024a';
+import { HiddenPlaces } from './hidden_places.js?v=20261024a';
 
 const AUTOSTART_KEY = 'catwalk_autostart';
 
@@ -196,6 +196,9 @@ class Game {
     this.kuro.dialogueProvider = () => this.getKuroDialogue();
     this.kuro.onDialogueComplete = () => this.finishKuroDialogue();
     this.npcs = [this.luna, this.mochi, this.kuro];
+    // Grass LOD rings follow the camera's gaze; its physics reads the cat's
+    // paws and the villagers walking through it.
+    this.vegetation.grassContext = { renderer: this.renderer, camera: this.camera, player: this.player, npcs: this.npcs };
 
     this.contextActions = new ContextActionManager(
       this.player,

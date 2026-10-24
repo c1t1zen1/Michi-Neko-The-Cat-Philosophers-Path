@@ -4,10 +4,10 @@ import {
   plasterTextures, woodTextures, kawaraTextures, shojiTextures, tatamiTextures,
   cobbleTextures, stoneTextures, groundTextures, dirtTextures, strawTextures,
   metalTextures, namakoTextures, lacquerTextures, texturedMaterial, worldScaleBoxUVs, worldNoise
-} from './textures.js?v=20261022f';
+} from './textures.js?v=20261024a';
 import {
   createFoliageMaterial, lumpyTuftGeometry, lumpyConeGeometry, leafMassTexture, bushGeometry, buildCanopy
-} from './foliage.js?v=20261022f';
+} from './foliage.js?v=20261024a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 

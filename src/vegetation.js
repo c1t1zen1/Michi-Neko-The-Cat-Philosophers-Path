@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { barkTextures, texturedMaterial } from './textures.js?v=20261022f';
+import { barkTextures, texturedMaterial } from './textures.js?v=20261024a';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, createBranchMaterial, leafSprayTexture, leafMassTexture,
   buildCanopy, updateFoliage
-} from './foliage.js?v=20261022f';
+} from './foliage.js?v=20261024a';
+import { GrassSystem, BiomeMask } from './grass.js?v=20261024a';
 
 // Trees past this radius stand in or behind the edge-forest wall and are
 // built as textured leaf masses; inside it they are hero trees with
@@ -45,11 +46,12 @@ export class Vegetation {
     this._staticAccum = new Map();
     this.grassMeshes = [];
     this.groundCoverMeshes = [];
+    // main.js hands in { renderer, camera, player, npcs } once they exist;
+    // the grass physics and LOD rings read them every frame.
+    this.grassContext = null;
     this._initMaterials();
 
     this.matBamboo = new THREE.MeshStandardMaterial({ color: 0x6f9e4c, roughness: 0.6 });
-    this.matBambooLeaf = new THREE.MeshStandardMaterial({ color: 0x74a04a, roughness: 0.9, side: THREE.DoubleSide });
-    this.matSusuki = new THREE.MeshStandardMaterial({ color: 0xd9cca8, roughness: 0.9, side: THREE.DoubleSide });
     // Shader-driven bamboo: the culm bend + leaf flutter run in the vertex
     // stage (see bambooSwayMaterial), so the groves cost zero CPU per frame.
     this.bambooTime = { value: 0 };
@@ -79,10 +81,7 @@ export class Vegetation {
     ]);
     this.buildBambooGrove(-32, -14, 5);
     this.buildMaplesAndPines();
-    this.buildSusukiGrass();
-    this.buildGrass();
-    this.buildGroundCover();
-    this.buildWildflowers();
+    this.buildMeadow();
     this._finalizeStatic();
   }
 
@@ -587,158 +586,83 @@ export class Vegetation {
   }
 
   buildMaplesAndPines() {
-    const maples = [[-16, 14, 1.1], [14, 6, 1.0], [-6, -34, 1.2], [8, -36, 1.0], [28, 6, 1.1]];
+    const maples = this.mapleSpots = [[-16, 14, 1.1], [14, 6, 1.0], [-6, -34, 1.2], [8, -36, 1.0], [28, 6, 1.1]];
     for (const [x, z, s] of maples) this.mapleTree(x, z, s);
     const pines = [[-36, 6, 1.4], [-40, -6, 1.2], [36, 20, 1.3], [40, -8, 1.5], [34, 34, 1.2], [-38, 32, 1.3]];
     for (const [x, z, s] of pines) this.pineTree(x, z, s);
   }
 
-  buildSusukiGrass() {
-    const stemGeo = new THREE.CylinderGeometry(0.015, 0.03, 1.8, 5);
-    const plumeGeo = new THREE.ConeGeometry(0.08, 0.55, 5);
-    const leafGeo = new THREE.PlaneGeometry(0.08, 1.2);
-
-    const susukiSpots = [
-      [-10, 24], [6, 28], [22, 26], [32, 24],
-      [-16, 2], [-4, -4], [4, -14], [8, -20], [-12, -22],
-      [24, -12], [28, 8], [-26, 4], [-20, 18]
-    ];
-
-    for (const [sx, sz] of susukiSpots) {
-      const x = sx + (this.random() - 0.5) * 1.5;
-      const z = sz + (this.random() - 0.5) * 1.5;
-      // Grouped susuki must explicitly respect bridge/path exclusions.
-      if (this.isExcluded(x, z)) continue;
-      const clump = new THREE.Group();
-      clump.name = `Shrub Clump ${++this._shrubCount}`;
-      const count = 5 + Math.floor(this.random() * 4);
-      for (let i = 0; i < count; i++) {
-        const stalk = new THREE.Group();
-        const h = 1.4 + this.random() * 0.7;
-        const stem = new THREE.Mesh(stemGeo, this.matBamboo);
-        stem.position.y = h / 2;
-        stem.scale.set(1, h / 1.8, 1);
-        stalk.add(stem);
-
-        const plume = new THREE.Mesh(plumeGeo, this.matSusuki);
-        plume.position.set(0, h + 0.22, 0);
-        plume.rotation.z = (this.random() - 0.5) * 0.4;
-        stalk.add(plume);
-
-        // Arching leaves
-        for (let l = 0; l < 3; l++) {
-          const leaf = new THREE.Mesh(leafGeo, this.matBambooLeaf);
-          const la = this.random() * Math.PI * 2;
-          leaf.position.set(Math.cos(la) * 0.06, 0.4 + l * 0.3, Math.sin(la) * 0.06);
-          leaf.rotation.y = la;
-          leaf.rotation.x = 0.5 + this.random() * 0.4;
-          stalk.add(leaf);
-        }
-
-        const a = (i / count) * Math.PI * 2 + this.random() * 0.5;
-        const r = this.random() * 0.4;
-        stalk.position.set(Math.cos(a) * r, 0, Math.sin(a) * r);
-        stalk.rotation.z = (this.random() - 0.5) * 0.15;
-        clump.add(stalk);
-      }
-      clump.position.set(x, 0, z);
-      this.scene.add(clump);
-      clump.updateMatrixWorld(true);
-      // Merge the clump's ~30 small meshes into one per material — the
-      // clump group still sways as one, so the motion is unchanged, but the
-      // draw calls drop roughly tenfold.
-      const inv = clump.matrixWorld.clone().invert();
-      const byMat = new Map();
-      for (const stalk of clump.children.slice()) {
-        stalk.traverse((o) => {
-          if (!o.isMesh) return;
-          let list = byMat.get(o.material.uuid);
-          if (!list) {
-            list = { geos: [], material: o.material };
-            byMat.set(o.material.uuid, list);
-          }
-          list.geos.push(o.geometry.clone()
-            .applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld)));
-        });
-        clump.remove(stalk);
-      }
-      for (const list of byMat.values()) {
-        const merged = mergeGeometries(list.geos, false);
-        merged.computeBoundingSphere();
-        clump.add(new THREE.Mesh(merged, list.material));
-      }
-      this.swayables.push({ node: clump, amp: 0.04, freq: 1.1 + this.random() * 0.4, phase: this.random() * 6 });
+  /**
+   * The meadow — every Grass Lab recipe (src/grass.js) laid out by a biome
+   * mask painted from the valley's own colliders, paths and water:
+   *  - rings that follow the cat: Bezier blade tufts with pressed trails
+   *    near, tri-quad clumps mid, painted tuft cards far, a shell carpet
+   *    under the paws;
+   *  - cat-eye thicket where the meadow meets paths, walls and banks;
+   *  - wildflower cards in drifts, thicker under the sakura;
+   *  - susuki plumes on the river banks, paddy bunds and the wild rim;
+   *  - mown stripes on the tended lawns of the shrine precinct;
+   *  - moss pillows at tree roots, the Moon Pool and the shrine;
+   *  - lantern fibers in the Lantern Glade, yarn curls in the turtle corral,
+   *    and hotaru fireflies over the river at night.
+   */
+  buildMeadow() {
+    const mask = new BiomeMask(-52, -52, 104, 256);
+    for (const c of this.colliders) mask.box('excl', c.min.x - 0.15, c.min.z - 0.15, c.max.x + 0.15, c.max.z + 0.15);
+    for (const r of this.exclusionRects) mask.rect('excl', r.x, r.z, r.width, r.depth);
+    for (const [px, pz, w, d] of this.waterRects) {
+      mask.rect('excl', px, pz, w + 0.8, d + 0.8);
+      mask.rect('wild', px, pz, w + 3.4, d + 3.4, 0.7);   // paddy bunds
     }
-  }
-
-  buildWildflowers() {
-    const count = 760;
-    // Flower head: five petal discs around a small centre, on a thin stem
-    const petalGeo = new THREE.CircleGeometry(0.028, 6);
-    const parts = [];
-    for (let k = 0; k < 5; k++) {
-      const a = (k / 5) * Math.PI * 2;
-      const petal = petalGeo.clone();
-      petal.rotateX(-Math.PI / 2 + 0.35);
-      petal.rotateY(a);
-      petal.translate(Math.cos(a) * 0.026, 0.19, Math.sin(a) * 0.026);
-      parts.push(petal);
+    for (const s of this.pathSamples) mask.disc('excl', s.x, s.z, 1.3, 1, 0.4);
+    for (const s of this.riverSamples) {
+      mask.disc('excl', s.x, s.z, 3.5);
+      mask.disc('wild', s.x, s.z, 5.6, 1, 2.2);
     }
-    const centre = new THREE.SphereGeometry(0.014, 6, 5);
-    centre.translate(0, 0.195, 0);
-    parts.push(centre);
-    const stem = new THREE.CylinderGeometry(0.005, 0.007, 0.2, 4);
-    stem.translate(0, 0.1, 0);
-    parts.push(stem);
-    const geo = mergeGeometries(parts, false);
-    // Vertex colours: petals take the instance tint, centre gold, stem green
-    const petalVerts = petalGeo.attributes.position.count * 5;
-    const centreVerts = centre.attributes.position.count;
-    const col = new Float32Array(geo.attributes.position.count * 3);
-    for (let v = 0; v < geo.attributes.position.count; v++) {
-      let c;
-      if (v < petalVerts) c = [1, 1, 1];
-      else if (v < petalVerts + centreVerts) c = [1.0, 0.82, 0.3];
-      else c = [0.35, 0.55, 0.25];
-      col[v * 3] = c[0]; col[v * 3 + 1] = c[1]; col[v * 3 + 2] = c[2];
+    // Tended lawns either side of the shrine approach (torii → hall)
+    const lawns = [[-4.7, -27.2, 2.1, 3.9], [4.7, -27.2, 2.1, 3.9]];
+    for (const [x, z, hw, hd] of lawns) mask.rect('lawn', x, z, hw * 2, hd * 2);
+    // The turtle corral grows yarn curls instead of meadow
+    mask.disc('excl', -31, 9, 2.0, 1, 0.6);
+    // Where the old susuki clumps stood, the meadow stays wild
+    for (const [sx, sz] of [[-10, 24], [6, 28], [22, 26], [32, 24], [-16, 2], [-4, -4], [4, -14],
+      [8, -20], [-12, -22], [24, -12], [28, 8], [-26, 4], [-20, 18]]) mask.disc('wild', sx, sz, 1.6, 1, 1.6);
+    // The wild rim before the forest, and flower drifts through the open meadow
+    mask.paint('wild', (x, z) => THREE.MathUtils.smoothstep(Math.hypot(x, z), 37, 46));
+    mask.paint('flower', (x, z) => {
+      const drift = Math.sin(x * 0.21) * Math.cos(z * 0.17) + 0.45 * Math.sin(x * 0.07 + z * 0.11 + 1.3);
+      return THREE.MathUtils.smoothstep(drift, 0.2, 0.85) * 0.85;
+    });
+    for (const [x, z] of this.sakuraSpots) mask.disc('flower', x, z, 2.6, 0.8, 2.2);
+    mask.rect('flower', 0, -18.5, 9, 5, 0.6);   // torii approach
+    mask.bake((x, z) => 1 - THREE.MathUtils.smoothstep(Math.hypot(x, z), 45, 50));
+
+    const grass = this.grass = new GrassSystem(this.scene, { mask, wind: 0.55, gustLit: 0.45 });
+    grass.addRing('near', { radius: 8, spacing: 0.115, lead: 0.25 });
+    grass.addRing('mid', { radius: 24, spacing: 0.27, lead: 0.4, inside: 'near' });
+    grass.addRing('far', { radius: 58, spacing: 0.62, lead: 0.45, inside: 'mid' });
+    grass.addShell({ radius: 4.5, layers: 10, height: 0.085, density: 75, lead: 0.3, minQuality: 1 });
+    grass.addRing('thicket', { radius: 30, spacing: 0.5, lead: 0.45 });
+    grass.addRing('flowers', { radius: 26, spacing: 0.34, lead: 0.4 });
+    grass.addRing('susuki', { radius: 34, spacing: 0.95, lead: 0.4 });
+    lawns.forEach(([x, z, hw, hd], i) => grass.addZone('mown', { name: 'mown' + i, x, z, hw, hd, spacing: 0.042, maxDist: 45 }));
+    // GLADE (-31, -10, r 6) and POOL (-20, -27, r 3) live in hidden_places.js
+    grass.addZone('lantern', { x: -31, z: -10, hw: 5.4, hd: 5.4, spacing: 0.065, maxDist: 40 });
+    grass.addZone('yarn', { x: -31, z: 9, hw: 2.1, hd: 2.1, spacing: 0.075, maxDist: 35 });
+    grass.addFireflies({ x: 0, z: 29, hw: 44, hd: 4.2, count: 90 });
+
+    const moss = [];
+    const nearPath = (x, z, r) => this.pathSamples.some((s) => Math.hypot(s.x - x, s.z - z) < r + 1.2);
+    for (const [x, z, s] of [...this.sakuraSpots, ...this.mapleSpots]) {
+      if (Math.hypot(x, z) < RIM_RADIUS && !nearPath(x, z, 1.5)) moss.push({ x, z, r: 1.2 + s * 0.45 });
     }
-    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.75, vertexColors: true, side: THREE.DoubleSide, emissive: 0x222222, emissiveIntensity: 0.25 });
-    const flowers = new THREE.InstancedMesh(geo, mat, count);
-    const dummy = new THREE.Object3D();
-    const color = new THREE.Color();
-
-    // Traditional Japanese wildflower palette: nadeshiko pink, kikyo indigo,
-    // yamabuki gold, shirotsume white
-    const palette = [0xf288a8, 0xf7a8c4, 0x6478cc, 0x7894e6, 0xf5ba38, 0xffde59, 0xfffaee, 0xe8f0d8];
-
-    let placed = 0;
-    for (let i = 0; i < count * 3 && placed < count; i++) {
-      const a = this.random() * Math.PI * 2;
-      const r = 3 + Math.sqrt(this.random()) * 42;
-      // Flowers grow in loose drifts rather than an even scatter
-      const x = Math.cos(a) * r + (this.random() - 0.5) * 2;
-      const z = Math.sin(a) * r + (this.random() - 0.5) * 2;
-      if (this.isExcluded(x, z)) continue;
-      const drift = Math.sin(x * 0.21) * Math.cos(z * 0.17);
-      if (drift < 0.1 && this.random() < 0.7) continue;
-
-      const s = 0.7 + this.random() * 0.8;
-      dummy.position.set(x, 0.02, z);
-      dummy.scale.set(s, s * (0.8 + this.random() * 0.5), s);
-      dummy.rotation.set((this.random() - 0.5) * 0.25, this.random() * Math.PI * 2, (this.random() - 0.5) * 0.25);
-      dummy.updateMatrix();
-      flowers.setMatrixAt(placed, dummy.matrix);
-      color.setHex(palette[Math.floor(this.random() * palette.length)]);
-      flowers.setColorAt(placed, color);
-      placed++;
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * Math.PI * 2 + 0.3;
+      moss.push({ x: -20 + Math.cos(a) * 4.1, z: -27 + Math.sin(a) * 4.1, r: 1.25 });
     }
-    flowers.count = placed;
-    flowers.instanceMatrix.needsUpdate = true;
-    if (flowers.instanceColor) flowers.instanceColor.needsUpdate = true;
-    flowers.castShadow = false;
-    flowers.receiveShadow = true;
-    this.scene.add(flowers);
+    moss.push({ x: -2.9, z: -30.6, r: 1.3 }, { x: 2.9, z: -30.6, r: 1.3 }, { x: -23.5, z: -20.5, r: 1.2 });
+    grass.addMoss(moss);
+    this.grassMeshes = grass.meshes;
   }
 
   isExcluded(x, z) {
@@ -765,10 +689,8 @@ export class Vegetation {
   }
 
   /**
-   * A tapered, gently arched blade fan from root to a single tip vertex.
-   * Defaults match the meadow grass blade; `taperPow` below ~0.6 keeps the
-   * blade broad near the tip instead of needle-sharp, which is what turns
-   * this same builder into a clover-like paddle for buildGroundCover().
+   * A tapered, gently arched blade fan from root to a single tip vertex —
+   * the bamboo leaf card (the meadow itself lives in src/grass.js).
    */
   bladeGeometry(rows = 4, baseWidth = 0.048, height = 0.95, curveAmt = 0.32, taperPow = 1.35) {
     const positions = [];
@@ -822,410 +744,13 @@ export class Vegetation {
   }
 
   /**
-   * Grass blades now run through MeshLambertMaterial so they receive the
-   * sun's shadow map, react to the hemisphere/point lights and fog like
-   * everything else — under trees and eaves the meadow finally darkens.
-   * Wind, arching and the cat's footprint push are injected into the vertex
-   * stage; a root?tip gradient and sun translucency into the fragment stage.
-   */
-  grassMaterial() {
-    const uniforms = {
-      uTime: { value: 0 },
-      uPlayerPos: { value: new THREE.Vector3(0, 0, 0) },
-      uSunDir: { value: new THREE.Vector3(0, 1, 0) },
-      uSunColor: { value: new THREE.Color(0xffe6b8) },
-      uRootColor: { value: new THREE.Color(0x36622a) },
-      uMidColor: { value: new THREE.Color(0x669a3e) },
-      uTipColor: { value: new THREE.Color(0xa6c65c) },
-      uWind: { value: 0.0 }
-    };
-    const mat = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-    mat.uniforms = uniforms;
-    mat.onBeforeCompile = (shader) => {
-      Object.assign(shader.uniforms, uniforms);
-      shader.vertexShader = `
-        uniform float uTime;
-        uniform vec3 uPlayerPos;
-        uniform float uWind;
-        attribute float aPhase;
-        attribute vec3 aTint;
-        attribute float aWidthScale;
-        attribute float aCurveAngle;
-        varying float vT;
-        varying vec3 vTint;
-      ` + shader.vertexShader
-        .replace('#include <beginnormal_vertex>', /* glsl */`
-          #include <beginnormal_vertex>
-          // Blades shade like a soft carpet rather than as knife-edged cards
-          objectNormal = normalize(mix(objectNormal, vec3(0.0, 1.0, 0.0), 0.8));
-        `)
-        .replace('#include <begin_vertex>', /* glsl */`
-          vT = uv.y;
-          vTint = aTint;
-          vec4 base = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
-
-          // Multi-frequency wind gust waves with per-blade speed variation
-          float speedVar = 0.75 + fract(aPhase * 3.17) * 0.5;
-          float gustTime = uTime * 0.25 * speedVar;
-          float gust = sin(gustTime * 1.3 + base.x * 0.18 + base.z * 0.14 + aPhase);
-          float gust2 = sin(gustTime * 0.6 + base.x * 0.06 - base.z * 0.08 + aPhase * 0.5);
-          float flutter = sin(gustTime * 2.6 + aPhase * 6.0) * 0.12;
-          float windMul = 1.0 + uWind * 1.5;
-          float sway = (gust * 0.6 + gust2 * 0.35 + flutter) * 0.20 * windMul;
-
-          float w = vT * vT;
-          vec3 pos = position;
-          pos.x *= aWidthScale;
-          pos.x += sin(aCurveAngle) * 0.18 * w;
-          pos.z += cos(aCurveAngle) * 0.18 * w;
-          pos.x += sway * w;
-          pos.z += sway * 0.5 * w;
-          pos.y *= 1.0 - abs(sway) * 0.16 * w;
-
-          // Interactive player push
-          vec2 away = base.xz - uPlayerPos.xz;
-          float dist = length(away);
-          float push = smoothstep(0.95, 0.05, dist);
-          if (push > 0.001) {
-            vec2 dir = dist > 0.001 ? away / dist : vec2(0.0, 1.0);
-            float bendAmt = push * 0.65 * w;
-            pos.x += dir.x * bendAmt;
-            pos.z += dir.y * bendAmt;
-            pos.y *= 1.0 - push * 0.62 * vT;
-          }
-          vec3 transformed = pos;
-        `);
-      shader.fragmentShader = `
-        uniform vec3 uRootColor;
-        uniform vec3 uMidColor;
-        uniform vec3 uTipColor;
-        uniform vec3 uSunDir;
-        uniform vec3 uSunColor;
-        varying float vT;
-        varying vec3 vTint;
-      ` + shader.fragmentShader
-        .replace('#include <normal_fragment_begin>', /* glsl */`
-          #include <normal_fragment_begin>
-          // Both faces of a blade shade as if facing the sky; the double-sided
-          // flip would otherwise turn every back face black.
-          normal = normalize(mix(normal, normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz), 0.85));
-        `)
-        .replace('#include <color_fragment>', /* glsl */`
-          #include <color_fragment>
-          vec3 gcol = (vT < 0.5) ? mix(uRootColor, uMidColor, vT * 2.0) : mix(uMidColor, uTipColor, (vT - 0.5) * 2.0);
-          diffuseColor.rgb *= gcol * vTint;
-        `)
-        .replace('#include <emissivemap_fragment>', /* glsl */`
-          #include <emissivemap_fragment>
-          // Translucent tips catch the low sun
-          vec3 gSunV = normalize((viewMatrix * vec4(uSunDir, 0.0)).xyz);
-          float gThru = pow(max(dot(normalize(-vViewPosition), gSunV), 0.0), 3.0);
-          totalEmissiveRadiance += gcol * vTint * uSunColor * (gThru * 0.5 + 0.06) * vT * vT;
-        `);
-    };
-    mat.customProgramCacheKey = () => 'meadow-grass';
-    return mat;
-  }
-
-  /**
-   * Lightweight wind-swayed material for small ground-cover blooms: unlike
-   * the meadow grass shader it skips the fixed green root?tip gradient so
-   * each instance's tint (a real petal colour) reads clearly, fading up
-   * from a shaded green base at the root to full bloom colour at the tip.
-   */
-  groundBloomMaterial() {
-    const uniforms = {
-      uTime: { value: 0 },
-      uPlayerPos: { value: new THREE.Vector3(0, 0, 0) },
-      uSunDir: { value: new THREE.Vector3(0, 1, 0) },
-      uSunColor: { value: new THREE.Color(0xffe6b8) },
-      uWind: { value: 0.0 }
-    };
-    const mat = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-    mat.uniforms = uniforms;
-    mat.onBeforeCompile = (shader) => {
-      Object.assign(shader.uniforms, uniforms);
-      shader.vertexShader = `
-        uniform float uTime;
-        uniform vec3 uPlayerPos;
-        uniform float uWind;
-        attribute float aPhase;
-        attribute vec3 aTint;
-        attribute float aWidthScale;
-        attribute float aCurveAngle;
-        varying float vT;
-        varying vec3 vTint;
-      ` + shader.vertexShader
-        .replace('#include <beginnormal_vertex>', /* glsl */`
-          #include <beginnormal_vertex>
-          objectNormal = normalize(mix(objectNormal, vec3(0.0, 1.0, 0.0), 0.8));
-        `)
-        .replace('#include <begin_vertex>', /* glsl */`
-          vT = uv.y;
-          vTint = aTint;
-          vec4 base = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
-          float speedVar = 0.75 + fract(aPhase * 3.17) * 0.5;
-          float gustTime = uTime * 0.22 * speedVar;
-          float gust = sin(gustTime * 1.3 + base.x * 0.18 + base.z * 0.14 + aPhase);
-          float windMul = 1.0 + uWind * 1.4;
-          float sway = gust * 0.16 * windMul;
-
-          float w = uv.y * uv.y;
-          vec3 pos = position;
-          pos.x *= aWidthScale;
-          pos.x += sin(aCurveAngle) * 0.1 * w + sway * w;
-          pos.z += cos(aCurveAngle) * 0.1 * w + sway * 0.5 * w;
-
-          vec2 away = base.xz - uPlayerPos.xz;
-          float dist = length(away);
-          float push = smoothstep(0.85, 0.05, dist);
-          if (push > 0.001) {
-            vec2 dir = dist > 0.001 ? away / dist : vec2(0.0, 1.0);
-            pos.x += dir.x * push * 0.5 * w;
-            pos.z += dir.y * push * 0.5 * w;
-            pos.y *= 1.0 - push * 0.55 * vT;
-          }
-          vec3 transformed = pos;
-        `);
-      shader.fragmentShader = `
-        uniform vec3 uSunDir;
-        uniform vec3 uSunColor;
-        varying float vT;
-        varying vec3 vTint;
-      ` + shader.fragmentShader
-        .replace('#include <normal_fragment_begin>', /* glsl */`
-          #include <normal_fragment_begin>
-          normal = normalize(mix(normal, normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz), 0.85));
-        `)
-        .replace('#include <color_fragment>', /* glsl */`
-          #include <color_fragment>
-          vec3 groundBase = vec3(0.3, 0.4, 0.22);
-          vec3 gcol = mix(groundBase, vTint, vT * vT);
-          diffuseColor.rgb *= gcol;
-        `)
-        .replace('#include <emissivemap_fragment>', /* glsl */`
-          #include <emissivemap_fragment>
-          vec3 gSunV = normalize((viewMatrix * vec4(uSunDir, 0.0)).xyz);
-          float gThru = pow(max(dot(normalize(-vViewPosition), gSunV), 0.0), 3.0);
-          totalEmissiveRadiance += vTint * uSunColor * (gThru * 0.4 + 0.05) * vT * vT;
-        `);
-    };
-    mat.customProgramCacheKey = () => 'ground-bloom';
-    return mat;
-  }
-
-  buildGrass() {
-    const bladeGeo = this.bladeGeometry();
-    this.grassMat = this.grassMaterial();
-    const extent = 44;
-    const chunksPerSide = 4;
-    const chunkSize = (extent * 2) / chunksPerSide;
-    const perChunk = 4600;
-    const dummy = new THREE.Object3D();
-
-    for (let cx = 0; cx < chunksPerSide; cx++) {
-      for (let cz = 0; cz < chunksPerSide; cz++) {
-        const ox = -extent + cx * chunkSize;
-        const oz = -extent + cz * chunkSize;
-        const geo = bladeGeo.clone();
-        const phases = new Float32Array(perChunk);
-        const tints = new Float32Array(perChunk * 3);
-        const widthScales = new Float32Array(perChunk);
-        const curveAngles = new Float32Array(perChunk);
-        const mesh = new THREE.InstancedMesh(geo, this.grassMat, perChunk);
-        let placed = 0;
-        let guard = 0;
-
-        while (placed < perChunk && guard < perChunk * 7) {
-          guard++;
-          const x = ox + this.random() * chunkSize;
-          const z = oz + this.random() * chunkSize;
-          if (Math.sqrt(x * x + z * z) > extent + 4) continue;
-          if (this.isExcluded(x, z)) continue;
-
-          // Multi-octave patchy meadow density noise
-          const patchNoise = Math.sin(x * 0.14) * Math.cos(z * 0.16)
-            + 0.55 * Math.sin(x * 0.31 + z * 0.25)
-            + 0.3 * Math.cos((x - z) * 0.22);
-
-          // Patchy density skipping: sparse in clearings, lush in clumps
-          if (patchNoise < -0.35 && this.random() < 0.65) continue;
-          if (patchNoise < 0.0 && this.random() < 0.25) continue;
-
-          const isThickClump = patchNoise > 0.35;
-          const isSparseClearing = patchNoise < -0.2;
-
-          // Height scaling
-          let s = 0.22 + this.random() * 0.22;
-          if (isThickClump) s *= 1.5 + this.random() * 0.8;
-          if (isSparseClearing) s *= 0.75 + this.random() * 0.3;
-
-          // 90% thin, delicate, pointed grass blades with rich Ghibli color variety
-          const widthChoice = this.random();
-          let wScale = 0.38 + this.random() * 0.28; // 90% thin pointed blades
-          if (widthChoice > 0.90) {
-            wScale = 0.85 + this.random() * 0.35; // 10% medium accent blades
-          }
-
-          dummy.position.set(x, 0, z);
-          dummy.scale.set(1.0, s, 1.0);
-          dummy.rotation.set(0, this.random() * Math.PI * 2, 0);
-          dummy.updateMatrix();
-          mesh.setMatrixAt(placed, dummy.matrix);
-
-          phases[placed] = this.random() * Math.PI * 2;
-          widthScales[placed] = wScale;
-          curveAngles[placed] = this.random() * Math.PI * 2;
-
-          // Natural painterly tint variations — muted mossy greens with
-          // occasional soft olive warmth; dark shaded patches in clumps
-          const colorFlavor = this.random();
-          let rMul = 0.9, gMul = 1.0, bMul = 0.85;
-          if (colorFlavor < 0.30) {
-            // Deep forest moss (dark grass pools)
-            rMul = 0.62 + this.random() * 0.10;
-            gMul = 0.82 + this.random() * 0.10;
-            bMul = 0.72 + this.random() * 0.10;
-          } else if (colorFlavor < 0.60) {
-            // Natural meadow green
-            rMul = 0.82 + this.random() * 0.10;
-            gMul = 0.98 + this.random() * 0.08;
-            bMul = 0.78 + this.random() * 0.10;
-          } else if (colorFlavor < 0.82) {
-            // Kyoto tea green
-            rMul = 0.90 + this.random() * 0.08;
-            gMul = 0.95 + this.random() * 0.08;
-            bMul = 0.80 + this.random() * 0.10;
-          } else {
-            // Soft sun-warmed olive (subtle, not neon gold)
-            rMul = 1.02 + this.random() * 0.08;
-            gMul = 0.98 + this.random() * 0.06;
-            bMul = 0.62 + this.random() * 0.08;
-          }
-
-          // Thick clumps sit in shade — darker; clearings slightly lighter
-          let brightness = 0.72 + this.random() * 0.26;
-          if (isThickClump) brightness *= 0.82;
-          tints[placed * 3] = brightness * rMul;
-          tints[placed * 3 + 1] = brightness * gMul;
-          tints[placed * 3 + 2] = brightness * bMul;
-          placed++;
-        }
-
-        mesh.count = placed;
-        mesh.userData.fullCount = placed;
-        // Already one mesh per chunk, and setDensity() owns mesh.count.
-        mesh.userData.noChunk = true;
-        mesh.name = `Grass Field ${this.grassMeshes.length + 1}`;
-        this.grassMeshes.push(mesh);
-        geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases.subarray(0, placed), 1));
-        geo.setAttribute('aTint', new THREE.InstancedBufferAttribute(tints.subarray(0, placed * 3), 3));
-        geo.setAttribute('aWidthScale', new THREE.InstancedBufferAttribute(widthScales.subarray(0, placed), 1));
-        geo.setAttribute('aCurveAngle', new THREE.InstancedBufferAttribute(curveAngles.subarray(0, placed), 1));
-
-        const center = new THREE.Vector3(ox + chunkSize / 2, 0.5, oz + chunkSize / 2);
-        geo.boundingSphere = new THREE.Sphere(center, chunkSize * 0.75 + 1);
-        mesh.instanceMatrix.needsUpdate = true;
-        mesh.receiveShadow = true;
-        mesh.castShadow = false;
-        this.scene.add(mesh);
-      }
-    }
-  }
-
-  /**
-   * Ground-cover variety mixed sparsely through the meadow: broad rounded
-   * clover paddles (reusing the meadow-grass shader, just wider/shorter/
-   * duller-tipped than a grass blade) and tiny bright ground blooms, so the
-   * turf reads as more than one repeated blade shape up close.
-   */
-  buildGroundCover() {
-    this.groundBloomMat = this.groundBloomMaterial();
-    const extent = 44;
-    const dummy = new THREE.Object3D();
-    const bloomPalette = [
-      [1.0, 0.66, 0.74], [1.0, 0.84, 0.42], [0.98, 0.95, 0.86], [0.8, 0.66, 0.94], [1.0, 0.5, 0.42]
-    ];
-
-    const specs = [
-      { geo: this.bladeGeometry(3, 0.15, 0.24, 0.12, 0.4), mat: this.grassMat, count: 1300, sMin: 0.75, sMax: 1.2, flavor: 'clover' },
-      { geo: this.bladeGeometry(3, 0.08, 0.19, 0.08, 0.55), mat: this.groundBloomMat, count: 850, sMin: 0.8, sMax: 1.25, flavor: 'bloom' }
-    ];
-
-    for (const spec of specs) {
-      const mesh = new THREE.InstancedMesh(spec.geo, spec.mat, spec.count);
-      const phases = new Float32Array(spec.count);
-      const tints = new Float32Array(spec.count * 3);
-      const widthScales = new Float32Array(spec.count);
-      const curveAngles = new Float32Array(spec.count);
-      let placed = 0;
-      let guard = 0;
-
-      while (placed < spec.count && guard < spec.count * 8) {
-        guard++;
-        const a = this.random() * Math.PI * 2;
-        const r = Math.sqrt(this.random()) * extent;
-        const x = Math.cos(a) * r, z = Math.sin(a) * r;
-        if (this.isExcluded(x, z)) continue;
-
-        // Follow the same clumping pattern as the meadow grass so ground
-        // cover naturally gathers in the same lush patches
-        const patchNoise = Math.sin(x * 0.14) * Math.cos(z * 0.16) + 0.55 * Math.sin(x * 0.31 + z * 0.25);
-        if (patchNoise < 0.05 && this.random() < 0.7) continue;
-
-        const s = spec.sMin + this.random() * (spec.sMax - spec.sMin);
-        dummy.position.set(x, 0, z);
-        dummy.scale.set(1.0, s, 1.0);
-        dummy.rotation.set(0, this.random() * Math.PI * 2, 0);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(placed, dummy.matrix);
-
-        phases[placed] = this.random() * Math.PI * 2;
-        widthScales[placed] = 0.85 + this.random() * 0.3;
-        curveAngles[placed] = this.random() * Math.PI * 2;
-
-        if (spec.flavor === 'clover') {
-          const inBloom = this.random() < 0.14;
-          tints[placed * 3] = inBloom ? 1.0 : 0.56 + this.random() * 0.12;
-          tints[placed * 3 + 1] = inBloom ? 1.0 : 0.8 + this.random() * 0.12;
-          tints[placed * 3 + 2] = inBloom ? 0.9 : 0.5 + this.random() * 0.12;
-        } else {
-          const c = bloomPalette[Math.floor(this.random() * bloomPalette.length)];
-          const b = 0.85 + this.random() * 0.3;
-          tints[placed * 3] = c[0] * b;
-          tints[placed * 3 + 1] = c[1] * b;
-          tints[placed * 3 + 2] = c[2] * b;
-        }
-        placed++;
-      }
-
-      mesh.count = placed;
-      mesh.userData.fullCount = placed;
-      mesh.userData.noChunk = true; // setDensity() owns mesh.count
-      mesh.name = `Ground Cover ${this.groundCoverMeshes.length + 1}`;
-      this.groundCoverMeshes.push(mesh);
-      spec.geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases.subarray(0, placed), 1));
-      spec.geo.setAttribute('aTint', new THREE.InstancedBufferAttribute(tints.subarray(0, placed * 3), 3));
-      spec.geo.setAttribute('aWidthScale', new THREE.InstancedBufferAttribute(widthScales.subarray(0, placed), 1));
-      spec.geo.setAttribute('aCurveAngle', new THREE.InstancedBufferAttribute(curveAngles.subarray(0, placed), 1));
-      const center = new THREE.Vector3(0, 0.3, 0);
-      spec.geo.boundingSphere = new THREE.Sphere(center, extent * 1.05 + 2);
-      mesh.instanceMatrix.needsUpdate = true;
-      mesh.receiveShadow = true;
-      mesh.castShadow = false;
-      this.scene.add(mesh);
-    }
-  }
-
-  /**
-   * Quality-tier lever: scale the meadow grass + ground-cover instance
-   * counts. Blades are placed in scan order, so thinning the draw range
-   * reads as slightly sparser turf rather than a mowed pattern.
+   * Quality-tier lever: the grass rings widen their hash grid (uniformly
+   * sparser turf, never a mowed pattern) and the low tier drops the shell
+   * carpet.
    */
   setDensity(fraction) {
     const f = THREE.MathUtils.clamp(fraction, 0.05, 1);
-    for (const m of this.grassMeshes) m.count = Math.floor(m.userData.fullCount * f);
-    for (const m of this.groundCoverMeshes) m.count = Math.floor(m.userData.fullCount * f);
+    if (this.grass) this.grass.setDensity(f);
     // Dapple pools are additive transparent quads stacked on the ground —
     // pure overdraw, and the first thing worth thinning on a phone.
     const pools = Math.round(this.dapplePools.length * f);
@@ -1235,29 +760,24 @@ export class Vegetation {
   update(dt, playerPos, sky = null) {
     this.time += dt;
     updateFoliage(this.time, sky, playerPos);
-    if (this.grassMat) {
-      this.grassMat.uniforms.uTime.value = this.time;
-      if (playerPos) this.grassMat.uniforms.uPlayerPos.value.copy(playerPos);
-      let wind = 0.0;
-      if (sky && (sky.weather === 'snow' || sky.weather === 'cloudy' || sky.weather === 'mist')) {
-        wind = 0.4 + 0.4 * Math.max(0, sky.weatherBlend * 2 - 0.2);
+    if (this.grass) {
+      let wind = 0.55;
+      if (sky && (sky.weather === 'snow' || sky.weather === 'cloudy' || sky.weather === 'mist' || sky.weather === 'rain')) {
+        wind += 0.4 + 0.4 * Math.max(0, sky.weatherBlend * 2 - 0.2);
       }
-      this.grassMat.uniforms.uWind.value += (wind - this.grassMat.uniforms.uWind.value) * dt * 0.8;
-
-      if (sky) {
-        const p = sky.resolvePalette();
-        const sunUp = Math.max(0, sky.sunDir.y);
-        this.grassMat.uniforms.uSunDir.value.copy(sky.sunDir);
-        this.grassMat.uniforms.uSunColor.value.copy(p.sun).multiplyScalar(Math.pow(sunUp, 0.5));
-
-        if (this.groundBloomMat) {
-          this.groundBloomMat.uniforms.uTime.value = this.time;
-          this.groundBloomMat.uniforms.uWind.value = this.grassMat.uniforms.uWind.value;
-          this.groundBloomMat.uniforms.uSunDir.value.copy(sky.sunDir);
-          this.groundBloomMat.uniforms.uSunColor.value.copy(p.sun).multiplyScalar(Math.pow(sunUp, 0.5));
-          if (playerPos) this.groundBloomMat.uniforms.uPlayerPos.value.copy(playerPos);
+      const ctx = this.grassContext || {};
+      const others = this._grassOthers || (this._grassOthers = []);
+      others.length = 0;
+      if (ctx.npcs && playerPos) {
+        for (const n of ctx.npcs) {
+          const p = n.mesh && n.mesh.position;
+          if (p && p.y < 0.6 && Math.abs(p.x - playerPos.x) < 10 && Math.abs(p.z - playerPos.z) < 10) others.push(p);
         }
       }
+      this.grass.update(dt, {
+        renderer: ctx.renderer, camera: ctx.camera, focus: playerPos || this.grass.U.uFocus.value,
+        cat: ctx.player ? ctx.player.cat : null, sky, wind, others
+      });
     }
     // Dappled light pools track golden-hour sun
     if (sky && this.dappleMeshes) {

@@ -9,8 +9,8 @@
 // with a fixed sun so captures repeat exactly. Extras: &t=<seconds> freezes
 // the animation clock, &weather=rain.
 import * as THREE from 'three';
-import { Countryside } from '../src/countryside.js?v=20261022f';
-import { HiddenPlaces } from '../src/hidden_places.js?v=20261022f';
+import { Countryside } from '../src/countryside.js?v=20261024a';
+import { HiddenPlaces } from '../src/hidden_places.js?v=20261024a';
 
 const params = new URLSearchParams(location.search);
 const sheet = params.get('sheet') || 'both';

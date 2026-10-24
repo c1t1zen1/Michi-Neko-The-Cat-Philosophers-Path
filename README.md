@@ -26,7 +26,7 @@
 > **Inspiration:** Studio Ghibli films and a honeymoon trip to Kyoto, Japan  
 > **Engine:** Three.js (r160) · WebGL 2.0 · Pure browser — no dependencies to install  
 > **License:** MIT
-> **Last updated:** 2026-10-23 · cache tag `20261022f` · see [Recent Updates](#-recent-updates)
+> **Last updated:** 2026-10-24 · cache tag `20261024a` · see [Recent Updates](#-recent-updates)
 
 ---
 
@@ -60,7 +60,8 @@ A running log of what has landed since the first public alpha. Status key: ✅ s
 
 | Date | Update | Status |
 |------|--------|--------|
-| 2026-10-23 | **[Grass Lab](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/grass/)** — twenty procedural grass designs (five re-grown from the game's meadow, five from the research, five cross-breeds, five experiments) in live isometric cubes with measured CPU stats, plus a hero slab where the real cat walks through them with GPU spring-and-trail grass physics. Not wired into the game yet | 🟡 |
+| 2026-10-24 | **The Grass Lab grows in the game** — the old patchy meadow is gone. The valley and the summit clearing now grow every Lab recipe, each in the places it suits: Bezier tufts that keep the cat's trail near the camera, tri-quad clumps and painted cards further out, a shell carpet under the paws, cat-eye thicket along paths and walls, wildflower drifts, susuki on the river banks and the wild rim, mown lawns in the shrine precinct, moss pillows at tree roots and the Moon Pool, lantern fibres that glow at night in the Lantern Glade, yarn curls in the turtle corral, sumi-e brush grass by the summit's ensō stone, and fireflies over the river after dark. A biome mask painted from the real buildings, paths and water decides what grows where. Villagers part the grass too. What to rebuild next: [docs/VISUAL_NEXT_STEPS_2026-10-24.md](docs/VISUAL_NEXT_STEPS_2026-10-24.md) | 🟡 |
+| 2026-10-23 | **[Grass Lab](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/grass/)** — twenty procedural grass designs (five re-grown from the game's meadow, five from the research, five cross-breeds, five experiments) in live isometric cubes with measured CPU stats, plus a hero slab where the real cat walks through them with GPU spring-and-trail grass physics | ✅ |
 | 2026-10-23 | **Comfort & accessibility settings** — field of view, interface size, larger dialogue text, high-contrast prompts, *Reduce Motion* (follows your OS setting), film-grain and lens-fringe toggles | ✅ |
 | 2026-10-23 | **Villager personalities** — Luna is now silver smoke-grey, Mochi ginger, Kuro solid black; each cat has its own size, idle habits and greeting; Mochi curls up to sleep at night | ✅ |
 | 2026-10-23 | **Hidden valley places** — the *Moon Pool* and the *Lantern Glade*, each with its own light, sound, journal entry and stillness moment | ✅ |
@@ -228,6 +229,7 @@ Then open **http://127.0.0.1:8080** in your browser.
 | [docs/DAW_CADJS_DEEP_REVIEW_2026-09-20.md](docs/DAW_CADJS_DEEP_REVIEW_2026-09-20.md) | Feature-completeness review of dawCAT and cadJS |
 | [docs/SOCIAL_POST_PLAN_2026-10-22_195413.md](docs/SOCIAL_POST_PLAN_2026-10-22_195413.md) | Build-in-public post plan; finished posts live in [docs/social/](docs/social/) |
 | [docs/GRASS_RESEARCH_2026-10-23.md](docs/GRASS_RESEARCH_2026-10-23.md) | Grass Lab research: what 15 searches found, the numbers, the design decisions, sources |
+| [docs/VISUAL_NEXT_STEPS_2026-10-24.md](docs/VISUAL_NEXT_STEPS_2026-10-24.md) | Ranked list of what to research and rebuild next, after the grass |
 | [dawCAT/README.md](dawCAT/README.md) | dawCAT 2.0 audio studio manual |
 | [cadJS/README.md](cadJS/README.md) · [cadJS/BUILD_GUIDE.md](cadJS/BUILD_GUIDE.md) | cadJS CAD workspace manual and build guide |
 | [assets/README.md](assets/README.md) | Optional runtime media (summit vista model, transition video) |
@@ -295,7 +297,8 @@ Michi-Neko-The-Cat-Philosophers-Path/
 │   ├── foliage.js              # Shared painterly foliage shader & lumpy canopy geometry
 │   ├── postfx.js               # Ambient occlusion, height fog / light shafts, film grade passes
 │   ├── sky.js                  # Sky dome shader, day/night, weather, environment map
-│   ├── vegetation.js           # Trees, bamboo, grass, flowers, foliage
+│   ├── vegetation.js           # Trees, bamboo, foliage; lays out the valley grass
+│   ├── grass.js                # Game grass: Grass Lab recipes, biome mask, GPU spring/trail physics
 │   ├── particles.js            # Rain, snow, petals, fireflies, dust
 │   ├── ambient_life.js         # Birds, butterflies, koi fish, guardian crows
 │   ├── interior.js             # Tea house interior scene & transitions
@@ -312,7 +315,7 @@ Michi-Neko-The-Cat-Philosophers-Path/
 │   ├── settings.js             # Settings persistence, comfort options, quality tiers
 │   ├── save.js                 # Versioned save/load with backup, export/import
 │   └── waypoints.js            # Screen-space objective markers & compass
-├── tools/                      # Review sheets (cat, tree, town, hidden places, summit) + verify scripts
+├── tools/                      # Review sheets (cat, tree, town, hidden places, summit, grass) + verify scripts
 ├── assets/                     # Optional runtime media (summit vista GLB, transition video)
 ├── docs/                       # Reviews, build guide, checklists, social posts, artwork
 ├── data/                       # Development reference screenshots & Blender sources
@@ -340,7 +343,7 @@ A non-destructive Three.js workspace for inspecting, creating, reshaping, textur
 **[Open it in your browser →](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/grass/)** Twenty procedural Three.js grasses, each in its own live isometric cube with a how-it's-made note, code excerpt and measured CPU numbers. Blades are placed by a GPU hash (no per-blade buffers), bent by wind, and pushed by a small GPU spring simulation; at the bottom of the page the real `src/cat.js` cat walks a floating slab (walk, wander, tour, figure-eight, prowl, isometric or cat-eye view) on any one grass or on checkerboard, stripe, ring, random and all-twenty layouts. Locally, serve the repo root and open `/grass/` (or double-click `grass/serve.cmd` on Windows). Research and decisions: [docs/GRASS_RESEARCH_2026-10-23.md](docs/GRASS_RESEARCH_2026-10-23.md).
 
 ### Review sheets (`tools/`)
-Seeded, repeatable renders built through the real game classes: `cat_preview.html` (anatomy, face, coat, gait, poses, sleep, npcs), `tree_preview.html`, `town_preview.html` (street, landmarks, props), `hidden_preview.html`, `summit_preview.html`. Run `node tools/verify.mjs` for the syntax, wiring and summit suites.
+Seeded, repeatable renders built through the real game classes: `cat_preview.html` (anatomy, face, coat, gait, poses, sleep, npcs), `tree_preview.html`, `town_preview.html` (street, landmarks, props), `hidden_preview.html`, `summit_preview.html`, `grass_preview.html` (valley grass at chosen spots, `?spots=shrine,river,corral,glade@21.5` for a 2×2 sheet). Run `node tools/verify.mjs` for the syntax, wiring and summit suites.
 
 ---
 

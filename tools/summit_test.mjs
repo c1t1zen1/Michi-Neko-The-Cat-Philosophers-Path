@@ -234,6 +234,12 @@ const pre = `
         buildCanopy = () => ({ branches: new THREE.BufferGeometry(), tufts: new THREE.BufferGeometry(), cards: new THREE.BufferGeometry(), extents: null }),
         updateFoliage = () => {}, lumpyTuftGeometry = () => ({});
   const GLTFLoader = class { load() {} };
+  const BiomeMask = class { box() {} rect() {} disc() {} paint() {} bake() { return {}; } };
+  const GrassSystem = class {
+    constructor() { this.layers = [{ mat: { uniforms: {} } }]; this.meshes = []; }
+    addRing() {} addZone() {} addShell() {} addMoss() {} addFireflies() {}
+    setDensity() {} update() {}
+  };
 `;
 vm.runInContext(pre + src.replace('export class SummitManager', 'class SummitManager') +
   '\nthis.SummitManager = SummitManager;', sandbox);
@@ -329,7 +335,7 @@ ok('group hidden at boot', S.group.visible === false);
 ok('has torii', !!S.torii);
 ok('has meadow + vista + rays in the group',
   !!S.vista && !!S.raysGroup && !!S.group.children.length);
-ok('has dense grass field', !!S.grassMat && !!S.grassMat.uniforms);
+ok('has dense grass field', !!S.grass && !!S.grassMat && !!S.grassMat.uniforms);
 ok('has layered 3D vista group', !!S.vista && S.vista.name === 'Layered Kyoto Bay Vista');
 ok('has summit-local snow', !!S.snow && !!S.snowMat, 'buildSummitSnow missing');
 ok('has summit-local rain', !!S.rain && !!S.rainMat, 'buildSummitRain missing');

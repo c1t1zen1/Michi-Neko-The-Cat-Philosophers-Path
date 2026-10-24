@@ -1,8 +1,7 @@
 import * as THREE from 'three';
-import { Sky } from '../src/sky.js?v=20261022f';
-import { Player } from '../src/player.js?v=20261022f';
-import { Vegetation } from '../src/vegetation.js?v=20261022f';
-import { SummitManager } from '../src/mountaintop.js?v=20261022f';
+import { Sky } from '../src/sky.js?v=20261024a';
+import { Player } from '../src/player.js?v=20261024a';
+import { SummitManager } from '../src/mountaintop.js?v=20261024a';
 
 const canvas = document.getElementById('preview');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -39,12 +38,8 @@ if (query.has('weather')) sky.weatherTimer = sky.weatherDurations[previewWeather
 document.title = `Summit Vista — ${previewWeather}, ${previewTime.toFixed(2)}h, ${cycleMultiplier}×`;
 const player = new Player(scene, camera, null);
 
-// Summit only needs these two geometry/material factories; borrowing the
-// real prototype avoids constructing the entire valley for this art preview.
-const vegetation = {
-  bladeGeometry: Vegetation.prototype.bladeGeometry,
-  grassMaterial: Vegetation.prototype.grassMaterial
-};
+// The summit grows its own grass (src/grass.js); no valley needed.
+const vegetation = null;
 const game = {
   scene, camera, renderer, sky, player, vegetation,
   summitPreview: true,

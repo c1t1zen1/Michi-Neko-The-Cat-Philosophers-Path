@@ -1,7 +1,7 @@
 # AGENTS.md — Michi-Neko
 
 Browser game (Three.js r160, vanilla ES modules, no build step) plus two
-companion apps. Last reviewed 2026-10-23.
+companion apps. Last reviewed 2026-10-24.
 
 ## Layout
 
@@ -10,7 +10,8 @@ companion apps. Last reviewed 2026-10-23.
 | `index.html`, `src/` | The game. `main.js` orchestrates; see the README's project tree for every module |
 | `src/mountaintop.js` | The summit clearing (天上). **Owned by a separate effort — don't edit it, or the summit UI in `index.html`/`ui.js`, unless asked.** Cache-tag bumps are the one exception (import lines only) |
 | `src/hidden_places.js` | Moon Pool + Lantern Glade (valley floor, never a hilltop) |
-| `tools/` | Review sheets (`cat_`, `tree_`, `town_`, `hidden_`, `summit_preview`) and `verify.mjs` / `check_syntax.mjs` / `summit_test.mjs` |
+| `src/grass.js` | Game grass: the Grass Lab recipes as LOD rings that follow the cat plus fixed zones, a CPU-baked `BiomeMask` (meadow / edge thicket / flowers / wild, plus lawns) and GPU spring + trail physics. The valley lays it out in `Vegetation.buildMeadow()`, the summit in `SummitManager.buildGrassField()` |
+| `tools/` | Review sheets (`cat_`, `tree_`, `town_`, `hidden_`, `summit_`, `grass_preview`) and `verify.mjs` / `check_syntax.mjs` / `summit_test.mjs` |
 | `dawCAT/` | Audio studio: compose, Sound Design, Wave Lab, AI assistant. `cd dawCAT && npm test` |
 | `cadJS/` | CAD workspace: Procedural Studio, push-to-game, AI agent. `cd cadJS && npm test` (`npm run check` also loads the server modules) |
 | `grass/` | Grass Lab: twenty Three.js grass designs in live isometric cubes, plus a hero slab where the real `src/cat.js` walks through them with GPU spring/trail physics. Open `/grass/index.html` from the served repo root; research in `docs/GRASS_RESEARCH_2026-10-23.md`. Its `../../src/cat.js?v=` import carries the cache tag (bump it with the others); its own modules are untagged |
@@ -40,7 +41,7 @@ Every module import carries `?v=<tag>`. Keep all tags in sync when editing:
 sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDD<letter>/g" src/*.js index.html
 ```
 
-Current tag: `20261022f` (also used by every `tools/*_preview.*`). A tag
+Current tag: `20261024a` (also used by every `tools/*_preview.*`). A tag
 bump touches every module's import lines, including `mountaintop.js` — change
 only the `?v=` strings there.
 
@@ -58,7 +59,7 @@ node -e "const fs=require('fs');const files=fs.readdirSync('src').filter(f=>f.en
 Syntax check ES modules (Node can't `--check` ESM directly). Either:
 
 ```
-node tools/check_syntax.mjs      # all 35 modules, BOM-safe, works on Windows
+node tools/check_syntax.mjs      # all 36 modules, BOM-safe, works on Windows
 node tools/verify.mjs            # syntax + static wiring + summit state machine + index.html sanity
 for f in src/*.js; do node --input-type=module --check < "$f" >/dev/null || echo "FAIL $f"; done
 ```
@@ -87,6 +88,21 @@ street, landmarks, props; `&golden=1`, `&night=1`) and
 `Countryside` (and `HiddenPlaces`) with seeded randomness, so captures
 repeat. The README's "From the build" images come from these sheets and the
 `npcs` cat sheet.
+
+Grass: `src/grass.js` places every blade by hashing `gl_InstanceID` on a
+world-snapped grid, so a layer is one draw call whose density is a uniform
+(the quality tier widens the grid; low drops the shell carpet). What grows
+where comes from the biome mask, painted in `Vegetation.buildMeadow()` from
+the real colliders, path, river, paddies and exclusion rects. A new
+building or prop gets a grass-free footprint and a thicket edge
+automatically, as long as it has a collider or a `vegetationExclusions`
+rect. Blades render through `MeshLambertMaterial` (with `onBeforeCompile`),
+so they receive shadows, lantern light and fog. The physics stamps are the
+cat's chest, hips and paws plus villagers within 10 m. Review:
+`tools/grass_preview.html?spot=<meadow|path|river|shrine|glade|corral|pool|wide>&time=10.5`,
+or `?spots=a,b,c,d@hour` for a 2×2 still sheet (about 15–30 min per page
+under SwiftShader on the dev laptop). The summit grass draws nothing from
+the summit's seeded `this.rng`.
 
 Hidden valley places (Moon Pool, Lantern Glade) live in `src/hidden_places.js`
 — built before `Vegetation` (they register exclusion/water rects), attached to
@@ -147,7 +163,9 @@ dawn mist / rain rings / staggered lanterns, namako + lacquer town pass,
 comfort settings (FOV, interface size, large text, contrast, reduce motion,
 grain/fringe), cat rebuild, summit clearing (in progress elsewhere),
 dawCAT 2.0 (Sound Design, Wave Lab, AI assistant), cadJS Procedural Studio and
-push-to-game.
+push-to-game, Grass Lab grass in the valley and on the summit (2026-10-24).
+
+Next visual passes, ranked: `docs/VISUAL_NEXT_STEPS_2026-10-24.md`.
 
 Open: real-device benchmarks (V1.1/V1.3), input remapping / gamepad /
 left-handed touch layout (U2.1), information-access items (U2.4: sound
