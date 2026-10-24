@@ -739,12 +739,16 @@ export class SummitManager {
     tree.add(branches);
     const crown = new THREE.Group();
     const tufts = new THREE.Mesh(built.tufts, opts.tuftMat);
-    tufts.castShadow = tufts.receiveShadow = true;
+    // The hero shade tree uses a soft painted canopy: trunk and branches cast
+    // crisp forms, while the leaf mass lets the sitting patch stay sunlit.
+    tufts.castShadow = !opts.softShadow;
+    tufts.receiveShadow = true;
     crown.add(tufts);
     const set = this.cardSets[kind];
     const cards = new THREE.Mesh(built.cards, set.material);
     cards.customDepthMaterial = set.depth;
-    cards.castShadow = cards.receiveShadow = true;
+    cards.castShadow = !opts.softShadow;
+    cards.receiveShadow = true;
     crown.add(cards);
     tree.add(crown);
     this.swayables.push({ node: crown, amp: opts.sway || 0.035, freq: 0.8 + this.rng() * 0.6, phase: this.rng() * 6 });
@@ -782,7 +786,7 @@ export class SummitManager {
       colors: this.colLeaf, tuftMat: this.matFoliage,
       trunk: { rTop: 0.2, rBot: 0.38, h: 2.9, lean: -0.13 },
       canopy: { primaries: 8, tilt: 0.78, tiltVar: 0.22, droop: -0.05, bend: 0.15, branchLen: 2.05, secondaries: 3, twigs: true, crownFill: 4, clumpR: 0.58, tuftsPerClump: [4, 3, 2], cardsPerClump: [14, 11, 8], cardSize: 0.78, tuftFlat: 0.64, lump: 0.34, seed: 63 },
-      sway: 0.045, collider: 0.48
+      sway: 0.045, collider: 0.48, softShadow: true
     });
     // The leaning sakura on the eastern brow — the framing tree of the vista.
     this._tree(-8.9, 3.8, 0.95, 'sakura', {
@@ -1477,6 +1481,9 @@ export class SummitManager {
       if (rnd() < 0.68) {
         const side = rnd() < 0.5 ? -1 : 1;
         lights.push(x + side * w * 0.36, y + h * (0.42 + rnd() * 0.28), z - d * 0.51);
+        if (near > 0.36 && rnd() < 0.46) {
+          lights.push(x - side * w * 0.28, y + h * (0.45 + rnd() * 0.22), z - d * 0.515);
+        }
       }
       placed++;
     }
@@ -1503,8 +1510,8 @@ export class SummitManager {
     lightGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(lights), 3));
     const lightMat = new THREE.PointsMaterial({
       map: glowTexture(255, 205, 112, 42), color: 0xffc56f,
-      size: 0.34, transparent: true, opacity: 0, depthWrite: false,
-      blending: THREE.AdditiveBlending, sizeAttenuation: true, fog: true
+      size: 0.46, transparent: true, opacity: 0, depthWrite: false,
+      blending: THREE.AdditiveBlending, sizeAttenuation: true, fog: false
     });
     const cityLights = new THREE.Points(lightGeo, lightMat);
     cityLights.name = 'Kyoto Window Lights';
@@ -1539,6 +1546,94 @@ export class SummitManager {
     this.cityGardens = gardens;
     this.cityGardenMax = treeCount;
     this.cityGardenMat = gardenMat;
+
+    this.buildKyotoPagoda();
+  }
+
+  /** A readable five-storey landmark assembled from real roof volumes. */
+  buildKyotoPagoda() {
+    const walls = [];
+    const timber = [];
+    const roofs = [];
+    let top = 0;
+    for (let level = 0; level < 5; level++) {
+      const width = 6.8 - level * 0.72;
+      const depth = width * 0.76;
+      const baseY = level * 1.72;
+      const bodyH = 1.08;
+
+      const wall = new THREE.BoxGeometry(width * 0.42, bodyH, depth * 0.42);
+      wall.translate(0, baseY + bodyH * 0.5, 0);
+      walls.push(wall);
+
+      const gallery = new THREE.BoxGeometry(width * 0.82, 0.12, depth * 0.82);
+      gallery.translate(0, baseY + bodyH * 0.82, 0);
+      timber.push(gallery);
+      for (const x of [-1, 1]) {
+        for (const z of [-1, 1]) {
+          const post = new THREE.BoxGeometry(0.11, bodyH * 0.82, 0.11);
+          post.translate(x * width * 0.24, baseY + bodyH * 0.42, z * depth * 0.24);
+          timber.push(post);
+        }
+      }
+
+      const eave = new THREE.BoxGeometry(width, 0.13, depth);
+      eave.translate(0, baseY + bodyH + 0.02, 0);
+      roofs.push(eave);
+      const roof = new THREE.ConeGeometry(1, 0.6, 4);
+      roof.rotateY(Math.PI / 4);
+      roof.scale(width * 0.7, 1, depth * 0.7);
+      roof.translate(0, baseY + bodyH + 0.36, 0);
+      roofs.push(roof);
+      top = baseY + bodyH + 0.66;
+    }
+
+    const mast = new THREE.CylinderGeometry(0.08, 0.13, 2.65, 8);
+    mast.translate(0, top + 1.25, 0);
+    timber.push(mast);
+    for (let i = 0; i < 4; i++) {
+      const ring = new THREE.TorusGeometry(0.24 - i * 0.035, 0.035, 5, 12);
+      ring.rotateX(Math.PI / 2);
+      ring.translate(0, top + 0.45 + i * 0.36, 0);
+      timber.push(ring);
+    }
+
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xc7b78e, roughness: 0.94, fog: false });
+    const timberMat = new THREE.MeshStandardMaterial({ color: 0x4b3428, roughness: 0.9, fog: false });
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x344853, roughness: 0.84, metalness: 0.025, fog: false });
+    const pagoda = new THREE.Group();
+    pagoda.name = 'Higashiyama Five Storey Pagoda';
+    pagoda.add(
+      new THREE.Mesh(mergeGeometries(walls, false), wallMat),
+      new THREE.Mesh(mergeGeometries(timber, false), timberMat),
+      new THREE.Mesh(mergeGeometries(roofs, false), roofMat)
+    );
+    const lanternPositions = [];
+    for (let level = 0; level < 5; level++) {
+      const width = 6.8 - level * 0.72;
+      const y = level * 1.72 + 0.74;
+      lanternPositions.push(-width * 0.23, y, -width * 0.39);
+      lanternPositions.push(width * 0.23, y, -width * 0.39);
+    }
+    const lanternGeo = new THREE.BufferGeometry();
+    lanternGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(lanternPositions), 3));
+    const lanterns = new THREE.Points(lanternGeo, this.cityLightMat);
+    lanterns.name = 'Pagoda Evening Lanterns';
+    lanterns.renderOrder = 3;
+    pagoda.add(lanterns);
+    const x = -27, z = 86;
+    pagoda.position.set(x, this.vistaGroundHeight(x, z) + 0.04, z);
+    pagoda.rotation.y = -0.08;
+    pagoda.traverse((o) => {
+      if (!o.isMesh) return;
+      o.castShadow = false;
+      o.receiveShadow = false;
+    });
+    this.vista.add(pagoda);
+    this.kyotoPagoda = pagoda;
+    this.pagodaWallMat = wallMat;
+    this.pagodaTimberMat = timberMat;
+    this.pagodaRoofMat = roofMat;
   }
 
   makeBayWaterTexture() {
@@ -2303,9 +2398,11 @@ export class SummitManager {
     loader.load(SUMMIT_LANDMARKS_SRC, (gltf) => {
       const landmark = gltf.scene;
       landmark.name = 'Blender Kyoto Roofscape';
-      landmark.position.set(-7, -7.2, 63);
+      // Large enough to read as Kyoto's near temple district, while its
+      // procedural neighbours continue for several hundred metres behind it.
+      landmark.position.set(8, -5.6, 68);
       landmark.rotation.y = Math.PI;
-      landmark.scale.setScalar(0.5);
+      landmark.scale.setScalar(0.72);
       const landmarkMats = new Set();
       landmark.traverse((o) => {
         if (!o.isMesh) return;
@@ -2343,6 +2440,7 @@ export class SummitManager {
       { x: 64, y: 57, z: 215, sx: 78, sy: 39, lobes: 58 },
       { x: 151, y: 41, z: 252, sx: 54, sy: 17, lobes: 30 },
       { x: -168, y: 72, z: 302, sx: 68, sy: 22, lobes: 31 },
+      { x: 30, y: 29, z: 350, sx: 200, sy: 12, lobes: 48, small: true },
       { x: 0, y: 35, z: 167, sx: 112, sy: 24, lobes: 46, storm: true }
     ];
     // Rounded lobes retain an illustrated silhouette without exposing the
@@ -2366,7 +2464,7 @@ export class SummitManager {
         const dz = (this.rng() - 0.5) * def.sx * 0.18;
         const shelf = 1 - Math.abs(dx) / (def.sx * 0.56);
         const dy = (this.rng() - 0.42) * def.sy * 0.72 + Math.max(0, shelf) * def.sy * 0.16;
-        const s = (3.5 + this.rng() * 5.4) * (core ? 1.3 : 1);
+        const s = (3.5 + this.rng() * 5.4) * (core ? 1.3 : 1) * (def.small ? 0.55 : 1);
         dummy.position.set(dx, dy, dz);
         dummy.rotation.set(this.rng() * 0.5, this.rng() * Math.PI * 2, this.rng() * 0.5);
         dummy.scale.set(s * (1.15 + this.rng() * 0.75), s * (0.7 + this.rng() * 0.7), s);
@@ -3341,8 +3439,16 @@ export class SummitManager {
     const roofColor = this._vistaColorB.copy(pal.top).lerp(pal.horizon, 0.44).multiplyScalar(0.3 + dayness * 0.7);
     setColor(this.cityRoofMat, roofColor);
     setColor(this.cityEaveMat, this._vistaColorC.copy(roofColor).multiplyScalar(0.72));
+    setColor(this.pagodaWallMat, wallColor);
+    setColor(this.pagodaRoofMat, roofColor);
+    setColor(this.pagodaTimberMat,
+      this._vistaColorC.copy(pal.hemiGround).lerp(pal.warm, golden * 0.16).multiplyScalar(0.3 + dayness * 0.7));
     if (this.cityRoofMat) this.cityRoofMat.roughness = 0.86 - rain * 0.26;
     if (this.cityEaveMat) this.cityEaveMat.roughness = 0.9 - rain * 0.24;
+    if (this.pagodaRoofMat) this.pagodaRoofMat.roughness = 0.84 - rain * 0.24;
+    setEmissive(this.pagodaWallMat, pal.warm, nightness * 0.11);
+    setEmissive(this.pagodaTimberMat, pal.warm, nightness * 0.055);
+    setEmissive(this.pagodaRoofMat, pal.horizon, nightness * 0.035);
     const greenColor = this._vistaColorC.copy(pal.hemiGround).lerp(pal.horizon, mist * 0.38).multiplyScalar(0.42 + dayness * 0.58);
     setColor(this.cityGardenMat, greenColor);
     setColor(this.vistaTerrainMat, greenColor);
@@ -3372,7 +3478,7 @@ export class SummitManager {
     const lights = nightness * (0.72 + cloudy * 0.18 + rain * 0.1) *
       (0.92 + Math.sin(t * 1.7) * 0.04);
     for (const [points, material, scale] of [
-      [this.cityLights, this.cityLightMat, 0.78],
+      [this.cityLights, this.cityLightMat, 0.94],
       [this.harbourLights, this.harbourLightMat, 1]
     ]) {
       if (!points || !material) continue;

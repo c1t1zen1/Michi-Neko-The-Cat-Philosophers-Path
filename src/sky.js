@@ -533,10 +533,20 @@ export class Sky {
         const ratio = THREE.MathUtils.clamp(weather / Math.max(0.025, ref), 0.08, 1.7);
         return 1 + (ratio - 1) * tintStrength;
       };
+      const filteredR = THREE.MathUtils.clamp(bc.r * tint(wc.r, rc.r), 0, 1);
+      const filteredG = THREE.MathUtils.clamp(bc.g * tint(wc.g, rc.g), 0, 1);
+      const filteredB = THREE.MathUtils.clamp(bc.b * tint(wc.b, rc.b), 0, 1);
+      const phaseBrightness = THREE.MathUtils.clamp(
+        bc.getLuminance() / Math.max(0.025, rc.getLuminance()), 0.06, 1.45
+      );
+      // Most of the hue comes from the weather itself (slate rain, silver
+      // snow), while the filtered phase contribution preserves warm dusk and
+      // deep night instead of collapsing every hour to one static preset.
+      const weatherHue = 0.62;
       out[k].setRGB(
-        THREE.MathUtils.clamp(bc.r * tint(wc.r, rc.r), 0, 1),
-        THREE.MathUtils.clamp(bc.g * tint(wc.g, rc.g), 0, 1),
-        THREE.MathUtils.clamp(bc.b * tint(wc.b, rc.b), 0, 1)
+        THREE.MathUtils.lerp(filteredR, THREE.MathUtils.clamp(wc.r * phaseBrightness, 0, 1), weatherHue),
+        THREE.MathUtils.lerp(filteredG, THREE.MathUtils.clamp(wc.g * phaseBrightness, 0, 1), weatherHue),
+        THREE.MathUtils.lerp(filteredB, THREE.MathUtils.clamp(wc.b * phaseBrightness, 0, 1), weatherHue)
       );
     }
     const opacityRatio = weatherPal.cloudOpacity / Math.max(0.05, reference.cloudOpacity);
