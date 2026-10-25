@@ -18,7 +18,8 @@ const Q = new URLSearchParams(location.search);
 const flag = (k, d = null) => (Q.has(k) ? Q.get(k) : d);
 const reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const coarsePointer = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-const lowPower = flag('quality') === 'low' || (flag('quality') !== 'high' && (coarsePointer || (navigator.hardwareConcurrency || 8) <= 4));
+const qualityFlag = flag('quality');
+const lowPower = qualityFlag === 'low' || (qualityFlag !== 'high' && (coarsePointer || (navigator.hardwareConcurrency || 8) <= 4));
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -28,7 +29,8 @@ const damp = (cur, target, rate, dt) => cur + (target - cur) * (1 - Math.exp(-ra
 
 const canvas = $('gl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: flag('shot') === '1' });
-renderer.setPixelRatio(Math.min(devicePixelRatio || 1, lowPower ? 1.15 : 1.5));
+const basePixelRatio = Math.min(devicePixelRatio || 1, lowPower ? 1.15 : 1.5);
+renderer.setPixelRatio(basePixelRatio);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 const shadows = flag('shadows') !== '0';
@@ -156,50 +158,111 @@ addEventListener('keydown', (e) => {
     noteMoved();
   } else if (e.code === 'KeyR') respawn();
   else if (e.code === 'KeyH') toggleGuidance();
-  else if (e.code === 'KeyM') { audio.muted = !audio.muted; toast(audio.muted ? 'Sound off' : 'Sound on'); }
+  else if (e.code === 'KeyM') setMuted(!audio.muted);
+  else if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
   else if (e.code === 'KeyN' && Q.has('debug')) jumpToMouth(Math.min(7, currentMouth.id + 1));
 });
 addEventListener('keyup', (e) => {
   const k = KEYMAP[e.code];
   if (k) { keys.delete(k); if (k === 'jump') press.jumpUp = true; }
 });
-addEventListener('blur', () => keys.clear());
+addEventListener('blur', () => { keys.clear(); resetTouch(); });
 
-// Touch: left half is a horizontal stick, buttons on the right.
-const touch = { id: null, x0: 0, x: 0 };
+// Touch: a floating horizontal stick on the left, two generous action buttons
+// on the right. Vertical thumb movement is shown but never steals a jump.
+const touch = { id: null, x0: 0, y0: 0, move: 0, sprint: false };
 const pad = $('pad');
+const stickBase = $('stick-base');
+const stick = $('stick');
+function resetTouch() {
+  touch.id = null; touch.move = 0; touch.sprint = false;
+  if (stick) stick.style.transform = '';
+  if (pad) pad.classList.remove('active', 'sprint');
+}
+function moveTouch(e) {
+  if (e.pointerId !== touch.id) return;
+  const dx = e.clientX - touch.x0, dy = e.clientY - touch.y0;
+  const len = Math.hypot(dx, dy) || 1;
+  const radius = 45;
+  const k = Math.min(1, radius / len);
+  if (stick) stick.style.transform = `translate(${(dx * k).toFixed(1)}px, ${(dy * k).toFixed(1)}px)`;
+  touch.move = clamp(dx / radius, -1, 1);
+  if (Math.abs(touch.move) < 0.13) touch.move = 0;
+  touch.sprint = Math.abs(dx) > radius * 0.84;
+  pad.classList.toggle('sprint', touch.sprint);
+}
 if (pad) {
-  pad.addEventListener('pointerdown', (e) => { audio.ensure(); touch.id = e.pointerId; touch.x0 = touch.x = e.clientX; pad.setPointerCapture(e.pointerId); noteMoved(); });
-  pad.addEventListener('pointermove', (e) => { if (e.pointerId === touch.id) touch.x = e.clientX; });
-  const end = (e) => { if (e.pointerId === touch.id) { touch.id = null; touch.x = touch.x0; } };
+  pad.addEventListener('pointerdown', (e) => {
+    if (touch.id !== null) return;
+    e.preventDefault(); audio.ensure(); touch.id = e.pointerId; touch.x0 = e.clientX; touch.y0 = e.clientY;
+    const r = pad.getBoundingClientRect();
+    if (stickBase) {
+      stickBase.style.left = `${e.clientX - r.left}px`; stickBase.style.top = `${e.clientY - r.top}px`;
+      stickBase.style.bottom = 'auto'; stickBase.style.transform = 'translate(-50%, -50%)';
+    }
+    pad.classList.add('active'); pad.setPointerCapture(e.pointerId); noteMoved(); moveTouch(e);
+  });
+  pad.addEventListener('pointermove', moveTouch);
+  const end = (e) => { if (e.pointerId === touch.id) resetTouch(); };
   pad.addEventListener('pointerup', end);
   pad.addEventListener('pointercancel', end);
 }
 const holdBtn = (id, key) => {
   const b = $(id);
   if (!b) return;
-  b.addEventListener('pointerdown', (e) => { e.preventDefault(); audio.ensure(); if (!keys.has(key)) press[key] = true; keys.add(key); });
-  const up = () => { keys.delete(key); if (key === 'jump') press.jumpUp = true; };
+  let pointer = null;
+  b.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); audio.ensure(); pointer = e.pointerId; b.setPointerCapture(e.pointerId);
+    if (!keys.has(key)) press[key] = true;
+    keys.add(key); b.classList.add('pressed'); b.setAttribute('aria-pressed', 'true'); noteMoved();
+  });
+  const up = (e) => {
+    if (pointer !== null && e.pointerId !== pointer) return;
+    pointer = null; keys.delete(key); if (key === 'jump') press.jumpUp = true;
+    b.classList.remove('pressed'); b.setAttribute('aria-pressed', 'false');
+  };
   b.addEventListener('pointerup', up);
   b.addEventListener('pointercancel', up);
-  b.addEventListener('pointerleave', up);
 };
 holdBtn('btn-jump', 'jump');
 holdBtn('btn-down', 'down');
 
+// Standard gamepads: left stick / d-pad, A to jump, B or d-pad down to drop,
+// and either trigger to sprint. Edge state keeps jump buffering deterministic.
+const gamepadPrev = { jump: false, down: false };
+function readGamepad() {
+  const list = navigator.getGamepads ? navigator.getGamepads() : [];
+  const gp = list && [...list].find(Boolean);
+  if (!gp) { gamepadPrev.jump = gamepadPrev.down = false; return { move: 0, sprint: false, jumpHeld: false, downHeld: false, jumpPressed: false, downPressed: false }; }
+  let move = Math.abs(gp.axes[0] || 0) > 0.16 ? gp.axes[0] : 0;
+  if (gp.buttons[14]?.pressed) move = -1;
+  if (gp.buttons[15]?.pressed) move = 1;
+  const jumpHeld = !!gp.buttons[0]?.pressed;
+  const downHeld = !!gp.buttons[1]?.pressed || !!gp.buttons[13]?.pressed;
+  const out = {
+    move, sprint: !!gp.buttons[6]?.pressed || !!gp.buttons[7]?.pressed || !!gp.buttons[2]?.pressed,
+    jumpHeld, downHeld,
+    jumpPressed: jumpHeld && !gamepadPrev.jump,
+    downPressed: downHeld && !gamepadPrev.down
+  };
+  gamepadPrev.jump = jumpHeld; gamepadPrev.down = downHeld;
+  if (move || jumpHeld || downHeld) noteMoved();
+  return out;
+}
+
 function readInput() {
+  const gp = readGamepad();
   let move = (keys.has('right') ? 1 : 0) - (keys.has('left') ? 1 : 0);
-  let sprint = keys.has('sprint');
+  if (Math.abs(gp.move) > Math.abs(move)) move = gp.move;
+  let sprint = keys.has('sprint') || gp.sprint;
   if (touch.id !== null) {
-    const dx = (touch.x - touch.x0) / 70;
-    move = clamp(dx, -1, 1);
-    if (Math.abs(move) < 0.15) move = 0;
-    sprint = Math.abs(dx) > 1.6;
+    move = touch.move;
+    sprint = touch.sprint;
   }
   const inp = {
     move, sprint,
-    jumpHeld: keys.has('jump'), jumpPressed: press.jump, jumpReleased: press.jumpUp,
-    downHeld: keys.has('down'), downPressed: press.down
+    jumpHeld: keys.has('jump') || gp.jumpHeld, jumpPressed: press.jump || gp.jumpPressed, jumpReleased: press.jumpUp,
+    downHeld: keys.has('down') || gp.downHeld, downPressed: press.down || gp.downPressed
   };
   press.jump = press.down = press.jumpUp = false;
   return inp;
@@ -209,8 +272,23 @@ function readInput() {
 
 const hud = { hidden: flag('nohud') === '1', moved: false, hintT: 0 };
 if (hud.hidden) document.body.classList.add('nohud');
-function toggleGuidance() { document.body.classList.toggle('noguide'); }
+function toggleGuidance() {
+  const hidden = document.body.classList.toggle('noguide');
+  const b = $('btn-guide');
+  if (b) { b.setAttribute('aria-pressed', String(hidden)); b.setAttribute('aria-label', hidden ? 'Show guidance' : 'Hide guidance'); }
+}
 function noteMoved() { if (!hud.moved) { hud.moved = true; hud.hintT = 6; } }
+
+function setMuted(muted, announce = true) {
+  audio.muted = muted;
+  if (audio.ctx) {
+    if (muted) audio.ctx.suspend?.();
+    else audio.ctx.resume?.();
+  } else if (!muted && announce) audio.ensure();
+  const b = $('btn-sound');
+  if (b) { b.setAttribute('aria-pressed', String(muted)); b.setAttribute('aria-label', muted ? 'Turn sound on' : 'Mute sound'); }
+  if (announce) toast(muted ? 'Sound off.' : 'Sound on.', 1.5);
+}
 
 let toastT = 0;
 function toast(text, secs = 3.2) {
@@ -253,6 +331,7 @@ const greeted = new Set();
 let lastCheckpoint = level.checkpoints[0];
 let finale = null;
 let autopilot = flag('auto') === '1' ? new Autopilot(level) : null;
+let isPaused = false, contextLost = false;
 
 // Visual state for the cat.
 const vis = { depth: 0, phi: 0, catY: 0, landT: 0 };
@@ -276,6 +355,36 @@ function respawn() {
   startAt(lastCheckpoint.s, lastCheckpoint.y);
   toast('Back to the last lantern.', 1.6);
 }
+
+function setPaused(on, reason = 'The roofs will wait.') {
+  isPaused = !!on;
+  keys.clear(); resetTouch();
+  document.body.classList.toggle('paused', isPaused);
+  const panel = $('pause-panel');
+  if (panel) {
+    panel.hidden = !isPaused;
+    $('pause-reason').textContent = reason;
+    if (isPaused) requestAnimationFrame(() => $('btn-resume')?.focus());
+  }
+  const b = $('btn-pause');
+  if (b) { b.setAttribute('aria-pressed', String(isPaused)); b.setAttribute('aria-label', isPaused ? 'Resume' : 'Pause'); }
+  if (!isPaused) { acc = 0; lastNow = performance.now(); canvas.focus?.(); }
+}
+function togglePause() { if (!contextLost) setPaused(!isPaused); }
+
+$('btn-guide')?.addEventListener('click', toggleGuidance);
+$('btn-sound')?.addEventListener('click', () => setMuted(!audio.muted));
+$('btn-reset')?.addEventListener('click', respawn);
+$('btn-pause')?.addEventListener('click', togglePause);
+$('btn-resume')?.addEventListener('click', () => setPaused(false));
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && !finale) setPaused(true, 'Paused while you were away.');
+});
+canvas.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault(); contextLost = true; setPaused(true, 'The painted world is restoring itself…');
+});
+canvas.addEventListener('webglcontextrestored', () => location.reload());
+setMuted(false, false);
 
 /* ---------------- Chidori, the guide cat ---------------- */
 
@@ -466,7 +575,21 @@ const STEP = 1 / 120;
 let acc = 0, lastNow = performance.now();
 let lastPhase = -1, envScale = 1;
 const fixedHour = flag('hour') !== null ? clamp(parseFloat(flag('hour')), 0, 1) : null;
-let fpsT = 0, fpsN = 0, governed = false;
+let fpsT = 0, fpsN = 0, healthyT = 0;
+let qualityTier = qualityFlag === 'low' ? 2 : (lowPower ? 1 : 0);
+
+function applyQualityTier(tier) {
+  qualityTier = clamp(tier, 0, 2);
+  const ratio = qualityTier === 0 ? basePixelRatio : qualityTier === 1 ? Math.min(1, basePixelRatio) : Math.min(0.86, basePixelRatio);
+  renderer.setPixelRatio(ratio);
+  const trim = qualityTier >= 1;
+  atmosphere.setLowPower(trim);
+  sky.setLowPower(trim);
+  renderer.shadowMap.enabled = shadows && qualityTier < 2;
+  sky.sun.castShadow = shadows && qualityTier < 2;
+  renderer.shadowMap.needsUpdate = true;
+}
+applyQualityTier(qualityTier);
 
 function stepPhysics(inp) {
   const prevGrounded = runner.grounded;
@@ -487,6 +610,12 @@ function frame(now) {
   let dt = Math.min(0.1, (now - lastNow) / 1000);
   lastNow = now;
   if (flag('shot') === '1') dt = Math.min(dt, 1 / 30);
+
+  if (isPaused || contextLost) {
+    acc = 0;
+    if (!contextLost) { updateCamera(0); renderer.render(scene, camera); }
+    return;
+  }
 
   // Input → fixed physics steps.
   let inp = readInput();
@@ -587,15 +716,18 @@ function frame(now) {
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').classList.remove('show'); }
   if (hud.moved && hud.hintT > 0) { hud.hintT -= dt; if (hud.hintT <= 0) $('hint').classList.add('gone'); }
 
-  // A light governor: drop resolution, then shadows, if the frame rate sags.
+  // Adaptive quality uses sustained windows and can recover after a calm spell.
+  // Explicit ?quality=low stays locked for predictable battery-friendly play.
   fpsT += dt; fpsN++;
-  if (fpsT > 4 && !governed && flag('shot') !== '1') {
+  if (fpsT > 4 && flag('shot') !== '1') {
     const fps = fpsN / fpsT;
-    if (fps < 36) {
-      renderer.setPixelRatio(1);
-      atmosphere.setLowPower(true);
-      if (fps < 24) { renderer.shadowMap.enabled = false; sky.sun.castShadow = false; }
-      governed = true;
+    if (qualityFlag !== 'low') {
+      if (fps < 27 && qualityTier < 2) { applyQualityTier(2); healthyT = 0; }
+      else if (fps < 42 && qualityTier < 1) { applyQualityTier(1); healthyT = 0; }
+      else if (fps > 55 && qualityTier > 0) {
+        healthyT += fpsT;
+        if (healthyT > 12) { applyQualityTier(qualityTier - 1); healthyT = 0; }
+      } else healthyT = Math.max(0, healthyT - fpsT * 0.5);
     }
     fpsT = 0; fpsN = 0;
   }

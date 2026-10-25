@@ -312,6 +312,12 @@ export class Sky {
   lightFire(i) { if (this.fires[i]) this.fires[i].target = 1; }
   resetFires() { for (const f of this.fires) { f.target = 0; f.kindle = 0; f.mat.uniforms.uKindle.value = 0; } }
 
+  /** Trim nonessential skyline motion when the adaptive governor asks. */
+  setLowPower(on = true) {
+    this.lowPower = on;
+    for (let i = 0; i < this.clouds.length; i++) this.clouds[i].visible = !on || i < 7;
+  }
+
   /** p: route progress. Night ∈ [0,1] comes back for lanterns and windows. */
   setPhase(p) {
     p = Math.min(1, Math.max(0, p));

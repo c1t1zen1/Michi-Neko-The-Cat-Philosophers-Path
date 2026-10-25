@@ -44,10 +44,24 @@
   </nav>
 
   <p class="hint guide" id="hint">
-    <kbd>←</kbd><kbd>→</kbd> run · <kbd>Space</kbd> jump, hold to go higher · <kbd>Shift</kbd> sprint · <kbd>↓</kbd> drop down · <kbd>R</kbd> last lantern · <kbd>H</kbd> hide this
+    <kbd>←</kbd><kbd>→</kbd> run · <kbd>Space</kbd> jump, hold to go higher · <kbd>Shift</kbd> sprint · <kbd>↓</kbd> drop · <kbd>R</kbd> lantern · <kbd>M</kbd> sound · controller supported
   </p>
 
   <p class="toast" id="toast" aria-live="polite"></p>
+
+  <nav class="tools" aria-label="Roof Road controls">
+    <button id="btn-guide" type="button" aria-label="Hide guidance" title="Show or hide guidance"><span aria-hidden="true">◉</span></button>
+    <button id="btn-sound" type="button" aria-label="Mute sound" title="Sound on or off"><span aria-hidden="true">♪</span></button>
+    <button id="btn-reset" type="button" aria-label="Return to the last lantern" title="Return to the last lantern"><span aria-hidden="true">↺</span></button>
+    <button id="btn-pause" type="button" aria-label="Pause" title="Pause"><span aria-hidden="true">Ⅱ</span></button>
+  </nav>
+
+  <section class="pause-panel" id="pause-panel" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden>
+    <p class="k">ひと休み</p>
+    <h2 id="pause-title">A quiet moment</h2>
+    <p id="pause-reason">The roofs will wait.</p>
+    <button id="btn-resume" type="button">Keep exploring</button>
+  </section>
 
   <section class="finale" id="finale" aria-live="polite">
     <p class="k">屋根道</p>
@@ -61,10 +75,13 @@
     </div>
   </section>
 
-  <div class="touch" aria-hidden="true">
-    <div class="pad" id="pad"><span>drag ← →</span></div>
-    <button class="btn down" id="btn-down" type="button" tabindex="-1">↓</button>
-    <button class="btn jump" id="btn-jump" type="button" tabindex="-1">jump</button>
+  <div class="touch" id="touch-controls" aria-label="Touch controls">
+    <div class="pad" id="pad" aria-label="Drag left or right to move; drag farther to sprint">
+      <div class="stick-base" id="stick-base" aria-hidden="true"><div class="stick" id="stick"></div></div>
+      <span class="pad-label">move · push wide to sprint</span>
+    </div>
+    <button class="btn down" id="btn-down" type="button" aria-label="Drop down"><b aria-hidden="true">↓</b><span>drop</span></button>
+    <button class="btn jump" id="btn-jump" type="button" aria-label="Jump; hold to jump higher"><b aria-hidden="true">↑</b><span>jump</span></button>
   </div>
 
   <script>
