@@ -4,7 +4,7 @@
 //   platforms  one-way surfaces in (s, y) with a visual depth d
 //   walls      one-way side walls of tall buildings (block entering only)
 //   pieces     what build.js turns into meshes
-//   pickups    the seven Shōki and two treats
+//   pickups    the seven Shōki and hidden treats
 //   perches    where Chidori, the guide cat, waits
 //   checkpoints, mouths
 //
@@ -27,9 +27,9 @@ export const RAIL_RADIUS = 2.5;
 
 export const MOUTHS = [
   { id: 1, kanji: '粟田口', romaji: 'Awataguchi', title: 'the Mouth', note: 'Sanjō Ōhashi, where the Tōkaidō came in' },
-  { id: 2, kanji: '先斗町', romaji: 'Pontochō', title: 'the Narrow Lane', note: 'roofs on both sides, yuka decks over the river' },
+  { id: 2, kanji: '先斗町', romaji: 'Pontochō', title: 'the Narrow Lane', note: 'river decks below, crooked balconies between, roof ridges above' },
   { id: 3, kanji: '高瀬川', romaji: 'Takase', title: 'the Water Maze', note: 'stones below, a takasebune between, cherry boughs above' },
-  { id: 4, kanji: '錦', romaji: 'Nishiki', title: 'the Long Canopy', note: 'the market roof, four hundred metres of it' },
+  { id: 4, kanji: '錦', romaji: 'Nishiki', title: 'the Long Canopy', note: 'race the arcade roof, then duck through its open skylights' },
   { id: 5, kanji: '物干し', romaji: 'Monohoshi', title: 'Laundry Sky', note: 'drying decks, where the sun reaches' },
   { id: 6, kanji: '鉾町', romaji: 'Hoko-chō', title: 'Festival Streets', note: 'Yoiyama: the floats stand lit in the street' },
   { id: 7, kanji: '送り火', romaji: 'Okuribi', title: 'the Sending Fires', note: 'five fires on the hills, one after another' }
@@ -171,6 +171,20 @@ export function buildLevel() {
     return p;
   };
 
+  /** A middle-storey escape route: engawa, shop awning or alley bridge. */
+  const balcony = (s0, s1, y, d, style = 'engawa', label = 'alley balcony') => {
+    const p = plat({ s0, s1, y, d, kind: 'deck', label });
+    piece({ type: 'balcony', s0, s1, y, d, style, plat: p.id, look: hash1(s0 * 1.73 + d) });
+    return p;
+  };
+
+  /** A lowered bridge hung in a deliberate opening in Nishiki's arcade roof. */
+  const marketCrossing = (s0, s1, y, d, side = 'far') => {
+    const p = plat({ s0, s1, y, d, kind: 'deck', label: 'Nishiki skylight bridge' });
+    piece({ type: 'marketCrossing', s0, s1, y, d, side, plat: p.id });
+    return p;
+  };
+
   const rope = (s0, s1, y, d, style) => {
     const p = plat({ s0, s1, y, d, kind: 'rope', label: style === 'laundry' ? 'laundry pole' : 'lantern line' });
     piece({ type: 'rope', s0, s1, y, d, style, plat: p.id });
@@ -242,6 +256,18 @@ export function buildLevel() {
   // The low road: yuka decks over the riverbank, lanterns on posts.
   const yuka = [[56.0, 63.0], [63.6, 70.4], [71.0, 78.0], [78.6, 86.0], [86.6, 94.0], [94.6, 102.0], [102.6, 110.0]]
     .map(([a, b]) => { const p = plat({ s0: a, s1: b, y: 1.4, d: 2.4, kind: 'deck', label: 'yuka deck' }); piece({ type: 'deck', style: 'yuka', s0: a, s1: b, y: 1.4, d: 2.4, plat: p.id }); return p; });
+  // A complete middle road alternates between the river façades and the far
+  // alley. It gives every missed rooftop jump somewhere interesting to land,
+  // then crosses the lane again before the next house. The visible depth swap
+  // is the district's maze rhythm: low yuka / crooked balconies / high ridges.
+  const alleyLine = [
+    [56.1, 60.4, 2.15, 0.90, 'engawa'], [61.0, 65.2, 2.48, -3.75, 'bridge'],
+    [65.8, 70.3, 2.12, 0.80, 'awning'], [70.9, 75.1, 2.62, -3.80, 'engawa'],
+    [76.0, 80.2, 2.20, 0.90, 'awning'], [80.8, 85.0, 2.70, -3.85, 'bridge'],
+    [85.7, 90.0, 2.24, 0.85, 'engawa'], [90.7, 95.0, 2.72, -3.80, 'bridge'],
+    [95.7, 100.0, 2.18, 0.80, 'awning'], [100.7, 105.0, 2.65, -3.85, 'engawa'],
+    [105.7, 110.0, 2.20, 0.90, 'awning']
+  ].map(([a, b, y, d, style], i) => balcony(a, b, y, d, style, `Pontochō ${style} ${i + 1}`));
   for (const s of [60.0, 74.5, 89.5, 108.6]) small('post', s - 0.15, s + 0.15, 2.0, 2.7, 'cap', 'lantern post');
   const KA = kura(111.8, 116.0, 3.7, 4.6, 'kura');
   const KB = kura(116.8, 121.2, 4.5, 5.4, 'kura');
@@ -250,6 +276,7 @@ export function buildLevel() {
     N[3].plats.ridge, R2, N[4].plats.ridge, KA.plats.left, KA.plats.right, KB.plats.left, KB.plats.right);
   shoki(2, 90.0, 4.5, F[2].plats.ridge.d, -0.5);
   treat(1, 97.0, 1.4, 2.4, 'a dried sardine (niboshi) left on a yuka deck');
+  treat(4, 98.2, alleyLine[8].y0, alleyLine[8].d, 'a tiny pouch of katsuobushi on the hidden awning road');
   perch(63.6, 3.7, F[0].plats.eave.d); perch(77.0, 3.3, -3.9); perch(96.0, 3.2, -2.5);
   perch(113.9, 4.6, -0.6); perch(119.0, 5.4, -0.6);
 
@@ -321,9 +348,14 @@ export function buildLevel() {
   street(C[1].s1, 229.6, 2.2, 'market');
   const NS1 = house(167.3, 173.4, { storeys: 2, eave: 3.6, ridge: 4.4, hisashi: 2.3, label: 'shop', noren: 'indigo' });
   komayose(168.0, 169.6);
-  const canopySegs = [[174.0, 190.0], [191.4, 206.0], [207.4, 222.0]];
+  // The arcade is no longer one flat sprint. Two broad open skylights reveal
+  // suspended timber bridges a storey below; the fast route has to drop into
+  // each opening, cross the market's depth, and climb back onto the vault.
+  const canopySegs = [[174.0, 188.7], [191.7, 204.7], [207.7, 222.0]];
   const CN = canopySegs.map(([a, b]) => plat({ s0: a, s1: b, y: 5.0, d: 1.2, kind: 'canopy', label: 'Nishiki canopy', solid: true }));
-  piece({ type: 'canopy', s0: 174.0, s1: 222.0, y: 5.0, d: 1.2, gaps: [[190.0, 191.4], [206.0, 207.4]] });
+  piece({ type: 'canopy', s0: 174.0, s1: 222.0, y: 5.0, d: 1.2, gaps: [[188.7, 191.7], [204.7, 207.7]] });
+  const NX1 = marketCrossing(189.2, 191.2, 3.92, -0.45, 'far');
+  const NX2 = marketCrossing(205.2, 207.2, 3.84, 2.25, 'near');
   for (const [a, b] of [[181.5, 182.2], [197.5, 198.2], [213.5, 214.2]]) {
     small('vent', a, b, 5.42, 1.2, 'roof', 'canopy vent');
     sides(a, b, 5.42, 0.2, 2.2);
@@ -338,7 +370,7 @@ export function buildLevel() {
   const NS2 = house(222.6, 229.2, { storeys: 2, eave: 3.6, ridge: 4.4, hisashi: 2.3, label: 'fishmonger', noren: 'indigo', deck: { s0: 223.4, s1: 228.4, y: 5.0 } });
   komayose(223.0, 224.6);
 
-  route(NS1.plats.ridge, CN[0], CN[1], CN[2], NS2.plats.deck);
+  route(NS1.plats.ridge, CN[0], NX1, CN[1], NX2, CN[2], NS2.plats.deck);
   shoki(4, 224.2, 2.3, NS2.plats.hisashi.d + 0.1, -0.3);
   treat(2, 225.6, 5.0, NS2.plats.deck.d, 'a sliver of grilled fish, set out on purpose');
   checkpoint(5, 232.0, 5.0);                              // on the first drying deck of ⑤

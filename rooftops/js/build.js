@@ -385,6 +385,42 @@ function facade(g, M, pc, x0, x1, zF, look) {
   }
 }
 
+/** Small things that make a machiya eave believable at cat height. */
+function streetEaveDetails(g, M, pc, x0, x1, zF, look) {
+  const w = x1 - x0;
+  const y = pc.storeys === 2 ? pc.hisashi : pc.eave;
+  const z = zF + (pc.storeys === 2 ? 0.91 : 0.64);
+
+  // Exposed rafter tails and round kawara end caps make a readable scalloped
+  // edge without needing a unique roof mesh for every building.
+  for (let x = x0 + 0.18; x < x1 - 0.1; x += 0.42) {
+    g.add(box(0.075, 0.075, 0.48, M.timber, x, y - 0.12, z - 0.18));
+    const cap = cyl(0.075, 0.075, M.ridge, 'z', 8);
+    cap.position.set(x, y - 0.015, z + 0.055);
+    g.add(cap);
+  }
+
+  // Dark rain gutter, one downpipe and a small shop board. The choice of side
+  // is deterministic so an entire block does not repeat as a kit of clones.
+  const gutter = cyl(0.045, w + 0.12, M.bronze, 'x', 7);
+  gutter.position.set((x0 + x1) / 2, y - 0.08, z + 0.06);
+  g.add(gutter);
+  const pipeX = look > 0.5 ? x0 + 0.16 : x1 - 0.16;
+  const pipe = cyl(0.032, Math.max(0.4, y - 0.26), M.bronze, 'y', 7);
+  pipe.position.set(pipeX, (y - 0.26) / 2 + 0.18, zF + 0.16);
+  g.add(pipe);
+  if (pc.noren && w > 4.2) {
+    const sign = box(0.42, 0.92, 0.055, look > 0.5 ? M.lacquer : M.timberMed,
+      look > 0.5 ? x1 - 0.58 : x0 + 0.58, Math.min(1.55, y - 0.52), zF + 0.21);
+    sign.rotation.z = (look - 0.5) * 0.025;
+    g.add(sign);
+    for (let i = 0; i < 3; i++) {
+      g.add(box(0.22, 0.026, 0.01, M.plasterWarm, sign.position.x,
+        sign.position.y + 0.23 - i * 0.22, zF + 0.244));
+    }
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /*  Frames on the rail                                                  */
 /* ------------------------------------------------------------------ */
@@ -633,6 +669,7 @@ B.house = (pc, ctx) => {
   facade(g, M, pc, x0, x1, zF, look);
   if (pc.style === 'hira') hiraRoof(g, M, x0, x1, zF, zB, pc.eave, pc.ridge);
   else tsumaRoof(g, M, x0, x1, zF, zB, pc.eave, pc.ridge);
+  streetEaveDetails(g, M, pc, x0, x1, zF, look);
   if (pc.kaisho) {
     // The kaisho's second-floor opening onto the plank, curtained in festival red.
     g.add(box(1.4, 1.0, 0.06, M.tapestry, x1 - 0.9, 3.3, zF + 0.05));
@@ -931,6 +968,82 @@ B.deck = (pc, ctx) => {
     g.add(box(0.4, 0.06, 0.4, M.goods[3], x + 0.6, pc.y + 0.03, pc.d - 0.2));
   }
   ctx.add(g);
+};
+
+B.balcony = (pc, ctx) => {
+  const { M } = ctx;
+  const sm = (pc.s0 + pc.s1) / 2, w = pc.s1 - pc.s0;
+  const g = frameGroup(ctx.rail, sm);
+  const near = pc.d > -1;
+  const outer = pc.d + (near ? 0.72 : -0.72);
+  const inner = pc.d - (near ? 0.38 : -0.38);
+  const deckMat = pc.style === 'awning' ? M.cloth[(Math.floor(pc.look * 7) + 1) % M.cloth.length] : M.timberMed;
+
+  g.add(box(w, pc.style === 'awning' ? 0.07 : 0.11, 1.45, deckMat, 0, pc.y - 0.055, pc.d));
+  g.add(box(w, 0.08, 0.1, M.timber, 0, pc.y - 0.13, outer));
+  for (let x = -w / 2 + 0.12; x < w / 2; x += 0.78) {
+    const brace = box(0.065, Math.max(0.6, pc.y - 0.25), 0.065, M.timber, x,
+      (pc.y - 0.25) / 2, inner);
+    g.add(brace);
+    if (pc.style !== 'awning') g.add(box(0.055, 0.46, 0.055, M.timber, x, pc.y + 0.23, outer));
+  }
+  if (pc.style !== 'awning') {
+    g.add(box(w, 0.055, 0.06, M.timber, 0, pc.y + 0.48, outer));
+  } else {
+    // A scalloped shop awning: the fringe moves with the same breeze shader as
+    // the laundry, while the timber braces explain why a cat can stand on it.
+    for (let x = -w / 2 + 0.18, i = 0; x < w / 2 - 0.05; x += 0.36, i++) {
+      g.add(box(0.28, 0.16 + (i % 2) * 0.05, 0.018, deckMat, x, pc.y - 0.13, outer + 0.04));
+    }
+  }
+  if (pc.style === 'bridge') {
+    for (const x of [-w / 2 + 0.12, w / 2 - 0.12]) {
+      const rope = cyl(0.018, 2.1, M.hemp, 'y', 5);
+      rope.position.set(x, pc.y + 0.98, outer);
+      g.add(rope);
+    }
+  }
+  if (pc.look > 0.46) {
+    const lantern = cyl(0.105, 0.28, pc.look > 0.72 ? M.lanternRed : M.lanternWhite, 'y', 9);
+    lantern.position.set((pc.look - 0.5) * w * 0.75, pc.y - 0.28, outer);
+    g.add(lantern);
+    ctx.light(ctx.rail, sm, pc.y - 0.25, outer);
+  }
+  ctx.add(g);
+};
+
+B.marketCrossing = (pc, ctx) => {
+  const { M } = ctx;
+  const sm = (pc.s0 + pc.s1) / 2, w = pc.s1 - pc.s0;
+  const g = frameGroup(ctx.rail, sm);
+
+  // A narrow bridge slung below the missing canopy bay. The long crossbeams
+  // and suspension ropes make the depth change legible from a side camera.
+  g.add(box(w, 0.11, 1.2, M.timberMed, 0, pc.y - 0.055, pc.d));
+  for (let x = -w / 2 + 0.18; x <= w / 2 - 0.12; x += 0.34) {
+    g.add(box(0.07, 0.08, 1.34, M.timber, x, pc.y - 0.12, pc.d));
+  }
+  for (const x of [-w / 2 + 0.08, w / 2 - 0.08]) {
+    for (const z of [pc.d - 0.52, pc.d + 0.52]) {
+      const rope = cyl(0.018, 1.12, M.hemp, 'y', 5);
+      rope.position.set(x, pc.y + 0.55, z);
+      g.add(rope);
+    }
+  }
+  const toward = pc.side === 'near' ? 1 : -1;
+  const crossZ = pc.d - toward * 1.65;
+  g.add(box(0.13, 0.1, 4.3, M.steel, 0, pc.y + 1.05, crossZ));
+  for (const z of [-1, 0, 1]) {
+    const pennant = box(0.42, 0.52, 0.018, M.goods[(z + 3) % M.goods.length], 0,
+      pc.y + 0.72, crossZ + z * 0.82);
+    pennant.rotation.y = 0.04 * z;
+    g.add(pennant);
+  }
+  const lamp = cyl(0.13, 0.34, M.lanternWhite, 'y', 10);
+  lamp.position.set(0, pc.y + 0.42, pc.d + toward * 0.8);
+  g.add(lamp);
+  ctx.add(g);
+  ctx.light(ctx.rail, sm, pc.y + 0.42, pc.d + toward * 0.8);
 };
 
 B.cherry = (pc, ctx) => {
