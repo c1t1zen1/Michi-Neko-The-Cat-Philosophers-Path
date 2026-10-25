@@ -128,6 +128,83 @@ function lanternTex(paper, band) {
 
 function panel(m) { m.userData.panel = true; return m; }
 
+/** Give paper and laundry a tiny hand-animated breeze without adding meshes. */
+function windMaterial(material, amplitude = 0.045, phase = 0) {
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uRoofTime = { value: 0 };
+    shader.uniforms.uRoofWind = { value: amplitude };
+    shader.vertexShader = `uniform float uRoofTime; uniform float uRoofWind;\n${shader.vertexShader}`;
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <begin_vertex>',
+      `#include <begin_vertex>
+       float roofEdge = smoothstep(0.18, 0.92, uv.y);
+       float roofWave = sin(uRoofTime * 1.75 + position.x * 2.1 + position.z * 1.3 + ${phase.toFixed(3)});
+       transformed.z += roofWave * uRoofWind * roofEdge;
+       transformed.x += sin(uRoofTime * 1.05 + position.y * 3.0 + ${phase.toFixed(3)}) * uRoofWind * 0.22 * roofEdge;`
+    );
+    material.userData.windShader = shader;
+  };
+  material.customProgramCacheKey = () => `roof-wind-${amplitude}-${phase}`;
+  material.userData.wind = true;
+  return material;
+}
+
+/** Painted flowing water: layered current, bank foam, glints and night tint. */
+function flowWaterMaterial() {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uNight: { value: 0 },
+      uDeep: { value: new THREE.Color(0x315f67) },
+      uShallow: { value: new THREE.Color(0x72a29a) },
+      uSun: { value: new THREE.Color(0xffe0a8) }
+    },
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    fog: true,
+    vertexShader: `
+      #include <fog_pars_vertex>
+      uniform float uTime;
+      varying vec2 vUv;
+      varying vec3 vWorld;
+      void main() {
+        vUv = uv;
+        vec3 p = position;
+        p.y += sin((uv.x + uTime * 0.16) * 13.0) * 0.012;
+        p.y += sin((uv.x * 1.7 - uv.y * 2.4 - uTime * 0.28) * 8.0) * 0.008;
+        vec4 world = modelMatrix * vec4(p, 1.0);
+        vWorld = world.xyz;
+        vec4 mvPosition = viewMatrix * world;
+        gl_Position = projectionMatrix * mvPosition;
+        #include <fog_vertex>
+      }`,
+    fragmentShader: `
+      uniform float uTime;
+      uniform float uNight;
+      uniform vec3 uDeep;
+      uniform vec3 uShallow;
+      uniform vec3 uSun;
+      varying vec2 vUv;
+      varying vec3 vWorld;
+      #include <fog_pars_fragment>
+      float band(float x, float w) { return 1.0 - smoothstep(0.0, w, abs(x)); }
+      void main() {
+        float current = sin(vUv.x * 37.0 - uTime * 2.4 + sin(vUv.y * 9.0) * 1.8);
+        float cross = sin(vUv.x * 17.0 + vUv.y * 22.0 + uTime * 1.25);
+        float glint = pow(max(0.0, current * 0.55 + cross * 0.45), 8.0);
+        float depthBand = 0.5 + 0.5 * sin(vUv.y * 2.4 + 0.7);
+        vec3 col = mix(uDeep, uShallow, 0.32 + depthBand * 0.28);
+        col += uSun * glint * (0.22 + 0.28 * (1.0 - uNight));
+        col = mix(col, vec3(0.085, 0.12, 0.22), uNight * 0.48);
+        float ripple = band(fract(vUv.x * 0.23 - uTime * 0.08) - 0.5, 0.035) * 0.08;
+        col += vec3(0.72, 0.86, 0.84) * ripple;
+        gl_FragColor = vec4(col, 0.88);
+        #include <fog_fragment>
+      }`
+  });
+}
+
 function makeMaterials() {
   const M = {};
   M.roof = texturedMaterial(kawaraTextures(0x5e6872, 3), { color: 0xd4d5d4, roughness: 0.55, normalScale: 0.5, repeat: [0.9, 0.9], envMapIntensity: 0.6 });
@@ -151,8 +228,12 @@ function makeMaterials() {
   M.bronze = texturedMaterial(metalTextures(0xb28538), { metalness: 0.85, roughness: 0.4, emissive: 0x3a2205, emissiveIntensity: 0.15 });
   M.gold = texturedMaterial(metalTextures(0xd9ad4c), { metalness: 0.9, roughness: 0.3, emissive: 0x6a4808, emissiveIntensity: 0.35 });
   M.lacquer = texturedMaterial(lacquerTextures(), { roughness: 0.35, normalScale: 0.4 });
-  M.water = new THREE.MeshStandardMaterial({ color: 0x3d6f73, roughness: 0.12, metalness: 0.35, transparent: true, opacity: 0.82, depthWrite: false });
+  M.water = flowWaterMaterial();
   M.river = new THREE.MeshStandardMaterial({ color: 0x4f7f84, roughness: 0.1, metalness: 0.4 });
+  M.wetStone = texturedMaterial(stoneTextures(0x6d7370, 8), { color: 0xa9b0aa, roughness: 0.48, normalScale: 1.0, repeat: [0.38, 0.38], envMapIntensity: 0.9 });
+  M.foam = new THREE.MeshBasicMaterial({ color: 0xd8ece6, transparent: true, opacity: 0.42, depthWrite: false, side: THREE.DoubleSide });
+  M.wake = new THREE.MeshBasicMaterial({ color: 0xe8f3ed, transparent: true, opacity: 0.36, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+  M.hemp = new THREE.MeshStandardMaterial({ color: 0x9c8256, roughness: 1.0 });
   M.glass = new THREE.MeshStandardMaterial({ color: 0xe9f0e6, roughness: 0.25, metalness: 0.1, transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false });
   M.steel = new THREE.MeshStandardMaterial({ color: 0x5d6168, roughness: 0.5, metalness: 0.6 });
   M.clay = new THREE.MeshStandardMaterial({ color: 0x6b6863, roughness: 0.75 });
@@ -170,11 +251,12 @@ function makeMaterials() {
   M.tapestry = panel(new THREE.MeshStandardMaterial({ map: tapestryTex(), roughness: 0.85 }));
   M.sujibei = panel(new THREE.MeshStandardMaterial({ map: sujibeiTex(), roughness: 0.92 }));
   M.futon = panel(new THREE.MeshStandardMaterial({ map: stripesTex('#e8e2d2', '#5a78a8'), roughness: 0.95 }));
-  M.cloth = [0xf2efe6, 0x2f4c78, 0xe6d6a8, 0xd9e2ea, 0xb8584a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95, side: THREE.DoubleSide }));
+  M.cloth = [0xf2efe6, 0x2f4c78, 0xe6d6a8, 0xd9e2ea, 0xb8584a].map((c, i) =>
+    windMaterial(new THREE.MeshStandardMaterial({ color: c, roughness: 0.95, side: THREE.DoubleSide }), 0.065, i * 1.71));
   M.noren = {
-    indigo: panel(new THREE.MeshStandardMaterial({ map: norenTex('#223652'), roughness: 0.9, side: THREE.DoubleSide })),
-    crimson: panel(new THREE.MeshStandardMaterial({ map: norenTex('#8f2820'), roughness: 0.9, side: THREE.DoubleSide })),
-    hemp: panel(new THREE.MeshStandardMaterial({ map: norenTex('#c9b48c'), roughness: 0.9, side: THREE.DoubleSide }))
+    indigo: panel(windMaterial(new THREE.MeshStandardMaterial({ map: norenTex('#223652'), roughness: 0.9, side: THREE.DoubleSide }), 0.055, 0.4)),
+    crimson: panel(windMaterial(new THREE.MeshStandardMaterial({ map: norenTex('#8f2820'), roughness: 0.9, side: THREE.DoubleSide }), 0.055, 2.1)),
+    hemp: panel(windMaterial(new THREE.MeshStandardMaterial({ map: norenTex('#c9b48c'), roughness: 0.9, side: THREE.DoubleSide }), 0.055, 4.0))
   };
   M.ground = new THREE.MeshStandardMaterial({ color: 0x5a5448, roughness: 1 });
   M.dark = new THREE.MeshStandardMaterial({ color: 0x1e1915, roughness: 0.95 });
@@ -346,6 +428,33 @@ function ribbon(rail, s0, s1, dA, dB, y, mat, uv = 1) {
   return new THREE.Mesh(geo, mat);
 }
 
+/** Open, shallow hull for a historical Takase cargo boat. */
+function boatHullGeometry(len = 4.8, width = 1.55, depth = 0.48) {
+  const xs = [-len / 2, -len * 0.34, len * 0.34, len / 2];
+  const ws = [width * 0.18, width * 0.5, width * 0.5, width * 0.18];
+  const bs = [-depth * 0.42, -depth, -depth, -depth * 0.42];
+  const pos = [], uv = [];
+  const q = (a, b, c, d) => {
+    for (const p of [a, b, c, a, c, d]) { pos.push(...p); uv.push(p[0] / len + 0.5, p[2] / width + 0.5); }
+  };
+  for (let i = 0; i < xs.length - 1; i++) {
+    const aL = [xs[i], 0, -ws[i]], aR = [xs[i], 0, ws[i]];
+    const bL = [xs[i + 1], 0, -ws[i + 1]], bR = [xs[i + 1], 0, ws[i + 1]];
+    const abL = [xs[i], bs[i], -ws[i] * 0.62], abR = [xs[i], bs[i], ws[i] * 0.62];
+    const bbL = [xs[i + 1], bs[i + 1], -ws[i + 1] * 0.62], bbR = [xs[i + 1], bs[i + 1], ws[i + 1] * 0.62];
+    q(aL, bL, bbL, abL);                 // port side
+    q(bR, aR, abR, bbR);                 // starboard side
+    q(abL, bbL, bbR, abR);               // shallow bottom
+  }
+  q([xs[0], 0, ws[0]], [xs[0], 0, -ws[0]], [xs[0], bs[0], -ws[0] * 0.62], [xs[0], bs[0], ws[0] * 0.62]);
+  q([xs[3], 0, -ws[3]], [xs[3], 0, ws[3]], [xs[3], bs[3], ws[3] * 0.62], [xs[3], bs[3], -ws[3] * 0.62]);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.computeVertexNormals();
+  return geo;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Piece builders                                                      */
 /* ------------------------------------------------------------------ */
@@ -372,16 +481,141 @@ B.street = (pc, ctx) => {
 
 B.water = (pc, ctx) => {
   const { M, rail } = ctx;
-  ctx.add(ribbon(rail, pc.s0, pc.s1, pc.d - 1.5, pc.d + 1.6, pc.y - 0.02, M.sand, 0.5));
-  ctx.addGlass(ribbon(rail, pc.s0, pc.s1, pc.d - 1.5, pc.d + 1.6, pc.y + 0.18, M.water, 0.2));
-  // Stone embankments on both sides, and the Kiyamachi path beyond.
+  const waterY = pc.y + 0.18;
+  ctx.add(ribbon(rail, pc.s0, pc.s1, pc.d - 1.55, pc.d + 1.65, pc.y - 0.04, M.sand, 0.5));
+  ctx.addGlass(ribbon(rail, pc.s0, pc.s1, pc.d - 1.53, pc.d + 1.63, waterY, M.water, 0.24));
+  // Soft current lines collect against the dressed-stone banks.
+  ctx.addGlass(ribbon(rail, pc.s0 + 0.2, pc.s1 - 0.2, pc.d - 1.48, pc.d - 1.34, waterY + 0.018, M.foam, 0.7));
+  ctx.addGlass(ribbon(rail, pc.s0 + 0.2, pc.s1 - 0.2, pc.d + 1.43, pc.d + 1.57, waterY + 0.018, M.foam, 0.7));
+  // Kiyamachi's towpath remains the safe ground-level route beside the flow.
+  ctx.add(ribbon(rail, pc.s0, pc.s1, pc.d + 1.82, pc.d + 7, 0.0, M.cobble, 1));
+};
+
+/** The canal's architectural shell: wet banks, towpath, drains and greenery. */
+B.canalQuarter = (pc, ctx) => {
+  const { M, rail } = ctx;
   const sm = (pc.s0 + pc.s1) / 2;
-  const g = frameGroup(rail, sm);
   const len = pc.s1 - pc.s0;
-  g.add(box(len, 0.36, 0.3, M.stone, 0, -0.1, pc.d - 1.65));
-  g.add(box(len, 0.36, 0.3, M.stone, 0, -0.1, pc.d + 1.75));
+  const g = frameGroup(rail, sm);
+  const zFar = pc.d - 1.68, zNear = pc.d + 1.78;
+
+  // Retaining walls sit in the water, darker below the waterline. Individual
+  // cap blocks break the long strip into hand-laid masonry at cat-eye height.
+  for (const z of [zFar, zNear]) {
+    g.add(box(len, 0.72, 0.38, M.wetStone, 0, -0.12, z));
+    for (let x = -len / 2 + 0.55, i = 0; x < len / 2 - 0.2; x += 1.08, i++) {
+      const cap = box(0.98, 0.16, 0.52, i % 3 === 0 ? M.slab : M.stone, x, 0.28 + (i % 2) * 0.018, z);
+      cap.rotation.y = (i % 3 - 1) * 0.012;
+      g.add(cap);
+    }
+  }
+
+  // A narrow far-bank towpath and its timber edge. It gives the canal depth
+  // behind the cat, especially where the route jumps onto the far boughs.
+  g.add(box(len, 0.16, 1.35, M.slab, 0, 0.08, zFar - 0.72));
+  g.add(box(len, 0.13, 0.12, M.timber, 0, 0.26, zFar + 0.23));
+
+  // Mooring stakes and the thick hand-haul rope used by the takasebune.
+  for (const u of [-0.41, -0.18, 0.13, 0.39]) {
+    const x = u * len;
+    const post = cyl(0.075, 1.05, M.timberMed, 'y', 8);
+    post.position.set(x, 0.55, zNear - 0.18);
+    g.add(post);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.025, 5, 10), M.steel);
+    ring.position.set(x, 0.77, zNear - 0.36);
+    ring.rotation.x = Math.PI / 2;
+    g.add(ring);
+  }
+
+  // A round storm drain, stone lip and trickle on the far wall.
+  const drainX = -len * 0.22;
+  const drain = new THREE.Mesh(new THREE.CircleGeometry(0.28, 16), M.dark);
+  drain.position.set(drainX, -0.04, zFar + 0.205);
+  g.add(drain);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.055, 6, 16), M.wetStone);
+  rim.position.copy(drain.position);
+  g.add(rim);
+  const trickle = box(0.13, 0.03, 0.7, M.water, drainX, -0.18, zFar + 0.55);
+  trickle.rotation.x = Math.PI / 2;
+  g.add(trickle);
+
+  // Kiyamachi details: rain chains, potted nandina and two low paper lamps.
+  for (const u of [-0.34, 0.27]) {
+    const x = u * len;
+    const chain = cyl(0.018, 2.1, M.bronze, 'y', 6);
+    chain.position.set(x, 1.15, zFar - 1.37);
+    g.add(chain);
+    for (let j = 0; j < 4; j++) {
+      const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(0.12 + j * 0.015, 1), j % 2 ? M.pine : M.foliage);
+      leaf.position.set(x + (j - 1.5) * 0.12, 0.48 + j * 0.12, zFar - 1.0 + (j % 2) * 0.1);
+      g.add(leaf);
+    }
+    g.add(cyl(0.18, 0.34, M.clay, 'y', 10));
+    g.children[g.children.length - 1].position.set(x, 0.17, zFar - 1.0);
+  }
   ctx.add(g);
-  ctx.add(ribbon(rail, pc.s0, pc.s1, pc.d + 1.9, pc.d + 7, 0.0, M.cobble, 1));
+  ctx.light(rail, pc.s0 + len * 0.28, 1.2, zFar - 0.8);
+  ctx.light(rail, pc.s0 + len * 0.72, 1.2, zFar - 0.8);
+};
+
+B.steppingStone = (pc, ctx) => {
+  const g = frameGroup(ctx.rail, (pc.s0 + pc.s1) / 2);
+  const w = pc.s1 - pc.s0;
+  const geo = new THREE.DodecahedronGeometry(0.55, 0);
+  const stone = new THREE.Mesh(geo, ctx.M.wetStone);
+  stone.scale.set(w, 0.24 + pc.look * 0.08, 0.78 + pc.look * 0.28);
+  stone.rotation.set(0.04 * (pc.look - 0.5), pc.look * 0.7, 0.035 * (pc.look - 0.5));
+  stone.position.set(0, pc.y - 0.17, pc.d);
+  g.add(stone);
+  // A thin moss cap keeps each stone readable against the moving water.
+  const moss = new THREE.Mesh(new THREE.CircleGeometry(0.34 + pc.look * 0.12, 9), ctx.M.pine);
+  moss.rotation.x = -Math.PI / 2;
+  moss.scale.x = 1.25;
+  moss.position.set(0.08, pc.y + 0.015, pc.d - 0.04);
+  g.add(moss);
+  ctx.add(g);
+};
+
+B.canalLanding = (pc, ctx) => {
+  const { M } = ctx;
+  const sm = (pc.s0 + pc.s1) / 2;
+  const g = frameGroup(ctx.rail, sm);
+  const w = pc.s1 - pc.s0;
+  g.add(box(w, 0.14, 1.25, M.timberMed, 0, pc.y - 0.07, pc.d));
+  for (let i = 0; i < 3; i++) {
+    const h = pc.y * (i + 1) / 3;
+    const step = box(w * 0.62, 0.12, 0.36, M.wetStone, (i - 1) * w * 0.14, h - 0.06, pc.d + (pc.side === 'near' ? 0.75 + i * 0.28 : -0.75 - i * 0.28));
+    g.add(step);
+  }
+  for (const x of [-w / 2 + 0.12, w / 2 - 0.12]) {
+    const post = box(0.08, pc.y + 0.48, 0.08, M.timber, x, (pc.y + 0.48) / 2, pc.d + 0.52);
+    g.add(post);
+  }
+  ctx.add(g);
+};
+
+B.canalBridge = (pc, ctx) => {
+  const { M } = ctx;
+  const sm = (pc.s0 + pc.s1) / 2;
+  const g = frameGroup(ctx.rail, sm);
+  const w = pc.s1 - pc.s0;
+  // A tiny sori bridge: three gently stepped planks span bank to bank. The
+  // collision top stays flat and forgiving while the silhouette reads arched.
+  for (let i = -3; i <= 3; i++) {
+    const z = pc.d + i * 0.62;
+    const y = pc.y - 0.12 + 0.18 * (1 - Math.abs(i) / 3);
+    g.add(box(w, 0.15, 0.66, M.timberMed, 0, y, z));
+  }
+  for (const side of [-1, 1]) {
+    const z = pc.d + side * 2.0;
+    g.add(box(w, 0.08, 0.08, M.lacquer, 0, pc.y + 0.65, z));
+    for (let x = -w / 2 + 0.12; x <= w / 2 - 0.08; x += 0.48) {
+      g.add(box(0.06, 0.7, 0.06, M.lacquer, x, pc.y + 0.3, z));
+    }
+  }
+  const plaque = box(0.9, 0.35, 0.05, M.noren.indigo, 0, pc.y + 0.9, pc.d + 2.04);
+  g.add(plaque);
+  ctx.add(g);
 };
 
 B.house = (pc, ctx) => {
@@ -645,6 +879,22 @@ B.rope = (pc, ctx) => {
     for (let x = -w / 2 + 0.45, i = 0; x < w / 2 - 0.3; x += 0.8, i++) {
       g.add(box(0.6, 0.75, 0.015, M.cloth[(i * 2 + Math.floor(sm)) % M.cloth.length], x, pc.y - 0.5, pc.d + 0.02));
     }
+  } else if (pc.style === 'tow') {
+    // The Takase boats were hauled by hand. A weathered hemp line crosses
+    // between two mooring posts and doubles as the upper route's balance beam.
+    const line = cyl(0.045, w + 0.36, M.hemp, 'x', 8);
+    line.position.set(0, pc.y - 0.045, pc.d);
+    line.rotation.x = 0.025;
+    g.add(line);
+    for (const x of [-w / 2 - 0.08, w / 2 + 0.08]) {
+      const post = cyl(0.075, 1.0, M.timberMed, 'y', 8);
+      post.position.set(x, pc.y - 0.52, pc.d);
+      g.add(post);
+      const knot = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.018, 5, 9), M.hemp);
+      knot.position.set(x, pc.y - 0.06, pc.d);
+      knot.rotation.y = Math.PI / 2;
+      g.add(knot);
+    }
   } else {
     const line = cyl(0.02, w + 0.3, M.dark, 'x', 5);
     line.position.set(0, pc.y - 0.03, pc.d);
@@ -689,10 +939,12 @@ B.cherry = (pc, ctx) => {
   const sm = (bg.s0 + bg.s1) / 2;
   const g = frameGroup(rail, sm);
   const bx0 = bg.s0 - sm, bx1 = bg.s1 - sm;
-  // Trunk leaning out over the canal from the bank.
+  // Trunk leaning out over the canal from alternating banks. The playable
+  // branch zigzags in depth, so this is a real upper-layer route, not scenery.
+  const bankDir = pc.bank === 'far' ? -1 : 1;
   const trunk = cyl(0.14, bg.y + 0.9, M.bark, 'y', 7);
-  trunk.position.set(bx0 - 0.5, (bg.y - 0.3) / 2, pc.d + 1.6);
-  trunk.rotation.x = -0.35;
+  trunk.position.set(bx0 - 0.5, (bg.y - 0.3) / 2, pc.d + bankDir * 1.55);
+  trunk.rotation.x = -bankDir * 0.35;
   g.add(trunk);
   const bough = cyl(0.09, bx1 - bx0 + 0.6, M.bark, 'x', 6);
   bough.position.set((bx0 + bx1) / 2, bg.y - 0.09, pc.d);
@@ -701,7 +953,11 @@ B.cherry = (pc, ctx) => {
   for (let i = 0; i < 16; i++) {
     const c = new THREE.Mesh(new THREE.IcosahedronGeometry(0.13 + 0.14 * hash1(sm + i * 3.1), 1), M.blossom);
     const u = i / 15;
-    c.position.set(bx0 - 0.9 + u * (bx1 - bx0 + 1.8), bg.y + 0.3 + 0.45 * hash1(sm + i), pc.d - 0.35 - 0.9 * hash1(sm * 2 + i));
+    c.position.set(
+      bx0 - 0.9 + u * (bx1 - bx0 + 1.8),
+      bg.y + 0.3 + 0.45 * hash1(sm + i),
+      pc.d - bankDir * (0.18 + 0.95 * hash1(sm * 2 + i))
+    );
     g.add(c);
   }
   ctx.add(g);
@@ -710,23 +966,81 @@ B.cherry = (pc, ctx) => {
 B.boat = (pc, ctx) => {
   const { M } = ctx;
   const g = new THREE.Group();
-  g.add(box(4.2, 0.32, 1.3, M.timber, 0, -0.08, 0));
-  g.add(box(4.0, 0.06, 1.2, M.timberMed, 0, 0.1, 0));
+  const len = pc.len || 4.4;
+
+  // Tapered open hull, dark inside, raised gunwales and visible deck ribs.
+  const hull = new THREE.Mesh(boatHullGeometry(len + 0.5, 1.58, 0.5), M.timber);
+  hull.position.y = 0.28;
+  g.add(hull);
+  g.add(box(len - 0.35, 0.07, 1.08, M.timberMed, 0, 0.22, 0));
+  for (const z of [-0.76, 0.76]) g.add(box(len + 0.18, 0.12, 0.1, M.timber, 0, 0.34, z));
+  for (let x = -len / 2 + 0.45; x < len / 2 - 0.15; x += 0.55) {
+    g.add(box(0.065, 0.2, 1.42, M.timberMed, x, 0.24, 0));
+  }
+  // Curled bow guards give the little boat a memorable animation silhouette.
   for (const sx of [-1, 1]) {
-    const bow = box(0.6, 0.3, 1.1, M.timber, sx * 2.25, 0.0, 0);
-    bow.rotation.z = sx * 0.35;
+    const bow = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.055, 6, 12, Math.PI * 0.9), M.timber);
+    bow.position.set(sx * (len / 2 + 0.12), 0.48, 0);
+    bow.rotation.set(Math.PI / 2, 0, sx > 0 ? 0.25 : Math.PI + 0.25);
     g.add(bow);
   }
-  // Rice bales stacked to the platform height.
-  for (const [x, y, z] of [[-0.85, 0.42, -0.25], [0.0, 0.42, -0.25], [0.85, 0.42, -0.25], [-0.85, 0.42, 0.3], [0.0, 0.42, 0.3], [0.85, 0.42, 0.3], [-0.42, 0.95, 0.0], [0.42, 0.95, 0.0]]) {
-    const b = cyl(0.3, 0.8, M.straw, 'x', 10);
-    b.position.set(x, y, z);
-    g.add(b);
+
+  // Rice bales are lashed as a climbable cargo island; their crown matches
+  // the moving physics platform exactly at pc.y.
+  const cargo = [
+    [-1.0, 0.57, -0.29], [-0.18, 0.57, -0.29], [0.64, 0.57, -0.29],
+    [-1.0, 0.57, 0.29], [-0.18, 0.57, 0.29], [0.64, 0.57, 0.29],
+    [-0.62, 1.02, 0.0], [0.18, 1.02, 0.0]
+  ];
+  for (const [x, y, z] of cargo) {
+    const bale = cyl(0.28, 0.76, M.straw, 'x', 10);
+    bale.position.set(x, y, z);
+    bale.rotation.x = 0.04 * Math.sin(x * 8);
+    g.add(bale);
+    for (const dx of [-0.23, 0.23]) {
+      const tie = new THREE.Mesh(new THREE.TorusGeometry(0.285, 0.012, 5, 12), M.hemp);
+      tie.rotation.y = Math.PI / 2;
+      tie.position.set(x + dx, y, z);
+      g.add(tie);
+    }
   }
-  const pole = cyl(0.03, 3.4, M.bamboo, 'y', 5);
-  pole.position.set(1.7, 1.2, 0.5); pole.rotation.z = 0.5;
-  g.add(pole);
-  ctx.dynamic.boat = { group: g, plat: pc.plat, d: pc.d };
+
+  // A small boatman in a woven kasa works the pole. He is intentionally a
+  // simple painted silhouette so Michi remains the scene's visual focus.
+  const boatman = new THREE.Group();
+  const legs = box(0.24, 0.32, 0.2, M.goods[1], 0, 0.16, 0);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 0.42, 8), M.bengara);
+  body.position.y = 0.5;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.105, 10, 7), M.plasterWarm);
+  head.position.y = 0.79;
+  const hat = new THREE.Mesh(new THREE.ConeGeometry(0.27, 0.13, 16), M.straw);
+  hat.position.y = 0.91;
+  const polePivot = new THREE.Group();
+  polePivot.position.set(0.04, 0.66, 0.0);
+  const pole = cyl(0.027, 3.8, M.bamboo, 'y', 6);
+  pole.position.y = -0.25;
+  polePivot.add(pole);
+  boatman.add(legs, body, head, hat, polePivot);
+  boatman.position.set(1.55, 0.28, -0.24);
+  g.add(boatman);
+
+  // A faint V wake and bow ring are live meshes so their strength follows
+  // boat speed and reverses correctly at either landing.
+  const wake = new THREE.Group();
+  for (const z of [-0.36, 0.36]) {
+    const streak = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.12), M.wake);
+    streak.rotation.x = -Math.PI / 2;
+    streak.rotation.z = z > 0 ? 0.17 : -0.17;
+    streak.position.set(-1.2, -0.205, z);
+    wake.add(streak);
+  }
+  const bowRing = new THREE.Mesh(new THREE.RingGeometry(0.34, 0.39, 20, 1, 0.15, Math.PI * 1.7), M.wake);
+  bowRing.rotation.x = -Math.PI / 2;
+  bowRing.position.set(len / 2 + 0.2, -0.205, 0);
+  wake.add(bowRing);
+  g.add(wake);
+
+  ctx.dynamic.boat = { group: g, plat: pc.plat, d: pc.d, boatman, pole: polePivot, wake, bowRing, lastS: null, dir: 1 };
   ctx.addDyn(g);
 };
 
@@ -1107,13 +1421,31 @@ export function buildWorld(level) {
     /** Advance moving pieces; night ∈ [0,1] kindles lanterns and windows. */
     update(t, night, platOffset, platforms) {
       if (dynamic.boat) {
-        const p = platforms[dynamic.boat.plat];
+        const boat = dynamic.boat;
+        const p = platforms[boat.plat];
         const off = platOffset(p, t);
         const s = (p.s0 + p.s1) / 2 + off;
-        const pos = rail.place(s, dynamic.boat.d);
+        const pos = rail.place(s, boat.d);
         const tg = rail.tangentAt(s);
-        dynamic.boat.group.position.set(pos.x, -0.25 + Math.sin(t * 1.3) * 0.02, pos.z);
-        dynamic.boat.group.rotation.set(Math.sin(t * 0.9) * 0.015, Math.atan2(-tg.z, tg.x), 0);
+        const dt = boat.lastT == null ? 1 / 60 : Math.max(1 / 240, t - boat.lastT);
+        const velocity = boat.lastS == null ? 0 : (s - boat.lastS) / dt;
+        if (Math.abs(velocity) > 0.035) boat.dir = Math.sign(velocity);
+        const pace = Math.min(1, Math.abs(velocity) / 3.2);
+        boat.group.position.set(pos.x, 0.005 + Math.sin(t * 1.35) * (0.012 + pace * 0.012), pos.z);
+        boat.group.rotation.set(Math.sin(t * 0.9) * 0.012 * pace, Math.atan2(-tg.z, tg.x), Math.sin(t * 1.17) * 0.008 * pace);
+        boat.wake.scale.x = boat.dir;
+        boat.wake.visible = pace > 0.035;
+        M.wake.opacity = 0.08 + pace * 0.34;
+        boat.boatman.rotation.y = boat.dir < 0 ? Math.PI : 0;
+        boat.pole.rotation.z = -0.48 + boat.dir * 0.14 + Math.sin(t * 1.5) * 0.12 * pace;
+        boat.boatman.rotation.z = Math.sin(t * 1.5 + 0.7) * 0.035 * pace;
+        boat.lastS = s;
+        boat.lastT = t;
+      }
+      M.water.uniforms.uTime.value = t;
+      M.water.uniforms.uNight.value = night;
+      for (const mat of [...M.cloth, ...Object.values(M.noren)]) {
+        if (mat.userData.windShader) mat.userData.windShader.uniforms.uRoofTime.value = t;
       }
       M.lanternRed.emissiveIntensity = 0.15 + night * 1.6;
       M.lanternWhite.emissiveIntensity = 0.15 + night * 1.5;

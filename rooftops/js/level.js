@@ -28,7 +28,7 @@ export const RAIL_RADIUS = 2.5;
 export const MOUTHS = [
   { id: 1, kanji: '粟田口', romaji: 'Awataguchi', title: 'the Mouth', note: 'Sanjō Ōhashi, where the Tōkaidō came in' },
   { id: 2, kanji: '先斗町', romaji: 'Pontochō', title: 'the Narrow Lane', note: 'roofs on both sides, yuka decks over the river' },
-  { id: 3, kanji: '高瀬川', romaji: 'Takase', title: 'the Shallow Canal', note: 'thirty centimetres deep; the boats were hauled by hand' },
+  { id: 3, kanji: '高瀬川', romaji: 'Takase', title: 'the Water Maze', note: 'stones below, a takasebune between, cherry boughs above' },
   { id: 4, kanji: '錦', romaji: 'Nishiki', title: 'the Long Canopy', note: 'the market roof, four hundred metres of it' },
   { id: 5, kanji: '物干し', romaji: 'Monohoshi', title: 'Laundry Sky', note: 'drying decks, where the sun reaches' },
   { id: 6, kanji: '鉾町', romaji: 'Hoko-chō', title: 'Festival Streets', note: 'Yoiyama: the floats stand lit in the street' },
@@ -153,6 +153,24 @@ export function buildLevel() {
   const toro = (s, d = 2.4) => small('toro', s - 0.2, s + 0.2, 1.45, d, 'cap', 'stone lantern');
   const crate = (s0, s1, y, d = 2.0) => small('crate', s0, s1, y, d, 'step', 'crates');
 
+  const steppingStone = (s0, s1, y, d = 3.0, i = 0) => {
+    const p = plat({ s0, s1, y, d, kind: 'step', label: 'canal stepping stone' });
+    piece({ type: 'steppingStone', s0, s1, y, d, plat: p.id, look: hash1(31 + i * 7.3) });
+    return p;
+  };
+
+  const canalLanding = (s0, s1, y, d, side = 'near') => {
+    const p = plat({ s0, s1, y, d, kind: 'deck', label: 'canal landing' });
+    piece({ type: 'canalLanding', s0, s1, y, d, side, plat: p.id });
+    return p;
+  };
+
+  const canalBridge = (s0, s1, y, d) => {
+    const p = plat({ s0, s1, y, d, kind: 'deck', label: 'Takase footbridge' });
+    piece({ type: 'canalBridge', s0, s1, y, d, plat: p.id });
+    return p;
+  };
+
   const rope = (s0, s1, y, d, style) => {
     const p = plat({ s0, s1, y, d, kind: 'rope', label: style === 'laundry' ? 'laundry pole' : 'lantern line' });
     piece({ type: 'rope', s0, s1, y, d, style, plat: p.id });
@@ -235,30 +253,68 @@ export function buildLevel() {
   perch(63.6, 3.7, F[0].plats.eave.d); perch(77.0, 3.3, -3.9); perch(96.0, 3.2, -2.5);
   perch(113.9, 4.6, -0.6); perch(119.0, 5.4, -0.6);
 
-  /* ================= ③ Takase — the Shallow Canal ================= */
+  /* ================= ③ Takase — the Water Maze ================= */
 
-  street(122.0, 128.6, 3.0, 'cobble');
-  street(128.6, 149.0, 3.0, 'water', -0.25);
-  street(149.0, C[1].s1, 3.0, 'cobble');
-  const T1 = house(122.2, 128.0, { eave: 2.1, ridge: 3.0, label: 'Kiyamachi house', noren: 'hemp' });
+  // Three complete ways through the canal: the forgiving water-and-stones
+  // line, the moving takasebune and little footbridge, and a high cherry-bough
+  // line. They continually cross in silhouette, but all rejoin at the red
+  // Kiyamachi house. Missing a jump is a route change, never a failure.
+  street(122.0, 126.8, 3.0, 'cobble');
+  street(126.8, 157.8, 3.0, 'water', -0.38);
+  street(157.8, C[1].s1, 3.0, 'cobble');
+  piece({ type: 'canalQuarter', s0: 124.0, s1: 159.4, water0: 126.8, water1: 157.8, d: 3.0 });
+
+  const T1 = house(122.2, 128.0, { eave: 2.1, ridge: 3.0, label: 'Kiyamachi house', noren: 'hemp', lanterns: true });
   inuyarai(123.0, 124.4);
-  const boat = plat({ s0: 129.0, s1: 131.6, y: 1.3, d: 2.6, kind: 'boat', label: 'takasebune', move: { amp: 15.6, period: 16, phase: 0 } });
-  piece({ type: 'boat', plat: boat.id, len: 2.6, y: 1.3, d: 2.6, s0: 129.0, s1: 147.2 });
-  const boughs = [[131.6, 133.6, 2.7], [137.0, 139.0, 2.9], [142.4, 144.4, 2.7]].map(([a, b, y]) => {
-    const p = plat({ s0: a, s1: b, y, d: 1.6, kind: 'branch', label: 'cherry bough' });
-    piece({ type: 'cherry', s0: a - 1.4, s1: b, bough: { s0: a, s1: b, y }, d: 1.6, plat: p.id });
+  const nearLanding = canalLanding(127.2, 129.4, 0.68, 1.45, 'near');
+
+  // The broad, shallow cargo boat pauses softly at each landing. Its platform
+  // is the stacked rice-bale deck; the hull and boatman are built below it.
+  const boat = plat({
+    s0: 128.8, s1: 133.2, y: 1.25, d: 2.65, kind: 'boat', label: 'takasebune',
+    move: { amp: 17.2, period: 18, phase: 0 }
+  });
+  piece({ type: 'boat', plat: boat.id, len: 4.4, y: 1.25, d: 2.65, s0: 128.8, s1: 150.4 });
+
+  // Low line: irregular stones sit just above the current. The gaps ask for
+  // short, rhythmic hops; the water itself remains a slow, safe fallback.
+  const stones = [
+    [129.6, 130.8, 0.16], [132.2, 133.45, 0.24], [135.0, 136.15, 0.13],
+    [137.7, 139.1, 0.28], [141.1, 142.25, 0.18], [144.1, 145.45, 0.30],
+    [147.3, 148.5, 0.17], [150.35, 151.7, 0.31], [153.15, 154.55, 0.20]
+  ].map(([a, b, y], i) => steppingStone(a, b, y, 3.0 + (i % 2 ? 0.28 : -0.22), i));
+
+  // Middle line: a tiny arched bridge is a lookout and a crossover, with low
+  // landings at either end. It is deliberately optional, like a maze balcony.
+  const bridge = canalBridge(138.0, 141.0, 2.08, 3.0);
+  const farLanding = canalLanding(153.8, 156.0, 0.72, 2.15, 'far');
+
+  // High line: five old cherry boughs and one tow rope form a readable upper
+  // route. The boughs zigzag in depth so the cat visibly crosses the canal.
+  const boughDefs = [
+    [129.15, 131.65, 2.45, 1.35], [133.55, 136.05, 2.76, 3.95],
+    [137.95, 140.55, 2.52, 1.45], [142.45, 145.05, 2.86, 4.05],
+    [146.95, 149.75, 2.55, 1.55]
+  ];
+  const boughs = boughDefs.map(([a, b, y, d], i) => {
+    const p = plat({ s0: a, s1: b, y, d, kind: 'branch', label: 'cherry bough' });
+    piece({ type: 'cherry', s0: a - 1.5, s1: b, bough: { s0: a, s1: b, y }, d, bank: i % 2 ? 'far' : 'near', plat: p.id });
     return p;
   });
+  const towRope = rope(135.7, 138.15, 3.2, 2.7, 'tow');
   boughs.forEach((p) => { p.sprint = true; });
-  const TF = house(148.6, 156.2, { storeys: 2, eave: 3.6, ridge: 4.4, hisashi: 2.3, label: 'far-bank house', noren: 'crimson' });
-  toro(150.4);
+
+  const TF = house(151.0, 157.6, { storeys: 2, eave: 3.6, ridge: 4.4, hisashi: 2.3, label: 'far-bank house', noren: 'crimson', lanterns: true });
+  toro(155.8);
   const K2 = corner(1, 4.2, 'corner deck');
 
   route(T1.plats.ridge, boat, TF.plats.hisashi, TF.plats.eave, TF.plats.ridge, K2);
-  shoki(3, 151.6, 2.3, TF.plats.hisashi.d + 0.1, 0.6);
+  shoki(3, 153.8, 2.3, TF.plats.hisashi.d + 0.1, 0.6);
+  treat(3, 140.0, 2.08, 3.0, 'a bonito flake tucked beneath the bridge rail');
   checkpoint(3, 124.5, 3.0);
   checkpoint(4, (C[1].s0 + C[1].s1) / 2, 4.2);
-  perch(126.0, 3.0, -2.5); perch(153.0, 4.4, -2.5); perch((C[1].s0 + C[1].s1) / 2, 4.2, 0);
+  perch(126.0, 3.0, -2.5); perch(134.8, 2.76, 3.95); perch(139.5, 2.08, 3.0);
+  perch(148.2, 2.55, 1.55); perch(154.2, 4.4, -2.5); perch((C[1].s0 + C[1].s1) / 2, 4.2, 0);
 
   /* ================= ④ Nishiki — the Long Canopy ================= */
 
