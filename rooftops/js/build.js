@@ -1046,6 +1046,104 @@ B.marketCrossing = (pc, ctx) => {
   ctx.light(ctx.rail, sm, pc.y + 0.42, pc.d + toward * 0.8);
 };
 
+B.cistern = (pc, ctx) => {
+  const { M } = ctx;
+  const sm = (pc.s0 + pc.s1) / 2, w = pc.s1 - pc.s0;
+  const g = frameGroup(ctx.rail, sm);
+  const tankH = 1.28, radius = Math.min(0.96, w * 0.43);
+  const tank = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.94, radius, tankH, 16), M.timberMed);
+  tank.position.set(0, pc.y - tankH / 2 - 0.06, pc.d);
+  g.add(tank);
+  for (const y of [pc.y - 0.25, pc.y - 0.66, pc.y - 1.06]) {
+    const hoop = new THREE.Mesh(new THREE.TorusGeometry(radius + 0.015, 0.025, 5, 18), M.steel);
+    hoop.rotation.x = Math.PI / 2; hoop.position.set(0, y, pc.d); g.add(hoop);
+  }
+  const lid = cyl(radius * 0.96, 0.1, M.timber, 'y', 16);
+  lid.position.set(0, pc.y - 0.05, pc.d); g.add(lid);
+  const cap = cyl(0.16, 0.09, M.bronze, 'y', 10);
+  cap.position.set(0, pc.y + 0.045, pc.d); g.add(cap);
+  // Cross-braced stand and a tiny ladder explain the high cat route.
+  for (const x of [-radius * 0.62, radius * 0.62]) {
+    g.add(box(0.11, 1.0, 0.11, M.timber, x, pc.y - 1.78, pc.d));
+  }
+  for (let y = pc.y - 1.95; y < pc.y - 0.78; y += 0.24) {
+    g.add(box(0.62, 0.04, 0.05, M.bamboo, radius + 0.16, y, pc.d + 0.74));
+  }
+  for (const x of [radius - 0.13, radius + 0.45]) {
+    g.add(box(0.045, 1.35, 0.045, M.bamboo, x, pc.y - 1.36, pc.d + 0.74));
+  }
+  ctx.add(g);
+};
+
+B.chimney = (pc, ctx) => {
+  const { M } = ctx;
+  const sm = (pc.s0 + pc.s1) / 2, w = pc.s1 - pc.s0;
+  const g = frameGroup(ctx.rail, sm);
+  const h = 1.55;
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(w * 0.32, w * 0.42, h, 8), pc.look > 0.5 ? M.bengara : M.plasterWarm);
+  body.position.set(0, pc.y - h / 2 - 0.08, pc.d); g.add(body);
+  g.add(box(w * 0.86, 0.13, w * 0.82, M.stone, 0, pc.y - 0.1, pc.d));
+  const rainCap = new THREE.Mesh(new THREE.ConeGeometry(w * 0.48, 0.22, 4), M.ridge);
+  rainCap.rotation.y = Math.PI / 4; rainCap.position.set(0, pc.y + 0.07, pc.d); g.add(rainCap);
+  for (const x of [-w * 0.29, w * 0.29]) g.add(box(0.05, 0.25, 0.05, M.steel, x, pc.y - 0.02, pc.d));
+  ctx.add(g);
+};
+
+B.futonRack = (pc, ctx) => {
+  const { M } = ctx;
+  const sm = (pc.s0 + pc.s1) / 2, w = pc.s1 - pc.s0;
+  const g = frameGroup(ctx.rail, sm);
+  g.add(box(w + 0.18, 0.12, 1.18, M.futon, 0, pc.y - 0.06, pc.d));
+  g.add(box(w + 0.12, 0.56, 0.1, M.futon, 0, pc.y - 0.34, pc.d + 0.54));
+  for (const x of [-w / 2 + 0.08, w / 2 - 0.08]) {
+    g.add(box(0.08, pc.y, 0.08, M.timber, x, pc.y / 2, pc.d - 0.45));
+  }
+  for (const x of [-w * 0.28, w * 0.28]) {
+    const tie = box(0.055, 0.15, 1.24, pc.look > 0.5 ? M.noren.crimson : M.noren.indigo, x, pc.y - 0.03, pc.d);
+    g.add(tie);
+  }
+  ctx.add(g);
+};
+
+B.yatai = (pc, ctx) => {
+  const { M } = ctx;
+  const sm = (pc.s0 + pc.s1) / 2, w = pc.s1 - pc.s0;
+  const g = frameGroup(ctx.rail, sm);
+  const awning = M.cloth[Math.floor(pc.look * M.cloth.length) % M.cloth.length];
+
+  // A compact festival stall: timber counter, climbable striped awning,
+  // noren, trays and one warm chōchin. Each fare has its own silhouette.
+  g.add(box(w, 0.08, 1.55, awning, 0, pc.y - 0.04, pc.d));
+  for (const x of [-w / 2 + 0.1, w / 2 - 0.1]) {
+    g.add(box(0.09, pc.y - 0.22, 0.09, M.timber, x, (pc.y - 0.22) / 2, pc.d - 0.58));
+  }
+  g.add(box(w * 0.9, 0.12, 0.72, M.timberMed, 0, 0.86, pc.d + 0.42));
+  g.add(box(w * 0.86, 0.72, 0.08, M.noren[pc.look > 0.66 ? 'crimson' : pc.look > 0.33 ? 'indigo' : 'hemp'], 0, 1.42, pc.d + 0.76));
+  if (pc.fare === 'yakitori' || pc.fare === 'dango') {
+    for (let x = -w * 0.32; x <= w * 0.32; x += 0.25) {
+      const skewer = cyl(0.018, 0.78, M.bamboo, 'y', 5); skewer.position.set(x, 1.18, pc.d + 0.62); g.add(skewer);
+      for (let y = 1.0; y < 1.32; y += 0.14) {
+        const bite = new THREE.Mesh(new THREE.SphereGeometry(0.055, 6, 5), M.goods[pc.fare === 'dango' ? 3 : 0]);
+        bite.position.set(x, y, pc.d + 0.62); g.add(bite);
+      }
+    }
+  } else if (pc.fare === 'festival masks') {
+    for (let x = -w * 0.3, i = 0; x <= w * 0.3; x += 0.3, i++) {
+      const mask = new THREE.Mesh(new THREE.CircleGeometry(0.105, 10), M.goods[(i + 1) % M.goods.length]);
+      mask.position.set(x, 1.48, pc.d + 0.82); g.add(mask);
+    }
+  } else {
+    for (let x = -w * 0.3, i = 0; x <= w * 0.3; x += 0.3, i++) {
+      const bottle = cyl(0.045, 0.25, M.goods[(i + 4) % M.goods.length], 'y', 7);
+      bottle.position.set(x, 1.05, pc.d + 0.58); g.add(bottle);
+    }
+  }
+  const lantern = cyl(0.12, 0.34, pc.look > 0.5 ? M.lanternRed : M.lanternWhite, 'y', 10);
+  lantern.position.set(w * 0.36, pc.y - 0.32, pc.d + 0.68); g.add(lantern);
+  ctx.add(g);
+  ctx.light(ctx.rail, sm + w * 0.28, pc.y - 0.3, pc.d + 0.7);
+};
+
 B.cherry = (pc, ctx) => {
   const { M, rail } = ctx;
   const bg = pc.bough;

@@ -30,8 +30,8 @@ export const MOUTHS = [
   { id: 2, kanji: '先斗町', romaji: 'Pontochō', title: 'the Narrow Lane', note: 'river decks below, crooked balconies between, roof ridges above' },
   { id: 3, kanji: '高瀬川', romaji: 'Takase', title: 'the Water Maze', note: 'stones below, a takasebune between, cherry boughs above' },
   { id: 4, kanji: '錦', romaji: 'Nishiki', title: 'the Long Canopy', note: 'race the arcade roof, then duck through its open skylights' },
-  { id: 5, kanji: '物干し', romaji: 'Monohoshi', title: 'Laundry Sky', note: 'drying decks, where the sun reaches' },
-  { id: 6, kanji: '鉾町', romaji: 'Hoko-chō', title: 'Festival Streets', note: 'Yoiyama: the floats stand lit in the street' },
+  { id: 5, kanji: '物干し', romaji: 'Monohoshi', title: 'Laundry Sky', note: 'futons below, washing between, cisterns and chimneys above' },
+  { id: 6, kanji: '鉾町', romaji: 'Hoko-chō', title: 'Festival Streets', note: 'stalls, lantern racks and balance lines lead to the great float' },
   { id: 7, kanji: '送り火', romaji: 'Okuribi', title: 'the Sending Fires', note: 'five fires on the hills, one after another' }
 ];
 
@@ -185,18 +185,42 @@ export function buildLevel() {
     return p;
   };
 
+  const cistern = (s0, s1, y, d) => {
+    const p = plat({ s0, s1, y, d, kind: 'cap', label: 'rooftop water cistern' });
+    piece({ type: 'cistern', s0, s1, y, d, plat: p.id });
+    return p;
+  };
+
+  const chimney = (s0, s1, y, d) => {
+    const p = plat({ s0, s1, y, d, kind: 'cap', label: 'kitchen chimney cap' });
+    piece({ type: 'chimney', s0, s1, y, d, plat: p.id, look: hash1(s0 * 2.7) });
+    return p;
+  };
+
+  const futonRack = (s0, s1, y, d, look = 0) => {
+    const p = plat({ s0, s1, y, d, kind: 'futon', label: 'sun-warmed futon rack' });
+    piece({ type: 'futonRack', s0, s1, y, d, plat: p.id, look });
+    return p;
+  };
+
+  const yatai = (s0, s1, y, d, fare = 'noodles') => {
+    const p = plat({ s0, s1, y, d, kind: 'deck', label: `${fare} yatai roof` });
+    piece({ type: 'yatai', s0, s1, y, d, fare, plat: p.id, look: hash1(s0 * 4.1) });
+    return p;
+  };
+
   const rope = (s0, s1, y, d, style) => {
     const p = plat({ s0, s1, y, d, kind: 'rope', label: style === 'laundry' ? 'laundry pole' : 'lantern line' });
     piece({ type: 'rope', s0, s1, y, d, style, plat: p.id });
     return p;
   };
 
-  const rack = (s0, s1, d = 1.6) => {
+  const rack = (s0, s1, d = 1.6, top = 2.8) => {
     const w = s1 - s0;
     const tiers = [
-      plat({ s0, s1, y: 1.0, d, kind: 'rack', label: 'lantern rack' }),
-      plat({ s0: s0 + w / 6, s1: s1 - w / 6, y: 1.9, d, kind: 'rack', label: 'lantern rack' }),
-      plat({ s0: s0 + w / 3, s1: s1 - w / 3, y: 2.8, d, kind: 'rack', label: 'lantern rack' })
+      plat({ s0, s1, y: top - 1.8, d, kind: 'rack', label: 'lantern rack' }),
+      plat({ s0: s0 + w / 6, s1: s1 - w / 6, y: top - 0.9, d, kind: 'rack', label: 'lantern rack' }),
+      plat({ s0: s0 + w / 3, s1: s1 - w / 3, y: top, d, kind: 'rack', label: 'lantern rack' })
     ];
     piece({ type: 'rack', s0, s1, d, tiers: tiers.map((t) => ({ s0: t.s0, s1: t.s1, y: t.y0 })) });
     return tiers;
@@ -383,13 +407,19 @@ export function buildLevel() {
   komayose(230.4, 232.0);
   piece({ type: 'tsuboniwa', s0: 236.0, s1: 240.0, d: -1.5 });
   const P1 = rope(235.4, 239.8, 5.5, -1.0, 'laundry');
+  const W1 = cistern(237.15, 239.35, 6.10, -1.0);
+  const FB1 = futonRack(237.6, 239.25, 1.62, 1.55, 0.2);
+  balcony(238.65, 241.15, 3.18, 0.75, 'engawa', 'futon climb-back balcony');
   const M2 = house(240.0, 245.8, { storeys: 2, eave: 3.6, ridge: 4.4, hisashi: 2.3, label: 'drying-deck house', deck: { s0: 240.4, s1: 244.2, y: 5.0, futon: [244.2, 245.4] } });
   komayose(241.0, 242.6);
   const K = kura(246.2, 251.6, 6.7, 7.8, 'tall kura');
   const M3 = house(252.6, 258.8, { storeys: 2, eave: 3.6, ridge: 4.4, hisashi: 2.3, label: 'drying-deck house', deck: { s0: 253.2, s1: 258.0, y: 5.0 } });
   komayose(253.5, 255.1);
+  const CH1 = chimney(256.65, 258.15, 6.05, -1.55);
   const P2 = rope(258.0, 262.6, 5.5, -1.0, 'laundry');
   piece({ type: 'tsuboniwa', s0: 258.8, s1: 263.0, d: -1.5 });
+  const FB2 = futonRack(259.35, 260.95, 1.58, 1.45, 0.7);
+  balcony(260.3, 263.3, 3.16, 0.70, 'awning', 'laundry climb-back awning');
   const M4 = house(263.0, 269.0, { storeys: 2, eave: 3.6, ridge: 4.4, hisashi: 2.3, label: 'drying-deck house', deck: { s0: 263.4, s1: 268.2, y: 5.0 } });
   komayose(264.0, 265.6);
   const M5 = house(269.6, 275.2, { eave: 2.1, ridge: 3.0, label: 'shop', noren: 'crimson' });
@@ -398,9 +428,10 @@ export function buildLevel() {
   komayose(276.2, 277.8);
   const K3 = corner(2, 4.0, 'corner deck');
 
-  route(M1.plats.deck, P1, M2.plats.deck, M2.plats.futon, K.plats.left, K.plats.right, M3.plats.deck, P2,
+  route(M1.plats.deck, P1, W1, M2.plats.deck, M2.plats.futon, K.plats.left, K.plats.right, M3.plats.deck, CH1, P2,
     M4.plats.deck, M5.plats.ridge, M6.plats.eave, M6.plats.ridge, K3);
   shoki(5, 248.9, 7.8, K.plats.left.d, 0.2);
+  treat(5, 238.25, W1.y0, W1.d, 'a saucer of cool water on the old rooftop cistern');
   checkpoint(6, (C[2].s0 + C[2].s1) / 2, 4.0);
   perch(237.6, 5.5, -1.0); perch(243.0, 5.0, M2.plats.deck.d); perch(248.9, 7.8, -0.6); perch(256.0, 5.0, M3.plats.deck.d);
   perch(266.0, 5.0, M4.plats.deck.d); perch(278.7, 4.4, -2.5); perch((C[2].s0 + C[2].s1) / 2, 4.0, 0);
@@ -410,12 +441,19 @@ export function buildLevel() {
   street(C[2].s1, rail.length, 2.2, 'cobble');
   const H1 = house(292.4, 298.4, { storeys: 2, eave: 3.6, ridge: 4.4, hisashi: 2.3, label: 'merchant house', noren: 'crimson', lanterns: true });
   komayose(293.0, 294.6);
+  const Y1 = yatai(292.3, 295.0, 1.88, 2.35, 'yakitori');
+  const Y2 = yatai(295.55, 298.25, 2.02, 1.45, 'ramune');
   const H2 = house(298.9, 304.5, { eave: 2.1, ridge: 3.0, label: 'shop', noren: 'hemp', lanterns: true });
-  rack(300.0, 303.6);
+  const HR1 = rack(300.0, 303.6, 1.6, 3.35);
+  const HL1 = rope(302.2, 305.35, 3.12, 1.35, 'lanterns');
+  const Y3 = yatai(303.75, 306.45, 1.86, 2.25, 'dango');
   const H3 = house(305.0, 311.6, { storeys: 2, eave: 3.6, ridge: 4.4, hisashi: 2.3, label: 'kaisho', noren: 'indigo', kaisho: true, lanterns: true });
-  const plank = plat({ s0: 311.6, s1: 316.0, y: 3.3, d: 1.0, kind: 'deck', label: 'kaisho plank' });
-  piece({ type: 'deck', style: 'plank', s0: 311.6, s1: 316.0, y: 3.3, d: 1.0, plat: plank.id });
-  rack(312.4, 315.6);
+  const Y4 = yatai(307.1, 309.9, 2.08, 1.55, 'okonomiyaki');
+  const plank = plat({ s0: 311.1, s1: 316.0, y: 3.3, d: 1.0, kind: 'deck', label: 'kaisho plank' });
+  piece({ type: 'deck', style: 'plank', s0: 311.1, s1: 316.0, y: 3.3, d: 1.0, plat: plank.id });
+  const HR2 = rack(312.4, 315.6, 1.6, 3.55);
+  const HL2 = rope(314.35, 316.2, 3.42, 1.35, 'lanterns');
+  const Y5 = yatai(310.6, 313.35, 1.90, 2.35, 'festival masks');
 
   /* ================= ⑦ Okuribi — the float and the fires ================= */
 
@@ -435,9 +473,11 @@ export function buildLevel() {
   sides(324.2, 330.6, 5.2, -4.4, -0.3);
   small('tsuiji', 331.4, rail.length - 0.2, 1.6, -0.6, 'cap', 'temple wall');
 
-  route(H1.plats.ridge, H2.plats.ridge, H3.plats.eave, plank, fDeck, fFrame, fEaveL, fRidge, fBar, fPerch);
+  route(H1.plats.ridge, H2.plats.ridge, HR1[2], HL1, H3.plats.eave, H3.plats.ridge,
+    plank, HR2[2], HL2, fDeck, fFrame, fEaveL, fRidge, fBar, fPerch);
   shoki(6, 308.3, 4.4, H3.plats.ridge.d, 0.5);
   shoki(7, 327.4, 6.6, -0.8, -0.6);
+  treat(6, 296.8, Y2.y0, Y2.d, 'a festival fish cracker hidden above the ramune stall');
   checkpoint(7, 318.0, 3.6);
   perch(295.4, 4.4, -2.5); perch(302.0, 2.8, 1.6); perch(308.3, 4.4, -2.5); perch(313.8, 3.3, 1.0);
   perch(317.0, 4.7, fd); perch(319.9, 6.9, fd - 0.2);
