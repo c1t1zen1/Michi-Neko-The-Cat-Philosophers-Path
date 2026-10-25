@@ -15,6 +15,7 @@ companion apps. Last reviewed 2026-10-24.
 | `dawCAT/` | Audio studio: compose, Sound Design, Wave Lab, AI assistant. `cd dawCAT && npm test` |
 | `cadJS/` | CAD workspace: Procedural Studio, push-to-game, AI agent. `cd cadJS && npm test` (`npm run check` also loads the server modules) |
 | `grass/` | Grass Lab: twenty Three.js grass designs in live isometric cubes, plus a hero slab where the real `src/cat.js` walks through them with GPU spring/trail physics. Open `/grass/index.html` from the served repo root; research in `docs/GRASS_RESEARCH_2026-10-23.md`. Its `../../src/cat.js?v=` import carries the cache tag (bump it with the others); its own modules are untagged |
+| `labs/` | The Labs: one interactive lab per object in `docs/VISUAL_NEXT_STEPS_2026-10-24.md` (research → variants → learn-by-building steps). Hub `labs/index.html` (rendered from `labs/registry.js`), shared kit in `labs/shared/` (`stage.js` renderer/views/loop/governor, `light.js` time-of-day rig, `catwalk.js` the real cat as a walker, `ui.js` dropdown/seg/slider/toggle/Stepper/Split/Callouts, `glsl.js` noise chunks, `lab.css`), one folder per lab `labs/<slug>/`. Only `labs/shared/game.js` imports game modules (cache-tagged). Kit check page: `labs/shared/kit.html`. Static check: `node tools/labs_check.mjs` |
 | `rooftops/` | The Roof Road (屋根道): a side-scrolling run over old-Kyoto roofs past the valley bridge, through seven "mouths" from the bridge to the top of a Gion Matsuri float, with the five Okuribi fires as the finale. **A lab, not yet wired into the game** (the unlock and pocket scene are designed in §8.2 of the spec). Pure modules, no three.js: `js/rail.js` (route polyline + fillets, arc length `s`), `level.js` (pieces → platforms, walls, pickups), `physics.js` (the game's jump constants + mantle/futon/rope/canopy), `reach.js` (jump reach + platform graph), `autopilot.js`. Meshes in `build.js`, sky and fires in `sky.js`, the loop in `game.js`. Its entry point is the root page `kyoto-rooftops.html` (a sandbox the main game does not link to; `rooftops/index.html` forwards there with its `?flags`), so open `/kyoto-rooftops.html` from the served repo root. Design `docs/superpowers/specs/2026-10-24-rooftop-road-design.md`, research `docs/ROOFTOPS_RESEARCH_2026-10-24.md`. Its `../../src/cat.js?v=` and `../../src/textures.js?v=` imports carry the cache tag (bump them with the others); its own modules are untagged; `rooftops/package.json` only marks them as ES modules for Node |
 | `assets/` | Optional runtime media (summit vista GLB, transition mp4); every slot has a fallback |
 | `docs/` | Reviews, the build guide, checklists, social posts, README artwork |
@@ -42,14 +43,14 @@ Every module import carries `?v=<tag>`. Keep all tags in sync when editing:
 sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDD<letter>/g" src/*.js index.html
 ```
 
-Current tag: `20261024a` (also used by every `tools/*_preview.*`). A tag
+Current tag: `20261024c` (the `tools/*_preview.*` sheets still carry `20261024a`). A tag
 bump touches every module's import lines, including `mountaintop.js` — change
 only the `?v=` strings there.
 
 Companion apps (`dawCAT/`, `cadJS/`) import their own files without tags. The
 labs import game modules *with* tags, and the one-liner below only rewrites
-`src/*.js` and `index.html`: bump `grass/js/hero.js`, `rooftops/js/game.js` and
-`rooftops/js/build.js` by hand.
+`src/*.js` and `index.html`: bump `grass/js/hero.js`, `rooftops/js/game.js`,
+`rooftops/js/build.js` and `labs/shared/game.js` by hand.
 
 On Windows do NOT bulk-rewrite with PowerShell `Get-Content`/`Set-Content` —
 it re-encodes and corrupts em-dashes/Japanese text. Use Node (byte-safe):
@@ -67,6 +68,8 @@ node tools/check_syntax.mjs      # all 36 modules, BOM-safe, works on Windows
 node tools/verify.mjs            # syntax + static wiring + summit state machine + index.html sanity
 for f in src/*.js; do node --input-type=module --check < "$f" >/dev/null || echo "FAIL $f"; done
 ```
+
+Labs: `node tools/labs_check.mjs` (syntax, cache tags, registry).
 
 Roof Road: `node tools/rooftop_test.mjs` (30 checks, a few seconds). It proves
 the rail is continuous, the finale is reachable from the start and from every
