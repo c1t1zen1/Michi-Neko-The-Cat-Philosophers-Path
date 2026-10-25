@@ -471,6 +471,7 @@ function checkPickups() {
     if (obj.userData.done) continue;
     if (Math.abs(runner.s - k.s) > 0.6 || Math.abs(runner.y - k.y) > 0.8) continue;
     obj.userData.done = true;
+    atmosphere.burst(k.kind, obj.position, rail.tangentAt(k.s));
     if (k.kind === 'shoki') {
       greeted.add(k.id);
       for (const ch of obj.children) ch.material = world.M.clayLit || (world.M.clayLit = new THREE.MeshStandardMaterial({ color: 0x8a7a68, roughness: 0.7, emissive: 0x5a3a14, emissiveIntensity: 0.55 }));
@@ -587,13 +588,19 @@ if (flag('debug') === '1') {
 
 /* ---------------- per-frame ---------------- */
 
-const tmpV = new THREE.Vector3(), tmpL = new THREE.Vector3();
+const tmpV = new THREE.Vector3(), tmpL = new THREE.Vector3(), tmpImpact = new THREE.Vector3();
 const STEP = 1 / 120;
 let acc = 0, lastNow = performance.now();
 let lastPhase = -1, envScale = 1;
 const fixedHour = flag('hour') !== null ? clamp(parseFloat(flag('hour')), 0, 1) : null;
 let fpsT = 0, fpsN = 0, healthyT = 0;
 let qualityTier = qualityFlag === 'low' ? 2 : (lowPower ? 1 : 0);
+
+function burstAtRunner(kind) {
+  rail.place(runner.s, runner.depth, tmpImpact);
+  tmpImpact.y = runner.y + 0.04;
+  atmosphere.burst(kind, tmpImpact, rail.tangentAt(runner.s));
+}
 
 function applyQualityTier(tier) {
   qualityTier = clamp(tier, 0, 2);
@@ -613,12 +620,15 @@ function stepPhysics(inp) {
   runner.step(STEP, inp, time);
   const ev = runner.events;
   if (ev.includes('jump')) { if (cat) cat.onJump(); }
-  if (ev.includes('bounce')) { if (cat) cat.onJump(); audio.bounce(); }
+  const bounced = ev.includes('bounce');
+  if (bounced) { if (cat) cat.onJump(); audio.bounce(); burstAtRunner('futon'); }
   if (ev.includes('land') || ev.includes('mantle')) {
     if (cat && !prevGrounded) cat.onLand();
     audio.pat();
+    const kind = (runner.ground || runner.lastGround)?.kind;
+    if (!bounced && kind !== 'rope' && kind !== 'branch' && kind !== 'boat' && kind !== 'water') burstAtRunner('dust');
   }
-  if (ev.includes('splash')) { audio.splash(); if (cat) cat.onLand(); }
+  if (ev.includes('splash')) { audio.splash(); burstAtRunner('water'); if (cat) cat.onLand(); }
   time += STEP;
 }
 

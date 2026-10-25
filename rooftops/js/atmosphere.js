@@ -116,6 +116,157 @@ function pointSystem({ positions, seeds, texture, color, size, vertexMotion, fra
   return points;
 }
 
+/**
+ * One pooled impact draw for every tactile beat in the run. Positions, colour,
+ * alpha and size are dynamic attributes, so a landing never allocates a mesh.
+ */
+class ImpactFX {
+  constructor(root, opts = {}) {
+    this.reduceMotion = !!opts.reduceMotion;
+    this.lowPower = !!opts.lowPower;
+    this.max = 88;
+    this.cursor = 0;
+    this.serial = 0;
+    this.pos = new Float32Array(this.max * 3);
+    this.col = new Float32Array(this.max * 3);
+    this.size = new Float32Array(this.max);
+    this.alpha = new Float32Array(this.max);
+    this.vx = new Float32Array(this.max);
+    this.vy = new Float32Array(this.max);
+    this.vz = new Float32Array(this.max);
+    this.life = new Float32Array(this.max);
+    this.life0 = new Float32Array(this.max);
+    this.gravity = new Float32Array(this.max);
+    this.drag = new Float32Array(this.max);
+    this.baseSize = new Float32Array(this.max);
+    for (let i = 0; i < this.max; i++) this.pos[i * 3 + 1] = -999;
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(this.pos, 3).setUsage(THREE.DynamicDrawUsage));
+    geo.setAttribute('color', new THREE.BufferAttribute(this.col, 3).setUsage(THREE.DynamicDrawUsage));
+    geo.setAttribute('aSize', new THREE.BufferAttribute(this.size, 1).setUsage(THREE.DynamicDrawUsage));
+    geo.setAttribute('aAlpha', new THREE.BufferAttribute(this.alpha, 1).setUsage(THREE.DynamicDrawUsage));
+    const map = spriteTexture((g, s) => {
+      const grad = g.createRadialGradient(s / 2, s / 2, 1, s / 2, s / 2, s * 0.48);
+      grad.addColorStop(0, 'rgba(255,255,255,1)');
+      grad.addColorStop(0.35, 'rgba(255,255,255,.86)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = grad; g.fillRect(0, 0, s, s);
+    }, 48);
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uMap: { value: map } },
+      transparent: true,
+      depthWrite: false,
+      vertexColors: true,
+      blending: THREE.NormalBlending,
+      vertexShader: `
+        attribute float aSize;
+        attribute float aAlpha;
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          gl_Position = projectionMatrix * mv;
+          gl_PointSize = aSize * (105.0 / max(1.0, -mv.z));
+          vColor = color;
+          vAlpha = aAlpha;
+        }`,
+      fragmentShader: `
+        uniform sampler2D uMap;
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+          vec4 tex = texture2D(uMap, gl_PointCoord);
+          float a = tex.a * vAlpha;
+          if (a < 0.02) discard;
+          gl_FragColor = vec4(vColor * tex.rgb, a);
+        }`
+    });
+    this.points = new THREE.Points(geo, mat);
+    this.points.name = 'Roof Road impact particles';
+    this.points.frustumCulled = false;
+    this.points.renderOrder = 7;
+    root.add(this.points);
+  }
+
+  setLowPower(on = true) { this.lowPower = on; }
+
+  burst(kind, origin, heading = null) {
+    const motion = this.reduceMotion ? 0.45 : 1;
+    const water = kind === 'water';
+    const futon = kind === 'futon';
+    const collect = kind === 'shoki' || kind === 'treat';
+    const baseCount = water ? 15 : futon ? 13 : collect ? 18 : 9;
+    const count = Math.max(4, Math.round(baseCount * (this.lowPower ? 0.55 : 1) * (this.reduceMotion ? 0.65 : 1)));
+    const palette = water
+      ? [0xdaf5ef, 0x8bc7c8, 0xffffff]
+      : futon
+        ? [0xf5efe2, 0x8fa9cc, 0xd8e4ef]
+        : kind === 'shoki'
+          ? [0xffdf72, 0xf09a52, 0xffffff]
+          : kind === 'treat'
+            ? [0xffc65a, 0xf07a54, 0xffefb0]
+            : [0xe6d4b7, 0xbfa47d, 0xf3e5cc];
+    const dirX = heading?.x || 0, dirZ = heading?.z || 0;
+    const c = new THREE.Color();
+    const rand = () => hash1(8200 + (++this.serial) * 6.137);
+    for (let n = 0; n < count; n++) {
+      const i = this.cursor++ % this.max;
+      const a = rand() * TAU;
+      const radial = (0.2 + rand() * (water ? 1.15 : collect ? 0.9 : 0.65)) * motion;
+      const bias = collect ? 0 : (rand() - 0.28) * 0.45 * motion;
+      this.pos[i * 3] = origin.x + (rand() - 0.5) * 0.28;
+      this.pos[i * 3 + 1] = origin.y + (water ? 0.06 : 0.03) + rand() * 0.08;
+      this.pos[i * 3 + 2] = origin.z + (rand() - 0.5) * 0.28;
+      this.vx[i] = Math.cos(a) * radial + dirX * bias;
+      this.vz[i] = Math.sin(a) * radial + dirZ * bias;
+      this.vy[i] = (water ? 1.15 + rand() * 1.65 : futon ? 0.9 + rand() * 1.35 : collect ? 0.75 + rand() * 1.45 : 0.2 + rand() * 0.55) * motion;
+      this.life0[i] = this.life[i] = water ? 0.55 + rand() * 0.42 : futon ? 0.7 + rand() * 0.55 : collect ? 0.78 + rand() * 0.5 : 0.42 + rand() * 0.34;
+      this.gravity[i] = water ? 5.2 : futon ? 1.6 : collect ? 1.25 : 1.8;
+      this.drag[i] = water ? 1.4 : futon ? 0.7 : collect ? 0.45 : 2.2;
+      this.baseSize[i] = water ? 0.55 + rand() * 0.45 : collect ? 0.62 + rand() * 0.48 : 0.72 + rand() * 0.5;
+      this.size[i] = this.baseSize[i];
+      this.alpha[i] = 0.95;
+      c.setHex(palette[Math.floor(rand() * palette.length) % palette.length]);
+      this.col[i * 3] = c.r; this.col[i * 3 + 1] = c.g; this.col[i * 3 + 2] = c.b;
+    }
+    this._dirty();
+  }
+
+  update(dt) {
+    let changed = false;
+    for (let i = 0; i < this.max; i++) {
+      if (this.life[i] <= 0) continue;
+      changed = true;
+      this.life[i] -= dt;
+      if (this.life[i] <= 0) {
+        this.life[i] = 0;
+        this.alpha[i] = 0;
+        this.pos[i * 3 + 1] = -999;
+        continue;
+      }
+      const decay = Math.exp(-this.drag[i] * dt);
+      this.vx[i] *= decay; this.vz[i] *= decay;
+      this.vy[i] -= this.gravity[i] * dt;
+      this.pos[i * 3] += this.vx[i] * dt;
+      this.pos[i * 3 + 1] += this.vy[i] * dt;
+      this.pos[i * 3 + 2] += this.vz[i] * dt;
+      const u = this.life[i] / this.life0[i];
+      this.alpha[i] = Math.min(1, (1 - u) * 7) * Math.min(1, u * 2.2);
+      this.size[i] = this.baseSize[i] * (0.65 + (1 - u) * 0.75);
+    }
+    if (changed) this._dirty();
+  }
+
+  _dirty() {
+    const a = this.points.geometry.attributes;
+    a.position.needsUpdate = true;
+    a.color.needsUpdate = true;
+    a.aSize.needsUpdate = true;
+    a.aAlpha.needsUpdate = true;
+  }
+}
+
 export class RooftopAtmosphere {
   constructor(scene, level, opts = {}) {
     this.scene = scene;
@@ -132,6 +283,7 @@ export class RooftopAtmosphere {
     this._buildFireflies();
     this._buildBirds();
     this._buildMotes();
+    this.impacts = new ImpactFX(this.root, opts);
   }
 
   _buildPetals() {
@@ -246,8 +398,11 @@ export class RooftopAtmosphere {
     this.lowPower = on;
     this.petals.visible = !on || !this.reduceMotion;
     this.motes.visible = !on;
+    this.impacts.setLowPower(on);
     for (let i = 0; i < this.birds.length; i++) this.birds[i].visible = !on || i < 3;
   }
+
+  burst(kind, position, heading = null) { this.impacts.burst(kind, position, heading); }
 
   update(dt, time, progress, night, focus) {
     const motion = this.reduceMotion ? 0.22 : 1;
@@ -276,5 +431,6 @@ export class RooftopAtmosphere {
     this.motes.position.lerp(this._moteTarget, 1 - Math.exp(-dt * 1.2));
     this.motes.rotation.y = t * 0.015;
     this.motes.material.opacity = clamp(0.12 + (1 - night) * 0.28, 0, 0.4);
+    this.impacts.update(dt);
   }
 }
