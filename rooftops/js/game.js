@@ -78,7 +78,7 @@ let guide = null;
 async function loadCats() {
   if (flag('cat') === '0') { hideWake(); return; }
   try {
-    const mod = await import('../../src/cat.js?v=20261024a');
+    const mod = await import('../../src/cat.js?v=20261024c');
     await new Promise((r) => setTimeout(r, 60));          // let the page paint first
     cat = new mod.Cat({ fur: 0xae8450, belly: 0xeedcb8, accent: 0x5e3d26 });
     cat.group.position.y = 0.02;
