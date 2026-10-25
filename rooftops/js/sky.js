@@ -250,11 +250,11 @@ export class Sky {
     // Order of lighting (index 0 first), and where each sits on the ring:
     // the viewer at the float looks east (+x); left of view is north (−z).
     const defs = [
-      { name: '大', pts: glyph('大'), ang: 0.32, size: 70 },
-      { name: '妙法', pts: [...glyph('妙').map(([x, y]) => [x - 0.55, y]), ...glyph('法').map(([x, y]) => [x + 0.55, y])], ang: 0.02, size: 52 },
-      { name: '船形', pts: boat, ang: -0.24, size: 56 },
-      { name: '左大文字', pts: glyph('大'), ang: -0.48, size: 54 },
-      { name: '鳥居形', pts: torii, ang: -0.7, size: 48 }
+      { name: '大', label: '大 · Daimonji', pts: glyph('大'), ang: 0.32, size: 70 },
+      { name: '妙法', label: '妙法 · Myōhō', pts: [...glyph('妙').map(([x, y]) => [x - 0.55, y]), ...glyph('法').map(([x, y]) => [x + 0.55, y])], ang: 0.02, size: 52 },
+      { name: '船形', label: '船形 · Funagata', pts: boat, ang: -0.24, size: 56 },
+      { name: '左大文字', label: '左大文字 · Hidari Daimonji', pts: glyph('大'), ang: -0.48, size: 54 },
+      { name: '鳥居形', label: '鳥居形 · Toriigata', pts: torii, ang: -0.7, size: 48 }
     ];
     const sprite = (() => {
       const c = document.createElement('canvas'); c.width = c.height = 64;
@@ -281,7 +281,7 @@ export class Sky {
         pos[i * 3] = cx + right.x * x * w * (def.name === '妙法' ? 1.6 : 1) + up.x * y * def.size;
         pos[i * 3 + 1] = ground + up.y * y * def.size;
         pos[i * 3 + 2] = cz + right.z * x * w * (def.name === '妙法' ? 1.6 : 1) + up.z * y * def.size;
-        order[i] = Math.random();
+        order[i] = hashCloud(9100 + i * 4.73 + def.ang * 101);
       });
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -303,14 +303,38 @@ export class Sky {
       });
       const pts = new THREE.Points(geo, mat);
       pts.frustumCulled = false;
+      pts.renderOrder = 2;
       this.scene.add(pts);
-      return { name: def.name, points: pts, mat, kindle: 0, target: 0, center: new THREE.Vector3(cx, ground, cz) };
+
+      // A broad amber wash behind the individual fire beds lets each glyph
+      // warm its hillside as it kindles, while the points retain the shape.
+      const glowMat = new THREE.SpriteMaterial({
+        map: sprite, color: 0xff7b2c, transparent: true, opacity: 0,
+        depthWrite: false, blending: THREE.AdditiveBlending, fog: false
+      });
+      const glow = new THREE.Sprite(glowMat);
+      glow.position.set(cx, ground + 1.5, cz);
+      glow.scale.set(def.size * 1.7, def.size * 0.92, 1);
+      glow.renderOrder = 1;
+      this.scene.add(glow);
+      return {
+        name: def.name, label: def.label, points: pts, mat, glow,
+        glowScale: new THREE.Vector2(def.size * 1.7, def.size * 0.92),
+        kindle: 0, target: 0, center: new THREE.Vector3(cx, ground, cz)
+      };
     });
   }
 
   /** Light fire i (0 = Daimonji) — it kindles over a couple of seconds. */
   lightFire(i) { if (this.fires[i]) this.fires[i].target = 1; }
-  resetFires() { for (const f of this.fires) { f.target = 0; f.kindle = 0; f.mat.uniforms.uKindle.value = 0; } }
+  resetFires() {
+    for (const f of this.fires) {
+      f.target = 0;
+      f.kindle = 0;
+      f.mat.uniforms.uKindle.value = 0;
+      f.glow.material.opacity = 0;
+    }
+  }
 
   /** Trim nonessential skyline motion when the adaptive governor asks. */
   setLowPower(on = true) {
@@ -378,6 +402,10 @@ export class Sky {
       f.kindle += (f.target - f.kindle) * Math.min(1, dt * 0.55);
       f.mat.uniforms.uKindle.value = f.kindle;
       f.mat.uniforms.uTime.value = t;
+      const pulse = 1 + Math.sin(t * 2.7 + f.center.x * 0.03) * 0.035 * f.kindle;
+      f.glow.material.opacity = f.kindle * (0.1 + 0.025 * Math.sin(t * 3.1 + f.center.z));
+      f.glow.scale.set(f.glowScale.x * pulse, f.glowScale.y * pulse, 1);
+      f.glow.material.rotation = Math.sin(t * 0.17 + f.center.x) * 0.025;
     }
   }
 }

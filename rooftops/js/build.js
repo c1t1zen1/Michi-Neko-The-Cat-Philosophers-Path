@@ -84,6 +84,54 @@ function tapestryTex() {
   });
 }
 
+/** Layered brocade panels for the hoko's hanging textiles. */
+function brocadeTex(base, ink, motif = 0) {
+  return canvasTex(192, 192, (g, w, h) => {
+    const wash = g.createLinearGradient(0, 0, w, h);
+    wash.addColorStop(0, base);
+    wash.addColorStop(0.52, ink);
+    wash.addColorStop(1, base);
+    g.fillStyle = wash;
+    g.fillRect(0, 0, w, h);
+
+    g.globalAlpha = 0.24;
+    g.strokeStyle = '#f1d887';
+    g.lineWidth = 3;
+    if (motif === 0) {
+      // Seigaiha-like overlapping waves, loosened so they feel hand painted.
+      for (let y = 24; y < h + 32; y += 32) {
+        for (let x = (y / 32) % 2 ? -16 : 0; x < w + 32; x += 32) {
+          for (const r of [12, 20, 28]) {
+            g.beginPath();
+            g.arc(x, y, r, Math.PI, TAU);
+            g.stroke();
+          }
+        }
+      }
+    } else {
+      // Curling cloud bands and small flower roundels.
+      for (let y = 30; y < h; y += 48) {
+        for (let x = -8; x < w; x += 58) {
+          g.beginPath();
+          g.moveTo(x, y);
+          g.bezierCurveTo(x + 11, y - 13, x + 25, y + 13, x + 38, y);
+          g.bezierCurveTo(x + 47, y - 9, x + 55, y + 8, x + 66, y - 2);
+          g.stroke();
+          g.beginPath();
+          g.arc(x + 27, y + 17, 6, 0, TAU);
+          g.stroke();
+        }
+      }
+    }
+    g.globalAlpha = 1;
+    g.fillStyle = '#d9ad4c';
+    g.fillRect(0, 0, w, 7);
+    g.fillRect(0, h - 7, w, 7);
+    g.fillRect(8, 0, 3, h);
+    g.fillRect(w - 11, 0, 3, h);
+  });
+}
+
 /** Sujibei: the five white lines on a temple wall. */
 function sujibeiTex() {
   return canvasTex(128, 64, (g, w, h) => {
@@ -249,6 +297,10 @@ function makeMaterials() {
   M.lanternWhite.emissiveMap = M.lanternWhite.map;
   M.fire = new THREE.MeshBasicMaterial({ color: 0xffd08a });
   M.tapestry = panel(new THREE.MeshStandardMaterial({ map: tapestryTex(), roughness: 0.85 }));
+  M.brocade = [
+    panel(windMaterial(new THREE.MeshStandardMaterial({ map: brocadeTex('#17355f', '#6e2d31', 0), roughness: 0.82, side: THREE.DoubleSide }), 0.035, 0.7)),
+    panel(windMaterial(new THREE.MeshStandardMaterial({ map: brocadeTex('#8d2520', '#3b234c', 1), roughness: 0.82, side: THREE.DoubleSide }), 0.035, 3.2))
+  ];
   M.sujibei = panel(new THREE.MeshStandardMaterial({ map: sujibeiTex(), roughness: 0.92 }));
   M.futon = panel(new THREE.MeshStandardMaterial({ map: stripesTex('#e8e2d2', '#5a78a8'), roughness: 0.95 }));
   M.cloth = [0xf2efe6, 0x2f4c78, 0xe6d6a8, 0xd9e2ea, 0xb8584a].map((c, i) =>
@@ -1354,25 +1406,65 @@ B.float = (pc, ctx) => {
   const sm = (pc.s0 + pc.s1) / 2;
   const g = frameGroup(rail, sm);
   const z = pc.d;
-  // Wheels as tall as a person, the base, the draped body.
+
+  // Four person-height spoked wheels, with iron tyres, lacquer hubs and
+  // through-axles. The open spokes read far more clearly than solid discs as
+  // the camera pulls out for the vertical climb.
   for (const x of [-2.1, 2.1]) for (const dz of [-1.25, 1.25]) {
-    const wGeo = new THREE.CylinderGeometry(0.95, 0.95, 0.24, 18);
-    wGeo.rotateX(Math.PI / 2);
-    const wheel = new THREE.Mesh(wGeo, M.timber);
-    wheel.position.set(x, 0.95, z + dz);
-    g.add(wheel);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.13, 7, 24), M.timberMed);
+    rim.position.set(x, 0.95, z + dz);
+    g.add(rim);
+    const tyre = new THREE.Mesh(new THREE.TorusGeometry(0.955, 0.032, 5, 28), M.steel);
+    tyre.position.copy(rim.position);
+    g.add(tyre);
+    const hub = cyl(0.17, 0.34, M.lacquer, 'z', 10);
+    hub.position.copy(rim.position);
+    g.add(hub);
+    for (let i = 0; i < 8; i++) {
+      const spoke = box(1.43, 0.055, 0.065, M.timber, x, 0.95, z + dz);
+      spoke.rotation.z = (i * Math.PI) / 8;
+      g.add(spoke);
+    }
   }
+  for (const x of [-2.1, 2.1]) {
+    const axle = cyl(0.105, 2.85, M.steel, 'z', 10);
+    axle.position.set(x, 0.95, z);
+    g.add(axle);
+  }
+
+  // Massive undercarriage, visible cross-bracing and the textile-draped
+  // lower body. Three separate front panels catch the breeze independently.
   g.add(box(5.8, 0.45, 2.2, M.timber, 0, 1.55, z));
-  g.add(box(5.0, 1.6, 2.4, M.tapestry, 0, 2.6, z));
+  for (const x of [-2.35, 0, 2.35]) g.add(box(0.18, 1.25, 2.32, M.timberMed, x, 2.05, z));
+  g.add(box(5.0, 1.48, 2.34, M.dark, 0, 2.55, z));
+  for (let i = 0; i < 3; i++) {
+    const x = -1.67 + i * 1.67;
+    g.add(box(1.52, 1.42, 0.035, M.brocade[i % 2], x, 2.55, z + 1.19));
+  }
+  for (const sx of [-1, 1]) g.add(box(0.035, 1.4, 2.12, M.brocade[sx > 0 ? 1 : 0], sx * 2.52, 2.55, z));
+  g.add(box(5.2, 0.08, 0.08, M.gold, 0, 3.25, z + 1.23));
+  g.add(box(5.2, 0.08, 0.08, M.gold, 0, 1.84, z + 1.23));
+
+  // Lacquer deck, carved brackets and a balustrade at cat height.
   g.add(box(6.0, 0.14, 3.0, M.lacquer, 0, pc.deckY - 0.07, z + 0.2));
   for (const zz of [z - 1.3, z + 1.7]) g.add(box(6.0, 0.06, 0.06, M.gold, 0, pc.deckY + 0.6, zz));
   for (const x of [-2.9, -1.4, 0, 1.4, 2.9]) g.add(box(0.07, 0.6, 0.07, M.lacquer, x, pc.deckY + 0.3, z + 1.7));
+  for (const x of [-2.45, -1.65, -0.85, 0, 0.85, 1.65, 2.45]) {
+    const bracket = box(0.34, 0.16, 0.28, M.gold, x, pc.deckY - 0.28, z + 1.32);
+    bracket.rotation.z = (Math.abs(x) % 1.5 - 0.5) * 0.08;
+    g.add(bracket);
+  }
+
   // Pillars to the roof, the lower eave tier and the raised roof.
   for (const x of [-2.4, 2.4]) for (const dz of [-1.0, 1.0]) g.add(box(0.14, pc.eaveY - pc.deckY, 0.14, M.lacquer, x, (pc.eaveY + pc.deckY) / 2, z + dz));
-  g.add(box(5.6, 0.16, 3.0, M.timber, 0, pc.eaveY - 0.08, z));
-  g.add(box(5.7, 0.06, 0.08, M.gold, 0, pc.eaveY - 0.02, z + 1.52));
-  g.add(box(2.8, pc.ridgeY - pc.eaveY - 0.1, 2.2, M.timber, 0, (pc.ridgeY + pc.eaveY) / 2 - 0.05, z));
-  g.add(box(3.0, 0.14, 2.6, M.timber, 0, pc.ridgeY - 0.07, z));
+  for (const x of [-2.35, -1.15, 0, 1.15, 2.35]) g.add(box(0.09, pc.eaveY - pc.deckY - 0.2, 0.09, M.timberMed, x, (pc.eaveY + pc.deckY) / 2, z + 1.28));
+  g.add(box(5.95, 0.16, 3.0, M.timber, 0, pc.eaveY - 0.11, z));
+  g.add(box(5.95, 0.08, 0.1, M.gold, 0, pc.eaveY - 0.01, z + 1.53));
+  // A real gabled roof turns the final route from eave to ridge in silhouette.
+  slope(g, M.roof, { x: -3.0, y: pc.eaveY, z }, pc.ridgeY - pc.eaveY - 0.18, 3.0, 2.8, -Math.PI / 2, 0.15);
+  slope(g, M.roof, { x: 3.0, y: pc.eaveY, z }, pc.ridgeY - pc.eaveY - 0.18, 3.0, 2.8, Math.PI / 2, 0.15);
+  ridgeCap(g, M, z - 1.42, z + 1.42, pc.ridgeY - 0.28, 0, true);
+
   // Lantern frame on the float (komagata), left side.
   for (const y of [pc.deckY + 0.5, pc.deckY + 0.85]) {
     for (let x = -2.6; x < -1.3; x += 0.28) {
@@ -1382,6 +1474,7 @@ B.float = (pc, ctx) => {
     }
   }
   g.add(box(1.5, 0.06, 0.12, M.timber, -1.95, 4.7 - 0.03, z));
+
   // The shingi pole stands just behind the climb; a crossbar of sakaki and a
   // small perch bracket stick out from it toward the street. A crescent tops it.
   const zp = z - 0.75, zc = z - 0.2;
@@ -1405,7 +1498,78 @@ B.float = (pc, ctx) => {
   moon.position.set(0, pc.ridgeY + 10.6, zp);
   moon.rotation.z = 0.9;
   g.add(moon);
+
+  // Shimenawa-like lashings and four guy ropes make the mast feel physically
+  // tied into the roof instead of floating above it.
+  for (let y = pc.ridgeY + 0.25; y < pc.ridgeY + 0.72; y += 0.12) {
+    const wrap = new THREE.Mesh(new THREE.TorusGeometry(0.135, 0.024, 5, 12), M.hemp);
+    wrap.rotation.x = Math.PI / 2;
+    wrap.position.set(0, y, zp);
+    g.add(wrap);
+  }
+  const ropeBetween = (a, b) => {
+    const dir = b.clone().sub(a);
+    const rope = cyl(0.018, dir.length(), M.hemp, 'y', 5);
+    rope.position.copy(a).add(b).multiplyScalar(0.5);
+    rope.quaternion.setFromUnitVectors(UP, dir.normalize());
+    g.add(rope);
+  };
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    ropeBetween(
+      new THREE.Vector3(sx * 2.55, pc.eaveY - 0.08, z + sz * 1.1),
+      new THREE.Vector3(0, pc.ridgeY + 4.1, zp)
+    );
+  }
+
+  // Live details stay out of the static merge: tassels and three seated
+  // hayashi musicians breathe just enough to keep the parked hoko alive.
+  const live = frameGroup(rail, sm);
+  const tassels = [];
+  for (let i = 0; i < 6; i++) {
+    const pivot = new THREE.Group();
+    pivot.position.set(-2.55 + i * 1.02, pc.eaveY - 0.03, z + 1.52);
+    const cord = cyl(0.014, 0.42, M.hemp, 'y', 5);
+    cord.position.y = -0.21;
+    const knot = new THREE.Mesh(new THREE.SphereGeometry(0.06, 7, 5), M.gold);
+    knot.position.y = -0.43;
+    const tassel = new THREE.Mesh(new THREE.ConeGeometry(0.105, 0.34, 8), i % 2 ? M.goods[3] : M.goods[1]);
+    tassel.position.y = -0.62;
+    pivot.add(cord, knot, tassel);
+    pivot.userData.phase = i * 0.83;
+    live.add(pivot);
+    tassels.push(pivot);
+  }
+
+  const musicians = [];
+  for (let i = 0; i < 3; i++) {
+    const person = new THREE.Group();
+    person.position.set(-1.25 + i * 1.25, pc.deckY + 0.04, z - 0.34 + (i % 2) * 0.16);
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 0.43, 8), M.goods[[5, 3, 0][i]]);
+    body.position.y = 0.4;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.105, 9, 7), M.plasterWarm);
+    head.position.y = 0.72;
+    const hachimaki = box(0.23, 0.045, 0.16, M.plaster, 0, 0.75, 0);
+    const knees = box(0.46, 0.15, 0.24, M.dark, 0, 0.12, 0);
+    person.add(body, head, hachimaki, knees);
+    if (i === 1) {
+      const drum = cyl(0.18, 0.26, M.timberMed, 'z', 10);
+      drum.position.set(0.23, 0.38, 0.12);
+      person.add(drum);
+    } else {
+      const flute = cyl(0.022, 0.58, M.bamboo, 'x', 6);
+      flute.position.set(0, 0.55, 0.16);
+      flute.rotation.z = i ? -0.08 : 0.08;
+      person.add(flute);
+    }
+    person.userData.phase = i * 1.9;
+    person.userData.baseY = person.position.y;
+    live.add(person);
+    musicians.push(person);
+  }
+
   ctx.add(g);
+  ctx.addDyn(live);
+  ctx.dynamic.float = { group: live, tassels, musicians };
   ctx.light(rail, sm, pc.deckY + 0.7, z + 1.4);
   ctx.light(rail, sm, 2.4, z + 1.6);
 };
@@ -1570,14 +1734,15 @@ function mergeByMaterial(group, castShadow = true) {
   return out;
 }
 
-export function buildWorld(level) {
+export function buildWorld(level, opts = {}) {
   const M = makeMaterials();
   const rail = level.rail;
+  const motionScale = opts.reduceMotion ? 0.22 : 1;
   const staticGroup = new THREE.Group();
   const glassGroup = new THREE.Group();
   const root = new THREE.Group();
   const lights = [];
-  const dynamic = { boat: null, shoki: [], treats: [] };
+  const dynamic = { boat: null, float: null, shoki: [], treats: [] };
   const ctx = {
     M, rail, dynamic,
     add: (o) => staticGroup.add(o),
@@ -1653,9 +1818,22 @@ export function buildWorld(level) {
         boat.lastS = s;
         boat.lastT = t;
       }
+      if (dynamic.float) {
+        const hoko = dynamic.float;
+        for (const tassel of hoko.tassels) {
+          const u = t * motionScale + tassel.userData.phase;
+          tassel.rotation.z = Math.sin(u * 1.35) * 0.055 * motionScale;
+          tassel.rotation.x = Math.cos(u * 0.93) * 0.035 * motionScale;
+        }
+        for (const person of hoko.musicians) {
+          const u = t * motionScale + person.userData.phase;
+          person.rotation.z = Math.sin(u * 1.7) * 0.018 * motionScale;
+          person.position.y = person.userData.baseY + Math.sin(u * 1.7) * 0.008 * motionScale;
+        }
+      }
       M.water.uniforms.uTime.value = t;
       M.water.uniforms.uNight.value = night;
-      for (const mat of [...M.cloth, ...Object.values(M.noren)]) {
+      for (const mat of [...M.cloth, ...Object.values(M.noren), ...M.brocade]) {
         if (mat.userData.windShader) mat.userData.windShader.uniforms.uRoofTime.value = t;
       }
       M.lanternRed.emissiveIntensity = 0.15 + night * 1.6;

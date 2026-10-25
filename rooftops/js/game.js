@@ -45,7 +45,7 @@ const level = buildLevel();
 const rail = level.rail;
 const runner = new Runner(level);
 const sky = new Sky(scene, renderer, { shadows, reduceMotion, lowPower });
-const world = buildWorld(level);
+const world = buildWorld(level, { reduceMotion, lowPower });
 scene.add(world.root);
 const atmosphere = new RooftopAtmosphere(scene, level, { reduceMotion, lowPower });
 
@@ -134,7 +134,21 @@ const audio = {
   },
   pat() { this.noise(0.06, 900, 0.05); },
   splash() { this.noise(0.35, 1400, 0.12); },
-  bounce() { this.noise(0.12, 300, 0.12); }
+  bounce() { this.noise(0.12, 300, 0.12); },
+  drum(freq = 72, dur = 0.9, gain = 0.045) {
+    const c = this.ctx;
+    if (!c || this.muted) return;
+    const t = c.currentTime;
+    const o = c.createOscillator(), v = c.createGain(), f = c.createBiquadFilter();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(freq * 1.25, t);
+    o.frequency.exponentialRampToValueAtTime(freq, t + dur * 0.35);
+    f.type = 'lowpass'; f.frequency.value = 260;
+    v.gain.setValueAtTime(gain, t);
+    v.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(f).connect(v).connect(c.destination);
+    o.start(t); o.stop(t + dur + 0.03);
+  }
 };
 const PENTA = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5, 1174.66];
 
@@ -515,8 +529,11 @@ function updateFinale(dt) {
   // Fires: Daimonji first, then right to left, ~1.6 s apart.
   const due = Math.floor((t - 3.0) / 1.6) + 1;
   while (finale.lit < Math.min(5, due)) {
-    sky.lightFire(finale.lit);
-    audio.chime([196.0, 220.0, 246.94, 293.66, 329.63][finale.lit], 3.5, 0.06);
+    const i = finale.lit;
+    sky.lightFire(i);
+    audio.drum(76 - i * 4, 1.15, 0.042);
+    audio.chime([196.0, 220.0, 246.94, 293.66, 329.63][i], 3.5, 0.06);
+    toast(sky.fires[i]?.label || sky.fires[i]?.name || 'Okuribi', 1.45);
     finale.lit++;
   }
   if (!finale.shown && t > 13.5) {
