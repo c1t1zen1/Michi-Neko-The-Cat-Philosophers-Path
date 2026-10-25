@@ -153,7 +153,7 @@ pre.code { margin: 14px 0 0; padding: 14px 16px; background: var(--code-bg); bor
 .hero-foot .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 38px; }
 .keys { margin: 22px 0 0; font-size: 0.8rem; color: var(--soft); }
 .hero-stats { margin: 8px 0 0; font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-.hud { position: absolute; left: 16px; z-index: 4; font-size: 0.74rem; line-height: 1.5; color: var(--ink); text-shadow: 0 0 6px #fff, 0 0 2px #fff; pointer-events: none; font-variant-numeric: tabular-nums; }
+.hud { position: absolute; left: 16px; z-index: 4; padding: 6px 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.78); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); font-size: 0.74rem; line-height: 1.5; color: var(--ink); pointer-events: none; font-variant-numeric: tabular-nums; }
 .hud.tl { top: 50px; }
 .hud.bl { bottom: 14px; }
 .foot { max-width: 1560px; margin: 0 auto; padding: 40px var(--gutter) 60px; font-size: 0.8rem; color: var(--soft); text-align: center; }

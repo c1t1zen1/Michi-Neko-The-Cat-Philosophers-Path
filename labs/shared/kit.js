@@ -108,7 +108,7 @@ views.add(stageEl, {
   }
 });
 
-walker.load({ scene, renderer, sunDir: rig.sunDir }).then(() => {
+walker.load({ scene, renderer, sunDir: rig.sunDir, rig }).then(() => {
   walker.cat?.group.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   $('#wake').hidden = true;
   kit.catReady = walker.ready;
@@ -168,9 +168,9 @@ const TILES = [
   { title: 'Domain warp', tag: 'domainWarp2', expr: 'v = fbm2(domainWarp2(p + uTime * 0.05, 1.2), 5);', pre: '' }
 ];
 const FRAG = (t) => `${HASH}${NOISE}${WARP}
-uniform float uTime; uniform vec3 uA, uB; varying vec2 vUv; varying vec3 vN;
+uniform float uTime; uniform vec3 uA, uB; varying vec3 vObj; varying vec3 vN;
 void main() {
-  vec2 p = vUv * vec2(8., 4.);
+  vec2 p = vec2(vObj.x + vObj.z * 0.7, vObj.y + vObj.z * 0.4) * 3.2;
   float v;
   ${t.pre}
   ${t.expr}
@@ -179,7 +179,7 @@ void main() {
   gl_FragColor = vec4(c, 1.);
   #include <colorspace_fragment>
 }`;
-const VERT = 'varying vec2 vUv; varying vec3 vN; void main() { vUv = uv; vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }';
+const VERT = 'varying vec3 vObj; varying vec3 vN; void main() { vObj = position; vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }';
 
 $('#variants').innerHTML = TILES.map((t, i) => `<article class="tile"><div class="view" data-i="${i}"></div><h3 class="name">${t.title}</h3><p class="tag">${t.tag}</p>
   <dl class="stats"><div><dd class="s-calls">–</dd><dt>draws</dt></div><div><dd class="s-tris">–</dd><dt>tris</dt></div><div><dd class="s-cpu">–</dd><dt>ms cpu</dt></div></dl></article>`).join('');

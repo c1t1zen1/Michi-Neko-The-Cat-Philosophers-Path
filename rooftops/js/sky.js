@@ -31,12 +31,56 @@ function hillHeight(a) {
   return Math.max(6, (base + n) * (1 - 0.82 * south * south));
 }
 
+function cloudTexture(seed = 0) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 128;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 20, 0, 112);
+  grad.addColorStop(0, 'rgba(255,253,244,.98)');
+  grad.addColorStop(0.58, 'rgba(245,235,218,.86)');
+  grad.addColorStop(1, 'rgba(143,157,170,0)');
+  g.fillStyle = grad;
+  g.filter = 'blur(2px)';
+  for (let i = 0; i < 12; i++) {
+    const x = 24 + hashCloud(seed + i * 3.1) * 208;
+    const y = 58 + hashCloud(seed * 2 + i * 7.7) * 28;
+    const rx = 25 + hashCloud(seed + i * 5.2) * 35;
+    const ry = 14 + hashCloud(seed + i * 9.3) * 19;
+    g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fill();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function moonTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  const glow = g.createRadialGradient(64, 64, 17, 64, 64, 63);
+  glow.addColorStop(0, 'rgba(255,250,220,1)');
+  glow.addColorStop(0.28, 'rgba(233,238,220,.95)');
+  glow.addColorStop(0.43, 'rgba(190,205,220,.22)');
+  glow.addColorStop(1, 'rgba(130,160,210,0)');
+  g.fillStyle = glow; g.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function hashCloud(x) {
+  const n = Math.sin(x * 91.17 + 17.31) * 43758.5453;
+  return n - Math.floor(n);
+}
+
 export class Sky {
   constructor(scene, renderer, opts = {}) {
     this.scene = scene;
     this.renderer = renderer;
     this.center = opts.center || new THREE.Vector3(-13, 0, -57);
     this.ringR = opts.ringR || 430;
+    this.reduceMotion = !!opts.reduceMotion;
+    this.lowPower = !!opts.lowPower;
 
     this.uniforms = {
       uTop: { value: new THREE.Color() },
@@ -89,6 +133,7 @@ export class Sky {
     scene.fog = new THREE.FogExp2(0xe6d9c2, 0.0022);
 
     this.buildHills();
+    this.buildClouds();
     this.buildFires();
     this.setPhase(0);
   }
@@ -123,6 +168,38 @@ export class Sky {
     this.hillMat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
     this.hills = new THREE.Mesh(geo, this.hillMat);
     this.scene.add(this.hills);
+  }
+
+  buildClouds() {
+    this.clouds = [];
+    const count = this.lowPower ? 7 : 13;
+    for (let i = 0; i < count; i++) {
+      const seed = hashCloud(80 + i * 11.7);
+      const mat = new THREE.SpriteMaterial({
+        map: cloudTexture(seed * 100),
+        color: new THREE.Color().setHSL(0.1, 0.18, 0.93 - seed * 0.08),
+        transparent: true,
+        opacity: 0.62 + seed * 0.2,
+        depthWrite: false,
+        fog: false
+      });
+      const cloud = new THREE.Sprite(mat);
+      const a = (i / count) * Math.PI * 2 + seed * 0.7;
+      const radius = 185 + hashCloud(i * 4.7) * 190;
+      cloud.position.set(this.center.x + Math.cos(a) * radius, 48 + hashCloud(i * 9.1) * 62, this.center.z + Math.sin(a) * radius);
+      const w = 48 + hashCloud(i * 3.4) * 78;
+      cloud.scale.set(w, w * (0.28 + seed * 0.12), 1);
+      cloud.userData.base = cloud.position.clone();
+      cloud.userData.speed = 0.45 + hashCloud(i * 8.3) * 0.7;
+      cloud.userData.phase = seed * Math.PI * 2;
+      cloud.renderOrder = -4;
+      this.clouds.push(cloud);
+      this.scene.add(cloud);
+    }
+    this.moon = new THREE.Sprite(new THREE.SpriteMaterial({ map: moonTexture(), transparent: true, opacity: 0, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
+    this.moon.scale.set(42, 42, 1);
+    this.moon.renderOrder = -3;
+    this.scene.add(this.moon);
   }
 
   /**
@@ -258,6 +335,7 @@ export class Sky {
     this.uniforms.uNight.value = night;
     lerpHex(this.sun.color, A.sun, Bk.sun, t);
     this.sun.intensity = lerp(A.sunI, Bk.sunI, t);
+    this.sunBaseIntensity = this.sun.intensity;
     lerpHex(this.hemi.color, A.hemiS, Bk.hemiS, t);
     lerpHex(this.hemi.groundColor, A.hemiG, Bk.hemiG, t);
     this.hemi.intensity = lerp(A.hemiI, Bk.hemiI, t);
@@ -266,12 +344,28 @@ export class Sky {
     this.renderer.toneMappingExposure = lerp(A.exp, Bk.exp, t);
     const hillTint = new THREE.Color(0xffffff).lerp(new THREE.Color(0x5a6488), night * 0.8);
     this.hillMat.color.copy(hillTint);
+    for (const cloud of this.clouds) {
+      cloud.material.opacity = (0.58 + hashCloud(cloud.userData.phase) * 0.22) * (1 - night * 0.68);
+      cloud.material.color.set(0xffffff).lerp(new THREE.Color(0x8d94b2), night * 0.75);
+    }
+    this.moon.material.opacity = night * 0.92;
     return night;
   }
 
   /** Keep the sky centred and the shadow box on the cat. */
   update(dt, t, focus) {
     this.dome.position.copy(focus);
+    const motion = this.reduceMotion ? 0.18 : 1;
+    for (const cloud of this.clouds) {
+      const u = t * cloud.userData.speed * motion;
+      cloud.position.x = cloud.userData.base.x + Math.sin(u * 0.035 + cloud.userData.phase) * 28;
+      cloud.position.z = cloud.userData.base.z + Math.cos(u * 0.023 + cloud.userData.phase) * 12;
+    }
+    this.moon.position.set(focus.x + 310, focus.y + 128, focus.z - 390);
+    if (this.sunBaseIntensity != null) {
+      const cloudShade = this.reduceMotion ? 1 : 0.955 + Math.sin(t * 0.045) * 0.025 + Math.sin(t * 0.017 + 2.0) * 0.02;
+      this.sun.intensity = this.sunBaseIntensity * cloudShade;
+    }
     this.sun.position.copy(focus).addScaledVector(this.lightDir, 60);
     this.sun.target.position.copy(focus);
     for (const f of this.fires) {

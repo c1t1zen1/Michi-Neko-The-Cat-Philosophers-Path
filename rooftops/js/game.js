@@ -12,10 +12,13 @@ import { Runner, PHYS, platOffset, platTop } from './physics.js';
 import { Autopilot } from './autopilot.js';
 import { buildWorld } from './build.js';
 import { Sky } from './sky.js';
+import { RooftopAtmosphere } from './atmosphere.js';
 
 const Q = new URLSearchParams(location.search);
 const flag = (k, d = null) => (Q.has(k) ? Q.get(k) : d);
 const reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const coarsePointer = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+const lowPower = flag('quality') === 'low' || (flag('quality') !== 'high' && (coarsePointer || (navigator.hardwareConcurrency || 8) <= 4));
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -24,8 +27,8 @@ const damp = (cur, target, rate, dt) => cur + (target - cur) * (1 - Math.exp(-ra
 /* ---------------- renderer, scene, camera ---------------- */
 
 const canvas = $('gl');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: flag('shot') === '1' });
-renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: flag('shot') === '1' });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, lowPower ? 1.15 : 1.5));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 const shadows = flag('shadows') !== '0';
@@ -39,9 +42,10 @@ scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnviron
 const level = buildLevel();
 const rail = level.rail;
 const runner = new Runner(level);
-const sky = new Sky(scene, renderer, { shadows });
+const sky = new Sky(scene, renderer, { shadows, reduceMotion, lowPower });
 const world = buildWorld(level);
 scene.add(world.root);
+const atmosphere = new RooftopAtmosphere(scene, level, { reduceMotion, lowPower });
 
 // Every standard material, so the room environment can dim with the evening.
 const envMats = [];
@@ -576,6 +580,7 @@ function frame(now) {
 
   updateCamera(dt);
   sky.update(dt, time, catRoot.position);
+  atmosphere.update(dt, time, prog, night, catRoot.position);
 
   // HUD timers.
   if (cardT > 0) { cardT -= dt; if (cardT <= 0) $('card').classList.remove('show'); }
@@ -588,6 +593,7 @@ function frame(now) {
     const fps = fpsN / fpsT;
     if (fps < 36) {
       renderer.setPixelRatio(1);
+      atmosphere.setLowPower(true);
       if (fps < 24) { renderer.shadowMap.enabled = false; sky.sun.castShadow = false; }
       governed = true;
     }
@@ -670,7 +676,7 @@ function start() {
 
 // Expose a little for headless captures and the console.
 window.roofRoad = {
-  level, runner, sky, world, PHYS, jumpToMouth,
+  level, runner, sky, world, atmosphere, PHYS, jumpToMouth,
   get finale() { return finale; },
   get catReady() { return !!cat || flag('cat') === '0'; },
   /** Stand the cat on the highest surface at route position s. */

@@ -39,6 +39,7 @@ export class CatWalker {
     this.sprint = false;
     this.turning = false;
     this.onStep = null;
+    this.clickToGo = true;
     this.chest = new THREE.Vector3();
     this.hips = new THREE.Vector3();
     this.paws = Array.from({ length: 4 }, () => ({ x: 0, y: 0, z: 0, planted: false, down: false }));
@@ -61,7 +62,7 @@ export class CatWalker {
     this._bindInput();
   }
 
-  async load({ scene, renderer, sunDir } = {}) {
+  async load({ scene, renderer, sunDir, rig } = {}) {
     if (flag('cat') === '0') return this;
     try {
       const mod = await loadCatModule();
@@ -78,6 +79,7 @@ export class CatWalker {
       mod.catRimUniforms.uRimColor.value.set(0xffd9a0);
       if (sunDir) mod.catRimUniforms.uRimDir.value.copy(sunDir);
       if (this.prowl) cat.setProwling(true);
+      rig?.applyEnv();
       this.ready = true;
     } catch (e) {
       console.error('cat failed to load', e);
@@ -141,6 +143,7 @@ export class CatWalker {
   }
 
   _click(e) {
+    if (!this.clickToGo) return;
     const cam = this.getCamera();
     const rect = this.dom.getBoundingClientRect();
     this.ray.setFromCamera({ x: ((e.clientX - rect.left) / rect.width) * 2 - 1, y: -(((e.clientY - rect.top) / rect.height) * 2 - 1) }, cam);

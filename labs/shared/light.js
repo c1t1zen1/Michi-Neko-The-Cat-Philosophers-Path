@@ -2,16 +2,16 @@
 // sky dome, all driven by one hour value (0..24).
 import * as THREE from 'three';
 
-const K = (hour, elev, sun, sunI, skyTop, horizon, hemiSky, hemiGround, hemiI) => ({ hour, elev, sun, sunI, skyTop, horizon, hemiSky, hemiGround, hemiI });
+const K = (hour, elev, sun, sunI, skyTop, horizon, hemiSky, hemiGround, hemiI, envI) => ({ hour, elev, sun, sunI, skyTop, horizon, hemiSky, hemiGround, hemiI, envI });
 export const HOURS = [
-  K(5.0, -8, 0x5a6aa0, 0.0, 0x1b2546, 0x6a6a90, 0x2e3a66, 0x1a1a22, 0.25),
-  K(6.5, 6, 0xffb88a, 1.2, 0x6d8fc4, 0xf7c6a0, 0x9fb5d8, 0x5a4a3a, 0.55),
-  K(9.0, 35, 0xfff0d6, 2.2, 0x6fa6dc, 0xd4e6f2, 0xb9d4f0, 0x6b6a48, 0.9),
-  K(12.0, 62, 0xfff6e6, 2.5, 0x5d9ad8, 0xd9e9f5, 0xc2dcf4, 0x6f6d4a, 1.0),
-  K(16.0, 32, 0xffe2b0, 2.2, 0x6b9fd4, 0xf0dcc0, 0xbcd0e6, 0x6e5f44, 0.85),
-  K(18.0, 8, 0xffa860, 2.0, 0x6a7fb6, 0xffb27a, 0xc8a89a, 0x5a4434, 0.6),
-  K(19.5, -4, 0xff8a5a, 0.25, 0x2c3462, 0xc77a6a, 0x4a4a78, 0x2a2228, 0.35),
-  K(22.0, -30, 0x000000, 0, 0x0b1226, 0x26304e, 0x24305a, 0x12121a, 0.22)
+  K(5.0, -8, 0x5a6aa0, 0.0, 0x1b2546, 0x6a6a90, 0x2e3a66, 0x1a1a22, 0.25, 0.15),
+  K(6.5, 6, 0xffb88a, 1.2, 0x6d8fc4, 0xf7c6a0, 0x9fb5d8, 0x5a4a3a, 0.55, 0.5),
+  K(9.0, 35, 0xfff0d6, 2.2, 0x6fa6dc, 0xd4e6f2, 0xb9d4f0, 0x6b6a48, 0.9, 0.9),
+  K(12.0, 62, 0xfff6e6, 2.5, 0x5d9ad8, 0xd9e9f5, 0xc2dcf4, 0x6f6d4a, 1.0, 1),
+  K(16.0, 32, 0xffe2b0, 2.2, 0x6b9fd4, 0xf0dcc0, 0xbcd0e6, 0x6e5f44, 0.85, 0.9),
+  K(18.0, 8, 0xffa860, 2.0, 0x6a7fb6, 0xffb27a, 0xc8a89a, 0x5a4434, 0.6, 0.6),
+  K(19.5, -4, 0xff8a5a, 0.25, 0x2c3462, 0xc77a6a, 0x4a4a78, 0x2a2228, 0.35, 0.3),
+  K(22.0, -30, 0x000000, 0, 0x0b1226, 0x26304e, 0x24305a, 0x12121a, 0.22, 0.12)
 ];
 const COLS = ['sun', 'skyTop', 'horizon', 'hemiSky', 'hemiGround'];
 const _a = new THREE.Color(), _b = new THREE.Color();
@@ -35,7 +35,8 @@ void main() {
 }`;
 
 export class LightRig {
-  constructor(scene, { hour = 10.5, shadows = false, shadowSize = 12, sky = true, fog = true } = {}) {
+  constructor(scene, { hour = 10.5, shadows = false, shadowSize = 12, sky = true, fog = true, background = true } = {}) {
+    this.background = background;
     this.scene = scene;
     this.sunDir = new THREE.Vector3(0, 1, 0);
     this.palette = { sun: new THREE.Color(), skyTop: new THREE.Color(), horizon: new THREE.Color(), ground: new THREE.Color(), fog: new THREE.Color() };
@@ -93,11 +94,21 @@ export class LightRig {
     this.hemi.color.copy(hemiSky);
     this.hemi.groundColor.copy(P.ground);
     this.hemi.intensity = L(k0.hemiI, k1.hemiI);
+    this.envIntensity = L(k0.envI, k1.envI);
+    this.applyEnv();
     if (this.scene.fog) this.scene.fog.color.copy(P.fog);
     if (this.dome) {
       this.dome.material.uniforms.uBelow.value.copy(P.horizon).multiplyScalar(0.7);
       this.dome.material.uniforms.uGlow.value = THREE.MathUtils.clamp((elev + 6) / 10, 0, 1);
-    } else this.scene.background = P.horizon;
+    } else if (this.background) this.scene.background = P.horizon;
+  }
+
+  applyEnv() {
+    this.scene.traverse((o) => {
+      for (const m of [].concat(o.material || [])) {
+        if (m.isMeshStandardMaterial) m.envMapIntensity = (m.userData.env0 ??= m.envMapIntensity) * this.envIntensity;
+      }
+    });
   }
 
   update() { /* uniforms share the palette colours, so nothing to copy */ }

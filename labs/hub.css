@@ -36,5 +36,6 @@
 .row.live .r-s { color: var(--accent2); font: italic 400 1rem var(--serif); }
 .row.next .r-s { color: var(--tier); font-weight: 500; }
 .row.planned .r-n, .row.elsewhere .r-n { opacity: 0.45; }
+.r-img { grid-column: 2; width: min(100%, 560px); height: auto; aspect-ratio: 8 / 5; margin-top: 12px; border-radius: 14px; object-fit: cover; }
 .row.live a:hover .r-title { color: var(--tier); }
 @media (max-width: 700px) { .row > a, .row > div { grid-template-columns: 1fr; } .r-n { grid-row: auto; } .r-s { grid-column: 1; } }

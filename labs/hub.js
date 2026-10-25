@@ -33,7 +33,7 @@ $('#tiers').innerHTML = TIERS.map((t) => `
         <span class="r-q">${esc(l.question)}</span>
         <span class="r-chips">${l.reasons.map((r) => `<span class="chip" title="${esc(REASONS[r])}">${r}</span>`).join('')}</span>
         <code class="r-b">${l.builders.map(esc).join(' · ')}</code></span>
-        <span class="r-s">${STATUS[l.status]}</span>`;
+        <span class="r-s">${STATUS[l.status]}</span>${l.status === 'live' && l.poster ? `<img class="r-img" src="${l.poster}" alt="" loading="lazy" width="1200" height="750">` : ''}`;
       return `<li class="row ${l.status}">${l.status === 'live' && l.href ? `<a href="${l.href}">${body}</a>` : `<div>${body}</div>`}</li>`;
     }).join('')}</ol>
   </section>`).join('');

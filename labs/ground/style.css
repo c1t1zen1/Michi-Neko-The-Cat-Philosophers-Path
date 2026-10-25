@@ -1,0 +1,31 @@
+/* Lab 01 theme: earth. Everything else comes from ../shared/lab.css. */
+:root {
+  --accent: #b5623a; --accent2: #4d7c34; --ink: #2a2118; --muted: #6b5d4e; --soft: #9a8a78;
+  --wash: rgba(181, 98, 58, 0.16); --code-bg: #f6f1ea;
+}
+.hero-foot .row { margin-top: 14px; align-items: center; }
+.hero-foot .row[hidden] { display: none; }
+.hero-foot .ctl .seg { flex-wrap: wrap; justify-content: center; }
+.hud.tr { top: 50px; right: 16px; left: auto; }
+.hud.tl { top: 14px; }
+.hud.tl[hidden] { display: none; }
+#hudSplat canvas { display: block; width: 132px; height: 132px; border-radius: 6px; margin-bottom: 6px; }
+#under { max-width: 220px; }
+.jump-a { font: italic 400 1.05rem var(--serif); color: var(--accent); text-decoration: none; }
+.stage { height: clamp(560px, 80vh, 860px); }
+.how { margin: 12px 0 0; padding-left: 1.1em; font-size: 0.84rem; line-height: 1.6; color: var(--muted); }
+.how li { margin: 0 0 6px; }
+.use { margin: 14px 0 0; font-size: 0.82rem; color: var(--ink); }
+.use b { font-family: var(--serif); font-style: italic; font-weight: 400; color: var(--accent); }
+.srcs { margin: 10px 0 0; padding: 0; list-style: none; font-size: 0.78rem; line-height: 1.7; }
+.stats2 { margin: 5px 0 0; font-size: 0.72rem; color: var(--soft); }
+.name .jp { font-size: 0.95rem; color: var(--accent); margin-left: 6px; }
+.tag i { color: var(--soft); }
+.view { cursor: pointer; }
+.view:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 12px; }
+.game-list { max-width: 52rem; margin: 26px 0 0; padding-left: 1.2em; font-family: var(--serif); font-weight: 300; font-size: 1.2rem; line-height: 1.65; color: var(--ink); }
+.game-list li { margin: 0 0 10px; }
+.game-list em { color: var(--accent); }
+.section .fam-head h2, .family .fam-head h2 { font-weight: 400; }
+.variants { gap: 56px 26px; }
+@media (min-width: 1100px) { .variants { grid-template-columns: repeat(4, 1fr); } }
