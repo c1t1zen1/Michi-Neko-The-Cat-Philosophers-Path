@@ -265,6 +265,12 @@
     .overlay {
       position: absolute; inset: 0; z-index: 500;
       display: flex; align-items: center; justify-content: center;
+      /* A panel taller than the screen (settings on a phone) scrolls here:
+         body is overflow:hidden + touch-action:none, so the overlay must be
+         the scroller. The panel's auto margin centres it without pushing its
+         top out of reach the way align-items:center would. */
+      overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+      padding: 12px;
       background: radial-gradient(ellipse at center, rgba(26,14,8,0.55) 0%, rgba(12,6,3,0.88) 100%);
       opacity: 1; transition: opacity 0.35s ease;
     }
@@ -276,12 +282,13 @@
     .panel {
       background: linear-gradient(175deg, rgba(249,240,226,0.97) 0%, rgba(233,214,186,0.95) 100%);
       border: 1px solid #7c4c28; border-top: 3px solid #c8402a;
-      border-radius: 8px; padding: 28px 34px; min-width: 300px;
+      border-radius: 8px; padding: 28px 34px; min-width: min(300px, 100%); max-width: 100%;
+      margin: auto;
       box-shadow: 0 24px 70px rgba(0,0,0,0.65), inset 0 0 30px rgba(160,110,60,0.12);
       display: flex; flex-direction: column; gap: 10px; align-items: stretch;
       animation: panel-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
     }
-    .panel.wide { min-width: 380px; }
+    .panel.wide { min-width: min(380px, 100%); }
     @keyframes panel-in { from { transform: translateY(18px) scale(0.97); opacity: 0; } to { transform: none; opacity: 1; } }
     .panel-title {
       font-size: 22px; color: #b8321e; letter-spacing: 3px; margin: 0 0 8px 0;
@@ -360,6 +367,14 @@
     }
     .settings-value { font-size: 11px; color: #8a684c; min-width: 36px; text-align: right; }
     .settings-group-title { margin: 12px 0 2px; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #8a684c; border-bottom: 1px solid rgba(120,80,40,0.35); padding-bottom: 3px; }
+    /* Narrow phones: the panel shrinks to the screen, so sliders and selects
+       give way instead of pushing their row past the panel edge. */
+    @media (max-width: 480px) {
+      .panel { padding: 22px 18px; }
+      .settings-row { gap: 10px; }
+      .settings-row input[type="range"] { width: auto; flex: 1 1 0; min-width: 60px; }
+      .settings-row select { min-width: 0; max-width: 58%; }
+    }
 
     /* ============ Comfort & accessibility (U2.x) ============ */
     /* Interface size scales the overlay chrome only — never the 3D canvas. */
