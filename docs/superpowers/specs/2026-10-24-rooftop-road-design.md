@@ -106,12 +106,12 @@ for the numbers: `rooftops/js/level.js`.
 
 | # | Mouth | s | Surfaces | What it teaches / the twist | Shōki |
 |---|-------|---|----------|----------------------------|-------|
-| ① | **粟田口 Awataguchi** — the Mouth | 0–51.4 | Bridge deck (1.1 m) over the gravel riverbed, four giboshi caps (1.95 m), kido-gate roof (2.45), one-storey shops (eave 2.1, ridge 3.0), a gable house (2.2 → 3.3), a tsushi-nikai (hisashi 2.3, eave 3.6, ridge 4.4), a barrel, an inuyarai, a komayose fence, the first corner deck (3.4) | Run, jump, tap vs hold, the ledge guard (the cat stops and peers over), climb-backs from the street | On the first shop's eave |
-| ② | **先斗町 Pontochō** — the Narrow Lane | 51.4–122 | River-side row (eave 2.45, ridge 3.2) with gaps; the alley row behind it (eave 3.7, ridge 4.5); two chidori lantern lines (3.3); yuka decks on stilts over the riverbank (1.4) with lantern posts; a stepped pair of kura (3.7 → 4.6, 4.5 → 5.4) | **Zigzag**: the near row breaks every ~10 m, so you hop up across the alley to the far row and drop back. **Branch**: roofs (Shōki) or yuka decks (a dried sardine). Both rejoin at the kura | Far-row ridge |
-| ③ | **高瀬川 Takase** — the Shallow Canal | 122–164.4 | Kiyamachi house (ridge 3.0), a 20 m stretch of 30 cm canal, a drifting **takasebune** with rice bales (1.3; it drifts 15.6 m downstream and back every 16 s), three cherry boughs (2.7–2.9), the far-bank tsushi-nikai, a stone lantern, the second corner deck (4.2) | **The ride**: the boat is the dry way across. The boughs are a sprint line above it. Miss both and you wade out | Far-bank hisashi, under a cherry |
-| ④ | **錦 Nishiki** — the Long Canopy | 164.4–229.6 | Two-storey shop, then the arched market canopy (5.0 m, 48 m, solid underneath) with three vents and two skylights; under each skylight a crate-and-shop stack back up; the fishmonger's drying deck (5.0) | **Speed**: low friction, so sprint and the gallop opens up. Vents are hurdles. A skylight drops you into the market; the stacks under them climb back | Fishmonger's hisashi at the canopy's end |
-| ⑤ | **物干し Monohoshi** — Laundry Sky | 229.6–289.3 | Drying decks (5.0) on tsushi-nikai roofs, two **laundry poles** (5.5), a **futon** over a rail (5.85, bounces to ≈7.7), a tall kura (gable 6.7 → 7.8), a dip to a one-storey shop, the third corner deck (4.0) | **Bounce**: the kura's eave is 1.7 m above the decks, just past the 1.65 m a jump and a mantle can reach; only the futon gets you there. **Balance**: on the poles the cat prowls | On the kura ridge |
-| ⑥ | **鉾町 Hoko-chō** — Festival Streets | 289.3–336.8 | Merchant house, shop, three lantern racks (*komagata chōchin*: 1.0 / 1.9 / 2.8), the *kaisho* (its second floor opens onto a plank at 3.3), the **hoko float** (deck 3.6, lantern frame 4.7, eaves 5.8, roof 6.9, crossbar 8.0), a temple gate (5.2 → 6.6), a temple wall | **The run turns vertical**: the camera pulls back and the route zigzags up the float, one 1.1 m step at a time | Kaisho ridge |
+| ① | **粟田口 Awataguchi** — the Mouth | 0–51.4 | Detailed Sanjō-style bridge (1.1 m) over animated Kamo water, gravel shoals, dressed banks and cutwater piers; four giboshi caps (1.95), kido-gate roof (2.45), a lantern-lit roji garden, one- and two-storey machiya, the first corner deck (3.4) | Run, jump, tap vs hold, the ledge guard (the cat stops and peers over), climb-backs from the street | On the first shop's eave |
+| ② | **先斗町 Pontochō** — the Narrow Lane | 51.4–122 | River-side and far alley rows; seven low yuka decks (1.4); eleven crooked engawa, awnings and alley bridges (2.1–2.7); two chidori lantern lines (3.3); a stepped pair of kura (3.7 → 5.4); animated Kamo water | **Three-layer zigzag**: trade continuously among yuka, façades/alley balconies and broken ridgelines. Missed jumps become a lower route, and all roads rejoin at the kura | Far-row ridge |
+| ③ | **高瀬川 Takase** — the Water Maze | 122–164.4 | A 31 m animated canal with dressed banks and towpath; nine wet stepping stones; a drifting cargo **takasebune** with boatman, rice bales and wake; an arched footbridge and two landings; five cherry boughs plus a haul rope | **Three complete roads**: rhythmic stones and safe water below, boat and bridge between, sprinting cherry branches above. They cross and rejoin instead of punishing a miss | Far-bank hisashi, under a cherry |
+| ④ | **錦 Nishiki** — the Long Canopy | 164.4–229.6 | Three fast canopy runs (5.0) split by two broad open skylights; lowered timber crossings (3.84–3.92) swap depth through each opening; vents, covered shops and crate climb-backs below; fishmonger's drying deck (5.0) | **Speed with decisions**: race each roof segment, drop through the skylights, cross the arcade and climb back. The route repeatedly changes both height and depth | Fishmonger's hisashi at the canopy's end |
+| ⑤ | **物干し Monohoshi** — Laundry Sky | 229.6–289.3 | Drying decks (5.0), two low futon-rack bounce routes, two laundry poles (5.5), a rooftop cistern (6.1), tall kura (6.7 → 7.8), chimney cap (6.05), climb-back balconies and a one-storey dip | **Layer exchange**: bounce up from street-level futons, prowl the washing line, then chain cistern, kura and chimney across the high skyline | On the kura ridge |
+| ⑥ | **鉾町 Hoko-chō** — Festival Streets | 289.3–336.8 | Five distinct yatai roofs, two three-tier lantern racks, two lantern balance lines, merchant roofs and the *kaisho* plank; then the wheeled, brocade-draped **hoko float** (deck 3.6 → perch 9.1), temple gate and wall | **Festival maze to vertical finale**: stalls and racks weave low and middle roads before the route climbs the animated float one generous step at a time | Kaisho ridge |
 | ⑦ | **送り火 Okuribi** — the Sending Fires | float roof, y > 6.4 | The perch on the shingi pole (9.1) | Sit. The finale (§5.1) | Temple-gate ridge (a running jump off the float's eave) |
 
 ### 5.1 The finale
@@ -139,11 +139,12 @@ of the bay.
    cat visibly leaps *across* the lane.
 3. **High road / low road.** Roofs or yuka decks, canopy or market. They always
    rejoin, and the high road holds the Shōki.
-4. **The ride.** The takasebune carries you across dry. Wading the 30 cm canal is
-   the slow way.
-5. **The speed run.** The Nishiki canopy lets the gallop gait open up.
-6. **The bounce.** Futons fling the cat higher than any jump. They're the key to
-   the kura.
+4. **The water maze.** Takase has three complete routes: stepping stones and safe
+   water, the moving takasebune and footbridge, or the high cherry-bough sprint.
+5. **The broken speed run.** Nishiki opens the gallop, then two skylights ask for
+   quick drops, depth swaps and climbs back onto the next canopy segment.
+6. **The bounce.** Low futon racks fling the cat into Laundry Sky; the cistern,
+   kura and chimney carry the route above the washing poles.
 7. **The balance.** Laundry poles force a prowl. The cat lowers itself and its tail
    streams out.
 8. **The turn to vertical.** The last mouth stops scrolling sideways and climbs.
@@ -265,7 +266,7 @@ ready.
 
 ## 9. Testing
 
-* `node tools/rooftop_test.mjs` (30 checks, all passing on 2026-10-24), pure and fast:
+* `node tools/rooftop_test.mjs` (38 checks, all passing on 2026-10-25), pure and fast:
   1. The rail is continuous, arc length is uniform, tangents are continuous through
      the fillets.
   2. Every platform has s0 < s1. Every piece sits on one straight leg, except
@@ -286,6 +287,13 @@ ready.
   9. **The autopilot runs the whole route** on the real physics (boat, canopy vents,
      futon, the float climb) and reaches the perch **without touching the street or
      the canal**. That ties the runtime physics to the analytic reach.
+  10. The three-layer district signatures stay intact: Takase's stones/boat/bridge/
+      boughs, Pontochō's decks and balconies, Nishiki's split canopy, Laundry Sky's
+      low and high roads, Hoko-chō's stalls and lantern ascent, and at least 35
+      visible depth changes on the main route.
+  11. Mobile and desktop interface contracts remain wired: analog touch pad,
+      separate jump/drop actions, safe-area/coarse-pointer CSS, labelled guidance,
+      sound, recovery and pause controls, and an accessible pause dialog.
 * `node --input-type=module --check < file` for every `rooftops/js/*.js`.
 * Headless Chromium + SwiftShader captures (scratch harness, as for the Grass Lab)
   of all seven mouths and the finale, with no page errors, failed requests or

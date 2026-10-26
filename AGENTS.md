@@ -71,7 +71,7 @@ for f in src/*.js; do node --input-type=module --check < "$f" >/dev/null || echo
 
 Labs: `node tools/labs_check.mjs` (syntax, cache tags, registry).
 
-Roof Road: `node tools/rooftop_test.mjs` (30 checks, a few seconds). It proves
+Roof Road: `node tools/rooftop_test.mjs` (38 checks, a few seconds). It proves
 the rail is continuous, the finale is reachable from the start and from every
 platform (no soft-locks), every metre of street has a climb-back within 12 m,
 route links fit 80 % of the running jump, and the autopilot runs the whole

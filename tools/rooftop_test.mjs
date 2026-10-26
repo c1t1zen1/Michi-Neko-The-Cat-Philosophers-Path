@@ -7,8 +7,10 @@
 // leg (or is a corner piece); the finale is reachable from the start AND from
 // every platform (no soft-locks); the street always has a way back up within
 // 12 m; route gaps fit the strict jump budget; all seven Shōki are reachable;
-// and a scripted run of the real physics climbs the route without falling.
+// the layered landmark routes and mobile controls remain present; and a
+// scripted run of the real physics climbs the route without falling.
 
+import { readFileSync } from 'node:fs';
 import { Rail } from '../rooftops/js/rail.js';
 import { buildLevel, mouthAt } from '../rooftops/js/level.js';
 import { Runner, PHYS, platCovers, platTop } from '../rooftops/js/physics.js';
@@ -92,6 +94,38 @@ ok('every platform has s0 < s1 and finite heights',
   const mids = L.mouths.slice(0, 6);
   ok('the six street mouths tile the rail end to end',
     mids[0].s0 === 0 && mids.every((m, i) => i === 0 || Math.abs(m.s0 - mids[i - 1].s1) < 1e-9) && Math.abs(mids[5].s1 - L.length) < 1e-9);
+}
+{
+  const pieces = (type, m = null) => L.pieces.filter((pc) => pc.type === type && (!m || (pc.s1 ?? pc.s0) >= m.s0 && (pc.s0 ?? pc.s1) <= m.s1));
+  const m = L.mouths;
+  ok('Takase keeps water, nine stones, the boat, footbridge and five boughs',
+    pieces('water', m[2]).length === 1 && pieces('steppingStone', m[2]).length === 9 &&
+    pieces('boat', m[2]).length === 1 && pieces('canalBridge', m[2]).length === 1 && pieces('cherry', m[2]).length === 5);
+  ok('Pontochō keeps complete low and middle zigzag roads',
+    pieces('deck', m[1]).filter((pc) => pc.style === 'yuka').length === 7 && pieces('balcony', m[1]).length === 11);
+  ok('Nishiki keeps three canopy runs and two lowered crossings',
+    P.filter((p) => p.kind === 'canopy').length === 3 && pieces('marketCrossing', m[3]).length === 2 && pieces('canopy', m[3])[0]?.gaps.length === 2);
+  ok('Laundry Sky keeps its low futons and high cistern/chimney route',
+    pieces('futonRack', m[4]).length === 2 && pieces('cistern', m[4]).length === 1 && pieces('chimney', m[4]).length === 1);
+  ok('Hoko-chō keeps five yatai and its lantern-rack ascent',
+    pieces('yatai', m[5]).length === 5 && pieces('rack', m[5]).length >= 2 &&
+    pieces('rope', m[5]).filter((pc) => pc.style === 'lanterns').length >= 2 && pieces('float', m[5]).length === 1);
+  const route = P.filter((p) => p.route !== undefined).sort((a, b) => a.route - b.route);
+  const depthChanges = route.slice(1).filter((p, i) => Math.abs(p.d - route[i].d) >= 1).length;
+  ok('the main road visibly changes depth at least 35 times', depthChanges >= 35, depthChanges);
+}
+
+console.log('interface');
+{
+  const html = readFileSync(new URL('../kyoto-rooftops.html', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../rooftops/style.css', import.meta.url), 'utf8');
+  ok('touch UI has an analog pad plus separate jump and drop actions',
+    /id="pad"/.test(html) && /id="stick"/.test(html) && /id="btn-jump"/.test(html) && /id="btn-down"/.test(html) &&
+    /@media \(pointer: coarse\)/.test(css) && /safe-area-inset-(left|right|bottom)/.test(css));
+  ok('pause, sound, guidance and recovery controls remain accessible',
+    /id="btn-guide"[^>]+aria-label=/.test(html) && /id="btn-sound"[^>]+aria-label=/.test(html) &&
+    /id="btn-reset"[^>]+aria-label=/.test(html) && /id="btn-pause"[^>]+aria-label=/.test(html) &&
+    /id="pause-panel"[^>]+role="dialog"[^>]+aria-modal="true"/.test(html));
 }
 
 /* ---------------- reachability ---------------- */

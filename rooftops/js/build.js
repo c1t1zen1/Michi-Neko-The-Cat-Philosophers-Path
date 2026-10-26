@@ -198,11 +198,12 @@ function windMaterial(material, amplitude = 0.045, phase = 0) {
 }
 
 /** Painted flowing water: layered current, bank foam, glints and night tint. */
-function flowWaterMaterial() {
+function flowWaterMaterial(flowAlongDepth = false) {
   return new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
       uNight: { value: 0 },
+      uFlowAxis: { value: flowAlongDepth ? 1 : 0 },
       uDeep: { value: new THREE.Color(0x315f67) },
       uShallow: { value: new THREE.Color(0x72a29a) },
       uSun: { value: new THREE.Color(0xffe0a8) }
@@ -214,13 +215,15 @@ function flowWaterMaterial() {
     vertexShader: `
       #include <fog_pars_vertex>
       uniform float uTime;
+      uniform float uFlowAxis;
       varying vec2 vUv;
       varying vec3 vWorld;
       void main() {
         vUv = uv;
+        vec2 flowUv = mix(uv, uv.yx, uFlowAxis);
         vec3 p = position;
-        p.y += sin((uv.x + uTime * 0.16) * 13.0) * 0.012;
-        p.y += sin((uv.x * 1.7 - uv.y * 2.4 - uTime * 0.28) * 8.0) * 0.008;
+        p.y += sin((flowUv.x + uTime * 0.16) * 13.0) * 0.012;
+        p.y += sin((flowUv.x * 1.7 - flowUv.y * 2.4 - uTime * 0.28) * 8.0) * 0.008;
         vec4 world = modelMatrix * vec4(p, 1.0);
         vWorld = world.xyz;
         vec4 mvPosition = viewMatrix * world;
@@ -230,6 +233,7 @@ function flowWaterMaterial() {
     fragmentShader: `
       uniform float uTime;
       uniform float uNight;
+      uniform float uFlowAxis;
       uniform vec3 uDeep;
       uniform vec3 uShallow;
       uniform vec3 uSun;
@@ -238,14 +242,15 @@ function flowWaterMaterial() {
       #include <fog_pars_fragment>
       float band(float x, float w) { return 1.0 - smoothstep(0.0, w, abs(x)); }
       void main() {
-        float current = sin(vUv.x * 37.0 - uTime * 2.4 + sin(vUv.y * 9.0) * 1.8);
-        float cross = sin(vUv.x * 17.0 + vUv.y * 22.0 + uTime * 1.25);
+        vec2 flowUv = mix(vUv, vUv.yx, uFlowAxis);
+        float current = sin(flowUv.x * 37.0 - uTime * 2.4 + sin(flowUv.y * 9.0) * 1.8);
+        float cross = sin(flowUv.x * 17.0 + flowUv.y * 22.0 + uTime * 1.25);
         float glint = pow(max(0.0, current * 0.55 + cross * 0.45), 8.0);
-        float depthBand = 0.5 + 0.5 * sin(vUv.y * 2.4 + 0.7);
+        float depthBand = 0.5 + 0.5 * sin(flowUv.y * 2.4 + 0.7);
         vec3 col = mix(uDeep, uShallow, 0.32 + depthBand * 0.28);
         col += uSun * glint * (0.22 + 0.28 * (1.0 - uNight));
         col = mix(col, vec3(0.085, 0.12, 0.22), uNight * 0.48);
-        float ripple = band(fract(vUv.x * 0.23 - uTime * 0.08) - 0.5, 0.035) * 0.08;
+        float ripple = band(fract(flowUv.x * 0.23 - uTime * 0.08) - 0.5, 0.035) * 0.08;
         col += vec3(0.72, 0.86, 0.84) * ripple;
         gl_FragColor = vec4(col, 0.88);
         #include <fog_fragment>
@@ -277,7 +282,7 @@ function makeMaterials() {
   M.gold = texturedMaterial(metalTextures(0xd9ad4c), { metalness: 0.9, roughness: 0.3, emissive: 0x6a4808, emissiveIntensity: 0.35 });
   M.lacquer = texturedMaterial(lacquerTextures(), { roughness: 0.35, normalScale: 0.4 });
   M.water = flowWaterMaterial();
-  M.river = new THREE.MeshStandardMaterial({ color: 0x4f7f84, roughness: 0.1, metalness: 0.4 });
+  M.kamoWater = flowWaterMaterial(true);
   M.wetStone = texturedMaterial(stoneTextures(0x6d7370, 8), { color: 0xa9b0aa, roughness: 0.48, normalScale: 1.0, repeat: [0.38, 0.38], envMapIntensity: 0.9 });
   M.foam = new THREE.MeshBasicMaterial({ color: 0xd8ece6, transparent: true, opacity: 0.42, depthWrite: false, side: THREE.DoubleSide });
   M.wake = new THREE.MeshBasicMaterial({ color: 0xe8f3ed, transparent: true, opacity: 0.36, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
@@ -553,12 +558,22 @@ B.street = (pc, ctx) => {
   const { M, rail } = ctx;
   const d = pc.d;
   if (pc.surface === 'gravel') {
+    // The Roof Road opens over the Kamo. Its current runs across the route,
+    // unlike the longitudinal Takase and Pontochō water, so it gets a
+    // direction-aware copy of the painted water shader. Narrow foam seams
+    // make both banks readable beneath the timber bridge.
+    const river0 = pc.s0 + 2.2;
+    const river1 = pc.s1 - 2.0;
+    const waterY = pc.y + 0.055;
     ctx.add(ribbon(rail, pc.s0, pc.s1, d - 30, d + 18, pc.y, M.gravel, 0.5));
-    ctx.add(ribbon(rail, pc.s0 + 2.2, pc.s1 - 2.0, d - 30, d + 18, pc.y + 0.03, M.river, 0.2));
+    ctx.addGlass(ribbon(rail, river0, river1, d - 30, d + 18, waterY, M.kamoWater, 0.2));
+    ctx.addGlass(ribbon(rail, river0 + 0.03, river0 + 0.18, d - 29.5, d + 17.5, waterY + 0.018, M.foam, 0.45));
+    ctx.addGlass(ribbon(rail, river1 - 0.18, river1 - 0.03, d - 29.5, d + 17.5, waterY + 0.018, M.foam, 0.45));
   } else if (pc.surface === 'bank') {
     ctx.add(ribbon(rail, pc.s0, pc.s1, d - 1.6, d + 1.8, pc.y, M.slab, 0.5));
     ctx.add(ribbon(rail, pc.s0, pc.s1, d + 1.8, d + 3.2, -0.15, M.gravel, 0.5));
-    ctx.add(ribbon(rail, pc.s0, pc.s1, d + 3.2, d + 30, -0.4, M.river, 0.2));
+    ctx.addGlass(ribbon(rail, pc.s0, pc.s1, d + 3.2, d + 30, -0.38, M.water, 0.2));
+    ctx.addGlass(ribbon(rail, pc.s0 + 0.15, pc.s1 - 0.15, d + 3.22, d + 3.42, -0.35, M.foam, 0.65));
   } else if (pc.surface === 'market') {
     ctx.add(ribbon(rail, pc.s0, pc.s1, d - 2.4, d + 2.4, pc.y, M.slab, 0.5));
     ctx.add(ribbon(rail, pc.s0, pc.s1, d + 2.4, d + 9, pc.y - 0.02, M.cobble, 1));
@@ -824,9 +839,69 @@ B.corner = (pc, ctx) => {
 B.bridge = (pc, ctx) => {
   const { M, rail } = ctx;
   const g = frameGroup(rail, 5.5);
+
+  // Kamo riverbed close-up: long dressed-stone banks, pale gravel shoals and
+  // a few water-worn rocks keep the opening vista from reading as one flat
+  // rectangle beneath the bridge. All of it is static-merged after framing.
+  for (const x of [-3.28, 2.08]) {
+    g.add(box(0.44, 0.72, 30, M.wetStone, x, -0.24, -3.8));
+    for (let z = -17.0, i = 0; z <= 9.5; z += 2.15, i++) {
+      const cap = box(0.62, 0.15, 1.88, i % 3 === 0 ? M.slab : M.stone, x, 0.185 + (i % 2) * 0.012, z);
+      cap.rotation.y = (i % 3 - 1) * 0.018;
+      g.add(cap);
+    }
+  }
+  for (const [x, z, sx, sz, turn] of [
+    [-2.72, -8.8, 0.42, 3.3, -0.12], [1.55, -2.5, 0.34, 2.5, 0.08],
+    [-2.62, 5.2, 0.28, 2.0, 0.16], [1.62, 8.0, 0.22, 1.5, -0.09]
+  ]) {
+    const shoal = new THREE.Mesh(new THREE.CircleGeometry(1, 18), M.sand);
+    shoal.rotation.x = -Math.PI / 2;
+    shoal.rotation.y = turn;
+    shoal.scale.set(sx, sz, 1);
+    shoal.position.set(x, -0.525, z);
+    g.add(shoal);
+  }
+  for (const [x, z, size, turn] of [
+    [-2.55, -7.4, 0.42, 0.2], [-2.76, -3.4, 0.31, -0.5], [1.47, -1.5, 0.38, 0.7],
+    [1.66, 3.8, 0.27, -0.2], [-2.63, 6.1, 0.34, 0.5], [1.55, 8.5, 0.24, -0.7]
+  ]) {
+    const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(size, 0), M.wetStone);
+    stone.scale.set(1.15, 0.38, 1.5);
+    stone.rotation.y = turn;
+    stone.position.set(x, -0.43, z);
+    g.add(stone);
+  }
+
+  // Heavy edge beams, visible cross-ties and individual plank seams give the
+  // starting deck real joinery while preserving its single forgiving plane.
   g.add(box(11.0, 0.18, 2.7, M.timberMed, 0, pc.deckY - 0.09, 0));
   g.add(box(11.0, 0.16, 2.5, M.timber, 0, pc.deckY - 0.26, 0));
-  for (const x of [-4, 0, 4]) g.add(box(0.7, pc.deckY + 0.3, 1.8, M.stone, x, (pc.deckY - 0.6) / 2 - 0.15, 0));
+  for (const z of [-1.4, 1.4]) g.add(box(11.25, 0.3, 0.17, M.timber, 0, pc.deckY - 0.34, z));
+  for (let x = -5.18, i = 0; x <= 5.18; x += 0.54, i++) {
+    g.add(box(0.026, 0.022, 2.5, M.dark, x, pc.deckY + 0.011, 0));
+    if (i % 2 === 0) {
+      for (const z of [-1.04, 1.04]) {
+        const peg = cyl(0.024, 0.026, M.bronze, 'y', 7);
+        peg.position.set(x, pc.deckY + 0.025, z);
+        g.add(peg);
+      }
+    }
+  }
+  for (let x = -4.8; x <= 4.8; x += 1.2) g.add(box(0.18, 0.19, 3.05, M.timber, x, pc.deckY - 0.41, 0));
+
+  // Three masonry piers stand in the flow. Pointed upstream cutwaters split
+  // the current; lighter cap stones catch the morning sky beneath the deck.
+  const cutwaterGeo = new THREE.ConeGeometry(0.56, 1.45, 4);
+  cutwaterGeo.rotateY(Math.PI / 4);
+  cutwaterGeo.rotateX(-Math.PI / 2);
+  for (const x of [-2.8, 0, 2.0]) {
+    g.add(box(0.72, pc.deckY + 0.3, 1.8, M.stone, x, (pc.deckY - 0.6) / 2 - 0.15, 0));
+    g.add(box(1.02, 0.18, 2.12, M.slab, x, pc.deckY - 0.28, 0));
+    const cutwater = new THREE.Mesh(cutwaterGeo, M.wetStone);
+    cutwater.position.set(x, -0.03, -1.5);
+    g.add(cutwater);
+  }
   const giboshi = new THREE.LatheGeometry([
     new THREE.Vector2(0.0, 0.0), new THREE.Vector2(0.12, 0.0), new THREE.Vector2(0.13, 0.05),
     new THREE.Vector2(0.1, 0.1), new THREE.Vector2(0.16, 0.2), new THREE.Vector2(0.15, 0.3),
@@ -838,6 +913,9 @@ B.bridge = (pc, ctx) => {
     for (const s of [0.2, ...pc.caps, 10.8]) {
       const x = s - 5.5;
       g.add(box(0.2, 0.75, 0.2, M.timber, x, pc.deckY + 0.36, z));
+      const collar = cyl(0.13, 0.07, M.bronze, 'y', 10);
+      collar.position.set(x, pc.deckY + 0.13, z);
+      g.add(collar);
       if (pc.caps.includes(s)) {
         const gb = new THREE.Mesh(giboshi, M.bronze);
         gb.position.set(x, pc.capY - 0.5, z);
@@ -941,7 +1019,76 @@ B.steps = (pc, ctx) => {
   ctx.add(g);
 };
 
-B.roji = () => {};
+B.roji = (pc, ctx) => {
+  const { M, rail } = ctx;
+  const sm = (pc.s0 + pc.s1) / 2;
+  const w = pc.s1 - pc.s0;
+  const g = frameGroup(rail, sm);
+  const zFar = pc.d - 5.0;
+
+  // A thumb-width side alley between the first machiya: wet stone, an open
+  // drain and deliberately uneven tobi-ishi draw the eye deep into the block.
+  g.add(box(w - 0.1, 0.08, 5.55, M.wetStone, 0, 0.04, pc.d - 2.25));
+  for (const x of [-w / 2 + 0.09, w / 2 - 0.09]) {
+    g.add(box(0.11, 0.055, 5.45, M.dark, x, 0.082, pc.d - 2.25));
+  }
+  for (let i = 0; i < 7; i++) {
+    const slab = box(0.56 + (i % 2) * 0.08, 0.075, 0.42 + (i % 3) * 0.055,
+      i % 3 === 0 ? M.slab : M.stone, (i % 3 - 1) * 0.075, 0.125, pc.d + 0.02 - i * 0.7);
+    slab.rotation.y = (i % 2 ? -1 : 1) * (0.035 + i * 0.006);
+    g.add(slab);
+  }
+
+  // Copper rain chain, clay nandina pot and a low tsukubai make the alley a
+  // tiny destination rather than a black gap between two façades.
+  const chain = cyl(0.018, 2.1, M.bronze, 'y', 6);
+  chain.position.set(-w * 0.34, 1.1, pc.d - 0.35);
+  g.add(chain);
+  const pot = cyl(0.19, 0.3, M.clay, 'y', 10);
+  pot.position.set(w * 0.27, 0.18, pc.d - 2.35);
+  g.add(pot);
+  for (let i = 0; i < 5; i++) {
+    const stem = cyl(0.018, 0.48 + i * 0.06, M.bark, 'y', 5);
+    stem.rotation.z = (i - 2) * 0.12;
+    stem.position.set(w * 0.27 + (i - 2) * 0.035, 0.52, pc.d - 2.35);
+    g.add(stem);
+    const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(0.12 + (i % 2) * 0.025, 1), i % 2 ? M.pine : M.foliage);
+    leaf.scale.set(0.8, 1.35, 0.65);
+    leaf.position.set(w * 0.27 + (i - 2) * 0.075, 0.74 + (i % 2) * 0.1, pc.d - 2.35 + (i % 3 - 1) * 0.08);
+    g.add(leaf);
+  }
+  const basin = cyl(0.29, 0.24, M.wetStone, 'y', 11);
+  basin.position.set(-w * 0.22, 0.18, pc.d - 3.35);
+  g.add(basin);
+  const basinWater = new THREE.Mesh(new THREE.CircleGeometry(0.21, 14), M.glass);
+  basinWater.rotation.x = -Math.PI / 2;
+  basinWater.position.set(-w * 0.22, 0.305, pc.d - 3.35);
+  g.add(basinWater);
+  const spout = cyl(0.028, 0.62, M.bamboo, 'x', 7);
+  spout.position.set(-w * 0.02, 0.63, pc.d - 3.35);
+  g.add(spout);
+  const spoutPost = cyl(0.035, 0.75, M.bamboo, 'y', 7);
+  spoutPost.position.set(w * 0.25, 0.42, pc.d - 3.35);
+  g.add(spoutPost);
+
+  // A softly lit service door closes the perspective, with a bamboo lintel
+  // and short noren that move in the same breeze as the street curtains.
+  g.add(box(w - 0.16, 1.72, 0.08, M.timber, 0, 0.86, zFar));
+  g.add(box(w - 0.34, 1.38, 0.035, M.shoji, 0, 0.86, zFar + 0.05));
+  for (const x of [-w * 0.36, w * 0.36]) g.add(box(0.07, 2.0, 0.07, M.bamboo, x, 1.0, zFar + 0.18));
+  const lintel = cyl(0.055, w - 0.12, M.bamboo, 'x', 8);
+  lintel.position.set(0, 1.95, zFar + 0.18);
+  g.add(lintel);
+  g.add(box(w - 0.34, 0.52, 0.018, M.noren.hemp, 0, 1.63, zFar + 0.22));
+  const cord = box(0.018, 0.34, 0.018, M.dark, w * 0.25, 1.74, zFar + 0.35);
+  g.add(cord);
+  const lamp = cyl(0.12, 0.29, M.lanternWhite, 'y', 10);
+  lamp.position.set(w * 0.25, 1.47, zFar + 0.35);
+  g.add(lamp);
+
+  ctx.add(g);
+  ctx.light(rail, sm, 1.47, zFar + 0.38);
+};
 
 B.tsuboniwa = (pc, ctx) => {
   const { M } = ctx;
@@ -1831,8 +1978,10 @@ export function buildWorld(level, opts = {}) {
           person.position.y = person.userData.baseY + Math.sin(u * 1.7) * 0.008 * motionScale;
         }
       }
-      M.water.uniforms.uTime.value = t;
-      M.water.uniforms.uNight.value = night;
+      for (const water of [M.water, M.kamoWater]) {
+        water.uniforms.uTime.value = t;
+        water.uniforms.uNight.value = night;
+      }
       for (const mat of [...M.cloth, ...Object.values(M.noren), ...M.brocade]) {
         if (mat.userData.windShader) mat.userData.windShader.uniforms.uRoofTime.value = t;
       }
