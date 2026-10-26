@@ -249,8 +249,10 @@ lantern, `?hour=<0-1>` force the sky phase, `?finale=1` start on the perch,
 `?auto=1` let the autopilot run it (an attract mode), `?debug=1` draw the platform
 lines (route in red) and walls, `?cat=0` keep the stand-in capsule, `?shadows=0`,
 `?shot=1` keep the drawing buffer for captures, `?nohud=1` hide the HUD. Console
-hooks for captures: `roofRoad.at(s)`, `roofRoad.jumpToMouth(n)`,
-`roofRoad.skipFinale()`; `roofRoad.audio` exposes the live sound state for QA.
+hooks for captures: `roofRoad.at(s[, y])`, `roofRoad.jumpToMouth(n)`,
+`roofRoad.skipFinale()` and `roofRoad.renderNow([frames])` (forces a frame, or
+settles several camera ticks, while an inspector has paused animation);
+`roofRoad.audio` exposes live sound state for QA.
 
 **Soft launch.** The lab is merged to `main` as new files only, behind its own
 entry point, `kyoto-rooftops.html`. GitHub Pages serves it next to the game, but

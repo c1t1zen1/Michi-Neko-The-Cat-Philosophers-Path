@@ -63,14 +63,17 @@ function pointSystem({ positions, seeds, texture, color, size, vertexMotion, fra
   geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geo.setAttribute('aSeed', new THREE.Float32BufferAttribute(seeds, 1));
   const mat = new THREE.ShaderMaterial({
-    uniforms: {
-      uMap: { value: texture },
-      uTime: { value: 0 },
-      uNight: { value: 0 },
-      uOpacity: { value: 1 },
-      uSize: { value: size },
-      uColor: { value: new THREE.Color(color) }
-    },
+    uniforms: THREE.UniformsUtils.merge([
+      THREE.UniformsLib.fog,
+      {
+        uMap: { value: texture },
+        uTime: { value: 0 },
+        uNight: { value: 0 },
+        uOpacity: { value: 1 },
+        uSize: { value: size },
+        uColor: { value: new THREE.Color(color) }
+      }
+    ]),
     transparent: true,
     depthWrite: false,
     blending,
@@ -89,7 +92,10 @@ function pointSystem({ positions, seeds, texture, color, size, vertexMotion, fra
         ${vertexMotion}
         vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
         gl_Position = projectionMatrix * mvPosition;
-        gl_PointSize = uSize * (220.0 / max(1.0, -mvPosition.z));
+        // uSize is the intended pixel size around the gameplay camera's
+        // normal ten-metre viewing distance. Clamp near sprites so petals,
+        // smoke and fireflies add parallax without swallowing the route.
+        gl_PointSize = clamp(uSize * (10.0 / max(4.0, -mvPosition.z)), 1.25, uSize * 1.7);
         vSeed = aSeed;
         ${fragmentAlpha ? 'vAlpha = 1.0;' : 'vAlpha = smoothstep(0.0, .12, cycle) * (1.0 - smoothstep(.72, 1.0, cycle));'}
         #include <fog_vertex>
@@ -98,6 +104,7 @@ function pointSystem({ positions, seeds, texture, color, size, vertexMotion, fra
       uniform sampler2D uMap;
       uniform vec3 uColor;
       uniform float uOpacity;
+      uniform float uTime;
       uniform float uNight;
       varying float vAlpha;
       varying float vSeed;

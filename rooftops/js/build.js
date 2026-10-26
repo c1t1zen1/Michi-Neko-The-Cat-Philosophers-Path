@@ -200,14 +200,20 @@ function windMaterial(material, amplitude = 0.045, phase = 0) {
 /** Painted flowing water: layered current, bank foam, glints and night tint. */
 function flowWaterMaterial(flowAlongDepth = false) {
   return new THREE.ShaderMaterial({
-    uniforms: {
-      uTime: { value: 0 },
-      uNight: { value: 0 },
-      uFlowAxis: { value: flowAlongDepth ? 1 : 0 },
-      uDeep: { value: new THREE.Color(0x315f67) },
-      uShallow: { value: new THREE.Color(0x72a29a) },
-      uSun: { value: new THREE.Color(0xffe0a8) }
-    },
+    // ShaderMaterial does not add the stock fog uniforms for us. Merge a
+    // private copy so WebGLRenderer can refresh fogColor/near/far safely in
+    // every browser, including Safari's eager first-frame path.
+    uniforms: THREE.UniformsUtils.merge([
+      THREE.UniformsLib.fog,
+      {
+        uTime: { value: 0 },
+        uNight: { value: 0 },
+        uFlowAxis: { value: flowAlongDepth ? 1 : 0 },
+        uDeep: { value: new THREE.Color(0x315f67) },
+        uShallow: { value: new THREE.Color(0x72a29a) },
+        uSun: { value: new THREE.Color(0xffe0a8) }
+      }
+    ]),
     transparent: true,
     depthWrite: false,
     side: THREE.DoubleSide,
@@ -293,6 +299,8 @@ function makeMaterials() {
   M.foliage = new THREE.MeshStandardMaterial({ color: 0x55803e, roughness: 0.9, flatShading: true });
   M.pine = new THREE.MeshStandardMaterial({ color: 0x3b5e34, roughness: 0.9, flatShading: true });
   M.blossom = new THREE.MeshStandardMaterial({ color: 0xf2c4cf, roughness: 0.9, flatShading: true, emissive: 0x3a1a20, emissiveIntensity: 0.0 });
+  M.blossomPale = new THREE.MeshStandardMaterial({ color: 0xf8e1e2, roughness: 0.92, flatShading: true, emissive: 0x32171c, emissiveIntensity: 0.0 });
+  M.blossomRose = new THREE.MeshStandardMaterial({ color: 0xe9a9b8, roughness: 0.9, flatShading: true, emissive: 0x421923, emissiveIntensity: 0.0 });
   M.bark = new THREE.MeshStandardMaterial({ color: 0x4a3426, roughness: 0.95 });
   M.inuyarai = panel(new THREE.MeshStandardMaterial({ map: bambooTex(), roughness: 0.8, side: THREE.DoubleSide }));
   M.bamboo = new THREE.MeshStandardMaterial({ color: 0x8f9a52, roughness: 0.6 });
@@ -591,7 +599,9 @@ B.water = (pc, ctx) => {
   ctx.addGlass(ribbon(rail, pc.s0 + 0.2, pc.s1 - 0.2, pc.d - 1.48, pc.d - 1.34, waterY + 0.018, M.foam, 0.7));
   ctx.addGlass(ribbon(rail, pc.s0 + 0.2, pc.s1 - 0.2, pc.d + 1.43, pc.d + 1.57, waterY + 0.018, M.foam, 0.7));
   // Kiyamachi's towpath remains the safe ground-level route beside the flow.
-  ctx.add(ribbon(rail, pc.s0, pc.s1, pc.d + 1.82, pc.d + 7, 0.0, M.cobble, 1));
+  // Keep it lane-narrow: an over-wide foreground apron hid the canal and its
+  // stepping-stone maze whenever the cat dropped to water level.
+  ctx.add(ribbon(rail, pc.s0, pc.s1, pc.d + 1.82, pc.d + 4.35, 0.0, M.cobble, 1));
 };
 
 /** The canal's architectural shell: wet banks, towpath, drains and greenery. */
@@ -1359,14 +1369,30 @@ B.cherry = (pc, ctx) => {
   const bough = cyl(0.09, bx1 - bx0 + 0.6, M.bark, 'x', 6);
   bough.position.set((bx0 + bx1) / 2, bg.y - 0.09, pc.d);
   g.add(bough);
-  // Blossom clumps above and behind the bough, so the cat stays in view.
-  for (let i = 0; i < 16; i++) {
-    const c = new THREE.Mesh(new THREE.IcosahedronGeometry(0.13 + 0.14 * hash1(sm + i * 3.1), 1), M.blossom);
-    const u = i / 15;
+
+  // Fine side twigs keep the blossom cloud connected to the playable limb.
+  // They alternate across the canal, making the high route read as a real old
+  // tree instead of a row of floating pom-poms.
+  for (let i = 0; i < 6; i++) {
+    const side = i % 2 ? 1 : -1;
+    const len = 0.48 + 0.42 * hash1(sm * 1.7 + i * 4.3);
+    const twig = cyl(0.028 + 0.008 * hash1(sm + i), len, M.bark, 'z', 5);
+    twig.position.set(bx0 + (i + 0.55) / 6 * (bx1 - bx0), bg.y + 0.05, pc.d + side * len * 0.46);
+    twig.rotation.x = side * (0.18 + 0.12 * hash1(sm * 2.2 + i));
+    g.add(twig);
+  }
+
+  // Many small, irregular clumps read as blossom sprays at cat scale. Keep
+  // them above and mostly behind the bough so the route remains legible.
+  const blossomMats = [M.blossomPale, M.blossom, M.blossomRose];
+  for (let i = 0; i < 30; i++) {
+    const r = 0.065 + 0.075 * hash1(sm + i * 3.1);
+    const c = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), blossomMats[i % blossomMats.length]);
+    const u = (i + hash1(sm * 0.7 + i * 5.9) * 0.8) / 30;
     c.position.set(
-      bx0 - 0.9 + u * (bx1 - bx0 + 1.8),
-      bg.y + 0.3 + 0.45 * hash1(sm + i),
-      pc.d - bankDir * (0.18 + 0.95 * hash1(sm * 2 + i))
+      bx0 - 0.45 + u * (bx1 - bx0 + 0.9),
+      bg.y + 0.18 + 0.42 * hash1(sm + i),
+      pc.d - bankDir * (0.12 + 0.82 * hash1(sm * 2 + i))
     );
     g.add(c);
   }
@@ -1989,7 +2015,7 @@ export function buildWorld(level, opts = {}) {
       M.lanternWhite.emissiveIntensity = 0.15 + night * 1.5;
       M.shoji.emissiveIntensity = night * 0.9;
       M.koshi.emissiveIntensity = night * 0.5;
-      M.blossom.emissiveIntensity = night * 0.25;
+      for (const mat of [M.blossom, M.blossomPale, M.blossomRose]) mat.emissiveIntensity = night * 0.25;
       for (const s of dynamic.shoki) if (s.visible) s.children[0].rotation.y = Math.sin(t * 0.7 + s.position.x) * 0.06;
     }
   };

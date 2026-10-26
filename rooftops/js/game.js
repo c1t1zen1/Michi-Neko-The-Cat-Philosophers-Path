@@ -454,7 +454,7 @@ let isPaused = false, contextLost = false;
 // Visual state for the cat.
 const vis = { depth: 0, phi: 0, catY: 0, landT: 0 };
 // The camera rig.
-const cam = { s: 0, y: 2, dist: 8.2, fov: 34, n: { x: 0, z: 1 }, init: false };
+const cam = { s: 0, y: 2, dist: 8.2, water: 0, fov: 34, n: { x: 0, z: 1 }, init: false };
 
 function startAt(s, y) {
   runner.reset(s, y + 0.4);
@@ -892,21 +892,23 @@ function updateCamera(dt) {
 
   // Side-on rig: look ahead the way the cat faces, softened round corners.
   const vertical = smooth(311, 316, runner.s) * (1 - smooth(323, 327, runner.s));
+  const waterView = runner.ground?.kind === 'water' ? 1 : 0;
   const lookAhead = 1.3 * runner.facing * (1 - vertical);
   const sTarget = runner.s + lookAhead;
-  const yTarget = runner.y + 0.7 + vertical * 0.6;
-  if (!cam.init) { cam.s = sTarget; cam.y = yTarget; cam.init = true; }
+  const yTarget = runner.y + 0.7 + vertical * 0.6 + waterView * 0.2;
+  if (!cam.init) { cam.s = sTarget; cam.y = yTarget; cam.water = waterView; cam.init = true; }
   const rate = reduceMotion ? 2.2 : 3.6;
   cam.s = damp(cam.s, sTarget, rate, dt);
   cam.y = damp(cam.y, yTarget, runner.vy < -4 ? 6 : 3.2, dt);
-  cam.dist = damp(cam.dist, 9.4 + vertical * 3.0, 2, dt);
+  cam.water = damp(cam.water, waterView, 4.5, dt);
+  cam.dist = damp(cam.dist, 9.4 + vertical * 3.0 + cam.water * 1.2, 2, dt);
   const nrm = rail.smoothNormalAt(clamp(cam.s, 0, level.length), 5, cam.n);
   const base = rail.place(clamp(cam.s, 0, level.length), vis.depth * 0.6);
   // A flat, side-on view just above the cat: roof lines read as the
   // platforms, the gaps between houses as notches in the skyline.
-  camera.position.set(base.x + nrm.x * cam.dist, cam.y + 0.55 + vertical * 1.2, base.z + nrm.z * cam.dist);
+  camera.position.set(base.x + nrm.x * cam.dist, cam.y + 0.55 + vertical * 1.2 + cam.water * 0.95, base.z + nrm.z * cam.dist);
   const look = rail.place(clamp(cam.s, 0, level.length), vis.depth);
-  camera.lookAt(look.x, cam.y - 0.15 + vertical * 0.2, look.z);
+  camera.lookAt(look.x, cam.y - 0.15 + vertical * 0.2 - cam.water * 0.35, look.z);
   camera.fov = damp(camera.fov, 34 + vertical * 6, 2, dt);
   camera.updateProjectionMatrix();
 }
@@ -944,10 +946,19 @@ window.roofRoad = {
   level, runner, sky, world, atmosphere, audio, PHYS, jumpToMouth,
   get finale() { return finale; },
   get catReady() { return !!cat || flag('cat') === '0'; },
-  /** Stand the cat on the highest surface at route position s. */
-  at(s) {
-    const sup = runner.support(s, 20, 0, 40);
-    startAt(s, sup ? platTop(sup, s) : 0);
+  /** Stand the cat at route position s; pass y to inspect a specific layer. */
+  at(s, y = null) {
+    if (Number.isFinite(y)) startAt(s, y);
+    else {
+      const sup = runner.support(s, 20, 0, 40);
+      startAt(s, sup ? platTop(sup, s) : 0);
+    }
+  },
+  /** Force one or more camera ticks while an inspector has paused animation. */
+  renderNow(frames = 1) {
+    const count = clamp(Math.floor(frames) || 1, 1, 600);
+    for (let i = 0; i < count; i++) updateCamera(1 / 60);
+    renderer.render(scene, camera);
   },
   /** Jump to the end of the finale: all five fires burning, the card up. */
   skipFinale() {
