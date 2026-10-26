@@ -204,6 +204,16 @@ past them; a cat at ridge depth bumps into them.
 
 Lantern checkpoints sit at each mouth's start. R is a convenience, never needed.
 
+### 7.4 Soundscape
+
+The lab downloads no audio. After the first keyboard, controller or touch gesture,
+Web Audio starts two tiny shared-noise layers: river sound rises through Awataguchi,
+Pontochō and Takase (and close to the water), while roof wind rises with height and
+progress. Paw sounds change among water, timber, tile and stone without allocating a
+fresh noise buffer per step. Dusk adds sparse insect chirps; Hoko-chō adds a very
+distant festival drum beneath the five finale drums and chimes. Mute suspends the
+audio context, and pause fades the ambience bus instead of leaving it running.
+
 ## 8. Architecture
 
 ### 8.1 Now (this pass): `rooftops/`, a lab like `grass/`
@@ -223,7 +233,8 @@ rooftops/
   js/autopilot.js   drives the runner along the route (the test and ?auto=1)       [pure]
   js/build.js       Three.js meshes for every piece (uses ../../src/textures.js)
   js/sky.js         sky dome, sun/hemi/fog by progress, hills ring, the five fires
-  js/game.js        loop, input, real Cat + Chidori, camera, HUD, finale, URL flags
+  js/atmosphere.js  petals, smoke, birds, motes, fireflies and pooled impact effects
+  js/game.js        loop, input, real Cat + Chidori, camera, audio, HUD, finale, flags
 tools/rooftop_test.mjs   node test: rail, level, reachability, climb-backs, physics, a full autopilot run
 ```
 
@@ -239,7 +250,7 @@ lantern, `?hour=<0-1>` force the sky phase, `?finale=1` start on the perch,
 lines (route in red) and walls, `?cat=0` keep the stand-in capsule, `?shadows=0`,
 `?shot=1` keep the drawing buffer for captures, `?nohud=1` hide the HUD. Console
 hooks for captures: `roofRoad.at(s)`, `roofRoad.jumpToMouth(n)`,
-`roofRoad.skipFinale()`.
+`roofRoad.skipFinale()`; `roofRoad.audio` exposes the live sound state for QA.
 
 **Soft launch.** The lab is merged to `main` as new files only, behind its own
 entry point, `kyoto-rooftops.html`. GitHub Pages serves it next to the game, but

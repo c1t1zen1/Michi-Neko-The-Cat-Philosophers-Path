@@ -119,13 +119,15 @@ console.log('interface');
 {
   const html = readFileSync(new URL('../kyoto-rooftops.html', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../rooftops/style.css', import.meta.url), 'utf8');
+  const game = readFileSync(new URL('../rooftops/js/game.js', import.meta.url), 'utf8');
   ok('touch UI has an analog pad plus separate jump and drop actions',
     /id="pad"/.test(html) && /id="stick"/.test(html) && /id="btn-jump"/.test(html) && /id="btn-down"/.test(html) &&
     /@media \(pointer: coarse\)/.test(css) && /safe-area-inset-(left|right|bottom)/.test(css));
-  ok('pause, sound, guidance and recovery controls remain accessible',
+  ok('pause, adaptive sound, guidance and recovery controls remain accessible',
     /id="btn-guide"[^>]+aria-label=/.test(html) && /id="btn-sound"[^>]+aria-label=/.test(html) &&
     /id="btn-reset"[^>]+aria-label=/.test(html) && /id="btn-pause"[^>]+aria-label=/.test(html) &&
-    /id="pause-panel"[^>]+role="dialog"[^>]+aria-modal="true"/.test(html));
+    /id="pause-panel"[^>]+role="dialog"[^>]+aria-modal="true"/.test(html) &&
+    /audio\.setPaused\(isPaused\)/.test(game) && /audio\.update\(runner\.s/.test(game));
 }
 
 /* ---------------- reachability ---------------- */

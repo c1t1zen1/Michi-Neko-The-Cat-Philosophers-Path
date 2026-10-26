@@ -105,13 +105,94 @@ async function loadCats() {
 }
 function hideWake() { const w = $('wake'); if (w) w.classList.add('gone'); }
 
-/* ---------------- audio: a few soft synthesized sounds ---------------- */
+/* ---------------- audio: a soft, procedural Kyoto soundscape ---------------- */
 
 const audio = {
-  ctx: null, muted: false,
+  ctx: null, master: null, ambience: null, noiseBuffer: null,
+  muted: false, paused: false, lastMixT: -1,
+  nextStep: 0, nextChirp: 0, nextFestivalDrum: 0,
   ensure() {
-    if (this.ctx || this.muted) return;
-    try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch { this.ctx = null; }
+    if (this.muted) return;
+    if (this.ctx) { this.ctx.resume?.(); return; }
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = 0.72;
+      this.master.connect(this.ctx.destination);
+      this._buildNoise();
+      this._startAmbience();
+      this.ctx.resume?.();
+    } catch {
+      this.ctx = null; this.master = null; this.ambience = null;
+    }
+  },
+  _buildNoise() {
+    const c = this.ctx;
+    const n = Math.floor(c.sampleRate * 3.0);
+    const buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    this.noiseBuffer = buf;
+  },
+  _startAmbience() {
+    const c = this.ctx;
+    const bus = c.createGain();
+    bus.gain.value = this.paused ? 0 : 1;
+    bus.connect(this.master);
+    const layer = (freq, q, offset) => {
+      const src = c.createBufferSource(), filter = c.createBiquadFilter(), gain = c.createGain();
+      src.buffer = this.noiseBuffer; src.loop = true;
+      filter.type = 'bandpass'; filter.frequency.value = freq; filter.Q.value = q;
+      gain.gain.value = 0;
+      src.connect(filter).connect(gain).connect(bus);
+      src.start(c.currentTime, offset);
+      return gain;
+    };
+    this.ambience = {
+      bus,
+      water: layer(820, 0.45, 0.15),
+      wind: layer(280, 0.28, 1.37)
+    };
+  },
+  _out(node, ambient = false) {
+    node.connect(ambient && this.ambience ? this.ambience.bus : (this.master || this.ctx.destination));
+  },
+  setPaused(on) {
+    this.paused = !!on;
+    const c = this.ctx, bus = this.ambience?.bus;
+    if (!c || !bus) return;
+    bus.gain.cancelScheduledValues(c.currentTime);
+    bus.gain.setTargetAtTime(this.paused ? 0 : 1, c.currentTime, this.paused ? 0.08 : 0.22);
+  },
+  update(s, y, progress, night, ground, finaleActive) {
+    const c = this.ctx, a = this.ambience;
+    if (!c || !a || this.muted || this.paused || c.state !== 'running') return;
+    const t = c.currentTime;
+    if (t - this.lastMixT >= 0.1) {
+      this.lastMixT = t;
+      const river = s < 122 ? 0.78 : (s < 165 ? 1 : 0);
+      const low = 1 - smooth(1.2, 6.5, y);
+      const waterGain = 0.0015 + river * (0.009 + low * 0.009);
+      const windGain = 0.0025 + smooth(3.0, 8.0, y) * 0.008 + progress * 0.0025;
+      a.water.gain.setTargetAtTime(waterGain, t, 0.35);
+      a.wind.gain.setTargetAtTime(windGain, t, 0.55);
+    }
+
+    // Paw sounds follow gait rather than frame rate and change with the
+    // surface under the cat. They stay quiet enough to sit inside the wind.
+    const pace = Math.abs(runner.vs);
+    if (!finaleActive && ground && pace > 0.75 && t >= this.nextStep) {
+      this.step(ground.kind, pace);
+      this.nextStep = t + clamp(0.48 - pace * 0.033, 0.19, 0.43);
+    } else if (!ground || pace <= 0.75) this.nextStep = Math.max(this.nextStep, t + 0.08);
+
+    if (night > 0.32 && t >= this.nextChirp) {
+      this.chirp(night);
+      this.nextChirp = t + 2.8 + Math.random() * 4.2;
+    }
+    if (!finaleActive && s > 286 && night > 0.42 && t >= this.nextFestivalDrum) {
+      this.drum(58 + Math.random() * 8, 1.2, 0.009);
+      this.nextFestivalDrum = t + 6.5 + Math.random() * 5.5;
+    }
   },
   chime(freq, dur = 1.6, gain = 0.06) {
     const c = this.ctx; if (!c || this.muted) return;
@@ -120,21 +201,44 @@ const audio = {
       const o = c.createOscillator(), v = c.createGain();
       o.type = 'sine'; o.frequency.value = freq * mul;
       v.gain.setValueAtTime(0, t); v.gain.linearRampToValueAtTime(g, t + 0.01); v.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.connect(v).connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+      o.connect(v); this._out(v); o.start(t); o.stop(t + dur + 0.05);
     }
   },
   noise(dur, freq, gain) {
     const c = this.ctx; if (!c || this.muted) return;
-    const n = Math.floor(c.sampleRate * dur);
-    const buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
-    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    if (!this.noiseBuffer) this._buildNoise();
+    const t = c.currentTime;
     const src = c.createBufferSource(), f = c.createBiquadFilter(), v = c.createGain();
-    src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 0.8; v.gain.value = gain;
-    src.connect(f).connect(v).connect(c.destination); src.start();
+    src.buffer = this.noiseBuffer; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 0.8;
+    v.gain.setValueAtTime(gain, t); v.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(v); this._out(v);
+    const maxOffset = Math.max(0, this.noiseBuffer.duration - dur - 0.01);
+    src.start(t, Math.random() * maxOffset, dur);
   },
-  pat() { this.noise(0.06, 900, 0.05); },
-  splash() { this.noise(0.35, 1400, 0.12); },
-  bounce() { this.noise(0.12, 300, 0.12); },
+  step(kind, pace) {
+    const fast = smooth(2.0, 7.5, pace);
+    if (kind === 'water') this.noise(0.09, 1280, 0.009 + fast * 0.005);
+    else if (['deck', 'boat', 'rack', 'futon', 'rope', 'branch'].includes(kind)) this.noise(0.045, 520, 0.011 + fast * 0.004);
+    else if (['ridge', 'eave', 'roof', 'canopy', 'cap'].includes(kind)) this.noise(0.032, 1550, 0.009 + fast * 0.004);
+    else this.noise(0.042, 920, 0.009 + fast * 0.004);
+  },
+  chirp(night) {
+    const c = this.ctx; if (!c || this.muted) return;
+    const t = c.currentTime, base = 3500 + Math.random() * 950;
+    for (let i = 0; i < 2; i++) {
+      const o = c.createOscillator(), v = c.createGain(), at = t + i * 0.115;
+      o.type = 'sine';
+      o.frequency.setValueAtTime(base * (1 + i * 0.035), at);
+      o.frequency.exponentialRampToValueAtTime(base * 1.07, at + 0.065);
+      v.gain.setValueAtTime(0.0001, at);
+      v.gain.exponentialRampToValueAtTime(0.0022 * night, at + 0.012);
+      v.gain.exponentialRampToValueAtTime(0.0001, at + 0.09);
+      o.connect(v); this._out(v, true); o.start(at); o.stop(at + 0.1);
+    }
+  },
+  pat() { this.noise(0.06, 900, 0.045); if (this.ctx) this.nextStep = this.ctx.currentTime + 0.16; },
+  splash() { this.noise(0.35, 1400, 0.1); if (this.ctx) this.nextStep = this.ctx.currentTime + 0.2; },
+  bounce() { this.noise(0.12, 300, 0.1); if (this.ctx) this.nextStep = this.ctx.currentTime + 0.2; },
   drum(freq = 72, dur = 0.9, gain = 0.045) {
     const c = this.ctx;
     if (!c || this.muted) return;
@@ -146,7 +250,7 @@ const audio = {
     f.type = 'lowpass'; f.frequency.value = 260;
     v.gain.setValueAtTime(gain, t);
     v.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(f).connect(v).connect(c.destination);
+    o.connect(f).connect(v); this._out(v);
     o.start(t); o.stop(t + dur + 0.03);
   }
 };
@@ -260,7 +364,7 @@ function readGamepad() {
     downPressed: downHeld && !gamepadPrev.down
   };
   gamepadPrev.jump = jumpHeld; gamepadPrev.down = downHeld;
-  if (move || jumpHeld || downHeld) noteMoved();
+  if (move || jumpHeld || downHeld) { noteMoved(); audio.ensure(); }
   return out;
 }
 
@@ -297,7 +401,7 @@ function setMuted(muted, announce = true) {
   audio.muted = muted;
   if (audio.ctx) {
     if (muted) audio.ctx.suspend?.();
-    else audio.ctx.resume?.();
+    else { audio.ctx.resume?.(); audio.setPaused(isPaused); }
   } else if (!muted && announce) audio.ensure();
   const b = $('btn-sound');
   if (b) { b.setAttribute('aria-pressed', String(muted)); b.setAttribute('aria-label', muted ? 'Turn sound on' : 'Mute sound'); }
@@ -373,6 +477,7 @@ function respawn() {
 function setPaused(on, reason = 'The roofs will wait.') {
   isPaused = !!on;
   keys.clear(); resetTouch();
+  audio.setPaused(isPaused);
   document.body.classList.toggle('paused', isPaused);
   const panel = $('pause-panel');
   if (panel) {
@@ -669,6 +774,7 @@ function frame(now) {
   }
   const night = sky.night;
   world.update(time, night, platOffset, level.platforms);
+  audio.update(runner.s, runner.y, prog, night, runner.grounded ? runner.ground : null, !!finale);
 
   // Where the cat is drawn: depth eases toward what it stands on (or will land on).
   let targetD = runner.depth;
@@ -835,7 +941,7 @@ function start() {
 
 // Expose a little for headless captures and the console.
 window.roofRoad = {
-  level, runner, sky, world, atmosphere, PHYS, jumpToMouth,
+  level, runner, sky, world, atmosphere, audio, PHYS, jumpToMouth,
   get finale() { return finale; },
   get catReady() { return !!cat || flag('cat') === '0'; },
   /** Stand the cat on the highest surface at route position s. */
