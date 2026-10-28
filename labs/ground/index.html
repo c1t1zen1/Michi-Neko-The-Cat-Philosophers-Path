@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lab 01 · Ground — Michi-Neko Labs</title>
+  <meta name="description" content="Paint the valley floor: earth, gravel, moss and stone that settle into each other by height, puddles, paw prints and real stones near the cat.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%AA%A8%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
+  <link rel="stylesheet" href="../shared/lab.css">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <canvas id="gl" aria-hidden="true"></canvas>
+
+  <main class="page">
+    <header class="mast">
+      <p class="kicker">Michi-Neko · Labs · 01 · <span class="jp">土と道</span></p>
+      <h1>The ground <em>under the paws</em></h1>
+      <p class="lede">Grass covers most of the valley now, which leaves the bare ground as the flattest thing on screen: paths, clearings and the earth under the eaves. This lab rebuilds it. Paint earth, gravel, moss and stone, watch the layers settle into each other by height, make it rain, and follow Michi’s paw prints through the mud. Everything is painted at load time.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#stage-sec">The stage</a><a href="#steps">Build it up</a><a href="#grounds">Eight grounds</a><a href="#game">Into the game</a><a href="#sources">Sources</a>
+      </nav>
+    </header>
+  </main>
+
+  <section class="hero" id="stage-sec">
+    <div class="hero-head">
+      <h2>Paint the <em>valley floor</em></h2>
+      <p class="sentence">Pick a brush and drag across the ground. Sand falls between the stones, moss creeps into the joints, and puddles gather wherever you dig.</p>
+    </div>
+    <div class="stage" id="stage">
+      <p class="wake" id="wake">Michi is waking up…</p>
+      <div class="hud tl" id="hudSplat"><canvas id="mini" width="132" height="132" aria-label="Splat map"></canvas><div id="under">&nbsp;</div></div>
+      <div class="hud tr">Tool · <b id="toolName">Walk</b></div>
+      <div class="hud bl">WASD / arrows walk · Shift sprint · C prowl · click to send Michi · tools: drag to paint, right-drag to orbit</div>
+    </div>
+    <div class="hero-foot">
+      <div class="row" id="c-tools"><div class="ctl"><span class="ctl-l">Tool</span><span id="tools"></span></div></div>
+      <div class="row" id="stoneOpts" hidden><span class="ctl-l">Stones</span><span class="slot" id="slot-pattern"></span><span class="ctl-l">Style</span><span class="slot" id="slot-style"></span></div>
+      <div class="row" id="c-world"></div>
+      <div class="row" id="c-more">
+        <div class="ctl"><span class="ctl-l">Recipe</span><span class="slot" id="slot-recipe"></span></div>
+        <button type="button" class="btn" id="btn-reset">Reset</button>
+      </div>
+      <div class="row"><div class="ctl"><span class="ctl-l">Quality</span><span id="c-quality"></span></div><div class="ctl perf" id="perf">warming up…</div></div>
+      <p class="hero-stats" id="stats">&nbsp;</p>
+    </div>
+  </section>
+
+  <main class="page">
+    <section class="section" id="steps">
+      <div class="fam-head"><span class="fam-num">01</span><h2>Build it up</h2><p class="fam-sub">Nine steps from the game’s flat floor to this one. Each step changes the stage above; your painting stays.</p></div>
+      <div id="steps-mount"></div>
+      <p><a href="#stage-sec" id="to-stage" class="jump-a">Back to the stage ↑</a></p>
+    </section>
+
+    <section class="family" id="grounds">
+      <div class="fam-head"><span class="fam-num">02</span><h2>Eight Kyoto <em>grounds</em></h2><p class="fam-sub">The same shader with eight recipes. Make it rain and see which grounds drink the water and which ones shine. Click one to plant it on the stage.</p></div>
+      <div class="variants" id="gallery"></div>
+    </section>
+
+    <section class="section" id="game">
+      <div class="fam-head"><span class="fam-num">03</span><h2>Into the game</h2><p class="fam-sub">How this goes into the valley</p></div>
+      <ul class="game-list">
+        <li>The splat is the grass biome mask read the other way round: where the mask says <em>no grass</em> (paths, the shrine precinct, under the eaves), the ground shows earth, ishidatami or gravel.</li>
+        <li><code>buildPathShoulders()</code> becomes a band in the splat instead of an alpha strip, so the path edge blends by height.</li>
+        <li><code>buildWalkwaySlabs()</code> becomes ishidatami setts, with real stones near the cat.</li>
+        <li>Puddles follow the weather in <code>main.js</code>, and the trail buffer takes the same paw positions the grass physics already reads.</li>
+        <li>Amaochi strips go under every eave that has a collider, the same way buildings already get a grass-free footprint.</li>
+      </ul>
+    </section>
+
+    <section class="sources" id="sources">
+      <details>
+        <summary>Research &amp; sources</summary>
+        <p class="src-note">Notes, numbers and what was only a search excerpt: <code>docs/GROUND_RESEARCH_2026-10-25.md</code>.</p>
+        <ul id="srcList"></ul>
+      </details>
+    </section>
+  </main>
+
+  <footer class="foot"></footer>
+
+  <script>
+    if (location.protocol === 'file:') {
+      document.body.insertAdjacentHTML('afterbegin',
+        '<div style="position:relative;z-index:100;max-width:44rem;margin:12vh auto;padding:0 24px;font:1.1rem/1.7 Georgia,serif;color:#2a2118">' +
+        '<p style="font-size:2rem;margin:0 0 .4em">This page needs a local web server.</p>' +
+        '<p>Browsers block ES modules opened straight from disk. From the repo root run <code>python3 -m http.server 8000</code> and open <b>http://localhost:8000/labs/ground/</b>.</p></div>');
+      document.getElementById('gl').remove();
+    } else {
+      const s = document.createElement('script');
+      s.type = 'module'; s.src = 'js/main.js';
+      document.body.append(s);
+    }
+  </script>
+</body>
+</html>

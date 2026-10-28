@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%BE%3C/text%3E%3C/svg%3E">
   <meta name="theme-color" content="#1a1210">
+  <!-- The intro is useful immediately; the engine itself is requested only
+       after the player enters. Preconnect makes that handoff snappy. -->
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preload" as="image" href="docs/images/title-screen.jpg">
   <title>Michi-Neko · 道猫</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -261,6 +265,12 @@
     .overlay {
       position: absolute; inset: 0; z-index: 500;
       display: flex; align-items: center; justify-content: center;
+      /* A panel taller than the screen (settings on a phone) scrolls here:
+         body is overflow:hidden + touch-action:none, so the overlay must be
+         the scroller. The panel's auto margin centres it without pushing its
+         top out of reach the way align-items:center would. */
+      overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+      padding: 12px;
       background: radial-gradient(ellipse at center, rgba(26,14,8,0.55) 0%, rgba(12,6,3,0.88) 100%);
       opacity: 1; transition: opacity 0.35s ease;
     }
@@ -272,12 +282,13 @@
     .panel {
       background: linear-gradient(175deg, rgba(249,240,226,0.97) 0%, rgba(233,214,186,0.95) 100%);
       border: 1px solid #7c4c28; border-top: 3px solid #c8402a;
-      border-radius: 8px; padding: 28px 34px; min-width: 300px;
+      border-radius: 8px; padding: 28px 34px; min-width: min(300px, 100%); max-width: 100%;
+      margin: auto;
       box-shadow: 0 24px 70px rgba(0,0,0,0.65), inset 0 0 30px rgba(160,110,60,0.12);
       display: flex; flex-direction: column; gap: 10px; align-items: stretch;
       animation: panel-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
     }
-    .panel.wide { min-width: 380px; }
+    .panel.wide { min-width: min(380px, 100%); }
     @keyframes panel-in { from { transform: translateY(18px) scale(0.97); opacity: 0; } to { transform: none; opacity: 1; } }
     .panel-title {
       font-size: 22px; color: #b8321e; letter-spacing: 3px; margin: 0 0 8px 0;
@@ -356,6 +367,14 @@
     }
     .settings-value { font-size: 11px; color: #8a684c; min-width: 36px; text-align: right; }
     .settings-group-title { margin: 12px 0 2px; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #8a684c; border-bottom: 1px solid rgba(120,80,40,0.35); padding-bottom: 3px; }
+    /* Narrow phones: the panel shrinks to the screen, so sliders and selects
+       give way instead of pushing their row past the panel edge. */
+    @media (max-width: 480px) {
+      .panel { padding: 22px 18px; }
+      .settings-row { gap: 10px; }
+      .settings-row input[type="range"] { width: auto; flex: 1 1 0; min-width: 60px; }
+      .settings-row select { min-width: 0; max-width: 58%; }
+    }
 
     /* ============ Comfort & accessibility (U2.x) ============ */
     /* Interface size scales the overlay chrome only — never the 3D canvas. */
@@ -618,28 +637,41 @@
       .summit-plate { transform: none; }
     }
 
-    /* ============ Boot screen ============ */
-    /* A soft-focus still of the valley paints the screen instantly while the
-       engine boots; once the first real frame renders, main.js dissolves it
-       away over half a second into the matching live world. */
+    /* ============ Entry screen ============ */
+    /* This stays HTML/CSS-only until the player enters, so a slow module
+       request or an unsupported browser never looks like a frozen game. */
     #boot-screen {
       position: absolute; inset: 0; z-index: 700;
-      overflow: hidden; pointer-events: none;
+      overflow: hidden; pointer-events: auto;
       background: #1a1210;
       transition: opacity 0.5s ease;
     }
     #boot-screen img {
-      width: 100%; height: 100%; object-fit: cover;
-      filter: blur(12px) saturate(1.05);
-      transform: scale(1.08);
+      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+      filter: blur(9px) saturate(1.04) brightness(0.64);
+      transform: scale(1.07);
+      animation: boot-drift 18s ease-in-out infinite alternate;
     }
-    #boot-screen.dissolve { opacity: 0; }
+    #boot-screen::before, #boot-screen::after {
+      content: ''; position: absolute; inset: -18%; pointer-events: none;
+    }
+    #boot-screen::before {
+      background:
+        radial-gradient(ellipse at 50% 39%, rgba(255,220,151,0.21), transparent 25%),
+        radial-gradient(ellipse at 76% 62%, rgba(152,68,45,0.19), transparent 33%);
+      mix-blend-mode: screen;
+      animation: boot-lantern 5.5s ease-in-out infinite;
+    }
+    #boot-screen::after {
+      background: linear-gradient(180deg, rgba(18,8,4,0.18), rgba(18,8,4,0.7));
+    }
+    #boot-screen.dissolve { opacity: 0; pointer-events: none; }
     #boot-title {
-      position: absolute; inset: 0;
+      position: absolute; inset: 0; z-index: 1;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       text-align: center; user-select: none;
     }
-    .boot-paw { font-size: 40px; margin-bottom: 4px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6)); }
+    .boot-paw { font-size: 40px; margin-bottom: 4px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6)); animation: boot-paw 3.8s ease-in-out infinite; }
     .boot-game-title {
       font-size: clamp(48px, 8.5vw, 88px); margin: 0; letter-spacing: 10px; color: #fdf3e0;
       text-shadow: 0 3px 0 #7c2c18, 0 8px 26px rgba(0,0,0,0.85), 0 0 60px rgba(255,190,120,0.25);
@@ -649,10 +681,25 @@
       font-size: clamp(13px, 2vw, 17px); color: #e8c898; letter-spacing: 7px;
       margin: 10px 0 0 0; text-shadow: 0 2px 8px rgba(0,0,0,0.8);
     }
-    .boot-loading {
-      position: absolute; left: 0; right: 0; bottom: 12%;
-      display: flex; flex-direction: column; align-items: center; gap: 14px;
+    .boot-invitation { margin: 26px 0 0; color: rgba(255,239,208,0.82); font-size: 13px; letter-spacing: 1px; }
+    .boot-enter {
+      margin-top: 18px; min-width: min(280px, calc(100vw - 48px));
+      font-family: Georgia, 'Times New Roman', serif; font-weight: bold; font-size: 15px; letter-spacing: 1.5px;
+      color: #fff2db; background: linear-gradient(180deg, #a84227, #602015);
+      border: 1px solid #e5a34c; border-radius: 999px; padding: 13px 24px; cursor: pointer;
+      box-shadow: 0 7px 24px rgba(0,0,0,0.46), inset 0 1px rgba(255,255,255,0.25);
+      transition: transform 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
     }
+    .boot-enter:hover { transform: translateY(-2px); filter: brightness(1.12); }
+    .boot-enter:focus-visible { outline: 3px solid #fff4d6; outline-offset: 4px; }
+    .boot-enter:disabled { cursor: wait; opacity: 0.78; transform: none; }
+    .boot-loading {
+      position: absolute; left: 0; right: 0; bottom: max(8%, calc(env(safe-area-inset-bottom) + 20px)); z-index: 1;
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+      opacity: 0; transform: translateY(8px); transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    #boot-screen.loading .boot-loading { opacity: 1; transform: none; }
+    #boot-screen.loading .boot-invitation, #boot-screen.loading .boot-enter { opacity: 0; pointer-events: none; }
     .boot-spinner {
       width: 42px; height: 42px; border-radius: 50%;
       border: 3px solid rgba(246,232,212,0.25);
@@ -668,9 +715,18 @@
       display: block; font-size: 10px; letter-spacing: 4px;
       color: rgba(230,200,160,0.7); margin-top: 4px;
     }
+    .boot-error {
+      display: none; max-width: min(420px, calc(100vw - 48px)); margin: 22px auto 0;
+      color: #fff0dc; font-size: 14px; line-height: 1.55; text-shadow: 0 2px 8px #120804;
+    }
+    .boot-error button { margin-top: 12px; }
+    #boot-screen.error .boot-invitation, #boot-screen.error .boot-enter, #boot-screen.error .boot-loading { display: none; }
+    #boot-screen.error .boot-error { display: block; }
+    @keyframes boot-drift { to { transform: scale(1.15) translate3d(-0.8%, -0.55%, 0); } }
+    @keyframes boot-lantern { 0%,100% { opacity: 0.55; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1.04); } }
+    @keyframes boot-paw { 0%,100% { transform: translateY(0) rotate(-5deg); } 50% { transform: translateY(-7px) rotate(5deg); } }
     @media (prefers-reduced-motion: reduce) {
-      .boot-spinner { animation: boot-pulse 1.6s ease-in-out infinite; }
-      @keyframes boot-pulse { 0%,100% { opacity: 0.35; } 50% { opacity: 1; } }
+      #boot-screen img, #boot-screen::before, .boot-paw, .boot-spinner { animation: none; }
     }
   </style>
   <script type="importmap">
@@ -683,17 +739,21 @@
   </script>
 </head>
 <body class="in-title">
-  <!-- Soft-focus boot image: dissolves into the live world after frame one -->
+  <!-- HTML/CSS entry screen. bootstrap.js starts the engine after an explicit
+       entry gesture, and main.js dissolves this once its first frame renders. -->
   <div id="boot-screen" role="status" aria-label="Loading Michi-Neko">
-    <img src="docs/images/title-screen.jpg" alt="" fetchpriority="high">
+    <img src="docs/images/title-screen.jpg" alt="" fetchpriority="high" decoding="async">
     <div id="boot-title">
       <div class="boot-paw">🐾</div>
       <h1 class="boot-game-title">Michi-Neko</h1>
       <div class="boot-game-subtitle">道猫 — 京都江戸の谷</div>
+      <p class="boot-invitation">A quiet Kyoto valley is waiting.</p>
+      <button id="boot-enter" class="boot-enter" type="button">Enter the valley</button>
+      <div id="boot-error" class="boot-error" role="alert"></div>
     </div>
     <div class="boot-loading">
       <div class="boot-spinner"></div>
-      <div class="boot-loading-text">Loading…<span>読み込み中</span></div>
+      <div id="boot-loading-text" class="boot-loading-text">Opening the valley…<span>読み込み中</span></div>
     </div>
   </div>
   <canvas id="canvas"></canvas>
@@ -868,9 +928,30 @@
     </div>
   </div>
 
-  <!-- Cache busting: every module import in src/ carries this same ?v= tag.
-       Bump them together, or a changed file ships against a cached sibling:
-         sed -i '' -E "s/\?v=[0-9a-z]+/?v=20261024b/g" src/*.js index.html -->
-  <script type="module" src="src/main.js?v=20261024b"></script>
+  <!-- A normal script can explain the file:// limitation before any module
+       request fails. The tiny bootstrap is then responsible for loading the
+       expensive engine and catching module/network errors. -->
+  <script>
+    (function () {
+      var boot = document.getElementById('boot-screen');
+      if (location.protocol === 'file:') {
+        boot.classList.add('error');
+        document.getElementById('boot-error').innerHTML =
+          '<strong>This game needs a local web server.</strong><br>' +
+          'Browsers block its ES modules when <code>index.html</code> is opened directly. ' +
+          'From the project folder run <code>python3 -m http.server 8000</code>, then open <code>http://localhost:8000</code>.';
+        return;
+      }
+      var script = document.createElement('script');
+      script.type = 'module';
+      script.src = 'src/bootstrap.js?v=20261024c';
+      script.onerror = function () {
+        boot.classList.add('error');
+        document.getElementById('boot-error').textContent = 'The start screen could not load. Please reload and try again.';
+      };
+      document.body.appendChild(script);
+    }());
+  </script>
+  <noscript><p style="position:absolute;z-index:800;inset:40% 24px auto;color:#fff;text-align:center">Michi-Neko needs JavaScript to open the valley.</p></noscript>
 </body>
 </html>

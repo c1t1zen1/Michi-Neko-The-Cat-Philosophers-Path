@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kit check — Michi-Neko Labs</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%B0%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
+  <link rel="stylesheet" href="lab.css">
+  <script type="importmap">
+    {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+  </script>
+  <style>h1 { font-size: clamp(2.4rem, 5vw, 4.4rem); } .mast { padding-bottom: 8px; }</style>
+</head>
+<body>
+  <canvas id="gl" aria-hidden="true"></canvas>
+
+  <main class="page">
+    <header class="mast">
+      <p class="kicker">Michi-Neko · Labs · developer page</p>
+      <h1>Kit <em>check</em></h1>
+      <p class="lede">One page that exercises every shared module (light rig, cat walker, split, callouts, stepper, views, GLSL chunks) so the kit can be verified before a lab depends on it.</p>
+      <div class="controls" id="c1"><div class="perf" id="perf">warming up…</div></div>
+    </header>
+
+    <section class="section" style="margin-top: 24px">
+      <div class="stage" id="stage">
+        <p class="wake" id="wake">Michi is waking up…</p>
+        <div class="hud tl" id="hudTop">&nbsp;</div>
+        <div class="hud bl">WASD / arrows to walk · Shift sprint · C prowl · click to go · drag to orbit</div>
+      </div>
+      <div class="controls" id="c2"></div>
+    </section>
+
+    <section class="section" id="steps"><h2>Build it up</h2></section>
+
+    <section class="section">
+      <h2>GLSL chunks</h2>
+      <div class="controls" id="c3"><span class="ctl-l">Colours</span><span class="slot" id="slot-scheme"></span></div>
+      <div class="variants" id="variants"></div>
+    </section>
+  </main>
+
+  <footer class="foot"><p>Kit check · the shared modules in <code>labs/shared/</code></p></footer>
+
+  <script>
+    if (location.protocol === 'file:') {
+      document.body.insertAdjacentHTML('afterbegin', '<p style="position:relative;z-index:100;padding:40px;font:1.2rem Georgia">This page needs a local web server (python3 -m http.server), then open /labs/shared/kit.html.</p>');
+    } else {
+      const s = document.createElement('script');
+      s.type = 'module'; s.src = 'kit.js';
+      document.body.append(s);
+    }
+  </script>
+</body>
+</html>

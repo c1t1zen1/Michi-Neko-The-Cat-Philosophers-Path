@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { Sky } from '../src/sky.js?v=20261024b';
-import { Player } from '../src/player.js?v=20261024b';
-import { SummitManager } from '../src/mountaintop.js?v=20261024b';
+import { Sky } from '../src/sky.js?v=20261024c';
+import { Player } from '../src/player.js?v=20261024c';
+import { SummitManager } from '../src/mountaintop.js?v=20261024c';
 
 const canvas = document.getElementById('preview');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });

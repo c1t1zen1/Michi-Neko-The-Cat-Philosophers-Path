@@ -3,35 +3,35 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20261024b';
-import { Player } from './player.js?v=20261024b';
-import { Countryside } from './countryside.js?v=20261024b';
-import { Sky } from './sky.js?v=20261024b';
-import { Vegetation } from './vegetation.js?v=20261024b';
-import { Particles } from './particles.js?v=20261024b';
-import { AmbientLife } from './ambient_life.js?v=20261024b';
-import { Controls } from './controls.js?v=20261024b';
-import { UI } from './ui.js?v=20261024b';
-import { NPC } from './npc.js?v=20261024b';
-import { Dialogue } from './dialogue.js?v=20261024b';
-import { QuestManager } from './quest.js?v=20261024b';
-import { AudioManager } from './audio.js?v=20261024b';
-import { ProgressionManager } from './progression.js?v=20261024b';
-import { ContextActionManager } from './context_actions.js?v=20261024b';
-import { InteriorManager } from './interior.js?v=20261024b';
-import { SaveManager } from './save.js?v=20261024b';
-import { ScentTrail } from './scent.js?v=20261024b';
-import { SettingsManager } from './settings.js?v=20261024b';
-import { isDiscreteGPU } from './settings.js?v=20261024b';
-import { MenuSystem } from './menus.js?v=20261024b';
-import { WaypointSystem, Compass } from './waypoints.js?v=20261024b';
-import { MusicDirector } from './music.js?v=20261024b';
-import { SummitManager } from './mountaintop.js?v=20261024b';
-import { catRimUniforms } from './cat.js?v=20261024b';
-import { chunkSceneInstances } from './instanced_chunks.js?v=20261024b';
-import { setFoliageDetail } from './foliage.js?v=20261024b';
-import { applyCadOverrides } from './cad_overrides.js?v=20261024b';
-import { HiddenPlaces } from './hidden_places.js?v=20261024b';
+import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20261024c';
+import { Player } from './player.js?v=20261024c';
+import { Countryside } from './countryside.js?v=20261024c';
+import { Sky } from './sky.js?v=20261024c';
+import { Vegetation } from './vegetation.js?v=20261024c';
+import { Particles } from './particles.js?v=20261024c';
+import { AmbientLife } from './ambient_life.js?v=20261024c';
+import { Controls } from './controls.js?v=20261024c';
+import { UI } from './ui.js?v=20261024c';
+import { NPC } from './npc.js?v=20261024c';
+import { Dialogue } from './dialogue.js?v=20261024c';
+import { QuestManager } from './quest.js?v=20261024c';
+import { AudioManager } from './audio.js?v=20261024c';
+import { ProgressionManager } from './progression.js?v=20261024c';
+import { ContextActionManager } from './context_actions.js?v=20261024c';
+import { InteriorManager } from './interior.js?v=20261024c';
+import { SaveManager } from './save.js?v=20261024c';
+import { ScentTrail } from './scent.js?v=20261024c';
+import { SettingsManager } from './settings.js?v=20261024c';
+import { isDiscreteGPU } from './settings.js?v=20261024c';
+import { MenuSystem } from './menus.js?v=20261024c';
+import { WaypointSystem, Compass } from './waypoints.js?v=20261024c';
+import { MusicDirector } from './music.js?v=20261024c';
+import { SummitManager } from './mountaintop.js?v=20261024c';
+import { catRimUniforms } from './cat.js?v=20261024c';
+import { chunkSceneInstances } from './instanced_chunks.js?v=20261024c';
+import { setFoliageDetail } from './foliage.js?v=20261024c';
+import { applyCadOverrides } from './cad_overrides.js?v=20261024c';
+import { HiddenPlaces } from './hidden_places.js?v=20261024c';
 
 const AUTOSTART_KEY = 'catwalk_autostart';
 
@@ -39,6 +39,19 @@ class Game {
   constructor() {
     this.canvas = document.getElementById('canvas');
     this.ui = new UI();
+    // Read the persisted tier before allocating any render targets. The old
+    // boot always allocated a 4x-MSAA HDR target, then replaced it with a
+    // cheaper one much later; that was needless memory pressure on phones.
+    // Auto starts conservatively at medium on desktop: probing a discrete GPU
+    // here would create a third WebGL context before the renderer exists.
+    this.settings = new SettingsManager();
+    const requestedQuality = this.settings.values.quality;
+    if (requestedQuality !== 'auto') {
+      this.initialQuality = requestedQuality;
+    } else {
+      const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+      this.initialQuality = mobile && (navigator.hardwareConcurrency || 4) < 6 ? 'low' : 'medium';
+    }
 
     // WebGL2 feature gate (A1.6): the composer's half-float MSAA render
     // targets require WebGL2. Without it, fail calmly instead of freezing.
@@ -66,7 +79,10 @@ class Game {
       powerPreference: 'high-performance'
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    const dpr = window.devicePixelRatio || 1;
+    const initialPixelCap = this.initialQuality === 'low' ? 1 :
+      this.initialQuality === 'medium' ? 1.25 : 1.75;
+    this.renderer.setPixelRatio(Math.min(dpr, initialPixelCap));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -80,7 +96,9 @@ class Game {
     // ambient occlusion, height fog and light-shaft passes.
     const rtSize = this.renderer.getDrawingBufferSize(new THREE.Vector2());
     const renderTarget = new THREE.WebGLRenderTarget(rtSize.width, rtSize.height, {
-      samples: 4, // tier-driven; applyQuality() rewrites this per device
+      // Match the saved/auto tier from frame one; don't create a 4x target
+      // just to throw it away when applySettings() runs below.
+      samples: this.initialQuality === 'high' ? 4 : 0,
       type: THREE.HalfFloatType,
       depthTexture: this.makeDepthTexture()
     });
@@ -89,7 +107,10 @@ class Game {
     // read by the post passes is never a stale copy from the other buffer.
     this.composer.renderTarget2.depthTexture = this.makeDepthTexture();
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.aoPass = new AOPass(this.camera, rtSize.width, rtSize.height, { scale: 0.5, samples: 12 });
+    this.aoPass = new AOPass(this.camera, rtSize.width, rtSize.height, {
+      scale: 0.5,
+      samples: this.initialQuality === 'high' ? 14 : 8
+    });
     this.composer.addPass(this.aoPass);
     this.atmosphere = new AtmospherePass(this.camera, rtSize.width, rtSize.height);
     this.atmosphere.aoPass = this.aoPass;
@@ -270,7 +291,6 @@ class Game {
     this.refreshCompassPois();
 
     // Settings + menus
-    this.settings = new SettingsManager();
     this.ui.onHintsChange = (enabled) => {
       this.settings.set('hints', enabled);
       const hintsInput = document.getElementById('set-hints');
@@ -1856,5 +1876,12 @@ Quality  ${this.settings.resolveQuality()}`;
   }
 }
 
-const game = new Game();
-window.game = game;
+/**
+ * Kept explicit so bootstrap.js can fetch and compile the engine without
+ * constructing the full valley until the player has chosen to enter it.
+ */
+export function startGame() {
+  const game = new Game();
+  window.game = game;
+  return game;
+}

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Starting Michi-Neko…</title>
+</head>
+<body>
+  <p>Starting Michi-Neko…</p>
+  <script>
+    // Used by the full-game smoke check. bootstrap.js sees this flag and
+    // launches the engine without waiting for the public entry button.
+    sessionStorage.setItem('catwalk_autostart', 'new');
+    location.replace('./index.html');
+  </script>
+</body>
+</html>

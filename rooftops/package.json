@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "description": "The Roof Road lab. Lets Node import js/*.js as ES modules for tools/rooftop_test.mjs; there is nothing to install.",
+  "type": "module"
+}

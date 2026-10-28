@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Labs — Michi-Neko</title>
+  <meta name="description" content="Twenty-two interactive labs, one per object in Michi-Neko's valley: research, variants and learn-by-building steps.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%BE%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
+  <link rel="stylesheet" href="shared/lab.css">
+  <link rel="stylesheet" href="hub.css">
+</head>
+<body>
+  <main class="page">
+    <header class="mast">
+      <p class="kicker">Michi-Neko · Labs · <span class="jp">研究所</span></p>
+      <h1>Take the valley <em>apart</em></h1>
+      <p class="lede">Every object in Michi's valley gets a lab: a page where you can pull it to pieces, rebuild it one technique at a time and try the variants before the best one goes into the game. Each one starts with ten to fifteen sources of research, and everything is procedural, so there is nothing to download.</p>
+      <p class="progress" id="progress"></p>
+    </header>
+
+    <section class="how" aria-label="How a lab works">
+      <h2 class="eyebrow">How a lab works</h2>
+      <ol id="how"></ol>
+    </section>
+
+    <section class="elsewhere" id="extras"></section>
+    <div id="tiers"></div>
+  </main>
+
+  <footer class="foot">
+    <p>Michi-Neko Labs · built with Three.js r160 · every texture is painted at load time · <a href="shared/kit.html">kit check</a></p>
+  </footer>
+
+  <script>
+    if (location.protocol === 'file:') {
+      document.body.insertAdjacentHTML('afterbegin',
+        '<div style="position:relative;z-index:100;max-width:44rem;margin:12vh auto;padding:0 24px;font:1.1rem/1.7 Georgia,serif;color:#1b261a">' +
+        '<p style="font-size:2rem;margin:0 0 .4em">This page needs a local web server.</p>' +
+        '<p>Browsers block ES modules opened straight from disk (<code>file://</code>). From the repo root run:</p>' +
+        '<pre style="background:#f4f8ef;padding:14px 16px;border-radius:12px;font-size:.95rem">python3 -m http.server 8000</pre>' +
+        '<p>then open <b>http://localhost:8000/labs/</b>.</p></div>');
+    } else {
+      const s = document.createElement('script');
+      s.type = 'module'; s.src = 'hub.js';
+      document.body.append(s);
+    }
+  </script>
+</body>
+</html>
