@@ -11,7 +11,7 @@
 // the lanterns. Built through the real Countryside builder with seeded
 // randomness, so captures repeat.
 import * as THREE from 'three';
-import { Countryside } from '../src/countryside.js?v=20261024a';
+import { Countryside } from '../src/countryside.js?v=20261024b';
 
 const params = new URLSearchParams(location.search);
 const sheetName = params.get('sheet') || 'street';

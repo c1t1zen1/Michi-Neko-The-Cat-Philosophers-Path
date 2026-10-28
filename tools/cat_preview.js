@@ -9,8 +9,8 @@
 // Extras: &raw=1 (bare sculpts), &golden=1 (sunset light), &debug=1 (bone
 // positions in the console), &perf=1 (build + update timings).
 import * as THREE from 'three';
-import { Cat, catRimUniforms } from '../src/cat.js?v=20261024a';
-import { getCatAnatomy, BUILDS } from '../src/cat_anatomy.js?v=20261024a';
+import { Cat, catRimUniforms } from '../src/cat.js?v=20261024b';
+import { getCatAnatomy, BUILDS } from '../src/cat_anatomy.js?v=20261024b';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 /**

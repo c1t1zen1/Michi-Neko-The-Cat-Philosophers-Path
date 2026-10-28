@@ -4,12 +4,12 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   dirtTextures, groundTextures, stoneTextures, woodTextures, metalTextures, barkTextures,
   texturedMaterial, worldNoise, glowTexture
-} from './textures.js?v=20261024a';
+} from './textures.js?v=20261024b';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture,
   leafCardGeometry, buildCanopy, updateFoliage, lumpyTuftGeometry
-} from './foliage.js?v=20261024a';
-import { GrassSystem, BiomeMask } from './grass.js?v=20261024a';
+} from './foliage.js?v=20261024b';
+import { GrassSystem, BiomeMask } from './grass.js?v=20261024b';
 
 function mulberry32(a) {
   return function() {
@@ -66,6 +66,17 @@ const ENTRY_Y = -1.6;
 const STEP_COUNT = 7;
 const STEP_RUN = 1.05;
 const STEP_RISE = 0.28;
+const LANDING_Z0 = CORRIDOR_Z0 + STEP_COUNT * STEP_RUN;
+const LANDING_Z1 = CORRIDOR_Z1 + 0.35;
+const BASIN_JOIN_Z = 30;
+
+/** Render and physics share the same stepped profile down to the torii. */
+function approachTopAt(z) {
+  if (z >= LANDING_Z0) return ENTRY_Y;
+  const step = Math.min(STEP_COUNT - 1,
+    Math.max(0, Math.floor((z - CORRIDOR_Z0) / STEP_RUN)));
+  return Math.max(ENTRY_Y, MEADOW_Y - step * STEP_RISE);
+}
 
 // Optional cinematic for the ascent. Drop an mp4 at this path and it plays
 // full-screen; when the file is absent (or undecodable) the CSS light-burst
@@ -88,7 +99,7 @@ const SUMMIT_WEATHER_DURATIONS = {
 const MEDITATE_SECONDS = 165;
 // Resolve from this module rather than the current document: the main game is
 // served from `/`, while the art-review page lives under `/tools/`.
-const SUMMIT_LANDMARKS_SRC = new URL('../assets/models/summit_kyoto_landmarks.glb?v=20261024a', import.meta.url).href;
+const SUMMIT_LANDMARKS_SRC = new URL('../assets/models/summit_kyoto_landmarks.glb?v=20261024b', import.meta.url).href;
 
 /** Smooth amount for a weather type while Sky cross-fades between states. */
 function summitWeatherAmount(sky, type) {
@@ -289,13 +300,41 @@ export class SummitManager {
   groundAt(x, z) {
     const lx = x - this.origin.x, lz = z - this.origin.z;
     if (Math.abs(lx) <= CORRIDOR_W + 0.45 && lz >= CORRIDOR_Z0 && lz <= CORRIDOR_Z1) {
-      const step = Math.min(STEP_COUNT - 1, Math.max(0, Math.floor((lz - CORRIDOR_Z0) / STEP_RUN)));
-      const top = lz >= CORRIDOR_Z0 + STEP_COUNT * STEP_RUN
-        ? ENTRY_Y
-        : Math.max(ENTRY_Y, MEADOW_Y - step * STEP_RISE);
-      return this.origin.y + top;
+      return this.origin.y + approachTopAt(lz);
     }
     return this.origin.y + MEADOW_Y;
+  }
+
+  /** Decorative earth immediately beneath the stone approach. */
+  approachSupportAt(x, z) {
+    let fan = 0;
+    let y;
+    if (z < LANDING_Z0) {
+      y = approachTopAt(z) - 0.38;
+    } else if (z <= LANDING_Z1) {
+      y = ENTRY_Y - 0.5;
+    } else {
+      fan = smoothstep(LANDING_Z1, BASIN_JOIN_Z, z);
+      y = THREE.MathUtils.lerp(
+        ENTRY_Y - 0.5,
+        this.vistaGroundHeight(x, BASIN_JOIN_Z) - 0.08,
+        fan
+      );
+    }
+    return {
+      y,
+      halfWidth: THREE.MathUtils.lerp(CORRIDOR_W + 0.35, 18, fan),
+      fan
+    };
+  }
+
+  /** Painterly mountain skin beneath the playable summit and distant vista. */
+  summitSkirtHeightAt(x, z) {
+    const r = Math.hypot(x, z);
+    const t = smoothstep(11.8, 55, r);
+    const rough = (worldNoise(x, z, 0.05, 3, 17) - 0.5) * 6 * Math.min(1, t * 3);
+    const underlap = (1 - smoothstep(11.5, 12.4, r)) * 0.12;
+    return MEADOW_Y - 39 * Math.pow(t, 1.45) - 5 * t + rough - underlap;
   }
 
   /** Soft containment: meadow circle + the stair corridor notch. */
@@ -449,8 +488,8 @@ export class SummitManager {
     // Their visual tops, physics groundAt() bands, and platform boxes share
     // the same constants so there is no invisible ramp or paw clipping.
     for (let i = 0; i < STEP_COUNT; i++) {
-      const top = Math.max(ENTRY_Y, MEADOW_Y - i * STEP_RISE);
       const z0 = CORRIDOR_Z0 + i * STEP_RUN;
+      const top = approachTopAt(z0);
       const width = 5.7 - i * 0.09;
       const slab = box(width, 0.34, STEP_RUN + 0.08, this.MAT.stoneWarm,
         0, top - 0.17, z0 + STEP_RUN * 0.5);
@@ -459,8 +498,8 @@ export class SummitManager {
       this.addPlatformBox(-width * 0.5, top, z0, width * 0.5, top - 0.5, z0 + STEP_RUN);
     }
 
-    const landingZ = CORRIDOR_Z0 + STEP_COUNT * STEP_RUN;
-    const landingDepth = CORRIDOR_Z1 - landingZ + 0.35;
+    const landingZ = LANDING_Z0;
+    const landingDepth = LANDING_Z1 - landingZ;
     const landing = box(5.25, 0.45, landingDepth, this.MAT.stoneWarm,
       0, ENTRY_Y - 0.225, landingZ + landingDepth * 0.5);
     landing.name = 'Overlook Torii Landing';
@@ -1086,10 +1125,68 @@ export class SummitManager {
 
   /* ================= The drop & the panorama ================= */
 
+  buildApproachShoulder() {
+    const zMin = CORRIDOR_Z0 - 0.75;
+    const zMax = BASIN_JOIN_Z + 6;
+    const geo = new THREE.PlaneGeometry(2, 1, 32, 72);
+    geo.rotateX(-Math.PI / 2);
+    const pos = geo.attributes.position;
+    const colors = new Float32Array(pos.count * 3);
+    const bankGreen = new THREE.Color(0x829d55);
+    const bankDry = new THREE.Color(0xb8aa6c);
+    const bankSoil = new THREE.Color(0x887454);
+    const c = new THREE.Color();
+
+    for (let i = 0; i < pos.count; i++) {
+      const u = pos.getX(i);
+      const v = clamp01(pos.getZ(i) + 0.5);
+      const z = THREE.MathUtils.lerp(zMin, zMax, v);
+      const support = this.approachSupportAt(0, z);
+      const bankWidth = 3.4 + support.fan * 3;
+      const outerHalfWidth = support.halfWidth + bankWidth;
+      const x = u * outerHalfWidth;
+      const sideWeight = 1 - smoothstep(support.halfWidth, outerHalfWidth, Math.abs(x));
+      const startWeight = smoothstep(zMin, CORRIDOR_Z0, z);
+      const endWeight = 1 - smoothstep(BASIN_JOIN_Z, zMax, z);
+      const weight = sideWeight * startWeight * endWeight;
+      const baseY = this.summitSkirtHeightAt(x, z) - 0.025;
+      // Break the long banks into small natural undulations, but only outside
+      // the stone-bearing core so no earth can poke through a tread.
+      const bankBand = smoothstep(CORRIDOR_W + 0.08, support.halfWidth, Math.abs(x)) * sideWeight;
+      const bankRough = (worldNoise(x, z, 0.34, 2, 173) - 0.5) * 0.22 * bankBand;
+      pos.setXYZ(i, x, THREE.MathUtils.lerp(baseY, support.y, weight) + bankRough, z);
+
+      const mottling = worldNoise(x, z, 0.27, 2, 149);
+      c.copy(bankGreen).lerp(bankDry, mottling * 0.42);
+      c.lerp(bankSoil, (1 - sideWeight) * 0.18 + support.fan * 0.08);
+      colors[i * 3] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
+    }
+
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geo.computeVertexNormals();
+    const shoulder = new THREE.Mesh(geo, this.MAT.meadow);
+    shoulder.name = 'Torii Approach Earthen Shoulder';
+    shoulder.castShadow = false;
+    shoulder.receiveShadow = true;
+    shoulder.userData.coverage = {
+      approachZMin: zMin,
+      approachZMax: zMax,
+      approachHalfWidth: CORRIDOR_W + 0.35,
+      basinJoinZ: BASIN_JOIN_Z
+    };
+    this.group.add(shoulder);
+    this.approachShoulder = shoulder;
+  }
+
   buildSkirtAndVista() {
-    // Mountain shoulder: the meadow's rim falls away into forested folds
-    // that sink below the haze line.
-    const skirt = new THREE.RingGeometry(11.8, 70, 112, 8);
+    // Mountain shoulder: overlap the meadow, stair notch and distant basin
+    // so every gameplay view sees continuous earth rather than mesh edges.
+    // The enlarged outer ring ends deep inside the low-altitude haze.
+    const skirtInnerRadius = CORRIDOR_Z0 - 0.75;
+    const skirtOuterRadius = 180;
+    const skirt = new THREE.RingGeometry(skirtInnerRadius, skirtOuterRadius, 160, 40);
     skirt.rotateX(-Math.PI / 2);
     const pos = skirt.attributes.position;
     const colors = new Float32Array(pos.count * 3);
@@ -1102,14 +1199,7 @@ export class SummitManager {
       const x = pos.getX(i), z = pos.getZ(i);
       const r = Math.hypot(x, z);
       const t = smoothstep(11.8, 55, r);
-      let drop = MEADOW_Y - 39 * Math.pow(t, 1.45) - 5 * t;
-      // Sink the mountain skin beneath the playable ocean-side stair rather
-      // than letting a decorative ring slice across its lower treads.
-      if (z > CORRIDOR_Z0 - 0.5 && Math.abs(x) < CORRIDOR_W + 1.8) {
-        drop -= 3.4 * smoothstep(CORRIDOR_Z0 - 0.5, GATE_Z + 2, z);
-      }
-      const rough = (worldNoise(x, z, 0.05, 3, 17) - 0.5) * 6 * Math.min(1, t * 3);
-      pos.setY(i, drop + rough);
+      pos.setY(i, this.summitSkirtHeightAt(x, z));
       c.copy(cGrass).lerp(cRock, smoothstep(0.08, 0.4, t));
       c.lerp(cForest, smoothstep(0.3, 0.7, t) * (0.6 + worldNoise(x, z, 0.09, 2, 21) * 0.4));
       c.lerp(cHaze, smoothstep(0.55, 1, t) * 0.85);
@@ -1119,7 +1209,16 @@ export class SummitManager {
     skirt.computeVertexNormals();
     const skirtMesh = new THREE.Mesh(skirt, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
     skirtMesh.name = 'Summit Skirt';
+    skirtMesh.castShadow = false;
+    skirtMesh.receiveShadow = false;
+    skirtMesh.userData.coverage = {
+      innerRadius: skirtInnerRadius,
+      outerRadius: skirtOuterRadius,
+      basinJoinZ: BASIN_JOIN_Z
+    };
     this.group.add(skirtMesh);
+    this.summitSkirt = skirtMesh;
+    this.buildApproachShoulder();
 
     // The overlook is a stack of real spatial layers rather than a panorama
     // card: descending basin terrain, hundreds of roof volumes, gardens and
@@ -1167,7 +1266,12 @@ export class SummitManager {
     const col = new THREE.Color();
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
-      const z = pos.getZ(i) + 100;
+      const sourceZ = pos.getZ(i) + 100;
+      // Pull the straight near edge away at the sides, behind the wooded
+      // mountain shoulders. The centre still overlaps the approach apron.
+      const nearEdge = 1 - smoothstep(30, 48, sourceZ);
+      const sideRetreat = smoothstep(20, 145, Math.abs(x)) * 20;
+      const z = sourceZ + nearEdge * sideRetreat;
       const y = this.vistaGroundHeight(x, z);
       pos.setXYZ(i, x, y, z);
       const depth = clamp01((z - 30) / 140);
@@ -1186,7 +1290,15 @@ export class SummitManager {
     terrain.name = 'Kyoto Basin Terrain';
     terrain.castShadow = false;
     terrain.receiveShadow = false;
+    terrain.userData.coverage = {
+      xMin: -155,
+      xMax: 155,
+      zMin: BASIN_JOIN_Z,
+      zMax: 170,
+      centreOverlap: 6
+    };
     this.vista.add(terrain);
+    this.vistaTerrain = terrain;
     this.vistaTerrainMat = mat;
 
     // The Yodo/Katsura water ribbon winds through several real city blocks.

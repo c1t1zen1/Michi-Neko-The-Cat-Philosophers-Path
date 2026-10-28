@@ -419,6 +419,35 @@ ok('groundAt keeps meadow and arrival landing aligned to rendered surfaces',
   Math.abs(S.groundAt(0, 17.8) - (-1201.6)) < 0.01,
   `landing=${S.groundAt(0, 17.8)} meadow=${S.groundAt(0, 0)}`);
 
+// The old skirt began outside the meadow notch and was carved downward under
+// the entrance, leaving the stair and torii landing visibly suspended.
+const shoulderCoverage = S.approachShoulder && S.approachShoulder.userData.coverage;
+ok('an earthen shoulder spans the complete torii approach',
+  !!shoulderCoverage &&
+  shoulderCoverage.approachZMin <= 8.25 &&
+  shoulderCoverage.approachZMax >= 20.6 &&
+  shoulderCoverage.approachHalfWidth >= 2.9 + 0.3,
+  JSON.stringify(shoulderCoverage));
+const treadSupportGaps = Array.from({ length: 7 }, (_, i) => {
+  const z = 8.25 + i * 1.05 + 0.5;
+  const treadBottom = S.groundAt(0, z) - S.origin.y - 0.34;
+  return treadBottom - S.approachSupportAt(0, z).y;
+});
+const landingBottom = -1.6 - 0.45;
+const landingSupportGap = landingBottom - S.approachSupportAt(0, 17.8).y;
+ok('the approach shoulder sits tightly beneath every tread and the landing',
+  treadSupportGaps.every((gap) => gap >= 0.02 && gap <= 0.07) &&
+  landingSupportGap >= 0.02 && landingSupportGap <= 0.07,
+  `treads=${treadSupportGaps.map((n) => n.toFixed(3)).join(',')} landing=${landingSupportGap.toFixed(3)}`);
+const basinCoverage = S.vistaTerrain && S.vistaTerrain.userData.coverage;
+const skirtCoverage = S.summitSkirt && S.summitSkirt.userData.coverage;
+ok('summit skirt overlaps the curved basin edge and hides side endpoints',
+  !!shoulderCoverage && !!basinCoverage && !!skirtCoverage &&
+  basinCoverage.zMin === shoulderCoverage.basinJoinZ &&
+  skirtCoverage.innerRadius <= shoulderCoverage.approachZMin &&
+  skirtCoverage.outerRadius > Math.hypot(basinCoverage.xMax, basinCoverage.zMin + 20),
+  `skirt=${JSON.stringify(skirtCoverage)} basin=${JSON.stringify(basinCoverage)}`);
+
 // --- containment: the cat can never wander off the summit ---
 const runaway = { x: 300, y: 0, z: 0 };
 S.constrain(runaway);

@@ -8,11 +8,11 @@
 // spots: meadow, path, river, shrine, glade, corral, pool, wide;
 // `@hour` sets the time of day per panel. &quality=low|medium|high, &walk=N
 import * as THREE from 'three';
-import { Sky } from '../src/sky.js?v=20261024a';
-import { Player } from '../src/player.js?v=20261024a';
-import { Countryside } from '../src/countryside.js?v=20261024a';
-import { HiddenPlaces } from '../src/hidden_places.js?v=20261024a';
-import { Vegetation } from '../src/vegetation.js?v=20261024a';
+import { Sky } from '../src/sky.js?v=20261024b';
+import { Player } from '../src/player.js?v=20261024b';
+import { Countryside } from '../src/countryside.js?v=20261024b';
+import { HiddenPlaces } from '../src/hidden_places.js?v=20261024b';
+import { Vegetation } from '../src/vegetation.js?v=20261024b';
 
 const SPOTS = {
   // cat position, heading (rad), camera offset from the cat
