@@ -28,12 +28,15 @@ $('#tiers').innerHTML = TIERS.map((t) => `
   <section class="tier" style="--tier:${t.accent}">
     <div class="tier-head"><span class="tier-n">${t.n}</span><h2>${esc(t.title)}</h2><p>${esc(t.sub)}</p></div>
     <ol class="rows">${LABS.filter((l) => l.tier === t.n).map((l) => {
+      const live = l.status === 'live' && l.href;
+      const title = `${esc(l.title)} <span class="jp">${l.jp}</span> <i>${esc(l.romaji)}</i>`;
       const body = `<span class="r-n">${nn(l.n)}</span>
-        <span class="r-main"><span class="r-title">${esc(l.title)} <span class="jp">${l.jp}</span> <i>${esc(l.romaji)}</i></span>
+        <span class="r-main"><span class="r-title">${live ? `<a href="${esc(l.href)}">${title}</a>` : title}</span>
         <span class="r-q">${esc(l.question)}</span>
         <span class="r-chips">${l.reasons.map((r) => `<span class="chip" title="${esc(REASONS[r])}">${r}</span>`).join('')}</span>
         <code class="r-b">${l.builders.map(esc).join(' · ')}</code></span>
-        <span class="r-s">${STATUS[l.status]}</span>${l.status === 'live' && l.poster ? `<img class="r-img" src="${l.poster}" alt="" loading="lazy" width="1200" height="750">` : ''}`;
-      return `<li class="row ${l.status}">${l.status === 'live' && l.href ? `<a href="${l.href}">${body}</a>` : `<div>${body}</div>`}</li>`;
+        <span class="r-actions">${live ? `<a class="r-s" href="${esc(l.href)}">${STATUS[l.status]}</a>` : `<span class="r-s">${STATUS[l.status]}</span>`}${l.href ? `<a class="r-research" href="${esc(l.href)}research.md" aria-label="Read ${esc(l.title)} research">Read research ↗</a>` : ''}</span>
+        ${live && l.poster ? `<a class="r-poster" href="${esc(l.href)}" aria-label="Open ${esc(l.title)} lab"><img class="r-img" src="${esc(l.poster)}" alt="" loading="lazy" width="1200" height="750"></a>` : ''}`;
+      return `<li class="row ${l.status}" id="lab-${esc(l.slug)}"><div>${body}</div></li>`;
     }).join('')}</ol>
   </section>`).join('');

@@ -43,6 +43,11 @@ check(LABS.length === 22, 'registry has 22 labs');
 check(LABS.map((l) => l.n).sort((a, b) => a - b).every((n, i) => n === i + 1), 'registry n = 1..22 unique');
 check(new Set(LABS.map((l) => l.slug)).size === LABS.length, 'registry slugs unique');
 for (const l of LABS.filter((x) => x.status === 'live')) check(l.href && existsSync(join('labs', l.href, 'index.html')), `live lab ${l.slug} has labs/${l.href}index.html`);
+for (const l of LABS.filter((x) => x.href)) {
+  check(!l.href.startsWith('/') && !l.href.includes('://'), `lab ${l.slug} uses a project-relative link`);
+  check(existsSync(join('labs', l.href, 'research.md')), `research block ${l.slug} has a notebook`);
+  if (l.poster) check(!l.poster.startsWith('/') && existsSync(join('labs', l.poster)), `lab ${l.slug} has a project-relative preview image`);
+}
 for (const e of EXTRAS) check(existsSync(resolve('labs', e.href.split('?')[0])), `extra ${e.slug} -> ${e.href}`);
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll labs checks OK');
