@@ -1,0 +1,52 @@
+/* Lab 02 theme: river. Kamogawa blue-green, vermilion for the bridges.
+   Everything else comes from ../shared/lab.css. */
+:root {
+  --accent: #2f6f86; --accent2: #c8553d; --ink: #14232b; --muted: #4f6470; --soft: #8aa0aa;
+  --wash: rgba(47, 111, 134, 0.15); --code-bg: #eef4f6;
+}
+.hero-foot .row { margin-top: 14px; align-items: center; }
+.hero-foot .ctl .seg { flex-wrap: wrap; justify-content: center; }
+.stage { height: clamp(560px, 82vh, 900px); outline: none; }
+.stage:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.hud.tr { top: 50px; right: 16px; left: auto; }
+.hud.tl { top: 14px; min-width: 210px; }
+.hud.msg { left: 50%; right: auto; top: auto; bottom: 52px; transform: translateX(-50%); font: italic 400 1rem var(--serif); padding: 6px 14px; opacity: 0; transition: opacity 0.4s; text-align: center; max-width: 80%; }
+.hud.msg.on { opacity: 1; }
+#hudCat b { font-weight: 600; }
+#hudCat .bar { display: inline-block; vertical-align: middle; width: 54px; height: 5px; border-radius: 4px; background: rgba(47, 111, 134, 0.18); overflow: hidden; margin-left: 4px; }
+#hudCat .bar i { display: block; height: 100%; background: var(--accent); }
+.btn.big { font: italic 400 1.15rem var(--serif); color: #fff; background: var(--accent2); padding: 7px 20px; border-radius: 99px; box-shadow: 0 6px 18px -8px rgba(200, 85, 61, 0.7); }
+.btn.big:hover { background: #b0442f; color: #fff; }
+.btn.big:focus-visible { outline: 2px solid var(--accent2); outline-offset: 3px; }
+.stage .split-l, .stage .split-r { top: 112px; }
+.jump-a { font: italic 400 1.05rem var(--serif); color: var(--accent); text-decoration: none; }
+
+/* cards */
+.variants { gap: 64px 26px; }
+@media (min-width: 1100px) { .variants { grid-template-columns: repeat(4, 1fr); } }
+.view { cursor: pointer; }
+.view::after {
+  content: 'click to plant it on the stage ↑'; position: absolute; left: 0; right: 0; bottom: 3%; text-align: center;
+  font: italic 0.85rem var(--serif); color: var(--accent); opacity: 0; transition: opacity 0.25s;
+}
+.tile:hover .view::after, .tile:focus-visible .view::after { opacity: 0.85; }
+.tile.sel .name::after { content: '  ·  on the stage'; font: italic 300 0.82rem var(--serif); color: var(--accent2); letter-spacing: 0; }
+.name .jp { font-size: 0.95rem; color: var(--accent); margin-left: 6px; }
+.stats2 { margin: 5px 0 0; font-size: 0.72rem; color: var(--soft); font-variant-numeric: tabular-nums; }
+.gpu { letter-spacing: 0.12em; color: var(--accent); }
+.how { margin: 12px 0 0; padding-left: 1.1em; font-size: 0.84rem; line-height: 1.6; color: var(--muted); }
+.how li { margin: 0 0 6px; }
+.use { margin: 14px 0 0; font-size: 0.82rem; color: var(--ink); }
+.use b { font-family: var(--serif); font-style: italic; font-weight: 400; color: var(--accent); }
+.srcs { margin: 10px 0 0; padding: 0; list-style: none; font-size: 0.78rem; line-height: 1.7; }
+.family { margin-top: clamp(48px, 8vh, 96px); }
+.family .fam-head h2 { font-weight: 400; }
+.game-list { max-width: 54rem; margin: 26px 0 0; padding-left: 1.2em; font-family: var(--serif); font-weight: 300; font-size: 1.16rem; line-height: 1.65; color: var(--ink); }
+.game-list li { margin: 0 0 12px; }
+.game-list em { color: var(--accent); }
+.st-body .fact { display: block; margin: 12px 0 0; padding-left: 14px; border-left: 2px solid var(--wash); font-size: 0.88rem; color: var(--muted); }
+@media (max-width: 700px) {
+  .stage { height: 66vh; }
+  .hud.bl { display: none; }
+  .hud.tl { min-width: 0; font-size: 0.68rem; }
+}

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lab 02 · River, bridge &amp; paddies — Michi-Neko Labs</title>
+  <meta name="description" content="A Kyoto river you can take apart: water that knows which way it flows, eight bridges from the kōran to the floating nagare-bashi, paddies through the year, and Michi jumping off the bridge.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%8A%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
+  <link rel="stylesheet" href="../shared/lab.css">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <canvas id="gl" aria-hidden="true"></canvas>
+
+  <main class="page">
+    <header class="mast">
+      <p class="kicker">Michi-Neko · Labs · 02 · <span class="jp">川と田んぼ</span></p>
+      <h1>Water that knows<br><em>which way it flows</em></h1>
+      <p class="lede">The river is the biggest mirror in the valley, and today it is a ribbon of sine waves that ignore its bends. This lab rebuilds it from the bed up: a flow field you can paint, real depth, foam where the current hits stone, reflections, and a painterly finish that sits between a photograph and a Ghibli background. Then the bridge, post by post and giboshi by giboshi, and the paddies through a year. Michi can walk all of it, hop the turtle stones, and jump off the bridge.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#river">The river</a><a href="#steps">Build it up</a><a href="#variants">Twenty-eight variants</a><a href="#game">Into the game</a><a href="#sources">Sources</a><a href="#river" class="go">Jump in ↓</a>
+      </nav>
+    </header>
+  </main>
+
+  <section class="hero" id="river">
+    <div class="hero-head">
+      <h2>Jump off <em>the bridge</em></h2>
+      <p class="sentence">
+        Michi crosses <span class="slot" id="slot-bridge"></span> over <span class="slot" id="slot-water"></span> beside <span class="slot" id="slot-paddy"></span>.
+      </p>
+    </div>
+    <div class="stage" id="stage" tabindex="0" aria-label="The river stage. Walk with WASD or click; Space jumps.">
+      <p class="wake" id="wake">Michi is waking up…</p>
+      <div class="hud tl" id="hudCat">&nbsp;</div>
+      <div class="hud tr" id="hudTool">Tool · <b id="toolName">Walk</b></div>
+      <div class="hud msg" id="msg" aria-live="polite"></div>
+      <div class="hud bl">WASD / arrows walk · Space jump · Shift sprint · C prowl · click to send Michi · drag to orbit (right-drag with a tool)</div>
+    </div>
+    <div class="hero-foot">
+      <div class="row">
+        <div class="ctl"><span class="ctl-l">Tool</span><span id="tools"></span></div>
+        <button type="button" class="btn big" id="btn-leap">Jump in!</button>
+      </div>
+      <div class="row" id="c-world"></div>
+      <div class="row" id="c-season"><div class="ctl"><span class="ctl-l">Season</span><span id="seasons"></span></div></div>
+      <div class="row" id="c-look"></div>
+      <div class="row" id="c-more">
+        <div class="ctl"><span class="ctl-l">Show</span><span class="slot" id="slot-debug"></span></div>
+        <div class="ctl"><span class="ctl-l">Compare</span><span class="slot" id="slot-split"></span></div>
+        <button type="button" class="btn" id="btn-reset">Reset</button>
+      </div>
+      <div class="row"><div class="ctl"><span class="ctl-l">Quality</span><span id="c-quality"></span></div><div class="ctl perf" id="perf">warming up…</div></div>
+      <p class="hero-stats" id="stats">&nbsp;</p>
+    </div>
+  </section>
+
+  <main class="page">
+    <section class="section" id="steps">
+      <div class="fam-head"><span class="fam-num">01</span><h2>Build it up</h2><p class="fam-sub">Twelve steps from the game’s river to this one. Each step sets the stage above; the cat and your rocks stay where they are.</p></div>
+      <div id="steps-mount"></div>
+      <p><a href="#river" class="jump-a">Back to the river ↑</a></p>
+    </section>
+
+    <section class="section" id="variants">
+      <div class="fam-head"><span class="fam-num">02</span><h2>Twenty-eight <em>variants</em></h2><p class="fam-sub">Every technique worth trying, live in its own cube. Hover a cube to drop a pebble or raise the water; click one to plant it on the stage.</p></div>
+      <div class="controls" id="c-cubes"></div>
+      <div id="families"></div>
+    </section>
+
+    <section class="section" id="game">
+      <div class="fam-head"><span class="fam-num">03</span><h2>Into the game</h2><p class="fam-sub">What changes in <code>countryside.js</code> and <code>player.js</code></p></div>
+      <ul class="game-list" id="game-list"></ul>
+    </section>
+
+    <section class="sources" id="sources">
+      <details>
+        <summary>Research &amp; sources</summary>
+        <p class="src-note">Two rounds of research: what the field knows about drawing water, and what Kyoto’s rivers, bridges and paddies are made of. Numbers, notes and which sources were only search excerpts are in <a href="research.md"><code>research.md</code></a>.</p>
+        <ul id="srcList"></ul>
+      </details>
+    </section>
+  </main>
+
+  <footer class="foot"></footer>
+
+  <script>
+    if (location.protocol === 'file:') {
+      document.body.insertAdjacentHTML('afterbegin',
+        '<div style="position:relative;z-index:100;max-width:44rem;margin:12vh auto;padding:0 24px;font:1.1rem/1.7 Georgia,serif;color:#14232b">' +
+        '<p style="font-size:2rem;margin:0 0 .4em">This page needs a local web server.</p>' +
+        '<p>Browsers block ES modules opened straight from disk. From the repo root run <code>python3 -m http.server 8000</code> and open <b>http://localhost:8000/labs/water/</b>.</p></div>');
+      document.getElementById('gl').remove();
+    } else {
+      const s = document.createElement('script');
+      s.type = 'module'; s.src = 'js/main.js';
+      document.body.append(s);
+    }
+  </script>
+</body>
+</html>
