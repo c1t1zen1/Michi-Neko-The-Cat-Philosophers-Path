@@ -3,89 +3,134 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Distant Pagoda Lab — Michi-Neko</title>
-  <meta name="description" content="Seven procedural Three.js approaches to building a five-storey Japanese pagoda, from our original game builder to correct sōrin proportions, kumimono brackets, and Ghibli-style painterly rendering.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%AF%3C/text%3E%3C/svg%3E">
+  <title>Lab 08 · Distant pagoda — Michi-Neko</title>
+  <meta name="description" content="A five-storey pagoda built from measured proportions in Three.js: walk back from its foot to two kilometres, ring its twenty bells, shake it, raise it, and try 65 live specimens, from the game's own tower to painted finishes.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E5%A1%94%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
+  <link rel="stylesheet" href="../shared/lab.css">
   <link rel="stylesheet" href="style.css">
-  <script type="importmap">
-    {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
-  </script>
+  <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 </head>
 <body>
   <canvas id="gl" aria-hidden="true"></canvas>
 
   <main class="page">
-    <header class="mast">
-      <p class="kicker">Michi-Neko · Pagoda Lab</p>
-      <h1>Seven ways to<br><em>rise into the sky</em></h1>
-      <p class="lede">The distant pagoda (五重塔) is the landmark of Michi's valley — seen from the meadow, the bridge, and the meditation perch against the Kyoto basin. Here we pull it apart, compare seven procedural approaches to building it in Three.js, and test each against the research: the correct proportions, the full sōrin finial, the kumimono brackets, and a Ghibli-style painterly render that reads against the sky at any distance.</p>
-      <nav class="jump" aria-label="Sections">
-        <a href="#variants">The variants</a>
-        <a href="#squint">The squint test</a>
-        <a href="#sorin">The sōrin</a>
-        <a href="#sources">Sources</a>
-      </nav>
-      <div class="controls">
-        <div class="ctl"><span class="ctl-l">Variant</span>
-          <span class="seg" id="seg-variant">
-            <button data-v="original" class="on">Original</button>
-            <button data-v="correct-sorin">Sōrin</button>
-            <button data-v="kumimono">Kumimono</button>
-            <button data-v="curved-eaves">Curved</button>
-            <button data-v="painterly">Painterly</button>
-            <button data-v="wireframe">Wire</button>
-            <button data-v="toji-proportions">Tō-ji</button>
-          </span>
-        </div>
-        <div class="ctl"><span class="ctl-l">Distance</span>
-          <span class="seg" id="seg-distance">
-            <button data-v="near" class="on">Near (5 m)</button>
-            <button data-v="mid">Mid (100 m)</button>
-            <button data-v="far">Far (500 m)</button>
-          </span>
-        </div>
-        <label class="ctl"><span class="ctl-l">Sun</span><input id="sun-slider" class="range" type="range" min="0" max="1" step="0.01" value="0.4" aria-label="Time of day"></label>
+    <header class="mast pagoda-mast">
+      <div>
+        <p class="kicker">Michi-Neko · field notes 08 · <span class="jp" lang="ja">五重塔</span> gojū-no-tō</p>
+        <h1>Stand back.<br><em>Squint.</em></h1>
+        <p class="lede">A five-storey pagoda is built to be read from a kilometre away: five dark eave lines, a lifted corner, a bronze needle a third of its height. Walk back from its foot to the far hills and watch which parts survive. Ring its twenty bells, shake it to see the storeys dance round the heart pillar, raise it from the stones, and try sixty-five ways of drawing it. Every one starts from the tower in our game.</p>
+        <nav class="jump" aria-label="On this page"><a href="#walk" class="go">To the viewing platform ↓</a><a href="#families">65 live specimens</a><a href="#steps">Raise the tower</a><a href="#squint">What reads at a kilometre</a><a href="#game">Into the game</a><a href="#sources">Field notebook</a></nav>
       </div>
+      <div class="mast-stamp" aria-hidden="true"><span class="jp">塔</span><p>READ IT FROM<br>A KILOMETRE.</p><i>35° N · Higashiyama</i></div>
     </header>
+  </main>
 
-    <div id="variant-display"></div>
+  <section class="hero" id="walk" aria-labelledby="walk-title">
+    <div class="hero-head">
+      <p class="kicker">01 / The viewing platform</p>
+      <h2 id="walk-title">Ring the bells, <em>then walk away.</em></h2>
+      <p class="sentence">Michi watches <span class="slot" id="slot-preset"></span> from <span class="slot" id="slot-view"></span>, painted as <span class="slot" id="slot-finish"></span>, at <span class="slot" id="slot-hour"></span> in <span class="slot" id="slot-season"></span>.</p>
+    </div>
+    <div class="stage" id="stage" tabindex="0" role="region" aria-label="A pagoda in a Kyoto town. Drag to look around, scroll or use the dial to step back, click a bell to ring it. Keys: R ring, Q shake, B raise, F frame, L labels.">
+      <p class="wake" id="wake">Michi is climbing onto the wall…</p>
+      <div class="hud tl" id="hud-state" role="status">&nbsp;</div>
+      <div class="hud tr"><span class="stage-seal jp" id="stage-seal">八坂の</span><span id="stage-caption">Yasaka-no-tō · Hōkan-ji, Higashiyama, Kyoto</span></div>
+      <div class="hud bl">Drag to look · scroll to step back · click a bell · <kbd>R</kbd> ring · <kbd>Q</kbd> shake · <kbd>B</kbd> raise · <kbd>F</kbd> frame · <kbd>L</kbd> labels</div>
+    </div>
+
+    <div class="dial-row">
+      <label class="dial-wrap"><span class="ctl-l">Stand back</span><input type="range" id="dial" class="range dial" min="0" max="1000" step="1" aria-label="Distance from the tower"><output id="dial-v">190 m</output></label>
+      <div id="dial-marks" class="marks" aria-label="Distances"><button type="button" data-d="8">at its foot</button><button type="button" data-d="57">the valley bridge</button><button type="button" data-d="190">Michi’s perch</button><button type="button" data-d="650">across town</button><button type="button" data-d="2000">the far hills</button></div>
+    </div>
+
+    <div class="platform">
+      <div class="ladder-wrap">
+        <p class="eyebrow">What still reads</p>
+        <ol id="ladder" class="ladder"></ol>
+        <p class="note">Each part’s size on screen at this distance. Faded below 3 px, struck through below 1 px: the detail tiers follow the same arithmetic.</p>
+      </div>
+      <div class="desk">
+        <div class="row actions"><button class="btn act" id="btn-ring" type="button">Ring the bells <kbd>R</kbd></button><button class="btn act" id="btn-shake" type="button">Shake it <kbd>Q</kbd></button><button class="btn act" id="btn-raise" type="button">Raise it <kbd>B</kbd></button></div>
+        <div class="row toggles"><span id="tog-frame"></span><span id="tog-labels"></span><span id="tog-compare"></span><span id="tog-sound"></span><span id="tog-lightup"></span><span id="tog-kasumi"></span></div>
+        <div class="row sliders"><span id="hour-mount"></span><span id="wind-mount"></span><span id="explode-mount"></span></div>
+        <div class="row"><span class="ctl-l">Detail tier</span><span id="tier-mount"></span></div>
+      </div>
+    </div>
+
+    <div class="recipe-slip">
+      <div><span class="kicker">On the workbench</span><p id="selected-recipe" aria-live="polite"></p></div>
+      <button class="btn" id="copy-recipe" type="button">Copy recipe</button><button class="btn" id="save-recipe" type="button">Save JSON ↓</button><button class="btn" id="postcard" type="button">Keep a postcard ↓</button><button class="btn" id="share" type="button">Copy a link ↗</button>
+    </div>
+    <details class="live-source" id="live-source"><summary>Source for this tower</summary><pre class="code"><code id="recipe-code"></code></pre><a href="js/pagoda.js" target="_blank">The complete builder ↗</a></details>
+    <p class="hero-stats" id="hero-stats">&nbsp;</p>
+    <p class="perf" id="perf" aria-live="off">warming up…</p>
+  </section>
+
+  <main class="page">
+    <section class="catalogue-head" id="families">
+      <p class="kicker">02 / The specimen shelves</p>
+      <h2>Keep the original.<br><em>Try another way.</em></h2>
+      <p>Every shelf opens with the game’s own version of that part, built by the real <code>buildDistantPagoda()</code>, then the recipes. Each window is live. Open a recipe for its method, code, tradeoffs and sources; select it to put it on the tower above.</p>
+      <div class="shelf-tools">
+        <label>Find a recipe<input type="search" id="recipe-search" placeholder="Try sori, bells, Kuwahara, impostor…"></label>
+        <label>Show<select id="family-filter"><option value="all">All 65 specimens</option><option value="original">The game today</option></select></label>
+        <span id="recipe-count" role="status"></span>
+      </div>
+      <p id="empty-search" hidden>No specimens match. Try another word, or show every shelf.</p>
+    </section>
+    <div id="shelves"></div>
+
+    <section class="section" id="steps">
+      <div class="fam-head"><span class="fam-num">03</span><h2>Raise <em>the tower.</em></h2><p class="fam-sub">Twelve layers, from the podium to the paint, on a live build. This simplifies real carpentry; it is not a structural guide.</p></div>
+      <div class="assembly-wrap"><div class="assembly-view" id="assembly-view" role="img" aria-label="The pagoda, assembled layer by layer"></div><div class="assembly-footer"><span id="asm-explode"></span><button class="btn" id="asm-finished" type="button">Show the finished tower</button></div></div>
+      <div id="steps-mount"></div>
+    </section>
+
+    <section class="section" id="squint">
+      <div class="fam-head"><span class="fam-num">04</span><h2>What reads <em>at a kilometre.</em></h2><p class="fam-sub">Findings from the platform, the records and the painters.</p></div>
+      <ol class="findings">
+        <li><b>Five dark lines.</b> The bracket zone and soffit under each roof are the darkest values in the tower. They survive to about two pixels a storey, after the brackets, rafters and bells have gone. Keep them dark in every tier: that is the far tier’s whole job.</li>
+        <li><b>The needle.</b> The sōrin is a quarter to a third of the height (Hōryū-ji 1 : 3.4; Daigo-ji 13 m of 38). The game’s finial is about a fifth. At range the spire, not the roofs, is what says “pagoda” and not “tall house”.</li>
+        <li><b>Taper sets the silhouette.</b> Top ÷ first storey runs from 0.51 (Hōryū-ji: a cone) to about 0.8 (Ninna-ji: a column with fins). Because the eaves barely shrink while the body does, the eave-to-body ratio climbs from 2.2 to 3.0, and the upper roofs look wide.</li>
+        <li><b>The lift is small, so paint it bigger.</b> Measured corner rise is only 1–5% of the eave (Yamahata: 0.0063–0.048); on a 14 m eave that is half a metre, sub-pixel beyond ~200 m. Background painters push what must read; the valley preset doubles it.</li>
+        <li><b>Distance is a colour.</b> Air removes blue first, so timber warms into violet-grey and the veil takes it, bent gold toward the sun. Value steps between the tower, the town and the three ridges do the depth. Line work should thin out with distance, too.</li>
+        <li><b>Bells are a sound, not a shape.</b> Twenty fūtaku are a few pixels each beyond a hundred metres. In the valley they belong in the audio: a chime in the wind, panned toward the tower.</li>
+      </ol>
+    </section>
+
+    <section class="section" id="game">
+      <div class="fam-head"><span class="fam-num">05</span><h2>Back to <em>the valley.</em></h2><p class="fam-sub">How this could replace <code>buildDistantPagoda()</code>. A lab first; nothing here changes the game.</p></div>
+      <ul class="game-list">
+        <li><em>The valley preset at the mid tier.</em> From the bridge (57 m) the tower is about 300 px tall: mid tier (shader tiles, a bracket shelf, a painted soffit, a band kōran). Same 19.4 m height and dais footprint as today’s, and the forest sightline in <code>buildEdgeForest()</code> still applies.</li>
+        <li><em>Fewer objects, not fewer triangles.</em> Today’s tower is 93 separate meshes. Each builder output here is a handful of merged and instanced meshes per storey. Registering the materials in <code>MAT</code> would let <code>_mergeStatics()</code> fold most of them.</li>
+        <li><em>The pixel-budget rule.</em> Choose tiers by height on screen, so the same rule works from the bridge and from the hills, and crossfade through the Bayer screen door rather than blending.</li>
+        <li><em>Physical light underneath, paint on top.</em> The air patch matches the game’s haze to distance and sun, and the background-art finish is a candidate for a global post pass, subject to the governor’s budget on real devices.</li>
+        <li><em>Fūtaku in the soundscape.</em> The bell synth in <a href="js/sound.js">sound.js</a> could ring with the game’s wind, quietly, from the tower’s direction.</li>
+        <li><em>Still to do before promotion:</em> device benchmarks, a seeded review sheet in <code>tools/</code>, material registration, and a check against the summit’s own Kyoto pagoda, which belongs to the summit effort.</li>
+      </ul>
+    </section>
 
     <section class="sources" id="sources">
-      <details>
-        <summary>Research &amp; sources</summary>
-        <p class="src-note">Nine sources informed these builders: structural engineering studies of the Hōryū-ji pagoda, architectural morphology analysis of Japanese timber towers, and detailed sōrin documentation.</p>
-        <ul>
-          <li><a href="https://www.iitk.ac.in/nicee/wcee/article/1229.pdf" target="_blank" rel="noopener">IITK (WCEE) — Earthquake response of ancient five-story pagoda of Hōryū-ji</a> (proportions, shinbashira)</li>
-          <li><a href="https://www.jstage.jst.go.jp/article/jaabe/1/2/1_2_2_25/_pdf/-char/en" target="_blank" rel="noopener">JAABE — Structural mechanism and morphology of timber towers in Japan</a> (kumimono system)</li>
-          <li><a href="https://racheldstull.github.io/j301-honors-contract/sorin.html" target="_blank" rel="noopener">Rachel Stull — Sōrin</a> (finial parts)</li>
-          <li><a href="https://www.discoverkyoto.com/places-go/toji/" target="_blank" rel="noopener">Discover Kyoto — Tō-ji</a> (dimensions)</li>
-          <li><a href="https://www.worldhistory.org/image/7897/kyotos-five-story-pagoda-at-toji-temple/" target="_blank" rel="noopener">World History Encyclopedia — Kyoto's five-story pagoda at Tō-ji</a></li>
-          <li><a href="https://www.njcu.edu/sites/default/files/docs/2020-06/Structural-Characters-FiveStoryPagoda.pdf" target="_blank" rel="noopener">NJCU — Structural characters of five-story pagoda</a></li>
-        </ul>
-      </details>
+      <p class="kicker">06 / The field notebook</p>
+      <h2>Built from <em>looking closely.</em></h2>
+      <p class="src-note">The numbers come from structural studies, the 2008 roof-curve survey of 59 pagodas, temple and ministry pages, and JAANUS. The rendering techniques come from published three.js and shader write-ups, written fresh here for r160. What was read in full, what was only a search excerpt, and what was estimated by eye are kept apart in <a href="research.md">the research notebook ↗</a>.</p>
+      <details open><summary>Architecture, painting &amp; code references</summary><ul id="srcList"></ul></details>
     </section>
   </main>
 
-  <footer class="foot">
-    <p>Pagoda Lab · built with Three.js r160 · the original builder is from <code>src/countryside.js</code> · every texture is painted at load time.</p>
-  </footer>
+  <footer class="foot"><p>Five roofs and a needle of bronze. Stay until the bells stop.</p></footer>
 
   <script>
     if (location.protocol === 'file:') {
-      document.body.insertAdjacentHTML('afterbegin',
-        '<div style="position:relative;z-index:100;max-width:44rem;margin:12vh auto;padding:0 24px;font:1.1rem/1.7 Georgia,serif;color:#1b261a">' +
-        '<p style="font-size:2rem;margin:0 0 .4em">This page needs a local web server.</p>' +
-        '<p>Browsers block ES modules opened straight from disk (<code>file://</code>). From the repo root run:</p>' +
-        '<pre style="background:#f4f8ef;padding:14px 16px;border-radius:12px;font-size:.95rem">python -m http.server 8000</pre>' +
-        '<p>then open <b>http://localhost:8000/labs/pagoda/</b>.</p></div>');
-      document.getElementById('gl').remove();
+      document.getElementById('wake').textContent = 'Serve the repo root over HTTP: python3 -m http.server 8000, then open http://localhost:8000/labs/pagoda/';
     } else {
-      const s = document.createElement('script');
-      s.type = 'module'; s.src = 'js/lab.js';
-      document.body.append(s);
+      import('./js/main.js').catch((error) => {
+        console.error(error);
+        document.getElementById('wake').textContent = 'The tower could not load. Check the connection to the Three.js CDN, then reload.';
+      });
     }
   </script>
 </body>
