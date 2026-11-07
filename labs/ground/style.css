@@ -1,31 +1,84 @@
-/* Lab 01 theme: earth. Everything else comes from ../shared/lab.css. */
+/* Lab 01 theme: masa-do earth and sugigoke moss. Everything else comes from ../shared/lab.css. */
 :root {
-  --accent: #b5623a; --accent2: #4d7c34; --ink: #2a2118; --muted: #6b5d4e; --soft: #9a8a78;
-  --wash: rgba(181, 98, 58, 0.16); --code-bg: #f6f1ea;
+  --accent: #9a5a2e; --accent2: #c2502e; --moss: #4d7c34; --ink: #2a2118; --muted: #6b5d4e; --soft: #9a8a78;
+  --wash: rgba(176, 128, 72, 0.18); --code-bg: #f7f2ea;
 }
-.hero-foot .row { margin-top: 14px; align-items: center; }
+h1 em, h2 em { color: var(--moss); }
+.kicker { color: var(--accent); }
+.jump .go { color: var(--accent2); }
+
+/* ---------- the stage ---------- */
+.stage { height: clamp(560px, 82vh, 900px); border-radius: 0; }
+.hero-foot .row { margin-top: 16px; align-items: center; }
 .hero-foot .row[hidden] { display: none; }
 .hero-foot .ctl .seg { flex-wrap: wrap; justify-content: center; }
-.hud.tr { top: 50px; right: 16px; left: auto; }
-.hud.tl { top: 14px; }
-.hud.tl[hidden] { display: none; }
-#hudSplat canvas { display: block; width: 132px; height: 132px; border-radius: 6px; margin-bottom: 6px; }
+.tools-row .ctl { flex-direction: column; gap: 10px; }
+.tools .seg, #tools .seg { gap: 4px; }
+#tools .seg button { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 12px 5px; border-radius: 14px; line-height: 1.1; min-width: 58px; }
+#tools .seg button .k { font: 500 1.25rem var(--jp); color: var(--accent); }
+#tools .seg button.on .k { color: var(--accent2); }
+#tools .seg button .t { font-size: 0.72rem; letter-spacing: 0.02em; }
+.btn.big { font: italic 400 1.15rem var(--serif); color: var(--accent2); background: var(--wash); padding: 7px 18px; }
+.btn.big:hover { color: var(--ink); }
+.btn.big:disabled { opacity: 0.45; cursor: default; }
+.btn:hover { color: var(--ink); }
+
+.hud.tl { top: 14px; padding: 8px 10px; }
+.hud.tr { top: 14px; right: 16px; left: auto; text-align: right; max-width: 260px; }
+.hud.tr .jp { color: var(--accent2); font-size: 1rem; }
+#toolTip { display: block; color: var(--muted); font-size: 0.7rem; margin-top: 2px; }
+#toolTip:empty { display: none; }
+#mini { display: block; width: 160px; height: 120px; border-radius: 6px; margin-bottom: 6px; image-rendering: auto; }
 #under { max-width: 220px; }
-.jump-a { font: italic 400 1.05rem var(--serif); color: var(--accent); text-decoration: none; }
-.stage { height: clamp(560px, 80vh, 860px); }
+#under b { font-weight: 600; }
+.hud.msg { top: auto; bottom: 58px; left: 50%; transform: translateX(-50%) translateY(6px); max-width: min(560px, 90%); text-align: center; font: italic 400 0.98rem/1.45 var(--serif); padding: 8px 16px; opacity: 0; transition: opacity 0.5s, transform 0.5s; }
+.hud.msg.on { opacity: 1; transform: translateX(-50%); }
+.hud.day { top: 50%; left: 50%; transform: translate(-50%, -50%); background: none; backdrop-filter: none; -webkit-backdrop-filter: none; font: italic 300 clamp(2.4rem, 6vw, 4.6rem) var(--serif); color: #fff; text-shadow: 0 2px 24px rgba(40, 30, 20, 0.45); }
+.hud.day small { display: block; font: 500 0.8rem var(--sans); letter-spacing: 0.24em; text-transform: uppercase; text-align: center; }
+.hud.day[hidden] { display: none; }
+.hud.bl { max-width: calc(100% - 32px); }
+
+/* ---------- anatomy ---------- */
+.anatomy { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px 48px; align-items: center; margin-top: 30px; }
+.ana-svg { width: 100%; height: auto; }
+.ana-grass path { stroke: #5c8a35; stroke-width: 2.4; stroke-linecap: round; fill: none; }
+.ana-key { margin: 0; padding-left: 1.2em; font-size: 0.92rem; line-height: 1.6; color: var(--muted); }
+.ana-key li { margin: 0 0 8px; }
+.ana-key b { font: 400 1.08rem var(--serif); color: var(--ink); }
+.ana-key .jp { color: var(--accent2); margin: 0 4px; }
+@media (max-width: 860px) { .anatomy { grid-template-columns: 1fr; } }
+
+/* ---------- variants ---------- */
+.family { margin-top: clamp(48px, 8vh, 90px); }
+.family .fam-head h3 { margin: 0; font: 400 clamp(1.5rem, 2.6vw, 2.1rem) var(--serif); letter-spacing: -0.012em; }
+.family .fam-head .fam-sub { font-size: 1.02rem; }
+.variants { gap: 56px 26px; }
+.tile .view { cursor: pointer; border-radius: 12px; }
+.tile .view:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.tile .view::after { content: attr(data-hint); position: absolute; right: 8px; bottom: 10px; font: 500 0.66rem var(--sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--soft); opacity: 0; transition: opacity 0.3s; }
+.tile .view:hover::after { opacity: 1; }
+.name .jp { font-size: 0.95rem; color: var(--accent2); margin-left: 6px; }
+.tag i { color: var(--soft); }
 .how { margin: 12px 0 0; padding-left: 1.1em; font-size: 0.84rem; line-height: 1.6; color: var(--muted); }
 .how li { margin: 0 0 6px; }
 .use { margin: 14px 0 0; font-size: 0.82rem; color: var(--ink); }
 .use b { font-family: var(--serif); font-style: italic; font-weight: 400; color: var(--accent); }
 .srcs { margin: 10px 0 0; padding: 0; list-style: none; font-size: 0.78rem; line-height: 1.7; }
 .stats2 { margin: 5px 0 0; font-size: 0.72rem; color: var(--soft); }
-.name .jp { font-size: 0.95rem; color: var(--accent); margin-left: 6px; }
-.tag i { color: var(--soft); }
-.view { cursor: pointer; }
-.view:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 12px; }
-.game-list { max-width: 52rem; margin: 26px 0 0; padding-left: 1.2em; font-family: var(--serif); font-weight: 300; font-size: 1.2rem; line-height: 1.65; color: var(--ink); }
-.game-list li { margin: 0 0 10px; }
-.game-list em { color: var(--accent); }
+.tile.planted .name::after { content: ' · on the corner'; font: italic 300 0.9rem var(--serif); color: var(--moss); }
+
+/* ---------- into the game ---------- */
+.game-list { max-width: 56rem; margin: 26px 0 0; padding-left: 1.2em; font-family: var(--serif); font-weight: 300; font-size: 1.16rem; line-height: 1.65; color: var(--ink); }
+.game-list li { margin: 0 0 14px; }
+.game-list em { color: var(--moss); }
+.game-list code { font-size: 0.78em; color: var(--accent); }
+.jump-a { font: italic 400 1.05rem var(--serif); color: var(--accent); text-decoration: none; }
 .section .fam-head h2, .family .fam-head h2 { font-weight: 400; }
-.variants { gap: 56px 26px; }
-@media (min-width: 1100px) { .variants { grid-template-columns: repeat(4, 1fr); } }
+
+@media (max-width: 700px) {
+  .stage { height: 68vh; }
+  #mini { width: 120px; height: 90px; }
+  .hud.tr { max-width: 150px; font-size: 0.68rem; }
+  .hud.bl { display: none; }
+  #tools .seg button { min-width: 50px; padding: 5px 8px; }
+}

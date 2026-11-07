@@ -5,3 +5,7 @@ export const loadCatModule = () => import('../../src/cat.js?v=20261106a');
 export const loadCountrysideModule = () => import('../../src/countryside.js?v=20261106a');
 // The Ranges Lab builds its wall from the game's own canopy/foliage kit.
 export const loadFoliageModule = () => import('../../src/foliage.js?v=20261106a');
+// Sky Lab reads the real dome, sprite, moon and lighting builders as its baseline.
+export const loadSkyModule = () => import('../../src/sky.js?v=20261106a');
+// Ground Lab grows the valley's own grass (GrassSystem + BiomeMask) on its stage.
+export const loadGrassModule = () => import('../../src/grass.js?v=20261106a');
