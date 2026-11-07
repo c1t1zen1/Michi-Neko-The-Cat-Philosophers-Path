@@ -216,7 +216,7 @@ audio context, and pause fades the ambience bus instead of leaving it running.
 
 ## 8. Architecture
 
-### 8.1 Now (this pass): `rooftops/`, a lab like `grass/`
+### 8.1 Now (this pass): `rooftops/`, a lab like `labs/grass/`
 
 ```
 kyoto-rooftops.html the entry point at the repo root: page shell, import map,

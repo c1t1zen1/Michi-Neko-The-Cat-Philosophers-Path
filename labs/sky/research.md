@@ -24,7 +24,7 @@ and don't cast shadows on the valley.
 | Presets | Cumulus: coverage 0.4, density 0.08 · stratus: 0.7 / 0.03 · stormy: 0.9 / 0.15 with a cool ambient | Strata cloud shaders (excerpt) |
 | Sky model | Hillaire 2020: small LUTs (transmittance, multiple scattering, sky view, aerial perspective volume) instead of the older 4D tables. Real-time, mobile to PC, with the atmosphere changing dynamically | Hillaire, EGSR 2020 (abstract and excerpt) |
 | God rays | Post-process: render an occlusion pass (light source bright, occluders black), radially blur it toward the sun's screen position with decaying samples, and add it to the image. Rays only show when the sun is in or near the frame | Mitchell, GPU Gems 3 ch. 13 (excerpt), screen-space-godrays (excerpt) |
-| Cloud shadows | The same field the sky draws, projected along the sun onto the ground (see `docs/RANGES_RESEARCH_2026-10-25.md`) | tosijs-3d, procedural PBR notes (excerpts) |
+| Cloud shadows | The same field the sky draws, projected along the sun onto the ground (see `labs/ranges/research.md`) | tosijs-3d, procedural PBR notes (excerpts) |
 
 ## Kyoto skies
 
@@ -42,6 +42,12 @@ and don't cast shadows on the valley.
 3. **Dial the sky**: drag the sun across the dome, change coverage, type (suji, uroko, hitsuji, wata, nyūdō, oboro) and wind. The lab names the cloud you made.
 4. **God rays** as a screen-space radial blur from an occlusion pass of the clouds and the backdrop. Their strength is timed to a low sun behind broken cloud, with a toggle to show the occlusion buffer.
 5. **Kyoto weather scenes**: aki-takashi autumn with uroko-gumo, a summer nyūdō-gumo afternoon, a Kitayama shigure passing over with the sun out and a rainbow, and oboro spring haze.
+
+## Image references
+
+* Stylised cartoon volumetric clouds (live, technique reference): <https://remoooo.com/cloud/>
+* Cloud raymarching walkthrough (illustrated): <https://davidpeicho.github.io/blog/cloud-raymarching-walkthrough-part1/>
+* Kitayama shigure (tenki.jp, with photos): <https://tenki.jp/suppl/m_yoshino/2018/11/27/28619.html>
 
 ## Sources
 

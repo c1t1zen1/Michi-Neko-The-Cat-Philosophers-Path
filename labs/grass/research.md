@@ -1,6 +1,6 @@
 # Grass research — 2026-10-23
 
-Notes behind `grass/` (the Grass Lab). 15 searches, then full reads of the
+Notes behind `labs/grass/` (the Grass Lab). 15 searches, then full reads of the
 pages that opened. "Read" = fetched and summarised; "Snippet" = only the
 search-result excerpt was available (page blocked or paywalled), so claims
 from it are limited to what the excerpt said.
@@ -40,7 +40,7 @@ from it are limited to what the excerpt said.
 
 ```
 python3 -m http.server 8000      # from the repo root
-# open http://localhost:8000/grass/
+# open http://localhost:8000/labs/grass/
 ```
 
 Three.js 0.160 comes from the unpkg import map (network needed). URL flags for
@@ -48,7 +48,7 @@ testing: `?quality=eco|lush`, `?pr=1` (pixel ratio cap), `?wind=1.2`, `?cat=0`
 (skip the cat), `?prewarm=0` (do not build/compile every cube in the
 background), `?shot=1` (keep the drawing buffer; disables the auto governor).
 
-Files: `grass/js/kit.js` (GLSL library, physics, engines), `types_*.js` (the 20
+Files: `labs/grass/js/kit.js` (GLSL library, physics, engines), `types_*.js` (the 20
 recipes: ours / field / mixed / wild), `patch.js` (a floating slab of cells),
 `hero.js` (cat, patterns, cameras), `lab.js` (page, stats, governor).
 

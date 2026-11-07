@@ -18,7 +18,7 @@ by how much a grass-style deep dive would improve it.
 | **Life** | Moves, and makes the world feel inhabited. |
 
 For each item: research (10–15 sources) → a lab page with variants, like
-`grass/` → a review sheet in `tools/` → the game. Keep the guardrails:
+`labs/grass/` → a review sheet in `tools/` → the game. Keep the guardrails:
 painterly 256 px procedural textures, no heavy downloads, deepen Kyoto
 before growing the map.
 

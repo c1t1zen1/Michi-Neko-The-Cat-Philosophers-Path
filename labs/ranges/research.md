@@ -46,6 +46,12 @@ can't follow the sun.
 6. **Cloud shadows** from one shared field: projected along the sun onto every range, the same field the sky uses, so Lab 05 can share it.
 7. **Kyoto presets**: Higashiyama (gentle, red pine on the ridges), Kitayama (sugi cones), Arashiyama (autumn momiji), and Tamba-giri dawn fog.
 
+## Image references
+
+* Mountains of Kyoto prefecture (incl. Kitayama): <https://commons.wikimedia.org/wiki/Category:Mountains_of_Kyoto_prefecture>
+* Higashiyama hillside (ward view): <https://commons.wikimedia.org/wiki/File:Higashiyama_Ward,_Kyoto,_Kyoto_Prefecture,_Japan_-_panoramio_(7).jpg>
+* Sagano bamboo forest (foothill / forest-edge texture): <https://commons.wikimedia.org/wiki/Category:Sagano_Bamboo_forest>
+
 ## Sources
 
 * Wikipedia — *Aerial perspective* — <https://en.wikipedia.org/wiki/Aerial_perspective> (excerpt)

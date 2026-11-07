@@ -278,7 +278,7 @@ export const OURS = [
     pos.xz += dir * push * 0.65 * w;         // lean away
     pos.y  *= 1.0 - push * 0.62 * vT;        // and flatten\`);
 };`,
-    sources: [['src/vegetation.js', '../src/vegetation.js']],
+    sources: [['src/vegetation.js', '../../src/vegetation.js']],
     gpu: 3, use: 'What every meadow in the game runs today.',
     perM2: CLASSIC_PER_M2, ground: 0x59693a, soil: 0xdfe8d2,
     make: classicMake

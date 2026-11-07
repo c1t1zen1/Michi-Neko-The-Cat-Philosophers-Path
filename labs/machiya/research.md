@@ -55,6 +55,12 @@ frame, there's no wall base and no gap under the floor, and nothing weathers.
 5. **The cat's gap**: a cat-eye camera that slips under the engawa into the en-no-shita.
 6. **Real numbers drive the geometry**: 121 mm posts, 305 mm tiles laid on 235 mm courses, a 4.5/10 roof pitch, 113 cm noren.
 
+## Image references
+
+* Machiya in Kyoto (facades, lattices, alleys, eave details): <https://commons.wikimedia.org/wiki/Category:Machiya_in_Kyoto>
+* Pontochō at night (noren, lanterns, narrow eaves): <https://commons.wikimedia.org/wiki/Category:Pontocho_at_night>
+* Streets in Gion: <https://commons.wikimedia.org/wiki/Category:Streets_in_Gion,_Kyoto>
+
 ## Sources
 
 * City of Kyoto — *京町家のいろは* — <https://kyomachiya.city.kyoto.lg.jp/wp-content/uploads/2022/01/iroha.pdf> (excerpt)

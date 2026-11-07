@@ -1,4 +1,4 @@
-// Family 2 — five techniques found in the research (see docs/GRASS_RESEARCH_2026-10-23.md)
+// Family 2 — five techniques found in the research (see research.md)
 import * as THREE from 'three';
 import {
   RibbonBuilder, singleBlade, ribbonMaterial, hashField, packCell, shellField, crossedCards, cardMaterial,

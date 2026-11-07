@@ -46,6 +46,13 @@ gets wet, and the tiling shows wherever the grass thins out.
 7. **Stones near the paws.** Inside ~2.5 m of the cat, instanced rounded stones replace the shader's setts and cobbles (same integer hash in GLSL and JS), cross-faded with a dither.
 8. **Kyoto recipes**: packed earth, ishidatami, tama-ishi cobbles, raked sandō gravel, moss with tobi-ishi, amaochi, nobedan, riverbank mud.
 
+## Image references
+
+* Ishibei-kōji stone-paved lane, Gion: <https://commons.wikimedia.org/wiki/File:Ishibei-koji_by_Ilpo%27s_Sojourn_in_Gion,_Kyoto.jpg>
+* Streets in Gion (incl. the Ishibe Kōji subcategory): <https://commons.wikimedia.org/wiki/Category:Streets_in_Gion,_Kyoto>
+* Stepping stones in Japan (tobi-ishi): <https://commons.wikimedia.org/wiki/Category:Stepping_stones_in_Japan>
+* Moss + pond garden at Tenju-an (Nanzen-ji): <https://commons.wikimedia.org/wiki/Category:Tenjuan_(Nanzenji)>
+
 ## Sources
 
 * Andrey Mishkinis — *Advanced Terrain Texture Splatting* — <https://www.gamedeveloper.com/programming/advanced-terrain-texture-splatting> · <https://habr.com/en/articles/442924/> (excerpt, code)

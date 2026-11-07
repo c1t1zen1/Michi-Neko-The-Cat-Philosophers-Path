@@ -14,7 +14,7 @@ export const REASONS = {
   'life': 'Moves, and makes the world feel inhabited.'
 };
 export const LABS = [
-  { n: 1, slug: 'ground', tier: 1, title: 'Ground, path & shoulders', jp: '土と道', romaji: 'tsuchi to michi', status: 'live', href: 'ground/', poster: 'ground/poster.jpg', reasons: ['screen share', 'cat-eye distance'], question: 'How do earth, gravel, moss and cobble meet without seams, and where does the rain pool?', builders: ['buildGround', 'buildPath', 'buildPathShoulders', 'buildWalkwaySlabs'] },
+  { n: 1, slug: 'ground', tier: 1, title: 'Ground, path & shoulders', jp: '土と道', romaji: 'tsuchi to michi', status: 'live', href: 'ground/', reasons: ['screen share', 'cat-eye distance'], question: 'How do earth, gravel, moss and cobble meet without seams, and where does the rain pool?', builders: ['buildGround', 'buildPath', 'buildPathShoulders', 'buildWalkwaySlabs'] },
   { n: 2, slug: 'water', tier: 1, title: 'River, bridge & paddies', jp: '川と田んぼ', romaji: 'kawa to tanbo', status: 'next', href: 'water/', reasons: ['screen share', 'light carrier'], question: 'How does water show which way it flows, how deep it is, and what it reflects?', builders: ['buildRiverAndBridge', 'createRiverWaterMaterial', 'buildPaddies', 'createPaddyWaterMaterial'] },
   { n: 3, slug: 'ranges', tier: 1, title: 'Forest wall & mountains', jp: '山並み', romaji: 'yamanami', status: 'planned', href: 'ranges/', reasons: ['screen share'], question: 'How do painters stack ridges into distance, and how cheap can a forest wall be?', builders: ['buildEdgeForest', 'buildFoothillForest', 'buildEdgeUndergrowth', 'buildMountains', 'buildMistRing'] },
   { n: 4, slug: 'machiya', tier: 1, title: 'Machiya', jp: '町家', romaji: 'machiya', status: 'planned', href: 'machiya/', reasons: ['landmark', 'cat-eye distance', 'repeats'], question: 'How is a Kyoto townhouse put together, post by post and tile by tile?', builders: ['buildMachiyaTeaHouse', 'buildMachiyaResidence', 'buildSecretMachiya', 'buildVillageHouse', 'createKawaraRoof', 'createKoushi', 'createEngawa'] },
@@ -38,7 +38,7 @@ export const LABS = [
   { n: 22, slug: 'komorebi', tier: 4, title: 'Dappled light & petal drifts', jp: '木漏れ日', romaji: 'komorebi', status: 'planned', href: 'komorebi/', reasons: ['light carrier'], question: 'How does sunlight through leaves become moving coins of light on the ground?', builders: ['buildDappledLight', 'buildPetalDrifts'] }
 ];
 export const EXTRAS = [
-  { slug: 'grass', kind: 'standard', title: 'Grass Lab', jp: '草', romaji: 'kusa', href: '../grass/', blurb: 'Twenty procedural grasses in live cubes, and a slab where Michi walks through them. Already in the game.' },
+  { slug: 'grass', kind: 'standard', title: 'Grass Lab', jp: '草', romaji: 'kusa', href: 'grass/', blurb: 'Twenty procedural grasses in live cubes, and a slab where Michi walks through them. Already in the game.' },
   { slug: 'cat', kind: 'standard', title: 'Cat review sheets', jp: '猫', romaji: 'neko', href: '../tools/cat_preview.html?sheet=anatomy', blurb: 'The sculpted cat, its coats, gaits and poses, from fixed angles.' },
   { slug: 'trees', kind: 'standard', title: 'Tree review sheets', jp: '木', romaji: 'ki', href: '../tools/tree_preview.html?sheet=hero', blurb: 'Hero trees in leaf sprays, rim trees in painted leaf masses.' },
   { slug: 'roofroad', kind: 'prototype', title: 'The Roof Road', jp: '屋根道', romaji: 'yane-michi', href: '../kyoto-rooftops.html', blurb: 'A side-scrolling run over old Kyoto roofs, past the valley bridge.' }

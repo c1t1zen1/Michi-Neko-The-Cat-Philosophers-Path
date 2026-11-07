@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * Game grass — the Grass Lab (grass/, docs/GRASS_RESEARCH_2026-10-23.md)
+ * Game grass — the Grass Lab (labs/grass/, labs/grass/research.md)
  * brought into the valley and the summit.
  *
  * Every blade is placed by hashing gl_InstanceID against a WORLD-snapped

@@ -330,7 +330,7 @@ uint s = pcg(uint(gl_VertexID) * 977u);  vec2 base = cell + vec2(rnd(s), rnd(s))
 b.decor(stalk, verts, tris, 1);
 // vertex: stalks sway more than leaves
 wv *= 1.0 + aShape.w * 0.45;`,
-    sources: [['src/vegetation.js — buildSusukiGrass', '../src/vegetation.js']],
+    sources: [['src/vegetation.js — buildSusukiGrass', '../../src/vegetation.js']],
     gpu: 2, use: 'Autumn hillsides, river banks, moon-viewing deck.',
     ground: 0x6a6a3a, soil: 0xe5dcc0,
     make: ribbonMake(susuki)

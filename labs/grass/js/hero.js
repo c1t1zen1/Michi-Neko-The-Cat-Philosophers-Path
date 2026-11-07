@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GrassPatch } from './patch.js';
 import { TYPES } from './types.js';
+import { loadCatModule } from '../../shared/game.js';
 
 export const PATTERNS = [
   { key: 'single', name: 'Single patch', hint: 'one grass, edge to edge', needsB: false },
@@ -116,7 +117,7 @@ export class Hero {
 
   async loadCat() {
     try {
-      const mod = await import('../../src/cat.js?v=20261024c');
+      const mod = await loadCatModule();
       // let the page paint first: sculpting the cat is the one heavy synchronous step
       await new Promise((r) => setTimeout(r, 60));
       const cat = new mod.Cat({ fur: 0xae8450, belly: 0xeedcb8, accent: 0x5e3d26 });

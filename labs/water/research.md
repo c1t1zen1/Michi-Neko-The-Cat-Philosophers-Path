@@ -44,6 +44,13 @@ box rails and two ramps. Paddies are flat tinted water planes.
 6. **Kame-ishi** across the river, with a water-level slider: watch the turtle go under to its neck.
 7. **Paddies through the seasons**: a mirror in spring, green in summer, gold in autumn, snow in winter. Rice hills sit on a 30 × 15 cm grid (instanced), and the aze ridges are walkable.
 
+## Image references
+
+* Kamogawa Delta stepping stones (the turtle / kame-ishi): <https://commons.wikimedia.org/wiki/Category:Kamogawa_Delta>
+* Kamo River (bridge and bank views): <https://commons.wikimedia.org/wiki/Category:Kamo_River>
+* Stepping stones in Japan: <https://commons.wikimedia.org/wiki/Category:Stepping_stones_in_Japan>
+* Water-mirror rice paddies (photos): <https://mainichi.jp/english/articles/20220507/p2a/00m/0na/008000c> · <https://www.jeepe.jp/en/articles/hoshi-toge-tanada-guide-1139>
+
 ## Sources
 
 * Alex Vlachos (Valve) — *Water Flow in Portal 2*, SIGGRAPH 2010 — <https://alex.vlachos.com/graphics/Vlachos-SIGGRAPH10-WaterFlow.pdf> (excerpt)

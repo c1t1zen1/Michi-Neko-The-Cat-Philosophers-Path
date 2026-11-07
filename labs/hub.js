@@ -12,7 +12,7 @@ const next = LABS.find((l) => l.status === 'next');
 $('#progress').innerHTML = `<b>${open}</b> of ${LABS.length} labs open${next ? ` · next up: <b>${nn(next.n)} ${esc(next.title)}</b>` : ''}`;
 
 const HOW = [
-  ['Research', '10–15 sources, notes in docs/'],
+  ['Research', '10–15 sources, notes in each lab\'s research.md'],
   ['Lab', 'variants, a signature interaction, learn-by-building steps'],
   ['Review sheet', 'a seeded capture in tools/'],
   ['The game', 'the winner moves into src/']
