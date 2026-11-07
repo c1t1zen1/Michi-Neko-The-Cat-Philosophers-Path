@@ -5,7 +5,7 @@ import { Air, CloudField } from './air.js';
 import { LightRig } from '../../shared/light.js';
 import { profileHeight, strokeToProfile, mulberry32 } from './profiles.js';
 import { friezeGeometry } from './ridge.js';
-import { instancedWall, cardWall, paintedTreeline, edgeSlice, driveFoliage, FOREST_GREENS } from './wall.js';
+import { instancedWall, cardWall, bakeCardAtlas, paintedTreeline, edgeSlice, driveFoliage, FOREST_GREENS } from './wall.js';
 import { bakeImpostor, impostorField } from './impostor.js';
 import { kasumiGroup } from './kasumi.js';
 
@@ -84,7 +84,7 @@ export function buildStack({ profile = 'higashiyama' } = {}) {
 
 /* ============ 02 · the forest wall, four ways ============ */
 
-export function buildWallBench(renderer, F) {
+export function buildWallBench(renderer, F, { kind: kind0 = 'mass' } = {}) {
   const scene = new THREE.Scene();
   const rig = miniRig(scene, 10.5);
   const field = new CloudField();
@@ -94,7 +94,7 @@ export function buildWallBench(renderer, F) {
   const look = new THREE.Vector3(0, 4.4, 0);
   floor(scene, 0x55783a);
   // a straight run of wall, 24 m wide, facing the camera
-  const walls = {}; let atlas = null;
+  const walls = {}; let atlas = null, cardAtlas = null;
   const cyc = { t: 0 };
   function build(kind) {
     if (kind === 'mass') {
@@ -114,7 +114,8 @@ export function buildWallBench(renderer, F) {
       air.applyCloudShadow(w.material, 0.5);
       walls.mass = w.group; scene.add(w.group);
     } else if (kind === 'cards') {
-      const w = cardWall({ count: 26, r0: 0.3, r1: 0.5, seed: 7 });
+      if (!cardAtlas) cardAtlas = bakeCardAtlas(renderer, F);
+      const w = cardWall(cardAtlas, { count: 26, r0: 0.3, r1: 0.5, seed: 7 });
       w.group.children.forEach((mesh) => {
         const pos = mesh.geometry.getAttribute('iPos');
         for (let i = 0; i < pos.count; i++) {
@@ -133,26 +134,39 @@ export function buildWallBench(renderer, F) {
       });
       const obj = new THREE.Group();
       obj.add(new THREE.Mesh(built.tufts, F.createFoliageMaterial({ sss: 0.24, wind: 0, mottle: 0.24, bump: 0.42, vertexColors: true, massMap: F.leafMassTexture('leaf'), massScale: 1 / 1.5, ragged: 1 })), new THREE.Mesh(built.branches, new THREE.MeshStandardMaterial({ color: 0x6a5a48, roughness: 1 })));
-      atlas = bakeImpostor(renderer, obj, { grid: 4, cell: 160 });
+      atlas = bakeImpostor(renderer, obj, { grid: 4, cell: 192 });
       const positions = [];
-      for (let i = 0; i < 26; i++) positions.push({ x: (i / 25 - 0.5) * 22 + (hash(i * 31) - 0.5) * 1.2, z: -0.6 - hash(i * 17) * 3.4, s: 1.8 + hash(i * 23) * 2.2, yaw: hash(i * 41) * Math.PI * 2 });
+      for (let i = 0; i < 26; i++) {
+        positions.push({
+          x: (i / 25 - 0.5) * 22 + (hash(i * 31) - 0.5) * 1.2,
+          z: -0.6 - hash(i * 17) * 3.4,
+          h: atlas.worldH * (1.6 + hash(i * 23) * 1.8),
+          yaw: hash(i * 41) * Math.PI * 2,
+          tint: [0.9 + hash(i * 5) * 0.2, 0.92 + hash(i * 9) * 0.16, 0.88 + hash(i * 13) * 0.18, 1]
+        });
+      }
       const { mesh } = impostorField(atlas, positions, { blend: 1 });
       walls.impostor = mesh; scene.add(mesh);
     } else if (kind === 'painted') {
-      // a matte line: one 27 m wide quad with the painted treeline strip
+      // a matte line: one 27 m wide quad with the painted treeline strip —
+      // the ring texture tiles every ~36 m so the bench band shows ~0.8 tile
       const w = paintedTreeline({ radius: 40, height: 8.5, repeat: 7 });
-      const band = new THREE.Mesh(new THREE.PlaneGeometry(27, 8.5), w.group.material);
+      const mat = w.group.material.clone();
+      mat.map = w.group.material.map.clone();
+      mat.map.repeat.x = 0.8;
+      mat.map.needsUpdate = true;
+      const band = new THREE.Mesh(new THREE.PlaneGeometry(27, 8.5), mat);
       band.position.set(0, 4.0, -2.4);
       walls.painted = band; scene.add(band);
     }
   }
-  let kind = 'mass';
+  let kind = kind0;
   function set(k) {
     kind = k;
     if (!walls[k]) build(k);
     for (const [key, g] of Object.entries(walls)) g.visible = key === k;
   }
-  set('mass');
+  set(kind0);
   return {
     scene, camera: cam, air,
     get atlas() { return atlas; },

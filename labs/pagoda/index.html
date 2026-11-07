@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Distant Pagoda Lab — Michi-Neko</title>
+  <meta name="description" content="Seven procedural Three.js approaches to building a five-storey Japanese pagoda, from our original game builder to correct sōrin proportions, kumimono brackets, and Ghibli-style painterly rendering.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%AF%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <canvas id="gl" aria-hidden="true"></canvas>
+
+  <main class="page">
+    <header class="mast">
+      <p class="kicker">Michi-Neko · Pagoda Lab</p>
+      <h1>Seven ways to<br><em>rise into the sky</em></h1>
+      <p class="lede">The distant pagoda (五重塔) is the landmark of Michi's valley — seen from the meadow, the bridge, and the meditation perch against the Kyoto basin. Here we pull it apart, compare seven procedural approaches to building it in Three.js, and test each against the research: the correct proportions, the full sōrin finial, the kumimono brackets, and a Ghibli-style painterly render that reads against the sky at any distance.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#variants">The variants</a>
+        <a href="#squint">The squint test</a>
+        <a href="#sorin">The sōrin</a>
+        <a href="#sources">Sources</a>
+      </nav>
+      <div class="controls">
+        <div class="ctl"><span class="ctl-l">Variant</span>
+          <span class="seg" id="seg-variant">
+            <button data-v="original" class="on">Original</button>
+            <button data-v="correct-sorin">Sōrin</button>
+            <button data-v="kumimono">Kumimono</button>
+            <button data-v="curved-eaves">Curved</button>
+            <button data-v="painterly">Painterly</button>
+            <button data-v="wireframe">Wire</button>
+            <button data-v="toji-proportions">Tō-ji</button>
+          </span>
+        </div>
+        <div class="ctl"><span class="ctl-l">Distance</span>
+          <span class="seg" id="seg-distance">
+            <button data-v="near" class="on">Near (5 m)</button>
+            <button data-v="mid">Mid (100 m)</button>
+            <button data-v="far">Far (500 m)</button>
+          </span>
+        </div>
+        <label class="ctl"><span class="ctl-l">Sun</span><input id="sun-slider" class="range" type="range" min="0" max="1" step="0.01" value="0.4" aria-label="Time of day"></label>
+      </div>
+    </header>
+
+    <div id="variant-display"></div>
+
+    <section class="sources" id="sources">
+      <details>
+        <summary>Research &amp; sources</summary>
+        <p class="src-note">Nine sources informed these builders: structural engineering studies of the Hōryū-ji pagoda, architectural morphology analysis of Japanese timber towers, and detailed sōrin documentation.</p>
+        <ul>
+          <li><a href="https://www.iitk.ac.in/nicee/wcee/article/1229.pdf" target="_blank" rel="noopener">IITK (WCEE) — Earthquake response of ancient five-story pagoda of Hōryū-ji</a> (proportions, shinbashira)</li>
+          <li><a href="https://www.jstage.jst.go.jp/article/jaabe/1/2/1_2_2_25/_pdf/-char/en" target="_blank" rel="noopener">JAABE — Structural mechanism and morphology of timber towers in Japan</a> (kumimono system)</li>
+          <li><a href="https://racheldstull.github.io/j301-honors-contract/sorin.html" target="_blank" rel="noopener">Rachel Stull — Sōrin</a> (finial parts)</li>
+          <li><a href="https://www.discoverkyoto.com/places-go/toji/" target="_blank" rel="noopener">Discover Kyoto — Tō-ji</a> (dimensions)</li>
+          <li><a href="https://www.worldhistory.org/image/7897/kyotos-five-story-pagoda-at-toji-temple/" target="_blank" rel="noopener">World History Encyclopedia — Kyoto's five-story pagoda at Tō-ji</a></li>
+          <li><a href="https://www.njcu.edu/sites/default/files/docs/2020-06/Structural-Characters-FiveStoryPagoda.pdf" target="_blank" rel="noopener">NJCU — Structural characters of five-story pagoda</a></li>
+        </ul>
+      </details>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Pagoda Lab · built with Three.js r160 · the original builder is from <code>src/countryside.js</code> · every texture is painted at load time.</p>
+  </footer>
+
+  <script>
+    if (location.protocol === 'file:') {
+      document.body.insertAdjacentHTML('afterbegin',
+        '<div style="position:relative;z-index:100;max-width:44rem;margin:12vh auto;padding:0 24px;font:1.1rem/1.7 Georgia,serif;color:#1b261a">' +
+        '<p style="font-size:2rem;margin:0 0 .4em">This page needs a local web server.</p>' +
+        '<p>Browsers block ES modules opened straight from disk (<code>file://</code>). From the repo root run:</p>' +
+        '<pre style="background:#f4f8ef;padding:14px 16px;border-radius:12px;font-size:.95rem">python -m http.server 8000</pre>' +
+        '<p>then open <b>http://localhost:8000/labs/pagoda/</b>.</p></div>');
+      document.getElementById('gl').remove();
+    } else {
+      const s = document.createElement('script');
+      s.type = 'module'; s.src = 'js/lab.js';
+      document.body.append(s);
+    }
+  </script>
+</body>
+</html>

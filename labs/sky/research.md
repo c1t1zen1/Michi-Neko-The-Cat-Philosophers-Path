@@ -1,4 +1,133 @@
-# Sky, clouds and cloud shadows research — 2026-10-25
+# Sky Lab — implementation research, 2026-11-07
+
+The live lab is [index.html](index.html). This is a new investigation of the
+current code and primary sources, beyond the October proposal preserved below.
+The implementation is standalone: it does not change the valley or summit.
+
+## First, correct the old baseline
+
+Reading the current `src/sky.js` revealed that the clouds **do drift in x**,
+with speed affected by weather and sprite index. The dome also has animated
+procedural cirrus. The October note below saying the clouds do not move was
+incomplete. They do not share a density field with terrain, deform into other
+cloud types, or cast cloud shadows.
+
+`js/original.js` constructs the real `Sky` without `attachRenderer()`, so we
+retain `buildDome()`, `buildClouds()`, `buildStars()`, `buildMoon()`, the original
+phase palettes and sun path without repeatedly baking an environment. It also
+calls the actual tea-house, residence and village-house builders through the
+shared game bridge. Static meshes are merged using the game's own merge pass;
+materials are cloned before lab shader changes. Each of the four study families
+starts with an explicitly labelled original. The original air specimen covers
+`sky.js` fog, **not** all of `postfx.js`.
+
+## Primary sources investigated anew
+
+“Read” here means the relevant technique/code sections were opened and examined;
+“abstract” is deliberately more limited. Runtime APIs are pinned to r160, not
+the newer WebGPU examples returned by current searches.
+
+| Source and access | Finding used in this lab | Boundary |
+| --- | --- | --- |
+| [Three.js r160 Sky.js](https://github.com/mrdoob/three.js/blob/r160/examples/jsm/objects/Sky.js), source read | Official analytic daylight is a useful physical comparison with exposed Rayleigh/Mie and turbidity controls. It is imported, not reimplemented. | Daylight model; use the lab night dome below the horizon. |
+| [Three.js r160 volume example](https://github.com/mrdoob/three.js/blob/r160/examples/webgl2_volume_cloud.html), source read | A small `Data3DTexture`, bounded sampling and early termination can fit a browser study. | The lab uses a 64³ periodic value-noise volume rather than the example's 128³ Perlin volume. |
+| [Peicho, part 1](https://davidpeicho.github.io/blog/cloud-raymarching-walkthrough-part1/), ray/bounds/accumulation sections read | Start at the volume boundary; composite front to back; gradients can supply form. | Our volume is a horizontal slab, not the article's unit cube. |
+| [Peicho, part 2](https://davidpeicho.github.io/blog/cloud-raymarching-walkthrough-part2/), lighting/material sections read | Keep lighting positions in a consistent coordinate space, and make the material integration explicit. | Our cloud uses a directional sun rather than the article's point-light setup. |
+| [Heckel, dreamy cloudscapes](https://blog.maximeheckel.com/posts/real-time-cloudscapes-with-volumetric-raymarching/), Beer/light sampling/phase sections read | Exponential attenuation plus short probes toward the sun gives more useful depth than alpha accumulation alone. A phase function produces directional scattering. | The lab uses two light probes, an HG-shaped forward term and a nonphysical powder adjustment. No multiple scattering, temporal history or claim of physical accuracy. |
+| [Schneider & Vos, Nubis](https://www.guerrilla-games.com/read/nubis-authoring-real-time-volumetric-cloudscapes-with-the-decima-engine), publication abstract read | Author weather and animation as shared state rather than independent clouds. | Publication console timings do not predict browser timings. No claim to reproduce Nubis. |
+| [Remo, stylised volume](https://remoooo.com/cloud/), pseudocode read | A height/thickness field and a controlled few-value palette suggest a cheaper stylised alternative. | Our thickness and paper studies use field gradients; the continuous volume is a separate renderer. |
+| [Hillaire 2020](https://sebh.github.io/publications/egsr2020.pdf), abstract read | Distinguish an actual atmosphere solution from an art-directed gradient. | No Hillaire LUT system is implemented. Spring haze is a palette and layered-mist study. |
+| [Mitchell, GPU Gems 3 chapter 13](https://developer.nvidia.com/gpugems/gpugems3/part-ii-light-and-shadows/chapter-13-volumetric-light-scattering-post-process), occlusion/sampling/caveats read | Light shafts depend on occlusion along paths toward the light; screen-space approaches have edge and foreground limits. | Our “sky-space rays” sample the weather field in angular space. They are **not** the book's full occlusion-prepass post-process. Roofs cover the sky but do not generate volumetric shafts. |
+| [r160 direct-light chunk](https://github.com/mrdoob/three.js/blob/r160/src/renderers/shaders/ShaderChunk/lights_fragment_begin.glsl.js) and [world-position chunk](https://github.com/mrdoob/three.js/blob/r160/src/renderers/shaders/ShaderChunk/worldpos_vertex.glsl.js), source read | Insert cloud transmittance after directional-light lookup and before the lighting equation. Compute position after model/instance transforms. | Hooks are r160-specific; other shader hooks and their program cache keys must be preserved. |
+| [JMA cloud observations](https://www.data.jma.go.jp/okinawa/kansyo/kansoku/ground/cloud.html), page read | High, middle and low cloud genera provide distinct silhouette families. | Cirrus, small scale-like cells, larger sheep-like cells and towers are stylised studies at compressed stage heights. |
+| [JMA MRI sky watching](https://www.mri-jma.go.jp/Dep/typ/araki/sorawatch.html), cloud/optical-phenomenon index read | Cloud names and halo/rainbow references inform the atlas. | Seasonal postcards are authored moods, not a simulation or forecast of Kyoto weather. |
+
+## What is actually built
+
+**24 studies in four families.** Five sky models/palettes, nine cloud recipes,
+five shadow modes, and five atmosphere options. All have an explanation, a
+small original recipe snippet, links to their implementation module and primary
+sources, and an explicit limit. These are a selected range of relevant methods,
+not a claim to include every cloud shader on the internet.
+
+**The shared field.** `js/field.js` makes a periodic 256² scalar weather map.
+Cumulus uses remapped coherent noise; cirrus stretches it anisotropically;
+cirrocumulus and altocumulus use jittered cellular distances at different
+scales. Signed brush edits are kept separately, so resetting or saving does not
+destroy the base recipe. Density texture and canvas painting use matching Y
+orientation. Sampling uses world coordinates and one wind offset. The tiny
+orange ring in the authoring map marks the world origin's *vertical* projection;
+surface sunlight is projected along the sun, so its sample is offset from it.
+
+**Cloud rendering choices.** The single-plane thickness/paper renderers cost
+three weather lookups for a density and two gradients. The cached painting
+stores RGB plus raw density in alpha; four height slices give it approximate
+depth. It is repainted on field/light/pigment edits, not on every wind frame.
+The volume uses a 40 m base with an 18 m slab (28 m for towers), 12/24 view
+samples, two light probes per occupied sample, Beer attenuation, early exit
+and stable spatial hash jitter. The volume noise is 64³ R8 (~256 KiB). The
+jitter is **not blue noise**. Thin clouds are intentionally cheaper than volume.
+
+**Projection.** `js/shadows.js` projects each receiving surface toward the sun
+to the representative cloud height. Modes are off, hard threshold, five-tap
+softened field, Beer-like column attenuation and false-colour density. The
+same 2D field drives all new modes; volume shading adds 3D erosion, so the
+projected column is an approximation to that volume, not an exact integral.
+Below a low solar elevation the effect fades to avoid enormous sliding
+shadows. Only directional light is attenuated; hemisphere, point lights,
+emission and architectural PCF shadows remain independent. Original sprites
+have no field, so their projection controls are disabled instead of showing
+unrelated shadows.
+
+**World and art direction.** Real game machiya and the real cat provide scale.
+The forest wall reuses the Ranges Lab adapter to the game's leaf-mass canopy;
+the ground, grass specimen and layered ridge silhouettes are lab scenery.
+The goal is quiet, broad background painting with plausible light: cool shadow
+values, cream highlights, restrained paper breakup and large blue openings.
+The UI follows Grass Lab's open typography and live specimens, with a sun-path
+instrument, paintable weather map and six seasonal postcards.
+
+**Interaction and reproducibility.** Four cameras, cat walking/wandering,
+pause/advance, before/after scissor comparison, eight build steps, source
+drawers, JSON recipe export/restore, URL sharing and a 1200×750 PNG export.
+Drop saved JSON onto the weather map to restore the signed brush. A copied URL
+retains settings/time/offset; use JSON for hand-painted edits. Reduced-motion
+starts paused. One renderer draws only visible specimens, with lazy creation.
+Eco reduces grass, pixel ratio and volume steps. The HUD is an observed frame
+rate and algorithm budget, not a cross-device benchmark.
+
+The shared cat walker supplies a small reflection environment. Its contribution
+now follows daylight so roofs and plaster do not stay bright at night. The
+original stars retain their global cloud-cover fade; this lab does not add
+per-star volume occlusion.
+
+## Files and review entry points
+
+* `index.html`, `style.css`: page and instruments.
+* `js/data.js`: 24 recipes, six postcards, eight steps, cited sources.
+* `js/field.js`: periodic authoring map, painting cache, 3D noise.
+* `js/sky.js`: original/analytic/painterly sky composition and volume study.
+* `js/shadows.js`: composable r160 directional-light hook.
+* `js/original.js`: read-only game adapters.
+* `js/world.js`: original houses, forest, foreground and ridges.
+* `js/main.js`: views, cameras, authoring, comparison and exports.
+
+Serve the repository root; open `/labs/sky/`. Useful captures:
+`?scene=summer&shot=1&nohud=1`, `?scene=gold&shot=1&nohud=1`,
+`?scene=night&shot=1&nohud=1`, `?cloud=volume&quality=study`,
+`?cloud=field&shadow=map`, `?step=1..8`, `?cat=0`, `?at=30`,
+`?view=valley|roof|eye|sun`. Console entry point: `window.__sky`.
+
+See [verification.md](verification.md) for the actual validation record and
+limits. The portal image is a capture of the real lab, not concept art.
+
+---
+
+# Historical proposal — 2026-10-25
+
+The following is preserved as the earlier research brief, with its original
+read/excerpt distinctions. Decisions above describe the implementation; the
+historical proposal is not a list of features claimed as shipped.
 
 Notes behind `labs/sky/` (Lab 05). 11 searches. "Read" = fetched and
 summarised; "Excerpt" = only the search-result excerpt was available (claims

@@ -1,12 +1,12 @@
 ﻿import * as THREE from 'three';
-import { getCatAnatomy, BUILDS, GROUND } from './cat_anatomy.js?v=20261106a';
+import { getCatAnatomy, BUILDS, GROUND } from './cat_anatomy.js?v=20261107a';
 import {
   catRimUniforms, toonMat, furMaterial, FUR_PART, outlineMaterial,
   makeCollarTexture, makeBellTexture, getEarInnerTexture
-} from './cat_shading.js?v=20261106a';
+} from './cat_shading.js?v=20261107a';
 import {
   makePose, copyPose, lerpPose, dampPose, makeLegRig, solveLeg, smoothstep, clamp
-} from './cat_motion.js?v=20261106a';
+} from './cat_motion.js?v=20261107a';
 
 export { catRimUniforms };
 

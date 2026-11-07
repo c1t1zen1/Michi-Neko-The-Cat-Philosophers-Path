@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1e5799"/>
+      <stop offset="1" stop-color="#f5e6d3"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="750" fill="url(#sky)"/>
+  <!-- Mountains -->
+  <path d="M0,500 Q300,350 600,450 Q900,300 1200,400 L1200,750 L0,750 Z" fill="#7a8c9e" opacity="0.6"/>
+  <!-- Ground -->
+  <rect x="0" y="500" width="1200" height="250" fill="#5a8c4a"/>
+  <!-- Pagoda -->
+  <g transform="translate(600, 480)">
+    <rect x="-80" y="0" width="160" height="40" fill="#7d8487"/>
+    <rect x="-40" y="40" width="80" height="80" fill="#5a2e22"/>
+    <rect x="-60" y="80" width="120" height="8" fill="#151b1c"/>
+    <rect x="-60" y="80" width="120" height="12" fill="#c83e2b"/>
+    <rect x="-50" y="120" width="100" height="70" fill="#5a2e22"/>
+    <rect x="-70" y="160" width="140" height="8" fill="#151b1c"/>
+    <rect x="-55" y="190" width="110" height="60" fill="#5a2e22"/>
+    <rect x="-75" y="220" width="150" height="8" fill="#151b1c"/>
+    <rect x="-60" y="250" width="120" height="50" fill="#5a2e22"/>
+    <rect x="-80" y="270" width="160" height="8" fill="#151b1c"/>
+    <rect x="-65" y="290" width="130" height="40" fill="#5a2e22"/>
+    <rect x="-85" y="300" width="170" height="8" fill="#151b1c"/>
+    <!-- Spire -->
+    <rect x="-4" y="300" width="8" height="60" fill="#5d5140"/>
+    <circle cx="0" cy="300" r="15" fill="#5d5140"/>
+    <circle cx="0" cy="290" r="12" fill="#5d5140"/>
+    <circle cx="0" cy="280" r="9" fill="#5d5140"/>
+  </g>
+</svg>

@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { barkTextures, texturedMaterial } from './textures.js?v=20261106a';
+import { barkTextures, texturedMaterial } from './textures.js?v=20261107a';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, createBranchMaterial, leafSprayTexture, leafMassTexture,
   buildCanopy, updateFoliage
-} from './foliage.js?v=20261106a';
-import { GrassSystem, BiomeMask } from './grass.js?v=20261106a';
+} from './foliage.js?v=20261107a';
+import { GrassSystem, BiomeMask } from './grass.js?v=20261107a';
 
 // Trees past this radius stand in or behind the edge-forest wall and are
 // built as textured leaf masses; inside it they are hero trees with
@@ -638,7 +638,7 @@ export class Vegetation {
     mask.bake((x, z) => 1 - THREE.MathUtils.smoothstep(Math.hypot(x, z), 45, 50));
 
     const grass = this.grass = new GrassSystem(this.scene, { mask, wind: 0.55, gustLit: 0.45 });
-    grass.addRing('near', { radius: 8, spacing: 0.115, lead: 0.25 });
+    grass.addRing('near', { radius: 8, spacing: 0.115, lead: 0.6 });
     grass.addRing('mid', { radius: 24, spacing: 0.27, lead: 0.4, inside: 'near' });
     grass.addRing('far', { radius: 58, spacing: 0.62, lead: 0.45, inside: 'mid' });
     grass.addShell({ radius: 4.5, layers: 10, height: 0.085, density: 75, lead: 0.3, minQuality: 1 });

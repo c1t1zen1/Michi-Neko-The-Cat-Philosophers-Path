@@ -166,7 +166,7 @@ const WALL_NOTES = {
 };
 const wallView = views.add($('#wallStage'), {
   margin: 400,
-  build() { wallBench = buildWallBench(renderer, F); return { scene: wallBench.scene, camera: wallBench.camera }; },
+  build() { wallBench = buildWallBench(renderer, F, { kind: wallBenchKind }); return { scene: wallBench.scene, camera: wallBench.camera }; },
   update(dt, t) {
     wallBench?.update(dt * mo(), t * mo());
     if (wallBench && (this._statT = (this._statT || 0) + dt) > 0.5) {
@@ -176,7 +176,7 @@ const wallView = views.add($('#wallStage'), {
   }
 });
 let wallBenchKind = 'mass';
-seg($('#seg-wall4'), WALL4, 'mass', (v) => {
+const wall4Seg = seg($('#seg-wall4'), WALL4, 'mass', (v) => {
   wallBenchKind = v;
   wallBench?.set(v);
   $('#atlasFig').hidden = !(v === 'impostor' && wallBench?.atlas);
@@ -186,6 +186,7 @@ seg($('#seg-wall4'), WALL4, 'mass', (v) => {
     $('#atlasMount').append(wallBench.atlas.canvas);
   }
 });
+if (flag('wall4')) { wallBenchKind = flag('wall4'); wall4Seg.set(wallBenchKind); }
 
 // 04 · the edge in section
 let edgeBench = null;

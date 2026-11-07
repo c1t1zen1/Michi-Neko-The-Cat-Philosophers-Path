@@ -1,0 +1,80 @@
+/* Pagoda Lab — white page, pagoda against sky, interactive controls. */
+:root {
+  --ink: #1b261a;
+  --muted: #5a6a56;
+  --soft: #8a9886;
+  --moss: #4d7c34;
+  --wash: rgba(128, 178, 86, 0.22);
+  --accent: #d2603e;
+  --serif: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  --gutter: clamp(20px, 4vw, 56px);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: #fff; color: var(--ink);
+  font-family: var(--sans); font-size: 16px; line-height: 1.5;
+}
+#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; display: block; }
+.page, .foot { position: relative; z-index: 1; }
+.page { max-width: 1560px; margin: 0 auto; padding: 0 var(--gutter); }
+code { font-family: var(--mono); font-size: 0.86em; }
+
+/* Masthead */
+.mast { padding: clamp(56px, 11vh, 120px) 0 clamp(20px, 4vh, 48px); }
+.kicker { margin: 0 0 18px; font-size: 0.74rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--moss); font-weight: 500; }
+h1 {
+  margin: 0; font-family: var(--serif); font-weight: 300; font-size: clamp(3rem, 8.2vw, 7.6rem);
+  line-height: 0.94; letter-spacing: -0.025em;
+}
+h1 em { font-style: italic; font-weight: 300; color: var(--moss); }
+.lede { max-width: 44rem; margin: 30px 0 0; font-size: 1.12rem; line-height: 1.7; color: var(--muted); }
+.jump { display: flex; flex-wrap: wrap; gap: 8px 30px; margin-top: 34px; font-family: var(--serif); font-style: italic; font-size: 1.18rem; }
+.jump a { text-decoration: none; color: var(--ink); transition: color 0.2s; }
+.jump a:hover { color: var(--moss); }
+
+/* Controls */
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 38px; margin-top: 40px; }
+.ctl { display: inline-flex; align-items: center; gap: 12px; font-size: 0.86rem; }
+.ctl-l { font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--soft); font-weight: 500; }
+.seg { display: inline-flex; gap: 2px; }
+.seg button {
+  font: inherit; font-size: 0.86rem; background: none; border: 0; color: var(--muted);
+  padding: 5px 13px; border-radius: 99px; cursor: pointer; transition: background 0.2s, color 0.2s;
+}
+.seg button:hover { color: var(--ink); }
+.seg button.on { background: var(--wash); color: var(--ink); }
+.range { -webkit-appearance: none; appearance: none; width: 150px; height: 5px; border-radius: 9px;
+  background: linear-gradient(90deg, var(--wash), rgba(128, 178, 86, 0.55)); outline: none; cursor: pointer; }
+.range::-webkit-slider-thumb { -webkit-appearance: none; width: 17px; height: 17px; border-radius: 50%;
+  background: var(--moss); border: 3px solid #fff; box-shadow: 0 2px 8px rgba(40, 70, 30, 0.35); }
+
+/* Variant display */
+#variant-display { padding: 40px 0 100px; }
+.variant-info { max-width: 700px; margin: 0 auto; }
+.info-card {
+  background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px);
+  border-radius: 20px; padding: 40px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+.info-card h2 { font-family: var(--serif); font-size: 2rem; font-weight: 400; margin: 0 0 10px; }
+.info-card p { color: var(--muted); margin: 0 0 24px; line-height: 1.6; }
+.info-card h3 { font-family: var(--serif); font-size: 1.1rem; font-weight: 400; color: var(--moss); margin: 24px 0 8px; }
+.info-card ul { margin: 0; padding-left: 1.2em; font-size: 0.9rem; color: var(--muted); }
+.info-card li { margin: 4px 0; }
+.info-card pre { background: #f4f8ef; border-radius: 12px; padding: 16px; overflow-x: auto;
+  font: 0.75rem/1.6 var(--mono); color: #2c3b27; margin-top: 8px; }
+
+/* Sources */
+.sources { padding: 0 0 40px; }
+.sources details { background: #f4f8ef; border-radius: 16px; padding: 20px; }
+.sources summary { cursor: pointer; font-family: var(--serif); font-style: italic; font-size: 1.02rem; color: var(--moss); }
+.src-note { margin: 12px 0 8px; font-size: 0.84rem; color: var(--muted); }
+.sources ul { margin: 8px 0 0; padding-left: 1.2em; font-size: 0.84rem; }
+.sources li { margin: 4px 0; }
+.sources a { color: var(--moss); text-decoration: none; }
+.sources a:hover { text-decoration: underline; }
+
+/* Footer */
+.foot { text-align: center; padding: 40px var(--gutter); font-size: 0.84rem; color: var(--soft); }

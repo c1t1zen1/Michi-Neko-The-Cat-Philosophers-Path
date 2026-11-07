@@ -4,9 +4,9 @@
 // visibility — a rebuild bench, not a menu of separate scenes.
 import * as THREE from 'three';
 import { Air, CloudField } from './air.js';
-import { terrainHeight, terrainSector, profileHeight, mulberry32, smoothstep } from './profiles.js';
+import { terrainHeight, terrainSector, profileHeight, mulberry32, smoothstep, worldNoise } from './profiles.js';
 import { arcFriezeGeometry, terrainPatch, gameRangeColors, meadowColors } from './ridge.js';
-import { instancedWall, edgeBelts, foothillCarpet, cardWall, paintedTreeline, driveFoliage, FOREST_GREENS } from './wall.js';
+import { instancedWall, edgeBelts, foothillCarpet, cardWall, bakeCardAtlas, paintedTreeline, driveFoliage, FOREST_GREENS } from './wall.js';
 import { kasumiGroup } from './kasumi.js';
 import { bakeImpostor, impostorField } from './impostor.js';
 
@@ -76,6 +76,16 @@ export class Valley {
       gameRangeColors(x, z, h, d, _blend2, hazeK);
       c.lerp(_blend2, smoothstep(46, 66, d));
     } else gameRangeColors(x, z, h, d, c, hazeK);
+    // under the forest belt the floor reads as canopy, not grass: crown-size
+    // mottling over a stand-size undulation so bare patches become foliage
+    if (d > 48 && d < 190) {
+      const fine = worldNoise(x, z, 0.32, 2, 23);      // crown-size
+      const mid = worldNoise(x, z, 0.09, 2, 29);       // stand-size
+      const belt = smoothstep(48, 62, d) * (1 - smoothstep(180, 195, d));
+      c.multiplyScalar(1 - belt * (0.06 + 0.1 * Math.max(0, -mid)));
+      c.multiplyScalar(1 + belt * fine * 0.22);
+      c.offsetHSL(0.008 * belt * mid, 0.02 * belt, belt * (fine * 0.03 + mid * 0.02));
+    }
   }
 
   _rebakeGround() {
@@ -155,7 +165,8 @@ export class Valley {
       this.walls.mass = w.group;
       this.scene.add(w.group, this.belts);
     } else if (kind === 'cards') {
-      const w = cardWall({ count: 230, r0: 37, r1: 44, seed: 7 });
+      if (!this.cardAtlas) this.cardAtlas = bakeCardAtlas(this.renderer, this.F);
+      const w = cardWall(this.cardAtlas, { count: 230, r0: 37, r1: 44, seed: 7 });
       this.walls.cards = w.group;
       this.scene.add(w.group);
     } else if (kind === 'impostor') {
@@ -169,15 +180,15 @@ export class Valley {
       const mat = this.F.createFoliageMaterial({ sss: 0.24, wind: 0, mottle: 0.24, bump: 0.42, vertexColors: true, massMap: this.F.leafMassTexture('leaf'), massScale: 1 / 1.5, ragged: 1 });
       const bark = new THREE.MeshStandardMaterial({ color: 0x6a5a48, roughness: 1 });
       obj.add(new THREE.Mesh(built.tufts, mat), new THREE.Mesh(built.branches, bark));
-      const atlas = bakeImpostor(this.renderer, obj, { grid: 4, cell: 160 });
+      const atlas = bakeImpostor(this.renderer, obj, { grid: 4, cell: 192 });
       const positions = [];
       const prng = mulberry32(7);
       for (let i = 0; i < 230; i++) {
         const a = (i / 230) * Math.PI * 2 + prng() * 0.09;
         const r = 37 + prng() * 7;
-        const s = 1.8 + prng() * 2.4;
         positions.push({
-          x: Math.cos(a) * r, z: Math.sin(a) * r, s,
+          x: Math.cos(a) * r, z: Math.sin(a) * r,
+          h: atlas.worldH * (1.8 + prng() * 2.4),
           yaw: prng() * Math.PI * 2,
           tint: [0.88 + prng() * 0.24, 0.9 + prng() * 0.2, 0.84 + prng() * 0.22, 1]
         });
@@ -232,7 +243,9 @@ export class Valley {
 
   setVeil(k) {
     this.veilK = k;
-    this.scene.fog.density = this.fogBase * k * (this._veilScaleCache || 1);
+    // the fog and the painted-range haze scale differently this way: ranges
+    // want the full veil but the live foliage only wants part of it
+    this.scene.fog.density = this.fogBase * (0.55 + 0.45 * k) * (this._veilScaleCache || 1);
     for (const mat of this.air.mats) mat.uniforms.uFogT.value = Math.min(0.97, mat.userData.fogT0 * k * (this._veilScaleCache || 1));
   }
 
@@ -248,7 +261,7 @@ export class Valley {
     if (st.kasumi !== undefined) this.setKasumi(st.kasumi);
     if (st.carpet !== undefined) {
       if (!this.carpet && st.carpet) {
-        const c = foothillCarpet(this.F, terrainHeight, { count: 3400, r0: 55, r1: 185, seed: 23 });
+        const c = foothillCarpet(this.F, terrainHeight, { r0: 55, r1: 185, seed: 23, budget: 12000 });
         for (const m of new Set(c.meshes.map((m) => m.material))) this.air.applyCloudShadow(m, 0.5);
         this.carpet = c.group;
         this.scene.add(this.carpet);

@@ -99,3 +99,71 @@ can't follow the sun.
 * `node tools/ranges_test.mjs` — 19 invariants (profile continuity/mass order, octDir round-trip inside the diamond, seeded RNG stability, game-port parity, step-state legality).
 * `node tools/labs_check.mjs` — all checks OK (syntax, cache tags, registry link, `ranges/poster.png`).
 * Headless Chromium (`--use-angle=metal`): no console errors; hero, all five benches, stepper and sources render.
+
+## Second pass — production-technique overhaul (research → what changed)
+
+Isolated captures of each wall technique exposed real failures: cards floated as
+green blobs, impostors were a giant blurry band, the painted treeline was black
+spikes, and the foothill carpet was uniform noise. A focused research pass on how
+games actually ship these produced the fixes below.
+
+### What the industry does (sources this round)
+
+* **Florasynth / SpeedTree crossed billboards** — three upright quads ~60° apart
+  carry the *real tree* baked to diffuse + normal; planes fade as the camera goes
+  edge-on. Cheap geometry, real silhouette.
+* **SpeedTree/Florasynth baking** — bake ambient + depth into the billboard; crown
+  interiors go dark, rims stay lit. That value structure is what reads as "tree".
+* **Simplygon / Wolfire impostors** — the quad is sized to the *canopy* (height
+  and base anchor), never the bounding sphere; views pick by azimuth with
+  frame blending; alpha gets dilation so mip levels don't grow dark fringes.
+* **Kazuo Oga / Ghibli matte painting** — a treeline is a *designed* mass: a few
+  crown silhouettes per rank, three value shapes each (mass / halftone / rim
+  light), sparse trunks, sky gaps. Controlled shapes, never scatter brushes.
+* **Forest scatter research** — hierarchical stands (parent-seed clumps with
+  gaussian falloff), species bands by elevation, clearing masks, feathered edges.
+  Kyoto-specific: Kitayama-sugi is planted in *contour rows* — even-aged poles.
+
+### Changes per technique
+
+* `wall.js / cardWall` — now bakes the real canopy texture onto three crossed
+  quads per tree (the Florasynth recipe): grounded at the trunk base, per-instance
+  azimuth rotation, so the card wall has trunks, crown depth and correct ground
+  contact instead of floating blobs.
+* `impostor.js` — full rewrite of sizing and bake: quads scale to canopy height
+  (was bounding-sphere → ~3× too large → the blurry wall), alpha dilated before
+  mips, bake lighting matched to the sun, quads base-anchored to terrain.
+* `wall.js / paintedTreeline` — replaced scatter dabs with Oga-style controlled
+  crowns: 2 ranks of designed silhouettes, 3 value masses each, rim accents,
+  transparent sky gaps (destination-out), sparse trunks. `MeshBasicMaterial`
+  (unlit) so the matte painting carries its own light — Lambert was crushing it.
+  Bench plane clones the texture with a wide repeat so 4 m crowns don't shrink
+  to pickets.
+* `wall.js / foothillCarpet` — stand ecology replaces uniform scatter: jittered
+  polar stand grid, per-cell either a *plantation stand* (2–3 rough contour rows
+  of even poles, the Kitayama signature) or a *natural clump* (gaussian offspring
+  around a parent), species bands by elevation (broadleaf crowns low → sugi
+  cones high), clearing-noise cells stay empty, belt edges feather out. The
+  view corridor *thins* (×0.72) rather than clearing — a bald wedge read as a
+  scar, sparse trees read as designed.
+* `hero.js` — under the forest belt the terrain tint gets crown-size mottling
+  over a stand-size undulation: at distance the gaps between instanced crowns
+  read as more canopy, not bald grass. Scene fog decoupled from the range veil
+  so near trees keep their green while ridges still wash blue. Carpet budget
+  3400→12000 with broad sugi crowns so stands touch into closed canopy.
+
+### What was learned (the repeatable rules)
+
+1. **A billboard is a baked asset, not a quad** — bake lighting, ambient and
+   interior shadow into the texture or the cheapness shows.
+2. **Impostor scale = canopy scale** — bounding-sphere sizing is the classic
+   bug that makes a field of 4 m trees render as a 12 m smear.
+3. **Painterly ≠ loose** — the Oga treeline works because every crown is a
+   designed silhouette with three value shapes; randomness lives in placement,
+   not in the value structure.
+4. **Forest reads as floor texture + stands, not trees** — at 150 m the brain
+   wants mottled canopy surface with crown bumps, not countable trunks on grass.
+   Two noise scales (crown ~3 m, stand ~25 m) on the ground tint do the heavy
+   lifting the instances can't.
+5. **Clearings must be sized like real gaps** — ~40–60 m lobes read as gullies
+   and meadows; 90 m lobes read as missing data.

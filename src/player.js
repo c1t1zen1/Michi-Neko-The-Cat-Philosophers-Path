@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20261106a';
-import { ColliderGrid } from './collider_grid.js?v=20261106a';
+import { Cat } from './cat.js?v=20261107a';
+import { ColliderGrid } from './collider_grid.js?v=20261107a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {
   compilePrims, sculptGeometry, bakeSkin, evalField, evalGradient,
   compileChain, accumulateChain, writeTopBones
-} from './cat_sdf.js?v=20261106a';
+} from './cat_sdf.js?v=20261107a';
 
 /**
  * Cat anatomy: skeleton landmarks, sculpt primitives and the derived
