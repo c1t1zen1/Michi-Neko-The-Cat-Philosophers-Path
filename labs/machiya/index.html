@@ -1,103 +1,61 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Lab 04 · Machiya — Michi-Neko Labs</title>
-  <meta name="description" content="Build a Kyoto townhouse post by post: kawara tiles, koushi lattice, shikkui plaster, and a cat that climbs the walls and jumps roof to roof.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%98%EF%B8%8F%3C/text%3E%3C/svg%3E">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lab 04 · Machiya — a house, a roof, a cat</title>
+  <meta name="description" content="A Kyoto townhouse workshop: 35 live Three.js recipes, original game buildings, overlapping tile roofs, painterly materials and a rooftop walk with Michi.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E町%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
-  <link rel="stylesheet" href="../shared/lab.css">
-  <link rel="stylesheet" href="style.css">
-  <script type="importmap">
-    {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
-  </script>
+  <link rel="stylesheet" href="../shared/lab.css"><link rel="stylesheet" href="style.css">
+  <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 </head>
 <body>
   <canvas id="gl" aria-hidden="true"></canvas>
-
   <main class="page">
     <header class="mast">
-      <p class="kicker">Michi-Neko · Labs · 04 · <span class="jp">町家</span></p>
-      <h1>Build a machiya<br><em>post by post</em></h1>
-      <p class="lede">A Kyoto townhouse is a lattice, a seven-coat clay wall and a wave of fired tiles, all standing on one stone per post. This lab rebuilds it nine ways — from the flat boxes the game uses now to a cel-shaded, weathered street — and lets Michi climb the kōshi, run up the inuyarai and leap roof to roof. Everything is painted at load time.</p>
-      <nav class="jump" aria-label="Sections">
-        <a href="#walk" class="go">Climb the house ↓</a><a href="#families">Nine variants</a><a href="#steps">Build it up</a><a href="#game">Into the game</a><a href="#sources">Sources</a>
-      </nav>
-      <div class="controls">
-        <div class="ctl"><span class="ctl-l">Style</span><span class="seg" id="seg-style"></span></div>
-        <span id="hour-mount"></span>
-        <span id="hour-presets"></span>
-        <div class="ctl perf" id="perf" aria-live="off">warming up…</div>
-      </div>
+      <p class="kicker">Michi-Neko · field notes 04 <span class="jp">京の町家</span></p>
+      <h1>A house, a roof,<br><em>and somewhere to wander.</em></h1>
+      <p class="lede">Blue-grey tiles after rain. Sun caught on a timber edge. A curtain that tells you the tea is still warm. Build a little Kyoto street, try its parts one by one, then take the long way over the roof with Michi.</p>
+      <nav class="jump" aria-label="Sections"><a href="#walk" class="go">Into the street ↓</a><a href="#families">35 live recipes</a><a href="#steps">Raise the house</a><a href="#game">Into the game</a><a href="#sources">Field notebook ↗</a></nav>
+      <div class="field-note"><span>町 / 04</span><p><b>Physical light. Painted surfaces.</b> A study in the warmth and detail of animated Kyoto backgrounds, built entirely from code and small procedural textures.</p><span class="note-stamp">Three.js<br>r160</span></div>
     </header>
   </main>
-
-  <section class="hero" id="walk">
-    <div class="hero-head">
-      <p class="kicker">The climb</p>
-      <h2>Let the cat <em>go over the roof</em></h2>
-      <p class="sentence">A teahouse between two houses. Hop the engawa, run up the inuyarai, climb the lattice, and jump the gap to the next ridge.</p>
-    </div>
-    <div class="stage" id="stage">
-      <p class="wake" id="wake">Michi is waking up…</p>
-      <div class="hud tl" id="hudState">on the street</div>
-      <div class="hud bl">WASD / arrows walk · Space jump · Shift sprint · C prowl · V view · press into the lattice to climb · click the street to send Michi</div>
+  <section class="hero" id="walk" aria-labelledby="street-title">
+    <div class="hero-head"><p class="kicker">01 / The rooftop workshop</p><h2 id="street-title">Take the <em>roof road home.</em></h2><p class="sentence">Three houses, no hurry. Climb the left lattice, explore the crate steps, or start on the tiles and hop across the street’s rooftops.</p></div>
+    <div class="workshop-bar"><div class="ctl"><span class="ctl-l">Finish</span><span class="seg" id="seg-style"></span></div><span id="hour-mount"></span><span id="hour-presets"></span></div>
+    <div class="stage" id="stage" role="region" aria-label="Interactive machiya street. WASD to move, Space to jump, W to climb lattice.">
+      <p class="wake" id="wake">Michi is waking up…</p><div class="hud tl" id="hudState" role="status">on the street</div>
+      <div class="hud tr"><span class="stage-seal jp">町家</span><span id="stage-caption">An afternoon in paint</span></div>
+      <div class="hud bl">Click the street to walk · WASD / arrows · Space to jump · hold W at the lattice to climb</div>
+      <div class="touch-pad" aria-label="Touch movement"><button data-key="u" aria-label="Walk forward">↑</button><button data-key="l" aria-label="Walk left">←</button><button data-key="d" aria-label="Walk backward">↓</button><button data-key="r" aria-label="Walk right">→</button><button id="touch-jump">Jump</button></div>
     </div>
     <div class="hero-foot">
-      <div class="row">
-        <div class="ctl"><span class="ctl-l">View</span><span class="seg" id="seg-view"><button data-v="iso" class="on">Isometric</button><button data-v="eye">Cat-eye</button></span></div>
-        <div class="ctl"><span class="ctl-l">Gait</span><span class="seg" id="seg-gait"><button data-v="walk" class="on">Walk</button><button data-v="prowl">Prowl</button></span></div>
-        <div class="ctl"><span class="ctl-l">Turn</span><span class="seg"><button id="btn-rotl" title="Turn the street (Q)">↺</button><button id="btn-rotr" title="Turn the street (E)">↻</button></span></div>
+      <div class="row"><div class="ctl"><span class="ctl-l">Start at</span><span class="seg" id="start-at"></span></div><button class="btn tour-btn" id="btn-tour">Let Michi wander ↗</button><div class="ctl"><span class="ctl-l">View</span><span class="seg" id="seg-view"></span></div><span class="seg"><button id="btn-rotl" aria-label="Rotate view left">↺</button><button id="btn-rotr" aria-label="Rotate view right">↻</button></span></div>
+      <div class="row"><span class="ctl-l">Inspect</span><div class="part-pills" id="part-pills"></div></div>
+      <div class="workbench">
+        <div class="recipe-controls"><label>Roof<select id="roof-select"><option value="wave">Sangawara study</option><option value="courses">Overlapping pans</option><option value="slab">Continuous textured slab</option><option value="mukuri">Lifted eave study</option></select></label><label>Lattice<select id="lattice-select"><option value="itoya">Itoya · thread shop</option><option value="komeya">Komeya · rice shop</option><option value="sakaya">Sakaya · sake shop</option><option value="fuya">Fuya · gluten shop</option><option value="sumiya">Sumiya · charcoal shop</option><option value="shimotaya">Shimotaya · residence</option></select></label><label>Timber<select id="timber-select"><option value="instance">Dark timber</option><option value="bengara">Bengara red</option><option value="original">Original game lattice</option></select></label><label>Compare<select id="compare-select"><option value="new">Workshop house</option><option value="original">Original game tea house</option></select></label></div>
+        <div class="weather-controls"><span id="age-mount"></span><span id="wet-mount"></span><span id="wind-mount"></span><p class="keys">Shift sprint · C prowl · V cat-eye · Q / E turn. Selecting an original specimen only changes the reference; choose a new recipe to apply it.</p></div>
       </div>
-      <p class="keys">Street → engawa → inuyarai → pent roof → lattice → mushiko-mado → ridge → next roof.</p>
-      <p class="hero-stats" id="heroStats">&nbsp;</p>
+      <div class="recipe-slip"><div><span class="kicker">On the workbench</span><p id="selected-recipe" aria-live="polite">Sangawara roof · itoya lattice · painterly PBR</p></div><button class="btn" id="copy-recipe">Copy recipe</button><button class="btn" id="save-recipe">Save JSON ↓</button></div>
+      <details class="live-source"><summary>Source for this house</summary><pre class="code"><code id="recipe-code"></code></pre><a href="js/machiya.js" target="_blank">Open the complete builder ↗</a></details>
+      <p class="hero-stats" id="heroStats">&nbsp;</p><p class="perf" id="perf" aria-live="off">warming up…</p>
     </div>
   </section>
-
   <main class="page">
-    <div id="families"></div>
-
-    <section class="section" id="steps">
-      <div class="fam-head"><span class="fam-num">12</span><h2>Build it <em>up</em></h2><p class="fam-sub">The order a carpenter follows, from the foundation stone to the noren. Click through, or press Play.</p></div>
-      <div id="steps-mount"></div>
-    </section>
-
-    <section class="section" id="game">
-      <div class="fam-head"><span class="fam-num">→</span><h2>Into the <em>game</em></h2><p class="fam-sub">How the winner moves into the valley</p></div>
-      <ul class="game-list">
-        <li>The <em>post-by-post</em> builder replaces the ~140 <code>box()</code> parts in <code>buildMachiyaTeaHouse</code>, <code>buildMachiyaResidence</code>, <code>buildSecretMachiya</code> and <code>buildVillageHouse</code> — one shared kit, four houses.</li>
-        <li><em>Instanced kawara</em> becomes one draw call per roof instead of two curved slabs; the <code>koushi</code> becomes one InstancedMesh instead of N boxes.</li>
-        <li>The <em>hybrid shader</em> (painterly PBR textures + a soft toon ramp) is the target look, so the photoreal background and the painterly cat finally share one grade.</li>
-        <li><em>Weathering</em> rides one per-house seed, so a repeated house kit reads as an old, lived-in street.</li>
-        <li>The <em>climb &amp; jump surfaces</em> reuse the game's exact 7.2 m/s take-off and −20 m/s² gravity, so a gap that works here works in the valley.</li>
-      </ul>
-    </section>
-
-    <section class="sources" id="sources">
-      <details>
-        <summary>Research &amp; sources</summary>
-        <p class="src-note">Eighteen searches and a dozen deep reads informed these designs; <a href="research.md">read the research notebook ↗</a>.</p>
-        <ul id="srcList"></ul>
-      </details>
-    </section>
+    <section class="catalogue-head" id="families"><p class="kicker">02 / The specimen shelves</p><h2>Keep the original.<br><em>Try another way.</em></h2><p>Every shelf starts with our game’s real component, followed by working alternatives. Turntables are live Three.js. Open a recipe for its method, source and tradeoffs; select it to change the workshop above.</p><div class="shelf-tools"><label>Find a recipe<input type="search" id="recipe-search" placeholder="Try tiles, plaster, cloth…"></label><label>Show<select id="family-filter"><option value="all">All 35 specimens</option><option value="original">Original game references</option></select></label><span id="recipe-count" role="status"></span></div><p id="empty-search" hidden>No specimens match. Try another word or show all shelves.</p></section>
+    <div id="shelves"></div>
+    <section class="section" id="steps"><div class="fam-head"><span class="fam-num">03</span><h2>Raise the <em>house.</em></h2><p class="fam-sub">A visual assembly study, from stone shoes to the shop curtain. The sequence simplifies real construction; it is not a structural or conservation guide.</p></div><div class="assembly-wrap"><div class="assembly-view" id="assembly-view" role="img" aria-label="Live construction model"></div><div class="assembly-footer"><span id="explode-mount"></span><button class="btn" id="assembly-finished">Show the finished house</button></div></div><div id="steps-mount"></div></section>
+    <section class="section" id="game"><div class="fam-head"><span class="fam-num">04</span><h2>Back to <em>the valley.</em></h2><p class="fam-sub">A kit to review before it becomes part of the game.</p></div><ul class="game-list"><li><em>One closed roof, one shared profile.</em> The supporting shell, tile rows and cat collision use the same roof height function. Tile overlap is deliberate; loose half-cylinders never serve as the whole roof.</li><li><em>Detail where the camera can see it.</em> Instanced tiles, slats and boards for close houses; a textured shell for far houses. The measured draw and triangle counts are shown on every specimen.</li><li><em>Small textures, real light.</em> Reuse the game’s procedural 256 px material sets. Save extra geometry for eaves, openings and silhouettes.</li><li><em>A lab first.</em> The live game builders remain our reference. Promotion still needs material registration in <code>MAT</code>, distant LODs, collider review and device benchmarks. The lab’s climbing and wander controls are experiments.</li></ul></section>
+    <section class="sources" id="sources"><p class="kicker">05 / The field notebook</p><h2>Built from <em>looking closely.</em></h2><p class="src-note">Fresh research pairs Kyoto builders’ restoration records with official Three.js documentation and version-pinned source. Algorithms here are original adaptations; architectural observation and rendering experiments are distinguished in the <a href="research.md">research notebook ↗</a>.</p><details><summary>Architecture &amp; code references</summary><ul id="srcList"></ul></details></section>
   </main>
-
   <footer class="foot"></footer>
-
   <script>
     if (location.protocol === 'file:') {
-      document.body.insertAdjacentHTML('afterbegin',
-        '<div style="position:relative;z-index:100;max-width:44rem;margin:12vh auto;padding:0 24px;font:1.1rem/1.7 Georgia,serif;color:#241d16">' +
-        '<p style="font-size:2rem;margin:0 0 .4em">This page needs a local web server.</p>' +
-        '<p>Browsers block ES modules opened straight from disk. From the repo root run <code>python3 -m http.server 8000</code> and open <b>http://localhost:8000/labs/machiya/</b>.</p></div>');
-      document.getElementById('gl').remove();
+      document.getElementById('wake').textContent = 'Serve the repository over HTTP: python3 -m http.server 8000, then open localhost:8000/labs/machiya/.';
     } else {
-      const s = document.createElement('script');
-      s.type = 'module'; s.src = 'js/main.js';
-      document.body.append(s);
+      const script = document.createElement('script'); script.type = 'module'; script.src = 'js/main.js'; document.body.append(script);
+      script.addEventListener('error', () => { document.getElementById('wake').textContent = 'The workshop could not load. Check your connection to the Three.js CDN and reload.'; });
     }
   </script>
 </body>

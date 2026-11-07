@@ -6,22 +6,24 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { LightRig } from '../../shared/light.js';
 import { loadCatModule } from '../../shared/game.js';
-import { buildMachiya, Collider } from './machiya.js';
+import { buildMachiya, Collider, countScene, disposeBuild } from './machiya.js';
+import { originalHouse } from './original.js';
+import { reduceMotion } from '../../shared/stage.js';
 
 const GRAVITY = -20, JUMP = 7.2, STEP = 0.32, FALL = 0.6;
 const CLIMB_SPEED = 2.4, COYOTE = 0.12, BUFFER = 0.12;
 const UP = new THREE.Vector3(0, 1, 0);
 const _v = new THREE.Vector3(), _w = new THREE.Vector3();
 
-const BOUNDS = { x0: -11.5, x1: 11.5, z0: -6.2, z1: 7.2 };
+const BOUNDS = { x0: -11.2, x1: 11.2, z0: -5.5, z1: 6.7 };
 const wrap = (a) => a - Math.PI * 2 * Math.round(a / (Math.PI * 2));
 
 // The hero street: the chaya (teahouse) between two lower residences, so the
 // cat can jump a roof gap in either direction.
 const HOUSES = [
   { x: 0, z: 0, full: true },
-  { x: -8.6, z: 0.3, small: true },
-  { x: 8.6, z: 0.3, small: true }
+  { x: -7.8, z: 0.3, small: true },
+  { x: 7.8, z: 0.3, small: true }
 ];
 
 export class Hero {
@@ -29,17 +31,17 @@ export class Hero {
     this.lab = lab;
     this.el = el;
     this.scene = new THREE.Scene();
-    this.rig = new LightRig(this.scene, { hour: 10.5, shadows: true, shadowSize: 10 });
+    this.rig = new LightRig(this.scene, { hour: lab.hour, shadows: true, shadowSize: 16 });
     this.col = new Collider();
     this.col.flat(BOUNDS.x0, BOUNDS.x1, BOUNDS.z0, BOUNDS.z1, 0);
 
     // street slab
     const street = new THREE.Mesh(
-      new THREE.PlaneGeometry(24, 14),
+      new THREE.BoxGeometry(24, .28, 14),
       new THREE.MeshStandardMaterial({ color: 0xcbb999, roughness: 0.98 })
     );
-    street.rotation.x = -Math.PI / 2;
-    street.position.set(0, -0.001, 0.5);
+
+    street.position.set(0, -.15, .5);
     street.receiveShadow = true;
     this.scene.add(street);
 
@@ -60,7 +62,7 @@ export class Hero {
     this.eyeInit = false;
 
     // cat state
-    this.pos = new THREE.Vector2(-6.5, -4.5);
+    this.pos = new THREE.Vector2(-2, 4.8);
     this.y = 0;
     this.vy = 0;
     this.prevY = 0;
@@ -87,30 +89,40 @@ export class Hero {
     this.plane = new THREE.Plane(UP, 0);
     this.mode = 'drive';
     this.view = 'iso';
+    this.tour = false; this.tourDirection = 1; this.inspect = false; this.focus = null;
+    this.age = 0; this.wet = 0; this.wind = .5; this.assembly = 10; this.explode = 0;
+    this.original = null; this.originalKind = 'tea'; this.showOriginal = false;
     this._bindInput();
+    const pmrem = new THREE.PMREMGenerator(this.lab.renderer);
+    const room = new RoomEnvironment();
+    this.environment = pmrem.fromScene(room, .04);
+    this.scene.environment = this.environment.texture;
+    room.dispose(); pmrem.dispose();
+    this.rig.applyEnv();
   }
 
   opts(h) {
+    const { upper, roof, ...sideRecipe } = this.lab.recipe;
     if (h.full) {
       return {
         x: h.x, z: h.z,
         w: 7.6, d: 5.4, gh: 2.4,
         upper: { w: 6.8, d: 4.6, h: 1.9 },
-        roof: { eaveY: 4.4, ridgeH: 1.5, overhang: 0.7 },
+        roof: { eaveY: 4.3, ridgeH: 1.5, overhang: 0.65 },
         engawaOpts: { front: true, back: true, h: 0.42, depth: 1.4 },
         battari: true, komayose: true, inuyaraiOpts: { h: 1.4 },
         norenColor: 'norenIndigo', koushiPattern: 'itoya', mushikoMado: true,
-        namako: true, shokiFig: true, lantern: true, style: this.lab.style, detail: 'geometry'
+        namako: true, shokiFig: true, lantern: true, ...this.lab.recipe, style: this.lab.style, detail: 'geometry'
       };
     }
     return {
       x: h.x, z: h.z,
       w: 4.4, d: 3.6, gh: 2.1,
-      upper: null,
-      roof: { eaveY: 2.1, ridgeH: 1.0, overhang: 0.5 },
+      upper: { w: 4.0, d: 3.1, h: 1.9 },
+      roof: { eaveY: 4.0, ridgeH: 1.2, overhang: 0.5 },
       engawaOpts: { front: true, back: false, h: 0.42, depth: 1.1 },
       norenColor: 'norenCrimson', koushiPattern: 'komeya', namako: false,
-      lantern: true, style: this.lab.style, detail: 'geometry'
+      lantern: true, ...sideRecipe, style: this.lab.style, detail: 'geometry'
     };
   }
 
@@ -129,8 +141,7 @@ export class Hero {
       this.catRoot.add(cat.group);
       this.cat = cat;
       this.catMod = mod;
-      const pmrem = new THREE.PMREMGenerator(this.lab.renderer);
-      this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
       mod.catRimUniforms.uRimStrength.value = 0.28;
       mod.catRimUniforms.uRimColor.value.set(0xffd9a0);
       mod.catRimUniforms.uRimDir.value.copy(this.rig.sunDir);
@@ -139,12 +150,13 @@ export class Hero {
       this.lab.onCatReady?.();
     } catch (e) {
       console.error('cat failed to load', e);
+      this.lab.onCatError?.(e);
     }
   }
 
   setStyle(style) {
     // rebuild the machiya with the new shading model
-    for (const b of this.buildings) this.scene.remove(b.group);
+    for (const b of this.buildings) { this.scene.remove(b.group); b.dispose(); }
     this.buildings = [];
     this.col = new Collider();
     this.col.flat(BOUNDS.x0, BOUNDS.x1, BOUNDS.z0, BOUNDS.z1, 0);
@@ -154,8 +166,43 @@ export class Hero {
       this.merge(b.collider);
       this.buildings.push(b);
     }
+    this.setWeather(this.age, this.wet);
+    this.setAssembly(this.assembly, this.explode);
+    this.compare(this.showOriginal, this.originalKind);
+    if (this.tour) this.perch('ridge');
     this.rig.applyEnv();
   }
+
+  setWeather(age, wet) { this.age = age; this.wet = wet; for (const b of this.buildings) b.setWeather(age, wet); }
+  setAssembly(phase, explode) {
+    this.assembly = phase; this.explode = explode; this.inspect = phase < 10 || explode > 0;
+    this.tour = false; this.keys.clear(); this.speed = 0;
+    for (const b of this.buildings) b.setAssembly(phase, explode);
+    this.catRoot.visible = !this.inspect && !this.showOriginal;
+  }
+  compare(on, kind = this.originalKind) {
+    this.showOriginal = on;
+    if (this.original && kind !== this.originalKind) { this.scene.remove(this.original.group); disposeBuild(this.original.group); this.original = null; }
+    this.originalKind = kind;
+    if (on && !this.original) { this.original = originalHouse(kind); this.scene.add(this.original.group); }
+    if (this.original) this.original.group.visible = on;
+    for (const [i, b] of this.buildings.entries()) b.group.visible = !on || i !== 0;
+    this.catRoot.visible = !on && !this.inspect;
+    this.tour = false;
+  }
+  perch(where) {
+    this.tour = false; this.climbing = null; this.target = null; this.keys.clear(); this.speed = 0; this.vy = 0;
+    if (where === 'ridge') { this.pos.set(-2.5, .65); this.y = this.col.ceiling(this.pos.x, this.pos.y, 10, 0); }
+    else if (where === 'eaves') { this.pos.set(-2, 3.0); this.y = this.col.ceiling(-2, 3, 3.1, 0); }
+    else { this.pos.set(-2, 4.8); this.y = 0; }
+    this.grounded = true; this.eyeInit = false;
+  }
+  startTour() {
+    if (this.inspect || this.showOriginal) return;
+    this.perch('ridge'); this.tour = true; this.tourDirection = 1;
+  }
+  focusPart(key) { this.focus = key; }
+  get counts() { return this.buildings.reduce((n,b) => { const c = countScene(b.group); return { meshes: n.meshes+c.meshes, tris: n.tris+c.tris }; }, { meshes:0, tris:0 }); }
 
   setView(v) { this.view = v; this.eyeInit = false; }
   setProwl(b) { this.prowl = b; if (this.cat) this.cat.setProwling(b); }
@@ -165,11 +212,11 @@ export class Hero {
   _bindInput() {
     const map = { KeyW: 'u', ArrowUp: 'u', KeyS: 'd', ArrowDown: 'd', KeyA: 'l', ArrowLeft: 'l', KeyD: 'r', ArrowRight: 'r' };
     addEventListener('keydown', (e) => {
-      if (!this.active || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (!this.active || this.inspect || this.showOriginal || e.target.closest?.('button, a') || e.metaKey || e.ctrlKey || e.altKey) return;
       if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.target.closest?.('.dd')) return;
       const k = map[e.code];
-      if (k) { this.keys.add(k); e.preventDefault(); this.mode = 'drive'; this.target = null; }
-      else if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) this.buffer = BUFFER; this.jumpHeld = true; }
+      if (k) { this.keys.add(k); e.preventDefault(); this.mode = 'drive'; this.target = null; this.tour = false; }
+      else if (e.code === 'Space') { this.tour = false; e.preventDefault(); if (!e.repeat) this.buffer = BUFFER; this.jumpHeld = true; }
       else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.sprint = true;
       else if (e.code === 'KeyC') this.lab.setProwl(!this.prowl);
       else if (e.code === 'KeyV') this.lab.setView(this.view === 'iso' ? 'eye' : 'iso');
@@ -183,7 +230,9 @@ export class Hero {
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.sprint = false;
     });
     addEventListener('blur', () => { this.keys.clear(); this.sprint = false; this.jumpHeld = false; });
+    this.el.tabIndex = 0;
     this.el.addEventListener('pointerdown', (e) => {
+      this.el.focus({ preventScroll: true });
       if (e.target.closest('.split, .callouts, .hud, .stepper, .dd, button, a, input, select, textarea')) return;
       const r = this.el.getBoundingClientRect();
       this.ray.setFromCamera({ x: ((e.clientX - r.left) / r.width) * 2 - 1, y: -(((e.clientY - r.top) / r.height) * 2 - 1) }, this.camera);
@@ -194,14 +243,24 @@ export class Hero {
         THREE.MathUtils.clamp(p.x, BOUNDS.x0 + 0.4, BOUNDS.x1 - 0.4),
         THREE.MathUtils.clamp(p.z, BOUNDS.z0 + 0.4, BOUNDS.z1 - 0.4)
       );
-      this.mode = 'drive';
+      this.mode = 'drive'; this.tour = false;
     });
   }
 
-  get camera() { return this.view === 'iso' ? this.iso : this.eye; }
+  get camera() { return this.view === 'eye' ? this.eye : this.iso; }
 
   _steer(dt) {
     if (this.climbing) { this.speed = 0; this.target = null; return; }
+    if (this.inspect || this.showOriginal) { this.speed = 0; return; }
+    if (this.tour) {
+      if (this.pos.x > 9 && this.tourDirection > 0) this.tourDirection = -1;
+      else if (this.pos.x < -9 && this.tourDirection < 0) this.tourDirection = 1;
+      this.target = new THREE.Vector2(this.tourDirection * 9.3, .65);
+      this.jumpHeld = true;
+      const ahead = this.pos.x + this.tourDirection * .38;
+      const support = this.col.ceiling(ahead, .65, this.y, .85);
+      if (this.grounded && (support < this.y - .45 || support > this.y + .3)) this.buffer = BUFFER;
+    }
     const prowl = this.prowl ? 0.45 : 1;
     let want = null, spd = 0, sprint = false;
     const toward = (p, arrive) => {
@@ -235,7 +294,7 @@ export class Hero {
       this.turning = Math.abs(diff) > 0.35 && this.speed < 0.6;
       if (Math.abs(diff) > 1.2) spd *= 0.35;
     } else this.turning = false;
-    this.speed += ((want ? spd * prowl : 0) - this.speed) * Math.min(1, dt * 6);
+    this.speed += ((want ? spd * prowl * (sprint ? 1.8 : 1) : 0) - this.speed) * Math.min(1, dt * 6);
     if (this.speed < 0.02) this.speed = 0;
     this.sprintNow = sprint && !this.prowl && this.speed > 4.4;
 
@@ -265,7 +324,8 @@ export class Hero {
 
   _vertical(dt) {
     this.prevY = this.y;
-    const wantClimb = (this.keys.has('u') || this.buffer > 0);
+    if (this.inspect || this.showOriginal) return;
+    const wantClimb = !this.tour && (this.keys.has('u') || this.buffer > 0);
     const c = this.col.climbAt(this.pos.x, this.pos.y, this.y);
 
     if (this.climbing) {
@@ -298,7 +358,7 @@ export class Hero {
     }
 
     if (this.grounded) {
-      const support = this.col.ceiling(this.pos.x, this.pos.y, this.prevY, 0.05);
+      const support = this.col.ceiling(this.pos.x, this.pos.y, this.prevY, STEP);
       if (support < this.prevY - FALL) {
         this.grounded = false; this.vy = 0; this.y = this.prevY;
       } else {
@@ -332,7 +392,18 @@ export class Hero {
     this.iso.updateProjectionMatrix();
     const el = 0.58, dist = 40;
     this.iso.position.set(Math.cos(this.az) * Math.cos(el) * dist, Math.sin(el) * dist, Math.sin(this.az) * Math.cos(el) * dist);
-    this.iso.lookAt(0, 0.5, 0.5);
+    this.iso.lookAt(0, 2.1, .5);
+    if (this.focus && this.view === 'detail') {
+      const part = this.buildings[0].parts[this.focus];
+      if (part) {
+        part.updateWorldMatrix(true, true);
+        const bounds = new THREE.Box3().setFromObject(part), centre = bounds.getCenter(_w);
+        this.iso.left = -4 * aspect; this.iso.right = 4 * aspect; this.iso.top = 4; this.iso.bottom = -4;
+        this.iso.updateProjectionMatrix();
+        this.iso.position.set(centre.x + Math.cos(this.az) * 18, centre.y + 6, centre.z + Math.sin(this.az) * 18);
+        this.iso.lookAt(centre);
+      }
+    }
 
     if (this.view === 'eye') {
       const fx = Math.sin(this.heading), fz = Math.cos(this.heading);
@@ -348,7 +419,9 @@ export class Hero {
 
   frame(dt, t, rect) {
     this.active = rect.top < innerHeight * 0.62 && rect.bottom > innerHeight * 0.38;
-    if (!this.active) return;
+    this._camera(dt, rect.width / Math.max(1, rect.height));
+    for (const b of this.buildings) b.update(t, this.lab.hour, reduceMotion ? 0 : this.wind);
+    if (!this.active) { this.keys.clear(); this.sprint = false; return; }
     this.coyote -= dt;
     this.buffer -= dt;
     this._steer(dt);
@@ -360,7 +433,6 @@ export class Hero {
       const spd = climb ? CLIMB_SPEED : this.speed;
       this.cat.update(dt, spd, !climb ? this.grounded : true, this.sprintNow, this.turning, false, null);
     }
-    this._camera(dt, rect.width / Math.max(1, rect.height));
     this.rig.update();
   }
 }
