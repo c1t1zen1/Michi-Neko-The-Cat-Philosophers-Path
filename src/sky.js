@@ -5,6 +5,9 @@ const PALETTE_KEYS = ['top', 'mid', 'horizon', 'warm', 'sun', 'hemiSky', 'hemiGr
 /** Deep sunset bleed mixed into the sun colour as it grazes the horizon. */
 const SUNSET_BLEED = new THREE.Color(0xff6e30);
 
+/** Rec. 709 luminance of a linear Color (three r160's Color has no getter). */
+const luminance = (c) => c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
+
 /** A reusable palette: nine Colors written in place, never reallocated. */
 function paletteBuffer() {
   const out = {};
@@ -537,7 +540,7 @@ export class Sky {
       const filteredG = THREE.MathUtils.clamp(bc.g * tint(wc.g, rc.g), 0, 1);
       const filteredB = THREE.MathUtils.clamp(bc.b * tint(wc.b, rc.b), 0, 1);
       const phaseBrightness = THREE.MathUtils.clamp(
-        bc.getLuminance() / Math.max(0.025, rc.getLuminance()), 0.06, 1.45
+        luminance(bc) / Math.max(0.025, luminance(rc)), 0.06, 1.45
       );
       // Most of the hue comes from the weather itself (slate rain, silver
       // snow), while the filtered phase contribution preserves warm dusk and

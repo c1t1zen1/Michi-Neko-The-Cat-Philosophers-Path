@@ -1,4 +1,5 @@
 /* Hub-only styles; the base look comes from shared/lab.css. */
+.featured-lab{margin-top:70px}.featured-lab>a{display:grid;grid-template-columns:1.2fr 1fr;align-items:center;gap:clamp(25px,5vw,75px);text-decoration:none;color:inherit}.featured-lab img{width:100%;height:auto;display:block;border-radius:8px}.featured-lab h2{font:300 clamp(1.8rem,3.5vw,3.2rem)/1.2 var(--serif);letter-spacing:-.025em;margin:0}.featured-lab h2 em{color:#747c47}.featured-lab div>p:not(.eyebrow){font-size:.9rem;line-height:1.8;color:var(--muted);max-width:390px}.featured-lab div>span{display:inline-block;margin-top:10px;font:italic 1.12rem var(--serif);color:var(--accent)}.featured-lab a:hover div>span{text-decoration:underline;text-underline-offset:4px}@media(max-width:700px){.featured-lab>a{grid-template-columns:1fr;gap:18px}.featured-lab{margin-top:45px}}
 .progress { margin: 26px 0 0; font-family: var(--serif); font-style: italic; font-size: 1.15rem; color: var(--muted); }
 .progress b { font-weight: 500; color: var(--ink); }
 .eyebrow { margin: 0 0 16px; font: 500 0.7rem var(--sans); letter-spacing: 0.22em; text-transform: uppercase; color: var(--soft); }

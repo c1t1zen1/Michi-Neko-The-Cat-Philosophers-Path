@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { Sky } from '../src/sky.js?v=20261024c';
-import { Player } from '../src/player.js?v=20261024c';
-import { SummitManager } from '../src/mountaintop.js?v=20261024c';
+import { Sky } from '../src/sky.js?v=20261106a';
+import { Player } from '../src/player.js?v=20261106a';
+import { SummitManager } from '../src/mountaintop.js?v=20261106a';
 
 const canvas = document.getElementById('preview');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -34,7 +34,8 @@ const previewWeather = weatherTypes.has(requestedWeather) ? requestedWeather : '
 const cycleMultiplier = query.has('speed') && Number.isFinite(parsedSpeed)
   ? Math.max(0, parsedSpeed)
   : 1;
-const previewView = viewTypes.has(requestedView) ? requestedView : 'meditation';
+const previewView = query.has('cam') ? 'custom'
+  : viewTypes.has(requestedView) ? requestedView : 'meditation';
 
 sky.dayTime = previewTime;
 sky.cycleSpeed *= cycleMultiplier;
@@ -90,6 +91,14 @@ const auditViews = {
   'edge-left': { position: [0, 2.1, -2], lookAt: [-55, -18, 48], fov: 55 },
   'edge-right': { position: [0, 2.1, -2], lookAt: [55, -18, 48], fov: 55 }
 };
+// `?cam=px,py,pz,lx,ly,lz[,fov]` frames any summit-local shot, e.g. a look
+// down past the torii; `?hide=Name,Other` hides named meshes for debugging.
+const customCam = (query.get('cam') || '').split(',').map(Number);
+if (customCam.length >= 6 && customCam.every(Number.isFinite)) {
+  auditViews.custom = {
+    position: customCam.slice(0, 3), lookAt: customCam.slice(3, 6), fov: customCam[6] || 55
+  };
+}
 const applyAuditView = (viewName, aspect = camera.aspect) => {
   const view = auditViews[viewName];
   const [px, py, pz] = view.position;
@@ -116,6 +125,8 @@ if (previewView === 'meditation') {
   applyAuditView(previewView === 'edge-sheet' ? 'arrival' : previewView);
 }
 window.previewView = previewView;
+const hidden = new Set((query.get('hide') || '').split(',').filter(Boolean));
+if (hidden.size) summit.group.traverse((o) => { if (hidden.has(o.name)) o.visible = false; });
 
 const clock = new THREE.Clock();
 function frame() {

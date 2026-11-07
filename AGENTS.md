@@ -43,7 +43,7 @@ Every module import carries `?v=<tag>`. Keep all tags in sync when editing:
 sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDD<letter>/g" src/*.js index.html
 ```
 
-Current tag: `20261024c` (the `tools/*_preview.*` sheets still carry `20261024a`). A tag
+Current tag: `20261106a` (the `tools/*_preview.*` sheets carry it too). A tag
 bump touches every module's import lines, including `mountaintop.js` — change
 only the `?v=` strings there.
 
@@ -99,6 +99,18 @@ builders with seeded randomness. Hero trees inside the play field are
 individual leaf sprays on twigs (`buildCanopy` style `'leaves'`); the rim
 (edge forest, foothills, shrubs, trees past r≈39) is painted leaf masses
 (`'masses'`, `bushGeometry`). The summit still uses the default `'clumps'`.
+
+Summit grounds: `SummitManager.terrainHeightAt()` is the one rendered
+landform under everything outside the meadow disc. It covers the brow, the
+flanks, the Kyoto basin the city stands on (`vistaGroundHeight`), and the valleys
+and ridges out to r=440 (`landHeightAt`). It is pressed into a bed under the
+torii stairs and the scenic lower path. City, river and roads sit on it.
+Planting in the perch's view window (bearing −0.62…0.38 rad) is capped by
+`perchSightlineAt()`, so nothing new can cover the city or the sea from the
+meditation seat. Review with `tools/summit_preview.html?view=<meditation|
+arrival|edge-sheet|…>` or any shot via `?cam=px,py,pz,lx,ly,lz[,fov]`
+(summit-local), `&time=`, `&weather=`, `&hide=MeshName`. Headless Chromium with
+`--use-angle=metal` captures one in seconds on the Mac.
 
 Town and hidden-place review: `tools/town_preview.html?sheet=<name>` (sheets:
 street, landmarks, props; `&golden=1`, `&night=1`) and

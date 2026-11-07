@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20261024c';
+import { Cat } from './cat.js?v=20261106a';
 
 const _lookAt = new THREE.Vector3();
 

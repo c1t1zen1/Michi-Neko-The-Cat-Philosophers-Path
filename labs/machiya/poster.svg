@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-label="A machiya townhouse under a dusk sky, with a cat on the ridge">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a6a96"/>
+      <stop offset="0.55" stop-color="#a9b6cf"/>
+      <stop offset="1" stop-color="#e6c9a0"/>
+    </linearGradient>
+    <linearGradient id="roof" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5c6672"/>
+      <stop offset="1" stop-color="#39434e"/>
+    </linearGradient>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#efe4cc"/>
+      <stop offset="1" stop-color="#d9c7a6"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="750" fill="url(#sky)"/>
+  <circle cx="940" cy="190" r="90" fill="#ffd9a0" opacity="0.55"/>
+
+  <!-- distant ridge -->
+  <polygon points="90,470 250,470 170,360" fill="#8a93a2" opacity="0.55"/>
+  <polygon points="950,470 1130,470 1040,350" fill="#8a93a2" opacity="0.55"/>
+
+  <!-- street -->
+  <rect x="0" y="648" width="1200" height="102" fill="#cbb592"/>
+  <rect x="0" y="648" width="1200" height="6" fill="#b39a72"/>
+
+  <!-- machiya -->
+  <g>
+    <!-- roof: front gable -->
+    <polygon points="180,382 1020,382 600,206" fill="url(#roof)"/>
+    <!-- tile courses -->
+    <g stroke="#2f3842" stroke-width="3" opacity="0.55">
+      <path d="M205 362 Q 600 396 995 362"/>
+      <path d="M232 334 Q 600 366 968 334"/>
+      <path d="M270 306 Q 600 336 930 306"/>
+      <path d="M318 278 Q 600 306 882 278"/>
+      <path d="M378 250 Q 600 276 822 250"/>
+    </g>
+    <!-- ridge barrel -->
+    <rect x="300" y="196" width="600" height="22" rx="11" fill="#4a545f"/>
+    <rect x="270" y="200" width="24" height="34" rx="4" fill="#4a545f"/>
+    <rect x="906" y="200" width="24" height="34" rx="4" fill="#4a545f"/>
+    <!-- eave line -->
+    <rect x="166" y="378" width="868" height="8" fill="#2f3842"/>
+
+    <!-- upper floor -->
+    <rect x="280" y="386" width="640" height="150" fill="url(#wall)"/>
+    <!-- mushiko-mado -->
+    <rect x="560" y="406" width="80" height="52" rx="3" fill="#2a1f16"/>
+    <g stroke="#2a1f16" stroke-width="4">
+      <line x1="572" y1="412" x2="572" y2="452"/>
+      <line x1="586" y1="412" x2="586" y2="452"/>
+      <line x1="600" y1="412" x2="600" y2="452"/>
+      <line x1="614" y1="412" x2="614" y2="452"/>
+      <line x1="628" y1="412" x2="628" y2="452"/>
+    </g>
+
+    <!-- hisashi pent roof -->
+    <rect x="244" y="536" width="712" height="14" fill="#39434e"/>
+
+    <!-- lower floor -->
+    <rect x="280" y="550" width="640" height="98" fill="url(#wall)"/>
+    <!-- koushi lattice left + right -->
+    <g>
+      <rect x="300" y="560" width="180" height="74" fill="#2a1f16"/>
+      <rect x="720" y="560" width="180" height="74" fill="#2a1f16"/>
+      <g stroke="#8a6a48" stroke-width="4">
+        <line x1="316" y1="562" x2="316" y2="632"/><line x1="332" y1="562" x2="332" y2="632"/><line x1="348" y1="562" x2="348" y2="632"/><line x1="364" y1="562" x2="364" y2="632"/><line x1="380" y1="562" x2="380" y2="632"/><line x1="396" y1="562" x2="396" y2="632"/><line x1="412" y1="562" x2="412" y2="632"/><line x1="428" y1="562" x2="428" y2="632"/><line x1="444" y1="562" x2="444" y2="632"/><line x1="460" y1="562" x2="460" y2="632"/>
+        <line x1="736" y1="562" x2="736" y2="632"/><line x1="752" y1="562" x2="752" y2="632"/><line x1="768" y1="562" x2="768" y2="632"/><line x1="784" y1="562" x2="784" y2="632"/><line x1="800" y1="562" x2="800" y2="632"/><line x1="816" y1="562" x2="816" y2="632"/><line x1="832" y1="562" x2="832" y2="632"/><line x1="848" y1="562" x2="848" y2="632"/><line x1="864" y1="562" x2="864" y2="632"/><line x1="880" y1="562" x2="880" y2="632"/>
+      </g>
+    </g>
+    <!-- doorway -->
+    <rect x="500" y="552" width="200" height="82" fill="#4a3320"/>
+    <!-- noren -->
+    <rect x="500" y="540" width="97" height="80" fill="#33456a"/>
+    <rect x="603" y="540" width="97" height="80" fill="#33456a"/>
+    <rect x="500" y="540" width="200" height="8" fill="#26344f"/>
+
+    <!-- namako skirt -->
+    <rect x="280" y="648" width="640" height="46" fill="#2b3036"/>
+    <g stroke="#efe9da" stroke-width="6">
+      <line x1="360" y1="650" x2="360" y2="692"/><line x1="440" y1="650" x2="440" y2="692"/><line x1="520" y1="650" x2="520" y2="692"/><line x1="600" y1="650" x2="600" y2="692"/><line x1="680" y1="650" x2="680" y2="692"/><line x1="760" y1="650" x2="760" y2="692"/><line x1="840" y1="650" x2="840" y2="692"/>
+      <line x1="282" y1="672" x2="918" y2="672"/>
+    </g>
+  </g>
+
+  <!-- cat on the ridge -->
+  <g fill="#241d16">
+    <ellipse cx="600" cy="192" rx="34" ry="16"/>
+    <circle cx="622" cy="178" r="13"/>
+    <path d="M612 168 L604 150 L618 160 Z"/>
+    <path d="M626 167 L638 148 L636 162 Z"/>
+    <path d="M586 186 q -22 -6 -30 2 q 20 4 30 -2 Z"/>
+    <path d="M566 190 q -10 -4 -16 0 q 10 3 16 0 Z"/>
+  </g>
+</svg>

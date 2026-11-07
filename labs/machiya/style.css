@@ -1,0 +1,38 @@
+/* Lab 04 theme: machiya. Bengara red, indigo noren and warm plaster on a
+   plaster-white page. Everything else comes from ../shared/lab.css. */
+:root {
+  --ink: #241d16;
+  --muted: #6a5c49;
+  --soft: #9c8d79;
+  --accent: #b5533a;      /* bengara */
+  --accent2: #3a4a66;     /* indigo noren */
+  --wash: rgba(181, 83, 58, 0.16);
+  --bg: #fbf7f0;
+  --code-bg: #f5efe6;
+}
+.jp { color: var(--accent); }
+.hero { background: linear-gradient(180deg, transparent, rgba(58, 74, 102, 0.05)); }
+.stage { height: clamp(560px, 80vh, 880px); }
+.hud.tl { top: 50px; }
+.name .jp { font-size: 0.95rem; color: var(--accent); margin-left: 6px; }
+.tag i { color: var(--soft); }
+.view { cursor: pointer; }
+.view:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 12px; }
+.view::after {
+  content: 'built live · hover to lift'; position: absolute; left: 0; right: 0; bottom: 3%; text-align: center;
+  font-family: var(--serif); font-style: italic; font-size: 0.85rem; color: var(--accent); opacity: 0; transition: opacity 0.25s;
+}
+.tile:hover .view::after, .tile:focus-within .view::after { opacity: 0.85; }
+.game-list { max-width: 52rem; margin: 26px 0 0; padding-left: 1.2em; font-family: var(--serif); font-weight: 300; font-size: 1.2rem; line-height: 1.65; color: var(--ink); }
+.game-list li { margin: 0 0 10px; }
+.game-list em { color: var(--accent); }
+.game-list code { font-size: 0.82em; }
+.section .fam-head h2 em, .family .fam-head h2 em { color: var(--accent); }
+.stats2 { margin: 5px 0 0; font-size: 0.72rem; color: var(--soft); font-variant-numeric: tabular-nums; }
+.how { margin: 12px 0 0; padding-left: 1.1em; font-size: 0.84rem; line-height: 1.6; color: var(--muted); }
+.how li { margin: 0 0 6px; }
+.use { margin: 14px 0 0; font-size: 0.82rem; color: var(--ink); }
+.use b { font-family: var(--serif); font-style: italic; font-weight: 400; color: var(--accent); }
+.srcs { margin: 10px 0 0; padding: 0; list-style: none; font-size: 0.78rem; line-height: 1.7; }
+#seg-style button { min-width: 3.4em; }
+@media (max-width: 700px) { .stage { height: 62vh; } }

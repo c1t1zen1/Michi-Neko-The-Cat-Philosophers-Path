@@ -60,7 +60,7 @@ class Geo {
     this.attributes = {
       position: { count: 0, setXYZ() {}, getX: () => 0, getY: () => 0, getZ: () => 0, needsUpdate: false, array: [] },
       normal: { count: 0, array: [] },
-      uv: { count: 0, array: [] },
+      uv: { count: 0, array: [], setXY() {} },
     };
     this.boundingSphere = null;
     this.morphAttributes = {};
@@ -71,6 +71,7 @@ class Geo {
   scale() { return this; }
   translate() { return this; }
   setAttribute() { return this; }
+  setIndex() { return this; }
   computeVertexNormals() { return this; }
   computeBoundingSphere() { return this; }
   setFromPoints() { return this; }
@@ -149,7 +150,8 @@ const foliageStub = {
   createFoliageMaterial: () => mat(), createFoliageDepthMaterial: () => mat(),
   leafCardTexture: () => ({}), leafCardGeometry: () => ({}),
   buildCanopy: () => ({ parts: [], extents: null }), updateFoliage: () => {},
-  lumpyTuftGeometry: () => ({}),
+  lumpyTuftGeometry: () => ({}), lumpyConeGeometry: () => ({}), bushGeometry: () => ({}),
+  leafMassTexture: () => ({}),
 };
 /* ---------------- load the real module source ---------------- */
 let src = readFileSync(join(ROOT, 'src', 'mountaintop.js'), 'utf8');
@@ -232,7 +234,8 @@ const pre = `
   const createFoliageMaterial = () => ({}), createFoliageDepthMaterial = () => ({}),
         leafCardTexture = () => ({}), leafCardGeometry = () => ({}),
         buildCanopy = () => ({ branches: new THREE.BufferGeometry(), tufts: new THREE.BufferGeometry(), cards: new THREE.BufferGeometry(), extents: null }),
-        updateFoliage = () => {}, lumpyTuftGeometry = () => ({});
+        updateFoliage = () => {}, lumpyTuftGeometry = () => ({}),
+        lumpyConeGeometry = () => ({}), bushGeometry = () => ({}), leafMassTexture = () => ({});
   const GLTFLoader = class { load() {} };
   const BiomeMask = class { box() {} rect() {} disc() {} paint() {} bake() { return {}; } };
   const GrassSystem = class {
@@ -439,14 +442,44 @@ ok('the approach shoulder sits tightly beneath every tread and the landing',
   treadSupportGaps.every((gap) => gap >= 0.02 && gap <= 0.07) &&
   landingSupportGap >= 0.02 && landingSupportGap <= 0.07,
   `treads=${treadSupportGaps.map((n) => n.toFixed(3)).join(',')} landing=${landingSupportGap.toFixed(3)}`);
-const basinCoverage = S.vistaTerrain && S.vistaTerrain.userData.coverage;
-const skirtCoverage = S.summitSkirt && S.summitSkirt.userData.coverage;
-ok('summit skirt overlaps the curved basin edge and hides side endpoints',
-  !!shoulderCoverage && !!basinCoverage && !!skirtCoverage &&
-  basinCoverage.zMin === shoulderCoverage.basinJoinZ &&
-  skirtCoverage.innerRadius <= shoulderCoverage.approachZMin &&
-  skirtCoverage.outerRadius > Math.hypot(basinCoverage.xMax, basinCoverage.zMin + 20),
-  `skirt=${JSON.stringify(skirtCoverage)} basin=${JSON.stringify(basinCoverage)}`);
+// The summit used to float: a skirt that fell 44 m into nothing, a separate
+// basin sheet with open edges, and turf that sat above the torii landing.
+// One terrain now runs from under the meadow rim to the horizon.
+const terrainCoverage = S.summitTerrain && S.summitTerrain.userData.coverage;
+ok('one terrain runs from under the meadow rim to the horizon',
+  !!terrainCoverage && !!shoulderCoverage &&
+  terrainCoverage.innerRadius <= shoulderCoverage.approachZMin &&
+  terrainCoverage.outerRadius >= 400,
+  JSON.stringify(terrainCoverage));
+const buriedTreads = [];
+for (let z = 8.3; z < shoulderCoverage.lowerPathZ; z += 0.25) {
+  for (const x of [-2.6, -1.2, 0, 1.2, 2.6]) {
+    if (S.terrainHeightAt(x, z) > S.approachSupportAt(x, z).y + 0.001) buriedTreads.push(`${x},${z.toFixed(2)}`);
+  }
+}
+ok('the hillside stays beneath every tread, the landing and the lower path',
+  buriedTreads.length === 0, buriedTreads.slice(0, 6).join(' '));
+const browGaps = [];
+for (let i = 0; i < 24; i++) {
+  const a = (i / 24) * Math.PI * 2;
+  const x = Math.sin(a) * 12.2, z = Math.cos(a) * 12.2;
+  if (Math.abs(x) < 4.5 && z > 0) continue; // the stair notch
+  const gap = (S.origin.y + 0.08) - (S.origin.y + S.terrainHeightAt(x, z));
+  if (gap < 0 || gap > 0.05) browGaps.push(`${i}:${gap.toFixed(3)}`);
+}
+ok('the brow meets the meadow edge all the way round', browGaps.length === 0, browGaps.join(' '));
+ok('behind the summit the land climbs out of the valleys into ridges',
+  S.landHeightAt(0, -300) > S.landHeightAt(0, -60) + 4 &&
+  S.landHeightAt(-300, 0) > S.landHeightAt(-60, 0) + 4,
+  `back=${S.landHeightAt(0, -60).toFixed(1)}->${S.landHeightAt(0, -300).toFixed(1)}`);
+// The bay surface is at y = -12.8.
+ok('the city floor stays above the bay and the sea floor sinks below it',
+  S.landHeightAt(0, 60) > -12.8 && S.landHeightAt(0, 200) < -14.5,
+  `city=${S.landHeightAt(0, 60).toFixed(2)} sea=${S.landHeightAt(0, 200).toFixed(2)}`);
+const rimSight = S.perchSightlineAt(0, 12.2);
+ok('the perch sightline grazes the rim and falls away beyond it',
+  Math.abs(rimSight - 0.08) < 0.02 && S.perchSightlineAt(0, 30) < rimSight - 1,
+  `rim=${rimSight.toFixed(3)} beyond=${S.perchSightlineAt(0, 30).toFixed(2)}`);
 
 // --- containment: the cat can never wander off the summit ---
 const runaway = { x: 300, y: 0, z: 0 };

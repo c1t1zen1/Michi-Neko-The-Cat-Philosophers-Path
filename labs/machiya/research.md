@@ -82,3 +82,110 @@ frame, there's no wall base and no gap under the floor, and nothing weathers.
 * Wikipedia — *Engawa* — <https://en.wikipedia.org/wiki/Engawa> (excerpt)
 * Ichimiya — *のれん雑学* — <https://www.the.kyoto.jp/ichi_web-old/chirashi/noren/noren_zatsugaku.pdf> (excerpt)
 * Itami Art — *のれんの種類やサイズ* — <https://www.i-noren.com/column/noren_types_sizes> (excerpt)
+
+---
+
+# Machiya research — shading pass (2026-11-06)
+
+A second pass, this time on *how to light and paint* the machiya for the
+Ghibli / Kyoto-Animation look the lab targets: a photoreal background with
+painterly vibes. 18 searches on top of the façade vocabulary above. "Read" =
+fetched and summarised; "Excerpt" = only the search summary was available.
+
+## The target look, stated precisely
+
+Kyoto Animation and the studio's imitators build a *hybrid*: the background
+is rendered physically (PBR, real lights, ACES colour), the character is
+cel-shaded, and a compositing/grade pass ties them together (ZerodotStudio,
+note.com — read). The lab maps this to:
+
+1. **Background (photoreal)** — `MeshStandardMaterial` with the painterly
+   256 px procedural textures, an environment map, and ACES filmic tone
+   mapping. Nothing is downloaded; the "photorealism" lives in the maps and
+   the light rig.
+2. **Character (painterly)** — the real `src/cat.js`, lit with a soft rim and
+   a gentle toon grade.
+3. **The grade** — a *soft* five-band toon ramp (`MeshToonMaterial` with a
+   smooth gradient map) so surfaces feel physical but read as paint. This is
+   the "hybrid" style in the lab.
+
+## Three.js techniques found and used
+
+| Technique | How it works | Where it came from |
+|-----------|-------------|--------------------|
+| Cel shading | Quantise `N·L` into bands. `MeshToonMaterial` does it via a 1-D `gradientMap` sampled with `NearestFilter`. Three hard bands = Ghibli banding | three.js *MeshToonMaterial* docs (read); salivity article (excerpt); MasterAllArts s4-09 (excerpt) |
+| Soft / painterly bands | The same ramp with *more, closer* steps quantises more finely, so painted textures keep their tones instead of flattening to three | D. J. Morris *Ghibli shader* (read); Matsuyama's original palette `#427062 #33594E #234549 #1E363F` is quoted there |
+| Gradient map | `new THREE.DataTexture(new Uint8Array([118,224]), 3, 1, THREE.RedFormat)` with `minFilter=magFilter=NearestFilter`, `needsUpdate` | three.js docs (read), sbcode (excerpt) |
+| Inverted-hull outline | A second mesh, back faces only, extruded along normals, painted black. Cheap, GPU-friendly, silhouette-only | Moonjump (read); polyfork (read: "smoothed normals matter — hard edges tear the hull"); MasterAllArts (excerpt) |
+| Screen-space edge detect | Sobel over depth + normals for interior lines (post-process). The lab uses inverted hull only — enough at cat-eye distance | buggzeth/three-js-toon-shader (excerpt) |
+| Fresnel rim light | `pow(1 - max(dot(N, V), 0), e)` separates the roof from the sky, an anime cue | Moonjump (read) |
+| Painterly post | Normal maps distort screen UVs for brush strokes; a canvas/paper texture is multiplied on top; colour variation is layered on | 80.lv *First Love* (read) |
+| Instanced building parts | One `InstancedMesh` of half-round tiles per roof, one of koushi slats, instead of N `box()` calls | mysimulator *Procedural buildings* (read); jasonsturges three-low-poly (excerpt) |
+| Gable vs hip roof | Two slopes meeting at a ridge (`gabledRoof`) vs a shorter ridge with sloped ends (`hipRoof`) — same vertex layout, different ridge length | mysimulator (read, code) |
+| Procedural weathering | A single `SkyscraperGenerator`-style builder: one material shades every zone, world-space weathering on top | three.js *SkyscraperGenerator.d.ts* (excerpt) |
+
+## Facade and roof details, with numbers
+
+* **Namako-kabe** — square black tiles set on the diagonal, joints raised
+  with white plaster to a sea-cucumber (namako) profile; behind it a ~30 cm
+  earthen wall on komai lath (Shimizu; shimizu-spirit.jp — read).
+* **Kawara vocabulary** — *marugawara* (round), *hiragawara* (concave),
+  *nokigawara* (eave-end, the lipped round ends), *onigawara* (demon ridge
+  tiles), *toribusuma* (bird-shaped ridge caps) (Nihongawara, gov-online —
+  read). *Sangawara* is the combined single tile (JIS A5208, 305×305 mm).
+* **Roof pitch** — 4.5–5 *sun* in 1 *shaku* (≈ 24–26°) on Nara machiya
+  (Nara Machiya guide PDF — read); the game and lab use 4.5/10.
+* **Façade typology** — *tsushi-nikai* (low second storey + mushiko-mado,
+  popular Edo–Meiji; the low roof stopped fire jumping the street) vs
+  *hon-nikai* (full second storey, later) (nippon.com, Japanese Wiki Corpus —
+  read).
+* **Kōshi patterns** — itoya (thread, slat tops cut back to judge colour),
+  komeya (rice), sakaya (sake), fuya (wheat gluten), sumiya (charcoal),
+  shimotaya (residence, thinner slats) (Hachise, shizen-ya — excerpt).
+* **Noren** — 3 *shaku* (113 cm) standard, *han-noren* ≈ 56 cm, *mizuhiki*
+  30–40 cm; Kansai noren hide the hanging loops in one sewn sleeve (Ichimiya,
+  Itami Art — excerpt).
+
+## Decisions that changed the lab
+
+1. **One builder, three shaders.** The same `buildMachiya()` produces
+   standard (PBR), toon (cel) and hybrid (painterly) by swapping the material
+   set, so the variants compare apples to apples.
+2. **The cat jumps for real.** The hero copies the game's 7.2 m/s take-off
+   and −20 m/s² gravity (1.3 m apex), plus step-up, coyote time and a climb
+   mode for the kōshi and mushiko-mado. A route that works here works in the
+   valley.
+3. **A street, not a house.** Three machiya in a row give roof-to-roof jumps
+   and the overlapping-eave rhythm; the en-no-shita under the engawa is the
+   cat's hiding spot.
+4. **Inverted hull, not a post pass.** Silhouette outlines are enough at
+   cat-eye distance, and they cost one extra draw per mesh with no render
+   target.
+
+## Image references
+
+* Machiya in Kyoto: <https://commons.wikimedia.org/wiki/Category:Machiya_in_Kyoto>
+* Pontochō at night: <https://commons.wikimedia.org/wiki/Category:Pontocho_at_night>
+* Streets in Gion: <https://commons.wikimedia.org/wiki/Category:Streets_in_Gion,_Kyoto>
+* Nara Machiya illustrated guide (PDF): <http://naramachi-nigiwainoie.jp/english/wp-content/uploads/2018/11/machiya_guide_english.pdf>
+
+## Sources added this pass
+
+* three.js — *MeshToonMaterial* — <https://threejs.org/docs/pages/MeshToonMaterial.html> (read)
+* Daniel John Morris — *Ghibli-style shaders in Three.js* — <https://danieljohnmorris.com/writing/ghibli-shader-parallax-scene/> (read)
+* Moonjump — *Toon shading / cel shading: how it works* — <https://moonjump.com/game-dev-mechanics-toon-shading-cel-shading-how-it-works/> (read)
+* polyfork — *Three.js shaders: toon, outline* — <https://polyfork.dev/threejs-shaders> (read)
+* MasterAllArts — *Stylized & NPR (toon, outlines, hatching, painterly)* — <https://masterallarts.com/learn/threejs-from-zero/s4-09-stylized-npr/> (excerpt)
+* ZerodotStudio — *Anime-style characters & realistic backgrounds with shaders* — <https://note.com/zerodot/n/n42a3aecab98f?hl=en> (read)
+* 80.lv — *First Love: 3D environment with Japanese aesthetics* — <https://80.lv/articles/transforming-first-love-into-3d-environment-with-japanese-aesthetics> (read)
+* mysimulator — *Procedural buildings in Three.js* — <https://www.mysimulator.uk/content/tutorials/procedural-building-threejs-tutorial.html> (read, code)
+* jasonsturges — *three-low-poly* — <https://github.com/jasonsturges/three-low-poly/> (excerpt)
+* three.js — *SkyscraperGenerator* (procedural city) — <https://cdn.jsdelivr.net/npm/@types/three@0.185.4/examples/jsm/generators/city/SkyscraperGenerator.d.ts> (excerpt)
+* Nihongawara — *Preserving and passing on tradition* (Govt of Japan) — <https://www.gov-online.go.jp/hlj/en/march_2026/march_2026-08.html> (read)
+* Blue Vagabond — *Kawara roof building workshop* — <https://blue-vagabond.com/2019/05/10/kawara-japanese-roof-building-workshop/> (read)
+* Shimizu — *Visiting a residence with namako-kabe walls* — <https://www.shimizu-spirit.jp/post/02-01-namakokabe> (read)
+* Japanese Wiki Corpus — *Kyo-machiya* — <https://www.japanesewiki.com/building/Kyo-machiya.html> (read)
+* Nippon.com — *Recognizing design features in Kyoto's machiya townhouses* — <https://www.nippon.com/en/articles/-/16823> (read)
+* buggzeth — *three-js-toon-shader* (post-process outlines) — <https://github.com/buggzeth/three-js-toon-shader> (excerpt)
+* salivity — *Three.js cel shading with MeshToonMaterial* — <https://salivity.github.io/three.js/article/three-js-cel-shading-with-mesh-toon-material> (excerpt)
+* sbcode — *MeshToonMaterial tutorial* — <https://sbcode.net/threejs/meshtoonmaterial/> (excerpt)

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Interiors · A room for a small visitor — Michi-Neko Labs</title>
+  <meta name="description" content="Twelve live Kyoto interiors. Slide the shoji, take tatami apart, and let Michi explore a painterly Three.js house, one small jump at a time.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E茶%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
+  <link rel="stylesheet" href="../shared/lab.css">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <canvas id="gl" aria-hidden="true"></canvas>
+  <main class="page">
+    <header class="mast interior-mast">
+      <div>
+        <p class="kicker">Michi-Neko · Lab 21 · <span lang="ja">座敷</span></p>
+        <h1>A room for<br><em>a small visitor.</em></h1>
+        <p class="lede">Rush under the paws. Paper full of afternoon light. A cup just a little too close to the edge. Twelve Kyoto interiors to take apart, put together, and make yourself at home in.</p>
+        <nav class="jump" aria-label="Sections"><a href="#house" class="go">Come inside ↘</a><a href="#rooms">Twelve rooms</a><a href="#craft">The small details</a><a href="#research">Field notes</a></nav>
+      </div>
+      <aside class="mast-note"><span class="jp" lang="ja">ただいま。</span><span>A study of light,<br>materials, and belonging.</span><small>Kyoto, in miniature<br>Real geometry · painted at load time</small></aside>
+    </header>
+  </main>
+
+  <section class="house-shell" id="house" aria-labelledby="house-heading">
+    <div class="house-top"><div><p class="eyebrow">01 / THE OPEN HOUSE</p><h2 id="house-heading">The garden <em>zashiki</em></h2></div><p id="room-caption">Eight mats, an open veranda, and somewhere warm to sit.</p><span class="room-stamp jp" lang="ja" id="room-jp">庭の座敷</span></div>
+    <div class="house-layout">
+      <div class="stage-wrap">
+        <div id="stage" class="house-stage" tabindex="0" role="region" aria-label="Interactive Kyoto room. Click the floor to walk, Space to jump, E to bat a nearby cup. Drag to orbit.">
+          <div class="hud stage-label"><span class="live-dot"></span> LIVE ROOM <span id="room-count">01 / 12</span></div>
+          <p class="wake" id="wake">Opening the shutters. Michi is waking up…</p>
+          <div class="view-switch hud" role="group" aria-label="Camera"><button type="button" data-view="dollhouse" aria-pressed="true">Dollhouse</button><button type="button" data-view="eye" aria-pressed="false">Cat’s eye</button><button type="button" data-view="plan" aria-pressed="false">Plan</button></div>
+          <div id="labels" class="room-labels" hidden></div>
+          <div class="hud cat-status" id="cat-status" aria-live="polite">Michi · on the tatami</div>
+          <div class="hud orbit-hint">Drag to look around · scroll to zoom</div>
+        </div>
+        <div class="walk-bar"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk <span class="desktop-hint">/ click the floor</span></span><span><kbd>Space</kbd> jump</span><span><kbd>E</kbd> bat a cup</span><span><kbd>C</kbd> prowl</span><button type="button" id="reset-camera">Reset view ↺</button></div>
+        <div class="touch-walk" role="group" aria-label="Touch movement"><button type="button" data-move="u" aria-label="Walk forward">↑</button><button type="button" data-move="l" aria-label="Walk left">←</button><button type="button" data-move="d" aria-label="Walk backward">↓</button><button type="button" data-move="r" aria-label="Walk right">→</button><button type="button" id="touch-jump">Jump</button><button type="button" id="touch-bat">Bat</button></div>
+      </div>
+      <aside class="room-controls" aria-label="Room controls">
+        <label class="field"><span class="eyebrow">YOUR ROOM</span><select id="room-select" aria-label="Room recipe"></select></label>
+        <p class="control-note" id="room-note"></p>
+        <div class="control-block"><label for="hour">The light <output id="hour-out">16:00</output></label><input id="hour" type="range" min="6" max="23" step="0.25" value="16"><div class="range-ends"><span>Morning</span><span>Lantern hour</span></div></div>
+        <div class="control-block"><label for="doors">Slide the screens <output id="doors-out">65%</output></label><input id="doors" type="range" min="0" max="1" step="0.01" value="0.65"><div class="range-ends"><span>Paper & shadow</span><span>Open to the garden</span></div></div>
+        <div class="control-block"><label class="check"><input type="checkbox" id="labels-toggle"> Name the parts</label><label class="check"><input type="checkbox" id="roof-toggle"> Show the ceiling</label><label class="check"><input type="checkbox" id="motion-toggle"> Still air / less motion</label></div>
+        <p class="eyebrow cat-heading">A SMALL VISITOR</p>
+        <div class="action-grid"><button type="button" id="mode-walk" aria-pressed="true">Explore</button><button type="button" id="mode-tour" aria-pressed="false">Take a stroll</button><button type="button" id="hop-table">Hop onto furniture ↗</button><button type="button" id="nap">Find a nap spot</button></div>
+        <div class="quiet-actions"><button type="button" id="reset-props">Put the cups back</button><button type="button" id="share">Copy room link ↗</button></div>
+        <div class="quiet-actions"><button type="button" id="turn-mats">Turn the tatami layout ↻</button><button type="button" id="save-image">Save room image ↗</button></div>
+        <p id="message" class="message" role="status">Click a patch of tatami to invite Michi over.</p>
+        <details class="quality-details"><summary>Rendering &amp; quality</summary><label class="field">Quality<select id="quality"><option value="auto">Auto</option><option value="eco">Eco</option><option value="lush">Lush</option></select></label><p id="perf">Warming up…</p><p id="stats"></p></details>
+      </aside>
+    </div>
+    <div class="house-bottom"><span id="room-materials">Igusa · cedar · kōzo paper · earthen plaster</span><span>A little house. No hurry.</span></div>
+  </section>
+
+  <main class="page">
+    <section class="family room-family" id="rooms" aria-labelledby="rooms-heading">
+      <div class="section-title"><p class="eyebrow">02 / A KYOTO ROOM BOOK</p><h2 id="rooms-heading">Twelve ways to <em>feel at home.</em></h2><p>Each miniature is a live Three.js room, built from the same kit. Different floor plans, screens, joinery, furniture, and seasons. Choose one to step inside.</p></div>
+      <div class="filters" role="group" aria-label="Filter room recipes"><button type="button" data-filter="all" aria-pressed="true">The whole house <span>12</span></button><button type="button" data-filter="tea" aria-pressed="false">Quiet &amp; tea <span>3</span></button><button type="button" data-filter="daily" aria-pressed="false">Everyday Kyoto <span>3</span></button><button type="button" data-filter="season" aria-pressed="false">The seasons <span>3</span></button><button type="button" data-filter="night" aria-pressed="false">After the sun <span>3</span></button></div>
+      <div id="gallery" class="room-gallery"></div>
+    </section>
+
+    <section class="section craft-section" id="craft" aria-labelledby="craft-heading">
+      <div class="section-title"><p class="eyebrow">03 / LOOK A LITTLE CLOSER</p><h2 id="craft-heading">A room is made of <em>small things.</em></h2><p>Pull a tatami apart, follow the lattice, or turn a bowl on the wheel. These are the actual builders used in the rooms above.</p></div>
+      <div class="craft-layout"><div><div class="craft-tabs" role="group" aria-label="Craft specimen"><button type="button" data-craft="tatami" aria-pressed="true">01 Tatami</button><button type="button" data-craft="shoji" aria-pressed="false">02 Shoji</button><button type="button" data-craft="pottery" aria-pressed="false">03 Pottery</button></div><div id="craft-stage" class="craft-stage" role="img" aria-label="Live exploded view of tatami construction"></div></div><div class="craft-copy"><p class="eyebrow" id="craft-jp">畳 / TATAMI</p><h3 id="craft-title">A little field, woven.</h3><p id="craft-description"></p><label class="craft-slider" for="explode"><span id="explode-label">Pull the layers apart</span><input type="range" id="explode" min="0" max="1" step="0.01" value="0.65"></label><label class="field"><span id="finish-label">The surface</span><select id="craft-finish"></select></label><ol id="craft-key"></ol><details><summary>The Three.js recipe</summary><pre class="code" id="craft-code"></pre></details></div></div>
+    </section>
+
+    <section class="section building-section" id="building" aria-labelledby="building-heading">
+      <div class="section-title"><p class="eyebrow">04 / LEARN BY BUILDING</p><h2 id="building-heading">From a floor to <em>a feeling.</em></h2><p>Six construction passes. Choose a step to change the open house above; every room uses the same sequence.</p></div>
+      <div id="build-steps" class="build-steps"></div><a class="return-link" href="#house">Look at the house ↑</a>
+    </section>
+
+    <section class="section field-notes" id="research" aria-labelledby="research-heading"><div class="section-title"><p class="eyebrow">05 / NOTES FROM THE WORKBENCH</p><h2 id="research-heading">Built for <em>Michi’s Kyoto.</em></h2></div><div class="notes-grid"><article><h3>The room remembers its materials.</h3><p>Kyōma mats use the Kyoto maker’s 191 × 95.5 cm module. Heri belongs on the long edges. The full-mat layouts are solved as tilings, with no four corners meeting. Wood has grain, paper has fibres, and bowls have a foot, an inside, and a hand-shaped rim.</p></article><article><h3>Light is the quiet furniture.</h3><p>Soft window fill, real lattice shadows, painted branch silhouettes, and warm andon light create the mood. Shoji diffusion is an artistic approximation; the paper control is not a physical transmission measurement.</p></article><article><h3>A house with good manners.</h3><p>The formal tea room stays sparse. Everyday rooms get low dining tables; the ceremonial room gets a brazier and utensils. The tokonoma remains a display alcove. Michi’s knockable cups live on furniture, and always come back in one piece.</p></article><article><h3>Ready for a game review.</h3><p>This is a standalone lab. Its reusable room kit is organised into floors, frame, screens, alcove, furniture, and atmosphere. The game’s cat comes through the shared Labs bridge; no valley layout or summit code changes.</p></article></div><details class="source-details" open><summary>Research, references &amp; technique notes</summary><p>Architecture from Kyoto makers, museums, and restoration references. Rendering patterns from official Three.js examples, adapted for r160. <a href="research.md">Read the full research notebook ↗</a></p><ul id="source-list" class="source-list"></ul></details></section>
+  </main>
+  <footer class="foot"><p><a href="../">← Back to the Labs</a> · A room for a small visitor.</p></footer>
+  <noscript><p class="fallback">This lab needs JavaScript and WebGL. The <a href="research.md">research notebook</a> can be read without them.</p></noscript>
+  <script type="module">
+    if (location.protocol === 'file:') {
+      document.getElementById('wake').textContent = 'Serve the repository over HTTP: python3 -m http.server 8000, then open localhost:8000/labs/interiors/';
+    } else import('./js/main.js').catch((error) => {
+      console.error(error);
+      document.getElementById('wake').textContent = 'The room could not open. Check WebGL and the Three.js CDN connection, then reload.';
+    });
+  </script>
+</body>
+</html>

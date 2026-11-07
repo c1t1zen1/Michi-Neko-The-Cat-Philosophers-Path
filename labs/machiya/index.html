@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lab 04 · Machiya — Michi-Neko Labs</title>
+  <meta name="description" content="Build a Kyoto townhouse post by post: kawara tiles, koushi lattice, shikkui plaster, and a cat that climbs the walls and jumps roof to roof.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%98%EF%B8%8F%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
+  <link rel="stylesheet" href="../shared/lab.css">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <canvas id="gl" aria-hidden="true"></canvas>
+
+  <main class="page">
+    <header class="mast">
+      <p class="kicker">Michi-Neko · Labs · 04 · <span class="jp">町家</span></p>
+      <h1>Build a machiya<br><em>post by post</em></h1>
+      <p class="lede">A Kyoto townhouse is a lattice, a seven-coat clay wall and a wave of fired tiles, all standing on one stone per post. This lab rebuilds it nine ways — from the flat boxes the game uses now to a cel-shaded, weathered street — and lets Michi climb the kōshi, run up the inuyarai and leap roof to roof. Everything is painted at load time.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#walk" class="go">Climb the house ↓</a><a href="#families">Nine variants</a><a href="#steps">Build it up</a><a href="#game">Into the game</a><a href="#sources">Sources</a>
+      </nav>
+      <div class="controls">
+        <div class="ctl"><span class="ctl-l">Style</span><span class="seg" id="seg-style"></span></div>
+        <span id="hour-mount"></span>
+        <span id="hour-presets"></span>
+        <div class="ctl perf" id="perf" aria-live="off">warming up…</div>
+      </div>
+    </header>
+  </main>
+
+  <section class="hero" id="walk">
+    <div class="hero-head">
+      <p class="kicker">The climb</p>
+      <h2>Let the cat <em>go over the roof</em></h2>
+      <p class="sentence">A teahouse between two houses. Hop the engawa, run up the inuyarai, climb the lattice, and jump the gap to the next ridge.</p>
+    </div>
+    <div class="stage" id="stage">
+      <p class="wake" id="wake">Michi is waking up…</p>
+      <div class="hud tl" id="hudState">on the street</div>
+      <div class="hud bl">WASD / arrows walk · Space jump · Shift sprint · C prowl · V view · press into the lattice to climb · click the street to send Michi</div>
+    </div>
+    <div class="hero-foot">
+      <div class="row">
+        <div class="ctl"><span class="ctl-l">View</span><span class="seg" id="seg-view"><button data-v="iso" class="on">Isometric</button><button data-v="eye">Cat-eye</button></span></div>
+        <div class="ctl"><span class="ctl-l">Gait</span><span class="seg" id="seg-gait"><button data-v="walk" class="on">Walk</button><button data-v="prowl">Prowl</button></span></div>
+        <div class="ctl"><span class="ctl-l">Turn</span><span class="seg"><button id="btn-rotl" title="Turn the street (Q)">↺</button><button id="btn-rotr" title="Turn the street (E)">↻</button></span></div>
+      </div>
+      <p class="keys">Street → engawa → inuyarai → pent roof → lattice → mushiko-mado → ridge → next roof.</p>
+      <p class="hero-stats" id="heroStats">&nbsp;</p>
+    </div>
+  </section>
+
+  <main class="page">
+    <div id="families"></div>
+
+    <section class="section" id="steps">
+      <div class="fam-head"><span class="fam-num">12</span><h2>Build it <em>up</em></h2><p class="fam-sub">The order a carpenter follows, from the foundation stone to the noren. Click through, or press Play.</p></div>
+      <div id="steps-mount"></div>
+    </section>
+
+    <section class="section" id="game">
+      <div class="fam-head"><span class="fam-num">→</span><h2>Into the <em>game</em></h2><p class="fam-sub">How the winner moves into the valley</p></div>
+      <ul class="game-list">
+        <li>The <em>post-by-post</em> builder replaces the ~140 <code>box()</code> parts in <code>buildMachiyaTeaHouse</code>, <code>buildMachiyaResidence</code>, <code>buildSecretMachiya</code> and <code>buildVillageHouse</code> — one shared kit, four houses.</li>
+        <li><em>Instanced kawara</em> becomes one draw call per roof instead of two curved slabs; the <code>koushi</code> becomes one InstancedMesh instead of N boxes.</li>
+        <li>The <em>hybrid shader</em> (painterly PBR textures + a soft toon ramp) is the target look, so the photoreal background and the painterly cat finally share one grade.</li>
+        <li><em>Weathering</em> rides one per-house seed, so a repeated house kit reads as an old, lived-in street.</li>
+        <li>The <em>climb &amp; jump surfaces</em> reuse the game's exact 7.2 m/s take-off and −20 m/s² gravity, so a gap that works here works in the valley.</li>
+      </ul>
+    </section>
+
+    <section class="sources" id="sources">
+      <details>
+        <summary>Research &amp; sources</summary>
+        <p class="src-note">Eighteen searches and a dozen deep reads informed these designs; notes and numbers are in <code>research.md</code>.</p>
+        <ul id="srcList"></ul>
+      </details>
+    </section>
+  </main>
+
+  <footer class="foot"></footer>
+
+  <script>
+    if (location.protocol === 'file:') {
+      document.body.insertAdjacentHTML('afterbegin',
+        '<div style="position:relative;z-index:100;max-width:44rem;margin:12vh auto;padding:0 24px;font:1.1rem/1.7 Georgia,serif;color:#241d16">' +
+        '<p style="font-size:2rem;margin:0 0 .4em">This page needs a local web server.</p>' +
+        '<p>Browsers block ES modules opened straight from disk. From the repo root run <code>python3 -m http.server 8000</code> and open <b>http://localhost:8000/labs/machiya/</b>.</p></div>');
+      document.getElementById('gl').remove();
+    } else {
+      const s = document.createElement('script');
+      s.type = 'module'; s.src = 'js/main.js';
+      document.body.append(s);
+    }
+  </script>
+</body>
+</html>

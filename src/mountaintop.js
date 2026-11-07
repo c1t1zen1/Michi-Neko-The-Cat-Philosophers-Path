@@ -4,12 +4,13 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   dirtTextures, groundTextures, stoneTextures, woodTextures, metalTextures, barkTextures,
   texturedMaterial, worldNoise, glowTexture
-} from './textures.js?v=20261024c';
+} from './textures.js?v=20261106a';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture,
-  leafCardGeometry, buildCanopy, updateFoliage, lumpyTuftGeometry
-} from './foliage.js?v=20261024c';
-import { GrassSystem, BiomeMask } from './grass.js?v=20261024c';
+  leafCardGeometry, buildCanopy, updateFoliage, lumpyTuftGeometry,
+  lumpyConeGeometry, bushGeometry, leafMassTexture
+} from './foliage.js?v=20261106a';
+import { GrassSystem, BiomeMask } from './grass.js?v=20261106a';
 
 function mulberry32(a) {
   return function() {
@@ -68,7 +69,17 @@ const STEP_RUN = 1.05;
 const STEP_RISE = 0.28;
 const LANDING_Z0 = CORRIDOR_Z0 + STEP_COUNT * STEP_RUN;
 const LANDING_Z1 = CORRIDOR_Z1 + 0.35;
-const BASIN_JOIN_Z = 30;
+// Past the landing the stone path keeps descending through the trees toward
+// the city. It is scenery only: constrain() stops the cat at the landing.
+const LOWER_STEP_COUNT = 15;
+const LOWER_STEP_RUN = 1.7;
+const LOWER_STEP_RISE = 0.26;
+const LOWER_PATH_Z1 = LANDING_Z1 + LOWER_STEP_COUNT * LOWER_STEP_RUN;
+// One continuous landform reaches the horizon in every direction.
+const LAND_OUTER_R = 440;
+// Scenic camera offset from the seated cat. Planting on the bay-facing
+// slopes is capped to stay under this eye's line over the meadow rim.
+const PERCH_CAM = { x: -1.9, y: 2.15, z: -5.2 };
 
 /** Render and physics share the same stepped profile down to the torii. */
 function approachTopAt(z) {
@@ -76,6 +87,13 @@ function approachTopAt(z) {
   const step = Math.min(STEP_COUNT - 1,
     Math.max(0, Math.floor((z - CORRIDOR_Z0) / STEP_RUN)));
   return Math.max(ENTRY_Y, MEADOW_Y - step * STEP_RISE);
+}
+
+/** Tread tops of the scenic lower path, which starts where the landing ends. */
+function lowerStepTopAt(z) {
+  if (z <= LANDING_Z1) return ENTRY_Y;
+  const step = Math.min(LOWER_STEP_COUNT - 1, Math.floor((z - LANDING_Z1) / LOWER_STEP_RUN));
+  return ENTRY_Y - (step + 1) * LOWER_STEP_RISE;
 }
 
 // Optional cinematic for the ascent. Drop an mp4 at this path and it plays
@@ -99,7 +117,7 @@ const SUMMIT_WEATHER_DURATIONS = {
 const MEDITATE_SECONDS = 165;
 // Resolve from this module rather than the current document: the main game is
 // served from `/`, while the art-review page lives under `/tools/`.
-const SUMMIT_LANDMARKS_SRC = new URL('../assets/models/summit_kyoto_landmarks.glb?v=20261024c', import.meta.url).href;
+const SUMMIT_LANDMARKS_SRC = new URL('../assets/models/summit_kyoto_landmarks.glb?v=20261106a', import.meta.url).href;
 
 /** Smooth amount for a weather type while Sky cross-fades between states. */
 function summitWeatherAmount(sky, type) {
@@ -187,6 +205,11 @@ export class SummitManager {
       lanternGlow: new THREE.MeshStandardMaterial({ color: 0xffe0b0, emissive: 0x6e3c10, emissiveIntensity: 0.28, roughness: 0.9 })
     };
     this.MAT.meadow.vertexColors = true;
+    const landWash = this.makeLandTexture();
+    this.MAT.land = new THREE.MeshStandardMaterial({
+      vertexColors: true, roughness: 1, metalness: 0,
+      map: landWash, bumpMap: landWash, bumpScale: 0.6
+    });
 
     // Foliage materials for summit trees — the same painterly shader the
     // valley uses; the shared foliageUniforms clock keeps them swaying.
@@ -314,27 +337,80 @@ export class SummitManager {
     } else if (z <= LANDING_Z1) {
       y = ENTRY_Y - 0.5;
     } else {
-      fan = smoothstep(LANDING_Z1, BASIN_JOIN_Z, z);
-      y = THREE.MathUtils.lerp(
-        ENTRY_Y - 0.5,
-        this.vistaGroundHeight(x, BASIN_JOIN_Z) - 0.08,
-        fan
-      );
+      // A smooth ramp through the thick lower slabs, so the earth reads as
+      // one slope with the stones set into it rather than a terrace.
+      fan = smoothstep(LANDING_Z1, LOWER_PATH_Z1, z);
+      const run = Math.min(z, LOWER_PATH_Z1) - LANDING_Z1;
+      y = ENTRY_Y - 0.5 - run / LOWER_STEP_RUN * LOWER_STEP_RISE;
     }
     return {
       y,
-      halfWidth: THREE.MathUtils.lerp(CORRIDOR_W + 0.35, 18, fan),
+      halfWidth: THREE.MathUtils.lerp(CORRIDOR_W + 0.35, 4.2, fan),
       fan
     };
   }
 
-  /** Painterly mountain skin beneath the playable summit and distant vista. */
-  summitSkirtHeightAt(x, z) {
+  /**
+   * The land around the mountain: the Kyoto basin ahead, slipping under the
+   * bay past the shoreline, and wooded valleys elsewhere that climb into a
+   * ring of ridges, so no sightline ever ends in open sky below the horizon.
+   */
+  landHeightAt(x, z) {
     const r = Math.hypot(x, z);
-    const t = smoothstep(11.8, 55, r);
-    const rough = (worldNoise(x, z, 0.05, 3, 17) - 0.5) * 6 * Math.min(1, t * 3);
+    const away = Math.abs(Math.atan2(x, z));
+    const basin = THREE.MathUtils.lerp(this.vistaGroundHeight(x, z), -15.5, smoothstep(168, 184, z));
+    const valley = -12.5 + (worldNoise(x, z, 0.018, 3, 311) - 0.5) * 5;
+    const ridges = smoothstep(70, 240, r) * (5 + 22 * worldNoise(x, z, 0.0075, 4, 337));
+    return THREE.MathUtils.lerp(basin, valley + ridges, smoothstep(0.9, 1.55, away));
+  }
+
+  /**
+   * Highest point at (x, z) that the seated scenic camera cannot see over
+   * the meadow rim. Planting below it can never cover the city or the sea.
+   */
+  perchSightlineAt(x, z) {
+    const ex = this.perchLocal.x + PERCH_CAM.x;
+    const ez = this.perchLocal.z + PERCH_CAM.z;
+    const eyeY = this.perchLocal.y + PERCH_CAM.y;
+    const dist = Math.hypot(x - ex, z - ez);
+    const ux = (x - ex) / dist, uz = (z - ez) / dist;
+    const b = ex * ux + ez * uz;
+    const rimDist = -b + Math.sqrt(Math.max(0, b * b - (ex * ex + ez * ez - 12.2 * 12.2)));
+    return eyeY - (eyeY - MEADOW_Y) * dist / rimDist;
+  }
+
+  /**
+   * Rendered ground for everything outside the meadow disc: a rounded brow
+   * that falls through forested flanks into landHeightAt(), long and gentle
+   * toward the city, steeper behind. The stone approach and the lower path
+   * are pressed into it so the stairs always sit on earth.
+   */
+  terrainHeightAt(x, z) {
+    const r = Math.hypot(x, z);
+    const front = 1 - smoothstep(0.5, 1.2, Math.abs(Math.atan2(x, z)));
+    const reach = THREE.MathUtils.lerp(58, 34, front);
+    const s = clamp01((r - 12.2) / (reach - 12.2));
+    const fall = s * s * (3 - 2 * s);
+    // Spurs and gullies so the flanks never read as a lathe-turned cone.
+    const relief = (worldNoise(x, z, 0.07, 3, 17) - 0.5) * 3.4 *
+      Math.sin(Math.PI * s) * (1 - front * 0.65);
+    // Hummocks a few metres across, so the sun models the open slopes; they
+    // fade out on the city floor and under the stone approach.
+    const hummocks = (worldNoise(x, z, 0.16, 2, 41) - 0.5) * 0.7 * smoothstep(12.6, 16, r) *
+      (1 - smoothstep(30, 44, r) * front);
     const underlap = (1 - smoothstep(11.5, 12.4, r)) * 0.12;
-    return MEADOW_Y - 39 * Math.pow(t, 1.45) - 5 * t + rough - underlap;
+    let y = THREE.MathUtils.lerp(MEADOW_Y, this.landHeightAt(x, z), fall) + relief + hummocks - underlap;
+    if (z > CORRIDOR_Z0 - 1.5 && z < LOWER_PATH_Z1 + 6) {
+      const support = this.approachSupportAt(x, z);
+      // Deeper under the stepped stair so the coarse terrain triangles stay
+      // below the tighter approach shoulder that carries each tread.
+      const depth = 0.12 + 0.26 * (1 - smoothstep(LANDING_Z0, LANDING_Z0 + 1, z));
+      const bed = (1 - smoothstep(support.halfWidth, support.halfWidth + 2.6, Math.abs(x))) *
+        smoothstep(CORRIDOR_Z0 - 1.5, CORRIDOR_Z0 - 0.5, z) *
+        (1 - smoothstep(LOWER_PATH_Z1 + 1, LOWER_PATH_Z1 + 6, z));
+      y = THREE.MathUtils.lerp(y, support.y - depth, bed);
+    }
+    return y;
   }
 
   /** Soft containment: meadow circle + the stair corridor notch. */
@@ -388,6 +464,9 @@ export class SummitManager {
     if (this.harbourSkyline) {
       this.harbourSkyline.count = Math.max(1, Math.floor((this.harbourSkylineMax || this.harbourSkyline.count) *
         (tier === 'low' ? 0.58 : tier === 'medium' ? 0.8 : 1)));
+    }
+    for (const forest of this.slopeForest || []) {
+      forest.count = Math.max(1, Math.floor((forest.userData.summitMaxCount || forest.count) * fraction));
     }
     for (const cloud of this.summitClouds || []) {
       const max = cloud.mesh.userData.summitMaxCount || cloud.mesh.count;
@@ -891,6 +970,24 @@ export class SummitManager {
       const cr = s * 0.85;
       this.addColliderBox(x - cr, 0, z - cr, x + cr, s * h, z + cr);
     }
+
+    // Brow boulders half-sunk where the meadow rolls over into the slopes,
+    // kept out of the perch's view window so none of them sits on the city.
+    // Their own seed leaves this.rng, and everything drawn after, untouched.
+    const browRnd = mulberry32(7719);
+    this.browStones = [[7.8, 9.0, 1.05], [-8.6, 8.1, 0.9], [-10.9, 3.4, 1.15],
+      [11.0, 1.4, 0.95], [-6.4, -9.9, 1.1], [3.6, -11.3, 0.85], [-11.6, -3.0, 0.8]];
+    for (const [x, z, s] of this.browStones) {
+      const rock = new THREE.Mesh(rockGeo, this.MAT.stone);
+      rock.scale.set(s * 1.2, s * (0.42 + browRnd() * 0.16), s * (0.85 + browRnd() * 0.3));
+      rock.position.set(x, MEADOW_Y + s * 0.08, z);
+      rock.rotation.set((browRnd() - 0.5) * 0.2, browRnd() * Math.PI * 2, (browRnd() - 0.5) * 0.2);
+      rock.castShadow = rock.receiveShadow = true;
+      rock.name = 'Summit Brow Stone';
+      this.group.add(rock);
+      const cr = s * 0.9;
+      this.addColliderBox(x - cr, 0, z - cr, x + cr, s * 0.5, z + cr);
+    }
   }
 
   /* ================= Wind grass (src/grass.js) ================= */
@@ -914,7 +1011,10 @@ export class SummitManager {
     mask.disc('excl', this.perchLocal.x, this.perchLocal.z, 0.85, 1, 0.6);
     for (const stone of this.meditationPath) mask.disc('excl', stone.x, stone.z, stone.clearance * 0.8, 1, 0.25);
     mask.paint('wild', (x, z) => THREE.MathUtils.smoothstep(Math.hypot(x, z), 8.4, 11.2));
-    const flowerPatches = [[5.0, 1.2], [1.0, 3.8], [-3.1, 4.4], [-6.7, 1.2], [7.6, 5.4], [-5.8, -4.2], [4.8, -4.8]];
+    // The last four drift along the bay-facing brow, flowering the stretch
+    // the perch looks across on its way to the city.
+    const flowerPatches = [[5.0, 1.2], [1.0, 3.8], [-3.1, 4.4], [-6.7, 1.2], [7.6, 5.4], [-5.8, -4.2], [4.8, -4.8],
+      [4.7, 9.3], [-4.5, 9.5], [6.9, 7.3], [-7.3, 6.7]];
     for (const [x, z] of flowerPatches) mask.disc('flower', x, z, 1.6, 0.9, 2.6);
     mask.bake((x, z) => 1 - THREE.MathUtils.smoothstep(Math.hypot(x, z), 11.3, 12.2));
 
@@ -939,7 +1039,8 @@ export class SummitManager {
       { x: this.perchLocal.x, z: this.perchLocal.z, r: 1.35 },
       { x: 8.8, z: 5.8, r: 1.5 }, { x: -8.7, z: 6.2, r: 1.3 }, { x: -9.4, z: -3.6, r: 1.4 },
       { x: 9.1, z: -2.8, r: 1.2 }, { x: 5.7, z: 1.9, r: 1.0 }, { x: -4.6, z: 3.2, r: 1.0 },
-      { x: 1.6, z: 5.5, r: 0.9 }
+      { x: 1.6, z: 5.5, r: 0.9 },
+      ...this.browStones.map(([x, z, s]) => ({ x, z, r: s * 1.3 }))
     ]);
     if (this.previewQuality) grass.setDensity(0.5);
     this.grassMat = grass.layers[0].mat;
@@ -1127,14 +1228,12 @@ export class SummitManager {
 
   buildApproachShoulder() {
     const zMin = CORRIDOR_Z0 - 0.75;
-    const zMax = BASIN_JOIN_Z + 6;
-    const geo = new THREE.PlaneGeometry(2, 1, 32, 72);
+    const zMax = LOWER_PATH_Z1 + 3;
+    const geo = new THREE.PlaneGeometry(2, 1, 32, 96);
     geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position;
     const colors = new Float32Array(pos.count * 3);
-    const bankGreen = new THREE.Color(0x829d55);
-    const bankDry = new THREE.Color(0xb8aa6c);
-    const bankSoil = new THREE.Color(0x887454);
+    const moss = new THREE.Color(0x587a34);
     const c = new THREE.Color();
 
     for (let i = 0; i < pos.count; i++) {
@@ -1147,18 +1246,19 @@ export class SummitManager {
       const x = u * outerHalfWidth;
       const sideWeight = 1 - smoothstep(support.halfWidth, outerHalfWidth, Math.abs(x));
       const startWeight = smoothstep(zMin, CORRIDOR_Z0, z);
-      const endWeight = 1 - smoothstep(BASIN_JOIN_Z, zMax, z);
+      const endWeight = 1 - smoothstep(LOWER_PATH_Z1 - 1, zMax, z);
       const weight = sideWeight * startWeight * endWeight;
-      const baseY = this.summitSkirtHeightAt(x, z) - 0.025;
+      const baseY = this.terrainHeightAt(x, z) - 0.025;
       // Break the long banks into small natural undulations, but only outside
       // the stone-bearing core so no earth can poke through a tread.
       const bankBand = smoothstep(CORRIDOR_W + 0.08, support.halfWidth, Math.abs(x)) * sideWeight;
       const bankRough = (worldNoise(x, z, 0.34, 2, 173) - 0.5) * 0.22 * bankBand;
       pos.setXYZ(i, x, THREE.MathUtils.lerp(baseY, support.y, weight) + bankRough, z);
+      geo.attributes.uv.setXY(i, x / 6, -z / 6);
 
-      const mottling = worldNoise(x, z, 0.27, 2, 149);
-      c.copy(bankGreen).lerp(bankDry, mottling * 0.42);
-      c.lerp(bankSoil, (1 - sideWeight) * 0.18 + support.fan * 0.08);
+      // The hillside's own colour, darkening to moss in the stone joints.
+      this.landColorAt(x, z, c);
+      c.lerp(moss, (1 - smoothstep(CORRIDOR_W - 0.6, support.halfWidth + 0.2, Math.abs(x))) * 0.75);
       colors[i * 3] = c.r;
       colors[i * 3 + 1] = c.g;
       colors[i * 3 + 2] = c.b;
@@ -1166,7 +1266,7 @@ export class SummitManager {
 
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     geo.computeVertexNormals();
-    const shoulder = new THREE.Mesh(geo, this.MAT.meadow);
+    const shoulder = new THREE.Mesh(geo, this.MAT.land);
     shoulder.name = 'Torii Approach Earthen Shoulder';
     shoulder.castShadow = false;
     shoulder.receiveShadow = true;
@@ -1174,51 +1274,100 @@ export class SummitManager {
       approachZMin: zMin,
       approachZMax: zMax,
       approachHalfWidth: CORRIDOR_W + 0.35,
-      basinJoinZ: BASIN_JOIN_Z
+      lowerPathZ: LOWER_PATH_Z1
     };
     this.group.add(shoulder);
     this.approachShoulder = shoulder;
   }
 
-  buildSkirtAndVista() {
-    // Mountain shoulder: overlap the meadow, stair notch and distant basin
-    // so every gameplay view sees continuous earth rather than mesh edges.
-    // The enlarged outer ring ends deep inside the low-altitude haze.
-    const skirtInnerRadius = CORRIDOR_Z0 - 0.75;
-    const skirtOuterRadius = 180;
-    const skirt = new THREE.RingGeometry(skirtInnerRadius, skirtOuterRadius, 160, 40);
-    skirt.rotateX(-Math.PI / 2);
-    const pos = skirt.attributes.position;
-    const colors = new Float32Array(pos.count * 3);
-    const cGrass = new THREE.Color(0x7c9450);
-    const cRock = new THREE.Color(0x767065);
-    const cForest = new THREE.Color(0x3c5a30);
-    const cHaze = new THREE.Color(0x9aa4c0);
-    const c = new THREE.Color();
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i), z = pos.getZ(i);
-      const r = Math.hypot(x, z);
-      const t = smoothstep(11.8, 55, r);
-      pos.setY(i, this.summitSkirtHeightAt(x, z));
-      c.copy(cGrass).lerp(cRock, smoothstep(0.08, 0.4, t));
-      c.lerp(cForest, smoothstep(0.3, 0.7, t) * (0.6 + worldNoise(x, z, 0.09, 2, 21) * 0.4));
-      c.lerp(cHaze, smoothstep(0.55, 1, t) * 0.85);
-      colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
+  /**
+   * The stone path keeps going past the torii landing, down through the
+   * trees toward the city, with rope posts and a pair of lanterns: the
+   * reference's descending steps. Scenery only, with no platforms, since
+   * constrain() holds the cat at the landing.
+   */
+  buildLowerPath() {
+    const rnd = mulberry32(4406);
+    const path = new THREE.Group();
+    path.name = 'Lower Stone Path';
+    // Each tread is two or three fitted stones with mossy joints. They are
+    // thick, so they sink into the ramped earth and show only their risers
+    // and a sliver of side; two merged meshes carry all of them.
+    const stones = [[], []];
+    for (let i = 0; i < LOWER_STEP_COUNT; i++) {
+      const z0 = LANDING_Z1 + i * LOWER_STEP_RUN;
+      const top = lowerStepTopAt(z0 + 0.01);
+      const width = 4.4 - i * 0.06;
+      const pieces = rnd() < 0.5 ? 2 : 3;
+      let left = -width / 2;
+      for (let k = 0; k < pieces; k++) {
+        const remaining = width / 2 - left;
+        const w = k === pieces - 1 ? remaining : remaining / (pieces - k) * (0.75 + rnd() * 0.5);
+        const stone = new THREE.BoxGeometry(w - 0.07, 0.72, LOWER_STEP_RUN - 0.06 - rnd() * 0.08);
+        stone.rotateY((rnd() - 0.5) * 0.05);
+        stone.translate(left + w / 2, top - 0.36 + (rnd() - 0.5) * 0.03,
+          z0 + LOWER_STEP_RUN * 0.5 + (rnd() - 0.5) * 0.06);
+        stones[rnd() < 0.55 ? 0 : 1].push(stone);
+        left += w;
+      }
     }
-    skirt.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    skirt.computeVertexNormals();
-    const skirtMesh = new THREE.Mesh(skirt, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
-    skirtMesh.name = 'Summit Skirt';
-    skirtMesh.castShadow = false;
-    skirtMesh.receiveShadow = false;
-    skirtMesh.userData.coverage = {
-      innerRadius: skirtInnerRadius,
-      outerRadius: skirtOuterRadius,
-      basinJoinZ: BASIN_JOIN_Z
-    };
-    this.group.add(skirtMesh);
-    this.summitSkirt = skirtMesh;
+    for (const [list, mat] of [[stones[0], this.MAT.stoneWarm], [stones[1], this.MAT.stone]]) {
+      const mesh = new THREE.Mesh(mergeGeometries(list, false), mat);
+      mesh.name = 'Lower Path Stones';
+      mesh.castShadow = mesh.receiveShadow = true;
+      path.add(mesh);
+    }
+
+    const postGeo = new THREE.CylinderGeometry(0.07, 0.1, 1.05, 7);
+    const ropeMat = new THREE.MeshStandardMaterial({ color: 0x58432e, roughness: 1 });
+    for (const side of [-1, 1]) {
+      const points = [];
+      for (let i = 0; i <= LOWER_STEP_COUNT; i += 2) {
+        const z = LANDING_Z1 + 0.35 + i * LOWER_STEP_RUN;
+        const x = side * (2.55 - i * 0.035);
+        const top = lowerStepTopAt(z + 0.01);
+        const post = new THREE.Mesh(postGeo, this.MAT.timberDark);
+        post.position.set(x, top + 0.46, z);
+        post.rotation.z = -side * 0.025 + (rnd() - 0.5) * 0.05;
+        post.castShadow = true;
+        path.add(post);
+        points.push(new THREE.Vector3(x, top + 0.9, z));
+      }
+      for (const dy of [0, -0.34]) {
+        const sagged = points.map((p, i) => p.clone().add(new THREE.Vector3(0,
+          dy - (i > 0 && i < points.length - 1 ? 0.1 : 0), 0)));
+        path.add(new THREE.Mesh(
+          new THREE.TubeGeometry(new THREE.CatmullRomCurve3(sagged), 60, 0.024, 5, false),
+          ropeMat
+        ));
+      }
+    }
+
+    // A second pair of stone lanterns partway down the hill.
+    for (const side of [-1, 1]) {
+      const z = LANDING_Z1 + 5.5 * LOWER_STEP_RUN;
+      const lantern = new THREE.Group();
+      lantern.add(box(0.46, 0.2, 0.46, this.MAT.stone, 0, 0.1, 0));
+      lantern.add(box(0.15, 0.78, 0.15, this.MAT.stone, 0, 0.55, 0));
+      lantern.add(box(0.42, 0.13, 0.42, this.MAT.stone, 0, 0.98, 0));
+      lantern.add(box(0.28, 0.28, 0.28, this.MAT.lanternGlow, 0, 1.19, 0));
+      const cap = new THREE.Mesh(new THREE.ConeGeometry(0.38, 0.28, 4), this.MAT.stoneDark);
+      cap.position.y = 1.46;
+      cap.rotation.y = Math.PI / 4;
+      lantern.add(cap);
+      const x = side * 3.15;
+      lantern.position.set(x, this.terrainHeightAt(x, z) - 0.05, z);
+      lantern.rotation.y = (rnd() - 0.5) * 0.3;
+      path.add(lantern);
+    }
+    this.group.add(path);
+    this.lowerPath = path;
+  }
+
+  buildSkirtAndVista() {
+    this.buildSummitTerrain();
     this.buildApproachShoulder();
+    this.buildLowerPath();
 
     // The overlook is a stack of real spatial layers rather than a panorama
     // card: descending basin terrain, hundreds of roof volumes, gardens and
@@ -1235,7 +1384,105 @@ export class SummitManager {
     this.buildSummitBay();
     this.buildHarbourAndIslands();
     this.buildHorizonRanges();
-    this.buildVistaFoliage();
+    this.buildSlopeForest();
+  }
+
+  /** Painted ground colour of the hillside, banks and far land at (x, z). */
+  landColorAt(x, z, c) {
+    const L = this._landPalette || (this._landPalette = {
+      brow: new THREE.Color(0x8cb853),
+      sunGrass: new THREE.Color(0x7ba744),
+      sunHigh: new THREE.Color(0xa9c95c),
+      shadeGrass: new THREE.Color(0x4c7b31),
+      forestFloor: new THREE.Color(0x40692c),
+      earth: new THREE.Color(0x9b8a5c),
+      rock: new THREE.Color(0xa29e8f),
+      plain: new THREE.Color(0x98ab70),
+      fields: new THREE.Color(0xc2c787),
+      ridge: new THREE.Color(0x4d7c42),
+      seabed: new THREE.Color(0x5d7f78)
+    });
+    const r = Math.hypot(x, z);
+    const away = Math.abs(Math.atan2(x, z));
+    const patch = worldNoise(x, z, 0.06, 3, 21);
+    const broad = worldNoise(x, z, 0.012, 3, 23);
+    const fine = worldNoise(x, z, 0.24, 2, 29);
+    // Sunlit grass on the brow and spurs, forest floor in the gullies,
+    // dabbed with brighter tufts and the odd bare patch.
+    c.copy(L.sunGrass).lerp(L.shadeGrass, smoothstep(0.4, 0.66, patch));
+    c.lerp(L.sunHigh, smoothstep(0.55, 0.75, fine) * 0.6);
+    c.lerp(L.earth, smoothstep(0.7, 0.8, fine) * smoothstep(0.35, 0.5, patch) * 0.5);
+    c.lerp(L.brow, 1 - smoothstep(12.2, 17, r));
+    c.lerp(L.forestFloor, smoothstep(18, 40, r) * (1 - smoothstep(0.55, 0.85, broad)) * 0.7);
+    c.lerp(L.rock, smoothstep(0.66, 0.82, patch) * smoothstep(16, 26, r) * (1 - smoothstep(60, 90, r)) * 0.55);
+    // The city floor: pale fields and gardens between the roofs.
+    const city = (1 - smoothstep(0.75, 1.05, away)) * smoothstep(30, 44, r);
+    c.lerp(L.plain, city * 0.85).lerp(L.fields, city * smoothstep(0.5, 0.75, broad) * 0.5);
+    // Wooded valleys and ridges darken with distance from the summit.
+    c.lerp(L.ridge, smoothstep(0.95, 1.4, away) * smoothstep(45, 120, r) * (0.75 + broad * 0.25));
+    c.lerp(L.seabed, smoothstep(172, 186, z) * (1 - smoothstep(0.9, 1.3, away)));
+    return c;
+  }
+
+  /**
+   * One polar mesh from under the meadow rim to the far ridges: the summit's
+   * flanks, the Kyoto basin the city stands on, and the valleys and ridges
+   * that close every other direction. Rings crowd together near the brow,
+   * where the shape is read up close, and spread out toward the haze.
+   */
+  buildSummitTerrain() {
+    const inner = CORRIDOR_Z0 - 0.75;
+    const rings = 150;
+    const around = 288;
+    const geo = new THREE.BufferGeometry();
+    const vertexCount = (rings + 1) * (around + 1);
+    const positions = new Float32Array(vertexCount * 3);
+    const uvs = new Float32Array(vertexCount * 2);
+    const colors = new Float32Array(vertexCount * 3);
+    const c = new THREE.Color();
+    let v = 0;
+    for (let i = 0; i <= rings; i++) {
+      const r = inner + (LAND_OUTER_R - inner) * Math.pow(i / rings, 2.15);
+      for (let j = 0; j <= around; j++) {
+        const a = (j / around) * Math.PI * 2;
+        const x = Math.sin(a) * r;
+        const z = Math.cos(a) * r;
+        const y = this.terrainHeightAt(x, z);
+        positions[v * 3] = x;
+        positions[v * 3 + 1] = y;
+        positions[v * 3 + 2] = z;
+        uvs[v * 2] = x / 6;
+        uvs[v * 2 + 1] = -z / 6;
+
+        this.landColorAt(x, z, c);
+        colors[v * 3] = c.r;
+        colors[v * 3 + 1] = c.g;
+        colors[v * 3 + 2] = c.b;
+        v++;
+      }
+    }
+    const index = [];
+    for (let i = 0; i < rings; i++) {
+      for (let j = 0; j < around; j++) {
+        const a = i * (around + 1) + j;
+        const b = a + around + 1;
+        index.push(a, b, a + 1, b, b + 1, a + 1);
+      }
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geo.setIndex(index);
+    geo.computeVertexNormals();
+    // Painted vertex colour under a soft six-metre wash. The meadow's turf
+    // map, tiled over a whole hillside, either stripes or goes flat.
+    const terrain = new THREE.Mesh(geo, this.MAT.land);
+    terrain.name = 'Summit Terrain';
+    terrain.castShadow = false;
+    terrain.receiveShadow = true;
+    terrain.userData.coverage = { innerRadius: inner, outerRadius: LAND_OUTER_R };
+    this.group.add(terrain);
+    this.summitTerrain = terrain;
   }
 
   /** Height of the visible Kyoto basin in summit-local coordinates. */
@@ -1254,53 +1501,11 @@ export class SummitManager {
     return -20 + Math.sin(z * 0.041) * 13 + Math.sin(z * 0.017 + 1.3) * 8;
   }
 
-  /** A triangulated mountain basin with a genuinely descending horizon. */
+  /**
+   * River and street ribbons draped over the basin. The ground itself is
+   * part of buildSummitTerrain(), so the city has no sheet edge to show.
+   */
   buildVistaTerrain() {
-    const geo = new THREE.PlaneGeometry(310, 140, 72, 32);
-    geo.rotateX(-Math.PI / 2);
-    const pos = geo.attributes.position;
-    const colors = new Float32Array(pos.count * 3);
-    const low = new THREE.Color(0x667d47);
-    const garden = new THREE.Color(0x82975a);
-    const haze = new THREE.Color(0x8ca18c);
-    const col = new THREE.Color();
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const sourceZ = pos.getZ(i) + 100;
-      // Pull the straight near edge away at the sides, behind the wooded
-      // mountain shoulders. The centre still overlaps the approach apron.
-      const nearEdge = 1 - smoothstep(30, 48, sourceZ);
-      const sideRetreat = smoothstep(20, 145, Math.abs(x)) * 20;
-      const z = sourceZ + nearEdge * sideRetreat;
-      const y = this.vistaGroundHeight(x, z);
-      pos.setXYZ(i, x, y, z);
-      const depth = clamp01((z - 30) / 140);
-      const patch = worldNoise(x, z, 0.055, 2, 91);
-      col.copy(low).lerp(garden, patch * 0.72).lerp(haze, depth * 0.42);
-      colors[i * 3] = col.r;
-      colors[i * 3 + 1] = col.g;
-      colors[i * 3 + 2] = col.b;
-    }
-    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geo.computeVertexNormals();
-    const mat = new THREE.MeshStandardMaterial({
-      vertexColors: true, roughness: 1, metalness: 0
-    });
-    const terrain = new THREE.Mesh(geo, mat);
-    terrain.name = 'Kyoto Basin Terrain';
-    terrain.castShadow = false;
-    terrain.receiveShadow = false;
-    terrain.userData.coverage = {
-      xMin: -155,
-      xMax: 155,
-      zMin: BASIN_JOIN_Z,
-      zMax: 170,
-      centreOverlap: 6
-    };
-    this.vista.add(terrain);
-    this.vistaTerrain = terrain;
-    this.vistaTerrainMat = mat;
-
     // The Yodo/Katsura water ribbon winds through several real city blocks.
     const riverGeo = new THREE.PlaneGeometry(12, 132, 5, 44);
     riverGeo.rotateX(-Math.PI / 2);
@@ -1310,7 +1515,7 @@ export class SummitManager {
       const across = rp.getX(i);
       const width = 0.72 + clamp01((z - 38) / 145) * 0.68;
       const x = this.vistaRiverX(z) + across * width;
-      rp.setXYZ(i, x, this.vistaGroundHeight(x, z) + 0.14, z);
+      rp.setXYZ(i, x, this.terrainHeightAt(x, z) + 0.14, z);
     }
     riverGeo.computeVertexNormals();
     const riverMat = new THREE.MeshStandardMaterial({
@@ -1341,7 +1546,7 @@ export class SummitManager {
       for (let i = 0; i < roadPos.count; i++) {
         const z = roadPos.getZ(i) + 108;
         const rx = x + roadPos.getX(i) + (z - 108) * yaw;
-        roadPos.setXYZ(i, rx, this.vistaGroundHeight(rx, z) + 0.2, z);
+        roadPos.setXYZ(i, rx, this.terrainHeightAt(rx, z) + 0.2, z);
       }
       roadGeo.computeVertexNormals();
       const road = new THREE.Mesh(roadGeo, roadMat);
@@ -1354,7 +1559,7 @@ export class SummitManager {
       for (let i = 0; i < roadPos.count; i++) {
         const x = roadPos.getX(i);
         const rz = z + roadPos.getZ(i);
-        roadPos.setXYZ(i, x, this.vistaGroundHeight(x, rz) + 0.21, rz);
+        roadPos.setXYZ(i, x, this.terrainHeightAt(x, rz) + 0.21, rz);
       }
       roadGeo.computeVertexNormals();
       const road = new THREE.Mesh(roadGeo, roadMat);
@@ -1403,7 +1608,7 @@ export class SummitManager {
       const w = 0.85 + rnd() * (1.25 + near * 0.8);
       const d = 0.86 + rnd() * (1.3 + near * 0.72);
       const h = 0.68 + rnd() * (1.05 + near * 1.1);
-      const y = this.vistaGroundHeight(x, z);
+      const y = this.terrainHeightAt(x, z);
       const yaw = (rnd() - 0.5) * 0.16 + (rnd() < 0.18 ? Math.PI / 2 : 0);
 
       dummy.position.set(x, y + h * 0.5, z);
@@ -1475,15 +1680,19 @@ export class SummitManager {
     this.cityLightMat = lightMat;
 
     const treeCount = this.previewQuality ? 160 : 360;
-    const gardenGeo = new THREE.IcosahedronGeometry(1, 1);
-    const gardenMat = new THREE.MeshLambertMaterial({ color: 0x47733d });
+    // Painted leaf masses, like the slope forest, rather than faceted balls.
+    const gardenGeo = lumpyTuftGeometry(1, 31, 0.36);
+    const gardenMat = createFoliageMaterial({
+      sss: 0.22, wind: 0.45, mottle: 0.24, vertexColors: false,
+      massMap: leafMassTexture('leaf'), massScale: 1 / 1.6
+    });
     const gardens = new THREE.InstancedMesh(gardenGeo, gardenMat, treeCount);
     for (let i = 0; i < treeCount; i++) {
       const z = 43 + rnd() * 126;
       const halfW = 31 + (z - 43) * 0.7;
       const x = (rnd() - 0.5) * halfW * 2;
       const s = 0.45 + rnd() * (1.25 + (1 - clamp01((z - 43) / 130)) * 0.8);
-      dummy.position.set(x, this.vistaGroundHeight(x, z) + s * 0.72, z);
+      dummy.position.set(x, this.terrainHeightAt(x, z) + s * 0.72, z);
       dummy.rotation.set(0, rnd() * Math.PI * 2, 0);
       dummy.scale.set(s, s * (0.72 + rnd() * 0.45), s);
       dummy.updateMatrix();
@@ -1575,7 +1784,7 @@ export class SummitManager {
     lanterns.renderOrder = 3;
     pagoda.add(lanterns);
     const x = -27, z = 86;
-    pagoda.position.set(x, this.vistaGroundHeight(x, z) + 0.04, z);
+    pagoda.position.set(x, this.terrainHeightAt(x, z) + 0.04, z);
     pagoda.rotation.y = -0.08;
     pagoda.traverse((o) => {
       if (!o.isMesh) return;
@@ -1587,6 +1796,65 @@ export class SummitManager {
     this.pagodaWallMat = wallMat;
     this.pagodaTimberMat = timberMat;
     this.pagodaRoofMat = roofMat;
+  }
+
+  /**
+   * A tileable 256px wash for the hillsides: soft light and shadow dapples
+   * under short brush dabs of grass. Near-white on average, so it shades the
+   * vertex colours rather than tinting them; one tile spans six metres.
+   */
+  makeLandTexture() {
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const rnd = mulberry32(5150);
+    ctx.fillStyle = '#d9d9d2';
+    ctx.fillRect(0, 0, size, size);
+    // Draw each mark at its wrapped copies so the tile edges meet.
+    const wrapped = (x, y, reach, draw) => {
+      for (const ox of [-size, 0, size]) {
+        for (const oy of [-size, 0, size]) {
+          if (x + ox > -reach && x + ox < size + reach && y + oy > -reach && y + oy < size + reach) {
+            draw(x + ox, y + oy);
+          }
+        }
+      }
+    };
+    for (let i = 0; i < 70; i++) {
+      const x = rnd() * size, y = rnd() * size, r = 18 + rnd() * 46;
+      const light = rnd() < 0.5;
+      const alpha = 0.08 + rnd() * 0.1;
+      wrapped(x, y, r, (px, py) => {
+        const g = ctx.createRadialGradient(px, py, 0, px, py, r);
+        g.addColorStop(0, light ? `rgba(255,255,236,${alpha})` : `rgba(64,80,40,${alpha})`);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(px - r, py - r, r * 2, r * 2);
+      });
+    }
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 2600; i++) {
+      const x = rnd() * size, y = rnd() * size;
+      const len = 3 + rnd() * 7;
+      const lean = (rnd() - 0.5) * 0.9;
+      const shade = rnd();
+      ctx.strokeStyle = shade < 0.45
+        ? `rgba(70,92,44,${0.12 + rnd() * 0.16})`
+        : `rgba(255,252,214,${0.1 + rnd() * 0.16})`;
+      ctx.lineWidth = 0.8 + rnd() * 1.4;
+      wrapped(x, y, len, (px, py) => {
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px + Math.sin(lean) * len, py - Math.cos(lean) * len);
+        ctx.stroke();
+      });
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.anisotropy = 8;
+    return tex;
   }
 
   makeBayWaterTexture() {
@@ -2301,46 +2569,168 @@ export class SummitManager {
     return tex;
   }
 
-  buildVistaFoliage() {
-    // Low-poly crowns bridge the dimensional meadow and painted panorama.
-    // Their parallax is subtle but crucial: the city now sits *inside* a
-    // wooded Kyoto basin instead of on the same flat card as the sky.
-    const crownGeo = new THREE.IcosahedronGeometry(1, 1);
-    const mats = [
-      new THREE.MeshLambertMaterial({ color: 0x315f35 }),
-      new THREE.MeshLambertMaterial({ color: 0x4f7d3d }),
-      new THREE.MeshLambertMaterial({ color: 0x6d9448 })
-    ];
-    const counts = this.previewQuality ? [20, 18, 16] : [72, 62, 54];
+  /**
+   * The mountain's green coat: a thicket hugging the meadow rim, broadleaf
+   * canopy and cedar spires down every flank, and stands over the far
+   * ridges. The bay-facing arc stays low and open so the city, pagoda and
+   * sea read from the meditation perch; elsewhere crowns rise past the rim
+   * so the clearing sits inside a forest, never on a plinth in the sky.
+   */
+  buildSlopeForest() {
+    const rnd = mulberry32(20261106);
     const dummy = new THREE.Object3D();
-    this.vistaForest = [];
-    for (let layer = 0; layer < counts.length; layer++) {
-      const mesh = new THREE.InstancedMesh(crownGeo, mats[layer], counts[layer]);
-      let placed = 0, guard = 0;
-      while (placed < counts[layer] && guard++ < counts[layer] * 12) {
-        const z = 21 + this.rng() * 44;
-        const spread = 18 + (z - 21) * 0.58;
-        const x = (this.rng() - 0.5) * spread * 2;
-        // Preserve the broad ocean aperture while building irregular wooded
-        // shoulders at the sides of the overlook.
-        const aperture = 19 + (z - 21) * 0.32;
-        if (Math.abs(x) < aperture && this.rng() < 0.97) continue;
-        const downhill = -3.4 - (z - 21) * 0.16;
-        const s = (0.95 + this.rng() * 1.55) * (1 - layer * 0.08);
-        dummy.position.set(x, downhill + (this.rng() - 0.5) * 2.8 + s, z);
-        dummy.rotation.set((this.rng() - 0.5) * 0.08, this.rng() * Math.PI * 2, (this.rng() - 0.5) * 0.08);
-        dummy.scale.set(s * (0.82 + this.rng() * 0.35), s * (0.8 + this.rng() * 0.5), s);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(placed++, dummy.matrix);
-      }
-      mesh.count = placed;
-      mesh.instanceMatrix.needsUpdate = true;
-      mesh.castShadow = false;
-      mesh.receiveShadow = false;
-      mesh.name = `Vista Forest Layer ${layer + 1}`;
-      this.vista.add(mesh);
-      this.vistaForest.push(mesh);
+    const tint = new THREE.Color();
+    const leafMass = leafMassTexture('leaf');
+    const shrubMat = createFoliageMaterial({
+      sss: 0.34, wind: 1.1, rustle: 0.6, mottle: 0.2, bump: 0.45,
+      massMap: leafMass, massScale: 1 / 0.55, ragged: 1
+    });
+    const crownMat = createFoliageMaterial({
+      sss: 0.3, wind: 0.75, mottle: 0.24, bump: 0.42,
+      massMap: leafMass, massScale: 1 / 1.3, ragged: 0.6
+    });
+    const cedarMat = createFoliageMaterial({
+      sss: 0.16, wind: 0.5, mottle: 0.24, vertexColors: false,
+      massMap: leafMassTexture('needle'), massScale: 1 / 1.8
+    });
+    const farMat = createFoliageMaterial({
+      sss: 0.15, wind: 0.4, mottle: 0.24, vertexColors: false,
+      massMap: leafMass, massScale: 1 / 3
+    });
+    const sets = {
+      shrub: { geo: bushGeometry(11, { lobes: 7, detail: 1, lump: 0.36 }), mat: shrubMat, max: 190, shadow: true },
+      scrub: { geo: bushGeometry(3, { lobes: 4, detail: 1, lump: 0.38 }), mat: shrubMat, max: 480, shadow: false },
+      crown: { geo: bushGeometry(5, { lobes: 5, detail: 1, lump: 0.4 }), mat: crownMat, max: 560, shadow: false },
+      cedar: { geo: lumpyConeGeometry(1, 12, 0.32), mat: cedarMat, max: 260, shadow: false },
+      far: { geo: lumpyTuftGeometry(1, 8, 0.36), mat: farMat, max: 1300, shadow: false },
+      farCedar: { geo: lumpyConeGeometry(1, 8, 0.3), mat: cedarMat, max: 700, shadow: false }
+    };
+    for (const [name, set] of Object.entries(sets)) {
+      set.mesh = new THREE.InstancedMesh(set.geo, set.mat, set.max);
+      set.mesh.name = 'Summit Slope ' + name;
+      set.mesh.castShadow = set.shadow;
+      set.mesh.receiveShadow = set.shadow;
+      set.count = 0;
     }
+    const place = (set, x, y, z, sx, sy, sz, color) => {
+      if (set.count >= set.max) return;
+      dummy.position.set(x, y, z);
+      dummy.rotation.set((rnd() - 0.5) * 0.12, rnd() * Math.PI * 2, (rnd() - 0.5) * 0.12);
+      dummy.scale.set(sx, sy, sz);
+      dummy.updateMatrix();
+      set.mesh.setMatrixAt(set.count, dummy.matrix);
+      set.mesh.setColorAt(set.count, tint.setHex(color).multiplyScalar(0.92 + rnd() * 0.16));
+      set.count++;
+    };
+    const pick = (list) => list[Math.floor(rnd() * list.length)];
+    // Keeps the stone approach, the lower path and their banks clear.
+    const onPath = (x, z, margin) => z > CORRIDOR_Z0 - 2.5 && z < LOWER_PATH_Z1 + 4 &&
+      Math.abs(x) < CORRIDOR_W + margin;
+    const shrubTints = [0x5a8a3c, 0x67974a, 0x4e7d36, 0x76a24e, 0x5f8f3e];
+    const flowerShrubTints = [0xe6e2c4, 0xdcc35c, 0xf0d6dc];
+    const crownTints = [0x3f6f2f, 0x4f8038, 0x5f9442, 0x6fa24a, 0x4a7a35];
+    const blossomTints = [0xe9b3c3, 0xf3cdd8];
+    const cedarTints = [0x2f5130, 0x3b6136, 0x355a32];
+
+    // Rim thicket. The perch's view window keeps only a few knee-high
+    // shrubs, set out on the brow below its sightline to the sea.
+    for (let n = 0; n < 420 && sets.shrub.count < sets.shrub.max; n++) {
+      const a = rnd() * Math.PI * 2;
+      const r = 11.2 + rnd() * 3.2;
+      const x = Math.sin(a) * r;
+      const z = Math.cos(a) * r;
+      if (onPath(x, z, 1.5)) continue;
+      const bearing = Math.atan2(x, z);
+      let s = 0.55 + rnd() * 0.8;
+      if (bearing > -0.62 && bearing < 0.38) {
+        if (rnd() < 0.7 || r < 12.6) continue;
+        s = 0.3 + rnd() * 0.16;
+      }
+      const sy = s * (0.75 + rnd() * 0.3);
+      const ground = Math.min(MEADOW_Y, this.terrainHeightAt(x, z));
+      place(sets.shrub, x, ground + sy * 0.62, z,
+        s * (1 + rnd() * 0.4), sy, s * (1 + rnd() * 0.4), pick(shrubTints));
+    }
+
+    // Scrub in drifts, not an even sprinkle, each bush capped just above the
+    // perch's line over the rim so it can only ever fringe the near roofs.
+    const scrubAt = (x, z, r) => {
+      if (onPath(x, z, 1.3) || r > 50) return;
+      if (worldNoise(x, z, 0.09, 2, 53) < 0.4 + rnd() * 0.2) return;
+      const y = this.terrainHeightAt(x, z);
+      const room = this.perchSightlineAt(x, z) + 0.45 - y;
+      if (room < 0.5) return;
+      const sy = Math.min(0.42 + rnd() * 0.9, room / 1.75);
+      const sw = sy * (1.15 + rnd() * 0.45);
+      place(sets.scrub, x, y + sy * 0.55, z, sw, sy, sw * (0.9 + rnd() * 0.2),
+        rnd() < 0.18 ? pick(flowerShrubTints) : pick(shrubTints));
+    };
+
+    // Flank canopy and cedars, crowded toward the rim and thinning downhill.
+    // Seen from the perch, the city, pagoda and sea fill a window between
+    // the shade tree's trunk (+x) and the frame's right edge (-x). Inside it
+    // only scrub grows, capped under the perch's line over the rim; outside
+    // it the forest runs right up to the meadow.
+    for (let n = 0; n < 4800 && (sets.crown.count < sets.crown.max || sets.cedar.count < sets.cedar.max); n++) {
+      const a = rnd() * Math.PI * 2;
+      const r = 13.4 + Math.pow(rnd(), 1.45) * 62;
+      const x = Math.sin(a) * r;
+      const z = Math.cos(a) * r;
+      const bearing = Math.atan2(x, z);
+      if (bearing > -0.62 && bearing < 0.38) {
+        scrubAt(x, z, r);
+        continue;
+      }
+      if (onPath(x, z, 3.2)) continue;
+      const y = this.terrainHeightAt(x, z);
+      // Cedars stand back from the rim so the frame's edges stay soft.
+      if (r > 22 && rnd() < 0.3) {
+        const s = 1.1 + rnd() * 1.3;
+        place(sets.cedar, x, y - 0.3, z, s * 0.9, s * (1.15 + rnd() * 0.5), s * 0.9, pick(cedarTints));
+      } else {
+        const s = 1.3 + rnd() * 1.7;
+        const sy = s * (0.85 + rnd() * 0.35);
+        const color = r > 30 && rnd() < 0.04 ? pick(blossomTints) : pick(crownTints);
+        place(sets.crown, x, y + sy * 0.55, z, s * (0.95 + rnd() * 0.3), sy, s * (0.95 + rnd() * 0.3), color);
+      }
+    }
+
+    // The bay-facing slopes the torii and stairs look across get a second,
+    // denser pass of scrub.
+    for (let n = 0; n < 1800 && sets.scrub.count < sets.scrub.max; n++) {
+      const a = -0.62 + rnd();
+      const r = 13 + rnd() * 34;
+      scrubAt(Math.sin(a) * r, Math.cos(a) * r, r);
+    }
+
+    // Far valleys and ridges: coarse stands that give the hills a wooded
+    // grain before the haze takes them.
+    for (let n = 0; n < 6000 && (sets.far.count < sets.far.max || sets.farCedar.count < sets.farCedar.max); n++) {
+      const a = rnd() * Math.PI * 2;
+      const r = 70 + Math.pow(rnd(), 0.85) * 175;
+      const x = Math.sin(a) * r;
+      const z = Math.cos(a) * r;
+      const away = Math.abs(Math.atan2(x, z));
+      if (away < 0.85 || (z > 150 && away < 1.1)) continue;
+      const y = this.terrainHeightAt(x, z);
+      const s = 2.2 + rnd() * 2.8;
+      if (rnd() < 0.35) {
+        place(sets.farCedar, x, y - 0.4, z, s * 0.8, s * (1.1 + rnd() * 0.4), s * 0.8, pick(cedarTints));
+      } else {
+        place(sets.far, x, y + s * 0.35, z, s * (1 + rnd() * 0.4), s * (0.7 + rnd() * 0.3), s * (1 + rnd() * 0.4), pick(crownTints));
+      }
+    }
+
+    this.slopeForest = [];
+    for (const set of Object.values(sets)) {
+      set.mesh.count = set.count;
+      set.mesh.instanceMatrix.needsUpdate = true;
+      if (set.mesh.instanceColor) set.mesh.instanceColor.needsUpdate = true;
+      set.mesh.userData.summitMaxCount = set.count;
+      this.group.add(set.mesh);
+      this.slopeForest.push(set.mesh);
+    }
+    this.rimThicket = sets.shrub.mesh;
   }
 
   loadVistaLandmarks() {
@@ -3310,19 +3700,20 @@ export class SummitManager {
     const g = this.game;
     const p = g.player.mesh.position;
     const drift = this._reducedMotion ? 0 : Math.sin(this.time * 0.12) * 0.16;
-    // A low, close shoulder view keeps the cat large in the foreground while
-    // the gaze travels past the torii and pagoda to the unbroken sea band.
-    this._vistaDesired.set(p.x - 1.72 + drift, p.y + 1.48, p.z - 3.85);
+    // A raised over-the-shoulder view, tipped a few degrees down: the cat
+    // sits in the lower left under the tree while the eye clears the meadow
+    // rim and falls down the stairs, past the torii, over the city to the sea.
+    this._vistaDesired.set(p.x + PERCH_CAM.x + drift, p.y + PERCH_CAM.y, p.z + PERCH_CAM.z);
     this._vistaLookTarget.set(
-      this.origin.x + 18.0 + drift * 3,
-      this.origin.y - 1.2 + Math.sin(this.time * 0.09) * (this._reducedMotion ? 0 : 0.08),
+      this.origin.x + 16.0 + drift * 3,
+      this.origin.y - 11.4 + Math.sin(this.time * 0.09) * (this._reducedMotion ? 0 : 0.08),
       this.origin.z + 145
     );
     const cameraEase = this._reducedMotion ? 1 : Math.min(1, dt * 1.45);
     g.camera.position.lerp(this._vistaDesired, cameraEase);
     this._vistaLook.lerp(this._vistaLookTarget, cameraEase);
     g.camera.lookAt(this._vistaLook);
-    const nextFov = g.camera.fov + (48 - g.camera.fov) * (this._reducedMotion ? 1 : Math.min(1, dt * 2.2));
+    const nextFov = g.camera.fov + (50 - g.camera.fov) * (this._reducedMotion ? 1 : Math.min(1, dt * 2.2));
     if (Math.abs(nextFov - g.camera.fov) > 0.001) {
       g.camera.fov = nextFov;
       if (g.camera.updateProjectionMatrix) g.camera.updateProjectionMatrix();
@@ -3404,7 +3795,6 @@ export class SummitManager {
     setEmissive(this.pagodaRoofMat, pal.horizon, nightness * 0.035);
     const greenColor = this._vistaColorC.copy(pal.hemiGround).lerp(pal.horizon, mist * 0.38).multiplyScalar(0.42 + dayness * 0.58);
     setColor(this.cityGardenMat, greenColor);
-    setColor(this.vistaTerrainMat, greenColor);
     setColor(this.islandMat, greenColor);
 
     const waterColor = this._vistaColorA.copy(pal.horizon).lerp(pal.top, 0.32).multiplyScalar(0.5 + dayness * 0.5);
