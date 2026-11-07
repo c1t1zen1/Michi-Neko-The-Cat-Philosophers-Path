@@ -76,3 +76,26 @@ can't follow the sun.
 * JAANUS — *san-en 三遠* — <https://projects.mcah.columbia.edu/jaanus/record/sanen> (excerpt)
 * JAANUS — *kasumi 霞* — <https://projects.mcah.columbia.edu/jaanus/record/kasumi> (excerpt)
 * Wikipedia (ja) — *すやり霞* — <https://ja.wikipedia.org/wiki/%E3%81%99%E3%82%84%E3%82%8A%E9%9C%9E> (excerpt)
+
+## Build addendum — what shipped, measured on the page
+
+* `js/profiles.js` — pure profile maths + the game's `terrainSector`/`terrainHeight` port (valley floor flat r<55; near band ~90, mid ~172, far ~310; the pagoda-side `opening` falls away). Kyoto presets: Higashiyama 36 peaks, Kitayama, Atago, Arashiyama, Yamato-e paper, plus `strokeToProfile` (freehand stroke → smoothed silhouette function) and the octahedral `octDir`/`octUV` pair for the impostor atlas.
+* `js/ridge.js` — two mountain recipes side by side: `arcFriezeGeometry` (painted friezes wrapped on an arc, the multiplane trick) and `terrainPatch` (displaced heightfield). `gameRangeColors`/`meadowColors` keep the game's tint pipeline — vertex colours are *tints* normalized over detail luminance, not raw dark colours.
+* `js/wall.js` — the wall four ways: `instancedWall` (the game's real `buildCanopy` leaf-mass recipe, instanced), `cardWall` (crossed quads on a painted 2×2 atlas), `paintedTreeline` (one matte-painting cylinder), the impostor field, plus `edgeBelts` — the mantle + sode the literature names — and `edgeSlice` for the labelled cross-section.
+* `js/impostor.js` — hemisphere atlas bake of the real canopy (octahedral direction map; corner cells fold to the horizon ring and are deliberately unused) + a view-dependent impostor field.
+* `js/air.js` — `Air`: shared atmosphere uniforms (`uFogT` per distance band, `uVeilSun`, `uFootMist`, `uTreed`, `uRocky`, `uPaper`, `uSunTint`), `rangeMaterial`, `applyCloudShadow` (idempotent — dedupes per material and extends `customProgramCacheKey` so patched/unpatched foliage programs can't collide).
+* `js/kasumi.js` — three mist styles: suyari (horizontal bars), edo (warm-stained bands), rift (drifting sprite ring, the game's `buildMistRing` lite).
+* `js/hero.js` — the Valley: terrain patch + wall + edge belts + foothill carpet (the game's `buildFoothillForest` port, 3400 instances, cedars on the high slopes) + three ridge modes (`patch`, `stack` friezes, `paper`) + mist + cloud shadows + `CatWalker` (the real `src/cat.js` through the bridge).
+
+### Poster / hero framing notes (measured)
+
+* The bowl is deep: from inside at cat level the wall ring (r≈40) and the foothill carpet hide the ranges. The money pose is a low camera tilted ~+15° up (`cam=0,9,26,0,60,-160`): sugi slope lower two-thirds, three hazy ridge bands stacked above. That pose is both the default orbit view and the poster (`?poster=1` pins the stage full-viewport).
+* `?veil=` multiplies `FogExp2` density and every range material's `uFogT` — the lab wants ~2.2–2.6× the base for the Kyoto-basin read; the game can stay thinner.
+* Carpet at the game's own density (3800 → 3400 here) reads as a forested slope once the veil washes it; without aerial perspective it reads as foreground lumps — the veil IS the lesson.
+* `?at=<id>` instant-scrolls in shot mode; under headless virtual-time the scrolled regions can rasterize blank — a tall-window capture (`window-size=1400x6400`) is the reliable full-page check.
+
+### Verified
+
+* `node tools/ranges_test.mjs` — 19 invariants (profile continuity/mass order, octDir round-trip inside the diamond, seeded RNG stability, game-port parity, step-state legality).
+* `node tools/labs_check.mjs` — all checks OK (syntax, cache tags, registry link, `ranges/poster.png`).
+* Headless Chromium (`--use-angle=metal`): no console errors; hero, all five benches, stepper and sources render.

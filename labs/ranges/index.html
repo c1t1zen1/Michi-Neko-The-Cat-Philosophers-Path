@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Forest wall &amp; mountains · Yamanami — Michi-Neko Labs</title>
+  <meta name="description" content="Lab 03. Stack Kyoto's ridges into distance: four ways to build a forest wall, three ways to draw a mountain range, and one shared air over all of it.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E山%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
+  <link rel="stylesheet" href="../shared/lab.css">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <canvas id="gl" aria-hidden="true"></canvas>
+  <main class="page">
+    <header class="mast">
+      <div>
+        <p class="kicker">Michi-Neko · Lab 03 · <span lang="ja">山並み</span></p>
+        <h1>How painters stack<br><em>a ridge into distance.</em></h1>
+        <p class="lede">Kyoto sits in a basin walled on three sides — Higashiyama, Kitayama, Arashiyama — and opens only to the south. So does Michi's valley. Pull the backdrop apart here: the forest wall in four techniques, the ranges in three, the mist in three styles, and the air that glues them.</p>
+        <nav class="jump" aria-label="Sections"><a href="#valley" class="go">Walk to the edge ↘</a><a href="#stack">The stack</a><a href="#wall">The wall</a><a href="#edge">The edge</a><a href="#air">The air</a><a href="#draw">Draw a ridge</a><a href="#research">Field notes</a></nav>
+      </div>
+      <aside class="mast-note"><span class="jp" lang="ja">山並み</span><span>The ranges<br>yamanami</span><small>Kyoto basin, painted<br>three walls · one opening</small></aside>
+    </header>
+    <div class="controls">
+      <div class="ctl"><span class="ctl-l">Quality</span><span class="seg" id="seg-quality"></span></div>
+      <label class="ctl"><span class="ctl-l">Hour</span><input id="hour" class="range" type="range" min="5" max="22.5" step="0.1" value="9.8" aria-label="Time of day"><span class="ctl-v" id="hour-out">09:48</span></label>
+      <div class="ctl"><span class="ctl-l">Light</span><span class="seg" id="seg-hour"></span></div>
+      <div class="ctl perf" id="perf" aria-live="off">warming up…</div>
+    </div>
+  </main>
+
+  <section class="hero" id="valley" aria-labelledby="valley-heading">
+    <div class="hero-head">
+      <div><p class="eyebrow">01 / THE VALLEY</p><h2 id="valley-heading">Stand in the bowl <em>and look north.</em></h2></div>
+      <p id="valley-caption">A field, a wall of trees, foothills and three ranges — every layer swappable, all of it painted at load.</p>
+    </div>
+    <div class="stage" id="stage" tabindex="0" role="region" aria-label="Interactive valley. Drag to orbit. Click the meadow to send Michi. Scroll to zoom.">
+      <p class="wake" id="wake">Laying out the valley…</p>
+      <div class="hud stage-label"><span class="live-dot"></span> LIVE VALLEY <span id="hero-count">山並み</span></div>
+      <div class="hud orbit-hint">Drag to orbit · scroll to zoom · click the meadow to send Michi</div>
+      <p class="hero-stats hud" id="heroStats">&nbsp;</p>
+    </div>
+    <div class="hero-foot">
+      <div class="row">
+        <div class="ctl"><span class="ctl-l">Wall</span><span id="slot-wall"></span></div>
+        <div class="ctl"><span class="ctl-l">Ranges</span><span class="seg" id="seg-ridges"></span></div>
+        <div class="ctl"><span class="ctl-l">Kasumi</span><span id="slot-kasumi"></span></div>
+        <div class="ctl"><span class="ctl-l">View</span><span class="seg" id="seg-view"></span></div>
+      </div>
+      <div class="row">
+        <label class="ctl"><span class="ctl-l">Veil</span><input id="veil" class="range" type="range" min="0" max="2.2" step="0.05" value="1" aria-label="Aerial perspective strength"><span class="ctl-v" id="veil-out">100%</span></label>
+        <label class="ctl"><span class="ctl-l">Cloud shadows</span><input id="clouds" class="range" type="range" min="0" max="1" step="0.02" value="0.8" aria-label="Cloud shadow amount"><span class="ctl-v" id="clouds-out">80%</span></label>
+        <label class="ctl"><span class="ctl-l">Wind</span><input id="wind" class="range" type="range" min="0" max="2" step="0.05" value="0.8" aria-label="Wind strength"><span class="ctl-v" id="wind-out">80%</span></label>
+        <div class="ctl"><span class="ctl-l">Gait</span><span class="seg" id="seg-gait"></span></div>
+      </div>
+      <p class="keys">WASD / arrows to walk Michi · Shift to sprint · V change view · click the meadow and she goes there · the ranges never move — only the air between you and them</p>
+    </div>
+  </section>
+
+  <main class="page">
+    <section class="section" id="stack" aria-labelledby="stack-heading">
+      <div class="section-title"><p class="eyebrow">02 / THE LANDSCAPE STACK</p><h2 id="stack-heading">Three planes, <em>one valley of depth.</em></h2><p>The multiplane camera's trick: a painted frieze per range, pulled apart in depth. Slide the gap open to see them as the cards they are; close it and they read as a basin again. Each card carries its own share of the air.</p></div>
+      <div class="bench">
+        <div class="stage bench-stage" id="stackStage"></div>
+        <div class="bench-bar">
+          <div class="ctl"><span class="ctl-l">Range</span><span id="slot-stack"></span></div>
+          <label class="ctl"><span class="ctl-l">Pull the planes apart</span><input id="gap" class="range" type="range" min="0" max="1" step="0.01" value="0" aria-label="Multiplane separation"><span class="ctl-v" id="gap-out">0%</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="wall" aria-labelledby="wall-heading">
+      <div class="section-title"><p class="eyebrow">03 / THE FOREST WALL, FOUR WAYS</p><h2 id="wall-heading">How cheap can <em>the edge</em> be?</h2><p>The same 26-tree run, built four ways. Leaf-mass instances are the game's own recipe and still the most alive; the impostor field bakes the real canopy once and hands each tree a single quad that already knows the light.</p></div>
+      <div class="bench">
+        <div class="stage bench-stage" id="wallStage"><div class="hud stage-label"><span class="live-dot"></span> WALL BENCH</div></div>
+        <div class="bench-bar">
+          <div class="ctl"><span class="ctl-l">Technique</span><span class="seg" id="seg-wall4"></span></div>
+          <p class="wall-stats" id="wallStats"></p>
+        </div>
+        <figure class="atlas-fig" id="atlasFig" hidden><figcaption>The bake: one canopy, sixteen directions.</figcaption><div id="atlasMount"></div></figure>
+      </div>
+    </section>
+
+    <section class="section" id="edge" aria-labelledby="edge-heading">
+      <div class="section-title"><p class="eyebrow">04 / THE EDGE IN SECTION</p><h2 id="edge-heading">The wall is <em>three belts deep.</em></h2><p>Forest-edge ecology names the layers the game has half of: the <em>sode</em> — a low herbaceous sleeve on the open side — the <em>mantle</em> of shrubs and climbers against the trunks, and the wall itself. Hover the labels.</p></div>
+      <div class="bench">
+        <div class="stage bench-stage" id="edgeStage"></div>
+        <div class="bench-bar"><label class="check"><input type="checkbox" id="labels-toggle" checked> Name the belts</label></div>
+      </div>
+    </section>
+
+    <section class="section" id="air" aria-labelledby="air-heading">
+      <div class="section-title"><p class="eyebrow">05 / THE AIR</p><h2 id="air-heading">Five veils, <em>or one warm one.</em></h2><p>The same ridge five times, at 46 m, 110 m, 200 m, 330 m and 480 m — the veil is exponential, so the far plane carries far more sky than the near one. Flip to reverse and the lowest sun warms the farthest ridge instead: painters documented that too.</p></div>
+      <div class="bench">
+        <div class="stage bench-stage" id="airStage"></div>
+        <div class="bench-bar">
+          <label class="ctl"><span class="ctl-l">Veil strength</span><input id="airVeil" class="range" type="range" min="0" max="2.4" step="0.05" value="1" aria-label="Veil strength"><span class="ctl-v" id="airVeil-out">100%</span></label>
+          <div class="ctl"><span class="ctl-l">Direction</span><span class="seg" id="seg-reverse"></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="draw" aria-labelledby="draw-heading">
+      <div class="section-title"><p class="eyebrow">06 / DRAW A RIDGE</p><h2 id="draw-heading">Paint a silhouette, <em>keep the mountain.</em></h2><p>Drag across the pad. Your stroke is resampled into a silhouette function, lifted onto a frieze and handed to the same air as everything else — mist at the feet, sun on the shoulder.</p></div>
+      <div class="bench">
+        <div class="stage bench-stage" id="drawStage"><canvas id="strokePad" aria-label="Drag to paint a ridge silhouette"></canvas></div>
+        <div class="bench-bar">
+          <button type="button" id="strokeClear">Clear ↺</button>
+          <label class="check"><input type="checkbox" id="drawKasumi" checked> Kasumi at the feet</label>
+          <p class="hint" id="strokeHint">Drag left to right — the stroke becomes the ridgeline.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="learn" aria-labelledby="learn-heading">
+      <div class="section-title"><p class="eyebrow">07 / LEARN BY BUILDING</p><h2 id="learn-heading">From a field to <em>a basin in the air.</em></h2><p>Eight passes, applied live to the valley at the top. Choose a step — the controls up there follow along.</p></div>
+      <div id="steps-mount"></div>
+      <a class="return-link" href="#valley">Look at the valley ↑</a>
+    </section>
+
+    <section class="section field-notes" id="research" aria-labelledby="research-heading">
+      <div class="section-title"><p class="eyebrow">08 / NOTES FROM THE WORKBENCH</p><h2 id="research-heading">Built for <em>Michi’s Kyoto.</em></h2></div>
+      <div class="notes-grid">
+        <article><h3>The basin is the composition.</h3><p>Kyoto is walled on three sides — Higashiyama east, Kitayama and Atago north-west, Arashiyama west — and opens south. The game’s <code>terrainSector</code> is exactly that mask; the lab builds each side as its own layer so the opening can breathe.</p></article>
+        <article><h3>The veil is exponential, not linear.</h3><p>Gurney’s wedding veils: each farther plane carries more sky light, geometrically. Linear fades flatten the far range into the sky; <code>1 − e^(−dβ)</code> keeps a distant ridge readable at 300 m and lets a low sun light the whole veil at once.</p></article>
+        <article><h3>Cheap trees spend their budget at the edge.</h3><p>The four wall techniques cost between one draw and nine, and between 300 and 60,000 triangles. What the player reads is silhouette and motion — the impostor atlas spends its pixels exactly there.</p></article>
+        <article><h3>Kasumi is compositing by hand.</h3><p>Mist bands divide planes in every Yamato-e screen worth its gold leaf. Ours are scrolling textures on flat cards — the same compositing, done by the depth buffer instead of a painter’s hand.</p></article>
+      </div>
+      <details class="source-details" open>
+        <summary>Research, references &amp; technique notes</summary>
+        <p>Eighteen sources — painters’ optics, impostor baking, multiplane staging, ridged fractals, kasumi taxonomy and Kyoto topography — distilled in <a href="research.md">the research notebook ↗</a>.</p>
+        <ul id="source-list" class="source-list"></ul>
+      </details>
+    </section>
+  </main>
+
+  <footer class="foot"><p><a href="../">← Back to the Labs</a> · Forest wall &amp; mountains.</p></footer>
+  <noscript><p class="fallback">This lab needs JavaScript and WebGL. The <a href="research.md">research notebook</a> can be read without them.</p></noscript>
+  <script type="module">
+    if (location.protocol === 'file:') {
+      document.getElementById('wake').textContent = 'Serve the repository over HTTP: python3 -m http.server 8000, then open localhost:8000/labs/ranges/';
+    } else import('./js/main.js').catch((error) => {
+      console.error(error);
+      document.getElementById('wake').textContent = 'The valley could not open. Check WebGL and the Three.js CDN connection, then reload.';
+    });
+  </script>
+</body>
+</html>
