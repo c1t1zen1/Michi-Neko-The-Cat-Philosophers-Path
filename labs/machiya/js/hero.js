@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { LightRig } from '../../shared/light.js';
 import { loadCatModule } from '../../shared/game.js';
-import { buildMachiya, Collider, countScene, disposeBuild } from './machiya.js';
+import { buildMachiya, Collider, countScene, disposeBuild } from './machiya.js?rev=20261107-staves';
 import { originalHouse } from './original.js';
 import { reduceMotion } from '../../shared/stage.js';
 

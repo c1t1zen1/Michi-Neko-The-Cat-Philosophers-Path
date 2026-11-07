@@ -2,7 +2,7 @@
 // the actual game component (or explicitly its absence), never a replica.
 import * as THREE from 'three';
 import { LightRig } from '../../shared/light.js';
-import { buildMachiya, countScene } from './machiya.js';
+import { buildMachiya, countScene } from './machiya.js?rev=20261107-staves';
 import { originalHouse, originalPart } from './original.js';
 export const SOURCES = {
   instancing: ['Three.js r160 · instancing example', 'https://github.com/mrdoob/three.js/blob/r160/examples/webgl_instancing_dynamic.html'],

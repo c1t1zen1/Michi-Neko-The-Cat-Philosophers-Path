@@ -3,9 +3,9 @@ import { createRenderer, Views, Loop, Meter, Governor, renderRect, flag, reduceM
 import { seg, slider, Stepper } from '../../shared/ui.js';
 import { mountLabChrome } from '../../shared/nav.js';
 import { LightRig } from '../../shared/light.js';
-import { Hero } from './hero.js';
-import { VARIANTS, FAMILIES, SOURCES } from './variants.js';
-import { buildMachiya } from './machiya.js';
+import { Hero } from './hero.js?rev=20261107-staves';
+import { VARIANTS, FAMILIES, SOURCES } from './variants.js?rev=20261107-staves';
+import { buildMachiya } from './machiya.js?rev=20261107-staves';
 import { STEPS } from './steps.js';
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));

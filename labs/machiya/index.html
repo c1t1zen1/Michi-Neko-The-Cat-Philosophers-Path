@@ -54,7 +54,7 @@
     if (location.protocol === 'file:') {
       document.getElementById('wake').textContent = 'Serve the repository over HTTP: python3 -m http.server 8000, then open localhost:8000/labs/machiya/.';
     } else {
-      const script = document.createElement('script'); script.type = 'module'; script.src = 'js/main.js'; document.body.append(script);
+      const script = document.createElement('script'); script.type = 'module'; script.src = 'js/main.js?rev=20261107-staves'; document.body.append(script);
       script.addEventListener('error', () => { document.getElementById('wake').textContent = 'The workshop could not load. Check your connection to the Three.js CDN and reload.'; });
     }
   </script>
