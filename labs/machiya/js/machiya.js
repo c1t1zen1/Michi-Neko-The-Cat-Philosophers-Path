@@ -52,8 +52,6 @@ export function createMaterialSet(style = 'standard') {
       p.normalMap = tex.normalMap;
       p.normalScale = new THREE.Vector2(o.normalScale ?? 1, o.normalScale ?? 1);
     }
-    if (o.roughness !== undefined) p.roughness = o.roughness;
-    if (o.metalness) p.metalness = o.metalness;
     if (o.emissive) { p.emissive = new THREE.Color(o.emissive); p.emissiveIntensity = o.emissiveIntensity ?? 1; }
     if (o.side) p.side = o.side;
     return new THREE.MeshToonMaterial(p);
@@ -503,6 +501,7 @@ export function buildMachiya(o = {}) {
   group.rotation.y = rotY;
 
   /* --- collision, built to match --- */
+  const rh = roof.ridgeH, e = roof.eaveY, ov = roof.overhang;
   const local = { x0: -hw, x1: hw, z0: -hd, z1: hd };
   // solid ground floor
   col.wall(-hw, hw, -hd, hd, 0.0, gh);
@@ -531,7 +530,6 @@ export function buildMachiya(o = {}) {
     col.climb(-uw / 2 + 0.4, uw / 2 - 0.4, ud / 2 - 0.06, ud / 2 + 0.06, ledY, eaveY, upperExitY, 0, ud / 2 + 0.3);
   }
   // main roof slopes (walkable)
-  const rh = roof.ridgeH, e = roof.eaveY, ov = roof.overhang;
   col.gable(-hw - ov, hw + ov, -hd - ov, hd + ov, e, e + rh);
 
   // Shift the collision model to the building's world position (no rotation:

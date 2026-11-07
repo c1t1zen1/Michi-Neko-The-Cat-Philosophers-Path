@@ -17,6 +17,7 @@ if (!['hybrid', 'toon', 'standard'].includes(lab.style)) lab.style = 'hybrid';
 const getHour = () => lab.hour;
 
 const { renderer, gpu } = createRenderer($('#gl'), { shadows: true, exposure: 1.1 });
+lab.renderer = renderer;
 
 /* ---------------- variant cards ---------------- */
 
@@ -119,7 +120,7 @@ const styleSeg = seg($('#seg-style'), STYLES, lab.style, (v) => {
   hero.setStyle(v);
   if (window.__catReady) hero.rig.applyEnv();
 });
-lab.setStyle = (v) => { styleSeg.set(v); hero.setStyle(v); };
+lab.setStyle = (v) => { lab.style = v; styleSeg.set(v); hero.setStyle(v); };
 
 // hour
 const hourCtl = slider($('#hour-mount'), {
@@ -127,11 +128,11 @@ const hourCtl = slider($('#hour-mount'), {
   fmt: (h) => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}`,
   onInput: (h) => { lab.hour = h; hero.setHour(h); }
 });
-seg($('#hour-presets'), [{ v: 10.5, label: 'Morning' }, { v: 12, label: 'Noon' }, { v: 17.8, label: 'Golden' }, { v: 22, label: 'Night' }], null, (h) => hourCtl.set(h));
+seg($('#hour-presets'), [{ v: 10.5, label: 'Morning' }, { v: 12, label: 'Noon' }, { v: 17.8, label: 'Golden' }, { v: 22, label: 'Night' }], null, (h) => { hourCtl.set(h); lab.hour = h; hero.setHour(h); });
 
 // view / gait / turn
-seg('#seg-view', [{ v: 'iso', label: 'Isometric' }, { v: 'eye', label: 'Cat-eye' }], hero.view, (v) => hero.setView(v));
-seg('#seg-gait', [{ v: 'walk', label: 'Walk' }, { v: 'prowl', label: 'Prowl' }], 'walk', (v) => hero.setProwl(v === 'prowl'));
+seg($('#seg-view'), [{ v: 'iso', label: 'Isometric' }, { v: 'eye', label: 'Cat-eye' }], hero.view, (v) => hero.setView(v));
+seg($('#seg-gait'), [{ v: 'walk', label: 'Walk' }, { v: 'prowl', label: 'Prowl' }], 'walk', (v) => hero.setProwl(v === 'prowl'));
 $('#btn-rotl').addEventListener('click', () => hero.rotate(-1));
 $('#btn-rotr').addEventListener('click', () => hero.rotate(1));
 lab.setProwl = (b) => hero.setProwl(b);
