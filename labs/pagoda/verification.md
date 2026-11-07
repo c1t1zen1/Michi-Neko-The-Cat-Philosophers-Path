@@ -26,9 +26,9 @@ driven over the DevTools protocol, serving the repo root with
 | Build | Meshes | Triangles | Instances |
 |---|---|---|---|
 | The game's `buildDistantPagoda` | 93 | 1,564 | 0 |
-| Hero tier (Yasaka, every part on) | 79 | 74,318 | 1,476 |
-| Mid tier | 47 | 28,126 | 0 |
-| Far tier | 32 | 2,988 | 0 |
+| Hero tier (Yasaka, every part on) | 84 | 74,426 | 1,476 |
+| Mid tier | 52 | 28,234 | 0 |
+| Far tier | 37 | 3,096 | 0 |
 | Impostor | 1 | 2 | 0 |
 
 The whole platform scene (town, forest, ranges, clouds, shadow pass) draws
@@ -52,6 +52,18 @@ about 150 calls and 0.6–0.7 M triangles per frame in the perch view.
 * Rafters stay under the tiles: they run along the roof's eave tangent, below
   a convex surface. A first build with a steeper rafter line pushed them
   through the roof; that is fixed.
+* **The solid core (fixed later on 2026-11-07).** The first build's wall ended
+  at the column tops and every roof is a single-sided skin, so from below
+  you could see sky through the bracket band of every storey, and on the top
+  storey the far-side hip rafters. Each storey now has a plaster core from the
+  column tops to the next floor (or to just under the top roof) plus a floor
+  plate out to the roof's inner edge, with the soffit closing onto it: one
+  extra mesh per storey, which is +5 meshes and +108 triangles per tier in the
+  table above (before: 79 / 47 / 32 meshes). Checked before and after in
+  headless Chrome: the valley preset from below at 17 m and from under the
+  first eave, from above, exploded, in the frame view (the core hides with the
+  roofs and the heart pillar shows), the mid and far tiers, and Hōryū-ji and
+  Ninna-ji. No console errors.
 
 ## Not verified
 

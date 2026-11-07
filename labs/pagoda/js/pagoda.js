@@ -465,6 +465,16 @@ export function buildPagoda(input = {}, { detail = 'hero', shadows = false, slic
     const top = i === D.n - 1;
     const F = roofFrame({ R: s.R, rIn: s.rIn, yE: s.yE, yR: s.yR, rise: s.rise, start: o.start, flare: o.flare, concave: s.concave });
     frames.push(F);
+    // the core (kokabe): plaster on the wall line from the column tops up to
+    // the next floor, or to just under the top roof, so the bracket band and
+    // the hollow between soffit and tiles never open through the tower
+    const cw = (s.w - colR) / 2;
+    let yCore = top ? s.yR : D.S[i + 1].y0 - 0.02 * W;
+    if (cw > s.rIn) yCore = Math.min(yCore, F.S(0, 0, (s.R - cw) / (s.R - s.rIn)).y - 0.01 * W);
+    const CB = new Bag();
+    CB.box(2 * cw, yCore - s.yTop, 2 * cw, { y: (s.yTop + yCore) / 2 });
+    if (!top && cw <= s.rIn) CB.box(2 * s.rIn - 0.008 * W, 0.025 * W, 2 * s.rIn - 0.008 * W, { y: yCore - 0.0125 * W });   // floor out to the roof's inner edge
+    put(G, CB.mesh(M.plaster, 'Core'), 'roof', i);
     const segU = low ? 8 : 26, segT = low ? 3 : 10;
     const L = Math.hypot(s.R - s.rIn, s.yR - s.yE);
     const rafterTop = (r) => s.yE + s.sr * (s.R - r) - 0.012 * W;
@@ -478,7 +488,7 @@ export function buildPagoda(input = {}, { detail = 'hero', shadows = false, slic
       soff.add(gridGeometry(segU, 2, (a, b, out) => {
         const u = a * 2 - 1;
         F.S(k, u, 0, out).add(V(0, -s.edgeH, 0));
-        const inner = onFace(k, hw, u * hw, ySi);
+        const inner = onFace(k, cw, u * cw, ySi);
         return out.lerp(inner, b);
       }, (a, b, q) => [(q.x * tk.x + q.z * tk.z) / sp, b], V(0, -1, 0)));
     }

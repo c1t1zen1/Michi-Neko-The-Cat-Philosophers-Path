@@ -112,6 +112,14 @@ ratio: 1 is the record, and the valley preset uses 1.8 because 0.0365 of a
   a bracket at 90°. Corner sets (sumitokyō) and regular sets (hiratokyō); Zen
   style uses closely spaced intercolumnar sets (tsumegumi). JAANUS mitesaki:
   three projecting sets of arms, each with three small blocks (Excerpt).
+* **Kokabe and the core**: the bracket sets stand against small plaster walls
+  (kokabe), and behind them the storey is solid frame and floor. The lab's
+  first build stopped the wall at the column tops, so from below you could
+  look through the bracket band and out the far side. Each storey now has a
+  plaster core on the wall line from the column tops to the floor of the
+  storey above (on the top storey, to just under the roof), plus a floor plate
+  out to the roof's inner edge, and the soffit closes onto the core. It shows
+  with the roof in the assembly steps and hides with it in the frame view.
 * **Rafters**: futanoki (double eaves: base rafters **jidaruki** and flying
   rafters **hiendaruki**; JAANUS, Excerpt). **Ōgidaruki** fan rafters radiate at
   the corners; popular from the 14th–15th c., with Nara-period fragments
