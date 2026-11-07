@@ -219,13 +219,29 @@ export function engawa(parent, w, depth, h, M, recipe = 'planks') {
 }
 export function inuyarai(parent, w, h, M, recipe = 'curved') {
   const g = new THREE.Group(); g.name = 'Inuyarai';
-  const points = [new THREE.Vector3(0, 0, .65), new THREE.Vector3(0, h * .4, .5), new THREE.Vector3(0, h, 0)];
-  const path = new THREE.QuadraticBezierCurve3(...points);
-  const geo = recipe === 'curved' ? new THREE.TubeGeometry(path, 14, .023, 5, false) : new THREE.CylinderGeometry(.024, .024, h, 5);
-  const count = Math.ceil(w / .11);
-  instances(g, geo, M.bamboo, Array.from({ length: count }, (_, i) => ({ p: [-w / 2 + i * w / (count - 1), recipe === 'curved' ? 0 : h / 2, 0] })), 'Bowed bamboo staves');
+  const curved = recipe === 'curved';
+  const foot = new THREE.Vector3(0, 0, .65), top = new THREE.Vector3(0, h, 0);
+  // Both recipes lean from the same street-side foot to the wall-side top.
+  // A straight cylinder spans that whole diagonal, not just the wall height.
+  const path = curved
+    ? new THREE.QuadraticBezierCurve3(foot, new THREE.Vector3(0, h * .4, .5), top)
+    : new THREE.LineCurve3(foot, top);
+  const radius = curved ? .023 : .024;
+  const geo = curved ? new THREE.TubeGeometry(path, 14, radius, 5, false)
+    : new THREE.CylinderGeometry(radius, radius, foot.distanceTo(top), 5);
+  const count = Math.max(2, Math.ceil(w / .11));
+  instances(g, geo, M.bamboo, Array.from({ length: count }, (_, i) => ({
+    p: [-w / 2 + i * w / (count - 1), curved ? 0 : h / 2, curved ? 0 : .325],
+    r: [curved ? 0 : -Math.atan2(.65, h), 0, 0]
+  })), curved ? 'Bowed bamboo staves' : 'Leaning straight bamboo staves');
   for (const t of [.18, .6, .88]) {
-    const p = path.getPoint(t); box(g, w + .1, .033, .035, M.timberDark, 0, p.y, p.z + .028);
+    const p = path.getPoint(t), tangent = path.getTangent(t).normalize();
+    const normal = new THREE.Vector3(0, -tangent.z, tangent.y);
+    // Seat the rail's lower face on the outward face of the staves. A tiny
+    // overlap accounts for their low-poly cross-section, preventing daylight.
+    p.addScaledVector(normal, radius + .033 / 2 - .005);
+    const rail = box(g, w + .1, .033, .035, M.timberDark, 0, p.y, p.z);
+    rail.rotation.x = Math.atan2(normal.z, normal.y);
   }
   parent.add(g); return g;
 }
