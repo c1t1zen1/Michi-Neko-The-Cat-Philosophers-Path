@@ -4,8 +4,22 @@ import { playSynthNote, playGameSfx, playAmbient } from './synth.js';
 import { playDrum } from './drums.js';
 import { getCachedBuffer, getProcessedBuffer, loadDecodedAsset } from './assets.js';
 import { sfxRuntime } from '../sfx/runtime.js';
+import { encodeWav } from '../library/pcm.js';
 
 const SFX = sfxRuntime();
+
+export function scheduleParameterAutomation(param, points, spb, multiplier = 1) {
+  const sorted = (points || []).filter(p => Number.isFinite(p.beat) && Number.isFinite(p.value)).slice().sort((a,b) => a.beat-b.beat);
+  if (!param || !sorted.length) return;
+  param.cancelScheduledValues(0);
+  param.setValueAtTime(sorted[0].value * multiplier, 0);
+  for (const p of sorted) param.linearRampToValueAtTime(p.value * multiplier, Math.max(0,p.beat * spb));
+}
+export function scheduleDeviceAutomation(chain, track, spb) {
+  for (const [id, params] of Object.entries(track.automation?.devices || {})) {
+    for (const [key, points] of Object.entries(params)) scheduleParameterAutomation(chain.deviceParams?.[id]?.[key], points, spb);
+  }
+}
 
 function maxNoteEnd(notes) {
   let m = 0.25;
@@ -104,14 +118,15 @@ export async function scheduleClipContent(ctx, pack, destInput, track, project, 
 export async function renderProject(project, onProgress) {
   const spb = 60 / (project.tempo || 110);
   const endBeat = songEndBeat(project);
-  const seconds = endBeat * spb + 2.5;
+  const seconds = endBeat * spb + 6;
   const OfflineAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   if (!OfflineAC) throw new Error('OfflineAudioContext not supported');
-  const ctx = new OfflineAC(2, Math.ceil(seconds * 44100), 44100);
+  const ctx = new OfflineAC(2, Math.ceil(seconds * 48000), 48000);
 
   const pack = buildMasterPack(ctx);
   pack.bpm = project.tempo;
   pack.master.gain.value = project.master.volume;
+  scheduleParameterAutomation(pack.master.gain, project.master.automation?.volume, spb, project.master.volume);
 
   const soloed = project.tracks.some((t) => t.solo);
   let done = 0;
@@ -119,6 +134,9 @@ export async function renderProject(project, onProgress) {
   for (const t of project.tracks) {
     if (t.mute || (soloed && !t.solo)) continue;
     const chain = buildTrackChain(pack, t, project);
+    scheduleParameterAutomation(chain.gain.gain, t.automation?.volume, spb);
+    scheduleParameterAutomation(chain.pan.pan, t.automation?.pan, spb);
+    scheduleDeviceAutomation(chain, t, spb);
     if (t.frozenActive && t.frozenAssetId) {
       const buffer = getCachedBuffer(t.frozenAssetId) || await loadDecodedAsset(ctx, t.frozenAssetId);
       if (buffer) {
@@ -137,7 +155,7 @@ export async function renderProject(project, onProgress) {
   if (onProgress) onProgress('Rendering…');
   const buffer = await ctx.startRendering();
   if (onProgress) onProgress('Encoding WAV…');
-  return wavBlob(buffer);
+  return new Blob([encodeWav(buffer, 24)], { type: 'audio/wav' });
 }
 
 /* Renders a single track's insert-device chain (instrument + EQ/comp/delay/
@@ -150,15 +168,16 @@ export async function renderTrackToBuffer(project, track, onProgress) {
   const spb = 60 / (project.tempo || 110);
   let endBeat = 4;
   for (const c of track.clips) endBeat = Math.max(endBeat, (c.start + c.length) * 4);
-  const seconds = endBeat * spb + 2.5;
+  const seconds = endBeat * spb + 6;
   const OfflineAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   if (!OfflineAC) throw new Error('OfflineAudioContext not supported');
-  const ctx = new OfflineAC(2, Math.ceil(seconds * 44100), 44100);
+  const ctx = new OfflineAC(2, Math.ceil(seconds * 48000), 48000);
 
   const pack = buildMasterPack(ctx);
   pack.bpm = project.tempo;
 
-  const { input, output } = buildDeviceChain(pack, track);
+  const chain = buildDeviceChain(pack, track), { input, output } = chain;
+  scheduleDeviceAutomation(chain, track, spb);
   output.connect(ctx.destination);
 
   if (onProgress) onProgress(`Freezing ${track.name}…`);

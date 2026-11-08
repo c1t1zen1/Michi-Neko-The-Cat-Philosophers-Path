@@ -264,7 +264,7 @@ export class DrumGrid {
           el('div', { class: 'empty-hint' },
             el('div', { text: 'No clip selected — pick a Drum Rhythm below to add drums to your song!' }),
             el('div', { class: 'form-row', style: 'justify-content:center;margin-top:10px' },
-              el('button', { class: 'btn primary', text: '🥁 Browse 42 Drum Rhythms…', onclick: () => this.openRhythmBrowserModal() }),
+              el('button', { class: 'btn primary', text: `🥁 Browse ${DRUM_RHYTHMS.length} Drum Rhythms…`, onclick: () => this.openRhythmBrowserModal() }),
               el('button', { class: 'btn', text: '🌊 Open Wave Lab (Audio Manipulator)', onclick: () => this.app.switchTab('wavelab') })
             )
           )
@@ -327,7 +327,7 @@ export class DrumGrid {
       }),
       el('button', {
         class: 'mini-btn primary',
-        text: '📚 Browse All 42 Rhythms…',
+        text: `📚 Browse All ${DRUM_RHYTHMS.length} Rhythms…`,
         title: 'Open visual rhythm browser with step previews and categories',
         onclick: () => this.openRhythmBrowserModal()
       }),

@@ -9,7 +9,9 @@
    - Incorporating samples into songs: Place as Audio Clip on Timeline, Sync-Stretch to 1/2/4 Bars,
      Turn into a Chromatic Playable Sampler Track, Bake to New Sample, or Export WAV. */
 
-import { el, toast, makeKnob, download } from './common.js';
+import { el, toast, makeKnob, download, showModal } from './common.js';
+import { processMastering } from '../library/mastering.js';
+import { encodeWav, stats, toAudioBuffer } from '../library/pcm.js';
 import { uid, midiToName } from '../state.js';
 import {
   STARTER_SAMPLES, SOUND_PHYSICS_PRESETS, defaultPhysicsParams, normalizePhysicsParams,
@@ -195,7 +197,7 @@ export class WaveLab {
 
   async saveBufferAsAsset(buffer, name, { select = true, rootMidi = 60 } = {}) {
     const assetId = uid('smp');
-    const blob = wavBlob(buffer);
+    const blob = new Blob([encodeWav(buffer,24)], { type:'audio/wav' });
     const bytes = await blob.arrayBuffer();
     cacheBuffer(assetId, buffer);
     const meta = {
@@ -205,6 +207,7 @@ export class WaveLab {
       durationSec: Math.round(buffer.duration * 1000) / 1000,
       sampleRate: buffer.sampleRate,
       channels: buffer.numberOfChannels,
+      bitsPerSample: 24,
       keepInLibrary: true,
       rootMidi
     };
@@ -238,9 +241,12 @@ export class WaveLab {
       });
       this._recStream = stream;
       const src = ctx.createMediaStreamSource(stream);
-      this._startPcmCapture(ctx, src, 'mic');
+      await this._startPcmCapture(ctx, src, 'mic');
       toast('🎙 Recording from microphone… click Stop when done');
     } catch (err) {
+      this.recordingMode = null;
+      this._recStream?.getTracks().forEach(t => t.stop());
+      this._recStream = null;
       toast(`Microphone access denied or unavailable (${err.message}) — try "⏺ Resample Song" to record internal audio!`, true);
     }
   }
@@ -255,7 +261,7 @@ export class WaveLab {
     await this.app.engine.resume();
     const pack = this.app.engine.ensure();
     const ctx = pack.ctx;
-    this._startPcmCapture(ctx, pack.master, 'resample');
+    await this._startPcmCapture(ctx, pack.master, 'resample');
     if (!this.app.transport.playing) {
       this.app.transport.play();
       this._startedTransportForResample = true;
@@ -263,20 +269,17 @@ export class WaveLab {
     toast('⏺ Resampling dawCAT Master output… play notes or let the song run, then click Stop!');
   }
 
-  _startPcmCapture(ctx, sourceNode, mode) {
+  async _startPcmCapture(ctx, sourceNode, mode) {
     this.recordingMode = mode;
     this.recChunksL = [];
     this.recChunksR = [];
     this.recLevel = 0;
     this.recDuration = 0;
-    const proc = ctx.createScriptProcessor(2048, 2, 2);
     const silentGain = ctx.createGain();
     silentGain.gain.value = 0;
 
-    proc.onaudioprocess = (e) => {
+    const capture = (inL, inR) => {
       if (!this.recordingMode) return;
-      const inL = e.inputBuffer.getChannelData(0);
-      const inR = e.inputBuffer.numberOfChannels > 1 ? e.inputBuffer.getChannelData(1) : inL;
       const copyL = new Float32Array(inL.length);
       const copyR = new Float32Array(inR.length);
       copyL.set(inL);
@@ -293,11 +296,26 @@ export class WaveLab {
       this.recDuration += copyL.length / ctx.sampleRate;
       this.updateRecStatusUI();
 
-      // Auto-cap at 30 seconds so memory stays light
-      if (this.recDuration >= 30) {
+      // Six minutes of stereo PCM is about 132 MB at 48 kHz. This supports
+      // full cues while retaining a predictable memory bound.
+      if (this.recDuration >= 360) {
         this.stopRecording();
       }
     };
+
+    let proc;
+    if (ctx.audioWorklet && typeof AudioWorkletNode === 'function') {
+      if (!this._recorderWorkletReady) {
+        await ctx.audioWorklet.addModule(new URL('../engine/pcm-recorder.worklet.js', import.meta.url));
+        this._recorderWorkletReady = true;
+      }
+      if (!this.recordingMode) return;
+      proc = new AudioWorkletNode(ctx, 'dawcat-pcm-recorder', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
+      proc.port.onmessage = ({ data }) => { if (data.flushed) this._recFlushResolve?.(); else capture(data.L,data.R); };
+    } else {
+      proc = ctx.createScriptProcessor(2048,2,2);
+      proc.onaudioprocess = e => capture(e.inputBuffer.getChannelData(0),e.inputBuffer.numberOfChannels > 1 ? e.inputBuffer.getChannelData(1) : e.inputBuffer.getChannelData(0));
+    }
 
     sourceNode.connect(proc);
     proc.connect(silentGain);
@@ -310,8 +328,14 @@ export class WaveLab {
 
   async stopRecording() {
     const mode = this.recordingMode;
-    if (!mode) return;
+    if (!mode || this._stoppingRecording) return;
+    this._stoppingRecording = true;
+    if (this._recProcessor?.port) {
+      await new Promise(resolve => { this._recFlushResolve = resolve; this._recProcessor.port.postMessage('flush'); setTimeout(resolve,150); });
+      this._recFlushResolve = null;
+    }
     this.recordingMode = null;
+    this._stoppingRecording = false;
 
     if (this._startedTransportForResample) {
       this._startedTransportForResample = false;
@@ -321,6 +345,7 @@ export class WaveLab {
     try {
       if (this._recProcessor) {
         this._recProcessor.onaudioprocess = null;
+        if (this._recProcessor.port) this._recProcessor.port.onmessage = null;
         if (this._recSource && mode === 'resample') {
           try { this._recSource.disconnect(this._recProcessor); } catch {}
         } else if (this._recSource) {
@@ -702,8 +727,38 @@ export class WaveLab {
     const buf = this.processedBuffer || this.sourceBuffer;
     if (!buf) return;
     const name = this.sampleName(this.activeSampleId).toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'sample';
-    download(`${name}-manipulated.wav`, wavBlob(buf), 'audio/wav');
+    download(`${name}-manipulated.wav`, new Blob([encodeWav(buf, 24)], { type: 'audio/wav' }), 'audio/wav');
     toast('Manipulated WAV downloaded');
+  }
+
+  masteringDialog() {
+    const buffer = this.processedBuffer || this.sourceBuffer;
+    if (!buffer) { toast('Load audio first', true); return; }
+    const measured = stats(buffer), operation = el('select', { 'aria-label': 'Mastering operation' });
+    [['compress','Stereo-linked compressor'],['normalize','Peak normalize'],['rms','RMS level match with peak ceiling'],['dc','Remove DC offset'],['hum','Reduce mains hum (four notches)'],['gate','Gentle noise gate'],['declick','Repair isolated sample clicks']].forEach(([value,text])=>operation.append(el('option',{value,text})));
+    const fields = {};
+    const rows = [['threshold','Threshold dBFS',-21,-80,0,.5],['ratio','Ratio',2.5,1,20,.1],['attack','Attack seconds',.012,.0001,.5,.001],['release','Release seconds',.18,.001,2,.01],['ceiling','Peak ceiling dBFS',-2,-24,0,.1],['target','RMS target dBFS',-22,-48,-6,.5],['hz','Mains frequency Hz',60,50,60,10]];
+    const form = el('div', {}, el('p', {text:`Source: peak ${measured.peakDb.toFixed(1)} dBFS · RMS ${measured.rmsDb.toFixed(1)} dBFS · crest ${measured.crestDb.toFixed(1)} dB. Applies to the processed trim selection and saves a new asset; your source stays available.`}), operation);
+    const fieldRows = {};
+    for(const [key,label,value,min,max,step] of rows){const input=el('input',{type:'number',value,min,max,step,'aria-label':label});fields[key]=input;fieldRows[key]=el('label',{class:'form-row'},label+' ',input);form.append(fieldRows[key]);}
+    const showFields = () => {
+      const used = { compress:['threshold','ratio','attack','release'],normalize:['ceiling'],rms:['target','ceiling'],hum:['hz'],gate:['threshold'],dc:[],declick:[] }[operation.value];
+      for(const [key,row] of Object.entries(fieldRows)) row.style.display = used.includes(key) ? '' : 'none';
+      if(operation.value==='gate')fields.threshold.value=-48;
+      if(operation.value==='compress')fields.threshold.value=-21;
+    };
+    operation.addEventListener('change',showFields);showFields();
+    const status=el('p',{class:'dim',text:'RMS and sample peak are shown. This is not a LUFS or true-peak meter. A gate reduces quiet passages; it does not perform spectral noise-print subtraction.'});form.append(status);
+    showModal({title:'Wave Lab · Mastering & repair',body:form,buttons:[{label:'Process to new sample',primary:true,close:false,onClick:async()=>{
+      try{const options=Object.fromEntries(Object.entries(fields).map(([key,node])=>[key,Math.max(Number(node.min),Math.min(Number(node.max),Number(node.value)))]));
+        if(operation.value==='declick')options.threshold=.3;
+        const edited=processMastering(buffer,operation.value,options),ctx=this.app.engine.ensure().ctx,bound=this.boundClipRef&&{...this.boundClipRef};
+        const before=this.sampleName(this.activeSampleId);this.state.pushUndo();this.state.flushUndo();
+        const assetId=await this.saveBufferAsAsset(toAudioBuffer(ctx,edited),`${before} · ${operation.value}`,{select:true});
+        if(bound){const c=this.state.track(bound.trackId)?.clips.find(c=>c.id===bound.clipId);if(c){this.state.updateClip(bound.trackId,bound.clipId,{audio:{...c.audio,assetId,trimStart:0,trimEnd:edited.duration}},{undo:false});this.boundClipRef=bound;}}
+        const after=stats(edited);status.textContent=`Saved new sample · peak ${after.peakDb.toFixed(1)} dBFS · RMS ${after.rmsDb.toFixed(1)} dBFS. Ctrl+Z restores the previous project state.`;
+      }catch(e){status.textContent=e.message;}
+    }},{label:'Close'}]});
   }
 
   sampleName(id) {
@@ -886,6 +941,7 @@ export class WaveLab {
       ),
       presetSelect,
       el('div', { class: 'wl-actions' },
+        el('button', { class: 'btn', text: 'Mastering & repair…', onclick: () => this.masteringDialog() }),
         el('button', {
           id: 'wl-btn-play',
           class: 'btn primary' + (this.activePreview ? ' active' : ''),

@@ -1,10 +1,14 @@
 {
   "name": "dawcat",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
-  "description": "dawCAT web audio studio for Michi-Neko. No dependencies — this file only marks src/ as ES modules for Node and declares the test script.",
+  "description": "dawCAT web audio studio and Kyoto sound library. No runtime dependencies; optional Node and FFmpeg content build tools.",
   "scripts": {
-    "test": "node tests/run.mjs"
+    "test": "node tests/run.mjs",
+    "library:build": "node tools/build-library.mjs",
+    "library:catalog": "node tools/catalog-game.mjs",
+    "library:verify": "node tools/verify-library.mjs",
+    "library:browser": "node tools/browser-check.mjs"
   }
 }

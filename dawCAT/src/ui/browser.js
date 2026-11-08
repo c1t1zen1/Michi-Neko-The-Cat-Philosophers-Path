@@ -4,8 +4,10 @@ import { SCALES, hzToMidi, midiToName, defaultSynthPreset, uid } from '../state.
 import { DRUM_RHYTHMS } from '../engine/rhythms.js';
 import { DRUM_KIT_LIST } from '../engine/drums.js';
 import { STARTER_SAMPLES } from '../engine/manipulator.js';
+import { INSTRUMENTS, instrumentPreset } from '../library/instruments.js';
 
 const PRESETS = [
+  ...INSTRUMENTS.map(i => ({ name: i.name, preset: instrumentPreset(i.id) })),
   { name: 'Koto Pluck', preset: defaultSynthPreset('pluck') },
   { name: 'Warm Pad', preset: defaultSynthPreset('pad') },
   { name: 'Saw Lead', preset: defaultSynthPreset('lead') },

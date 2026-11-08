@@ -1,0 +1,89 @@
+{
+  "checks": [
+    {
+      "name": "75 entries",
+      "pass": true
+    },
+    {
+      "name": "search and SFX filter",
+      "pass": true
+    },
+    {
+      "name": "native WAV playback",
+      "pass": true
+    },
+    {
+      "name": "favorite and named playlist persist",
+      "pass": true
+    },
+    {
+      "name": "named playlist plays and stops at end",
+      "pass": true
+    },
+    {
+      "name": "worker produces a new SFX take",
+      "pass": true
+    },
+    {
+      "name": "original game A/B renders",
+      "pass": true
+    },
+    {
+      "name": "refined recipe generates different PCM",
+      "pass": true
+    },
+    {
+      "name": "filtered collection ZIP downloads",
+      "pass": true
+    },
+    {
+      "name": "SFX opens as audio in Wave Lab",
+      "pass": true
+    },
+    {
+      "name": "mastering saves an immutable new sample",
+      "pass": true
+    },
+    {
+      "name": "AudioWorklet captures internal stereo audio",
+      "pass": true
+    },
+    {
+      "name": "AAC score playback",
+      "pass": true
+    },
+    {
+      "name": "MIDI download includes notes and drums",
+      "pass": true
+    },
+    {
+      "name": "48kHz 24bit score WAV exports through worker",
+      "pass": true
+    },
+    {
+      "name": "seven aligned stems download",
+      "pass": true
+    },
+    {
+      "name": "song opens 7 tracks and 252 clips and undo restores prior project",
+      "pass": true
+    },
+    {
+      "name": "modeled native playback has finite audio and active voices",
+      "pass": true
+    },
+    {
+      "name": "native 24bit WAV export prints timeline automation",
+      "pass": true
+    },
+    {
+      "name": "MIDI file import restores channel-10 drum grids",
+      "pass": true
+    },
+    {
+      "name": "no browser runtime errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}

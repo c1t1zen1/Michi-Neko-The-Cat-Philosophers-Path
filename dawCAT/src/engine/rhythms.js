@@ -2,7 +2,10 @@
    Pure module (no DOM), shared by the Drum Grid UI, Browser, Project Templates,
    and AI Agent (theory.js / schema.js / executor.js). */
 
+import { SCORES, drumPattern } from '../library/scores.js';
+
 export const RHYTHM_CATEGORIES = [
+  'Kyoto Sessions',
   'Kyoto & Traditional',
   'Lo-Fi & Chillhop',
   'Electronic & Club',
@@ -744,6 +747,15 @@ export const DRUM_RHYTHMS = [
     }
   }
 ];
+
+DRUM_RHYTHMS.push(...SCORES.map((s, index) => ({
+  id: 'kyoto-session-' + s.id,
+  name: s.name + ' · groove', category: 'Kyoto Sessions', bpm: s.tempo,
+  swing: ['swing','dream'].includes(s.groove) ? .2 : .04,
+  kit: s.modern > .7 ? 'neon' : 'kyoto', key: ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][s.root % 12],
+  scale: s.mode, desc: s.description,
+  grid: Object.fromEntries(Object.entries(drumPattern(s, s.groove === 'air' ? 3 : index % 4, .95, 2)).map(([lane, values]) => [lane, values.map(v => v > .5 ? 'x' : v > .3 ? 'o' : v ? 'g' : '.').join('')]))
+})));
 
 export const RHYTHM_BY_ID = new Map(DRUM_RHYTHMS.map((r) => [r.id, r]));
 

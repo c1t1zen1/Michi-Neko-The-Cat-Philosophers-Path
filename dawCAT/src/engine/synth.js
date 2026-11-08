@@ -1,9 +1,31 @@
 /* dawCAT — synth voices, game SFX approximations, ambient textures */
 
 import { getProcessedBuffer } from './assets.js';
+import { synthVoice } from '../library/voices.js';
+import { pcm, toAudioBuffer } from '../library/pcm.js';
 
-export const SYNTH_KINDS = ['pad', 'pluck', 'lead', 'bass', 'keys', 'chime', 'sampler'];
+export const SYNTH_KINDS = ['pad', 'pluck', 'lead', 'bass', 'keys', 'chime', 'sampler', 'physical'];
 export const OSC_TYPES = ['sine', 'triangle', 'sawtooth', 'square'];
+const physicalCaches = new WeakMap();
+
+export function playPhysicalNote(ctx, dest, preset, midi, when, dur, vel = .8, reg) {
+  let cache = physicalCaches.get(ctx);
+  if (!cache) { cache = new Map(); physicalCaches.set(ctx, cache); }
+  const duration = Math.max(.05, Math.round(dur * 20) / 20), velocity = Math.max(.08, Math.round(vel * 12) / 12);
+  const key = JSON.stringify([preset, midi, duration, velocity]);
+  let buffer = cache.get(key);
+  if (!buffer) {
+    buffer = toAudioBuffer(ctx, pcm(ctx.sampleRate, [synthVoice(preset.model || 'koto', midi, duration, velocity, ctx.sampleRate, 1, preset)]));
+    if (cache.size >= 64) cache.delete(cache.keys().next().value);
+    cache.set(key, buffer);
+  }
+  const src = ctx.createBufferSource(), gain = ctx.createGain(); src.buffer = buffer;
+  gain.gain.value = preset.gain ?? .62;
+  src.connect(gain); gain.connect(dest); src.start(when);
+  src.onended = () => { src.disconnect(); gain.disconnect(); };
+  if (reg) reg(src);
+  return { source: src, gain, duration: buffer.duration };
+}
 
 function noiseBuffer(ctx, seconds = 2) {
   const len = Math.floor(ctx.sampleRate * seconds);
@@ -22,6 +44,7 @@ export function playSynthNote(pack, dest, preset, midi, when, dur, vel, reg) {
   const ctx = pack.ctx;
   if (!ctx) return;
   const p = preset || {};
+  if (p.kind === 'physical' || p.model) return playPhysicalNote(ctx, dest, p, midi, when, dur, vel, reg);
   const freq = 440 * Math.pow(2, (midi - 69) / 12);
   const gain = ctx.createGain();
   const filter = ctx.createBiquadFilter();

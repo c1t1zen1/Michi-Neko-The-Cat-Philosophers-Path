@@ -1,6 +1,7 @@
 /* dawCAT — project state, persistence, undo/redo */
 import { deleteAsset } from './engine/assets.js';
 import { sfxRuntime } from './sfx/runtime.js';
+import { instrumentPreset } from './library/instruments.js';
 
 // Only normalize() is used here; the runtime is self-contained, so importing
 // it creates no cycle with sfx/patches.js (which imports uid from this file).
@@ -16,6 +17,8 @@ export const SCALES = {
   'pentatonic major': [0, 2, 4, 7, 9],
   hirajoshi: [0, 2, 3, 7, 8],
   'in sen': [0, 1, 5, 7, 10],
+  yo: [0, 2, 5, 7, 9],
+  iwato: [0, 1, 5, 6, 10],
   chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 };
 
@@ -48,6 +51,7 @@ export function noteNameToMidi(n) {
 /* ---------------- default project ---------------- */
 
 export function defaultSynthPreset(kind = 'pluck') {
+  if (kind === 'physical') return instrumentPreset('koto');
   const presets = {
     pad: { kind: 'pad', osc1: 'sine', osc2: 'triangle', detune: 5, attack: 1.2, decay: 2, sustain: 0.7, release: 2.4, cutoff: 900, res: 0.6, gain: 0.5 },
     pluck: { kind: 'pluck', osc1: 'triangle', osc2: 'sine', detune: 3, attack: 0.005, decay: 1.2, sustain: 0, release: 0.4, cutoff: 2400, res: 0.4, pitchDrop: true, gain: 0.6 },

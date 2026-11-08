@@ -1,6 +1,11 @@
 /* dawCAT — synthesized drum kit voices */
+import { drumVoice } from '../library/voices.js';
+import { pcm, toAudioBuffer } from '../library/pcm.js';
+const modeledCaches = new WeakMap();
 
 export const DRUM_KIT_LIST = [
+  { id: 'kyoto', name: 'Kyoto Modal Kit', desc: 'Membrane modes, wood, bronze and three deterministic strike variations' },
+  { id: 'neon', name: 'Edo × Neon Kit', desc: 'Rounded sub, modal snare, airy hats and bronze accents' },
   { id: 'soft', name: 'Soft Kit', desc: 'Warm, gentle brushed & muffled voices' },
   { id: 'punch', name: 'Punch Kit', desc: 'Tight studio punch with snappy transients' },
   { id: 'lofi', name: 'Lo-Fi Kit', desc: 'Dusty vintage tape-filtered percussion' },
@@ -22,6 +27,15 @@ const KITS = {
 
 export function playDrum(pack, dest, lane, when, vel, kit = 'soft', reg) {
   const ctx = pack.ctx;
+  if (kit === 'kyoto' || kit === 'neon') {
+    let cache = modeledCaches.get(ctx);
+    if (!cache) { cache = new Map(); modeledCaches.set(ctx, cache); }
+    pack._modeledStrike = (pack._modeledStrike || 0) + 1;
+    const take = pack._modeledStrike % 3, velocity = Math.max(.08, Math.round(vel * 12) / 12), key = `${kit}:${lane}:${velocity}:${take}`;
+    let buffer = cache.get(key);
+    if (!buffer) { buffer = toAudioBuffer(ctx, pcm(ctx.sampleRate, [drumVoice(lane, kit, velocity, ctx.sampleRate, take)])); if (cache.size >= 128) cache.delete(cache.keys().next().value); cache.set(key, buffer); }
+    const src = ctx.createBufferSource(); src.buffer = buffer; src.connect(dest); src.start(when); if (reg) reg(src); return;
+  }
   const k = KITS[kit] || KITS.soft;
   const out = ctx.createGain();
   out.gain.value = vel;

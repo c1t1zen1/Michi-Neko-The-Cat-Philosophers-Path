@@ -725,6 +725,9 @@ export function hotSwapSnippet(payload) {
 }
 
 export function exportToGame(project) {
+  if (project.tracks.some(t => t.preset?.kind === 'physical' || ['kyoto','neon'].includes(t.drumKit))) {
+    throw new Error('Modeled instruments require the studio WAV/stem renderer; game runtime integration is pending.');
+  }
   const payload = buildExportPayload(project);
   try { localStorage.setItem('dawcat_export_v1', JSON.stringify(payload)); } catch (e) { /* quota */ }
   return {

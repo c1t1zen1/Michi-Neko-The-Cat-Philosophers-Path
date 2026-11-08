@@ -2,11 +2,12 @@
    Format-1 reader/writer (no external deps), following the same
    "hand-roll binary formats" precedent as engine/render.js's WAV writer.
 
-   Only note data survives the round trip — drum-lane steps, imported
-   audio, FX-chain devices and automation are explicitly out of scope,
+   Notes and GM drum hits survive the round trip. Imported
+   audio, FX-chain devices and automation are out of scope,
    same "documented, not silently mishandled" philosophy as the rest of
    the game-export path (see bridge.js). */
 import { maxNoteEnd } from './bridge.js';
+import { buildClipEvents } from './engine/transport.js';
 
 const PPQ = 480; // ticks per quarter note == 1 dawCAT "beat", independent of tempo
 
@@ -39,8 +40,7 @@ function metaEvent(type, data) {
 }
 
 function textMeta(type, text) {
-  const data = [];
-  for (let i = 0; i < text.length; i++) data.push(text.charCodeAt(i) & 0xff);
+  const data = [...new TextEncoder().encode(text)];
   return metaEvent(type, data);
 }
 
@@ -89,9 +89,9 @@ function flattenTrackNotes(track) {
 /* Builds a Format-1 SMF: track 0 carries tempo/time-sig/name meta, one
    track per synth track carries that track's flattened notes. Returns a
    Uint8Array ready to hand to Blob/download(). */
-export function writeMidiFile(project) {
+export function writeMidiFile(project, { includeDrums = true } = {}) {
   const usPerQuarter = Math.max(1, Math.round(60000000 / (project.tempo || 110)));
-  const synthTracks = project.tracks.filter((t) => t.kind !== 'drum' && t.clips.some((c) => c.notes && c.notes.length));
+  const synthTracks = project.tracks.filter((t) => t.kind === 'drum' ? includeDrums && t.clips.some(c => c.steps) : t.clips.some((c) => c.notes && c.notes.length));
 
   const header = [];
   pushStr(header, 'MThd');
@@ -108,16 +108,19 @@ export function writeMidiFile(project) {
   ]);
   const chunks = [header, tempoTrack];
 
+  let channelIndex = 0;
+  const gmDrums = { kick: 36, snare: 38, clap: 39, hatC: 42, hatO: 46, tom: 45, rim: 37, perc: 56 };
   for (const t of synthTracks) {
-    const notes = flattenTrackNotes(t);
+    const channel = t.kind === 'drum' ? 9 : [0,1,2,3,4,5,6,7,8,10,11,12,13,14,15][channelIndex++ % 15];
+    const notes = t.kind === 'drum' ? t.clips.flatMap(c => buildClipEvents(project, t, c)).filter(e => e.kind === 'drum').map(e => ({ beat: e.beat, len: .12, midi: gmDrums[e.lane], vel: e.vel })) : flattenTrackNotes(t);
     const evs = [{ tick: 0, bytes: textMeta(0x03, t.name || 'Track') }];
     for (const n of notes) {
       const onTick = Math.round(n.beat * PPQ);
       const offTick = Math.max(onTick + 1, Math.round((n.beat + Math.max(0.05, n.len)) * PPQ));
       const vel = Math.max(1, Math.min(127, Math.round(n.vel * 127)));
       const note = Math.max(0, Math.min(127, Math.round(n.midi)));
-      evs.push({ tick: onTick, bytes: [0x90, note, vel] });
-      evs.push({ tick: offTick, bytes: [0x80, note, 0] });
+      evs.push({ tick: onTick, bytes: [0x90 | channel, note, vel] });
+      evs.push({ tick: offTick, bytes: [0x80 | channel, note, 0] });
     }
     chunks.push(trackChunk(evs));
   }
@@ -201,7 +204,7 @@ export function parseMidiFile(bytes) {
           tempoUsPerQuarter = (data[0] << 16) | (data[1] << 8) | data[2];
           tempoSeen = true;
         } else if (metaType === 0x03 && data.length) {
-          name = String.fromCharCode(...data);
+          name = new TextDecoder().decode(data);
         }
       } else if (status === 0xf0 || status === 0xf7) {
         const slen = readVarLen(view, pos);
@@ -209,13 +212,14 @@ export function parseMidiFile(bytes) {
       } else if (type === 0x90 || type === 0x80) {
         const note = view[pos.i++];
         const vel = view[pos.i++];
+        const channel = status & 15, key = channel + ':' + note;
         if (type === 0x90 && vel > 0) {
-          active.set(note, { tick, vel });
+          active.set(key, { tick, vel });
         } else {
-          const on = active.get(note);
+          const on = active.get(key);
           if (on) {
-            notes.push({ start: on.tick / ppq, len: Math.max(0.05, (tick - on.tick) / ppq), midi: note, vel: on.vel / 127 });
-            active.delete(note);
+            notes.push({ start: on.tick / ppq, len: Math.max(0.05, (tick - on.tick) / ppq), midi: note, vel: on.vel / 127, channel });
+            active.delete(key);
           }
         }
       } else if (type === 0xa0 || type === 0xb0 || type === 0xe0) {
@@ -228,9 +232,23 @@ export function parseMidiFile(bytes) {
     }
     pos.i = end; // resync to the chunk boundary regardless of how parsing ended
     notes.sort((a, b) => a.start - b.start);
-    if (notes.length) tracks.push({ name, notes });
+    const channels = [...new Set(notes.map(n => n.channel))];
+    for (const channel of channels) tracks.push({ name: channels.length > 1 ? `${name} · Ch ${channel + 1}` : name, channel, notes: notes.filter(n => n.channel === channel) });
   }
 
   const bpm = Math.round((60000000 / tempoUsPerQuarter) * 100) / 100;
   return { bpm, tracks };
+}
+
+/* Imported channel-10 percussion is quantized to the sixteen-step grid;
+   retain velocity and make a separate clip for each nonempty bar. */
+export function midiDrumClips(notes) {
+  const laneMap = {35:'kick',36:'kick',37:'rim',38:'snare',39:'clap',40:'snare',41:'tom',42:'hatC',43:'tom',44:'hatC',45:'tom',46:'hatO',47:'tom',48:'tom',49:'hatO',50:'tom',51:'hatO',56:'perc'};
+  const bars = new Map();
+  for (const n of notes) {
+    const step = Math.max(0, Math.round(n.start * 4)), bar = Math.floor(step / 16), local = step % 16;
+    if (!bars.has(bar)) bars.set(bar, { start: bar, length: 1, loop: false, loopLen: 4, notes: [], steps: Object.fromEntries(['kick','snare','clap','hatC','hatO','tom','rim','perc'].map(l => [l,Array(16).fill(0)])) });
+    const row = bars.get(bar).steps[laneMap[n.midi] || 'perc']; row[local] = Math.max(row[local],n.vel);
+  }
+  return [...bars.values()].sort((a,b) => a.start-b.start);
 }

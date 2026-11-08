@@ -139,7 +139,8 @@ export class AudioEngine {
   register(node) {
     this._live.add(node);
     this.voiceCount = this._live.size;
-    node.onended = () => { this._live.delete(node); this.voiceCount = this._live.size; };
+    const previous = node.onended;
+    node.onended = (...args) => { try { if (previous) previous.apply(node,args); } finally { this._live.delete(node); this.voiceCount = this._live.size; } };
   }
 
   stopAll() {

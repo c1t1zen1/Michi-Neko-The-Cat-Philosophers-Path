@@ -1,4 +1,29 @@
-# dawCAT 2.0 · Audio Asset Studio
+# dawCAT 3.0 · Audio Asset Studio
+
+**The Kyoto Sessions:** 50 newly designed effects and 25 complete original scores, already rendered for auditioning. Open **[♫ Kyoto Library](./?tab=library)** after serving the repository root. There is about **45.6 minutes of music**, with seven editable tracks, six sections, full drum patterns, native projects and MIDI for every song. Game files have not been changed.
+
+- Audition, seek, queue, shuffle, repeat, favorite and save named playlists. Download the filtered collection as a ZIP.
+- Compare 18 original game sound methods against the new designs. Edit effect recipe parameters, generate seeded takes, or open sounds in Wave Lab.
+- Play 16 new modeled instruments from the Browser and edit their relevant parameters in Device Chain. Two new modeled kits and 25 Kyoto Sessions grooves join the drum library (67 grooves total).
+- Connect a MIDI keyboard from the Library's **Studio MIDI** panel. Arm a synth track and enable transport Record to capture velocity and held-note lengths. Sustain and pitch bend work live; CC/bend automation is not recorded.
+- Wave Lab now has AudioWorklet recording (six-minute cap), stereo-linked compression, DC removal, hum reduction, a noise gate, click repair, RMS matching, peak normalization and 24-bit WAV export. The DAW's offline song render also prints timeline automation and exports 48 kHz / 24-bit WAV.
+- Export a score as 48 kHz / 24-bit WAV, seven aligned pre-master stems, full note-and-drum MIDI, or a native editable project. AAC files are compact audition copies; WAV renders use the original synthesis.
+
+See the **[complete collection](docs/COLLECTION.md)**, **[game audio inventory](docs/GAME_AUDIO_CATALOG.md)** and **[research, technical review and limitations](docs/RESEARCH_AND_REVIEW.md)**. The sounds are original synthesized approximations; professional listening approval and historical-performance authenticity are not implied by the library's size.
+
+Rebuild the collection with Node and FFmpeg installed:
+
+```sh
+cd dawCAT
+npm run library:catalog            # read-only game inventory + A/B snapshot
+npm run library:build              # 50 WAVs, 25 full music auditions, projects, MIDI
+npm run library:build -- --resume  # skip only matching DSP and recipe fingerprints
+npm run library:build -- --lossless # also render FLAC music
+npm run library:verify
+npm test
+```
+
+The new modeled instruments are **studio-only for now**. The old game-code exporter rejects them explicitly; use WAV/stems/MIDI until game integration is requested. All of the earlier editor features below remain available.
 
 The audio workbench for **Michi-Neko: The Cat Philosopher's Path**. Compose music cues with the game's own musical DNA, design **procedural sound effects**, and let an **AI assistant** do the heavy lifting — then export straight back into the game **without modifying any game code**.
 
@@ -111,7 +136,7 @@ There are 10 one-click **physics presets** (half-speed tape, double-speed chipmu
 
 **Put it to work** — place it as an audio clip on the timeline, sync-stretch it to 1, 2 or 4 bars, turn it into a **chromatic playable sampler track**, bake the result to a new sample, or export a WAV.
 
-**Drum rhythm library** — the Drum Grid and Browser also carry **42 pre-programmed grooves** across six categories (Kyoto & Traditional, Lo-Fi & Chillhop, Electronic & Club, Breaks/Funk/Rock, World & Jazz, Ambient & Cinematic), each with a suggested tempo, swing, kit, key and scale. The AI assistant can name and apply them.
+**Drum rhythm library** — the Drum Grid and Browser carry **67 pre-programmed grooves** across seven categories, including the new Kyoto Sessions cues, each with a suggested tempo, swing, kit, key and scale. The AI assistant can name and apply them.
 
 ---
 
@@ -199,7 +224,7 @@ Both carry each track's device chain and automation. Map **dawn / day / dusk / n
 
 - **Drag audio in** — drop a `.wav` / `.mp3` / `.ogg` onto the arrangement. Bytes live in IndexedDB so autosave never chokes.
 - **Freeze a track** — right-click a track ▸ Freeze to render its instrument + effects; mixer stays live.
-- **MIDI** — File ▸ Import / Export MIDI (notes only).
+- **MIDI** — File ▸ Import / Export MIDI (notes and channel-10 drum patterns; audio and effect processing are not embedded). Hardware input is available through Studio MIDI in the Kyoto Library.
 
 ## Workflow tips
 
@@ -231,7 +256,11 @@ Both carry each track's device chain and automation. Map **dawn / day / dusk / n
 dawCAT/
   index.html, styles.css
   package.json          marks src/ as ES modules for Node tests — no dependencies
+  media/                rendered SFX, music auditions, editable projects, MIDI, manifest
+  docs/                 research, original-game inventory, collection index, verification
+  tools/                reproducible content build, source catalog, delivery/browser checks
   src/
+    library/            shared PCM/DSP, 16 instruments, 50 SFX recipes, 25 score arrangements
     main.js             bootstrap, shortcuts, wiring
     state.js            project model, undo/redo, persistence, SFX patches
     scanner.js          game cue scanner

@@ -1,0 +1,1019 @@
+{
+  "date": "2026-11-08",
+  "checks": [
+    "50 SFX and 25 complete songs",
+    "cat-greeting: delivered media hash, format, duration, PCM headroom and data",
+    "cat-question: delivered media hash, format, duration, PCM headroom and data",
+    "cat-kitten: delivered media hash, format, duration, PCM headroom and data",
+    "cat-sleepy: delivered media hash, format, duration, PCM headroom and data",
+    "cat-long-call: delivered media hash, format, duration, PCM headroom and data",
+    "cat-purr: delivered media hash, format, duration, PCM headroom and data",
+    "cat-trill: delivered media hash, format, duration, PCM headroom and data",
+    "cat-chirp: delivered media hash, format, duration, PCM headroom and data",
+    "cat-hiss: delivered media hash, format, duration, PCM headroom and data",
+    "cat-chatter: delivered media hash, format, duration, PCM headroom and data",
+    "paw-grass: delivered media hash, format, duration, PCM headroom and data",
+    "paw-wood: delivered media hash, format, duration, PCM headroom and data",
+    "paw-stone: delivered media hash, format, duration, PCM headroom and data",
+    "paw-water: delivered media hash, format, duration, PCM headroom and data",
+    "paw-gravel: delivered media hash, format, duration, PCM headroom and data",
+    "paw-moss: delivered media hash, format, duration, PCM headroom and data",
+    "paw-tatami: delivered media hash, format, duration, PCM headroom and data",
+    "paw-roof: delivered media hash, format, duration, PCM headroom and data",
+    "water-lap: delivered media hash, format, duration, PCM headroom and data",
+    "water-splash: delivered media hash, format, duration, PCM headroom and data",
+    "water-drop: delivered media hash, format, duration, PCM headroom and data",
+    "river-bed: delivered media hash, format, duration, PCM headroom and data",
+    "rain-eaves: delivered media hash, format, duration, PCM headroom and data",
+    "bell-collar: delivered media hash, format, duration, PCM headroom and data",
+    "bell-suzu: delivered media hash, format, duration, PCM headroom and data",
+    "bell-furin: delivered media hash, format, duration, PCM headroom and data",
+    "bell-temple: delivered media hash, format, duration, PCM headroom and data",
+    "bowl-stillness: delivered media hash, format, duration, PCM headroom and data",
+    "shoji-slide: delivered media hash, format, duration, PCM headroom and data",
+    "wood-latch: delivered media hash, format, duration, PCM headroom and data",
+    "journal-page: delivered media hash, format, duration, PCM headroom and data",
+    "tea-pour: delivered media hash, format, duration, PCM headroom and data",
+    "bamboo-knock: delivered media hash, format, duration, PCM headroom and data",
+    "ceramic-cup: delivered media hash, format, duration, PCM headroom and data",
+    "cloth-rustle: delivered media hash, format, duration, PCM headroom and data",
+    "cat-eat: delivered media hash, format, duration, PCM headroom and data",
+    "wind-bamboo: delivered media hash, format, duration, PCM headroom and data",
+    "leaves-autumn: delivered media hash, format, duration, PCM headroom and data",
+    "bird-uguisu: delivered media hash, format, duration, PCM headroom and data",
+    "bird-crow: delivered media hash, format, duration, PCM headroom and data",
+    "insect-cricket: delivered media hash, format, duration, PCM headroom and data",
+    "insect-cicada: delivered media hash, format, duration, PCM headroom and data",
+    "fire-lantern: delivered media hash, format, duration, PCM headroom and data",
+    "collect-koto: delivered media hash, format, duration, PCM headroom and data",
+    "unlock-lantern: delivered media hash, format, duration, PCM headroom and data",
+    "dream-moon: delivered media hash, format, duration, PCM headroom and data",
+    "ui-tap: delivered media hash, format, duration, PCM headroom and data",
+    "ui-confirm: delivered media hash, format, duration, PCM headroom and data",
+    "ui-back: delivered media hash, format, duration, PCM headroom and data",
+    "choir-cloud: delivered media hash, format, duration, PCM headroom and data",
+    "01-dawn-at-higashiyama: delivered media hash, format, duration, PCM headroom and data",
+    "01-dawn-at-higashiyama: editable project and MIDI including drums",
+    "02-paws-on-stone: delivered media hash, format, duration, PCM headroom and data",
+    "02-paws-on-stone: editable project and MIDI including drums",
+    "03-kamo-reflections: delivered media hash, format, duration, PCM headroom and data",
+    "03-kamo-reflections: editable project and MIDI including drums",
+    "04-machiya-window: delivered media hash, format, duration, PCM headroom and data",
+    "04-machiya-window: editable project and MIDI including drums",
+    "05-rain-on-washi: delivered media hash, format, duration, PCM headroom and data",
+    "05-rain-on-washi: editable project and MIDI including drums",
+    "06-tea-house-swing: delivered media hash, format, duration, PCM headroom and data",
+    "06-tea-house-swing: editable project and MIDI including drums",
+    "07-bamboo-breath: delivered media hash, format, duration, PCM headroom and data",
+    "07-bamboo-breath: editable project and MIDI including drums",
+    "08-nishiki-morning: delivered media hash, format, duration, PCM headroom and data",
+    "08-nishiki-morning: editable project and MIDI including drums",
+    "09-moon-pool: delivered media hash, format, duration, PCM headroom and data",
+    "09-moon-pool: editable project and MIDI including drums",
+    "10-lantern-glade: delivered media hash, format, duration, PCM headroom and data",
+    "10-lantern-glade: editable project and MIDI including drums",
+    "11-roof-road: delivered media hash, format, duration, PCM headroom and data",
+    "11-roof-road: editable project and MIDI including drums",
+    "12-gion-afterglow: delivered media hash, format, duration, PCM headroom and data",
+    "12-gion-afterglow: editable project and MIDI including drums",
+    "13-five-quiet-fires: delivered media hash, format, duration, PCM headroom and data",
+    "13-five-quiet-fires: editable project and MIDI including drums",
+    "14-garden-between-worlds: delivered media hash, format, duration, PCM headroom and data",
+    "14-garden-between-worlds: editable project and MIDI including drums",
+    "15-summer-furin: delivered media hash, format, duration, PCM headroom and data",
+    "15-summer-furin: editable project and MIDI including drums",
+    "16-maple-dusk: delivered media hash, format, duration, PCM headroom and data",
+    "16-maple-dusk: editable project and MIDI including drums",
+    "17-snow-in-roji: delivered media hash, format, duration, PCM headroom and data",
+    "17-snow-in-roji: editable project and MIDI including drums",
+    "18-michi-dreams: delivered media hash, format, duration, PCM headroom and data",
+    "18-michi-dreams: editable project and MIDI including drums",
+    "19-river-neon: delivered media hash, format, duration, PCM headroom and data",
+    "19-river-neon: editable project and MIDI including drums",
+    "20-steps-to-the-shrine: delivered media hash, format, duration, PCM headroom and data",
+    "20-steps-to-the-shrine: editable project and MIDI including drums",
+    "21-paper-crane-waltz: delivered media hash, format, duration, PCM headroom and data",
+    "21-paper-crane-waltz: editable project and MIDI including drums",
+    "22-midnight-atelier: delivered media hash, format, duration, PCM headroom and data",
+    "22-midnight-atelier: editable project and MIDI including drums",
+    "23-plum-blossom: delivered media hash, format, duration, PCM headroom and data",
+    "23-plum-blossom: editable project and MIDI including drums",
+    "24-home-by-lantern: delivered media hash, format, duration, PCM headroom and data",
+    "24-home-by-lantern: editable project and MIDI including drums",
+    "25-edo-tomorrow: delivered media hash, format, duration, PCM headroom and data",
+    "25-edo-tomorrow: editable project and MIDI including drums",
+    "Source audit still matches all three untouched game audio files"
+  ],
+  "failures": [],
+  "items": [
+    {
+      "id": "cat-greeting",
+      "seconds": 0.72,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -12.651495936866086,
+      "delivery": {
+        "integratedLufs": -8.6,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "cat-question",
+      "seconds": 0.52,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -11.902277313333476,
+      "delivery": {
+        "integratedLufs": -9.1,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "cat-kitten",
+      "seconds": 0.38,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -12.266619510213356,
+      "delivery": {
+        "integratedLufs": null,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": "Too short for a 400 ms integrated loudness block"
+      }
+    },
+    {
+      "id": "cat-sleepy",
+      "seconds": 0.86,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -12.669020470830127,
+      "delivery": {
+        "integratedLufs": -9.2,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "cat-long-call",
+      "seconds": 1.18,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -12.77034666576581,
+      "delivery": {
+        "integratedLufs": -9,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "cat-purr",
+      "seconds": 6,
+      "peakDb": -8.999999811573272,
+      "rmsDb": -24.00355786367557,
+      "delivery": {
+        "integratedLufs": -24.4,
+        "truePeakDb": -9,
+        "loudnessRangeLu": 0.2,
+        "note": null
+      }
+    },
+    {
+      "id": "cat-trill",
+      "seconds": 0.64,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -11.856163723298994,
+      "delivery": {
+        "integratedLufs": -8.5,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "cat-chirp",
+      "seconds": 0.23,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -12.588157722828335,
+      "delivery": {
+        "integratedLufs": null,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": "Too short for a 400 ms integrated loudness block"
+      }
+    },
+    {
+      "id": "cat-hiss",
+      "seconds": 0.62,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -20.432888394316173,
+      "delivery": {
+        "integratedLufs": -15,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "cat-chatter",
+      "seconds": 1.05,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -18.291752910924068,
+      "delivery": {
+        "integratedLufs": -14.6,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "paw-grass",
+      "seconds": 0.28002083333333333,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -22.21326116891828,
+      "delivery": {
+        "integratedLufs": null,
+        "truePeakDb": -3.6,
+        "loudnessRangeLu": null,
+        "note": "Too short for a 400 ms integrated loudness block"
+      }
+    },
+    {
+      "id": "paw-wood",
+      "seconds": 0.32,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -21.696971364776367,
+      "delivery": {
+        "integratedLufs": null,
+        "truePeakDb": -2.9,
+        "loudnessRangeLu": null,
+        "note": "Too short for a 400 ms integrated loudness block"
+      }
+    },
+    {
+      "id": "paw-stone",
+      "seconds": 0.25,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -22.904593801368055,
+      "delivery": {
+        "integratedLufs": null,
+        "truePeakDb": -3.1,
+        "loudnessRangeLu": null,
+        "note": "Too short for a 400 ms integrated loudness block"
+      }
+    },
+    {
+      "id": "paw-water",
+      "seconds": 0.48,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -17.796057699245495,
+      "delivery": {
+        "integratedLufs": -13,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "paw-gravel",
+      "seconds": 0.42,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -23.676090256884706,
+      "delivery": {
+        "integratedLufs": -18.9,
+        "truePeakDb": -3.4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "paw-moss",
+      "seconds": 0.3,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -22.717062058105647,
+      "delivery": {
+        "integratedLufs": null,
+        "truePeakDb": -2.4,
+        "loudnessRangeLu": null,
+        "note": "Too short for a 400 ms integrated loudness block"
+      }
+    },
+    {
+      "id": "paw-tatami",
+      "seconds": 0.3,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -22.881395078969327,
+      "delivery": {
+        "integratedLufs": null,
+        "truePeakDb": -2.9,
+        "loudnessRangeLu": null,
+        "note": "Too short for a 400 ms integrated loudness block"
+      }
+    },
+    {
+      "id": "paw-roof",
+      "seconds": 0.36,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -26.53568723347297,
+      "delivery": {
+        "integratedLufs": null,
+        "truePeakDb": -2.4,
+        "loudnessRangeLu": null,
+        "note": "Too short for a 400 ms integrated loudness block"
+      }
+    },
+    {
+      "id": "water-lap",
+      "seconds": 0.52,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -21.29533682985519,
+      "delivery": {
+        "integratedLufs": -15.5,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "water-splash",
+      "seconds": 1.5,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -23.710478999210448,
+      "delivery": {
+        "integratedLufs": -21.6,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "water-drop",
+      "seconds": 0.95,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -24.623153528778253,
+      "delivery": {
+        "integratedLufs": -19.8,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "river-bed",
+      "seconds": 10,
+      "peakDb": -8.999999811573272,
+      "rmsDb": -25.772437670529452,
+      "delivery": {
+        "integratedLufs": -22,
+        "truePeakDb": -9,
+        "loudnessRangeLu": 2.9,
+        "note": null
+      }
+    },
+    {
+      "id": "rain-eaves",
+      "seconds": 10,
+      "peakDb": -8.999999811573272,
+      "rmsDb": -24.81248592549422,
+      "delivery": {
+        "integratedLufs": -19.5,
+        "truePeakDb": -9,
+        "loudnessRangeLu": 0.6,
+        "note": null
+      }
+    },
+    {
+      "id": "bell-collar",
+      "seconds": 1.8,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -21.873708899753925,
+      "delivery": {
+        "integratedLufs": -15.1,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "bell-suzu",
+      "seconds": 2.4,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -18.87392556957274,
+      "delivery": {
+        "integratedLufs": -11.1,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "bell-furin",
+      "seconds": 4.6,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -21.790359843521678,
+      "delivery": {
+        "integratedLufs": -13.3,
+        "truePeakDb": -3.9,
+        "loudnessRangeLu": 20.2,
+        "note": null
+      }
+    },
+    {
+      "id": "bell-temple",
+      "seconds": 10,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -23.14173305026934,
+      "delivery": {
+        "integratedLufs": -17.2,
+        "truePeakDb": -4,
+        "loudnessRangeLu": 25.6,
+        "note": null
+      }
+    },
+    {
+      "id": "bowl-stillness",
+      "seconds": 10,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -23.56478257492551,
+      "delivery": {
+        "integratedLufs": -17.1,
+        "truePeakDb": -4,
+        "loudnessRangeLu": 26,
+        "note": null
+      }
+    },
+    {
+      "id": "shoji-slide",
+      "seconds": 1.3,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -25.110298212666336,
+      "delivery": {
+        "integratedLufs": -20.2,
+        "truePeakDb": -2.6,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "wood-latch",
+      "seconds": 0.7,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -27.614052255794476,
+      "delivery": {
+        "integratedLufs": -22.9,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "journal-page",
+      "seconds": 0.85,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -19.664340788668827,
+      "delivery": {
+        "integratedLufs": -13.3,
+        "truePeakDb": -1.9,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "tea-pour",
+      "seconds": 3.4,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -22.975328425149137,
+      "delivery": {
+        "integratedLufs": -18,
+        "truePeakDb": -4,
+        "loudnessRangeLu": 0.9,
+        "note": null
+      }
+    },
+    {
+      "id": "bamboo-knock",
+      "seconds": 1.2,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -21.747553336731855,
+      "delivery": {
+        "integratedLufs": -18,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "ceramic-cup",
+      "seconds": 0.95,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -23.930208723984908,
+      "delivery": {
+        "integratedLufs": -19.5,
+        "truePeakDb": -3.9,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "cloth-rustle",
+      "seconds": 1.1000208333333332,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -22.309895207346088,
+      "delivery": {
+        "integratedLufs": -16.9,
+        "truePeakDb": -2.3,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "cat-eat",
+      "seconds": 0.95,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -30.363255599405633,
+      "delivery": {
+        "integratedLufs": -24.3,
+        "truePeakDb": -3.3,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "wind-bamboo",
+      "seconds": 10,
+      "peakDb": -8.999999811573272,
+      "rmsDb": -25.778191703713105,
+      "delivery": {
+        "integratedLufs": -23,
+        "truePeakDb": -9,
+        "loudnessRangeLu": 3.9,
+        "note": null
+      }
+    },
+    {
+      "id": "leaves-autumn",
+      "seconds": 3,
+      "peakDb": -8.999999811573272,
+      "rmsDb": -25.077508327860908,
+      "delivery": {
+        "integratedLufs": -19.8,
+        "truePeakDb": -7.4,
+        "loudnessRangeLu": 20,
+        "note": null
+      }
+    },
+    {
+      "id": "bird-uguisu",
+      "seconds": 2.2000208333333333,
+      "peakDb": -8.999999811573272,
+      "rmsDb": -19.084499732864998,
+      "delivery": {
+        "integratedLufs": -11,
+        "truePeakDb": -9,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "bird-crow",
+      "seconds": 0.9,
+      "peakDb": -8.999999811573272,
+      "rmsDb": -18.675184848481642,
+      "delivery": {
+        "integratedLufs": -14.6,
+        "truePeakDb": -8.7,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "insect-cricket",
+      "seconds": 6,
+      "peakDb": -8.999999811573272,
+      "rmsDb": -26.47308778617282,
+      "delivery": {
+        "integratedLufs": -18.8,
+        "truePeakDb": -8.9,
+        "loudnessRangeLu": 1.7,
+        "note": null
+      }
+    },
+    {
+      "id": "insect-cicada",
+      "seconds": 8,
+      "peakDb": -8.999999811573272,
+      "rmsDb": -25.815048520216045,
+      "delivery": {
+        "integratedLufs": -17.3,
+        "truePeakDb": -8.7,
+        "loudnessRangeLu": 1.9,
+        "note": null
+      }
+    },
+    {
+      "id": "fire-lantern",
+      "seconds": 8,
+      "peakDb": -8.999999811573272,
+      "rmsDb": -29.355138586221425,
+      "delivery": {
+        "integratedLufs": -26.1,
+        "truePeakDb": -7.9,
+        "loudnessRangeLu": 0.5,
+        "note": null
+      }
+    },
+    {
+      "id": "collect-koto",
+      "seconds": 2.5,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -29.172462535385737,
+      "delivery": {
+        "integratedLufs": -18.3,
+        "truePeakDb": -3.9,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "unlock-lantern",
+      "seconds": 3.2,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -22.36572447134971,
+      "delivery": {
+        "integratedLufs": -15.6,
+        "truePeakDb": -4,
+        "loudnessRangeLu": 20.7,
+        "note": null
+      }
+    },
+    {
+      "id": "dream-moon",
+      "seconds": 5.8,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -21.207963268262194,
+      "delivery": {
+        "integratedLufs": -15,
+        "truePeakDb": -4,
+        "loudnessRangeLu": 22.1,
+        "note": null
+      }
+    },
+    {
+      "id": "ui-tap",
+      "seconds": 0.18,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -20.76934106435861,
+      "delivery": {
+        "integratedLufs": null,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": "Too short for a 400 ms integrated loudness block"
+      }
+    },
+    {
+      "id": "ui-confirm",
+      "seconds": 1.2,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -28.560848888632584,
+      "delivery": {
+        "integratedLufs": -20.2,
+        "truePeakDb": -3.9,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "ui-back",
+      "seconds": 0.65,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -20.79296125470595,
+      "delivery": {
+        "integratedLufs": -17.7,
+        "truePeakDb": -4,
+        "loudnessRangeLu": null,
+        "note": null
+      }
+    },
+    {
+      "id": "choir-cloud",
+      "seconds": 8,
+      "peakDb": -3.9999997170243584,
+      "rmsDb": -14.973563207792637,
+      "delivery": {
+        "integratedLufs": -12.4,
+        "truePeakDb": -4,
+        "loudnessRangeLu": 1.2,
+        "note": null
+      }
+    },
+    {
+      "id": "01-dawn-at-higashiyama",
+      "seconds": 124,
+      "peakDb": -3.3485403935990226,
+      "rmsDb": -22.00000000017112,
+      "delivery": {
+        "integratedLufs": -18.8,
+        "truePeakDb": -3.6,
+        "loudnessRangeLu": 10.1,
+        "note": null
+      }
+    },
+    {
+      "id": "02-paws-on-stone",
+      "seconds": 94,
+      "peakDb": -4.050651552852969,
+      "rmsDb": -22.000000000157492,
+      "delivery": {
+        "integratedLufs": -19.5,
+        "truePeakDb": -4,
+        "loudnessRangeLu": 8.9,
+        "note": null
+      }
+    },
+    {
+      "id": "03-kamo-reflections",
+      "seconds": 109.36585416666667,
+      "peakDb": -8.792319055846967,
+      "rmsDb": -21.999999999992028,
+      "delivery": {
+        "integratedLufs": -19.2,
+        "truePeakDb": -8.8,
+        "loudnessRangeLu": 5,
+        "note": null
+      }
+    },
+    {
+      "id": "04-machiya-window",
+      "seconds": 102.18183333333333,
+      "peakDb": -2.0000002404171053,
+      "rmsDb": -25.0021033166245,
+      "delivery": {
+        "integratedLufs": -21.6,
+        "truePeakDb": -1.4,
+        "loudnessRangeLu": 5.4,
+        "note": null
+      }
+    },
+    {
+      "id": "05-rain-on-washi",
+      "seconds": 131.05883333333333,
+      "peakDb": -4.106215057597426,
+      "rmsDb": -21.9999999999043,
+      "delivery": {
+        "integratedLufs": -19.8,
+        "truePeakDb": -3.9,
+        "loudnessRangeLu": 5.5,
+        "note": null
+      }
+    },
+    {
+      "id": "06-tea-house-swing",
+      "seconds": 97.9130625,
+      "peakDb": -4.630236142251106,
+      "rmsDb": -21.99999999993986,
+      "delivery": {
+        "integratedLufs": -19.9,
+        "truePeakDb": -4.7,
+        "loudnessRangeLu": 4.7,
+        "note": null
+      }
+    },
+    {
+      "id": "07-bamboo-breath",
+      "seconds": 148,
+      "peakDb": -9.265186512809693,
+      "rmsDb": -22.000000000049667,
+      "delivery": {
+        "integratedLufs": -17.5,
+        "truePeakDb": -9.3,
+        "loudnessRangeLu": 16.2,
+        "note": null
+      }
+    },
+    {
+      "id": "08-nishiki-morning",
+      "seconds": 84,
+      "peakDb": -2.7724407613917834,
+      "rmsDb": -21.999999999945537,
+      "delivery": {
+        "integratedLufs": -19.4,
+        "truePeakDb": -2.5,
+        "loudnessRangeLu": 7,
+        "note": null
+      }
+    },
+    {
+      "id": "09-moon-pool",
+      "seconds": 139,
+      "peakDb": -3.1475231297149993,
+      "rmsDb": -22.000000000055767,
+      "delivery": {
+        "integratedLufs": -19.3,
+        "truePeakDb": -3.1,
+        "loudnessRangeLu": 9.2,
+        "note": null
+      }
+    },
+    {
+      "id": "10-lantern-glade",
+      "seconds": 117.68422916666667,
+      "peakDb": -4.4079558232561835,
+      "rmsDb": -22.000000000087287,
+      "delivery": {
+        "integratedLufs": -20.3,
+        "truePeakDb": -4.4,
+        "loudnessRangeLu": 4.3,
+        "note": null
+      }
+    },
+    {
+      "id": "11-roof-road",
+      "seconds": 78.48277083333333,
+      "peakDb": -5.096853485765607,
+      "rmsDb": -21.999999999738566,
+      "delivery": {
+        "integratedLufs": -19.7,
+        "truePeakDb": -5.1,
+        "loudnessRangeLu": 6.5,
+        "note": null
+      }
+    },
+    {
+      "id": "12-gion-afterglow",
+      "seconds": 87.0769375,
+      "peakDb": -7.031130580859516,
+      "rmsDb": -22.000000000451667,
+      "delivery": {
+        "integratedLufs": -18.9,
+        "truePeakDb": -7.1,
+        "loudnessRangeLu": 4.8,
+        "note": null
+      }
+    },
+    {
+      "id": "13-five-quiet-fires",
+      "seconds": 112,
+      "peakDb": -2.0000002404171053,
+      "rmsDb": -23.344931985957288,
+      "delivery": {
+        "integratedLufs": -20.6,
+        "truePeakDb": -2,
+        "loudnessRangeLu": 5.8,
+        "note": null
+      }
+    },
+    {
+      "id": "14-garden-between-worlds",
+      "seconds": 127.42858333333334,
+      "peakDb": -5.957904154952194,
+      "rmsDb": -22.000000000045024,
+      "delivery": {
+        "integratedLufs": -19.9,
+        "truePeakDb": -6,
+        "loudnessRangeLu": 5,
+        "note": null
+      }
+    },
+    {
+      "id": "15-summer-furin",
+      "seconds": 100,
+      "peakDb": -2.9000930268228524,
+      "rmsDb": -21.99999999984926,
+      "delivery": {
+        "integratedLufs": -19.1,
+        "truePeakDb": -2.8,
+        "loudnessRangeLu": 5.3,
+        "note": null
+      }
+    },
+    {
+      "id": "16-maple-dusk",
+      "seconds": 120.75677083333333,
+      "peakDb": -8.811357654332284,
+      "rmsDb": -21.999999999980517,
+      "delivery": {
+        "integratedLufs": -19.8,
+        "truePeakDb": -8.9,
+        "loudnessRangeLu": 5.1,
+        "note": null
+      }
+    },
+    {
+      "id": "17-snow-in-roji",
+      "seconds": 143.35485416666666,
+      "peakDb": -2.0000002404171053,
+      "rmsDb": -22.083519824649027,
+      "delivery": {
+        "integratedLufs": -18.3,
+        "truePeakDb": -2,
+        "loudnessRangeLu": 12,
+        "note": null
+      }
+    },
+    {
+      "id": "18-michi-dreams",
+      "seconds": 106.85714583333333,
+      "peakDb": -5.166422738709966,
+      "rmsDb": -21.999999999931575,
+      "delivery": {
+        "integratedLufs": -19.5,
+        "truePeakDb": -5.2,
+        "loudnessRangeLu": 6.3,
+        "note": null
+      }
+    },
+    {
+      "id": "19-river-neon",
+      "seconds": 81.142875,
+      "peakDb": -7.8920571267862805,
+      "rmsDb": -22.00000000007624,
+      "delivery": {
+        "integratedLufs": -19.2,
+        "truePeakDb": -7.8,
+        "loudnessRangeLu": 6.1,
+        "note": null
+      }
+    },
+    {
+      "id": "20-steps-to-the-shrine",
+      "seconds": 114.76925,
+      "peakDb": -2.4471667705841753,
+      "rmsDb": -21.999999999837968,
+      "delivery": {
+        "integratedLufs": -19.2,
+        "truePeakDb": -2.4,
+        "loudnessRangeLu": 8.8,
+        "note": null
+      }
+    },
+    {
+      "id": "21-paper-crane-waltz",
+      "seconds": 95.91489583333333,
+      "peakDb": -5.086658799742281,
+      "rmsDb": -22.00000000001452,
+      "delivery": {
+        "integratedLufs": -20.2,
+        "truePeakDb": -4.9,
+        "loudnessRangeLu": 5,
+        "note": null
+      }
+    },
+    {
+      "id": "22-midnight-atelier",
+      "seconds": 104.465125,
+      "peakDb": -4.844987711017839,
+      "rmsDb": -21.999999999842125,
+      "delivery": {
+        "integratedLufs": -19.6,
+        "truePeakDb": -4.8,
+        "loudnessRangeLu": 5.2,
+        "note": null
+      }
+    },
+    {
+      "id": "23-plum-blossom",
+      "seconds": 92.16327083333333,
+      "peakDb": -6.99989639403076,
+      "rmsDb": -22.000000000053586,
+      "delivery": {
+        "integratedLufs": -18.9,
+        "truePeakDb": -7,
+        "loudnessRangeLu": 6.6,
+        "note": null
+      }
+    },
+    {
+      "id": "24-home-by-lantern",
+      "seconds": 134.90910416666668,
+      "peakDb": -2.5391136909751606,
+      "rmsDb": -21.999999999999524,
+      "delivery": {
+        "integratedLufs": -19.2,
+        "truePeakDb": -2.5,
+        "loudnessRangeLu": 9.4,
+        "note": null
+      }
+    },
+    {
+      "id": "25-edo-tomorrow",
+      "seconds": 88.70589583333333,
+      "peakDb": -5.544247201264789,
+      "rmsDb": -21.999999999901597,
+      "delivery": {
+        "integratedLufs": -19.7,
+        "truePeakDb": -5.2,
+        "loudnessRangeLu": 6.2,
+        "note": null
+      }
+    }
+  ],
+  "scope": "Objective file and signal checks; no claim of human listening approval or commercial DAW feature parity",
+  "summary": {
+    "passed": 102,
+    "failed": 0,
+    "sfx": 50,
+    "songs": 25,
+    "musicMinutes": 45.587188194444444,
+    "mediaMiB": 99.98471641540527
+  }
+}

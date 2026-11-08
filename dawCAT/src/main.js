@@ -6,7 +6,7 @@ import { Transport } from './engine/transport.js';
 import { preloadProjectAssets, putAsset, cacheBuffer } from './engine/assets.js';
 import { renderProject, renderTrackToBuffer, wavBlob } from './engine/render.js';
 import { exportToGame } from './bridge.js';
-import { writeMidiFile, parseMidiFile } from './midi.js';
+import { writeMidiFile, parseMidiFile, midiDrumClips } from './midi.js';
 import { scanGameCues } from './scanner.js';
 import { buildTopbar } from './ui/transport-ui.js';
 import { Browser } from './ui/browser.js';
@@ -19,6 +19,8 @@ import { Devices } from './ui/devices.js';
 import { AgentPanel } from './ui/agent-panel.js';
 import { SfxDesigner } from './ui/sfx-designer.js';
 import { WaveLab } from './ui/wave-lab.js';
+import { LiveMidi } from './engine/live-midi.js';
+import { LibraryPlayer } from './ui/library-player.js';
 import { el, toast, showModal, download } from './ui/common.js';
 
 function slug(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled'; }
@@ -42,6 +44,7 @@ class App {
     this.executor = new PlanExecutor(this.state);
     this.engine = new AudioEngine();
     this.transport = new Transport(this.engine, this.state);
+    this.liveMidi = new LiveMidi(this);
     this.snap = 'beat';
     this.activeTab = 'arrangement';
     this._rebuildTimer = null;
@@ -71,6 +74,7 @@ class App {
       this.devices = new Devices(this);
       this.sfxDesigner = new SfxDesigner(this);
       this.waveLab = new WaveLab(this);
+      this.libraryPlayer = new LibraryPlayer(this);
       this.ensureAgentPanel();
     } catch (err) {
       console.error('[dawCAT] panel failed to initialize', err);
@@ -81,6 +85,7 @@ class App {
     this.wireSnapZoom();
     this.wireShortcuts();
     this.wireAudioButton();
+    if (new URLSearchParams(location.search).get('tab') === 'library') this.switchTab('library');
 
     this.state.addEventListener('project', () => this.onProjectChanged());
     this.state.addEventListener('chain', () => {
@@ -124,6 +129,7 @@ class App {
     document.querySelectorAll('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + name));
     if (name === 'sfx' && this.sfxDesigner) this.sfxDesigner.onShow();
     if (name === 'wavelab' && this.waveLab) this.waveLab.onShow();
+    if (name === 'library' && this.libraryPlayer) this.libraryPlayer.onShow();
   }
 
   openSoundDesign() { this.switchTab('sfx'); }
@@ -334,7 +340,7 @@ class App {
     try {
       const bytes = writeMidiFile(this.state.project);
       download((this.state.project.name || 'dawcat') + '.mid', bytes, 'audio/midi');
-      toast('MIDI exported (notes only — drum lanes, FX and automation don\'t survive .mid)');
+      toast('MIDI exported with notes and drum patterns · audio, FX and automation stay in the project');
     } catch (e) {
       toast('MIDI export failed: ' + e.message, true);
     }
@@ -355,14 +361,15 @@ class App {
     if (!result.tracks.length) { toast('No note events found in that MIDI file', true); return; }
     const st = this.state;
     let lastTrack = null;
-    for (const mt of result.tracks) {
-      const t = st.addTrack({ name: mt.name });
+    st.applyBatch(() => { for (const mt of result.tracks) {
+      const t = st.addTrack({ name: mt.name, kind: mt.channel === 9 ? 'drum' : 'synth' });
+      if (mt.channel === 9) { for (const c of midiDrumClips(mt.notes)) st.addClip(t.id, { ...c, name: mt.name }); lastTrack = t; continue; }
       const endBeat = mt.notes.reduce((m, n) => Math.max(m, n.start + n.len), 0.25);
       const lengthBars = Math.max(1, Math.ceil(endBeat / 4));
       const notes = mt.notes.map((n) => ({ id: uid('n'), midi: n.midi, start: n.start, len: n.len, vel: n.vel }));
       st.addClip(t.id, { name: mt.name, start: 0, length: lengthBars, notes });
       lastTrack = t;
-    }
+    } });
     if (lastTrack) st.select(lastTrack.id);
     toast(`Imported ${result.tracks.length} track(s) from MIDI (${result.bpm} BPM in file — project tempo unchanged)`);
   }
@@ -385,6 +392,10 @@ class App {
   exportToGameDialog() {
     const st = this.state;
     const p = st.project;
+    if (p.tracks.some(t => t.preset?.kind === 'physical' || ['kyoto','neon'].includes(t.drumKit))) {
+      toast('Modeled instruments use the new studio renderer. Export WAV, stems or MIDI from Kyoto Library; game integration is intentionally pending.', true);
+      return;
+    }
 
     const sceneInput = el('input', {
       type: 'text', value: p.scene || 'Overworld', placeholder: 'Overworld',
@@ -591,6 +602,7 @@ class App {
       const st = this.state;
       if (e.code === 'Space') {
         e.preventDefault();
+        if (this.activeTab === 'library') { this.libraryPlayer.toggle(); return; }
         this.transport.toggle();
       } else if (e.key === 'Home') {
         this.transport.rewind();

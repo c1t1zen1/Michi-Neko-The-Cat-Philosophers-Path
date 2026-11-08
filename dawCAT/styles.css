@@ -650,3 +650,63 @@ input[type="range"] { accent-color: var(--accent); padding: 0; border: none; bac
 .ag-instant-lbl { font-size: 9px; font-weight: 700; color: #a78bfa; letter-spacing: 0.5px; text-transform: uppercase; }
 .ag-instant-bar .ag-btn.small { font-size: 10px; padding: 2px 7px; }
 
+
+/* Kyoto Sessions listening room */
+#tabs { overflow-x: auto; flex-shrink: 0; }
+#tabs .tab { white-space: nowrap; flex-shrink: 0; }
+.tab-library { font: inherit; background: transparent; color: #edc385; border: 0; }
+#view-library { overflow: auto; background: #101b20; }
+#library-player { min-height: 100%; color: #e1e8e4; padding: 26px; font-size: 12px; }
+.lib-heading { display: flex; gap: 16px; justify-content: space-between; align-items: start; margin-bottom: 20px; }
+.lib-eyebrow { font-size: 9px; font-weight: 600; letter-spacing: 2px; color: #ddb97d; }
+.lib-heading h1 { font: 32px Georgia, serif; margin: 10px 0; color: #f0e4cb; }
+.lib-heading p { color: #9bafae; line-height: 1.6; margin: 0; max-width: 450px; }
+.lib-heading a { color: #c2b18f; text-decoration: none; font-size: 10px; }
+.lib-toolbar { display: flex; gap: 8px; padding: 0 0 16px; }
+.lib-toolbar input { flex: 1; min-width: 110px; }
+#library-player input, #library-player select { background: #18282d; color: #d7e2de; border: 1px solid #35484c; border-radius: 5px; padding: 8px; }
+#library-player .btn { background: #203338; border-color: #3d5357; color: #dce5dd; font-size: 10px; }
+#library-player .btn.primary { background: #d9b57c; color: #162327; border-color: #e4c18c; font-weight: bold; }
+#library-player .btn:hover { filter: brightness(1.15); }
+#library-player button:focus-visible, #library-player a:focus-visible { outline: 2px solid #f1ca8a; outline-offset: 3px; }
+.lib-body { display: grid; grid-template-columns: minmax(230px,1.15fr) minmax(230px,1fr); gap: 22px; }
+.lib-list { max-height: 400px; overflow-y: auto; scrollbar-color: #40565a #101b20; }
+.lib-row { display: flex; align-items: center; border-bottom: 1px solid #26373b; gap: 8px; min-height: 59px; padding: 0 8px; border-radius: 5px; }
+.lib-row.selected { background: #24353a; box-shadow: inset 2px 0 #e7bd80; }
+.lib-track { display: flex; align-items: center; gap: 12px; color: #e1e8e4; flex: 1; min-width: 0; padding: 8px 0; border: 0; background: transparent; text-align: left; }
+.lib-track strong { display: block; font-size: 11px; font-weight: 500; }
+.lib-track small { display: block; color: #99aaa7; font-size: 9px; padding-top: 5px; }
+.lib-type { color: #d9b57c; font-size: 18px; flex-shrink: 0; }
+.lib-duration { margin-left: auto; color: #9aada8; font-size: 10px; font-variant-numeric: tabular-nums; }
+.lib-row .mini-btn { margin: 0; background: transparent; color: #b9c7be; border: 0; padding: 6px; font-size: 16px; }
+.lib-fav[aria-pressed=true] { color: #e9c681; }
+.lib-details { padding: 14px 18px; border: 1px solid #334449; border-radius: 8px; background: #15242a; }
+.lib-details h2 { font: 23px Georgia,serif; color: #efe1c9; line-height: 1.3; margin: 10px 0; }
+.lib-details p { font-size: 11px; color: #adbfba; line-height: 1.7; }
+.lib-details canvas { width: 100%; height: 86px; display: block; margin: 12px 0; }
+.lib-tags, .lib-actions, .lib-form { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.lib-tags span { padding: 4px 7px; border-radius: 3px; background: #26393e; font-size: 9px; color: #c7d3c8; }
+.lib-actions .btn { padding: 7px 9px; }
+.lib-form .mini-btn { margin: 0; background: #26393e; border: 0; color: #bfcac1; }
+.lib-provenance { font-size: 9px !important; opacity: .8; border-top: 1px solid #314349; padding-top: 10px; }
+.lib-status { min-height: 28px; padding: 10px 0; color: #b6c8bc; font-size: 10px; }
+.lib-player { position: sticky; bottom: 0; padding: 14px 16px; border: 1px solid #4b5b53; border-radius: 8px; background: #1c2d31f8; z-index: 3; box-shadow: 0 -8px 24px #09141880; }
+.lib-now { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 12px; color: #e5d4b5; }
+.lib-clock { font-size: 10px; color: #b4c5bc; font-variant-numeric: tabular-nums; }
+.lib-controls { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+.lib-player input[type=range] { padding: 0 !important; accent-color: #dfb978; }
+.lib-player > input { width: 100%; margin: 12px 0 5px; }
+.lib-volume { display: flex; align-items: center; gap: 10px; color: #a0b7b2; font-size: 9px; }
+.lib-volume input { width: 90px; }
+.lib-midi { border-top: 1px solid #32474b; margin-top: 20px; padding-top: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.lib-midi small { flex-basis: 100%; line-height: 1.7; color: #92a8a4; }
+@media(max-width:1100px) { #library-player { padding: 16px; } .lib-body { grid-template-columns: 1fr; } .lib-list { max-height: 250px; } .lib-heading a { display: none; } }
+@media(max-width:700px) { .lib-toolbar { flex-wrap: wrap; } .lib-heading h1 { font-size: 27px; } }
+.lib-recipe { margin: 14px 0; border-top: 1px solid #314349; padding-top: 10px; color: #bfcbbf; }
+.lib-recipe summary { cursor: pointer; font-size: 10px; margin-bottom: 10px; }
+.lib-recipe label { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 5px 0; font-size: 10px; }
+.lib-recipe input { width: 100px; padding: 4px !important; }
+.lib-recipe .btn { margin: 8px 6px 0 0; }
+.lib-playlists { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; }
+.lib-playlists input { width: 175px; }
+.lib-playlists select { min-width: 130px; }

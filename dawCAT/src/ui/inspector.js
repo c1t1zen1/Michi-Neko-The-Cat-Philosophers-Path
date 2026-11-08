@@ -2,6 +2,7 @@
 import { el, toast, fmtDb } from './common.js';
 import { TRACK_COLORS, NOTE_NAMES, SCALES } from '../state.js';
 import { DRUM_KIT_LIST } from '../engine/drums.js';
+import { DRUM_RHYTHMS } from '../engine/rhythms.js';
 
 export class Inspector {
   constructor(app) {
@@ -178,7 +179,7 @@ export class Inspector {
         el('div', { class: 'form-row' },
           el('button', {
             class: 'btn primary',
-            text: '🥁 Browse 42 Drum Rhythms…',
+            text: `🥁 Browse ${DRUM_RHYTHMS.length} Drum Rhythms…`,
             onclick: () => { if (this.app.drumgrid) this.app.drumgrid.openRhythmBrowserModal(); }
           })
         )

@@ -1,0 +1,736 @@
+{
+  "reviewed": "2026-11-08",
+  "scope": "Shipped game src/*.js; excludes labs and companion previews",
+  "sources": [
+    {
+      "file": "src/audio.js",
+      "sha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9"
+    },
+    {
+      "file": "src/hidden_places.js",
+      "sha256": "6467b92722457e57bff46cc8e21fcace6b0a23eee3c713d6d2bb25a8424bbcef"
+    },
+    {
+      "file": "src/music.js",
+      "sha256": "9d1726426003e3e21f88f00ba269195531ec597ba44688e8a21f42311e715563"
+    }
+  ],
+  "entries": [
+    {
+      "id": "src/audio.js#playUnlockChime",
+      "file": "src/audio.js",
+      "line": 91,
+      "method": "playUnlockChime",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/main.js",
+          "line": 883,
+          "text": "if (confirm) this.audio.playUnlockChime();"
+        }
+      ],
+      "replacementCandidates": [
+        "unlock-lantern"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playUnlockChime() {\n    if (!this.initialized || !this.ctx) return;\n    const t = this.ctx.currentTime;\n    [660, 990].forEach((frequency, index) => {\n      const oscillator = this.ctx.createOscillator();\n      const gain = this.ctx.createGain();\n      oscillator.type = 'sine';\n      oscillator.frequency.value = frequency;\n      gain.gain.setValueAtTime(0.0001, t);\n      gain.gain.exponentialRampToValueAtTime(index === 0 ? 0.12 : 0.07, t + 0.015);\n      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);\n      // Bypass persisted mix levels for this one confirmation. Pressing the\n      // speaker is an explicit request to prove that device audio is enabled.\n      oscillator.connect(gain).connect(this.ctx.destination);\n      oscillator.start(t);\n      oscillator.stop(t + 0.5);\n    });\n  }\n\n  /** Best-effort startup for browsers/origins where audible autoplay is allowed. */"
+    },
+    {
+      "id": "src/audio.js#playCollect",
+      "file": "src/audio.js",
+      "line": 167,
+      "method": "playCollect",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/main.js",
+          "line": 1771,
+          "text": "if (this.audio) this.audio.playCollect();"
+        }
+      ],
+      "replacementCandidates": [
+        "collect-koto"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playCollect() {\n    if (!this.initialized) return;\n    const t = this.ctx.currentTime;\n    const notes = [523.25, 659.25, 783.99];\n    notes.forEach((f, i) => {\n      const osc = this.ctx.createOscillator();\n      const gain = this.ctx.createGain();\n      osc.type = 'sine';\n      osc.frequency.value = f * 2;\n      const start = t + i * 0.07;\n      gain.gain.setValueAtTime(0, start);\n      gain.gain.linearRampToValueAtTime(0.12, start + 0.02);\n      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.9);\n      osc.connect(gain).connect(this.master);\n      osc.start(start);\n      osc.stop(start + 0.9);\n    });\n  }"
+    },
+    {
+      "id": "src/audio.js#startWindChimes",
+      "file": "src/audio.js",
+      "line": 186,
+      "method": "startWindChimes",
+      "kind": "ambient system",
+      "calls": [
+        {
+          "file": "src/audio.js",
+          "line": 158,
+          "text": "this.startWindChimes();"
+        }
+      ],
+      "replacementCandidates": [
+        "bell-furin"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  startWindChimes() {\n    if (!this.initialized) return;\n    const pentatonic = [1318.5, 1174.7, 1046.5, 880, 783.99];\n    const chime = () => {\n      if (!this.started) return;\n      const t = this.ctx.currentTime;\n      const f = pentatonic[Math.floor(Math.random() * pentatonic.length)];\n      const osc = this.ctx.createOscillator();\n      const gain = this.ctx.createGain();\n      osc.type = 'sine';\n      osc.frequency.value = f;\n      gain.gain.setValueAtTime(0, t);\n      gain.gain.linearRampToValueAtTime(0.045, t + 0.01);\n      gain.gain.exponentialRampToValueAtTime(0.0008, t + 2.4);\n      osc.connect(gain).connect(this.buses.ambient);\n      osc.start(t);\n      osc.stop(t + 2.5);\n      this.chimeTimer = setTimeout(chime, 2500 + Math.random() * 6000);\n    };\n    this.chimeTimer = setTimeout(chime, 1500 + Math.random() * 3000);\n  }"
+    },
+    {
+      "id": "src/audio.js#startBirds",
+      "file": "src/audio.js",
+      "line": 208,
+      "method": "startBirds",
+      "kind": "ambient system",
+      "calls": [
+        {
+          "file": "src/audio.js",
+          "line": 159,
+          "text": "this.startBirds();"
+        },
+        {
+          "file": "src/audio.js",
+          "line": 807,
+          "text": "else if (!this.birdActive) this.startBirds();"
+        }
+      ],
+      "replacementCandidates": [
+        "bird-uguisu"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  startBirds() {\n    if (!this.initialized) return;\n    if (this.birdActive) return;\n    this.birdActive = true;\n    if (!this.birdGain) {\n      this.birdGain = this.ctx.createGain();\n      this.birdGain.gain.value = 1;\n      this.birdGain.connect(this.buses.ambient);\n    }\n    const chirp = () => {\n      if (!this.started || !this.birdActive) return;\n      const t = this.ctx.currentTime;\n      const base = 2200 + Math.random() * 1400;\n      const syllables = 2 + Math.floor(Math.random() * 3);\n      for (let i = 0; i < syllables; i++) {\n        const osc = this.ctx.createOscillator();\n        const gain = this.ctx.createGain();\n        osc.type = 'sine';\n        const start = t + i * (0.12 + Math.random() * 0.06);\n        osc.frequency.setValueAtTime(base, start);\n        osc.frequency.linearRampToValueAtTime(base * (1.1 + Math.random() * 0.25), start + 0.05);\n        osc.frequency.linearRampToValueAtTime(base * 0.9, start + 0.1);\n        gain.gain.setValueAtTime(0, start);\n        gain.gain.linearRampToValueAtTime(0.03, start + 0.02);\n        gain.gain.exponentialRampToValueAtTime(0.0008, start + 0.11);\n        osc.connect(gain).connect(this.birdGain);\n        osc.start(start);\n        osc.stop(start + 0.12);\n      }\n      this.birdTimer = setTimeout(chirp, 4000 + Math.random() * 9000);\n    };\n    this.birdTimer = setTimeout(chirp, 2000 + Math.random() * 4000);\n  }"
+    },
+    {
+      "id": "src/audio.js#playMeow",
+      "file": "src/audio.js",
+      "line": 250,
+      "method": "playMeow",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/cat.js",
+          "line": 1027,
+          "text": "if (this.audio) this.audio.playMeow();"
+        },
+        {
+          "file": "src/player.js",
+          "line": 281,
+          "text": "if (this.audio) this.audio.playMeow();"
+        }
+      ],
+      "replacementCandidates": [
+        "cat-greeting"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playMeow() {\n    if (!this.initialized) return;\n    const t = this.ctx.currentTime;\n    const osc = this.ctx.createOscillator();\n    const gain = this.ctx.createGain();\n    osc.type = 'triangle';\n    osc.frequency.setValueAtTime(600, t);\n    osc.frequency.linearRampToValueAtTime(800, t + 0.08);\n    osc.frequency.linearRampToValueAtTime(500, t + 0.25);\n    gain.gain.setValueAtTime(0, t);\n    gain.gain.linearRampToValueAtTime(0.15, t + 0.05);\n    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);\n    osc.connect(gain).connect(this.master);\n    osc.start(t);\n    osc.stop(t + 0.35);\n  }"
+    },
+    {
+      "id": "src/audio.js#playPurr",
+      "file": "src/audio.js",
+      "line": 267,
+      "method": "playPurr",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/cat.js",
+          "line": 1012,
+          "text": "if (this.audio && choice === 'sit' && Math.random() > 0.6) this.audio.playPurr(this.idleActionDuration);"
+        },
+        {
+          "file": "src/context_actions.js",
+          "line": 430,
+          "text": "if (this.audio) this.audio.playPurr(3.5);"
+        },
+        {
+          "file": "src/context_actions.js",
+          "line": 587,
+          "text": "if (verb === 'groom' && this.audio) this.audio.playPurr(3.5);"
+        },
+        {
+          "file": "src/context_actions.js",
+          "line": 588,
+          "text": "if (verb === 'sit' && this.audio && Math.random() > 0.5) this.audio.playPurr(2.5);"
+        },
+        {
+          "file": "src/context_actions.js",
+          "line": 600,
+          "text": "if (this.audio) this.audio.playPurr(2.5);"
+        },
+        {
+          "file": "src/context_actions.js",
+          "line": 633,
+          "text": "this.audio.playPurr(1.2);"
+        },
+        {
+          "file": "src/mountaintop.js",
+          "line": 4067,
+          "text": "if (g.audio && Math.random() > 0.5) g.audio.playPurr(2.5);"
+        },
+        {
+          "file": "src/mountaintop.js",
+          "line": 4116,
+          "text": "g.audio.playPurr(5.5);"
+        }
+      ],
+      "replacementCandidates": [
+        "cat-purr"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playPurr(duration = 2.0) {\n    if (!this.initialized) return;\n    const sr = this.ctx.sampleRate;\n    const samples = Math.floor(sr * duration);\n    const buffer = this.ctx.createBuffer(1, samples, sr);\n    const data = buffer.getChannelData(0);\n    for (let i = 0; i < samples; i++) {\n      const t = i / sr;\n      const mod = 0.5 + 0.5 * Math.sin(t * 55 * Math.PI * 2); // ~27.5 Hz purr\n      data[i] = (Math.random() * 2 - 1) * mod * (1 - t / duration);\n    }\n    const source = this.ctx.createBufferSource();\n    source.buffer = buffer;\n    const filter = this.ctx.createBiquadFilter();\n    filter.type = 'lowpass';\n    filter.frequency.value = 380;\n    const gain = this.ctx.createGain();\n    gain.gain.value = 0.035;\n    source.connect(filter).connect(gain).connect(this.master);\n    source.start();\n  }"
+    },
+    {
+      "id": "src/audio.js#playTrill",
+      "file": "src/audio.js",
+      "line": 289,
+      "method": "playTrill",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/cat.js",
+          "line": 943,
+          "text": "if (name === 'playful' && this.canPlaySound('trill')) this.audio.playTrill();"
+        },
+        {
+          "file": "src/context_actions.js",
+          "line": 530,
+          "text": "if (this.audio) this.audio.playTrill();"
+        },
+        {
+          "file": "src/context_actions.js",
+          "line": 565,
+          "text": "if (this.audio) this.audio.playTrill();"
+        },
+        {
+          "file": "src/interior.js",
+          "line": 184,
+          "text": "if (window.game.audio) window.game.audio.playTrill();"
+        }
+      ],
+      "replacementCandidates": [
+        "cat-trill"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playTrill() {\n    if (!this.initialized) return;\n    const t = this.ctx.currentTime;\n    const notes = [520, 740, 900];\n    notes.forEach((f, i) => {\n      const osc = this.ctx.createOscillator();\n      const gain = this.ctx.createGain();\n      osc.type = 'sine';\n      const start = t + i * 0.045;\n      osc.frequency.setValueAtTime(f * 1.1, start);\n      osc.frequency.exponentialRampToValueAtTime(f, start + 0.08);\n      gain.gain.setValueAtTime(0, start);\n      gain.gain.linearRampToValueAtTime(0.06, start + 0.02);\n      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);\n      osc.connect(gain).connect(this.master);\n      osc.start(start);\n      osc.stop(start + 0.2);\n    });\n  }"
+    },
+    {
+      "id": "src/audio.js#playHiss",
+      "file": "src/audio.js",
+      "line": 309,
+      "method": "playHiss",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/cat.js",
+          "line": 944,
+          "text": "else if (name === 'startled' && this.canPlaySound('hiss')) this.audio.playHiss();"
+        }
+      ],
+      "replacementCandidates": [
+        "cat-hiss"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playHiss() {\n    if (!this.initialized) return;\n    const t = this.ctx.currentTime;\n    const samples = Math.floor(this.ctx.sampleRate * 0.45);\n    const buffer = this.ctx.createBuffer(1, samples, this.ctx.sampleRate);\n    const data = buffer.getChannelData(0);\n    for (let i = 0; i < samples; i++) {\n      const life = 1 - i / samples;\n      data[i] = (Math.random() * 2 - 1) * life;\n    }\n    const source = this.ctx.createBufferSource();\n    source.buffer = buffer;\n    const filter = this.ctx.createBiquadFilter();\n    filter.type = 'highpass';\n    filter.frequency.value = 900;\n    const gain = this.ctx.createGain();\n    gain.gain.setValueAtTime(0, t);\n    gain.gain.linearRampToValueAtTime(0.07, t + 0.02);\n    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);\n    source.connect(filter).connect(gain).connect(this.master);\n    source.start(t);\n  }"
+    },
+    {
+      "id": "src/audio.js#playChirp",
+      "file": "src/audio.js",
+      "line": 332,
+      "method": "playChirp",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/cat.js",
+          "line": 945,
+          "text": "else if (name === 'curious' && this.canPlaySound('chirp')) this.audio.playChirp();"
+        },
+        {
+          "file": "src/context_actions.js",
+          "line": 672,
+          "text": "if (this.audio) this.audio.playChirp();"
+        }
+      ],
+      "replacementCandidates": [
+        "cat-chirp"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playChirp() {\n    if (!this.initialized) return;\n    const t = this.ctx.currentTime;\n    const osc = this.ctx.createOscillator();\n    const gain = this.ctx.createGain();\n    osc.type = 'sine';\n    osc.frequency.setValueAtTime(1500, t);\n    osc.frequency.exponentialRampToValueAtTime(2200, t + 0.08);\n    gain.gain.setValueAtTime(0, t);\n    gain.gain.linearRampToValueAtTime(0.05, t + 0.015);\n    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);\n    osc.connect(gain).connect(this.master);\n    osc.start(t);\n    osc.stop(t + 0.13);\n  }"
+    },
+    {
+      "id": "src/audio.js#playLap",
+      "file": "src/audio.js",
+      "line": 348,
+      "method": "playLap",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/audio.js",
+          "line": 373,
+          "text": "this.playLap();"
+        },
+        {
+          "file": "src/audio.js",
+          "line": 374,
+          "text": "this.lappingTimer = setInterval(() => this.playLap(), 430);"
+        },
+        {
+          "file": "src/audio.js",
+          "line": 671,
+          "text": "this.playLap();"
+        }
+      ],
+      "replacementCandidates": [
+        "water-lap"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playLap() {\n    if (!this.initialized) return;\n    const t = this.ctx.currentTime;\n    const samples = Math.floor(this.ctx.sampleRate * 0.35);\n    const buffer = this.ctx.createBuffer(1, samples, this.ctx.sampleRate);\n    const data = buffer.getChannelData(0);\n    for (let i = 0; i < samples; i++) {\n      const life = 1 - i / samples;\n      data[i] = (Math.random() * 2 - 1) * life * 0.25;\n    }\n    const source = this.ctx.createBufferSource();\n    source.buffer = buffer;\n    const filter = this.ctx.createBiquadFilter();\n    filter.type = 'lowpass';\n    filter.frequency.value = 2600;\n    const gain = this.ctx.createGain();\n    gain.gain.setValueAtTime(0, t);\n    gain.gain.linearRampToValueAtTime(0.04, t + 0.02);\n    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);\n    source.connect(filter).connect(gain).connect(this.master);\n    source.start(t);\n  }"
+    },
+    {
+      "id": "src/audio.js#playBell",
+      "file": "src/audio.js",
+      "line": 383,
+      "method": "playBell",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/context_actions.js",
+          "line": 570,
+          "text": "if (this.audio) this.audio.playBell();"
+        },
+        {
+          "file": "src/context_actions.js",
+          "line": 644,
+          "text": "setTimeout(() => this.audio && this.audio.playBell(), 420);"
+        },
+        {
+          "file": "src/context_actions.js",
+          "line": 805,
+          "text": "if (this.audio) this.audio.playBell();"
+        },
+        {
+          "file": "src/main.js",
+          "line": 1776,
+          "text": "if (this.audio) this.audio.playBell();"
+        },
+        {
+          "file": "src/main.js",
+          "line": 1784,
+          "text": "if (this.audio) this.audio.playBell();"
+        }
+      ],
+      "replacementCandidates": [
+        "bell-collar"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playBell() {\n    if (!this.initialized) return;\n    const t = this.ctx.currentTime;\n    const base = 520;\n    const osc = this.ctx.createOscillator();\n    const gain = this.ctx.createGain();\n    osc.type = 'sine';\n    osc.frequency.setValueAtTime(base, t);\n    gain.gain.setValueAtTime(0, t);\n    gain.gain.linearRampToValueAtTime(0.08, t + 0.01);\n    gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);\n    osc.connect(gain).connect(this.master);\n    osc.start(t);\n    osc.stop(t + 1.3);\n\n    // Add a faint harmonic\n    const osc2 = this.ctx.createOscillator();\n    const gain2 = this.ctx.createGain();\n    osc2.type = 'sine';\n    osc2.frequency.setValueAtTime(base * 2.7, t);\n    gain2.gain.setValueAtTime(0, t);\n    gain2.gain.linearRampToValueAtTime(0.025, t + 0.01);\n    gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.8);\n    osc2.connect(gain2).connect(this.master);\n    osc2.start(t);\n    osc2.stop(t + 0.9);\n  }"
+    },
+    {
+      "id": "src/audio.js#playKeyChime",
+      "file": "src/audio.js",
+      "line": 411,
+      "method": "playKeyChime",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/context_actions.js",
+          "line": 381,
+          "text": "if (this.audio) this.audio.playKeyChime();"
+        },
+        {
+          "file": "src/context_actions.js",
+          "line": 456,
+          "text": "if (this.audio) this.audio.playKeyChime();"
+        },
+        {
+          "file": "src/main.js",
+          "line": 1721,
+          "text": "if (this.audio) this.audio.playKeyChime();"
+        },
+        {
+          "file": "src/main.js",
+          "line": 1792,
+          "text": "if (this.audio) this.audio.playKeyChime();"
+        }
+      ],
+      "replacementCandidates": [
+        "ui-confirm"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playKeyChime() {\n    if (!this.initialized) return;\n    const t = this.ctx.currentTime;\n    const notes = [659.25, 830.61, 987.77, 1318.51];\n    notes.forEach((f, i) => {\n      const osc = this.ctx.createOscillator();\n      const gain = this.ctx.createGain();\n      osc.type = 'sine';\n      osc.frequency.value = f;\n      const start = t + i * 0.08;\n      gain.gain.setValueAtTime(0, start);\n      gain.gain.linearRampToValueAtTime(0.09, start + 0.015);\n      gain.gain.exponentialRampToValueAtTime(0.0008, start + 1.2);\n      osc.connect(gain).connect(this.master);\n      osc.start(start);\n      osc.stop(start + 1.25);\n    });\n  }"
+    },
+    {
+      "id": "src/audio.js#playDoorSlide",
+      "file": "src/audio.js",
+      "line": 430,
+      "method": "playDoorSlide",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/context_actions.js",
+          "line": 397,
+          "text": "this.audio.playDoorSlide();"
+        },
+        {
+          "file": "src/interior.js",
+          "line": 461,
+          "text": "if (this.game.audio) this.game.audio.playDoorSlide();"
+        },
+        {
+          "file": "src/interior.js",
+          "line": 499,
+          "text": "if (this.game.audio) this.game.audio.playDoorSlide();"
+        }
+      ],
+      "replacementCandidates": [
+        "shoji-slide"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playDoorSlide() {\n    if (!this.initialized) return;\n    const t = this.ctx.currentTime;\n    const samples = Math.floor(this.ctx.sampleRate * 0.85);\n    const buffer = this.ctx.createBuffer(1, samples, this.ctx.sampleRate);\n    const data = buffer.getChannelData(0);\n    for (let i = 0; i < samples; i++) {\n      const p = i / samples;\n      const mod = Math.sin(p * Math.PI) * (0.8 + 0.2 * Math.sin(i * 0.05));\n      data[i] = (Math.random() * 2 - 1) * mod * 0.18;\n    }\n    const source = this.ctx.createBufferSource();\n    source.buffer = buffer;\n    const filter = this.ctx.createBiquadFilter();\n    filter.type = 'lowpass';\n    filter.frequency.value = 450;\n    const gain = this.ctx.createGain();\n    gain.gain.value = 0.08;\n    source.connect(filter).connect(gain).connect(this.master);\n    source.start(t);\n  }"
+    },
+    {
+      "id": "src/audio.js#playEat",
+      "file": "src/audio.js",
+      "line": 452,
+      "method": "playEat",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/context_actions.js",
+          "line": 421,
+          "text": "if (this.audio) this.audio.playEat();"
+        }
+      ],
+      "replacementCandidates": [
+        "cat-eat"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playEat() {\n    if (!this.initialized) return;\n    const t = this.ctx.currentTime;\n    for (let i = 0; i < 3; i++) {\n      const osc = this.ctx.createOscillator();\n      const gain = this.ctx.createGain();\n      osc.type = 'triangle';\n      const start = t + i * 0.12;\n      osc.frequency.setValueAtTime(320 - i * 40, start);\n      osc.frequency.linearRampToValueAtTime(160, start + 0.06);\n      gain.gain.setValueAtTime(0, start);\n      gain.gain.linearRampToValueAtTime(0.08, start + 0.01);\n      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.08);\n      osc.connect(gain).connect(this.master);\n      osc.start(start);\n      osc.stop(start + 0.09);\n    }\n  }"
+    },
+    {
+      "id": "src/audio.js#playSquawk",
+      "file": "src/audio.js",
+      "line": 471,
+      "method": "playSquawk",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/ambient_life.js",
+          "line": 193,
+          "text": "if (this.audio) this.audio.playSquawk();"
+        },
+        {
+          "file": "src/ambient_life.js",
+          "line": 221,
+          "text": "if (this.audio) this.audio.playSquawk();"
+        }
+      ],
+      "replacementCandidates": [
+        "bird-crow"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playSquawk() {\n    if (!this.initialized) return;\n    const t = this.ctx.currentTime;\n    const osc = this.ctx.createOscillator();\n    const gain = this.ctx.createGain();\n    osc.type = 'sawtooth';\n    osc.frequency.setValueAtTime(1200, t);\n    osc.frequency.linearRampToValueAtTime(2100, t + 0.07);\n    osc.frequency.exponentialRampToValueAtTime(650, t + 0.28);\n    gain.gain.setValueAtTime(0, t);\n    gain.gain.linearRampToValueAtTime(0.08, t + 0.02);\n    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);\n    const filter = this.ctx.createBiquadFilter();\n    filter.type = 'bandpass';\n    filter.frequency.value = 1400;\n    filter.Q.value = 3;\n    osc.connect(filter).connect(gain).connect(this.master);\n    osc.start(t);\n    osc.stop(t + 0.32);\n  }"
+    },
+    {
+      "id": "src/audio.js#playSplash",
+      "file": "src/audio.js",
+      "line": 492,
+      "method": "playSplash",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/context_actions.js",
+          "line": 468,
+          "text": "if (this.audio) this.audio.playSplash();"
+        },
+        {
+          "file": "src/context_actions.js",
+          "line": 643,
+          "text": "this.audio.playSplash();"
+        },
+        {
+          "file": "src/player.js",
+          "line": 118,
+          "text": "if (this.audio) this.audio.playSplash();"
+        }
+      ],
+      "replacementCandidates": [
+        "water-splash"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playSplash() {\n    if (!this.initialized) return;\n    const t = this.ctx.currentTime;\n    const samples = Math.floor(this.ctx.sampleRate * 0.4);\n    const buffer = this.ctx.createBuffer(1, samples, this.ctx.sampleRate);\n    const data = buffer.getChannelData(0);\n    for (let i = 0; i < samples; i++) {\n      const p = 1 - i / samples;\n      data[i] = (Math.random() * 2 - 1) * p * p * 0.3;\n    }\n    const source = this.ctx.createBufferSource();\n    source.buffer = buffer;\n    const filter = this.ctx.createBiquadFilter();\n    filter.type = 'lowpass';\n    filter.frequency.value = 1600;\n    const gain = this.ctx.createGain();\n    gain.gain.setValueAtTime(0.07, t);\n    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.38);\n    source.connect(filter).connect(gain).connect(this.master);\n    source.start(t);\n  }"
+    },
+    {
+      "id": "src/audio.js#playDreamChime",
+      "file": "src/audio.js",
+      "line": 514,
+      "method": "playDreamChime",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/context_actions.js",
+          "line": 429,
+          "text": "if (this.audio) this.audio.playDreamChime();"
+        },
+        {
+          "file": "src/context_actions.js",
+          "line": 657,
+          "text": "if (this.audio) this.audio.playDreamChime();"
+        },
+        {
+          "file": "src/context_actions.js",
+          "line": 684,
+          "text": "if (this.audio) this.audio.playDreamChime();"
+        },
+        {
+          "file": "src/context_actions.js",
+          "line": 777,
+          "text": "if (this.audio) this.audio.playDreamChime();"
+        },
+        {
+          "file": "src/main.js",
+          "line": 1576,
+          "text": "if (this.audio) this.audio.playDreamChime();"
+        },
+        {
+          "file": "src/main.js",
+          "line": 1737,
+          "text": "if (this.audio) this.audio.playDreamChime();"
+        },
+        {
+          "file": "src/mountaintop.js",
+          "line": 3264,
+          "text": "if (this.game.audio) this.game.audio.playDreamChime();"
+        },
+        {
+          "file": "src/mountaintop.js",
+          "line": 3583,
+          "text": "if (g.audio) g.audio.playDreamChime();"
+        }
+      ],
+      "replacementCandidates": [
+        "dream-moon"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playDreamChime() {\n    if (!this.initialized) return;\n    const t = this.ctx.currentTime;\n    const chord = [392.00, 493.88, 587.33, 783.99, 987.77];\n    chord.forEach((f, i) => {\n      const osc = this.ctx.createOscillator();\n      const gain = this.ctx.createGain();\n      osc.type = 'sine';\n      osc.frequency.value = f;\n      const start = t + i * 0.12;\n      gain.gain.setValueAtTime(0, start);\n      gain.gain.linearRampToValueAtTime(0.06, start + 0.03);\n      gain.gain.exponentialRampToValueAtTime(0.0005, start + 2.2);\n      osc.connect(gain).connect(this.master);\n      osc.start(start);\n      osc.stop(start + 2.3);\n    });\n  }\n\n  /**\n   * A distant monk choir \"aaah\" — layered detuned voices with vibrato and a\n   * soft formant band, the sound of the mountain answering the tenth bell.\n   */"
+    },
+    {
+      "id": "src/audio.js#playMonkChoir",
+      "file": "src/audio.js",
+      "line": 537,
+      "method": "playMonkChoir",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/mountaintop.js",
+          "line": 3456,
+          "text": "if (this.game.audio) this.game.audio.playMonkChoir();"
+        },
+        {
+          "file": "src/mountaintop.js",
+          "line": 3476,
+          "text": "if (g.audio) g.audio.playMonkChoir();"
+        }
+      ],
+      "replacementCandidates": [
+        "choir-cloud"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playMonkChoir(duration = 5.5) {\n    if (!this.initialized) return;\n    const t = this.ctx.currentTime;\n    const out = this.ctx.createGain();\n    out.gain.setValueAtTime(0, t);\n    out.gain.linearRampToValueAtTime(0.075, t + 1.4);\n    out.gain.setValueAtTime(0.075, t + duration - 1.8);\n    out.gain.linearRampToValueAtTime(0, t + duration);\n    // Low choral body through a warm formant band\n    const formant = this.ctx.createBiquadFilter();\n    formant.type = 'bandpass';\n    formant.frequency.value = 640;\n    formant.Q.value = 0.7;\n    out.connect(formant).connect(this.master);\n    // A parallel \"air\" path for the open vowel brightness\n    const air = this.ctx.createGain();\n    air.gain.value = 0.4;\n    out.connect(air).connect(this.master);\n\n    const voices = [\n      [98.0, -6], [98.0, 5], [146.83, -4], [146.83, 7],   // G2 / D3 unison pairs\n      [196.0, 0], [196.0, 9]                              // G3 lift\n    ];\n    for (const [freq, detune] of voices) {\n      const osc = this.ctx.createOscillator();\n      osc.type = 'sawtooth';\n      osc.frequency.value = freq;\n      osc.detune.value = detune;\n      const vib = this.ctx.createOscillator();\n      vib.frequency.value = 4.6 + Math.random() * 0.8;\n      const vibG = this.ctx.createGain();\n      vibG.gain.value = 2.2;\n      vib.connect(vibG).connect(osc.frequency);\n      const g = this.ctx.createGain();\n      g.gain.value = freq > 150 ? 0.16 : 0.3;\n      osc.connect(g).connect(out);\n      osc.start(t); osc.stop(t + duration + 0.1);\n      vib.start(t); vib.stop(t + duration + 0.1);\n    }\n    // A high choir shimmer arriving late — the \"aaaaah\" opening\n    const shimmer = this.ctx.createOscillator();\n    shimmer.type = 'sine';\n    shimmer.frequency.value = 392;\n    const sg = this.ctx.createGain();\n    sg.gain.setValueAtTime(0, t);\n    sg.gain.linearRampToValueAtTime(0.05, t + duration * 0.5);\n    sg.gain.linearRampToValueAtTime(0, t + duration);\n    shimmer.connect(sg).connect(this.master);\n    shimmer.start(t); shimmer.stop(t + duration + 0.1);\n  }\n\n  /** Singing bowl: a slow-blooming tone with soft partials, meditation cue. */"
+    },
+    {
+      "id": "src/audio.js#playSingingBowl",
+      "file": "src/audio.js",
+      "line": 589,
+      "method": "playSingingBowl",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/mountaintop.js",
+          "line": 4117,
+          "text": "g.audio.playSingingBowl(174.61); // F3 — settles under the wind"
+        },
+        {
+          "file": "src/music.js",
+          "line": 189,
+          "text": "this.audio.playSingingBowl(bowlFreqs[(Math.random() * bowlFreqs.length) | 0], 10 + Math.random() * 5);"
+        }
+      ],
+      "replacementCandidates": [
+        "bowl-stillness"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playSingingBowl(freq = 174.61, duration = 9) {\n    if (!this.initialized) return;\n    const t = this.ctx.currentTime;\n    const partials = [[1, 0.06, 0.9], [2.76, 0.018, 0.7], [4.9, 0.007, 0.5]];\n    for (const [mult, vol, decayK] of partials) {\n      const osc = this.ctx.createOscillator();\n      osc.type = 'sine';\n      osc.frequency.value = freq * mult;\n      const g = this.ctx.createGain();\n      g.gain.setValueAtTime(0, t);\n      g.gain.linearRampToValueAtTime(vol, t + 0.9);\n      g.gain.exponentialRampToValueAtTime(0.0004, t + duration * decayK);\n      osc.connect(g).connect(this.buses.ambient);\n      osc.start(t);\n      osc.stop(t + duration);\n    }\n    // The bowl's soft strike tick\n    const tick = this.ctx.createOscillator();\n    tick.type = 'sine';\n    tick.frequency.setValueAtTime(freq * 4.4, t);\n    const tg = this.ctx.createGain();\n    tg.gain.setValueAtTime(0.012, t);\n    tg.gain.exponentialRampToValueAtTime(0.0003, t + 0.35);\n    tick.connect(tg).connect(this.buses.ambient);\n    tick.start(t); tick.stop(t + 0.4);\n  }\n\n  /**\n   * Summit wind bed: a dedicated filtered-noise layer with slow gust LFOs,\n   * switched while the cat is on the mountain. Louder and airier than the\n   * valley ambient — the wind is the scene's main voice.\n   */"
+    },
+    {
+      "id": "src/audio.js#setSummitWind",
+      "file": "src/audio.js",
+      "line": 621,
+      "method": "setSummitWind",
+      "kind": "ambient system",
+      "calls": [
+        {
+          "file": "src/mountaintop.js",
+          "line": 3644,
+          "text": "if (this.game.audio) this.game.audio.setSummitWind(true);"
+        },
+        {
+          "file": "src/mountaintop.js",
+          "line": 3667,
+          "text": "if (this.game.audio) this.game.audio.setSummitWind(false);"
+        }
+      ],
+      "replacementCandidates": [
+        "wind-bamboo"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  setSummitWind(on) {\n    if (!this.initialized || !this.ctx) return;\n    const t = this.ctx.currentTime;\n    if (on && !this._summitWind) {\n      const bufferSize = 2 * this.ctx.sampleRate;\n      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);\n      const data = buffer.getChannelData(0);\n      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;\n      const noise = this.ctx.createBufferSource();\n      noise.buffer = buffer;\n      noise.loop = true;\n      const filter = this.ctx.createBiquadFilter();\n      filter.type = 'bandpass';\n      filter.frequency.value = 480;\n      filter.Q.value = 0.6;\n      const gain = this.ctx.createGain();\n      gain.gain.value = 0;\n      // Two gust LFOs: a slow swell plus a quicker whistle flutter on the filter\n      const lfo1 = this.ctx.createOscillator();\n      lfo1.frequency.value = 0.11;\n      const lfo1G = this.ctx.createGain();\n      lfo1G.gain.value = 0.028;\n      lfo1.connect(lfo1G).connect(gain.gain);\n      const lfo2 = this.ctx.createOscillator();\n      lfo2.frequency.value = 0.53;\n      const lfo2G = this.ctx.createGain();\n      lfo2G.gain.value = 260;\n      lfo2.connect(lfo2G).connect(filter.frequency);\n      noise.connect(filter).connect(gain).connect(this.buses.ambient);\n      noise.start(t); lfo1.start(t); lfo2.start(t);\n      gain.gain.setTargetAtTime(0.055, t, 2.2);\n      this._summitWind = { noise, lfo1, lfo2, gain };\n    } else if (!on && this._summitWind) {\n      const w = this._summitWind;\n      this._summitWind = null;\n      w.gain.gain.setTargetAtTime(0, t, 1.4);\n      setTimeout(() => {\n        try { w.noise.stop(); w.lfo1.stop(); w.lfo2.stop(); } catch {}\n      }, 4000);\n    }\n  }\n\n  /** Surface-aware footsteps: grass / wood / stone / water. */"
+    },
+    {
+      "id": "src/audio.js#playFootstep",
+      "file": "src/audio.js",
+      "line": 664,
+      "method": "playFootstep",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/player.js",
+          "line": 249,
+          "text": "if (this.isGrounded && this.audio) this.audio.playFootstep(inWater ? 'water' : 'grass');"
+        }
+      ],
+      "replacementCandidates": [
+        "paw-grass",
+        "paw-wood",
+        "paw-stone",
+        "paw-water"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  playFootstep(surface = 'grass') {\n    if (!this.initialized) return;\n    const now = this.ctx.currentTime;\n    if (now - this.lastFootstep < 0.28) return;\n    this.lastFootstep = now;\n\n    if (surface === 'water') {\n      this.playLap();\n      return;\n    }\n\n    const profiles = {\n      grass: { freq: 650, q: 0.8, vol: 0.04 },\n      wood: { freq: 1500, q: 2.2, vol: 0.05 },\n      stone: { freq: 2100, q: 1.4, vol: 0.045 }\n    };\n    const prof = profiles[surface] || profiles.grass;\n\n    const bufferSize = Math.floor(this.ctx.sampleRate * 0.1);\n    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);\n    const data = buffer.getChannelData(0);\n    for (let i = 0; i < bufferSize; i++) {\n      data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);\n    }\n    const noise = this.ctx.createBufferSource();\n    noise.buffer = buffer;\n\n    const filter = this.ctx.createBiquadFilter();\n    filter.type = surface === 'stone' ? 'bandpass' : 'lowpass';\n    filter.frequency.value = prof.freq * (0.9 + Math.random() * 0.2);\n    filter.Q.value = prof.q;\n\n    const gain = this.ctx.createGain();\n    gain.gain.value = prof.vol;\n\n    noise.connect(filter).connect(gain).connect(this.master);\n    noise.start(now);\n  }"
+    },
+    {
+      "id": "src/audio.js#startAmbient",
+      "file": "src/audio.js",
+      "line": 703,
+      "method": "startAmbient",
+      "kind": "ambient system",
+      "calls": [
+        {
+          "file": "src/audio.js",
+          "line": 157,
+          "text": "this.startAmbient();"
+        }
+      ],
+      "replacementCandidates": [
+        "wind-bamboo"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  startAmbient() {\n    if (!this.initialized || this.ambientNode) return;\n    const bufferSize = 2 * this.ctx.sampleRate;\n    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);\n    const data = buffer.getChannelData(0);\n    for (let i = 0; i < bufferSize; i++) {\n      data[i] = (Math.random() * 2 - 1);\n    }\n    const noise = this.ctx.createBufferSource();\n    noise.buffer = buffer;\n    noise.loop = true;\n\n    this.ambientFilter = this.ctx.createBiquadFilter();\n    this.ambientFilter.type = 'lowpass';\n    this.ambientFilter.frequency.value = 320;\n\n    this.ambientGain = this.ctx.createGain();\n    this.ambientGain.gain.value = 0.02;\n\n    const lfo = this.ctx.createOscillator();\n    const lfoGain = this.ctx.createGain();\n    lfo.frequency.value = 0.13;\n    lfoGain.gain.value = 0.008;\n    lfo.connect(lfoGain).connect(this.ambientGain.gain);\n    lfo.start(0);\n\n    noise.connect(this.ambientFilter).connect(this.ambientGain).connect(this.buses.ambient);\n    noise.start(0);\n    this.ambientNode = noise;\n  }"
+    },
+    {
+      "id": "src/audio.js#startRain",
+      "file": "src/audio.js",
+      "line": 734,
+      "method": "startRain",
+      "kind": "ambient system",
+      "calls": [
+        {
+          "file": "src/audio.js",
+          "line": 160,
+          "text": "this.startRain();"
+        }
+      ],
+      "replacementCandidates": [
+        "rain-eaves"
+      ],
+      "sourceSha256": "ac9ee4a0f917a8ed0872e1985049164126ce588ac8cc09d36534bb0ecdb235d9",
+      "implementation": "  startRain() {\n    if (!this.initialized || this.rainNode) return;\n    const bufferSize = 2 * this.ctx.sampleRate;\n    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);\n    const data = buffer.getChannelData(0);\n    for (let i = 0; i < bufferSize; i++) {\n      data[i] = (Math.random() * 2 - 1);\n    }\n    const noise = this.ctx.createBufferSource();\n    noise.buffer = buffer;\n    noise.loop = true;\n\n    const filter = this.ctx.createBiquadFilter();\n    filter.type = 'lowpass';\n    filter.frequency.value = 500;\n\n    this.rainGain = this.ctx.createGain();\n    this.rainGain.gain.value = 0;\n\n    noise.connect(filter).connect(this.rainGain).connect(this.buses.ambient);\n    noise.start(0);\n    this.rainNode = noise;\n  }"
+    },
+    {
+      "id": "src/hidden_places.js#playPoolDrop",
+      "file": "src/hidden_places.js",
+      "line": 633,
+      "method": "playPoolDrop",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/hidden_places.js",
+          "line": 713,
+          "text": "this.playPoolDrop(level);"
+        }
+      ],
+      "replacementCandidates": [
+        "water-drop"
+      ],
+      "sourceSha256": "6467b92722457e57bff46cc8e21fcace6b0a23eee3c713d6d2bb25a8424bbcef",
+      "implementation": "  playPoolDrop(level) {\n    const h = this.audioOut();\n    if (!h) return;\n    const { a, out } = h;\n    const t = a.ctx.currentTime;\n    const f = PENTATONIC[Math.floor(Math.random() * PENTATONIC.length)] * (Math.random() < 0.3 ? 2 : 1);\n    for (const [mul, peak, dur] of [[1, 0.05, 2.4], [2.01, 0.014, 0.9]]) {\n      const osc = a.ctx.createOscillator();\n      const gain = a.ctx.createGain();\n      osc.type = 'sine';\n      osc.frequency.setValueAtTime(f * mul * 1.012, t);\n      osc.frequency.exponentialRampToValueAtTime(f * mul, t + 0.06);\n      gain.gain.setValueAtTime(0, t);\n      gain.gain.linearRampToValueAtTime(peak * level, t + 0.008);\n      gain.gain.exponentialRampToValueAtTime(0.0005, t + dur);\n      osc.connect(gain).connect(out);\n      osc.start(t);\n      osc.stop(t + dur + 0.05);\n    }\n  }\n\n  /** A hollow bamboo knock — a short pitched thunk with a woody click. */"
+    },
+    {
+      "id": "src/hidden_places.js#playBambooKnock",
+      "file": "src/hidden_places.js",
+      "line": 655,
+      "method": "playBambooKnock",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/hidden_places.js",
+          "line": 722,
+          "text": "if (Math.random() < 0.6) this.playBambooKnock(level);"
+        }
+      ],
+      "replacementCandidates": [
+        "bamboo-knock"
+      ],
+      "sourceSha256": "6467b92722457e57bff46cc8e21fcace6b0a23eee3c713d6d2bb25a8424bbcef",
+      "implementation": "  playBambooKnock(level) {\n    const h = this.audioOut();\n    if (!h) return;\n    const { a, out } = h;\n    const t = a.ctx.currentTime;\n    const f = 300 + Math.random() * 160;\n    const osc = a.ctx.createOscillator();\n    const gain = a.ctx.createGain();\n    osc.type = 'triangle';\n    osc.frequency.setValueAtTime(f * 1.5, t);\n    osc.frequency.exponentialRampToValueAtTime(f, t + 0.05);\n    gain.gain.setValueAtTime(0, t);\n    gain.gain.linearRampToValueAtTime(0.11 * level, t + 0.004);\n    gain.gain.exponentialRampToValueAtTime(0.0005, t + 0.34);\n    const body = a.ctx.createBiquadFilter();\n    body.type = 'bandpass';\n    body.frequency.value = f * 1.3;\n    body.Q.value = 5;\n    osc.connect(body).connect(gain).connect(out);\n    osc.start(t);\n    osc.stop(t + 0.4);\n  }\n\n  /** A long breath of leaves: band-passed noise that swells and recedes. */"
+    },
+    {
+      "id": "src/hidden_places.js#playLeafBreath",
+      "file": "src/hidden_places.js",
+      "line": 679,
+      "method": "playLeafBreath",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/hidden_places.js",
+          "line": 723,
+          "text": "else this.playLeafBreath(level);"
+        }
+      ],
+      "replacementCandidates": [
+        "leaves-autumn"
+      ],
+      "sourceSha256": "6467b92722457e57bff46cc8e21fcace6b0a23eee3c713d6d2bb25a8424bbcef",
+      "implementation": "  playLeafBreath(level) {\n    const h = this.audioOut();\n    if (!h) return;\n    const { a, out } = h;\n    const t = a.ctx.currentTime;\n    const dur = 3.4;\n    const samples = Math.floor(a.ctx.sampleRate * dur);\n    const buf = a.ctx.createBuffer(1, samples, a.ctx.sampleRate);\n    const d = buf.getChannelData(0);\n    for (let i = 0; i < samples; i++) d[i] = Math.random() * 2 - 1;\n    const src = a.ctx.createBufferSource();\n    src.buffer = buf;\n    const f = a.ctx.createBiquadFilter();\n    f.type = 'bandpass';\n    f.frequency.setValueAtTime(1500, t);\n    f.frequency.linearRampToValueAtTime(2300, t + dur * 0.5);\n    f.frequency.linearRampToValueAtTime(1300, t + dur);\n    f.Q.value = 0.8;\n    const gain = a.ctx.createGain();\n    gain.gain.setValueAtTime(0, t);\n    gain.gain.linearRampToValueAtTime(0.05 * level, t + dur * 0.4);\n    gain.gain.linearRampToValueAtTime(0, t + dur);\n    src.connect(f).connect(gain).connect(out);\n    src.start(t);\n  }"
+    },
+    {
+      "id": "src/music.js#playPadChord",
+      "file": "src/music.js",
+      "line": 196,
+      "method": "playPadChord",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/music.js",
+          "line": 172,
+          "text": "this.playPadChord(barT, def.root * Math.pow(2, chordNote / 12));"
+        }
+      ],
+      "replacementCandidates": [],
+      "sourceSha256": "9d1726426003e3e21f88f00ba269195531ec597ba44688e8a21f42311e715563",
+      "implementation": "  playPadChord(t, freq) {\n    if (this.voices >= this.maxVoices) return;\n    this.voices++;\n    const ctx = this.ctx;\n    const g = ctx.createGain();\n    g.gain.setValueAtTime(0, t);\n    g.gain.linearRampToValueAtTime(0.028, t + 1.4);\n    g.gain.linearRampToValueAtTime(0.0001, t + this.barLen + 1.2);\n    g.connect(this.padGain);\n    const o = ctx.createOscillator();\n    o.type = 'sine';\n    o.frequency.value = freq * 2;\n    o.connect(g);\n    o.onended = () => { this.voices = Math.max(0, this.voices - 1); };\n    o.start(t);\n    o.stop(t + this.barLen + 1.4);\n  }"
+    },
+    {
+      "id": "src/music.js#playPluck",
+      "file": "src/music.js",
+      "line": 214,
+      "method": "playPluck",
+      "kind": "one-shot",
+      "calls": [
+        {
+          "file": "src/music.js",
+          "line": 180,
+          "text": "this.playPluck(t, def.root * oct * Math.pow(2, deg / 12));"
+        }
+      ],
+      "replacementCandidates": [],
+      "sourceSha256": "9d1726426003e3e21f88f00ba269195531ec597ba44688e8a21f42311e715563",
+      "implementation": "  playPluck(t, freq) {\n    if (this.voices >= this.maxVoices) return;\n    this.voices++;\n    const ctx = this.ctx;\n    const o = ctx.createOscillator();\n    o.type = 'triangle';\n    o.frequency.setValueAtTime(freq * 1.003, t);\n    o.frequency.exponentialRampToValueAtTime(freq, t + 0.09);\n    const g = ctx.createGain();\n    g.gain.setValueAtTime(0, t);\n    g.gain.linearRampToValueAtTime(0.075, t + 0.012);\n    g.gain.exponentialRampToValueAtTime(0.0004, t + 1.5);\n    const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;\n    o.connect(g);\n    if (pan) {\n      pan.pan.value = Math.random() * 1.4 - 0.7;\n      g.connect(pan);\n      pan.connect(this.out);\n      pan.connect(this.echo);\n    } else {\n      g.connect(this.out);\n      g.connect(this.echo);\n    }\n    o.onended = () => { this.voices = Math.max(0, this.voices - 1); };\n    o.start(t);\n    o.stop(t + 1.6);\n  }\n\n  /**\n   * Gentle music swell for rest spots, stillness moments and quiet\n   * discoveries (G1.1/G1.2): the pad breathes up for a few seconds, then\n   * settles back. Called from the main loop each frame.\n   */"
+    }
+  ]
+}

@@ -29,8 +29,8 @@ test('DRUM_RHYTHMS library provides 40+ pre-programmed rhythms across all catego
   }
 });
 
-test('DRUM_KIT_LIST provides 7 studio & Kyoto drum kits', () => {
-  assert.equal(DRUM_KIT_LIST.length, 7);
+test('DRUM_KIT_LIST provides legacy and modeled studio & Kyoto drum kits', () => {
+  assert.equal(DRUM_KIT_LIST.length, 9);
   const ids = DRUM_KIT_LIST.map((k) => k.id);
   for (const k of ['soft', 'punch', 'lofi', 'taiko', '808', 'acoustic', 'crisp']) {
     assert.ok(ids.includes(k), `Kit ${k} exists`);

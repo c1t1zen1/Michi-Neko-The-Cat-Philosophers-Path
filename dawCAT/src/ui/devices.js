@@ -4,6 +4,7 @@ import { defaultSynthPreset, midiToName } from '../state.js';
 import { SYNTH_KINDS, OSC_TYPES } from '../engine/synth.js';
 import { computeEqCurve } from '../engine/fx.js';
 import { STARTER_SAMPLES } from '../engine/manipulator.js';
+import { INSTRUMENTS, instrumentPreset } from '../library/instruments.js';
 
 // Never-started offline context, used purely to construct BiquadFilterNodes for
 // getFrequencyResponse() curve math — works even before the user has clicked "Enable Audio".
@@ -44,7 +45,7 @@ export class Devices {
 
     if (t.kind === 'synth') {
       const chip = el('div', { class: 'dev-chip' + (st.selection.deviceId === 'synth' ? ' selected' : '') },
-        el('span', { text: `🎹 Analog (${(t.preset && t.preset.kind) || 'pluck'})` })
+        el('span', { text: t.preset?.kind === 'physical' ? `🎹 Modeled · ${t.preset.model}` : `🎹 Analog (${(t.preset && t.preset.kind) || 'pluck'})` })
       );
       chip.addEventListener('click', () => { st.selection.deviceId = 'synth'; st.emit('selection'); });
       this.listEl.append(chip);
@@ -97,7 +98,7 @@ export class Devices {
 
     if (t.kind === 'synth') {
       const chip = el('div', { class: 'dev-chip' + (st.selection.deviceId === 'synth' ? ' selected' : '') },
-        el('span', { text: `🎹 Analog (${(t.preset && t.preset.kind) || 'pluck'})` })
+        el('span', { text: t.preset?.kind === 'physical' ? `🎹 Modeled · ${t.preset.model}` : `🎹 Analog (${(t.preset && t.preset.kind) || 'pluck'})` })
       );
       chip.addEventListener('click', () => select('synth'));
       wrap.append(chip);
@@ -121,6 +122,7 @@ export class Devices {
   renderSynthEditor(t) {
     const st = this.app.state;
     const p = t.preset || defaultSynthPreset('pluck');
+    if (p.kind === 'physical') { this.renderPhysicalEditor(t); return; }
     const setP = (patch) => {
       st.updateTrack(t.id, { preset: Object.assign({}, t.preset, patch) }, { undo: false });
     };
@@ -200,6 +202,26 @@ export class Devices {
       el('div', { class: 'form-row' }, ...rowItems),
       knobs
     );
+  }
+
+  renderPhysicalEditor(t) {
+    const p = t.preset, st = this.app.state;
+    const select = el('select', { 'aria-label': 'Modeled instrument' });
+    INSTRUMENTS.forEach(i => select.append(el('option', { value: i.id, text: i.name })));
+    select.value = p.model;
+    select.addEventListener('change', () => st.updateTrack(t.id, { preset: instrumentPreset(select.value) }));
+    const definition = INSTRUMENTS.find(i => i.id === p.model);
+    const knobs = el('div', { class: 'knob-row' });
+    const controls = [['Level','gain',0,1,.01],['Cutoff','cutoff',100,18000,50]];
+    if (['string','metal','wood','keys'].includes(definition?.family)) controls.push(['Tone','brightness',.05,.98,.01],['Decay','decay',.08,8,.01]);
+    else controls.push(['Attack','attack',.004,2,.005],['Release','release',.04,3,.01]);
+    if (definition?.family === 'string') controls.push(['Pick','position',.05,.45,.01],['Body','body',0,1,.01],['Buzz','buzz',0,.4,.01]);
+    if (definition?.family === 'wind') controls.push(['Breath','breath',0,.6,.01],['Vibrato','vibrato',0,.02,.001]);
+    for (const [label,key,min,max,step] of controls) knobs.append(makeKnob({ label, min, max, step, value: p[key] ?? min, def: instrumentPreset(p.model)[key] ?? min,
+      onChange: v => { st.pushUndo(); st.updateTrack(t.id, { preset: { ...t.preset, [key]: v } }, { undo: false }); } }).el);
+    this.editor.append(el('div', { class: 'dev-title', text: 'Modeled instruments · ' + t.name }), select,
+      el('p', { class: 'dim', text: definition?.description || '' }), knobs,
+      el('button', { class: 'mini-btn', text: 'Switch to Analog', onclick: () => st.updateTrack(t.id, { preset: defaultSynthPreset('pluck') }) }));
   }
 
   /* ---------- FX device editors ---------- */
