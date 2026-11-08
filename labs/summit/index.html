@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lab 09 · Summit vista & gate — Michi-Neko</title>
+  <meta name="description" content="A perch above the basin with a city laid out below: thousands of instanced roofs, layered haze, and windows that light in a wave from the river as the dusk comes down.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏔️%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
+  <link rel="stylesheet" href="../shared/lab.css"><link rel="stylesheet" href="../shared/workshop.css"><link rel="stylesheet" href="style.css">
+  <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <canvas id="gl" aria-hidden="true"></canvas>
+  <main class="page">
+    <header class="mast">
+      <p class="kicker">Michi-Neko · Lab 09 <span class="jp">天上</span></p>
+      <h1>A whole city<br><em>from one perch.</em></h1>
+      <p class="lede">At this distance a house is four pixels, and a window is one. Stand on the perch and stack the air in layers, then wait for dusk and light the city, starting at the river and running out toward the hills.</p>
+      <nav class="jump" aria-label="Sections"><a href="#walk" class="go">Up to the perch ↓</a><a href="#families">Five recipes</a><a href="#steps">Build a city</a><a href="#game">Into the game</a><a href="#sources">The notebook</a></nav>
+      <div class="field-note"><span class="mark">09 / 天</span><p>The summit is built and owned by a separate effort. This lab only studies how to draw a city at distance, and it reads the game’s builder without changing it.</p><span class="stamp">Three.js<br>r160</span></div>
+    </header>
+  </main>
+
+  <section class="hero" id="walk" aria-labelledby="walk-title">
+    <div class="hero-head">
+      <p class="kicker">01 / The perch</p>
+      <h2 id="walk-title">Wait <em>for dusk</em></h2>
+      <p class="sentence">Two thousand houses, two draws. Then one Points object full of windows, and a wave running through it.</p>
+    </div>
+    <div class="bar" id="bar"></div>
+    <div class="stage" id="stage" role="region" aria-label="A perch above a city in a valley. Use the Haze slider and light the windows in a wave from the river.">
+      <p class="wake" id="wake">Climbing up…</p>
+      <div class="hud tr"><span class="seal">天上</span></div>
+      <div class="hud bl">Drag to look · WASD on the perch · V for cat-eye</div>
+    </div>
+    <div class="hero-foot">
+      <div class="tools" style="justify-content:center;align-items:center"><span id="ctl" style="display:inline-flex;gap:20px"></span><button type="button" class="big" id="btn-lights">Light the city →</button></div>
+      <p class="hero-stats" id="heroStats">&nbsp;</p>
+      <p class="perf" id="perf" aria-live="off">warming up…</p>
+    </div>
+  </section>
+
+  <main class="page">
+    <section class="section" id="families">
+      <p class="kicker">02 / The specimen shelves</p>
+      <h2>Keep the original. <em>Try another way.</em></h2>
+      <p class="fam-sub">The first tile runs the game’s own city builder read-only. Summit code belongs to another effort and is not changed by this lab.</p>
+      <div class="shelf-tools">
+        <label>Find a recipe<input type="search" id="recipe-search" placeholder="Try roof, window, haze…"></label>
+        <label>Show<select id="family-filter"><option value="all">Every shelf</option><option value="original">What the game has now</option></select></label>
+        <span id="recipe-count" role="status"></span>
+      </div>
+      <div id="shelf-bar"></div>
+      <p id="empty-search" hidden>Nothing matches. Try another word, or show every shelf.</p>
+    </section>
+    <div id="shelves"></div>
+
+    <section class="section" id="steps">
+      <div class="fam-head"><span class="fam-num">03</span><h2>Build <em>a city</em></h2><p class="fam-sub">Four steps, from a grid to a thousand lit windows.</p></div>
+      <div class="assembly-wrap"><div class="assembly-view" id="assembly-view" role="img" aria-label="A live city model built up in stages."></div></div>
+      <div id="steps-mount"></div>
+    </section>
+
+    <section class="section" id="game">
+      <div class="fam-head"><span class="fam-num">04</span><h2>Back to <em>the valley</em></h2><p class="fam-sub">What would move into the game, and what it would cost.</p></div>
+      <ul class="game-list">
+        <li><em>This one is for the summit team.</em> Nothing here touches mountaintop.js. These are suggestions for them to take or leave.</li>
+        <li><em>A window wave costs one uniform.</em> The onset is stored per point once. Lighting the whole city in a wave is a single number moving.</li>
+        <li><em>Separate the layers.</em> One haze card per distance band is cheap, and it reads more like a painting than exponential fog does.</li>
+        <li><em>Far means flat.</em> Past about 400 m a painted strip costs less than the instancing and looks the same.</li>
+      </ul>
+    </section>
+
+    <section class="sources" id="sources">
+      <p class="kicker">05 / The notebook</p>
+      <h2>Built from <em>looking closely.</em></h2>
+      <p class="src-note">Every source is marked by how it was used. “Excerpt” means only the search result was read, and “read” means the page was fetched. The full notes are in the <a href="research.md">research notebook ↗</a>.</p>
+      <details><summary>All sources</summary><ul id="srcList"></ul></details>
+    </section>
+  </main>
+  <footer class="foot"></footer>
+
+  <script>
+    if (location.protocol === 'file:') {
+      document.getElementById('wake').textContent = 'Serve the repository over HTTP: python3 -m http.server 8000, then open localhost:8000/labs/summit/.';
+    } else {
+      const s = document.createElement('script'); s.type = 'module'; s.src = 'js/main.js'; document.body.append(s);
+      s.addEventListener('error', () => { document.getElementById('wake').textContent = 'The lab could not load. Check your connection to the Three.js CDN and reload.'; });
+    }
+  </script>
+</body>
+</html>

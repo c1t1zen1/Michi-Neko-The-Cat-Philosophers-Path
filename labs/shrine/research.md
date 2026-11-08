@@ -73,3 +73,60 @@ tablet, the pillar lean.
 * Nippon.com — *Shimenawa: the sacred rope* — <https://www.nippon.com/en/articles/-/12567> · *Haiden: the hall of worship* — <https://www.nippon.com/en/articles/-/12570> (excerpts)
 * Wikipedia — *Shide (Shinto)* — <https://en.wikipedia.org/wiki/Shide_(Shinto)> (excerpt)
 * Ōtakiage Jinja — *紙垂（しで）とは* — <https://otakiagejinja.com/media/3825> (excerpt)
+---
+
+# Lab build notes — 2026-11-08
+
+What the page does with the research above, what was searched for the build,
+and how much of each source was read.
+
+## What the lab adds
+
+* The kasagi editor drives one curve that both lintels are swept along. The game
+  builds the same shape from four rotated boxes, and the joints show from low down.
+* Shide fold by school (Yoshida, Shirakawa, Ise) and the rope has three radius
+  profiles. Only the offset function and the radius function change between them.
+* Komainu are sculpted with the cat's own signed-distance sculptor
+  (`src/cat_sdf.js`, through `labs/shared/game.js`), so no statue model is needed.
+* The senbon tunnel instances one slim gate per material.
+
+## Decisions and caveats
+
+* The nuki's "projects about 1/5 its length" (JAANUS, excerpt) is read as a fifth
+  in total, a tenth at each end. The excerpt does not settle which is meant.
+* The game has no komainu or chōzuya. Those shelves say so instead of inventing a
+  baseline.
+* Sources disagree on which guardian has the horn: The Met and Traditional Kyoto
+  give it to the un-gyō, and another only says a single horn can appear. The lab
+  follows the un-gyō reading.
+* Ryōbu, miwa and mihashira shapes come from the Commons type chart and general
+  knowledge. Searches did not return a text description of them.
+* Performance guidance for long instanced runs: three.js does not cull instances
+  individually. One forum answer suggests splitting by cell, and
+  `@three.ez/instanced-mesh` offers per-instance culling. Neither is used here,
+  since 60 gates fit in one draw per material.
+
+## Build sources
+
+| Source | How it was used |
+|---|---|
+| [three.js forum: frustum culling with InstancedMesh](https://discourse.threejs.org/t/how-to-do-frustum-culling-with-instancedmesh/22633) | Excerpt |
+| [@three.ez/instanced-mesh](https://www.npmjs.com/package/%40three.ez%2Finstanced-mesh) | Excerpt |
+| [Extended TubeGeometry (varying radii)](https://discourse.threejs.org/t/extended-tubegeometry/80539) | Excerpt |
+| [World History Encyclopedia: Shinto architecture](https://www.worldhistory.org/Shinto_Architecture/) | Excerpt |
+| [Wikipedia: Kasuga-zukuri](https://en.wikipedia.com/wiki/Kasuga-zukuri) | Excerpt |
+| [The Met: Guardian lion-dogs](https://metmuseum.org/art/collection/search/53190) | Excerpt |
+| [Traditional Kyoto: Lions (Komainu)](https://traditionalkyoto.com/culture/figures/lions-komainu/) | Excerpt |
+| [Maxime Heckel: On Crafting Painterly Shaders](https://blog.maximeheckel.com/posts/on-crafting-painterly-shaders) | Read, first half only; the page was truncated before the structure tensor section |
+| [Codrops: Susurrus](https://tympanus.net/codrops/2026/04/24/susurrus-crafting-a-cozy-watercolor-world-with-three-js-and-shaders/) | Excerpt; fetching it returned HTTP 403 |
+
+Smooth minimum, surface nets and surface-gradient bump mapping are cited from
+memory of the methods, and the page marks them that way.
+
+## Finish note
+
+The stage uses the Pagoda Lab's Background Art finish (eight-sector generalised
+Kuwahara with diffusion glow), now in `labs/shared/finish.js`. It is blended back
+62% toward the unfiltered picture, because the full-strength filter removed the
+stone and bark detail that makes it feel photographed. Heckel's article describes
+the Papari eight-sector kernel and the polynomial weights this pass approximates.

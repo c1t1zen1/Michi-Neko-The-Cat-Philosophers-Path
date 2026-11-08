@@ -76,3 +76,11 @@ silhouette, butterflies that actually settle on a flower.
 * Journal of Experimental Biology — *Biomechanics of flight in butterflies* — <https://doi.org/10.1242/jeb.150.1.37> (abstract/excerpt)
 * ButterFlySet — *2D dataset for flying-butterfly pose* — <https://homepages.inf.ed.ac.uk/rbf/VAIB24PAPERS/vaib24ka.pdf> (excerpt)
 * 蝶の飛翔 (butterfly flight photos) — <https://butterflyandsky.sunnyday.jp/seitai/flying.html> (excerpt)
+---
+
+# Lab build notes — 2026-11-08
+
+* **Koi.** Shōwa is a black koi with red and white, its sumi wrapping to the belly, and Sanke is a white koi with red and black above the lateral line ([Pond Informer](https://pondinformer.com/showa-koi-guide/), [Pond Trade](https://www.pondtrademag.com/five-tips-identifying-sanke-showa-koi/), excerpts). The lab's hides follow those rules.
+* **Swimming.** A [React Three Fiber fish project](https://github.com/RAPHCRAP/Boid_Fish) (excerpt) uses per-vertex sine displacement rather than skeletons for scale, and the lab does the same with a per-instance speed and phase.
+* **Flocking.** CPU boids are fine to about 500, past which O(n²) is the bottleneck. A [reef demo](https://kody-w.github.io/learnwithkody/examples/coral-reef/) claims 500 with a spatial hash, and GPU notes suggest 64² float textures for 4,096 ([GPU flocking](https://sites.google.com/site/gpuplayground/home/gpu-flocking)) (excerpts). The pond's 34 koi use a plain neighbour sweep.
+* **Birds and butterflies.** Searches did not return a body-wave reference for koi or a flutter model for butterflies, so the flight here is hand-tuned sine and pause timing.

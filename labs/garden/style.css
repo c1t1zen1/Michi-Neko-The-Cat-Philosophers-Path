@@ -1,0 +1,3 @@
+:root { --accent: #3f7a6a; --accent2: #a0552c; --wash: rgba(63, 122, 106, 0.16); --code-bg: #eef5f1; --ink: #1c2822; --muted: #55685e; --soft: #8a9b90; }
+.beat { font: italic 300 1.1rem var(--serif); color: var(--soft); transition: color .1s, transform .1s; display: inline-block; }
+.beat.on { color: var(--accent2); transform: scale(1.3); }

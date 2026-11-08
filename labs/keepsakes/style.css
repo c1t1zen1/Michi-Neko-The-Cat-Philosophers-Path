@@ -1,0 +1,3 @@
+:root { --accent: #b5456a; --accent2: #5e7f3a; --wash: rgba(181, 69, 106, 0.14); --code-bg: #faf0f3; --ink: #2a1c22; --muted: #6a5660; --soft: #9a8a92; }
+.count { font: italic 400 1.3rem var(--serif); color: var(--accent); }
+.squint { position: absolute; inset: 0; z-index: 2; pointer-events: none; }

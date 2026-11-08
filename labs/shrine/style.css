@@ -1,0 +1,8 @@
+:root { --accent: #b5412c; --accent2: #2f5f4a; --wash: rgba(190, 70, 44, 0.16); --code-bg: #fbf3ec; --ink: #2a1f1a; --muted: #6a5a4e; --soft: #9a8a7c; }
+.workbench { display: grid; grid-template-columns: 1fr; gap: 20px 44px; margin-top: 18px; text-align: left; }
+@media (min-width: 900px) { .workbench { grid-template-columns: minmax(280px, 1fr) minmax(300px, 1.1fr); } }
+.pad { width: 100%; max-width: 680px; height: auto; display: block; background: #fbf7ee; border-radius: 16px; touch-action: none; cursor: grab; }
+.gate-controls { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.gate-controls .ctl { justify-content: flex-start; }
+#gate-sliders { display: flex; flex-wrap: wrap; gap: 8px 26px; }
+#senbon-mount .range { width: 240px; }

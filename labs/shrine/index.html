@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lab 06 · Torii, sandō & shrine — Michi-Neko</title>
+  <meta name="description" content="Draw the curve of a torii lintel, fold shide paper three ways, ring the shrine bell, and walk Michi through a tunnel of gates. Twenty-seven live Three.js recipes.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⛩%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
+  <link rel="stylesheet" href="../shared/lab.css"><link rel="stylesheet" href="../shared/workshop.css"><link rel="stylesheet" href="style.css">
+  <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <canvas id="gl" aria-hidden="true"></canvas>
+  <main class="page">
+    <header class="mast">
+      <p class="kicker">Michi-Neko · Lab 06 <span class="jp">鳥居と参道</span></p>
+      <h1>Draw a gate.<br><em>Walk through it.</em></h1>
+      <p class="lede">A torii is a line in the air, and almost all of it is in one curve. Pull that curve about and watch the gate change character, fold the paper three ways, ring the bell, then grow one gate into a tunnel of them and go through at cat height.</p>
+      <nav class="jump" aria-label="Sections"><a href="#walk" class="go">Up the sandō ↓</a><a href="#families">Twenty-seven recipes</a><a href="#steps">Raise a torii</a><a href="#game">Into the game</a><a href="#sources">The notebook</a></nav>
+      <div class="field-note"><span class="mark">06 / 鳥居</span><p>Our gate today is built from boxes, and it looks fine from the road. From where a cat stands you can see the joints. Everything here starts from the real one, and each shelf says what the game has now.</p><span class="stamp">Three.js<br>r160</span></div>
+    </header>
+  </main>
+
+  <section class="hero" id="walk" aria-labelledby="walk-title">
+    <div class="hero-head">
+      <p class="kicker">01 / The precinct</p>
+      <h2 id="walk-title">Up the <em>sandō</em></h2>
+      <p class="sentence">Michi climbs toward a <span class="slot" id="slot-kind"></span> gate in <span class="slot" id="slot-paint"></span>, hung with <span class="slot" id="slot-school"></span> paper.</p>
+    </div>
+    <div class="bar" id="bar"></div>
+    <div class="stage" id="stage" role="region" aria-label="The shrine precinct. WASD or click to walk. Drag to look around. Click the bell, the offering box, the basin or a guardian.">
+      <p class="wake" id="wake">The precinct is waking up…</p>
+      <div class="hud tr"><span class="seal">鳥居</span></div>
+      <div class="hud bl">Click to walk · WASD · drag to look · V for cat-eye · click the bell, the box, the basin, a guardian</div>
+    </div>
+    <div class="hero-foot">
+      <div class="workbench">
+        <div><div id="pad-mount"></div><div class="tools" style="margin-top:10px"><span id="preset-mount"></span></div></div>
+        <div class="gate-controls">
+          <div id="gate-sliders"></div>
+          <div id="senbon-mount"></div>
+          <div class="tools">
+            <button type="button" class="big" id="btn-tunnel">Make it a tunnel and walk it →</button>
+            <button type="button" id="btn-ritual">Pay your respects</button>
+            <button type="button" id="btn-compare" aria-pressed="false">Compare with the game</button>
+          </div>
+          <p class="hero-stats" id="heroStats">&nbsp;</p>
+          <p class="perf" id="perf" aria-live="off">warming up…</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main class="page">
+    <section class="section" id="families">
+      <p class="kicker">02 / The specimen shelves</p>
+      <h2>Keep the original. <em>Try another way.</em></h2>
+      <p class="fam-sub">Every shelf opens with what the game has now, or says plainly when it has nothing. Drag a tile to turn it, click it to send it to the stage, and open a recipe for the exact code that drew it.</p>
+      <div class="shelf-tools">
+        <label>Find a recipe<input type="search" id="recipe-search" placeholder="Try rope, stone, paper…"></label>
+        <label>Show<select id="family-filter"><option value="all">Every shelf</option><option value="original">What the game has now</option></select></label>
+        <span id="recipe-count" role="status"></span>
+      </div>
+      <div id="shelf-bar"></div>
+      <p id="empty-search" hidden>Nothing matches. Try another word, or show every shelf.</p>
+    </section>
+    <div id="shelves"></div>
+
+    <section class="section" id="steps">
+      <div class="fam-head"><span class="fam-num">03</span><h2>Raise <em>a torii</em></h2><p class="fam-sub">Eight stages, in the order the parts go up.</p></div>
+      <div class="assembly-wrap"><div class="assembly-view" id="assembly-view" role="img" aria-label="A live model of the torii, raised stage by stage."></div></div>
+      <div id="steps-mount"></div>
+    </section>
+
+    <section class="section" id="game">
+      <div class="fam-head"><span class="fam-num">04</span><h2>Back to <em>the valley</em></h2><p class="fam-sub">What would move into the game, and what it would cost.</p></div>
+      <ul class="game-list">
+        <li><em>One curve, shared.</em> buildTorii() can take a sori array and sweep the kasagi and shimaki along it. That replaces the four rotated boxes and removes the visible joints.</li>
+        <li><em>Keep the climbing route.</em> The late-game pegs and the kasagi platforms are gameplay. A new gate has to keep them, at the same heights, or the City Legend route breaks.</li>
+        <li><em>Three draws a gate.</em> Merged per material, a full-detail gate is three or four draws, and the slim senbon gate instances, so a long path of them is one draw per material.</li>
+        <li><em>New pieces need colliders.</em> Komainu, the chōzuya and the paving are additions. Each needs a footprint in vegetationExclusions, and new materials need to live in MAT or _mergeStatics() will not merge them.</li>
+      </ul>
+    </section>
+
+    <section class="sources" id="sources">
+      <p class="kicker">05 / The notebook</p>
+      <h2>Built from <em>looking closely.</em></h2>
+      <p class="src-note">Every source is marked by how it was used. “Excerpt” means only the search result was read, and “read” means the page was fetched. The full notes are in the <a href="research.md">research notebook ↗</a>.</p>
+      <details><summary>All sources</summary><ul id="srcList"></ul></details>
+    </section>
+  </main>
+  <footer class="foot"></footer>
+
+  <script>
+    if (location.protocol === 'file:') {
+      document.getElementById('wake').textContent = 'Serve the repository over HTTP: python3 -m http.server 8000, then open localhost:8000/labs/shrine/.';
+    } else {
+      const s = document.createElement('script'); s.type = 'module'; s.src = 'js/main.js'; document.body.append(s);
+      s.addEventListener('error', () => { document.getElementById('wake').textContent = 'The lab could not load. Check your connection to the Three.js CDN and reload.'; });
+    }
+  </script>
+</body>
+</html>

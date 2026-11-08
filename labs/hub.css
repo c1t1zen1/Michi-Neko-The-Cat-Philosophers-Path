@@ -10,6 +10,17 @@
 .feature-links a:hover, .feature-main:hover h2 { text-decoration: underline; text-underline-offset: 4px; }
 .feature-links a:focus-visible, .feature-main:focus-visible, .rows a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 @media (max-width: 700px) { .featured-labs { grid-template-columns: 1fr; gap: 40px; margin-top: 45px; } }
+.new-labs { margin-top: clamp(64px, 11vh, 120px); }
+.new-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 46px 34px; }
+.new-card { min-width: 0; }
+.new-main { display: block; color: inherit; text-decoration: none; }
+.new-card img { width: 100%; height: auto; aspect-ratio: 8 / 5; object-fit: cover; display: block; border-radius: 8px; margin-bottom: 16px; }
+.new-card h3 { margin: 0; font: 400 1.5rem/1.2 var(--serif); letter-spacing: -.015em; }
+.new-q { margin: 8px 0 0; font-size: .86rem; line-height: 1.65; color: var(--muted); }
+.new-main:hover h3 { text-decoration: underline; text-underline-offset: 4px; }
+.new-main:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
+@media (max-width: 1100px) { .new-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 680px) { .new-grid { grid-template-columns: 1fr; } }
 .progress { margin: 26px 0 0; font-family: var(--serif); font-style: italic; font-size: 1.15rem; color: var(--muted); }
 .progress b { font-weight: 500; color: var(--ink); }
 .eyebrow { margin: 0 0 16px; font: 500 0.7rem var(--sans); letter-spacing: 0.22em; text-transform: uppercase; color: var(--soft); }

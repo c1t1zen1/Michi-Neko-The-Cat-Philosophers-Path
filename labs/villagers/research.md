@@ -72,3 +72,11 @@ genetics.
 * Kaelin & Barsh — *Tabby pattern genetics* — <https://onlinelibrary.wiley.com/doi/10.1111/j.1755-148X.2010.00723.x> (excerpt)
 * CFA — *Colors and patterns: an introduction to color genetics* — <https://cfa.org/wp-content/uploads/2024/02/ColorsPatternsGenetics.pdf> (excerpt)
 * Labgenvet — *Cat genetics glossary* — <https://labgenvet.ca/en/cat-genetics-2-2-glossary-of-colour-and-coat-genetics/> (excerpt)
+---
+
+# Lab build notes — 2026-11-08
+
+* **Eyeshine.** The tapetum reflects unabsorbed light back through the retina, and cat eyeshine is usually yellow-green to greenish, varying with viewing angle ([Nature Conservancy blog](https://blog.nature.org/2026/04/14/why-do-some-animals-eyes-glow-in-the-dark-the-science-of-eyeshine/), [Wikipedia](https://wikiwand.com/en/Eyeshine), [Hepper](https://www.hepper.com/why-do-cats-eyes-glow-in-the-dark/); excerpts). Some sources add that blue-eyed cats may lack a tapetum and show red. The mechanism (leucophores versus thin-film) is disputed on the Wikipedia page.
+* **Slow blink.** Described as half-blinks followed by prolonged narrowing or closure, and cats narrowed their eyes more after a person did the same ([Humphrey et al., 2020](https://ui.adsabs.harvard.edu/abs/2020NatSR..1016503H), excerpt). The game has no dedicated blink action, so Luna's greeting uses a mood change and a sit.
+* **Grooming.** No usable ethology source came back. The grooming shown is the game's existing `groom` idle.
+* **The lab's retroreflection** is `pow(dot(toLight, toViewer), 40)` on a per-eye sprite, written for this page; no specific source.

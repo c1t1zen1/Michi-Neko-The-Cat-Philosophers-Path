@@ -97,3 +97,63 @@ the lily pads and how lantern light reads through paper.
 * Godot Shaders — *Shoji shader (translucency + sun spot)* — <https://godotshaders.com/shader/shoji-shader-translucency-sun-spot/> (excerpt)
 * pdoom.video — *Paper lantern (light through paper)* — <https://pdoom.video/styles/paper-lantern/> (excerpt)
 * Polycount forum — *Paper lantern with bright spot and falloff* — <https://polycount.com/discussion/235361/texturing-help-paper-lantern-with-bright-spot-and-light-falloff-effect> (excerpt)
+---
+
+# Lab build notes — 2026-11-08
+
+## Water
+
+Searched for interactive heightfield water and planar reflections in Three.js.
+
+* The two-buffer wave equation here follows the classic approach described for
+  [Codevember 2016 by Jaume Sánchez](https://www.clicktorelease.com/code/codevember-2016/11)
+  (excerpt: three buffers for stability, mouse ripples). The lab uses two buffers
+  and a 0.986 damping, stepped in JavaScript at 256² (65k cells).
+* The official route is the
+  [r160 GPGPU water example](https://github.com/mrdoob/three.js/blob/r160/examples/webgl_gpgpu_water.html)
+  on GPUComputationRenderer. A
+  [forum user reports a 128×128 version](https://discourse.threejs.org/t/use-gpucomputationrenderer-texture-for-dynamic-instancedmesh-objects-positions/37741)
+  running smoothly (excerpt). The CPU route was chosen because it needs no float
+  render targets, so it runs on phones that lack them, and it can be sampled in
+  JavaScript so pads and lanterns can bob on it.
+* [skunami.js](https://github.com/layshua/skunami.js) (excerpt) implements a pipe
+  model, Mueller's GDC 2008 method and iWave for plane meshes, with waves bouncing
+  off obstacles. It's a reference for what a heavier model buys.
+* Nothing found combined a ripple heightfield with a pond reflection, so that
+  pairing is the lab's own: `labs/shared/water.js` mirrors the camera about the
+  water plane, draws the scene to a target with a global clipping plane, and
+  offsets the lookup by the wave normal.
+
+## Moon
+
+No source described a moon glitter path in Three.js. The glitter tile and the
+tight specular are original, following the "glitter path" observation in the notes
+above. Water only mirrors the sky near the horizon at a low camera, so a moon
+high overhead never shows in the pool from the main view. The stage keeps its moon
+low, behind the water, and holds a gap in the forest for it.
+
+## Paper
+
+Three.js' [TranslucentShader](https://threejs.org/docs/pages/module-SubsurfaceScatteringShader.html)
+(docs, based on a GDC 2011 approach) and a
+[backlit shoji shader for Godot](https://godotshaders.com/?p=8017) (excerpt) both
+use a view-versus-light term for thin translucent sheets. For a closed lantern with
+the flame inside, the lab uses an emissive with the fibre and rib map multiplied
+in, falling off from the belly as a Gaussian. It's cheaper and reads correctly.
+
+## Sources that came up short
+
+Searches did not return construction details for tōrō-nagashi lanterns or botanical
+detail on the water-lily notch. The float is a paper box on a tray, which matches
+the
+[Toro Nagashi article](https://japanese-wiki-corpus.github.io/culture/Toro%20Nagashi%20(Floating%20Lanterns%20Down%20a%20River).html)
+and the [2026 Arashiyama listing](https://selfguidejapan.com/blog/toro-nagashi-2026)
+(both excerpts) only in general form.
+
+## One bug found here, fixed for every lab
+
+The game's sky bakes its reflection probe from a dome of radius 200, but PMREM's
+default far plane is 100, so the bake saw the renderer's clear colour instead. On a
+white lab page that lit every surface white, day and night. `labs/shared/world.js`
+scales the probe dome to fit. The game itself clears to a different colour, and this
+lab does not change `src/sky.js`.

@@ -72,3 +72,14 @@ much-busier new grass.
 * Daniel Ilett — *Glitter effect in Unity Shader Graph* — <https://danielilett.com/2021-11-06-tut5-19-glitter/> (excerpt)
 * Tim Chism — *Coin shimmer* — <https://www.timchism.com/coin-shimmer.html> (excerpt)
 * Godot Shaders — *Item highlighter* — <https://godotshaders.com/shader/collectable-item-shining-highlight/> (excerpt)
+---
+
+# Lab build notes — 2026-11-08
+
+* **Shell fuzz.** [Zadvorsky's Fuzzy Meshes](https://medium.com/@Zadvorsky/fuzzy-meshes-4c7fd3910d6f),
+  [piellardj's fur-threejs](https://piellardj.github.io/fur-threejs/readme) and a
+  [Godot shell shader](https://godotshaders.com/shader/fur-grass-with-shell-texturing/)
+  all describe stacked inflated shells (excerpts). The Godot notes warn about grazing angles and about startup cost at 20 or more shells. The lab keeps it to 10 to 12 and to objects near the camera.
+* **Thread.** A [three.js forum thread](https://discourse.threejs.org/t/interactive-thread-cable-simulation-in-three-js/92563) shows an interactive cable simulation (excerpt). The loose ends are a plain Verlet rope with three constraint passes, rebuilt as a tube until they settle.
+* **Sheen.** Uses `MeshPhysicalMaterial.sheen`. Searches returned no source on its parameters for yarn, so those values were chosen by eye.
+* **Readability.** No source came back on collectible readability against foliage. The squint test is a standard painters' habit, and the five treatments on the stage are the lab's own comparison, not a citation.

@@ -80,3 +80,23 @@ contact.
 * tosijs-3d — *procedural-rock* — <https://3d.tosijs.net/procedural-rock/> (excerpt)
 * vault80 — *Procedural rock SKILL* — <https://vault80.com/blog/demos/procedural-rock/SKILL.md> (excerpt)
 * Three.js forum — *100k procedural rocks, brutally optimized* — <https://discourse.threejs.org/t/100k-procedural-rocks-brutally-optimized/89578> (excerpt)
+---
+
+# Lab build notes — 2026-11-08
+
+* **Five forms.** The [Nabunken glossary](https://www.nabunken.go.jp/org/bunka/jgd/pages/FiveBasicStoneShapes.html)
+  takes them from the Edo-period manual *Ishigumi sonō yaegakiden*; the
+  [1912 garden guide](https://www.gardenvisit.com/book/landscape_gardening_in_japan_1912/chapter_2_garden_stones/stone_names_related_to_positions)
+  describes the statue stone as tall, bulging toward the middle and finishing
+  conically (excerpts). Proportions in `js/kit.js` are read off those descriptions
+  and are not measured from real stones.
+* **Sanzon.** One large stone with two smaller flanking stones leaning toward it,
+  first named in the 11th-century *Sakuteiki*
+  ([JAANUS](https://projects.mcah.columbia.edu/jaanus/node/1513), excerpt).
+* **Rake patterns.** No source on raked patterns came back. The tool's dark-and-light
+  stroke pairs are an observation from photographs in general, not from a citation.
+* **Rocks in Three.js.** The [100K rocks thread](https://discourse.threejs.org/t/100k-procedural-rocks-brutally-optimized/89578)
+  (excerpt) uses SDFs with marching cubes, FBM colour and normal perturbation, and drops the noise for distant rocks. The plane-chisel approach here is the lab's own choice,
+  following the common rule that noise alone looks like a potato.
+* **Moss.** [GrassSystemThreeJS](https://github.com/achrefelouafi/GrassSystemThreeJS)
+  (excerpt) also patches moss onto up-facing surfaces through `onBeforeCompile`. The lab's `paintify()` is the same idea with a noise-broken threshold.

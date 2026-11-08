@@ -62,3 +62,11 @@ hides. They are simpler than the hero trees (no leaf sprays, no culm nodes).
 * Sakujigumi (京町家作事組) — *せんざい【前栽】* — <https://sakujigumi.com/sakujiwiki/senzai> (excerpt)
 * Wikipedia — *Tsubo-niwa* — <https://en.wikipedia.org/wiki/Tsubo-niwa> (excerpt)
 * NAJGA — *The courtyard garden* — <https://najga.org/courtyard-garden/> (excerpt)
+---
+
+# Lab build notes — 2026-11-08
+
+* **Growth.** Moso reaches over 20 m in 45 to 60 days during rapid growth, peaking above 1 m a day ([Frontiers](https://www.frontiersin.org/articles/10.3389/ffgc.2024.1343206/full)), with one internode measured at 114.5 cm a day; other sources give 10 to 80 cm a day (excerpts).
+* **Internodes.** Elongation follows a slow-fast-slow rhythm from base to tip, the longest internode moves from the base toward the middle, and node count is almost fixed before emergence ([MDPI](https://mdpi.com/2223-7747/13/11/1484), excerpt). The lab's `growthCurve` is a single easing per culm that gives the same slow-fast-slow shape, not a per-internode model.
+* **The white band.** The waxy ring below a node comes from general knowledge of moso and was not confirmed by these searches.
+* **Geometry.** `labs/shared/bamboo.js` holds one lathe with node bulges and a vertex-colour ring and band, shared with the Fences lab. Three.js-specific sources for bamboo did not turn up.

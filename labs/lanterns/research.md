@@ -78,3 +78,20 @@ NAJGA, japanobjects — excerpts).
 * Mikuni / Itoya Chōchin — *Manufacturing process* — <https://itoya-chouchin.jp/en/stories/stories-3/> (excerpt)
 * Japanese Lantern Co. — *The chōchin creation process* — <https://japaneselantern.jp/process/> (excerpt)
 * Traditional Crafts Aoyama Square — *Yame Chōchin* — <https://kougeihin.jp/en/craft/1417/> (excerpt)
+---
+
+# Lab build notes — 2026-11-08
+
+* **Parts.** Hōju, kasa, hibukuro, chūdai, sao and kiso are the common terms, and
+  one source notes that any part may be absent except the firebox
+  ([Mark Schumacher](https://onmarkproductions.com/html/ishidoro.shtml),
+  [Japan Objects](https://japanobjects.com/features/japanese-lanterns),
+  [japanesegardens.jp](https://japanesegardens.jp/stone-lanterns-in-the-japanese-garden/); excerpts).
+* **Kinds built.** Kasuga (long sao, high hibukuro), Yukimi (short legs, wide kasa,
+  round or hexagonal), Oribe (the shaft sunk straight into the ground). Kotoji is
+  from general knowledge of Kenroku-en and was not confirmed by these searches.
+  Sources differ on dating and naming, and most are garden and antique-dealer sites.
+* **Paper.** Reuses the belly-weighted emissive from Lab 07
+  (`labs/shared/paperlantern.js`).
+* **Light.** The game already rotates four PointLights among the nearest lanterns.
+  The lab keeps that idea: four real lights, and the rest are halo sprites.

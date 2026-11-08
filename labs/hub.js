@@ -19,6 +19,37 @@ const HOW = [
 ];
 $('#how').innerHTML = HOW.map(([t, s], i) => `<li><span class="n">${nn(i + 1)}</span><b>${t}</b><span>${s}</span></li>`).join('');
 
+// Every open lab without a hand-written card above gets one here, from the registry.
+const CURATED = new Set(['pagoda', 'sky', 'ground', 'water', 'ranges', 'machiya', 'interiors']);
+const ALT = {
+  shrine: 'A vermilion torii across a stone path, with a shrine hall, stone lanterns and tall cedars behind it.',
+  moonpool: 'A dark pool at night, the moon broken into rippling light, with paper lanterns strung behind and reflected in the water.',
+  summit: 'A city of thousands of small roofs in a basin at dusk, seen from a perch, with haze between the hills.',
+  nest: 'A nest of woven twigs on a mossy stone below a tiled roof, with Michi curled up inside it.',
+  lanterns: 'A stone-paved street at dusk lined with lit stone lanterns and paper lanterns hanging along plaster walls.',
+  fences: 'A curving bamboo fence beside a gravel path, with Michi walking past and long shadows across the path.',
+  rocks: 'A dry garden: groups of stones on raked gravel with cedars behind.',
+  garden: 'A small courtyard with a bamboo deer-scarer over a stone basin, in late afternoon light against a plaster wall.',
+  greenery: 'A grove of bamboo with Michi walking between the tall culms.',
+  alley: 'A narrow Kyoto lane between two walls, with potted plants, barrels and a signboard along the paving.',
+  keepsakes: 'Michi in a tall flowering meadow, with a small gold key half hidden in the grass.',
+  critters: 'Painted koi gathering at the surface of a pond ringed with mossy stones.',
+  villagers: 'Village cats in a square at dusk in front of a lit doorway.',
+  weather: 'Rain falling on a stone-ringed pond beside a small house, with snow settled on the stones.',
+  komorebi: 'Michi on a shaded forest floor scattered with round coins of sunlight.'
+};
+const fresh = LABS.filter((l) => l.status === 'live' && l.poster && !CURATED.has(l.slug)).sort((a, b) => a.n - b.n);
+$('#new-labs').innerHTML = fresh.length ? `<h2 class="eyebrow">Just opened</h2><div class="new-grid">${fresh.map((l) => `
+  <article class="new-card">
+    <a class="new-main" href="${esc(l.href)}">
+      <img src="${esc(l.poster)}" width="1200" height="750" alt="${esc(ALT[l.slug] || l.title)}" loading="lazy">
+      <p class="eyebrow">Lab ${nn(l.n)} · <span class="jp" lang="ja">${l.jp}</span></p>
+      <h3>${esc(l.title)}</h3>
+      <p class="new-q">${esc(l.question)}</p>
+    </a>
+    <nav class="feature-links" aria-label="${esc(l.title)} resources"><a href="${esc(l.href)}">Open the lab ↗</a><a href="${esc(l.href)}research.md">Read the research ↗</a></nav>
+  </article>`).join('')}</div>` : '';
+
 const extra = (e) => `<a class="x" href="${esc(e.href)}"><span class="jp x-jp">${e.jp}</span><span class="x-t">${esc(e.title)}</span><span class="x-r">${esc(e.romaji)}</span><span class="x-b">${esc(e.blurb)}</span></a>`;
 const group = (kind) => EXTRAS.filter((e) => e.kind === kind).map(extra).join('');
 $('#extras').innerHTML = `<h2 class="eyebrow">Already at the new standard</h2><div class="xrow">${group('standard')}</div>

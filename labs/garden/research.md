@@ -68,3 +68,18 @@ prop its real mechanism and its sound.
 * Wikipedia — *Fūrin* — <https://en.wikipedia.org/wiki/F%C5%ABrin> (excerpt)
 * The Japan News (Yomiuri) — *Japan's Edo fūrin wind chimes herald start of summer* — <https://japannews.yomiuri.co.jp/features/japan-focus/20230628-119072/> (excerpt)
 * Japan Society — *Summer holiday activity pack (fūrin)* — <https://www.japansociety.org.uk/usercontent/79fdeaab3a73230e9504d9d562f1c8e4/SummerHolidayActivityPack.pdf> (excerpt)
+---
+
+# Lab build notes — 2026-11-08
+
+* **Shishi-odoshi.** [Nabunken](https://www.nabunken.go.jp/org/bunka/jgd/pages/DeerScarer.html)
+  describes it as cut diagonally at one end and pivoted on a central fulcrum, and a
+  [Primrose guide](https://www.primrose.co.uk/blog/?p=15631) says fill time depends
+  on the pivot angle and that weight at the open end reduces the water needed
+  (excerpts). The lab's cycle (`js/kit.js`) is a simplified model with those
+  behaviours, not measured physics.
+* **Suikinkutsu.** A [1991 JILA paper](https://www.jstage.jst.go.jp/article/jila1934/55/5/55_5_133/_article/-char/en)
+  (excerpt) says the drop's sound excites a normal mode of the air inside the jar.
+  No reliable resonant frequency was found. The lab's tones are a chosen pentatonic and should not be read as measured.
+* **Furin.** Two coupled damped springs, one for the bell and a faster one for the
+  strip. Morioka's Nanbu iron is general knowledge, not from these searches.

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lab 20 · Petals, rain, snow & motes — Michi-Neko</title>
+  <meta name="description" content="A weather brush over a corner of town. Drag a storm across the ground: rain rings the water and darkens the stone, snow settles, petals pile against the walls.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌦️%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
+  <link rel="stylesheet" href="../shared/lab.css"><link rel="stylesheet" href="../shared/workshop.css"><link rel="stylesheet" href="style.css">
+  <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <canvas id="gl" aria-hidden="true"></canvas>
+  <main class="page">
+    <header class="mast">
+      <p class="kicker">Michi-Neko · Lab 20 <span class="jp">花びら・雨・雪</span></p>
+      <h1>Paint the<br><em>weather.</em></h1>
+      <p class="lede">Most weather falls and is gone. Here, pick a brush and drag across a corner of town: rain rings the pond and leaves the stones wet, snow whitens whatever faces up, and petals drift until they meet a wall.</p>
+      <nav class="jump" aria-label="Sections"><a href="#walk" class="go">To the corner ↓</a><a href="#families">Eight recipes</a><a href="#steps">From falling to staying</a><a href="#game">Into the game</a><a href="#sources">The notebook</a></nav>
+      <div class="field-note"><span class="mark">20 / 雨</span><p>The game’s rain, snow and petals are lovely in the air. This lab is about the last metre, where they land and what they leave.</p><span class="stamp">Three.js<br>r160</span></div>
+    </header>
+  </main>
+
+  <section class="hero" id="walk" aria-labelledby="walk-title">
+    <div class="hero-head">
+      <p class="kicker">01 / The corner of town</p>
+      <h2 id="walk-title">Drag <em>a storm</em></h2>
+      <p class="sentence">Pick a brush, then drag across the ground. Let the rain run for a while. Then walk Michi through it.</p>
+    </div>
+    <div class="bar" id="bar"></div>
+    <div class="stage" id="stage" role="region" aria-label="A corner of town. Choose rain, snow or petals, then drag on the ground to paint weather. WASD to walk.">
+      <p class="wake" id="wake">The sky is making up its mind…</p>
+      <div class="hud tr"><span class="seal">雨</span></div>
+      <div class="hud bl">Drag on the ground to paint weather · V for cat-eye</div>
+    </div>
+    <div class="hero-foot">
+      <div class="tools" style="justify-content:center;align-items:center"><span id="seg-tool"></span><span id="ctl" style="display:inline-flex;gap:20px"></span></div>
+      <p class="hero-stats" id="heroStats">&nbsp;</p>
+      <p class="perf" id="perf" aria-live="off">warming up…</p>
+    </div>
+  </section>
+
+  <main class="page">
+    <section class="section" id="families">
+      <p class="kicker">02 / The specimen shelves</p>
+      <h2>Keep the original. <em>Try another way.</em></h2>
+      <p class="fam-sub">Every shelf opens with what the game has now, or says plainly when it has nothing. Drag a tile to turn it, click it to send it to the stage, and open a recipe for the exact code that drew it.</p>
+      <div class="shelf-tools">
+        <label>Find a recipe<input type="search" id="recipe-search" placeholder="Try wet, snow, drift…"></label>
+        <label>Show<select id="family-filter"><option value="all">Every shelf</option><option value="original">What the game has now</option></select></label>
+        <span id="recipe-count" role="status"></span>
+      </div>
+      <div id="shelf-bar"></div>
+      <p id="empty-search" hidden>Nothing matches. Try another word, or show every shelf.</p>
+    </section>
+    <div id="shelves"></div>
+
+    <section class="section" id="steps">
+      <div class="fam-head"><span class="fam-num">03</span><h2>From falling <em>to staying</em></h2><p class="fam-sub">Three steps: most of the realism is in the last one.</p></div>
+      <div class="assembly-wrap"><div class="assembly-view" id="assembly-view" role="img" aria-label="A live slab of ground that gets rained on and then snowed on."></div></div>
+      <div id="steps-mount"></div>
+    </section>
+
+    <section class="section" id="game">
+      <div class="fam-head"><span class="fam-num">04</span><h2>Back to <em>the valley</em></h2><p class="fam-sub">What would move into the game, and what it would cost.</p></div>
+      <ul class="game-list">
+        <li><em>Wetness is one uniform.</em> Every material already routes through a small number of shared uniforms. A global uWet and uSnow would light up the whole valley at once.</li>
+        <li><em>Land the particles.</em> Spawn a ring at the ground for a rain drop instead of letting the streak disappear. That is most of the realism here.</li>
+        <li><em>Keep the emitter centred.</em> The game moves its particle box with the cat. A painted cell is a nice toy for this lab, but the game needs the box.</li>
+        <li><em>Petals cost nothing to keep.</em> A landed petal is one instance. Reuse the old rest list once it’s full.</li>
+      </ul>
+    </section>
+
+    <section class="sources" id="sources">
+      <p class="kicker">05 / The notebook</p>
+      <h2>Built from <em>looking closely.</em></h2>
+      <p class="src-note">Every source is marked by how it was used. “Excerpt” means only the search result was read, and “read” means the page was fetched. The full notes are in the <a href="research.md">research notebook ↗</a>.</p>
+      <details><summary>All sources</summary><ul id="srcList"></ul></details>
+    </section>
+  </main>
+  <footer class="foot"></footer>
+
+  <script>
+    if (location.protocol === 'file:') {
+      document.getElementById('wake').textContent = 'Serve the repository over HTTP: python3 -m http.server 8000, then open localhost:8000/labs/weather/.';
+    } else {
+      const s = document.createElement('script'); s.type = 'module'; s.src = 'js/main.js'; document.body.append(s);
+      s.addEventListener('error', () => { document.getElementById('wake').textContent = 'The lab could not load. Check your connection to the Three.js CDN and reload.'; });
+    }
+  </script>
+</body>
+</html>

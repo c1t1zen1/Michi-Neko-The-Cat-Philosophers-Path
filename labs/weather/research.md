@@ -70,3 +70,11 @@ and lets the motes ride the god rays.
 * OpenStax Chemistry — *Colloids and the Tyndall effect* — <https://openstax.org/books/chemistry/pages/11-5-colloids> (excerpt)
 * J. Tyndall — *On floating matter and beams of light* (1870) — <https://doi.org/10.1038/001499a0> (excerpt)
 * physics.stackexchange — *Specks in light through a window* — <https://physics.stackexchange.com/questions/875075/why-is-there-specs-coming-from-the-light-shining-through-my-window> (excerpt)
+---
+
+# Lab build notes — 2026-11-08
+
+* **Rain.** Three.js has an official [WebGPU compute rain example](https://github.com/mrdoob/three.js/blob/99fd53fbadc511febcc11eab6273f47bf02a329e/examples/webgpu_compute_particles_rain.html) (up to 50,000 particles). The lab stays on r160 WebGL, so it uses instanced quads and a pool of ground rings, both recommended in a [precipitation notes file](https://raw.githubusercontent.com/linegel/threejs-complete-set-of-skill/main/threejs-rain-snow-and-wet-surfaces/SKILL.md) (excerpt, third party, and it marks older WebGL paths as deprecated in favour of WebGPU).
+* **Snow.** A [real-time snowfall project](https://80.lv/articles/artist-shares-real-time-snowfall-system-built-with-three-js-webgl) (excerpt) uses an FBM world-space mask to decide where snow has settled. The lab's version is a `normal.y` test with noise on the edge, in `paintify()`.
+* **Wetness.** Darkened albedo and lowered roughness on a shared uniform. A separate canvas holds where the weather has been, so a wet patch outlives the storm.
+* **Soft particles.** Searches found nothing specific, so the streaks use plain alpha blending.

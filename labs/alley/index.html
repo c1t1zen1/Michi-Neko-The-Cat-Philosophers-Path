@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lab 16 · Climb crates & street clutter — Michi-Neko</title>
+  <meta name="description" content="A narrow Kyoto lane and a palette of pots, barrels, bicycles and tanuki. Click them into place, let the lane fill itself, then look at it from a cat’s height.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏘️%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
+  <link rel="stylesheet" href="../shared/lab.css"><link rel="stylesheet" href="../shared/workshop.css"><link rel="stylesheet" href="style.css">
+  <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <canvas id="gl" aria-hidden="true"></canvas>
+  <main class="page">
+    <header class="mast">
+      <p class="kicker">Michi-Neko · Lab 16 <span class="jp">路地</span></p>
+      <h1>Dress the lane.<br><em>Then get low.</em></h1>
+      <p class="lede">A roji is two walls and a strip of sky, and everything that makes it worth walking down is sitting on the ground. Pick something and put it there, or press one button and let somebody’s life happen to the lane.</p>
+      <nav class="jump" aria-label="Sections"><a href="#walk" class="go">Into the lane ↓</a><a href="#families">Ten recipes</a><a href="#steps">Fill a lane</a><a href="#game">Into the game</a><a href="#sources">The notebook</a></nav>
+      <div class="field-note"><span class="mark">16 / 路</span><p>The game’s street has clean walls and crates that exist to be climbed. This is the shelf of everything else that would be there.</p><span class="stamp">Three.js<br>r160</span></div>
+    </header>
+  </main>
+
+  <section class="hero" id="walk" aria-labelledby="walk-title">
+    <div class="hero-head">
+      <p class="kicker">01 / The lane</p>
+      <h2 id="walk-title">Pick something, <em>put it down</em></h2>
+      <p class="sentence">Choose a thing from the palette below and click the lane to set it there. Then press V and look at it from the ground.</p>
+    </div>
+    <div class="bar" id="bar"></div>
+    <div class="stage" id="stage" role="region" aria-label="A narrow alley. Choose a prop below and click the alley floor to place it. WASD to walk, V for cat-eye.">
+      <p class="wake" id="wake">Sweeping up…</p>
+      <div class="hud tr"><span class="seal">路地</span></div>
+      <div class="hud bl">Click to place · V for cat-eye · WASD to walk</div>
+    </div>
+    <div class="hero-foot">
+      <div class="tools" style="justify-content:center;align-items:center"><span id="seg-kind"></span></div><div class="tools" style="justify-content:center;align-items:center;margin-top:8px"><span id="seg-tool"></span><button type="button" class="big" id="btn-dress">Let the lane fill itself →</button><button type="button" id="btn-clear">Sweep it clean</button></div>
+      <p class="hero-stats" id="heroStats">&nbsp;</p>
+      <p class="perf" id="perf" aria-live="off">warming up…</p>
+    </div>
+  </section>
+
+  <main class="page">
+    <section class="section" id="families">
+      <p class="kicker">02 / The specimen shelves</p>
+      <h2>Keep the original. <em>Try another way.</em></h2>
+      <p class="fam-sub">Every shelf opens with what the game has now, or says plainly when it has nothing. Drag a tile to turn it, click it to send it to the stage, and open a recipe for the exact code that drew it.</p>
+      <div class="shelf-tools">
+        <label>Find a recipe<input type="search" id="recipe-search" placeholder="Try barrel, bicycle…"></label>
+        <label>Show<select id="family-filter"><option value="all">Every shelf</option><option value="original">What the game has now</option></select></label>
+        <span id="recipe-count" role="status"></span>
+      </div>
+      <div id="shelf-bar"></div>
+      <p id="empty-search" hidden>Nothing matches. Try another word, or show every shelf.</p>
+    </section>
+    <div id="shelves"></div>
+
+    <section class="section" id="steps">
+      <div class="fam-head"><span class="fam-num">03</span><h2>Fill <em>a lane</em></h2><p class="fam-sub">Four steps toward looking lived in.</p></div>
+      <div class="assembly-wrap"><div class="assembly-view" id="assembly-view" role="img" aria-label="A small live scene of an alley being dressed."></div></div>
+      <div id="steps-mount"></div>
+    </section>
+
+    <section class="section" id="game">
+      <div class="fam-head"><span class="fam-num">04</span><h2>Back to <em>the valley</em></h2><p class="fam-sub">What would move into the game, and what it would cost.</p></div>
+      <ul class="game-list">
+        <li><em>Keep the climb route.</em> The crates’ collision and platform heights are the route to the tea house roof. Any new crate has to keep those exactly.</li>
+        <li><em>Bake the small stuff.</em> Most of these props never move. Merging each kind into one static mesh keeps the street’s draw count close to where it is.</li>
+        <li><em>Respect the seeded build.</em> New countryside props must not call random() mid-build, because the valley layout depends on the sequence. Give each a seeded generator of its own.</li>
+        <li><em>Colliders where the cat can reach.</em> Nothing here needs more than a small circle or box, and the crates and barrels already have one each.</li>
+      </ul>
+    </section>
+
+    <section class="sources" id="sources">
+      <p class="kicker">05 / The notebook</p>
+      <h2>Built from <em>looking closely.</em></h2>
+      <p class="src-note">Every source is marked by how it was used. “Excerpt” means only the search result was read, and “read” means the page was fetched. The full notes are in the <a href="research.md">research notebook ↗</a>.</p>
+      <details><summary>All sources</summary><ul id="srcList"></ul></details>
+    </section>
+  </main>
+  <footer class="foot"></footer>
+
+  <script>
+    if (location.protocol === 'file:') {
+      document.getElementById('wake').textContent = 'Serve the repository over HTTP: python3 -m http.server 8000, then open localhost:8000/labs/alley/.';
+    } else {
+      const s = document.createElement('script'); s.type = 'module'; s.src = 'js/main.js'; document.body.append(s);
+      s.addEventListener('error', () => { document.getElementById('wake').textContent = 'The lab could not load. Check your connection to the Three.js CDN and reload.'; });
+    }
+  </script>
+</body>
+</html>

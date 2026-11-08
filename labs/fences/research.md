@@ -68,3 +68,20 @@ sheath scars, no real lashings and no weathering.
 * Bamboo Identification — *Culms* — <http://bamboo-identification.co.uk/html/culms.html> (excerpt)
 * Lewis Bamboo — *Bamboo anatomy* — <https://lewisbamboo.com/pages/bamboo-anatomy> (excerpt)
 * Bamboo Info — *Bamboo morphology* — <https://www.bambooinfo.in/species/bamboo-morphology.asp> (excerpt)
+---
+
+# Lab build notes — 2026-11-08
+
+* **Styles.** Kenninji-gaki is described as the most common screening fence in
+  Japan, in shin, gyō and sō degrees ([Terebess PDF](https://terebess.hu/kert/fence.pdf)),
+  though one source calls its Kenninji origin uncertain. Yotsume-gaki is named for
+  the four spaces at each crossing
+  ([Passport and Baggage](https://passportandbaggage.com/?p=23667)). Teppō-gaki has
+  closely spaced verticals ([Robert Ketchell](https://robertketchell.blogspot.com/2014/04/fences.html)).
+  All are excerpts.
+* **Knots.** One [catalogue](https://www.gltjp.com/en/directory/item/17445/) lists
+  ibo-musubi, maki-musubi, kaku-musubi, kagari-musubi and hira-musubi, and another
+  mentions dark shuro cord. The lab draws one generic knot; it does not model the
+  named ties. "Warabi-nawa" from the old notes was not confirmed by these searches.
+* **Geometry.** One lathe-profile culm with node bulges, instanced for posts, rails
+  and verticals (`labs/shared/bamboo.js`), and one torus for all knots.

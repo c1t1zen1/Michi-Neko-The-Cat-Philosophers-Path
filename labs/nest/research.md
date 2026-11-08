@@ -77,3 +77,10 @@ The summit clearing (天上, `src/mountaintop.js`: `buildKyotoCity`,
 is **not researched here**; coordinate with them before a lab. The
 `docs/VISUAL_NEXT_STEPS_2026-10-24.md` list keeps it in the queue so the
 hub doesn't drop it.
+---
+
+# Lab build notes — 2026-11-08
+
+* **Materials by position.** Cup nests use coarser sticks at the base and finer material higher up, and birds press out the cup with wings and beak before lining it ([Birdfact](https://birdfact.com/articles/how-do-birds-build-nests), excerpt). A bullfinch study tested whether materials serve different functions by position ([PeerJ 2017](https://doaj.org/article/1dbad2e2bd7a41b5978ded14b3edb7ef), excerpt).
+* **Gaps.** Sources gave no twig counts or angles, so the stage's 70, 180 and 90 twigs are chosen by eye, and no Three.js nest source was found.
+* **Scale.** The game's nest is sized for eggs on a roof. The lab's is about 1.2 m across so Michi can curl up inside it.

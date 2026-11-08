@@ -1,0 +1,2 @@
+:root { --accent: #2f6f7a; --accent2: #b5653a; --wash: rgba(47, 111, 122, 0.16); --code-bg: #eef5f4; --ink: #1c2730; --muted: #55656e; --soft: #8a9aa2; }
+#ctl { display: flex; flex-wrap: wrap; gap: 8px 26px; justify-content: center; }

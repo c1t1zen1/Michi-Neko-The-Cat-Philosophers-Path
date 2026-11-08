@@ -1,0 +1,2 @@
+:root { --accent: #8a6a3a; --accent2: #5e7f3a; --wash: rgba(138, 106, 58, 0.16); --code-bg: #f6f1e6; --ink: #26211a; --muted: #6a5e4e; --soft: #9a8f7e; }
+.stage-name { margin: 0 0 8px; font: italic 300 1.2rem var(--serif); color: var(--accent); text-align: center; }

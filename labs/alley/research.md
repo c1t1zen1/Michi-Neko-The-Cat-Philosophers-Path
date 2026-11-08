@@ -68,3 +68,16 @@ crates.
 * Nada-ken — *Sakabayashi / sugidama glossary* — <https://www.nada-ken.com/main/en/index_s/516.html> (excerpt)
 * FAO — *Packaging for fruits and vegetables: wooden crates* — <https://www.fao.org/4/x5016e/X5016E04.htm> (excerpt)
 * Kōtō ward — *伝統工芸 桶* — <https://www.city.koto.lg.jp/103020/bunkasports/bunka/documents/r03-07-oke3-pdf.pdf> (excerpt)
+---
+
+# Lab build notes — 2026-11-08
+
+* **Roji.** In Kyoto a *roji* is often a cul-de-sac, and the local pronunciation
+  differs ([Kyoto tourism](https://kyoto.travel/en/travel-inspiration/a-row-of-traditional-wooden-tenement-houses-that-support-young-artists-and-what-the-scenes-of-everyday-life-here-convey-to-visitors-kyoto-tourism-today/), excerpt).
+* **Detail.** A 3D artist's interview on back alleys makes the case that dense,
+  layered detail is what makes a place feel inhabited
+  ([Yokogao](https://www.yokogaomag.com/editorial/tokyo-back-alleys-michael-yoshimura), excerpt).
+  The lab is built around that idea.
+* **Light.** [Ajiki Alley](https://kyoto.travel/en/see-and-do/Ajiki_Alley.html) keeps warm-white bulbs to preserve the look of Kyoto's alleys at night (excerpt).
+* **Gaps.** Searches did not reach Kyoto Animation or Ghibli production material,
+  or Kyoto-specific sources for the prop list. The props come from general knowledge of Japanese backstreets and are not attributed to a source.

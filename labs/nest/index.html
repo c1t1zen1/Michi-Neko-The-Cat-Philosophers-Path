@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lab 10 · The cat’s nest — Michi-Neko</title>
+  <meta name="description" content="Watch a bird build a nest twig by twig, coarse at the bottom and fine at the rim, until it is good enough for a cat to climb into.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪹%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
+  <link rel="stylesheet" href="../shared/lab.css"><link rel="stylesheet" href="../shared/workshop.css"><link rel="stylesheet" href="style.css">
+  <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <canvas id="gl" aria-hidden="true"></canvas>
+  <main class="page">
+    <header class="mast">
+      <p class="kicker">Michi-Neko · Lab 10 <span class="jp">巣</span></p>
+      <h1>One stick<br><em>at a time.</em></h1>
+      <p class="lede">The game’s nest is a torus. A real one is several hundred small decisions: the thick sticks go down first, the walls are laid round, and the soft stuff comes last. Send the bird, and watch.</p>
+      <nav class="jump" aria-label="Sections"><a href="#walk" class="go">To the nest ↓</a><a href="#families">Seven recipes</a><a href="#steps">Build a cup</a><a href="#game">Into the game</a><a href="#sources">The notebook</a></nav>
+      <div class="field-note"><span class="mark">10 / 巣</span><p>The nest on the tea house roof is the top of a long climb and a good place to rest. It should look like something built over a long time.</p><span class="stamp">Three.js<br>r160</span></div>
+    </header>
+  </main>
+
+  <section class="hero" id="walk" aria-labelledby="walk-title">
+    <div class="hero-head">
+      <p class="kicker">01 / The nest</p>
+      <h2 id="walk-title">Send <em>the bird</em></h2>
+      <p class="sentence">Press the button and a small bird brings it one twig at a time. When the nest is finished, Michi climbs in.</p>
+    </div>
+    <div class="bar" id="bar"></div>
+    <div class="stage" id="stage" role="region" aria-label="A nest on a flat stone. Press the button to send the bird with twigs until the nest is complete.">
+      <p class="wake" id="wake">Looking for twigs…</p>
+      <div class="hud tr"><span class="seal">巣</span></div>
+      <div class="hud bl">Drag to look · WASD · V for cat-eye</div>
+    </div>
+    <div class="hero-foot">
+      <p class="stage-name" id="stage-name"></p><div class="tools" style="justify-content:center"><button type="button" class="big" id="btn-auto">Send the bird →</button><button type="button" id="btn-add">One trip</button><button type="button" id="btn-skip">Skip to the end</button><button type="button" id="btn-reset">Start over</button></div>
+      <p class="hero-stats" id="heroStats">&nbsp;</p>
+      <p class="perf" id="perf" aria-live="off">warming up…</p>
+    </div>
+  </section>
+
+  <main class="page">
+    <section class="section" id="families">
+      <p class="kicker">02 / The specimen shelves</p>
+      <h2>Keep the original. <em>Try another way.</em></h2>
+      <p class="fam-sub">Every shelf opens with what the game has now, or says plainly when it has nothing. Drag a tile to turn it, click it to send it to the stage, and open a recipe for the exact code that drew it.</p>
+      <div class="shelf-tools">
+        <label>Find a recipe<input type="search" id="recipe-search" placeholder="Try twig, moss, egg…"></label>
+        <label>Show<select id="family-filter"><option value="all">Every shelf</option><option value="original">What the game has now</option></select></label>
+        <span id="recipe-count" role="status"></span>
+      </div>
+      <div id="shelf-bar"></div>
+      <p id="empty-search" hidden>Nothing matches. Try another word, or show every shelf.</p>
+    </section>
+    <div id="shelves"></div>
+
+    <section class="section" id="steps">
+      <div class="fam-head"><span class="fam-num">03</span><h2>Build <em>a cup</em></h2><p class="fam-sub">Five stages, in the order a bird does them.</p></div>
+      <div class="assembly-wrap"><div class="assembly-view" id="assembly-view" role="img" aria-label="A live nest built up in stages."></div></div>
+      <div id="steps-mount"></div>
+    </section>
+
+    <section class="section" id="game">
+      <div class="fam-head"><span class="fam-num">04</span><h2>Back to <em>the valley</em></h2><p class="fam-sub">What would move into the game, and what it would cost.</p></div>
+      <ul class="game-list">
+        <li><em>One instanced mesh.</em> Three hundred and forty twigs is a single draw, and the placement is a few lines. It replaces the torus with something that holds up to the cat being right next to it.</li>
+        <li><em>Keep the collectible.</em> The golden feather is a quest reward at the top of the climb. It needs the same trigger and position.</li>
+        <li><em>Save it, don’t build it.</em> Run the placement once at load. The bird is for the lab; the game only needs the finished nest.</li>
+        <li><em>Michi’s nest should be Michi-sized.</em> The game’s nest is small for a cat to sit in. The lab’s is scaled up, and the game’s should match if Michi is going to curl up in it.</li>
+      </ul>
+    </section>
+
+    <section class="sources" id="sources">
+      <p class="kicker">05 / The notebook</p>
+      <h2>Built from <em>looking closely.</em></h2>
+      <p class="src-note">Every source is marked by how it was used. “Excerpt” means only the search result was read, and “read” means the page was fetched. The full notes are in the <a href="research.md">research notebook ↗</a>.</p>
+      <details><summary>All sources</summary><ul id="srcList"></ul></details>
+    </section>
+  </main>
+  <footer class="foot"></footer>
+
+  <script>
+    if (location.protocol === 'file:') {
+      document.getElementById('wake').textContent = 'Serve the repository over HTTP: python3 -m http.server 8000, then open localhost:8000/labs/nest/.';
+    } else {
+      const s = document.createElement('script'); s.type = 'module'; s.src = 'js/main.js'; document.body.append(s);
+      s.addEventListener('error', () => { document.getElementById('wake').textContent = 'The lab could not load. Check your connection to the Three.js CDN and reload.'; });
+    }
+  </script>
+</body>
+</html>

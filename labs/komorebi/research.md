@@ -65,3 +65,11 @@ ground pass. This lab makes the dapples real — moving coins of light that are
 * American Astronomical Society — *Indirect solar viewing: pinhole projection* — <https://eclipse.aas.org/eye-safety/projection> (excerpt)
 * shader.gallery — *Dapple* — <https://shader.gallery/dapple/> (excerpt)
 * jzhao — *Experiments in procedural dappled light shaders* — <https://jzhao.xyz/posts/dappled-light> (excerpt)
+---
+
+# Lab build notes — 2026-11-08
+
+* **Pinhole.** Each canopy gap projects an inverted image of the sun, and during a partial eclipse every coin takes the sun's crescent shape; on an ordinary day the overlapping discs blend together ([WHYY](https://whyy.org/articles/see-the-solar-eclipse-using-natures-pinhole-camera-tree-leaves), [The Nature Institute](https://natureinstitute.org/in-context-48/henrike-holdrege/shadows-and-the-sun), [ClickOrlando](https://clickorlando.com/weather/2023/10/20/crescent-shapes-appeared-during-the-partial-solar-eclipse-what-are-they); excerpts).
+* **Size.** No source gave the geometry. Image diameter = height × tan(0.53°) is the standard relation, stated from general knowledge. The stage draws coins at 1.7× that true size so they read at this scale, and that factor is in `js/kit.js`.
+* **What didn't exist.** Searches found no Three.js pinhole technique. The closest was [Sundial](https://discourse.threejs.org/t/sundial-paged-virtual-sun-shadows-for-three-js-webgpurenderer-mit-on-npm/94912) (virtual shadow maps for WebGPU, excerpt), which gets leaf-shaped dapples from real shadows, and that is a different result: leaf shapes, not sun shapes. The instanced-quad approach here is original to this lab.
+* **Petal drifts.** `buildPetalDrifts()` in `src/vegetation.js` returns immediately with a comment saying the circles were removed, and the tile says so.
