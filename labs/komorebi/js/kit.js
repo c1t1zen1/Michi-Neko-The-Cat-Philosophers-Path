@@ -23,7 +23,7 @@ void main() {
   vec2 local = position.xz * R;
   vec2 stretched = dir * local.x / max(uSinEl, .2) + vec2(-dir.y, dir.x) * local.y;
   vec4 wp = vec4(foot.x + stretched.x, .018, foot.y + stretched.y, 1.);
-  gl_Position = projectionMatrix * viewMatrix * wp;
+  gl_Position = projectionMatrix * viewMatrix * modelMatrix * wp;
 }`;
 const FS = /* glsl */`
 precision highp float;

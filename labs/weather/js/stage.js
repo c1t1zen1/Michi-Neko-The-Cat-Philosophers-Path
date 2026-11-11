@@ -1,6 +1,7 @@
 // A corner of town and a weather brush: drag a storm across the ground. Rain
 // rings the water and darkens the stone, snow settles, petals pile against walls.
 import * as THREE from 'three';
+import { gableRoofGeometry, gableAtticGeometry } from '../../shared/architecture.js';
 import { loadSkyModule, loadFoliageModule, loadGrassModule } from '../../shared/game.js';
 import { LabWorld } from '../../shared/world.js';
 import { standardBar } from '../../shared/workshop.js';
@@ -47,8 +48,9 @@ export async function makeWeatherStage(lab) {
   {
     const rock = instances(rockGeometry(4, { detail: 4, rough: 0.14 }), M.rock({ moss: 0.4, a: 0x54504a, b: 0x8e887c, snow: snowU, wet: wetU, lichen: 0.3 }), Array.from({ length: 28 }, (_, i) => { const a = i / 28 * TAU; return { x: 2 + Math.cos(a) * 3.25, y: 0.12, z: -1 + Math.sin(a) * 3.25, sx: 0.5, sy: 0.3, sz: 0.5, ry: i }; }), 'Rim'); rock.castShadow = rock.receiveShadow = true; scene.add(rock);
     const body = new THREE.Mesh(new THREE.BoxGeometry(6, 2.4, 3.6), M.plaster({ tint: 0xe2d6bd, grime: 0.5, grimeH: 1, snow: snowU, wet: wetU })); body.position.set(-4, 1.2, -6); body.castShadow = body.receiveShadow = true; scene.add(body);
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.14, 2.2), M.tile({ snow: snowU, wet: wetU })); roof.rotation.x = 0.46; roof.position.set(-4, 3, -6.9); roof.castShadow = true; scene.add(roof);
-    const roof2 = roof.clone(); roof2.rotation.x = -0.46; roof2.position.z = -5.1; scene.add(roof2);
+    const roof = new THREE.Mesh(gableRoofGeometry(6.6, 4.2, 1.0), M.tile({ snow: snowU, wet: wetU })); roof.name = 'Pitched kawara roof'; roof.position.set(-4, 2.4, -6); roof.castShadow = roof.receiveShadow = true; scene.add(roof);
+    const attic = new THREE.Mesh(gableAtticGeometry(6, 3.6, 4.2, 1.0), body.material); attic.position.copy(roof.position); attic.castShadow = attic.receiveShadow = true; scene.add(attic);
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(6.72, 0.16, 0.22), roof.material); ridge.position.set(-4, 3.43, -6); ridge.castShadow = true; scene.add(ridge);
     const wall = new THREE.Mesh(new THREE.BoxGeometry(16, 1.3, 0.3), M.plaster({ tint: 0xe2d6bd, grime: 0.5, grimeH: 1, snow: snowU, wet: wetU })); wall.position.set(0, 0.65, -11.2); wall.castShadow = wall.receiveShadow = true; scene.add(wall);
   }
   // particles

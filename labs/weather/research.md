@@ -78,3 +78,14 @@ and lets the motes ride the god rays.
 * **Snow.** A [real-time snowfall project](https://80.lv/articles/artist-shares-real-time-snowfall-system-built-with-three-js-webgl) (excerpt) uses an FBM world-space mask to decide where snow has settled. The lab's version is a `normal.y` test with noise on the edge, in `paintify()`.
 * **Wetness.** Darkened albedo and lowered roughness on a shared uniform. A separate canvas holds where the weather has been, so a wet patch outlives the storm.
 * **Soft particles.** Searches found nothing specific, so the streaks use plain alpha blending.
+
+
+## Construction review — 2026-11-10
+
+### A roof that sheds water
+
+The two reversed slopes were a butterfly/V roof. A single closed gable shell now has a raised ridge, supported eaves and filled attic ends. Depthless game particle specimens use the direct shelf render so the painterly background mask cannot erase them.
+
+[Kyoto City machiya guide](https://plus.kyoto.travel/entry/kyomachiya) (text read), [Sugimoto residence](https://en.sugimotoke.or.jp/) (photograph inspected). The small weather-stage building is a study backdrop, not a surveyed house.
+
+See the [complete lab review and before/after gallery](../REVIEW_2026-11-10.md).

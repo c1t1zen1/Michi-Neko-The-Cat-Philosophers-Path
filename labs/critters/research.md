@@ -84,3 +84,14 @@ silhouette, butterflies that actually settle on a flower.
 * **Swimming.** A [React Three Fiber fish project](https://github.com/RAPHCRAP/Boid_Fish) (excerpt) uses per-vertex sine displacement rather than skeletons for scale, and the lab does the same with a per-instance speed and phase.
 * **Flocking.** CPU boids are fine to about 500, past which O(n²) is the bottleneck. A [reef demo](https://kody-w.github.io/learnwithkody/examples/coral-reef/) claims 500 with a spatial hash, and GPU notes suggest 64² float textures for 4,096 ([GPU flocking](https://sites.google.com/site/gpuplayground/home/gpu-flocking)) (excerpts). The pond's 34 koi use a plain neighbour sweep.
 * **Birds and butterflies.** Searches did not return a body-wave reference for koi or a flutter model for butterflies, so the flight here is hand-tuned sine and pause timing.
+
+
+## Construction review — 2026-11-10
+
+### Paired wings and correctly oriented fish
+
+The butterfly now has one wing on each side of the thorax. The koi lathe faces the same direction as its fins and swimming bend, its tail is forked, and a dorsal fin is present. Texture coordinates keep the tanchō head spot on the head rather than repeating it on the fins. Flock matrices are initialized before fitting the shelf camera, and the right wing is mirrored. The named modern show varieties remain colour studies rather than a claim about an Edo pond.
+
+The pattern sources already listed above informed the colour studies; this pass corrected directly observed geometry and UV errors, not new historical measurements.
+
+See the [complete lab review and before/after gallery](../REVIEW_2026-11-10.md).

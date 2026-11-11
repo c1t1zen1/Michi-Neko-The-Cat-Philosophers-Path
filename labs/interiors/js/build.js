@@ -127,7 +127,8 @@ function garden(parent,w,d,recipe) {
   for(let i=0;i<4;i++){const z=d/2-.25-i*.56;const s=mesh(g,new THREE.CylinderGeometry(.23,.25,.07,9),plain('#aaa998'),gx-.48,-.09,z);s.rotation.y=i*.7;}
   const basin=vessel(g,'bowl','sage',3);basin.position.set(gx+.18,-.09,.76);
   const water=mesh(g,new THREE.CircleGeometry(.27,32),new THREE.MeshStandardMaterial({color:0x738c85,roughness:.2,metalness:.15,transparent:true,opacity:.8}),gx+.18,.19,.76);water.rotation.x=-Math.PI/2;
-  rod(g,[gx-.15,.32,.9],[gx+.4,.32,.9],.022,plain('#9a9e67'));
+  // Bamboo rests across both stone rims rather than ending over the bowl.
+  for (const z of [.62,.9]) rod(g,[gx-.24,.3,z],[gx+.6,.3,z],.022,plain('#9a9e67'));
   const trunkX=gx+.28,trunkZ=-d*.28,bark=material('wood','dark');
   const path=new THREE.CatmullRomCurve3([new THREE.Vector3(trunkX,-.15,trunkZ),new THREE.Vector3(trunkX-.1,.65,trunkZ),new THREE.Vector3(trunkX-.25,1.25,trunkZ+.1),new THREE.Vector3(trunkX-.42,1.95,trunkZ-.03)]);
   mesh(g,new THREE.TubeGeometry(path,10,.055,7,false),bark);

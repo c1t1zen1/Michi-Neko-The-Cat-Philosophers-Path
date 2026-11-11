@@ -9,7 +9,7 @@ import { V3, TAU, rng, rockGeometry, instances } from '../../shared/craft.js';
 import { M } from '../../shared/painted.js';
 import { clack, drip, bell, Bed } from '../../shared/sound.js';
 import { flag, reduceMotion } from '../../shared/stage.js';
-import { shishiOdoshi, waterHarp, furin } from './kit.js';
+import { shishiOdoshi, waterHarp, furin, gardenBasin, bambooFeed } from './kit.js';
 
 const $ = (s) => document.querySelector(s);
 const SCALE = [392, 440, 523.25, 587.33, 659.25, 783.99];   // a pentatonic the jar seems to know
@@ -60,7 +60,9 @@ export async function makeGardenStage(lab) {
   const harp = waterHarp();
   harp.group.position.set(-3, -0.6, 2.4); harp.group.visible = false; scene.add(harp.group);
   // the surface of the harp: a low stone basin with a slit of gravel beneath
-  const lip = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.6, 0.14, 24), M.stone({ tint: 0x77726a, moss: 0.5 })); lip.position.set(-3, 0.07, 2.4); lip.castShadow = lip.receiveShadow = true; scene.add(lip);
+  const lip = gardenBasin({ r: 0.55, h: 0.24, drain: true }); lip.position.set(-3, 0, 2.4); lip.castShadow = lip.receiveShadow = true; scene.add(lip);
+  const harpOutlet = bambooFeed(scene, V3(-3.1, 0.65, 2.4));
+  const basinWater = new THREE.Mesh(new THREE.RingGeometry(0.025, 0.41, 32).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x466d72, roughness: 0.14, metalness: 0.15 })); basinWater.position.set(-3, 0.16, 2.4); scene.add(basinWater);
   const dripDrop = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 6), new THREE.MeshStandardMaterial({ color: 0xcfe7ee, roughness: 0.05 })); scene.add(dripDrop);
   const ringR = new THREE.Mesh(new THREE.RingGeometry(0.02, 0.03, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xd8eef2, transparent: true, opacity: 0, side: THREE.DoubleSide })); ringR.position.set(-3, 0.15, 2.4); scene.add(ringR);
   let dropT = 0.2, dropping = false, ringA = 0, noteI = 0;
@@ -87,7 +89,7 @@ export async function makeGardenStage(lab) {
     world.wind = st.wind * 0.9;
     // a drop every few seconds: it shows, then lands, then rings
     dropT -= dt * st.drip;
-    if (dropT < 0 && !dropping) { dropping = true; dripDrop.position.set(-3, 0.75, 2.4); dripDrop.visible = true; }
+    if (dropT < 0 && !dropping) { dropping = true; dripDrop.position.copy(harpOutlet); dripDrop.visible = true; }
     if (dropping) { dripDrop.position.y -= dt * 2.4; if (dripDrop.position.y <= 0.15) { dropping = false; dripDrop.visible = false; dropT = 1.8 + Math.random() * 2.4; playDrop(); } }
     if (ringA > 0) { ringA -= dt * 1.4; ringR.material.opacity = Math.max(0, ringA) * 0.8; ringR.scale.setScalar(1 + (1 - ringA) * 18); }
   };

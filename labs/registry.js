@@ -38,7 +38,7 @@ export const LABS = [
   { n: 22, slug: 'komorebi', tier: 4, title: 'Dappled light & petal drifts', jp: '木漏れ日', romaji: 'komorebi', status: 'live', href: 'komorebi/', poster: 'komorebi/poster.png', reasons: ['light carrier'], question: 'Every coin of light under a tree is a picture of the sun. Slide the moon across and every one turns into the same crescent.', builders: ['buildDappledLight', 'buildPetalDrifts'] }
 ];
 export const EXTRAS = [
-  { slug: 'grass', kind: 'standard', title: 'Grass Lab', jp: '草', romaji: 'kusa', href: 'grass/', blurb: 'Twenty procedural grasses in live cubes, and a slab where Michi walks through them. Already in the game.' },
+  { slug: 'grass', poster: 'grass/poster.png', kind: 'standard', title: 'Grass Lab', jp: '草', romaji: 'kusa', href: 'grass/', blurb: 'Twenty procedural grasses in live cubes, and a slab where Michi walks through them. Already in the game.' },
   { slug: 'cat', kind: 'standard', title: 'Cat review sheets', jp: '猫', romaji: 'neko', href: '../tools/cat_preview.html?sheet=anatomy', blurb: 'The sculpted cat, its coats, gaits and poses, from fixed angles.' },
   { slug: 'trees', kind: 'standard', title: 'Tree review sheets', jp: '木', romaji: 'ki', href: '../tools/tree_preview.html?sheet=hero', blurb: 'Hero trees in leaf sprays, rim trees in painted leaf masses.' },
   { slug: 'roofroad', kind: 'prototype', title: 'The Roof Road', jp: '屋根道', romaji: 'yane-michi', href: '../kyoto-rooftops.html', blurb: 'A side-scrolling run over old Kyoto roofs, past the valley bridge.' }

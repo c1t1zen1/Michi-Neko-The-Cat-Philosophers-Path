@@ -37,7 +37,7 @@ export const SPECIMENS = [
     how: ['Fill rises with flow; the pivot angle follows it until it passes the balance point.', 'Then gravity, the stone, and a little bounce.'], use: 'The stage version. Flow changes the rhythm.', sources: ['nab', 'prim'], also: [shishiOdoshi],
     build(k) { return anim(shishiOdoshi({ flow: 1.4 })); } },
   { id: 'sozu-cut', family: 'shishi', name: 'The diagonal cut', jp: '切り口', tag: 'Where the water sits', plinth: 'moss', hour: 16,
-    blurb: 'The mouth is cut on a slant so the tube can hold water until it tips far enough to dump it. A straight cut would not work.',
+    blurb: 'The mouth is cut on a slant so the tube can hold water until it tips far enough to dump it. The diagonal exposes a wider opening. The internal node holds the water.',
     how: ['The top of the open end is slid back with x by height.'], use: 'A close-up study of what the eye reads.', sources: ['prim'], also: [sozu],
     build(k) { const m = sozu({ len: 0.8, r: 0.07 }); m.rotation.z = 0.3; m.position.y = 0.2; return m; } },
 
@@ -56,7 +56,7 @@ export const SPECIMENS = [
 
   { id: 'harp', family: 'harp', name: 'The buried jar', jp: '水琴窟', tag: 'Drops ring inside a pot underground', plinth: 'stone', hour: 16, animatedShadow: false,
     blurb: 'A buried jar turned upside-down with a hole in the top, seen in cutaway. Each drop excites the air inside it, and the sound comes back up through the gravel.',
-    how: ['An upside-down, open sphere with a pool in the bottom.', 'On the stage, drips trigger tones.'], use: 'The stage’s heart. Use real audio.', sources: ['jila', 'ca', 'webaudio'], also: [waterHarp],
+    how: ['A hollow inverted jar with a top drip hole, a pool, and a cutaway sector.', 'On the stage, drips trigger tones.'], use: 'The stage’s heart. Use real audio.', sources: ['jila', 'ca', 'webaudio'], also: [waterHarp],
     build(k) { const h = waterHarp(); h.group.position.y = 0.55; return h.group; } }
 ];
 
@@ -72,6 +72,6 @@ export const ASSEMBLY = {
   build(k) {
     const m = shishiOdoshi({ flow: 1.4 }); const base = new k.THREE.Mesh(new k.THREE.CylinderGeometry(1, 1, 0.06, 32), k.M.plain(0xbdb8a7)); base.position.y = -0.03; base.userData.noShadow = true; m.group.add(base);
     let flowOn = false;
-    return { group: m.group, setPhase(p) { flowOn = p >= 1; }, update(t, dt) { if (flowOn) m.update(dt); else m.pivot.rotation.z = -0.28; } };
+    return { group: m.group, setPhase(p) { flowOn = p >= 1; }, update(t, dt) { if (flowOn) m.update(dt); else { m.S.a = 0.62; m.pose(); }; } };
   }
 };

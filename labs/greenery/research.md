@@ -70,3 +70,14 @@ hides. They are simpler than the hero trees (no leaf sprays, no culm nodes).
 * **Internodes.** Elongation follows a slow-fast-slow rhythm from base to tip, the longest internode moves from the base toward the middle, and node count is almost fixed before emergence ([MDPI](https://mdpi.com/2223-7747/13/11/1484), excerpt). The lab's `growthCurve` is a single easing per culm that gives the same slow-fast-slow shape, not a per-internode model.
 * **The white band.** The waxy ring below a node comes from general knowledge of moso and was not confirmed by these searches.
 * **Geometry.** `labs/shared/bamboo.js` holds one lathe with node bulges and a vertex-colour ring and band, shared with the Fences lab. Three.js-specific sources for bamboo did not turn up.
+
+
+## Construction review — 2026-11-10
+
+### Branches before leaves
+
+Leaf cards now attach along twigs rooted at culm nodes, in both the hero and the leaf specimen. Bushes explicitly carry their green tint; the previous specimens rendered nearly white. Growth timings and proportions remain educational approximations.
+
+[Shisendō garden photograph](https://souda-kyoto.jp/blog/01414.html) and [Sugimoto residence courtyard](https://en.sugimotoke.or.jp/) (garden photographs inspected), alongside the botanical sources already listed above.
+
+See the [complete lab review and before/after gallery](../REVIEW_2026-11-10.md).

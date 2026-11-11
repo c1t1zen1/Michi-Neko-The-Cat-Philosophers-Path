@@ -67,7 +67,8 @@ export function buildMachiya(U) {
     for (let x = wx - 0.6; x <= wx + 0.61; x += 0.1) walls.push(box(0.05, 0.56, 0.06, x, 3.55, z - 0.47));
   }
   const top = new THREE.BoxGeometry(span + 0.6, 0.08, 1.4);
-  top.rotateX(-0.42); top.translate((x0 + x1) / 2, 4.55, z - 0.2);
+  top.rotateX(0.42); top.translate((x0 + x1) / 2, 4.25, z - 0.2);
+  boards.push(box(span + 0.3, 0.16, 0.2, (x0 + x1) / 2, 4.35, z - 0.62));
   const add = (geos, mat, name, cast = true) => {
     const m = new THREE.Mesh(mergeGeometries(geos.map((x) => x.index ? x.toNonIndexed() : x)), mat);
     m.name = name; m.castShadow = cast; m.receiveShadow = true;

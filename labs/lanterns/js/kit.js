@@ -27,14 +27,28 @@ export function toro(kind = 'kasuga', { moss = 0.4, lichen = 0.5, tint = 0xa39e9
   const add = (name, geo, mat = stone) => { const m = new THREE.Mesh(geo, mat); m.name = name; g.add(m); (parts[name] ||= []).push(m); return m; };
   const paper = lanternMaterial(washiTexture({ ribs: 0, seed: 11 }), { glowColor: 0xffae55 });
   paper.userData.u.uFall.value = 0.2;
+  // A hibukuro is a hollow stone chamber with apertures, not a luminous belt.
+  const firebox = (r, h, sides, y0) => {
+    const wall = 0.025, apothem = r * Math.cos(Math.PI / sides), faceW = 2 * r * Math.sin(Math.PI / sides);
+    add('hibukuro', ring(r, wall, sides, y0 + wall / 2));
+    add('hibukuro', ring(r, wall, sides, y0 + h - wall / 2));
+    for (let i = 0; i < sides; i++) {
+      const shape = new THREE.Shape(); shape.moveTo(-faceW / 2, 0); shape.lineTo(faceW / 2, 0); shape.lineTo(faceW / 2, h); shape.lineTo(-faceW / 2, h); shape.closePath();
+      const hole = new THREE.Path();
+      const hw = faceW * 0.23, bottom = h * 0.23, top = h * 0.77;
+      hole.moveTo(-hw, bottom); hole.lineTo(-hw, top); hole.lineTo(hw, top); hole.lineTo(hw, bottom); hole.closePath(); shape.holes.push(hole);
+      const panel = add('hibukuro', new THREE.ExtrudeGeometry(shape, { depth: wall, bevelEnabled: false }));
+      const a = (i + 0.5) / sides * TAU; panel.rotation.y = a; panel.position.set(Math.sin(a) * (apothem - wall), y0, Math.cos(a) * (apothem - wall));
+    }
+    const flame = add('window', new THREE.SphereGeometry(r * 0.19, 10, 8), paper); flame.position.y = y0 + h * 0.48; flame.scale.y = 1.7;
+  };
   const hex = kind === 'yukimi' ? 6 : s;
   let y = 0;
   if (kind === 'kasuga') {
     add('kiso', ring(0.26, 0.06, 6, 0.03, 0.3)); add('kiso', ring(0.22, 0.09, 6, 0.1, 0.26)); y = 0.16;
     add('sao', ring(0.075, 0.9, 12, y + 0.45, 0.085)); y += 0.9;
     add('chudai', ring(0.25, 0.1, 6, y + 0.05, 0.14)); y += 0.1;
-    add('hibukuro', ring(0.17, 0.3, 6, y + 0.15));
-    const win = add('window', ring(0.172, 0.17, 6, y + 0.15), paper); y += 0.3;
+    firebox(0.17, 0.3, 6, y); y += 0.3;
     const roof = add('kasa', kasa(0.38, 0.2, 6)); roof.position.y = y;
     y += 0.2;
     add('hoju', new THREE.LatheGeometry([[0.001, 0], [0.05, 0.02], [0.065, 0.07], [0.03, 0.14], [0.001, 0.18]].map(([a, b]) => new THREE.Vector2(a, b)), 12)).position.y = y - 0.02;
@@ -47,8 +61,7 @@ export function toro(kind = 'kasuga', { moss = 0.4, lichen = 0.5, tint = 0xa39e9
     y = 0.3;
     add('chudai', ring(0.3, 0.06, 6, y + 0.03));
     y += 0.06;
-    add('hibukuro', ring(0.19, 0.22, 6, y + 0.11));
-    add('window', ring(0.192, 0.14, 6, y + 0.11), paper); y += 0.22;
+    firebox(0.19, 0.22, 6, y); y += 0.22;
     const roof = add('kasa', kasa(0.55, 0.16, 40)); roof.position.y = y; y += 0.16;
     add('hoju', new THREE.SphereGeometry(0.05, 12, 10)).position.y = y + 0.03;
   } else if (kind === 'oribe') {
@@ -56,16 +69,15 @@ export function toro(kind = 'kasuga', { moss = 0.4, lichen = 0.5, tint = 0xa39e9
     // Oribe's small carved figure at the foot of the shaft
     const fig = add('figure', new THREE.BoxGeometry(0.1, 0.22, 0.02)); fig.position.set(0, 0.42, 0.112); fig.rotation.y = Math.PI / 4;
     add('chudai', ring(0.22, 0.08, 4, y + 0.04)); y += 0.08;
-    add('hibukuro', ring(0.14, 0.26, 4, y + 0.13));
-    add('window', ring(0.142, 0.16, 4, y + 0.13), paper); y += 0.26;
+    firebox(0.14, 0.26, 4, y); y += 0.26;
     const roof = add('kasa', kasa(0.34, 0.18, 4)); roof.position.y = y; roof.rotation.y = Math.PI / 4; y += 0.18;
     add('hoju', new THREE.SphereGeometry(0.05, 12, 10)).position.y = y + 0.03;
   } else if (kind === 'kotoji') {
-    for (const [lx, h] of [[-0.42, 0.7], [0.42, 0.34]]) add('leg', tube([V3(lx, 0, 0), V3(lx * 0.75, h * 0.7, 0), V3(lx * 0.4, h, 0)], (t) => lerp(0.06, 0.05, t), { radial: 8 }));
+    for (const [lx, footY] of [[-0.42, 0], [0.42, 0.32]]) add('leg', tube([V3(lx, footY, 0), V3(lx * 0.72, 0.52, 0), V3(lx * 0.12, 0.69, 0)], (t) => lerp(0.065, 0.055, t), { radial: 12 }));
+    const footing = add('footing', new THREE.DodecahedronGeometry(0.23, 1)); footing.position.set(0.42, 0.14, 0); footing.scale.set(1, 0.85, 0.85);
     y = 0.68;
     add('chudai', ring(0.26, 0.06, 6, y + 0.03)); y += 0.06;
-    add('hibukuro', ring(0.17, 0.24, 6, y + 0.12));
-    add('window', ring(0.172, 0.15, 6, y + 0.12), paper); y += 0.24;
+    firebox(0.17, 0.24, 6, y); y += 0.24;
     const roof = add('kasa', kasa(0.46, 0.17, 6)); roof.position.y = y; y += 0.17;
     add('hoju', new THREE.SphereGeometry(0.05, 12, 10)).position.y = y + 0.03;
   }

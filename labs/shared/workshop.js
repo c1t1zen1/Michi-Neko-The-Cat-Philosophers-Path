@@ -87,12 +87,18 @@ function plinth(W, T, style) {
 function presentSpecimen(lab, spec, built) {
   const group = built.group || built;
   const scene = new THREE.Scene();
+  let hasAirEffects = false;
+  group.traverse((o) => { if (o.isPoints || o.isLine || o.isSprite) hasAirEffects = true; });
   shadows(group);
   if (built.noCast) group.traverse((o) => { if (o.isMesh) o.castShadow = false; });
   scene.add(group);
   group.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(group), size = box.getSize(V3()), c = box.getCenter(V3());
-  if (spec.sit !== false) { group.position.x -= c.x; group.position.z -= c.z; group.position.y -= box.min.y; }
+  if (spec.sit !== false) {
+    group.position.x -= c.x; group.position.z -= c.z; group.position.y -= box.min.y;
+    // Flat water/disc studies would otherwise coincide with the plinth top.
+    if (size.y < 0.002) group.position.y += 0.008;
+  }
   const span = Math.max(size.x, size.z, 0.2), W = spec.plinthW ?? span * 1.14 + 0.14, T = W * 0.18;
   const base = spec.plinth !== 'none' ? plinth(W, T, spec.plinth || lab.def.plinth || 'earth') : null;
   if (base) scene.add(base);
@@ -110,7 +116,7 @@ function presentSpecimen(lab, spec, built) {
   const R = sph.radius * (spec.zoom ?? 1.02);
   const camera = new THREE.OrthographicCamera(-R, R, R, -R, 0.1, R * 40);
   const el0 = spec.el ?? 0.58;
-  return { scene, camera, rig, R, target: sph.center, az: spec.az ?? Math.PI * 0.25, el: el0, update: built.update, group, counts: countScene(group), base, W, T, blob: new THREE.Vector4() };
+  return { scene, camera, rig, R, target: sph.center, az: spec.az ?? Math.PI * 0.25, el: el0, update: built.update, group, counts: countScene(group), base, W, T, hasAirEffects, blob: new THREE.Vector4() };
 }
 
 function buildTiles(lab) {
@@ -182,8 +188,11 @@ function buildTiles(lab) {
               if (p.update) { p.update(t, dt, lab); if (spec.animatedShadow !== false) p.rig.sun.shadow.needsUpdate = true; }
             },
             render(r, rect) {
-              if (p.base) p.base.userData.blob.visible = !lab.shelfPaint;
-              if (lab.shelfPaint) {
+              // The painted shelf replaces depthless background pixels. Points,
+              // lines and sprites don't write depth, so draw those studies directly.
+              const painted = lab.shelfPaint && !p.hasAirEffects;
+              if (p.base) p.base.userData.blob.visible = !painted;
+              if (painted) {
                 const asp = rect.width / rect.height, c = _bc.set(0, -p.T, 0).project(p.camera);
                 const rx = (p.W * 0.78) / (2 * p.R * asp), ry = (p.W * 0.78) / (2 * p.R) * Math.sin(p.el);
                 p.blob.set(c.x * 0.5 + 0.5, c.y * 0.5 + 0.5, rx, ry);

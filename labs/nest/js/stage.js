@@ -28,6 +28,10 @@ export async function makeNestStage(lab) {
   {
     const rock = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.5, 0.24, 28), M.stone({ tint: 0x7f7a6e, moss: 0.6, lichen: 0.4 })); rock.position.y = 0.12; rock.castShadow = rock.receiveShadow = true; scene.add(rock);
     const tile = M.tile({}); const slope = new THREE.Mesh(new THREE.BoxGeometry(9, 0.16, 4), tile); slope.position.set(0, 1.4, -2.8); slope.rotation.x = 0.5; slope.castShadow = slope.receiveShadow = true; scene.add(slope);
+    // This is a cutaway roof backdrop, seated on a matching timber/plaster shed.
+    const shell = new THREE.BoxGeometry(8.6, 1, 3.2, 1, 1, 2), sp = shell.attributes.position;
+    for (let i = 0; i < sp.count; i++) sp.setY(i, sp.getY(i) > 0 ? 1.4 - Math.tan(0.5) * sp.getZ(i) - 0.10 : 0);
+    shell.computeVertexNormals(); const house = new THREE.Mesh(shell, M.plaster({ tint: 0xd6c8a8, grime: 0.3 })); house.position.z = -2.8; house.castShadow = house.receiveShadow = true; scene.add(house);
     const ridge = new THREE.Mesh(new THREE.BoxGeometry(9.2, 0.24, 0.5), M.plain(0x2c3136, { rough: 0.6 })); ridge.position.set(0, 2.42, -4.5); scene.add(ridge);
   }
   const nestGroup = new THREE.Group(); nestGroup.position.y = 0.24; scene.add(nestGroup);

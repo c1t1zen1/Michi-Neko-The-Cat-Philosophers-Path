@@ -83,3 +83,14 @@ prop its real mechanism and its sound.
   No reliable resonant frequency was found. The lab's tones are a chosen pentatonic and should not be read as measured.
 * **Furin.** Two coupled damped springs, one for the bell and a faster one for the
   strip. Morioka's Nanbu iron is general knowledge, not from these searches.
+
+
+## Construction review — 2026-11-10
+
+### An actual water path
+
+A grounded supply riser and lashed trestle carry a straight, hollow feeder. A diagonal hollow receiving tube contains a closed node, crosses a real axle and returns onto its strike stone. The pour follows the moving mouth. The carved basin is recessed. The buried jar has a small top hole and a missing viewing sector; its surface basin has a drainage bore and a supported drip source. The fūrin opens downwards, with its clapper at the rim and a suspension string to the eave. The fill and return remain an illustrative dynamical model, not a calibrated hydraulic or acoustic simulation.
+
+[Kyoto City, Shisen-dō](https://kyoto.travel/en/destinations/shisendo-temple/) (text read), [JR Central, Shisendō photograph](https://souda-kyoto.jp/blog/01414.html) (photograph inspected), [Shinjyō-in water harp](https://www.shinjyo-in.com/about/page05.php) (text and cross-section inspected).
+
+See the [complete lab review and before/after gallery](../REVIEW_2026-11-10.md).

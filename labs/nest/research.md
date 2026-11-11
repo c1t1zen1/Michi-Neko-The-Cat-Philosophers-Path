@@ -84,3 +84,14 @@ hub doesn't drop it.
 * **Materials by position.** Cup nests use coarser sticks at the base and finer material higher up, and birds press out the cup with wings and beak before lining it ([Birdfact](https://birdfact.com/articles/how-do-birds-build-nests), excerpt). A bullfinch study tested whether materials serve different functions by position ([PeerJ 2017](https://doaj.org/article/1dbad2e2bd7a41b5978ded14b3edb7ef), excerpt).
 * **Gaps.** Sources gave no twig counts or angles, so the stage's 70, 180 and 90 twigs are chosen by eye, and no Three.js nest source was found.
 * **Scale.** The game's nest is sized for eggs on a roof. The lab's is about 1.2 m across so Michi can curl up inside it.
+
+
+## Construction review — 2026-11-10
+
+### Support the roof section
+
+The backdrop roof now sits on a sloping timber/plaster house section. The portal capture uses the existing built=1 state so it shows the finished nest, rather than the empty starting stone. The nest remains a fictional oversized reward, not an identification of a Kyoto bird species.
+
+[Kyoto City machiya guide](https://plus.kyoto.travel/entry/kyomachiya) (text read); existing nest research remains the biological reference.
+
+See the [complete lab review and before/after gallery](../REVIEW_2026-11-10.md).

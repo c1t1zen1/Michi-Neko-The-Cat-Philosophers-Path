@@ -22,6 +22,7 @@ export function koiTexture(kind, seed = 3) {
     for (let i = 0; i < n; i++) { const cy = 30 + (i + r()) * (190 / n), cx = 128 + (r() - 0.5) * 120, R = (24 + r() * 26) * sz; for (let k = 0; k < 7; k++) { x.beginPath(); x.ellipse(cx + (r() - 0.5) * R * 1.3, cy + (r() - 0.5) * R * 1.2, R * (0.5 + r() * 0.5), R * (0.5 + r() * 0.4), r() * 3, 0, TAU); x.fill(); } }
   }
   if (P.crown) { x.fillStyle = '#d83a18'; x.beginPath(); x.ellipse(128, 34, 38, 28, 0, 0, TAU); x.fill(); }
+  for (const cx of [64, 192]) { x.fillStyle = '#c3b784'; x.beginPath(); x.ellipse(cx, 30, 8, 6, 0, 0, TAU); x.fill(); x.fillStyle = '#14181a'; x.beginPath(); x.ellipse(cx, 30, 5, 4, 0, 0, TAU); x.fill(); }
   // the scale reticulation over the back
   x.strokeStyle = 'rgba(30,20,20,.14)'; x.lineWidth = 1;
   for (let y = 0; y < 256; y += 9) for (let i = 0; i < 28; i++) { x.beginPath(); x.arc(i * 9 + (y % 18 ? 4.5 : 0), y, 6, 0.2, Math.PI - 0.2); x.stroke(); }
@@ -31,13 +32,14 @@ export function koiTexture(kind, seed = 3) {
 /** A koi along +Z, nose forward: a lathed body plus two pectorals and a tail. */
 export function koiGeometry() {
   const prof = [[0.001, -0.56], [0.03, -0.52], [0.07, -0.4], [0.11, -0.24], [0.13, -0.04], [0.135, 0.12], [0.12, 0.28], [0.08, 0.42], [0.04, 0.5], [0.001, 0.53]];
-  const body = new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), 16).rotateX(-Math.PI / 2);
+  const body = new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), 24).rotateX(Math.PI / 2);
   const pos = body.attributes.position; for (let i = 0; i < pos.count; i++) pos.setY(i, pos.getY(i) * 0.72 + Math.max(0, pos.getY(i)) * 0.18);
   body.computeVertexNormals();
-  const fin = (w, h, x, y, z, ry, rz) => { const f = new THREE.PlaneGeometry(w, h, 1, 2).translate(w / 2, 0, 0).rotateX(Math.PI / 2).rotateY(ry).rotateZ(rz).translate(x, y, z); const a = new Float32Array(f.attributes.position.count * 3).fill(1); f.setAttribute('color', new THREE.BufferAttribute(a, 3)); return f; };
+  const fin = (w, h, x, y, z, ry, rz) => { const f = new THREE.PlaneGeometry(w, h, 1, 2).translate(w / 2, 0, 0).rotateX(Math.PI / 2).rotateY(ry).rotateZ(rz).translate(x, y, z); const uv = f.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, 0.02, 0.5); const a = new Float32Array(f.attributes.position.count * 3).fill(1); f.setAttribute('color', new THREE.BufferAttribute(a, 3)); return f; };
   const finsL = fin(0.2, 0.15, 0.08, -0.05, 0.2, 0.4, -0.25), finsR = fin(0.2, 0.15, -0.08, -0.05, 0.2, Math.PI - 0.4, 0.25);
-  const tail = new THREE.BufferGeometry(); tail.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, -0.5, 0, 0.13, -0.85, 0, -0.13, -0.85], 3)); tail.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 0, 1, 1, 1], 2)); tail.setIndex([0, 1, 2, 0, 2, 1]); tail.computeVertexNormals();
-  return merge([body, finsL, finsR, tail]);
+  const tail = new THREE.BufferGeometry(); tail.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, -0.46, 0, 0.14, -0.8, 0, 0, -0.69, 0, -0.14, -0.8], 3)); tail.setAttribute('uv', new THREE.Float32BufferAttribute([0.02, 0.5, 0.02, 0.5, 0.02, 0.5, 0.02, 0.5], 2)); tail.setIndex([0, 1, 2, 0, 2, 3]); tail.computeVertexNormals();
+  const dorsal = new THREE.BufferGeometry(); dorsal.setAttribute('position', new THREE.Float32BufferAttribute([0, 0.09, 0.2, 0, 0.18, 0.01, 0, 0.1, -0.32], 3)); dorsal.setAttribute('uv', new THREE.Float32BufferAttribute([0.02, 0.5, 0.02, 0.5, 0.02, 0.5], 2)); dorsal.setIndex([0, 1, 2]); dorsal.computeVertexNormals();
+  return merge([body, finsL, finsR, tail, dorsal]);
 }
 
 /** Bend the koi from nose to tail, and let the amount depend on speed. */
@@ -82,7 +84,7 @@ export function butterfly(hue, seed) {
   const g = new THREE.Group();
   const mat = new THREE.MeshStandardMaterial({ map: wingTexture(hue, seed), alphaTest: 0.4, side: THREE.DoubleSide, roughness: 0.8 });
   const L = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.14).translate(0.07, 0, 0).rotateX(-Math.PI / 2), mat), R = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.14).translate(-0.07, 0, 0).rotateX(-Math.PI / 2).scale(1, 1, 1), mat);
-  R.scale.x = -1;
+  // R already extends into -X. Mirroring it again puts both wings on +X.
   const body = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.08, 6).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x1a1612 }));
   g.add(L, R, body); g.userData.wings = [L, R];
   return g;

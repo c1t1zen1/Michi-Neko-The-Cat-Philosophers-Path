@@ -5,7 +5,7 @@ import { loadSkyModule, loadFoliageModule, loadGrassModule } from '../../shared/
 import { LabWorld } from '../../shared/world.js';
 import { standardBar } from '../../shared/workshop.js';
 import { slider, toggle, Dropdown } from '../../shared/ui.js';
-import { V3, TAU, rng } from '../../shared/craft.js';
+import { V3, TAU, rng, Bag } from '../../shared/craft.js';
 import { M } from '../../shared/painted.js';
 import { bell } from '../../shared/sound.js';
 import { flag } from '../../shared/stage.js';
@@ -27,7 +27,11 @@ export async function makeVillagerStage(lab) {
   // a bench and a lit doorway at the back of the square
   {
     const wall = new THREE.Mesh(new THREE.BoxGeometry(14, 3, 0.3), M.plaster({ tint: 0xe2d6bd, grime: 0.5, grimeH: 1 })); wall.position.set(0, 1.5, -5.4); wall.castShadow = wall.receiveShadow = true; scene.add(wall);
-    const door = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2), new THREE.MeshStandardMaterial({ color: 0xffb060, emissive: 0xff9a40, emissiveIntensity: 1.1 })); door.position.set(-3, 1, -5.24); scene.add(door);
+    const door = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2), new THREE.MeshStandardMaterial({ color: 0xffb060, emissive: 0xff9a40, emissiveIntensity: 0.35 })); door.position.set(-3, 1, -5.24); scene.add(door);
+    const frame = new Bag();
+    for (const x of [-3.7, -3, -2.3]) frame.box(0.055, 2.08, 0.06, { x, y: 1.04, z: -5.20, color: 0x5e4230 });
+    for (const y of [0.03, 0.38, 0.72, 1.06, 1.4, 1.74, 2.04]) frame.box(1.46, 0.035, 0.06, { x: -3, y, z: -5.20, color: 0x5e4230 });
+    const screen = frame.mesh(M.bag({ rough: 0.8 }), 'Lit shoji frame'); screen.castShadow = true; scene.add(screen);
     world.addGlow(V3(-3, 1.1, -4.7), { size: 3.6, intensity: 6, distance: 11, color: 0xffb060 });
     const bench = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.08, 0.6), M.wood()); bench.position.set(2.8, 0.42, -2.4); bench.castShadow = bench.receiveShadow = true; scene.add(bench);
     for (const s of [-1, 1]) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.42, 0.5), M.wood()); l.position.set(2.8 + s, 0.21, -2.4); l.castShadow = true; scene.add(l); }

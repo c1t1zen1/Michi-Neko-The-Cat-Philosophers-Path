@@ -68,3 +68,7 @@
 .row { scroll-margin-top: 30px; }
 .r-title a:hover { color: var(--tier); }
 @media (max-width: 700px) { .row > a, .row > div { grid-template-columns: 1fr; } .r-n { grid-row: auto; } .r-s, .r-actions, .r-poster { grid-column: 1; } }
+
+.review-note { max-width: 74rem; margin: 0 auto 2rem; padding: 0 var(--gutter); color: var(--muted); font-size: .82rem; line-height: 1.8; }
+.review-note a { color: var(--accent); }
+.x-preview { grid-column: 1 / -1; width: 100%; height: auto; aspect-ratio: 8 / 5; object-fit: cover; margin-bottom: 12px; border-radius: 4px; }

@@ -73,3 +73,14 @@ ground pass. This lab makes the dapples real — moving coins of light that are
 * **Size.** No source gave the geometry. Image diameter = height × tan(0.53°) is the standard relation, stated from general knowledge. The stage draws coins at 1.7× that true size so they read at this scale, and that factor is in `js/kit.js`.
 * **What didn't exist.** Searches found no Three.js pinhole technique. The closest was [Sundial](https://discourse.threejs.org/t/sundial-paged-virtual-sun-shadows-for-three-js-webgpurenderer-mit-on-npm/94912) (virtual shadow maps for WebGPU, excerpt), which gets leaf-shaped dapples from real shadows, and that is a different result: leaf shapes, not sun shapes. The instanced-quad approach here is original to this lab.
 * **Petal drifts.** `buildPetalDrifts()` in `src/vegetation.js` returns immediately with a comment saying the circles were removed, and the tile says so.
+
+
+## Construction review — 2026-11-10
+
+### Sun images on the specimen surface
+
+The coin shader now applies the model matrix, so translated shelf specimens do not bury the light underneath their slab. The shelf demonstration uses fewer, smaller coins and a nearly overhead light direction, keeping the circles and crescents readable. The stage retains the adjustable projection.
+
+This is a rendering-space correction. The pinhole/eclipsed-sun references already listed above remain the physical reference.
+
+See the [complete lab review and before/after gallery](../REVIEW_2026-11-10.md).

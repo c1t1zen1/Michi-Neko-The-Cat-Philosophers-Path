@@ -85,3 +85,14 @@ sheath scars, no real lashings and no weathering.
   named ties. "Warabi-nawa" from the old notes was not confirmed by these searches.
 * **Geometry.** One lathe-profile culm with node bulges, instanced for posts, rails
   and verticals (`labs/shared/bamboo.js`), and one torus for all knots.
+
+
+## Construction review — 2026-11-10
+
+### The falling Kōetsu crown
+
+The Kōetsu study now has a falling, curved tamabuchi and diagonals clipped to it at approximately 45 degrees. The previous narrow upright Xs and level top did not reproduce the defining silhouette.
+
+[Kyoto City, Kōetsu-ji](https://ja.kyoto.travel/tourism/single01.php?category_id=7&tourism_id=279) (text read), [Kōetsu-ji photograph](https://garden-guide.jp/spot.php?i=koetsuji) (photograph inspected), [Kyoto City Greenery Association](https://www.kyoto-ga.jp/greenery/kyononiwa/2020/11/post_28.html) (search excerpt).
+
+See the [complete lab review and before/after gallery](../REVIEW_2026-11-10.md).

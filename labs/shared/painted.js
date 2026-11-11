@@ -154,8 +154,8 @@ export const M = {
     paintify(texturedMaterial(lacquerTextures(color, seed), { roughness: rough, normalScale: 0.4, envMapIntensity: 0.8 }), { brush: 0.07, grime, grimeH: 0.8, ...p })),
   bronze: ({ color = 0x9a7a44, rough = 0.42, metal = 0.85, ...p } = {}) => once('bronze', [color, rough, metal, p], () =>
     paintify(texturedMaterial(metalTextures(color), { metalness: metal, roughness: rough }), { brush: 0.05, ...p })),
-  bamboo: ({ color = 0x7fa84f, rough = 0.48, vcol = false, ...p } = {}) => once('bamboo', [color, rough, vcol, p], () =>
-    paintify(new THREE.MeshStandardMaterial({ color, roughness: rough, vertexColors: vcol }), { brush: 0.08, ...p })),
+  bamboo: ({ color = 0x7fa84f, rough = 0.48, vcol = false, side = THREE.FrontSide, ...p } = {}) => once('bamboo', [color, rough, vcol, side, p], () =>
+    paintify(new THREE.MeshStandardMaterial({ color, roughness: rough, vertexColors: vcol, side }), { brush: 0.08, ...p })),
   straw: ({ color = 0xc8a96a, rough = 1, side = THREE.FrontSide, ...p } = {}) => once('straw', [color, rough, side, p], () =>
     paintify(texturedMaterial(strawTextures(color), { roughness: rough, side }), { brush: 0.08, ...p })),
   plaster: ({ tint = 0xefe6d2, seed = 1, rough = 0.96, ...p } = {}) => once('plaster', [tint, seed, rough, p], () =>

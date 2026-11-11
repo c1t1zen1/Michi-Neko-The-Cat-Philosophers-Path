@@ -315,3 +315,12 @@ Kyoto ground
 * Animation Obsessive, *What Kazuo Oga thinks about when he thinks about backgrounds* — <https://animationobsessive.substack.com/p/what-kazuo-oga-thinks-about-when> (excerpt)
 * Anime Corner, *Sparks of Tomorrow* interview (Kyoto Animation) — <https://animecorner.me/interview-sparks-of-tomorrow-director-minoru-ota-and-producer-satori-senami-on-kyoto-animations-new-creative-challenge/> (excerpt)
 * Earlier round (2026-10-25): NAJGA (paths, raking, architectural interface), Hongō Fujiyama park (amaochi), into Saihoji, Kyoto ni Kanpai, Open Culture (Oga).
+
+## Construction review — 2026-11-10
+
+The upper frontage eave now falls toward the street instead of rising at the
+outer edge. A timber bearing closes the joint to the upper wall. Compared with
+[Kyoto City's machiya guide](https://plus.kyoto.travel/entry/kyomachiya) and the
+[Sugimoto residence photographs](https://en.sugimotoke.or.jp/). The frontage
+remains a cutaway study rather than a complete house survey. See the
+[full review](../REVIEW_2026-11-10.md).

@@ -43,8 +43,13 @@ export async function makeAlleyStage(lab) {
     }
     // doors and little windows, and a run of wires
     for (let i = 0; i < 6; i++) { const s = i % 2 ? 1 : -1, z = -9 + i * 3.4; const door = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.7, 0.9), M.wood({ base: 0x4a3322, dark: 0x2c1e14 })); door.position.set(s * (HALF - 0.02), 0.85, z); scene.add(door); }
-    const wireM = new THREE.MeshBasicMaterial({ color: 0x1c1c1e });
-    for (let k = 0; k < 4; k++) { const pts = []; for (let i = 0; i <= 26; i++) { const t = i / 26, z = -LEN + t * (LEN * 2 + 3); pts.push(V3(-0.5 + k * 0.32, 5.1 + Math.abs(Math.sin(t * 22)) * 0.35 - 0.2, z)); } scene.add(new THREE.Mesh(tube(pts, 0.012, { radial: 5 }), wireM)); }
+    // Hemp drying lines anchored into both walls; no modern overhead utility wires.
+    const lineMat = M.straw({ color: 0x827251 });
+    for (const z of [-8, -2, 4]) {
+      const pts = [];
+      for (let i = 0; i <= 24; i++) { const t = i / 24; pts.push(V3(-HALF + t * HALF * 2, 3.1 - 0.22 * 4 * t * (1 - t), z)); }
+      scene.add(new THREE.Mesh(tube(pts, 0.006, { radial: 6 }), lineMat));
+    }
   }
 
   const st = { kind: 'pot', tool: 'place' };
@@ -60,7 +65,7 @@ export async function makeAlleyStage(lab) {
   const clearAll = () => { for (const p of placed) scene.remove(p.g); placed.length = 0; };
   const dress = () => {
     clearAll();
-    const kinds = ['pot', 'pot', 'pot', 'broom', 'barrel', 'crate', 'sign', 'tanuki', 'bicycle', 'komodaru', 'tiles', 'pot'];
+    const kinds = ['pot', 'pot', 'pot', 'broom', 'barrel', 'crate', 'sign', 'komodaru', 'tiles', 'pot'];
     let z = 10, s = -1;
     while (z > -LEN + 1) {
       const kind = kinds[Math.floor(r() * kinds.length)], x = s * (HALF - 0.42 - PROPS[kind].r * 0.3);

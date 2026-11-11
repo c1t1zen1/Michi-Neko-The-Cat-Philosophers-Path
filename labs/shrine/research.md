@@ -130,3 +130,16 @@ Kuwahara with diffusion glow), now in `labs/shared/finish.js`. It is blended bac
 62% toward the unfiltered picture, because the full-strength filter removed the
 stone and bark detail that makes it feel photographed. Heckel's article describes
 the Papari eight-sector kernel and the polynomial weights this pass approximates.
+
+
+## Construction review — 2026-11-10
+
+### Torii bearings, chōzuya and shrine roofs
+
+The pillars now meet the underside of the swept shimaki at their leaning centres; the two lintels share one world-space curve. The side openings of the miwa share the main posts. Chōzuya has bearing beams, a recessed trough, supported feeder, running water, a bamboo dipper rack and hollow ladle. Roof skins have thickness and soffits; hall gables are filled. Kasuga roof orientation now puts the entrance under a gable, with a separate porch canopy on square posts and a bearing beam. The Nagare's extended front roof has posts and swept rafters. Stair approaches have openings in their railings. Hiwada is cypress bark.
+
+[JAANUS: myōjin torii](https://www.aisf.or.jp/~jaanus/deta/m/myoujintorii.htm) (text read), [Fushimi Inari, Senbon Torii](https://inari.jp/en/map/spot_07/) (official photograph inspected), [Hirano chōzuya photograph](https://ameblo.jp/sen23ka/entry-12560675262.html) (photograph inspected; a modern record, not a dated Edo survey).
+
+[JAANUS: Nagare-zukuri](https://www.aisf.or.jp/~jaanus/deta/n/nagarezukuri.htm) and [Kasuga-zukuri](https://www.aisf.or.jp/~jaanus/deta/k/kasugazukuri.htm) (texts read): entrance orientation, cypress bark, square porch supports and the extended front roof.
+
+See the [complete lab review and before/after gallery](../REVIEW_2026-11-10.md).

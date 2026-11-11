@@ -8,14 +8,15 @@ const lathe = (pts, s = 24) => new THREE.LatheGeometry(pts.map(([x, y]) => new T
 
 export const PROPS = {
   pot: { label: 'Potted plant', r: 0.2, build() {
-    const g = new THREE.Group(), pot = new THREE.Mesh(lathe([[0.001, 0], [0.13, 0], [0.16, 0.2], [0.18, 0.24], [0.15, 0.24]]), M.plain(0xa8603a, { rough: 0.9, grime: 0.4, grimeH: 0.2 })); g.add(pot);
+    const g = new THREE.Group(), pot = new THREE.Mesh(lathe([[0.001, 0], [0.13, 0], [0.16, 0.2], [0.18, 0.24], [0.15, 0.24], [0.13, 0.04], [0.001, 0.04]]), M.plain(0xa8603a, { rough: 0.9, grime: 0.4, grimeH: 0.2 })); g.add(pot);
+    const soil = new THREE.Mesh(new THREE.CircleGeometry(0.14, 24).rotateX(-Math.PI / 2), M.plain(0x38291b)); soil.position.y = 0.218; g.add(soil);
     const leaf = M.plain(0x4f7f3a, { side: THREE.DoubleSide, rough: 0.7 }), r = rng(5);
     for (let i = 0; i < 16; i++) { const l = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.36, 1, 3).translate(0, 0.18, 0), leaf), a = r() * TAU; l.position.y = 0.24; l.rotation.set(0.5 + r() * 0.6, a, 0, 'YXZ'); g.add(l); }
     return g; } },
   barrel: { label: 'Rain barrel', r: 0.34, build() {
     const g = new THREE.Group(), w = M.wood({ base: 0x7a5c3e, dark: 0x4a3322, grime: 0.5, grimeH: 0.5 });
-    const b = new THREE.Mesh(lathe([[0.26, 0], [0.31, 0.08], [0.33, 0.33], [0.31, 0.6], [0.27, 0.68]]), w); g.add(b);
-    const bag = new Bag(); for (const y of [0.1, 0.42, 0.62]) bag.cyl(0.33, 0.03, { y, color: 0x3e3226 });
+    const b = new THREE.Mesh(lathe([[0.001, 0], [0.26, 0], [0.31, 0.08], [0.33, 0.33], [0.31, 0.6], [0.27, 0.68], [0.25, 0.68], [0.29, 0.59], [0.31, 0.33], [0.29, 0.09], [0.24, 0.035], [0.001, 0.035]]), w); g.add(b);
+    const bag = new Bag(); for (const [y, radius] of [[0.1, 0.315], [0.42, 0.33], [0.62, 0.305]]) bag.add(new THREE.TorusGeometry(radius, 0.012, 6, 32).rotateX(Math.PI / 2), { y, color: 0x3e3226 });
     g.add(bag.mesh(M.bag({ rough: 0.7, metal: 0.25 })));
     const wat = new THREE.Mesh(new THREE.CircleGeometry(0.26, 24).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x2c5660, roughness: 0.08, metalness: 0.5 })); wat.position.y = 0.64; g.add(wat);
     return g; } },
@@ -25,11 +26,12 @@ export const PROPS = {
     x.fillStyle = '#a02e22'; x.beginPath(); x.arc(128, 128, 62, 0, TAU); x.fill(); x.fillStyle = '#f2e2c6'; x.font = 'bold 74px serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('酒', 128, 126);
     const mat = new THREE.MeshStandardMaterial({ map: canvasTexture(c), roughness: 1 });
     g.add(new THREE.Mesh(lathe([[0.2, 0], [0.26, 0.05], [0.28, 0.25], [0.26, 0.45], [0.2, 0.5], [0.001, 0.5]]), mat));
-    const rope = new Bag(); for (const y of [0.06, 0.25, 0.44]) rope.cyl(0.285, 0.018, { y, color: 0x8a7248 }); g.add(rope.mesh(M.bag({ rough: 1 }))); return g; } },
+    const rope = new Bag(); for (const [y, radius] of [[0.06, 0.266], [0.25, 0.285], [0.44, 0.268]]) rope.add(new THREE.TorusGeometry(radius, 0.009, 6, 32).rotateX(Math.PI / 2), { y, color: 0x8a7248 }); g.add(rope.mesh(M.bag({ rough: 1 }))); return g; } },
   crate: { label: 'Crate', r: 0.36, build() {
     const g = new THREE.Group(), b = new Bag(), c = [0x9c7a4e, 0x88683f, 0xa58660];
-    for (let i = 0; i < 5; i++) { b.box(0.6, 0.1, 0.48, { y: 0.06 + i * 0.1, color: c[i % 3] }); }
-    b.box(0.06, 0.52, 0.5, { x: -0.3, y: 0.26, color: 0x6e5236 }); b.box(0.06, 0.52, 0.5, { x: 0.3, y: 0.26, color: 0x6e5236 });
+    for (let i = 0; i < 4; i++) b.box(0.14, 0.035, 0.48, { x: (i - 1.5) * 0.15, y: 0.02, color: c[i % 3] });
+    for (let i = 0; i < 4; i++) for (const side of [-1, 1]) { b.box(0.64, 0.095, 0.035, { y: 0.1 + i * 0.12, z: side * 0.24, color: c[i % 3] }); b.box(0.035, 0.095, 0.48, { x: side * 0.3, y: 0.1 + i * 0.12, color: c[(i + 1) % 3] }); }
+    for (const x of [-0.27, 0.27]) for (const z of [-0.21, 0.21]) b.box(0.04, 0.5, 0.04, { x, y: 0.25, z, color: 0x6e5236 });
     g.add(b.mesh(M.bag({ rough: 0.8, grime: 0.4, grimeH: 0.3 }))); return g; } },
   bicycle: { label: 'Bicycle', r: 0.72, build() {
     const g = new THREE.Group(), st = M.plain(0x8a2c2c, { rough: 0.4, metal: 0.5 }), rim = M.plain(0x2a2a2c, { rough: 0.6 });

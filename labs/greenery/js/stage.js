@@ -33,16 +33,17 @@ export async function makeGroveStage(lab) {
   const scene = world.scene, u = { uT: { value: 0 }, uW: { value: 0.8 } }, st = { days: +flag('days', 56), auto: false };
   const stalkMat = swayMat(M.bamboo({ color: 0xffffff, rough: 0.5, vcol: true }), u);
   const stalks = new THREE.InstancedMesh(CULM, stalkMat, MAX);
+  const branches = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.6, 1, 1, 6).translate(0, 0.5, 0), swayMat(M.bamboo({ color: 0x819951 }), u), MAX * 11);
   const shootMesh = new THREE.InstancedMesh(new THREE.ConeGeometry(1, 1, 12), M.plain(0x7a5a36, { rough: 0.9 }), MAX);
   const leafMat = swayMat(new THREE.MeshStandardMaterial({ map: leafTexture(), alphaTest: 0.4, roughness: 0.65, side: THREE.DoubleSide }), u);
   const leaves = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.1, 0.34, 1, 3).translate(0, -0.17, 0), leafMat, MAX * LEAVES_PER);
-  for (const m of [stalks, shootMesh, leaves]) { m.frustumCulled = false; m.castShadow = true; m.receiveShadow = true; m.count = 0; scene.add(m); }
+  for (const m of [stalks, branches, shootMesh, leaves]) { m.frustumCulled = false; m.castShadow = true; m.receiveShadow = true; m.count = 0; scene.add(m); }
   const R = rng(13), col = new THREE.Color();
   const addCulm = (x, z, born) => { if (culms.length >= MAX) return; culms.push({ x, z, born, H: 7 + R() * 4.5, r: 0.05 + R() * 0.05, tilt: (R() - 0.5) * 0.08, ry: R() * TAU, age: R() * 0.13, days: st.days, ph: R() * 6, leafA: Array.from({ length: LEAVES_PER }, () => ({ a: R() * TAU, h: 0.55 + R() * 0.45, d: 0.25 + R() * 0.7, rot: 0.3 + R() * 0.9, s: 0.7 + R() * 0.6 })) }); };
   const o = new THREE.Object3D(), m = new THREE.Matrix4(), a = V3(), b = V3();
   let lastBuilt = -1;
   const rebuild = () => {
-    let n = 0, shoots = 0, lv = 0;
+    let n = 0, shoots = 0, lv = 0, bv = 0;
     for (const c of culms) {
       c.days = st.days;
       const g = growthCurve(st.days, c.born);
@@ -54,16 +55,23 @@ export async function makeGroveStage(lab) {
         culmMatrix(a, b, c.r * sstep(0, 0.5, g) * 1.1 + 0.02, m); stalks.setMatrixAt(n, m); bambooColor(c.age, col); stalks.setColorAt(n, col); n++;
         if (g > 0.72) {
           const k = sstep(0.72, 1, g);
-          for (let i = 0; i < LEAVES_PER; i++) {
-            const L = c.leafA[i], y = h * L.h;
-            o.position.set(c.x + Math.cos(L.a) * L.d * k + c.tilt * y, y, c.z + Math.sin(L.a) * L.d * k + c.tilt * y * 0.5);
-            o.rotation.set(L.rot, L.a, 0); o.scale.setScalar(L.s * k); o.updateMatrix(); leaves.setMatrixAt(lv++, o.matrix);
+          for (let branch = 0; branch < 11; branch++) {
+            const L = c.leafA[branch * 4], node = Math.min(10, Math.max(6, Math.round(L.h * 11))), y = h * node / 11;
+            const start = V3(c.x + c.tilt * y, y, c.z + c.tilt * y * 0.5);
+            const end = start.clone().add(V3(Math.cos(L.a) * L.d * k, 0.12 * k, Math.sin(L.a) * L.d * k));
+            branches.setMatrixAt(bv++, culmMatrix(start, end, 0.008 * k));
+            for (let j = 0; j < 4; j++) {
+              const leaf = c.leafA[branch * 4 + j];
+              o.position.copy(start).lerp(end, 0.4 + j * 0.2);
+              o.rotation.set(leaf.rot, L.a + (j % 2 ? 0.65 : -0.65), j % 2 ? 0.35 : -0.35, 'YXZ');
+              o.scale.setScalar(leaf.s * k); o.updateMatrix(); leaves.setMatrixAt(lv++, o.matrix);
+            }
           }
         }
       }
     }
-    stalks.count = n; shootMesh.count = shoots; leaves.count = lv;
-    stalks.instanceMatrix.needsUpdate = true; if (stalks.instanceColor) stalks.instanceColor.needsUpdate = true; shootMesh.instanceMatrix.needsUpdate = true; leaves.instanceMatrix.needsUpdate = true;
+    stalks.count = n; branches.count = bv; shootMesh.count = shoots; leaves.count = lv;
+    stalks.instanceMatrix.needsUpdate = true; branches.instanceMatrix.needsUpdate = true; if (stalks.instanceColor) stalks.instanceColor.needsUpdate = true; shootMesh.instanceMatrix.needsUpdate = true; leaves.instanceMatrix.needsUpdate = true;
   };
   // a starter grove: a few clumps of different ages
   for (const [cx, cz, count, born] of [[-1.5, -2, 16, 0], [3.2, 1.5, 12, 6], [-4.5, 2, 12, 12], [1.2, 4.4, 10, 20], [4.8, -3.6, 10, 28]]) for (let i = 0; i < count; i++) { const an = R() * TAU, d = Math.sqrt(R()) * 2.1; addCulm(cx + Math.cos(an) * d, cz + Math.sin(an) * d, born + R() * 6); }

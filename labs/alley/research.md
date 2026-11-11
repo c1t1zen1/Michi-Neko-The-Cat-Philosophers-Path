@@ -81,3 +81,14 @@ crates.
 * **Light.** [Ajiki Alley](https://kyoto.travel/en/see-and-do/Ajiki_Alley.html) keeps warm-white bulbs to preserve the look of Kyoto's alleys at night (excerpt).
 * **Gaps.** Searches did not reach Kyoto Animation or Ghibli production material,
   or Kyoto-specific sources for the prop list. The props come from general knowledge of Japanese backstreets and are not attributed to a source.
+
+
+## Construction review — 2026-11-10
+
+### Containers and the period palette
+
+Rain barrels have interior walls and hollow hoops; the sake-barrel bindings are rings, not filled discs. Pots contain soil and crates have actual open slatted sides and corner battens. The default lane uses containers, bamboo brooms, signs and plants. Its overhead ropes attach to the walls. Bicycles and the familiar shop tanuki remain selectable contemporary Kyoto studies and are excluded from the initial historical palette. This is a plausible scene, not a reconstruction of one Edo street.
+
+[Sugimoto residence](https://en.sugimotoke.or.jp/) (official garden photograph inspected), [Kyoto City machiya guide](https://plus.kyoto.travel/entry/kyomachiya) (text read), [Tokyo National Museum, Kyoto scroll](https://www.tnm.jp/modules/r_exhibition/index.php?controller=item&id=7967&lang=en) (search image inspected; an Edo copy of an earlier scene).
+
+See the [complete lab review and before/after gallery](../REVIEW_2026-11-10.md).

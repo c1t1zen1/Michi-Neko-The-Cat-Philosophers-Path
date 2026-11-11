@@ -5,6 +5,7 @@ import { loadSculptModule } from '../../shared/game.js';
 import { V3, Bag, merge, tube, sweep, ringRect, lerp, instances, rng, TAU, shadows } from '../../shared/craft.js';
 import { worldScaleBoxUVs } from '../../shared/game.js';
 import { M } from '../../shared/painted.js';
+import { bambooFeed } from '../../shared/waterprops.js';
 import { gateParts, gateGeos, gateMats, buildGate, SORI, shimenawa, sagari, hangShide, shideGeo, shideMat, buildSuzu, komainuPrims, hallRoofSurface, hiwadaTexture, sidePosts, curveOf, catenary, ropeProfiles } from './gate.js';
 
 let sculpt = null;
@@ -82,33 +83,78 @@ export function hallOf(k, style = 'nagare') {
   g.add(at(new T.Mesh(new T.BoxGeometry(P.w + 1.3, 0.3, P.d + 1.5), stone), 0, 0.15, 0));
   const b = new Bag(), dark = 0x3a2616, frame = vermilion ? 0xa93a26 : 0x8a6238;
   const floor = 0.62;
-  b.box(P.w + 0.2, 0.08, P.d + 0.2, { y: floor, color: frame });
+  const veranda = 0xa3835e;
+  b.box(P.w + 0.2, 0.08, P.d + 0.8, { y: floor, color: veranda });
   for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 1], [0, -1]]) b.cyl(0.085, P.h + floor, { x: sx * P.w / 2, y: (P.h + floor) / 2, z: sz * P.d / 2, color: frame });
   b.box(P.w, 0.1, 0.1, { y: P.h + floor, z: P.d / 2, color: frame }); b.box(P.w, 0.1, 0.1, { y: P.h + floor, z: -P.d / 2, color: frame });
   b.box(0.1, 0.1, P.d, { x: P.w / 2, y: P.h + floor, color: frame }); b.box(0.1, 0.1, P.d, { x: -P.w / 2, y: P.h + floor, color: frame });
-  for (let i = 0; i < 7; i++) b.box(0.04, 0.6, 0.04, { x: (i - 3) * P.w / 7, y: floor + 0.34, z: P.d / 2 + 0.28, color: frame });   // the kōran rail
-  b.box(P.w + 0.3, 0.05, 0.08, { y: floor + 0.66, z: P.d / 2 + 0.28, color: frame });
-  for (let i = 0; i < 4; i++) b.box(1.5, 0.08, 0.34, { y: 0.34 + i * 0.13, z: P.d / 2 + 0.72 + (3 - i) * 0.3, color: frame });   // kizahashi steps
+  // Leave the stair/door approach open between the two kōran runs.
+  for (const sign of [-1, 1]) {
+    const inner = 0.75, outer = P.w / 2 + 0.15, length = outer - inner;
+    const n = Math.max(1, Math.ceil(length / 0.35));
+    for (let i = 0; i <= n; i++) b.box(0.04, 0.6, 0.04, { x: sign * (inner + length * i / n), y: floor + 0.34, z: P.d / 2 + 0.28, color: veranda });
+    b.box(length + 0.04, 0.05, 0.08, { x: sign * (inner + outer) / 2, y: floor + 0.66, z: P.d / 2 + 0.28, color: veranda });
+  }
+  for (let i = 0; i < 4; i++) b.box(1.5, floor * (i + 1) / 4, 0.34, { y: floor * (i + 1) / 8, z: P.d / 2 + 0.48 + (3 - i) * 0.3, color: veranda });   // grounded kizahashi steps
   g.add(b.mesh(k.M.bag({ rough: 0.7 }), 'frame'));
   const wall = new T.BoxGeometry(P.w - 0.1, P.h, P.d - 0.1); worldScaleBoxUVs(wall, 0.7);
-  g.add(at(new T.Mesh(wall, wood), 0, floor + P.h / 2, 0));
+  const infill = vermilion ? k.M.plaster({ tint: 0xeee5d1, grime: 0.1 }) : wood;
+  g.add(at(new T.Mesh(wall, infill), 0, floor + P.h / 2, 0));
   const door = new T.Mesh(new T.BoxGeometry(1.1, P.h * 0.82, 0.05), k.M.plain(dark, { rough: 0.5 })); door.position.set(0, floor + P.h * 0.42, P.d / 2 - 0.03); g.add(door);
   // the roof: two curved skins
   const roofMat = style === 'shinmei' ? k.M.straw({ color: 0x9a8352, side: T.DoubleSide }) : hiwadaMat();
-  const roof = new T.Mesh(hallRoofSurface({ w: P.w, d: P.d, ridge: P.ridge, over: P.over, sori: P.sori, frontOver: P.front }), roofMat);
-  roof.position.y = floor + P.h + P.ridge + 0.04;
-  g.add(roof);
-  const ridgeY = roof.position.y;
-  const ridge = new T.Mesh(new T.BoxGeometry(P.w + P.over * 2 + 0.1, 0.16, 0.2), k.M.plain(0x2a2219, { rough: 0.7 })); ridge.position.y = ridgeY + 0.05; g.add(ridge);
+  const roofGroup = new T.Group(), rw = style === 'kasuga' ? P.d : P.w, rd = style === 'kasuga' ? P.w : P.d, front = style === 'kasuga' ? 0 : P.front;
+  roofGroup.position.y = floor + P.h + P.ridge + 0.04;
+  if (style === 'kasuga') roofGroup.rotation.y = Math.PI / 2;
+  g.add(roofGroup);
+  const roof = new T.Mesh(hallRoofSurface({ w: rw, d: rd, ridge: P.ridge, over: P.over, sori: P.sori, frontOver: front }), roofMat); roof.name = 'Bark roof and soffit'; roofGroup.add(roof);
+  // Fill the attic to the underside of the very same curved roof. No open
+  // triangular hole above a wall and no floating ridge or gable ornament.
+  const atticGeo = new T.BoxGeometry(rw, 1, rd, 1, 1, 32), ap = atticGeo.attributes.position;
+  for (let i = 0; i < ap.count; i++) {
+    const z = ap.getZ(i), run = rd / 2 + P.over + (z > 0 ? front : 0), v = Math.abs(z) / run;
+    const dy = -P.ridge * (1 - Math.pow(1 - v, 1.28)) + P.sori * v ** 3 + P.sori * 0.55 * Math.pow(Math.abs(ap.getX(i)) / ((rw + P.over * 2) / 2), 2.4) * Math.pow(v, 1.5);
+    ap.setY(i, ap.getY(i) > 0 ? dy - 0.09 : -P.ridge - 0.05);
+  }
+  atticGeo.computeVertexNormals(); const attic = new T.Mesh(atticGeo, infill); attic.name = 'Closed gables'; roofGroup.add(attic);
+  const ridge = new T.Mesh(new T.BoxGeometry(rw + P.over * 2 + 0.1, 0.16, 0.2), k.M.plain(0x2a2219, { rough: 0.7 })); ridge.position.y = 0.05; roofGroup.add(ridge);
   const chigiM = k.M.wood({ base: 0xcdb284, dark: 0x8a6a42 });
   if (style !== 'nagare') {
     for (const s of [-1, 1]) for (const f of [-1, 1]) {
       const c = new T.Mesh(new T.BoxGeometry(0.1, 1.15, 0.13), chigiM);
-      c.position.set(s * (P.w / 2 + P.over * 0.8), ridgeY + 0.42, f * 0.28);
+      c.position.set(s * (rw / 2 + P.over * 0.8), 0.42, f * 0.28);
       c.rotation.x = f * 0.5;
-      g.add(c);
+      roofGroup.add(c);
     }
-    for (const x of [-0.9, -0.3, 0.3, 0.9]) { const lg = new T.Mesh(new T.CylinderGeometry(0.09, 0.09, 0.62, 10), chigiM); lg.rotation.x = Math.PI / 2; lg.position.set(x * P.w / 2, ridgeY + 0.16, 0); g.add(lg); }
+    for (const x of [-0.9, -0.3, 0.3, 0.9]) { const lg = new T.Mesh(new T.CylinderGeometry(0.09, 0.09, 0.62, 10), chigiM); lg.rotation.x = Math.PI / 2; lg.position.set(x * rw / 2, 0.16, 0); roofGroup.add(lg); }
+  }
+  if (style === 'kasuga') {
+    const canopy = new T.Mesh(hallRoofSurface({ w: P.w, d: 0.8, ridge: 0.3, over: 0.12, frontOver: 0.35, sori: 0.05 }), roofMat);
+    canopy.name = 'Kasuga porch roof'; canopy.position.set(0, floor + P.h - 0.04, P.d / 2 + 0.45); g.add(canopy);
+    const porchZ = P.d / 2 + 0.8, v = (porchZ - canopy.position.z) / (0.4 + 0.12 + 0.35);
+    const soffit = canopy.position.y - 0.3 * (1 - Math.pow(1 - v, 1.28)) + 0.05 * v ** 3 - 0.09;
+    const bearingY = soffit - 0.06;
+    const beam = at(new T.Mesh(new T.BoxGeometry(1.65, 0.14, 0.14), wood), 0, bearingY, porchZ);
+    beam.name = 'Kasuga porch bearing beam'; g.add(beam);
+    for (const x of [-0.7, 0.7]) {
+      g.add(at(new T.Mesh(new T.BoxGeometry(0.24, 0.1, 0.24), stone), x, 0.05, porchZ));
+      const post = at(new T.Mesh(new T.BoxGeometry(0.12, bearingY - 0.08, 0.12), wood), x, (bearingY + 0.08) / 2, porchZ);
+      post.name = 'Kasuga porch pillar'; g.add(post);
+    }
+  }
+  if (style === 'nagare') {
+    const porchZ = P.d / 2 + P.front * 0.65, run = P.d / 2 + P.over + P.front;
+    const underside = (x, z) => {
+      const v = z / run;
+      return roofGroup.position.y - P.ridge * (1 - Math.pow(1 - v, 1.28)) + P.sori * v ** 3 + P.sori * 0.55 * Math.pow(Math.abs(x) / ((P.w + P.over * 2) / 2), 2.4) * Math.pow(v, 1.5) - 0.13;
+    };
+    for (const x of [-0.92, 0.92]) {
+      const y = underside(x, porchZ);
+      g.add(at(new T.Mesh(new T.BoxGeometry(0.24, 0.1, 0.24), stone), x, 0.05, porchZ));
+      g.add(at(new T.Mesh(new T.BoxGeometry(0.12, y - 0.08, 0.12), wood), x, (y + 0.08) / 2, porchZ));
+      const pts = Array.from({ length: 19 }, (_, i) => { const z = P.d / 2 - 0.1 + (run - P.d / 2) * i / 18; return k.V3(x, underside(x, z), z); });
+      g.add(new T.Mesh(sweep(pts, ringRect(0.12, 0.14, 0.01)), wood));
+    }
   }
   return g;
 }
@@ -181,8 +227,15 @@ export const SPECIMENS = [
       const g = new k.THREE.Group();
       g.add(gateOf({ kind: 'myojin' }));
       for (const s of [-1, 1]) {
-        const small = gateOf({ kind: 'myojin', span: 1.5, height: 2.9, postR: 0.14, lintelH: 0.2, lintelD: 0.26, ext: 0.3, nukiDrop: 0.5, sori: SORI.gentle });
-        small.position.x = s * 3.0;
+        const sideOptions = { kind: 'myojin', span: 1.5, height: 2.9, postR: 0.14, lintelH: 0.2, lintelD: 0.26, ext: 0.3, nukiDrop: 0.5, sori: SORI.gentle, lean: 0 };
+        const small = new k.THREE.Group(), materials = gateMats({});
+        for (const part of gateParts(sideOptions)) {
+          part.geo.computeBoundingBox();
+          const centreX = part.geo.boundingBox.getCenter(k.V3()).x;
+          if (['hashira', 'nemaki', 'kamebara'].includes(part.name) && Math.sign(centreX) !== s) continue;
+          small.add(new k.THREE.Mesh(part.geo, materials[part.mat]));
+        }
+        small.position.x = s * (1.8 - 0.03 * 2.9 + 0.75);
         g.add(small);
       }
       return g;
@@ -289,7 +342,7 @@ export const SPECIMENS = [
   {
     id: 'chozuya', family: 'guard', name: 'Chōzuya', jp: '手水舎', tag: 'The roofed basin', plinth: 'stone', animatedShadow: false,
     blurb: 'Four posts and a small roof over a stone trough, a bamboo spout running and a dipper resting across it.',
-    how: ['The water is a thin box with a roughness near zero, so it takes the sky.', 'The spout is a tube down a catenary-free curve.'],
+    how: ['The water sits below the stone rim, inside a hollow trough.', 'A straight hollow feeder sits on a grounded supply riser and lashed trestle.'],
     use: 'Michi can drink here. Worth a stop.',
     sources: ['ise'],
     build(k) { return chozuya(k); }
@@ -322,7 +375,7 @@ export const SPECIMENS = [
   {
     id: 'nagare', family: 'hall', name: 'Nagare-zukuri', jp: '流造', tag: 'The roof that flows over the steps', plinth: 'stone',
     blurb: 'The most common shrine form in Japan: the front slope runs on over the stairs, so the roof is asymmetric from the side.',
-    how: ['One curved grid surface per slope, the front one extended by frontOver.', 'Cedar-bark courses are painted as a canvas texture.'],
+    how: ['One curved grid surface per slope, the front one extended by frontOver.', 'Cypress-bark courses are painted as a canvas texture.'],
     use: 'The best fit for the game’s hall. It keeps the silhouette low and generous.',
     sources: ['wha', 'kasuga'], also: [hallRoofSurface],
     build(k) { return hallOf(k, 'nagare'); }
@@ -416,14 +469,24 @@ export function chozuya(k) {
   for (const [x, z] of [[-1, -0.65], [1, -0.65], [-1, 0.65], [1, 0.65]]) g.add(new T.Mesh(k.tube([k.V3(x, 0, z), k.V3(x, 2.05, z)], 0.07, { radial: 10 }), wood));
   const roof = new T.Mesh(hallRoofSurface({ w: 2.3, d: 1.5, ridge: 0.5, over: 0.28, sori: 0.1 }), k.M.tile({ side: T.DoubleSide }));
   roof.position.y = 2.52; g.add(roof);
-  const trough = new T.Mesh(new T.BoxGeometry(1.4, 0.56, 0.74), stone); trough.position.y = 0.28; g.add(trough);
-  const water = new T.Mesh(new T.BoxGeometry(1.26, 0.01, 0.6), new T.MeshStandardMaterial({ color: 0x4a7a7c, roughness: 0.05, metalness: 0.6 })); water.position.y = 0.565; g.add(water);
-  const spout = k.catmull([k.V3(-1.05, 1.1, 0.2), k.V3(-0.7, 1.06, 0.2), k.V3(-0.42, 0.9, 0.18)], 14);
-  g.add(new T.Mesh(k.tube(spout, 0.035, { radial: 8 }), k.M.bamboo()));
-  const hishaku = new k.Bag();
-  hishaku.cyl(0.05, 0.07, { x: 0.3, y: 0.62, z: 0.34, color: 0xc9a06a });
-  hishaku.cyl(0.008, 0.5, { x: 0.05, y: 0.66, z: 0.34, rz: Math.PI / 2 - 0.1, color: 0xc9a06a });
-  g.add(hishaku.mesh(k.M.bag({ rough: 0.7 })));
+  const frame = new k.Bag();
+  for (const z of [-0.65, 0.65]) frame.box(2.2, 0.14, 0.16, { y: 2.08, z, color: 0x735234 });
+  for (const x of [-1, 0, 1]) {
+    frame.box(0.13, 0.14, 1.5, { x, y: 2.08, color: 0x735234 });
+    frame.box(0.12, 0.37, 0.12, { x, y: 2.30, color: 0x735234 });
+  }
+  g.add(frame.mesh(k.M.bag({ rough: 0.8 }), 'Roof bearings'));
+  const trough = new T.Group(); trough.name = 'Hollow stone trough'; g.add(trough);
+  const block = (w, h, d, x, y, z) => { const m = new T.Mesh(new T.BoxGeometry(w, h, d), stone); m.position.set(x, y, z); trough.add(m); };
+  block(1.4, 0.14, 0.74, 0, 0.07, 0);
+  for (const s of [-1, 1]) { block(0.12, 0.45, 0.74, s * 0.64, 0.335, 0); block(1.16, 0.45, 0.12, 0, 0.335, s * 0.31); }
+  const water = new T.Mesh(new T.BoxGeometry(1.16, 0.01, 0.5), new T.MeshStandardMaterial({ color: 0x4a7a7c, roughness: 0.12, metalness: 0.15 })); water.position.y = 0.485; g.add(water);
+  const outlet = bambooFeed(g, k.V3(-0.42, 0.92, 0.18));
+  const stream = new T.Mesh(k.tube([outlet, k.V3(outlet.x, 0.49, outlet.z)], 0.008, { radial: 6 }), new T.MeshStandardMaterial({ color: 0xb8dcd6, transparent: true, opacity: 0.65, roughness: 0.12 })); g.add(stream);
+  for (const x of [-0.35, 0.35]) g.add(new T.Mesh(k.tube([k.V3(x, 0.585, -0.4), k.V3(x, 0.585, 0.4)], 0.018, { radial: 8 }), k.M.bamboo()));
+  const hishaku = new T.Group(), cup = new T.Mesh(new T.LatheGeometry([[0.001, 0], [0.055, 0], [0.055, 0.065], [0.045, 0.065], [0.045, 0.012], [0.001, 0.012]].map(([x, y]) => new T.Vector2(x, y)), 20), k.M.wood({ base: 0xc9a06a }));
+  cup.position.set(0.35, 0.603, 0.1); hishaku.add(cup);
+  hishaku.add(new T.Mesh(k.tube([k.V3(-0.35, 0.612, 0.1), k.V3(0.35, 0.612, 0.1)], 0.008, { radial: 8 }), wood)); g.add(hishaku);
   return g;
 }
 

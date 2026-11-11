@@ -292,8 +292,9 @@ export function instances(geo, mat, list, name = '') {
 export function countScene(root) {
   let meshes = 0, tris = 0, instanced = 0;
   root.traverse((o) => {
-    if (!o.isMesh || !o.visible) return;
+    if (!(o.isMesh || o.isPoints || o.isLine || o.isSprite) || !o.visible) return;
     meshes++;
+    if (!o.isMesh) return;
     const g = o.geometry, k = o.isInstancedMesh ? o.count : 1;
     instanced += o.isInstancedMesh ? o.count : 0;
     tris += ((g.index ? g.index.count : g.attributes.position.count) / 3) * k;

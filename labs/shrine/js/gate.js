@@ -40,7 +40,14 @@ export function gateParts(o = {}) {
   const body = shinmei ? 'wood' : ishi ? 'stone' : 'paint';
   const postBase = (s) => V3(s * O.span / 2, 0, 0), postTop = (s) => V3(s * (O.span / 2 - O.lean * O.height), O.height, 0);
   const L = O.span + O.ext * 2;
-  const yTop = O.height + 0.02;
+  // Solve the bearing at the actual, leaning post centre. The sweep rises
+  // above its centreline here; a fixed lintel offset leaves daylight at the joint.
+  const bearingU = Math.abs(postTop(1).x) / (L / 2);
+  const shimakiH = O.lintelH * 0.92;
+  const hasShimaki = !shinmei && O.kind !== 'kasuga';
+  const bearingCurve = C(bearingU);
+  const shimakiY = O.height + shimakiH / 2 - bearingCurve - 0.015;
+  const kasagiY = hasShimaki ? shimakiY + (shimakiH + O.lintelH) / 2 - 0.012 : O.height + O.lintelH / 2 - bearingCurve - 0.015;
   for (const s of [-1, 1]) {
     const a = postBase(s), b = postTop(s), radial = slim ? 10 : 18;
     if (!shinmei && !slim) {
@@ -56,13 +63,13 @@ export function gateParts(o = {}) {
   add('nuki', body, sweep([V3(-NL / 2, nukiY, 0), V3(NL / 2, nukiY, 0)], ringRect(O.lintelH * 0.7, O.lintelD * 0.55, 0.02), { uScale: 1.2 }));
   if (!shinmei && !slim) {
     for (const s of [-1, 1]) add('kusabi', 'black', new THREE.BoxGeometry(0.2, 0.09, 0.32).translate(s * (O.span / 2 - O.lean * (O.height - O.nukiDrop)), nukiY + O.lintelH * 0.46, 0));
-    const gapTop = yTop + O.lintelH * 0.5;
-    add('gakuzuka', body, new THREE.BoxGeometry(0.26, gapTop - nukiY - O.lintelH * 0.3, 0.2).translate(0, (gapTop + nukiY + O.lintelH * 0.3) / 2, 0));
+    const gapTop = (hasShimaki ? shimakiY - shimakiH / 2 : kasagiY - O.lintelH / 2) + C(0) + 0.015;
+    const gapBase = nukiY + O.lintelH * 0.35 - 0.01;
+    add('gakuzuka', body, new THREE.BoxGeometry(0.26, gapTop - gapBase, 0.2).translate(0, (gapTop + gapBase) / 2, 0));
   }
-  if (shinmei) add('kasagi', 'wood', tube([V3(-L / 2, yTop + 0.16, 0), V3(L / 2, yTop + 0.16, 0)], O.lintelH * 0.62, { radial: 14, uScale: 1.2 }));
+  if (shinmei) add('kasagi', 'wood', tube([V3(-L / 2, O.height + O.lintelH * 0.62 - 0.015, 0), V3(L / 2, O.height + O.lintelH * 0.62 - 0.015, 0)], O.lintelH * 0.62, { radial: 14, uScale: 1.2 }));
   else {
-    const kasagiY = yTop + O.lintelH * 1.55;
-    if (O.kind !== 'kasuga') add('shimaki', body, beamOnCurve(L * 0.965, kasagiY - O.lintelH * 0.98, (t) => C(t) * 0.96, O.lintelH * 0.92, O.lintelD * 0.9, 0.025));
+    if (hasShimaki) add('shimaki', body, beamOnCurve(L * 0.965, shimakiY, (t) => C(t * 0.965), shimakiH, O.lintelD * 0.9, 0.025));
     add('kasagi', ishi ? 'stone' : 'black', beamOnCurve(L, kasagiY, C, O.lintelH, O.lintelD, 0.03));
   }
   return parts;
@@ -240,7 +247,7 @@ export function komainuPrims(open = true, h = 1) {
   return p;
 }
 
-export function hallRoofSurface({ w, d, ridge, over, sori = 0.12, frontOver = 0, nu = 30, nv = 12 }) {
+export function hallRoofSurface({ w, d, ridge, over, sori = 0.12, frontOver = 0, nu = 30, nv = 12, thickness = 0.09 }) {
   const pos = [], uv = [], idx = [];
   const surf = (side) => {
     const base = pos.length / 3;
@@ -258,6 +265,23 @@ export function hallRoofSurface({ w, d, ridge, over, sori = 0.12, frontOver = 0,
       const a = base + j * (nu + 1) + i, b = a + 1, c = a + nu + 1, e = c + 1;
       if (side > 0) idx.push(a, c, b, b, c, e); else idx.push(a, b, c, b, e, c);
     }
+    // A roof has a soffit and a fascia. Close each skin instead of relying on
+    // DoubleSide to disguise a sheet with no physical edge.
+    const count = (nu + 1) * (nv + 1), firstIndex = idx.length - nu * nv * 6;
+    for (let i = base; i < base + count; i++) {
+      pos.push(pos[i * 3], pos[i * 3 + 1] - thickness, pos[i * 3 + 2]); uv.push(uv[i * 2], uv[i * 2 + 1]);
+    }
+    for (let i = firstIndex, end = idx.length; i < end; i += 3) idx.push(idx[i] + count, idx[i + 2] + count, idx[i + 1] + count);
+    const rim = [];
+    for (let i = 0; i <= nu; i++) rim.push(base + i);
+    for (let j = 1; j <= nv; j++) rim.push(base + j * (nu + 1) + nu);
+    for (let i = nu - 1; i >= 0; i--) rim.push(base + nv * (nu + 1) + i);
+    for (let j = nv - 1; j > 0; j--) rim.push(base + j * (nu + 1));
+    for (let i = 0; i < rim.length; i++) {
+      const a = rim[i], b = rim[(i + 1) % rim.length];
+      if (side > 0) idx.push(a, b, a + count, b, b + count, a + count);
+      else idx.push(a, a + count, b, b, a + count, b + count);
+    }
   };
   surf(1); surf(-1);
   const g = new THREE.BufferGeometry();
@@ -268,7 +292,7 @@ export function hallRoofSurface({ w, d, ridge, over, sori = 0.12, frontOver = 0,
   return g;
 }
 
-/** Layered cedar-bark roofing (hiwadabuki): thin courses seen edge on. */
+/** Layered cypress-bark roofing (hiwadabuki): thin courses seen edge on. */
 export function hiwadaTexture() {
   const [c, x] = canvas2d(256, 256);
   const r = rng(91);

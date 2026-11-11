@@ -43,9 +43,10 @@ export function fence(points, style = 'yotsume', { age = 0.3, seed = 3, knotAge 
   if (!posts.length) return g;
   const up = (p, h) => p.clone().add(V3(0, h, 0));
   // posts and rails common to every style
+  const crown = (s) => 0.22 + (S.h - 0.22) * Math.sqrt(Math.max(0, 1 - (s / Math.max(total, 0.01)) ** 2));
   const postH = style === 'ginkaku' ? 1.05 : S.h + 0.1, postR = style === 'kenninji' ? 0.05 : 0.045;
-  for (const q of posts) put(q.p, up(q.p, postH).add(V3(lean(), 0, lean())), postR);
-  const rails = { yotsume: [0.3, 0.7, 1.15], kenninji: [0.18, 0.7, 1.25, 1.72], teppo: [0.34, 0.84, 1.34], koetsu: [0.12, 1.0], ginkaku: [0.55, 0.95] }[style];
+  for (const q of posts) put(q.p, up(q.p, style === 'koetsu' ? crown(q.s) + 0.04 : postH).add(V3(lean(), 0, lean())), postR);
+  const rails = { yotsume: [0.3, 0.7, 1.15], kenninji: [0.18, 0.7, 1.25, 1.72], teppo: [0.34, 0.84, 1.34], koetsu: [0.12], ginkaku: [0.55, 0.95] }[style];
   for (let i = 0; i < posts.length - 1; i++) {
     const a = posts[i], b = posts[i + 1], dir = a.dir, n = V3(-dir.z, 0, dir.x);
     for (const y of rails) put(up(a.p, y).addScaledVector(n, style === 'teppo' ? 0 : -0.05), up(b.p, y).addScaledVector(n, style === 'teppo' ? 0 : -0.05), 0.032);
@@ -71,12 +72,24 @@ export function fence(points, style = 'yotsume', { age = 0.3, seed = 3, knotAge 
         knot(up(p, rails[1]).addScaledVector(n, -0.03 * front), 0.03);
       }
     } else if (style === 'koetsu') {
-      const cnt = Math.max(2, Math.round(L / 0.26));
-      for (let k = 0; k < cnt; k++) {
-        const t0 = k / cnt, t1 = (k + 1) / cnt, y0 = 0.14, ym = S.h;
-        const pa = a.p.clone().lerp(b.p, t0), pb = a.p.clone().lerp(b.p, t1);
-        put(up(pa, y0).addScaledVector(n, 0.02), up(pb, ym).addScaledVector(n, 0.02), 0.017, 0.05);
-        put(up(pb, y0).addScaledVector(n, -0.02), up(pa, ym).addScaledVector(n, -0.02), 0.017, 0.05);
+      // Unfold the fence in (arc length, height), then clip 45° split-bamboo
+      // diagonals to the falling tamabuchi. Lines continue across post bays.
+      const at = (u, y) => up(a.p.clone().lerp(b.p, (u - a.s) / L), y);
+      for (const slope of [-1, 1]) for (let c0 = -S.h; c0 < total + S.h; c0 += 0.28) {
+        let first = null, last = null;
+        for (let j = 0; j <= 80; j++) {
+          const u = a.s + L * j / 80, y = 0.12 + slope * (u - c0);
+          if (y < 0.12 || y > crown(u) - 0.025) continue;
+          const p = at(u, y).addScaledVector(n, slope * 0.018);
+          first ||= p; last = p;
+        }
+        if (first && first.distanceTo(last) > 0.06) put(first, last, 0.014, 0.05);
+      }
+      const segments = Math.max(8, Math.ceil(L / 0.12));
+      for (let j = 0; j < segments; j++) {
+        const u0 = a.s + L * j / segments, u1 = a.s + L * (j + 1) / segments;
+        put(at(u0, crown(u0)), at(u1, crown(u1)), 0.035, 0.02);
+        if (j % 2 === 0) knot(at(u0, crown(u0)), 0.045);
       }
     } else if (style === 'ginkaku') {
       const cnt = Math.max(2, Math.round(L / 0.09));

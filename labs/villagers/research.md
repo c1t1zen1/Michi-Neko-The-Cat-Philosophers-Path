@@ -80,3 +80,14 @@ genetics.
 * **Slow blink.** Described as half-blinks followed by prolonged narrowing or closure, and cats narrowed their eyes more after a person did the same ([Humphrey et al., 2020](https://ui.adsabs.harvard.edu/abs/2020NatSR..1016503H), excerpt). The game has no dedicated blink action, so Luna's greeting uses a mood change and a sit.
 * **Grooming.** No usable ethology source came back. The grooming shown is the game's existing `groom` idle.
 * **The lab's retroreflection** is `pow(dot(toLight, toViewer), 40)` on a per-eye sprite, written for this page; no specific source.
+
+
+## Construction review — 2026-11-10
+
+### A lit paper screen
+
+Added timber borders and kumiko to the bright doorway study and reduced the bare emissive panel. The room opening now reads as a lit shōji. Cat anatomy and coats use the unchanged game Cat model.
+
+[Hachise machiya interior photograph](https://www.hachise.jp/buy/70064/index.html) (photograph inspected), [Sugimoto residence](https://en.sugimotoke.or.jp/) (photograph inspected).
+
+See the [complete lab review and before/after gallery](../REVIEW_2026-11-10.md).

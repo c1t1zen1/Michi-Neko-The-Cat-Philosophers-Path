@@ -157,3 +157,14 @@ default far plane is 100, so the bake saw the renderer's clear colour instead. O
 white lab page that lit every surface white, day and night. `labs/shared/world.js`
 scales the probe dome to fit. The game itself clears to a different colour, and this
 lab does not change `src/sky.js`.
+
+
+## Construction review — 2026-11-10
+
+### A stable shelf water surface
+
+Flat specimens are raised 8 mm above the plinth to remove coplanar z-fighting. Points and sprites take a direct shelf render, preserving fireflies and the game butterfly/mote comparisons. The original Moon Pool and all game builders remain unchanged.
+
+This is a rendering correction, not a new historical claim. See the existing pond, lantern and plant sources above.
+
+See the [complete lab review and before/after gallery](../REVIEW_2026-11-10.md).

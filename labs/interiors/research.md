@@ -321,3 +321,12 @@ All textures, brush marks and room compositions in the lab are original
 procedural artwork. Linked museum, maker and architecture photographs are
 reference material, not bundled assets. Upstream Three.js references are
 version-pinned in the technique table above.
+
+## Construction review — 2026-11-10
+
+The courtyard basin's bamboo rack now spans and bears on both stone rims;
+its old short bar ended over the bowl. Checked the room variants against
+[Hachise's machiya photographs](https://www.hachise.jp/buy/70064/index.html)
+and the [Sugimoto residence](https://en.sugimotoke.or.jp/). These remain
+fictional interior studies of several dates; the chabudai room is not an Edo
+reconstruction. See the [full review](../REVIEW_2026-11-10.md).

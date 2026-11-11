@@ -50,16 +50,28 @@ export const SPECIMENS = [
   { id: 'leaves', family: 'grove', name: 'Leaf cards', jp: '葉', tag: 'A narrow, drooping blade', plinth: 'moss', hour: 15, animatedShadow: true,
     blurb: 'Moso leaves are narrow and hang down. A real card with a mid-rib, instanced around a twig.',
     how: ['A two-triangle card with a painted blade and alpha test.', 'Per-instance sway from the world position.'], use: 'The grove’s top third.', sources: ['inst'], also: [swayMat],
-    build(k) { const u = { uT: { value: 0 }, uW: { value: 1 } }; const mat = swayMat(new k.THREE.MeshStandardMaterial({ map: leafTexture(), alphaTest: 0.4, roughness: 0.7, side: k.THREE.DoubleSide }), u); const g = new k.THREE.PlaneGeometry(0.1, 0.34, 1, 3).translate(0, -0.17, 0); const list = [], r = k.rand; for (let i = 0; i < 160; i++) { const a = r() * k.TAU, d = 0.1 + r() * 0.55; list.push({ x: Math.cos(a) * d, y: 0.9 + r() * 1.4, z: Math.sin(a) * d, rx: 0.5 + r() * 0.8, ry: a, rz: (r() - 0.5) * 0.5, s: 0.9 + r() * 0.4 }); } const m = k.instances(g, mat, list); m.frustumCulled = false; const t = new k.THREE.Group(); t.add(m); const c = new k.THREE.Mesh(CULM, k.M.bamboo({ vcol: true })); c.scale.set(0.05, 2.6, 0.05); t.add(c); return { group: t, update: (T) => { u.uT.value = T; } }; } },
+    build(k) {
+      const u = { uT: { value: 0 }, uW: { value: 1 } }, root = new k.THREE.Group(), list = [], twigs = new k.Bag(), r = k.rand;
+      const mat = swayMat(new k.THREE.MeshStandardMaterial({ map: leafTexture(), alphaTest: 0.4, roughness: 0.7, side: k.THREE.DoubleSide }), u);
+      for (let i = 0; i < 16; i++) {
+        const a = r() * k.TAU, y = (4 + Math.floor(i / 3)) / 11 * 2.6, d = 0.25 + r() * 0.4;
+        const start = k.V3(0, y, 0), end = k.V3(Math.cos(a) * d, y + 0.1, Math.sin(a) * d);
+        twigs.add(k.tube([start, end], 0.008, { radial: 6 }), { color: 0x819951 });
+        for (let j = 0; j < 5; j++) { const p = start.clone().lerp(end, 0.4 + j * 0.15); list.push({ x: p.x, y: p.y, z: p.z, rx: 0.6 + r() * 0.4, ry: a + (j % 2 ? 0.5 : -0.5), rz: 0, s: 0.9 + r() * 0.4 }); }
+      }
+      const leaves = k.instances(new k.THREE.PlaneGeometry(0.1, 0.34, 1, 3).translate(0, -0.17, 0), mat, list); leaves.frustumCulled = false; root.add(leaves, twigs.mesh(swayMat(k.M.bag({ rough: 0.8 }), u)));
+      const c = new k.THREE.Mesh(CULM, k.M.bamboo({ vcol: true })); c.scale.set(0.05, 2.6, 0.05); root.add(c);
+      return { group: root, update: (t) => { u.uT.value = t; } };
+    } },
 
   { id: 'game-bush', family: 'bush', original: true, name: 'A street bush', jp: '今の茂み', tag: 'bushGeometry() + the foliage shader', plinth: 'earth', hour: 15, game: G('buildStreetBushes'),
     blurb: 'The real lumpy-bush geometry and the foliage shader the street bushes use.',
     how: ['Lobes merged into one lumpy mesh, shaded with a painted leaf mass.'], use: 'Baseline.', sources: ['notes'],
-    build(k) { const g = new k.THREE.Group(); const mat = F.createFoliageMaterial({ sss: 0.3, wind: 0.9, rustle: 1.0, mottle: 0.2, bump: 0.45, vertexColors: true, massMap: F.leafMassTexture('leaf'), massScale: 1 / 0.55, ragged: 1 }); const m = new k.THREE.Mesh(F.bushGeometry(9, { lobes: 8, detail: 2, lump: 0.34 }), mat); m.scale.setScalar(0.9); m.position.y = 0.42; g.add(m); return g; } },
+    build(k) { const g = new k.THREE.Group(); const mat = F.createFoliageMaterial({ sss: 0.3, wind: 0.9, rustle: 1.0, mottle: 0.2, bump: 0.45, vertexColors: true, massMap: F.leafMassTexture('leaf'), massScale: 1 / 0.55, ragged: 1 }); mat.color.set(0x54763b); const m = new k.THREE.Mesh(F.bushGeometry(9, { lobes: 8, detail: 2, lump: 0.34 }), mat); m.scale.setScalar(0.9); m.position.y = 0.42; g.add(m); return g; } },
   { id: 'karikomi', family: 'bush', name: 'Karikomi', jp: '刈込', tag: 'Azalea clipped into cushions', plinth: 'earth', hour: 15,
     blurb: 'The clipped rounds of a Kyoto garden: not a bush but a shape held by someone with shears every year.',
     how: ['Smooth lumpy forms with a fine leaf mass; lower detail than a free-growing bush.'], use: 'Street corners and garden edges.', sources: ['notes'],
-    build(k) { const g = new k.THREE.Group(); const mat = F.createFoliageMaterial({ sss: 0.3, wind: 0.5, mottle: 0.3, bump: 0.5, vertexColors: true, massMap: F.leafMassTexture('leaf'), massScale: 1 / 0.3, ragged: 0.35 }); for (const [x, z, s] of [[-0.5, 0, 0.75], [0.48, 0.14, 0.62], [0.05, -0.55, 0.52]]) { const m = new k.THREE.Mesh(F.bushGeometry(5, { lobes: 6, detail: 2, lump: 0.14 }), mat); m.scale.set(s, s * 0.72, s); m.position.set(x, s * 0.42, z); g.add(m); } return g; } }
+    build(k) { const g = new k.THREE.Group(); const mat = F.createFoliageMaterial({ sss: 0.3, wind: 0.5, mottle: 0.3, bump: 0.5, vertexColors: true, massMap: F.leafMassTexture('leaf'), massScale: 1 / 0.3, ragged: 0.35 }); mat.color.set(0x54763b); for (const [x, z, s] of [[-0.5, 0, 0.75], [0.48, 0.14, 0.62], [0.05, -0.55, 0.52]]) { const m = new k.THREE.Mesh(F.bushGeometry(5, { lobes: 6, detail: 2, lump: 0.14 }), mat); m.scale.set(s, s * 0.72, s); m.position.set(x, s * 0.42, z); g.add(m); } return g; } }
 ];
 
 export const STEPS = [

@@ -95,3 +95,14 @@ NAJGA, japanobjects — excerpts).
   (`labs/shared/paperlantern.js`).
 * **Light.** The game already rotates four PointLights among the nearest lanterns.
   The lab keeps that idea: four real lights, and the rest are halo sprites.
+
+
+## Construction review — 2026-11-10
+
+### A hollow firebox and connected legs
+
+Replaced the continuous glowing belt with stone walls cut around real apertures and a small interior light carrier. Both kotoji legs now meet the lamp table; the shorter foot rests on a stone. This specimen uses Kenrokuen as a comparative construction reference, not a claim that its exact form originated in Kyoto.
+
+[Kasuga Taisha stone lanterns, Japan Tourism Agency](https://www.mlit.go.jp/tagengo-db/H30-00885.html) (text read), [Kenrokuen official photograph](https://www.hot-ishikawa.jp/photo/detail_1.html) (photograph inspected).
+
+See the [complete lab review and before/after gallery](../REVIEW_2026-11-10.md).
