@@ -7,6 +7,7 @@ import { createRoom } from './build.js';
 import { InteriorCat } from './cat.js';
 import { updateKnockables,supportAt } from './physics.js';
 import { CraftBench,CRAFTS } from './craft.js';
+import { mountSpecimenLinks } from '../../shared/specimen-link.js';
 
 const $=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)];
 const clamp=THREE.MathUtils.clamp;
@@ -115,7 +116,8 @@ new Loop((dt,t,raw)=>{
   if((statusClock+=dt)>.25){statusClock=0;const p=room.platforms.find(p=>Math.abs(p.top-cat.y)<.06&&supportAt([p],cat.pos.x,cat.pos.y)>.1);$('#cat-status').textContent=`Michi · ${cat.sleeping?'asleep on the cushion':!cat.grounded?'a little leap':p?`on the ${p.name}`:cat.pos.x>room.w/2?'on the engawa':'on the tatami'}`;$('#stats').textContent=`${heroView.stats.calls} draws · ${heroView.stats.tris.toLocaleString()} triangles · ${renderer.info.memory.textures} textures · 256 px surfaces`;modeButtons(cat.touring);}
 }).start();
 
-updateRoomCopy();makeLabels();setCraft('tatami');setHour(hour);setDoors(doors);setView(view);setQuality(quality);
+updateRoomCopy();makeLabels();setCraft(Object.hasOwn(CRAFTS,Q.get('craft'))?Q.get('craft'):'tatami');setHour(hour);setDoors(doors);setView(view);setQuality(quality);
+mountSpecimenLinks(tiles, { getId: (tile) => tile.recipe.id, getElement: (tile) => tile.article });
 const loadingScene=room.scene;
 cat.load({scene:loadingScene,renderer,sunDir:room.sun.position.clone().normalize()}).then(()=>{
   if(!room.scene.environment)room.scene.environment=loadingScene.environment;

@@ -5,6 +5,7 @@ import { request as httpsRequest } from 'node:https';
 import { extname, join, normalize, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createCatalog, normalizePath } from './src/catalog.mjs';
+import { createAssetLibraryApi } from '../catalog/server.mjs';
 import {
   AGENT_PROTOCOL_VERSION, PROVIDER_CATALOG, agentProtocolSchema, createProviderRequest,
   extractJson, extractProviderReasoning, extractProviderText, normalizeAgentSettings,
@@ -15,6 +16,7 @@ const CAD_ROOT = fileURLToPath(new URL('.', import.meta.url));
 const REPO_ROOT = resolve(CAD_ROOT, '..');
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || '127.0.0.1';
+const assetLibraryApi = createAssetLibraryApi({ repoRoot: REPO_ROOT });
 const SKIP_DIRECTORIES = new Set(['.git', 'node_modules', 'dist', 'build', '.cache']);
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
@@ -291,6 +293,8 @@ function safePath(urlPath) {
   const decoded = decodeURIComponent(urlPath.split('?')[0]);
   const requested = decoded === '/'
     ? '/index.html'
+    : decoded === '/catalog' || decoded === '/catalog/'
+      ? '/catalog/index.html'
     : decoded === '/cadJS' || decoded === '/cadJS/'
       ? '/cadJS/index.html'
       : decoded;
@@ -300,6 +304,7 @@ function safePath(urlPath) {
 
 const server = createServer(async (request, response) => {
   try {
+    if (await assetLibraryApi(request, response)) return;
     if (request.url === '/api/agent' && request.method === 'POST') return await agentRequest(request, response);
     if (request.url === '/api/agent/probe') return await probeRequest(request, response);
     if (request.url === '/api/agent/providers') {
@@ -318,7 +323,8 @@ const server = createServer(async (request, response) => {
     if (request.url === '/api/health') {
       return json(response, 200, { ok: true, app: 'cadJS', repoRoot: REPO_ROOT, time: new Date().toISOString() });
     }
-    const absolute = safePath(request.url || '/');
+    let absolute = safePath(request.url || '/');
+    if (absolute && existsSync(absolute) && statSync(absolute).isDirectory()) absolute = join(absolute, 'index.html');
     if (!absolute || !existsSync(absolute) || !statSync(absolute).isFile()) {
       return json(response, 404, { error: 'Not found' });
     }
@@ -335,6 +341,7 @@ const server = createServer(async (request, response) => {
 if (process.env.CADJS_VALIDATE !== '1') {
   server.listen(PORT, HOST, () => {
     console.log(`cadJS: http://${HOST}:${PORT}/cadJS/`);
+    console.log(`assets: http://${HOST}:${PORT}/catalog/`);
     console.log(`game:  http://${HOST}:${PORT}/`);
     console.log(`root:  ${REPO_ROOT}`);
   });

@@ -16,6 +16,7 @@ import { propMaterials, buildKameIshi, makeRock, buildReeds, buildToro, buildHas
 import { buildPaddies } from './paddies.js';
 import { RipplePool, Floaters, FloatingLanterns } from './effects.js';
 import { VARIANTS, FAMILIES } from './variants.js';
+import { mountSpecimenLinks } from '../../shared/specimen-link.js';
 
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 const fmt = (n) => (n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(n >= 1e4 ? 0 : 1) + 'k' : String(Math.round(n)));
@@ -382,6 +383,7 @@ export function buildGallery({ mount, views, renderer, getHour, onPlant }) {
       cubes.push(cube);
     }
   });
+  mountSpecimenLinks(cubes, { getId: (cube) => cube.v.id });
   return {
     cubes,
     refreshStats() {

@@ -9,6 +9,7 @@ import { WeatherField, clamp, fract } from './field.js';
 import { SkySystem } from './sky.js';
 import { KyotoWorld } from './world.js';
 import { receiveClouds } from './shadows.js';
+import { mountSpecimenLinks } from '../../shared/specimen-link.js';
 
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 mountLabChrome('sky');
@@ -158,7 +159,7 @@ for(const [familyIndex,family] of FAMILIES.entries()){
     article.querySelector('.view button').addEventListener('click',()=>{apply(variant.opts);$('#scene-name').textContent=variant.name;stage.scrollIntoView({behavior:reduceMotion?'instant':'smooth',block:'center'});});
     article.querySelector('.copy-code').addEventListener('click',async e=>{const b=e.currentTarget;try{await navigator.clipboard.writeText(variant.code);b.textContent='Copied ✓';}catch{b.textContent='Select the code above to copy';}});
     const vstate={...BASE,...variant.opts,quality:'eco'};
-    const tile={variant,state:vstate,built:false};tiles.push(tile);
+    const tile={variant,state:vstate,built:false,card:article};tiles.push(tile);
     views.add(article.querySelector('.view'),{build(){
       const tileScene=new THREE.Scene(),f=new WeatherField(vstate.shape),sk=new SkySystem(tileScene,f,{thumbnail:true}),w=new KyotoWorld(tileScene,sk,{thumbnail:true});
       const cam=new THREE.PerspectiveCamera(52,1.4,.1,1000);cam.position.set(14,5.8,23);cam.lookAt(-2,13,-42);
@@ -167,6 +168,7 @@ for(const [familyIndex,family] of FAMILIES.entries()){
     },margin:SHOT?-1:120});
   }
 }
+mountSpecimenLinks(tiles, { getId: (tile) => tile.variant.id });
 let initializingStepper=true;
 const stepper=new Stepper($('#steps-mount'),{steps:STEPS,onStep:(i,step)=>{if(!initializingStepper){apply(step.state);$('#scene-name').textContent=`Step ${i+1} · ${step.title}`;}}});
 initializingStepper=false;lab.stepper=stepper;

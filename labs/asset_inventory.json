@@ -1,0 +1,4699 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-11-10",
+  "scope": "Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.",
+  "exclusions": [
+    "HUD, menus, dialogue text, journal-only keepsakes, audio/music, invisible colliders and simulation helpers.",
+    "Lab-only proposals and Roof Road (a separate prototype, not loaded by the game).",
+    "dawCAT, cadJS, OLD, arbitrary CAD overrides and per-instance procedural placements.",
+    "Every individual texture, material, triangle, animation pose and shader helper; these belong to their owning asset types."
+  ],
+  "claimLimit": "The source inventory is manually reviewed, with an automated construction-method ledger and evidence-link checks. It is not a runtime scene census or proof that each mapped specimen renders correctly. Direct means a focused study exists, not that its result has shipped to the game.",
+  "sourceFiles": [
+    {
+      "file": "src/ambient_life.js",
+      "role": "assets",
+      "reason": "Koi, sparrows, guardian crows and butterflies."
+    },
+    {
+      "file": "src/audio.js",
+      "role": "excluded",
+      "reason": "Procedural audio, outside visual asset scope."
+    },
+    {
+      "file": "src/bootstrap.js",
+      "role": "excluded",
+      "reason": "Boot loading and recovery."
+    },
+    {
+      "file": "src/cad_overrides.js",
+      "role": "excluded",
+      "reason": "Optional arbitrary user-authored CAD overrides cannot have a finite core asset inventory."
+    },
+    {
+      "file": "src/cat.js",
+      "role": "assets",
+      "reason": "Cat render assembly, accessories and cosmetics."
+    },
+    {
+      "file": "src/cat_anatomy.js",
+      "role": "support",
+      "reason": "SDF cat parts and proportions, owned by cat component rows."
+    },
+    {
+      "file": "src/cat_motion.js",
+      "role": "support",
+      "reason": "Pose and animation definitions for inventoried cats."
+    },
+    {
+      "file": "src/cat_sdf.js",
+      "role": "support",
+      "reason": "Generic geometry/SDF engine; no independently placed asset."
+    },
+    {
+      "file": "src/cat_shading.js",
+      "role": "support",
+      "reason": "Materials and procedural coat/face painting, owned by cat component rows."
+    },
+    {
+      "file": "src/collider_grid.js",
+      "role": "excluded",
+      "reason": "Invisible collision acceleration."
+    },
+    {
+      "file": "src/context_actions.js",
+      "role": "assets",
+      "reason": "Landing-dust pool; other actions control inventoried assets."
+    },
+    {
+      "file": "src/controls.js",
+      "role": "excluded",
+      "reason": "Input handling."
+    },
+    {
+      "file": "src/countryside.js",
+      "role": "assets",
+      "reason": "Valley landscape, architecture, props and items."
+    },
+    {
+      "file": "src/dialogue.js",
+      "role": "excluded",
+      "reason": "Dialogue text/interface."
+    },
+    {
+      "file": "src/foliage.js",
+      "role": "support",
+      "reason": "Reusable canopy geometry and textures, owned by tree rows."
+    },
+    {
+      "file": "src/grass.js",
+      "role": "assets",
+      "reason": "Shipped procedural grass recipe families and fireflies."
+    },
+    {
+      "file": "src/hidden_places.js",
+      "role": "assets",
+      "reason": "Moon Pool and Lantern Glade."
+    },
+    {
+      "file": "src/instanced_chunks.js",
+      "role": "support",
+      "reason": "Rendering adapter for inventoried instanced geometry."
+    },
+    {
+      "file": "src/interior.js",
+      "role": "assets",
+      "reason": "Tea-house interior and knockable props."
+    },
+    {
+      "file": "src/main.js",
+      "role": "assets",
+      "reason": "Character placement and orchestration; UI and journal text excluded."
+    },
+    {
+      "file": "src/menus.js",
+      "role": "excluded",
+      "reason": "Menu/settings DOM."
+    },
+    {
+      "file": "src/mountaintop.js",
+      "role": "assets",
+      "reason": "Summit and vista; inventoried read only."
+    },
+    {
+      "file": "src/music.js",
+      "role": "excluded",
+      "reason": "Procedural music, outside visual asset scope."
+    },
+    {
+      "file": "src/npc.js",
+      "role": "assets",
+      "reason": "Named cat instances; DOM names excluded."
+    },
+    {
+      "file": "src/particles.js",
+      "role": "assets",
+      "reason": "Weather and ambient particles."
+    },
+    {
+      "file": "src/player.js",
+      "role": "assets",
+      "reason": "Michi and splash droplets."
+    },
+    {
+      "file": "src/postfx.js",
+      "role": "assets",
+      "reason": "Screen-space visual passes."
+    },
+    {
+      "file": "src/progression.js",
+      "role": "excluded",
+      "reason": "XP/ranks and journal rewards; cosmetic bell meshes are inventoried in cat.js."
+    },
+    {
+      "file": "src/quest.js",
+      "role": "excluded",
+      "reason": "Quest state and text rewards."
+    },
+    {
+      "file": "src/save.js",
+      "role": "excluded",
+      "reason": "Persistence."
+    },
+    {
+      "file": "src/scent.js",
+      "role": "assets",
+      "reason": "Instanced scent-trail particles."
+    },
+    {
+      "file": "src/settings.js",
+      "role": "excluded",
+      "reason": "Settings state."
+    },
+    {
+      "file": "src/sky.js",
+      "role": "assets",
+      "reason": "Sky objects and lighting."
+    },
+    {
+      "file": "src/textures.js",
+      "role": "support",
+      "reason": "Procedural material library; surfaces are mapped with their owning objects."
+    },
+    {
+      "file": "src/ui.js",
+      "role": "excluded",
+      "reason": "HUD, prompts and photo/journal interface."
+    },
+    {
+      "file": "src/vegetation.js",
+      "role": "assets",
+      "reason": "Trees, bamboo, ground cover and dappled light."
+    },
+    {
+      "file": "src/waypoints.js",
+      "role": "excluded",
+      "reason": "Compass and waypoint interface."
+    }
+  ],
+  "ignoredBuilders": [
+    {
+      "file": "src/cat.js",
+      "anchor": "  buildSkeleton(",
+      "reason": "Rigging helper; the rendered cat body and components are inventoried separately."
+    },
+    {
+      "file": "src/cat.js",
+      "anchor": "  buildMaterials(",
+      "reason": "Material setup for the inventoried cat; not another object."
+    },
+    {
+      "file": "src/countryside.js",
+      "anchor": "  createRiverUniforms(",
+      "reason": "Shader parameter state for the inventoried river/paddies, not another visible asset."
+    },
+    {
+      "file": "src/npc.js",
+      "anchor": "  createNameTag(",
+      "reason": "DOM character label; interface is outside the visible world-asset inventory."
+    },
+    {
+      "file": "src/main.js",
+      "anchor": "  buildJournalUI(",
+      "reason": "DOM journal interface; journal text rewards are not physical inventory objects."
+    },
+    {
+      "file": "src/menus.js",
+      "anchor": "  buildSettings(",
+      "reason": "DOM settings interface, outside the world-asset scope."
+    },
+    {
+      "file": "src/postfx.js",
+      "anchor": "  buildKernel(",
+      "reason": "AO sampling-kernel data, not a second visual asset."
+    }
+  ],
+  "targets": {
+    "cat/anatomy": {
+      "lab": "cat",
+      "selector": "anatomy",
+      "kind": "review",
+      "file": "tools/cat_preview.js",
+      "anchor": "const SHEETS",
+      "url": "tools/cat_preview.html?sheet=anatomy"
+    },
+    "villagers/luna": {
+      "lab": "villagers",
+      "selector": "luna",
+      "kind": "specimen",
+      "file": "labs/villagers/js/recipes.js",
+      "anchor": "id: 'luna'"
+    },
+    "villagers/mochi": {
+      "lab": "villagers",
+      "selector": "mochi",
+      "kind": "specimen",
+      "file": "labs/villagers/js/recipes.js",
+      "anchor": "id: 'mochi'"
+    },
+    "villagers/kuro": {
+      "lab": "villagers",
+      "selector": "kuro",
+      "kind": "specimen",
+      "file": "labs/villagers/js/recipes.js",
+      "anchor": "id: 'kuro'"
+    },
+    "fences/corral": {
+      "lab": "fences",
+      "selector": "corral",
+      "kind": "specimen",
+      "file": "labs/fences/js/recipes.js",
+      "anchor": "id: 'corral'"
+    },
+    "critters/game-bird": {
+      "lab": "critters",
+      "selector": "game-bird",
+      "kind": "specimen",
+      "file": "labs/critters/js/recipes.js",
+      "anchor": "id: 'game-bird'"
+    },
+    "critters/flock": {
+      "lab": "critters",
+      "selector": "flock",
+      "kind": "specimen",
+      "file": "labs/critters/js/recipes.js",
+      "anchor": "id: 'flock'"
+    },
+    "critters/game-koi": {
+      "lab": "critters",
+      "selector": "game-koi",
+      "kind": "specimen",
+      "file": "labs/critters/js/recipes.js",
+      "anchor": "id: 'game-koi'"
+    },
+    "critters/game-flutter": {
+      "lab": "critters",
+      "selector": "game-flutter",
+      "kind": "specimen",
+      "file": "labs/critters/js/recipes.js",
+      "anchor": "id: 'game-flutter'"
+    },
+    "critters/hinge": {
+      "lab": "critters",
+      "selector": "hinge",
+      "kind": "specimen",
+      "file": "labs/critters/js/recipes.js",
+      "anchor": "id: 'hinge'"
+    },
+    "cat/coat": {
+      "lab": "cat",
+      "selector": "coat",
+      "kind": "review",
+      "file": "tools/cat_preview.js",
+      "anchor": "  coat:",
+      "url": "tools/cat_preview.html?sheet=coat"
+    },
+    "cat/face": {
+      "lab": "cat",
+      "selector": "face",
+      "kind": "review",
+      "file": "tools/cat_preview.js",
+      "anchor": "  face:",
+      "url": "tools/cat_preview.html?sheet=face"
+    },
+    "cat/closeup": {
+      "lab": "cat",
+      "selector": "closeup",
+      "kind": "review",
+      "file": "tools/cat_preview.js",
+      "anchor": "  closeup:",
+      "url": "tools/cat_preview.html?sheet=closeup"
+    },
+    "ground/today": {
+      "lab": "ground",
+      "selector": "today",
+      "kind": "specimen",
+      "file": "labs/ground/js/variants.js",
+      "anchor": "id: 'today'"
+    },
+    "ground/height": {
+      "lab": "ground",
+      "selector": "height",
+      "kind": "specimen",
+      "file": "labs/ground/js/variants.js",
+      "anchor": "id: 'height'"
+    },
+    "ground/setts": {
+      "lab": "ground",
+      "selector": "setts",
+      "kind": "specimen",
+      "file": "labs/ground/js/variants.js",
+      "anchor": "id: 'setts'"
+    },
+    "ground/pom": {
+      "lab": "ground",
+      "selector": "pom",
+      "kind": "specimen",
+      "file": "labs/ground/js/variants.js",
+      "anchor": "id: 'pom'"
+    },
+    "ground/slabs": {
+      "lab": "ground",
+      "selector": "slabs",
+      "kind": "specimen",
+      "file": "labs/ground/js/variants.js",
+      "anchor": "id: 'slabs'"
+    },
+    "rocks/game-boulder": {
+      "lab": "rocks",
+      "selector": "game-boulder",
+      "kind": "specimen",
+      "file": "labs/rocks/js/recipes.js",
+      "anchor": "id: 'game-boulder'"
+    },
+    "rocks/game-rock": {
+      "lab": "rocks",
+      "selector": "game-rock",
+      "kind": "specimen",
+      "file": "labs/rocks/js/recipes.js",
+      "anchor": "id: 'game-rock'"
+    },
+    "water/game": {
+      "lab": "water",
+      "selector": "game",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'game'"
+    },
+    "water/kyoto": {
+      "lab": "water",
+      "selector": "kyoto",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'kyoto'"
+    },
+    "water/b-game": {
+      "lab": "water",
+      "selector": "b-game",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'b-game'"
+    },
+    "water/p-game": {
+      "lab": "water",
+      "selector": "p-game",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'p-game'"
+    },
+    "water/p-mirror": {
+      "lab": "water",
+      "selector": "p-mirror",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'p-mirror'"
+    },
+    "water/p-summer": {
+      "lab": "water",
+      "selector": "p-summer",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'p-summer'"
+    },
+    "water/p-autumn": {
+      "lab": "water",
+      "selector": "p-autumn",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'p-autumn'"
+    },
+    "water/ripple": {
+      "lab": "water",
+      "selector": "ripple",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'ripple'"
+    },
+    "weather/splash": {
+      "lab": "weather",
+      "selector": "splash",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'splash'"
+    },
+    "ranges/stack": {
+      "lab": "ranges",
+      "selector": "stack",
+      "kind": "bench",
+      "file": "labs/ranges/js/main.js",
+      "anchor": "$('#stackStage')"
+    },
+    "ranges/wall-mass": {
+      "lab": "ranges",
+      "selector": "wall-mass",
+      "kind": "bench",
+      "file": "labs/ranges/js/main.js",
+      "anchor": "const WALL4 = ["
+    },
+    "ranges/edge": {
+      "lab": "ranges",
+      "selector": "edge",
+      "kind": "bench",
+      "file": "labs/ranges/js/main.js",
+      "anchor": "$('#edgeStage')"
+    },
+    "ranges/foothills": {
+      "lab": "ranges",
+      "selector": "foothills",
+      "kind": "bench",
+      "file": "labs/ranges/js/main.js",
+      "anchor": "valley.setWall"
+    },
+    "machiya/original-village": {
+      "lab": "machiya",
+      "selector": "original-village",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "slug: 'original-' + kind"
+    },
+    "ranges/air": {
+      "lab": "ranges",
+      "selector": "air",
+      "kind": "bench",
+      "file": "labs/ranges/js/main.js",
+      "anchor": "$('#airStage')"
+    },
+    "machiya/original-tea": {
+      "lab": "machiya",
+      "selector": "original-tea",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "slug: 'original-' + kind"
+    },
+    "machiya/original-residence": {
+      "lab": "machiya",
+      "selector": "original-residence",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "slug: 'original-' + kind"
+    },
+    "machiya/original-secret": {
+      "lab": "machiya",
+      "selector": "original-secret",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "slug: 'original-' + kind"
+    },
+    "machiya/roof-original": {
+      "lab": "machiya",
+      "selector": "roof-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('roof',"
+    },
+    "machiya/lattice-original": {
+      "lab": "machiya",
+      "selector": "lattice-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('lattice',"
+    },
+    "machiya/deck-original": {
+      "lab": "machiya",
+      "selector": "deck-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('deck',"
+    },
+    "machiya/frame-original": {
+      "lab": "machiya",
+      "selector": "frame-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('frame',"
+    },
+    "machiya/window-original": {
+      "lab": "machiya",
+      "selector": "window-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('window',"
+    },
+    "machiya/cloth-original": {
+      "lab": "machiya",
+      "selector": "cloth-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('cloth',"
+    },
+    "alley/game-crates": {
+      "lab": "alley",
+      "selector": "game-crates",
+      "kind": "specimen",
+      "file": "labs/alley/js/recipes.js",
+      "anchor": "id: 'game-crates'"
+    },
+    "alley/crate": {
+      "lab": "alley",
+      "selector": "crate",
+      "kind": "specimen",
+      "file": "labs/alley/js/recipes.js",
+      "anchor": "id: 'crate'"
+    },
+    "alley/komodaru": {
+      "lab": "alley",
+      "selector": "komodaru",
+      "kind": "specimen",
+      "file": "labs/alley/js/props.js",
+      "anchor": "  komodaru:"
+    },
+    "nest/game-nest": {
+      "lab": "nest",
+      "selector": "game-nest",
+      "kind": "specimen",
+      "file": "labs/nest/js/recipes.js",
+      "anchor": "id: 'game-nest'"
+    },
+    "nest/lined": {
+      "lab": "nest",
+      "selector": "lined",
+      "kind": "specimen",
+      "file": "labs/nest/js/recipes.js",
+      "anchor": "id: 'lined'"
+    },
+    "nest/eggs": {
+      "lab": "nest",
+      "selector": "eggs",
+      "kind": "specimen",
+      "file": "labs/nest/js/recipes.js",
+      "anchor": "id: 'eggs'"
+    },
+    "lanterns/game-toro": {
+      "lab": "lanterns",
+      "selector": "game-toro",
+      "kind": "specimen",
+      "file": "labs/lanterns/js/recipes.js",
+      "anchor": "id: 'game-toro'"
+    },
+    "lanterns/game-chochin": {
+      "lab": "lanterns",
+      "selector": "game-chochin",
+      "kind": "specimen",
+      "file": "labs/lanterns/js/recipes.js",
+      "anchor": "id: 'game-chochin'"
+    },
+    "lanterns/game-street": {
+      "lab": "lanterns",
+      "selector": "game-street",
+      "kind": "specimen",
+      "file": "labs/lanterns/js/recipes.js",
+      "anchor": "id: 'game-street'"
+    },
+    "fences/game-fence": {
+      "lab": "fences",
+      "selector": "game-fence",
+      "kind": "specimen",
+      "file": "labs/fences/js/recipes.js",
+      "anchor": "id: 'game-fence'"
+    },
+    "garden/game-shishi": {
+      "lab": "garden",
+      "selector": "game-shishi",
+      "kind": "specimen",
+      "file": "labs/garden/js/recipes.js",
+      "anchor": "id: 'game-shishi'"
+    },
+    "garden/shishi": {
+      "lab": "garden",
+      "selector": "shishi",
+      "kind": "specimen",
+      "file": "labs/garden/js/recipes.js",
+      "anchor": "id: 'shishi'"
+    },
+    "garden/game-chime": {
+      "lab": "garden",
+      "selector": "game-chime",
+      "kind": "specimen",
+      "file": "labs/garden/js/recipes.js",
+      "anchor": "id: 'game-chime'"
+    },
+    "shrine/game-torii": {
+      "lab": "shrine",
+      "selector": "game-torii",
+      "kind": "specimen",
+      "file": "labs/shrine/js/recipes.js",
+      "anchor": "id: 'game-torii'"
+    },
+    "shrine/game-hall": {
+      "lab": "shrine",
+      "selector": "game-hall",
+      "kind": "specimen",
+      "file": "labs/shrine/js/recipes.js",
+      "anchor": "id: 'game-hall'"
+    },
+    "shrine/game-rope": {
+      "lab": "shrine",
+      "selector": "game-rope",
+      "kind": "specimen",
+      "file": "labs/shrine/js/recipes.js",
+      "anchor": "id: 'game-rope'"
+    },
+    "shrine/suzu": {
+      "lab": "shrine",
+      "selector": "suzu",
+      "kind": "specimen",
+      "file": "labs/shrine/js/recipes.js",
+      "anchor": "id: 'suzu'"
+    },
+    "shrine/game-altar": {
+      "lab": "shrine",
+      "selector": "game-altar",
+      "kind": "specimen",
+      "file": "labs/shrine/js/recipes.js",
+      "anchor": "id: 'game-altar'"
+    },
+    "pagoda/orig-tower": {
+      "lab": "pagoda",
+      "selector": "orig-tower",
+      "kind": "specimen",
+      "file": "labs/pagoda/js/variants.js",
+      "anchor": "slug: 'orig-' +"
+    },
+    "keepsakes/game-yarn": {
+      "lab": "keepsakes",
+      "selector": "game-yarn",
+      "kind": "specimen",
+      "file": "labs/keepsakes/js/recipes.js",
+      "anchor": "id: 'game-yarn'"
+    },
+    "keepsakes/wound": {
+      "lab": "keepsakes",
+      "selector": "wound",
+      "kind": "specimen",
+      "file": "labs/keepsakes/js/recipes.js",
+      "anchor": "id: 'wound'"
+    },
+    "keepsakes/game-key": {
+      "lab": "keepsakes",
+      "selector": "game-key",
+      "kind": "specimen",
+      "file": "labs/keepsakes/js/recipes.js",
+      "anchor": "id: 'game-key'"
+    },
+    "nest/feather": {
+      "lab": "nest",
+      "selector": "feather",
+      "kind": "specimen",
+      "file": "labs/nest/js/recipes.js",
+      "anchor": "id: 'feather'"
+    },
+    "shrine/game-bell": {
+      "lab": "shrine",
+      "selector": "game-bell",
+      "kind": "specimen",
+      "file": "labs/shrine/js/recipes.js",
+      "anchor": "id: 'game-bell'"
+    },
+    "tree/hero": {
+      "lab": "tree",
+      "selector": "hero",
+      "kind": "review",
+      "file": "tools/tree_preview.js",
+      "anchor": "'sakuraTree'",
+      "url": "tools/tree_preview.html?sheet=hero"
+    },
+    "tree/rim": {
+      "lab": "tree",
+      "selector": "rim",
+      "kind": "review",
+      "file": "tools/tree_preview.js",
+      "anchor": "  rim:",
+      "url": "tools/tree_preview.html?sheet=rim"
+    },
+    "tree/detail": {
+      "lab": "tree",
+      "selector": "detail",
+      "kind": "review",
+      "file": "tools/tree_preview.js",
+      "anchor": "  detail:",
+      "url": "tools/tree_preview.html?sheet=detail"
+    },
+    "tree/compare": {
+      "lab": "tree",
+      "selector": "compare",
+      "kind": "review",
+      "file": "tools/tree_preview.js",
+      "anchor": "  compare:",
+      "url": "tools/tree_preview.html?sheet=compare"
+    },
+    "greenery/game-grove": {
+      "lab": "greenery",
+      "selector": "game-grove",
+      "kind": "specimen",
+      "file": "labs/greenery/js/recipes.js",
+      "anchor": "id: 'game-grove'"
+    },
+    "greenery/nodes": {
+      "lab": "greenery",
+      "selector": "nodes",
+      "kind": "specimen",
+      "file": "labs/greenery/js/recipes.js",
+      "anchor": "id: 'nodes'"
+    },
+    "greenery/leaves": {
+      "lab": "greenery",
+      "selector": "leaves",
+      "kind": "specimen",
+      "file": "labs/greenery/js/recipes.js",
+      "anchor": "id: 'leaves'"
+    },
+    "greenery/game-bush": {
+      "lab": "greenery",
+      "selector": "game-bush",
+      "kind": "specimen",
+      "file": "labs/greenery/js/recipes.js",
+      "anchor": "id: 'game-bush'"
+    },
+    "grass/moss": {
+      "lab": "grass",
+      "selector": "moss",
+      "kind": "specimen",
+      "file": "labs/grass/js/types_wild.js",
+      "anchor": "id: 'moss'"
+    },
+    "grass/ring-lod": {
+      "lab": "grass",
+      "selector": "ring-lod",
+      "kind": "specimen",
+      "file": "labs/grass/js/types_field.js",
+      "anchor": "id: 'ring-lod'"
+    },
+    "grass/bezier": {
+      "lab": "grass",
+      "selector": "bezier",
+      "kind": "specimen",
+      "file": "labs/grass/js/types_field.js",
+      "anchor": "id: 'bezier'"
+    },
+    "grass/triquad": {
+      "lab": "grass",
+      "selector": "triquad",
+      "kind": "specimen",
+      "file": "labs/grass/js/types_field.js",
+      "anchor": "id: 'triquad'"
+    },
+    "grass/meadow-painted": {
+      "lab": "grass",
+      "selector": "meadow-painted",
+      "kind": "specimen",
+      "file": "labs/grass/js/types_ours.js",
+      "anchor": "id: 'meadow-painted'"
+    },
+    "grass/meadow-thicket": {
+      "lab": "grass",
+      "selector": "meadow-thicket",
+      "kind": "specimen",
+      "file": "labs/grass/js/types_ours.js",
+      "anchor": "id: 'meadow-thicket'"
+    },
+    "grass/wildflowers": {
+      "lab": "grass",
+      "selector": "wildflowers",
+      "kind": "specimen",
+      "file": "labs/grass/js/types_mixed.js",
+      "anchor": "id: 'wildflowers'"
+    },
+    "grass/susuki": {
+      "lab": "grass",
+      "selector": "susuki",
+      "kind": "specimen",
+      "file": "labs/grass/js/types_wild.js",
+      "anchor": "id: 'susuki'"
+    },
+    "grass/mown": {
+      "lab": "grass",
+      "selector": "mown",
+      "kind": "specimen",
+      "file": "labs/grass/js/types_mixed.js",
+      "anchor": "id: 'mown'"
+    },
+    "grass/lantern": {
+      "lab": "grass",
+      "selector": "lantern",
+      "kind": "specimen",
+      "file": "labs/grass/js/types_wild.js",
+      "anchor": "id: 'lantern'"
+    },
+    "grass/sumi": {
+      "lab": "grass",
+      "selector": "sumi",
+      "kind": "specimen",
+      "file": "labs/grass/js/types_wild.js",
+      "anchor": "id: 'sumi'"
+    },
+    "grass/yarn": {
+      "lab": "grass",
+      "selector": "yarn",
+      "kind": "specimen",
+      "file": "labs/grass/js/types_wild.js",
+      "anchor": "id: 'yarn'"
+    },
+    "grass/carpet-blades": {
+      "lab": "grass",
+      "selector": "carpet-blades",
+      "kind": "specimen",
+      "file": "labs/grass/js/types_mixed.js",
+      "anchor": "id: 'carpet-blades'"
+    },
+    "moonpool/fireflies": {
+      "lab": "moonpool",
+      "selector": "fireflies",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/recipes.js",
+      "anchor": "id: 'fireflies'"
+    },
+    "komorebi/game-dapple": {
+      "lab": "komorebi",
+      "selector": "game-dapple",
+      "kind": "specimen",
+      "file": "labs/komorebi/js/recipes.js",
+      "anchor": "id: 'game-dapple'"
+    },
+    "komorebi/game-drift": {
+      "lab": "komorebi",
+      "selector": "game-drift",
+      "kind": "specimen",
+      "file": "labs/komorebi/js/recipes.js",
+      "anchor": "id: 'game-drift'"
+    },
+    "moonpool/game-water": {
+      "lab": "moonpool",
+      "selector": "game-water",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/recipes.js",
+      "anchor": "id: 'game-water'"
+    },
+    "moonpool/game-moon": {
+      "lab": "moonpool",
+      "selector": "game-moon",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/recipes.js",
+      "anchor": "id: 'game-moon'"
+    },
+    "moonpool/game-pad": {
+      "lab": "moonpool",
+      "selector": "game-pad",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/recipes.js",
+      "anchor": "id: 'game-pad'"
+    },
+    "moonpool/lotus": {
+      "lab": "moonpool",
+      "selector": "lotus",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/recipes.js",
+      "anchor": "id: 'lotus'"
+    },
+    "moonpool/game-motes": {
+      "lab": "moonpool",
+      "selector": "game-motes",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/recipes.js",
+      "anchor": "id: 'game-motes'"
+    },
+    "moonpool/game-lamp": {
+      "lab": "moonpool",
+      "selector": "game-lamp",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/recipes.js",
+      "anchor": "id: 'game-lamp'"
+    },
+    "rocks/moss-old": {
+      "lab": "rocks",
+      "selector": "moss-old",
+      "kind": "specimen",
+      "file": "labs/rocks/js/recipes.js",
+      "anchor": "id: 'moss-old'"
+    },
+    "interiors/garden": {
+      "lab": "interiors",
+      "selector": "garden",
+      "kind": "specimen",
+      "file": "labs/interiors/js/data.js",
+      "anchor": "R('garden',"
+    },
+    "interiors/tatami": {
+      "lab": "interiors",
+      "selector": "tatami",
+      "kind": "bench",
+      "file": "labs/interiors/js/craft.js",
+      "anchor": "  tatami:"
+    },
+    "interiors/shoji": {
+      "lab": "interiors",
+      "selector": "shoji",
+      "kind": "bench",
+      "file": "labs/interiors/js/craft.js",
+      "anchor": "  shoji:"
+    },
+    "interiors/pottery": {
+      "lab": "interiors",
+      "selector": "pottery",
+      "kind": "bench",
+      "file": "labs/interiors/js/craft.js",
+      "anchor": "  pottery:"
+    },
+    "lanterns/andon": {
+      "lab": "lanterns",
+      "selector": "andon",
+      "kind": "specimen",
+      "file": "labs/lanterns/js/recipes.js",
+      "anchor": "id: 'andon'"
+    },
+    "rocks/rake": {
+      "lab": "rocks",
+      "selector": "rake",
+      "kind": "specimen",
+      "file": "labs/rocks/js/recipes.js",
+      "anchor": "id: 'rake'"
+    },
+    "interiors/bat-cup": {
+      "lab": "interiors",
+      "selector": "bat-cup",
+      "kind": "interaction",
+      "file": "labs/interiors/js/cat.js",
+      "anchor": "  batCup("
+    },
+    "sky/sky-game": {
+      "lab": "sky",
+      "selector": "sky-game",
+      "kind": "specimen",
+      "file": "labs/sky/js/data.js",
+      "anchor": "study('sky-game'"
+    },
+    "sky/cloud-game": {
+      "lab": "sky",
+      "selector": "cloud-game",
+      "kind": "specimen",
+      "file": "labs/sky/js/data.js",
+      "anchor": "study('cloud-game'"
+    },
+    "sky/sky-night": {
+      "lab": "sky",
+      "selector": "sky-night",
+      "kind": "specimen",
+      "file": "labs/sky/js/data.js",
+      "anchor": "study('sky-night'"
+    },
+    "sky/air-rays": {
+      "lab": "sky",
+      "selector": "air-rays",
+      "kind": "specimen",
+      "file": "labs/sky/js/data.js",
+      "anchor": "study('air-rays'"
+    },
+    "weather/game-rain": {
+      "lab": "weather",
+      "selector": "game-rain",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'game-rain'"
+    },
+    "water/hanaikada": {
+      "lab": "water",
+      "selector": "hanaikada",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'hanaikada'"
+    },
+    "weather/game-petal": {
+      "lab": "weather",
+      "selector": "game-petal",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'game-petal'"
+    },
+    "weather/game-snow": {
+      "lab": "weather",
+      "selector": "game-snow",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'game-snow'"
+    },
+    "summit/haze": {
+      "lab": "summit",
+      "selector": "haze",
+      "kind": "specimen",
+      "file": "labs/summit/js/recipes.js",
+      "anchor": "id: 'haze'"
+    },
+    "ground/kuwahara": {
+      "lab": "ground",
+      "selector": "kuwahara",
+      "kind": "specimen",
+      "file": "labs/ground/js/variants.js",
+      "anchor": "id: 'kuwahara'"
+    },
+    "summit-review/whole-scene": {
+      "lab": "summit-review",
+      "selector": "whole-scene",
+      "kind": "review",
+      "file": "tools/summit_preview.js",
+      "anchor": "new SummitManager",
+      "url": "tools/summit_preview.html?view=meditation"
+    },
+    "summit/game-city": {
+      "lab": "summit",
+      "selector": "game-city",
+      "kind": "specimen",
+      "file": "labs/summit/js/recipes.js",
+      "anchor": "id: 'game-city'"
+    },
+    "summit/night": {
+      "lab": "summit",
+      "selector": "night",
+      "kind": "specimen",
+      "file": "labs/summit/js/recipes.js",
+      "anchor": "id: 'night'"
+    },
+    "villagers/sleep": {
+      "lab": "villagers",
+      "selector": "sleep",
+      "kind": "specimen",
+      "file": "labs/villagers/js/recipes.js",
+      "anchor": "id: 'sleep'"
+    }
+  },
+  "assets": [
+    {
+      "id": "michi",
+      "label": "Michi (player cat)",
+      "group": "Characters",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/player.js",
+          "anchor": "this.mesh.name = 'Player Character (Michi)'"
+        },
+        {
+          "file": "src/cat.js",
+          "anchor": "  buildCoat("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "cat/anatomy",
+          "level": "review"
+        },
+        {
+          "target": "villagers/sleep",
+          "level": "embedded",
+          "note": "The sleep specimen uses Michi’s coat/build; it is a pose study rather than a dedicated player-model lab."
+        }
+      ]
+    },
+    {
+      "id": "luna",
+      "label": "Luna",
+      "group": "Characters",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/main.js",
+          "anchor": "'Luna',"
+        },
+        {
+          "file": "src/npc.js",
+          "anchor": "export class NPC"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "villagers/luna",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "mochi",
+      "label": "Mochi",
+      "group": "Characters",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/main.js",
+          "anchor": "'Mochi',"
+        },
+        {
+          "file": "src/npc.js",
+          "anchor": "export class NPC"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "villagers/mochi",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "kuro",
+      "label": "Kuro",
+      "group": "Characters",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/main.js",
+          "anchor": "'Kuro',"
+        },
+        {
+          "file": "src/npc.js",
+          "anchor": "export class NPC"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "villagers/kuro",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "larry",
+      "label": "Larry the turtle",
+      "group": "Characters",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "turtle.name = 'Turtle Guardian (Larry)'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "fences/corral",
+          "level": "embedded",
+          "note": "The complete original corral includes Larry; there is no isolated turtle or patrol study."
+        }
+      ]
+    },
+    {
+      "id": "guardian-crows",
+      "label": "Nest guardian crows",
+      "group": "Characters",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/ambient_life.js",
+          "anchor": "  buildGuardianBirds("
+        }
+      ],
+      "coverage": [],
+      "note": "Critters extracts a sparrow, not guardianBirds; constructing AmbientLife alone does not put the crows on a specimen."
+    },
+    {
+      "id": "sparrows",
+      "label": "Valley sparrows",
+      "group": "Characters",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/ambient_life.js",
+          "anchor": "  buildBirds("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "critters/game-bird",
+          "level": "direct"
+        },
+        {
+          "target": "critters/flock",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "koi",
+      "label": "River koi (procedural coat variants)",
+      "group": "Characters",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/ambient_life.js",
+          "anchor": "  buildKoi("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "critters/game-koi",
+          "level": "direct"
+        }
+      ],
+      "note": "Repeated koi and randomized markings are instances of this type, not additional inventory rows."
+    },
+    {
+      "id": "butterflies",
+      "label": "Valley butterflies",
+      "group": "Characters",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/ambient_life.js",
+          "anchor": "  buildButterflies("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "critters/game-flutter",
+          "level": "direct"
+        },
+        {
+          "target": "critters/hinge",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "cat-coat",
+      "label": "Cat body, fur and tabby coats",
+      "group": "Cat components",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/cat.js",
+          "anchor": "  buildCoat("
+        },
+        {
+          "file": "src/cat_anatomy.js",
+          "anchor": "export function getCatAnatomy"
+        },
+        {
+          "file": "src/cat_shading.js",
+          "anchor": "export function furMaterial"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "cat/coat",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "cat-face",
+      "label": "Cat nose, muzzle, whiskers, ears and painted eyes",
+      "group": "Cat components",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/cat.js",
+          "anchor": "  buildFace("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "cat/face",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "cat-collar",
+      "label": "Braided collar, bow and brass bell",
+      "group": "Cat components",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/cat.js",
+          "anchor": "  buildCollar("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "cat/closeup",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "master-bells",
+      "label": "Master Cat gold and twin bells",
+      "group": "Cat components",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/cat.js",
+          "anchor": "  setMasterCat("
+        }
+      ],
+      "coverage": [],
+      "note": "The ordinary collar is reviewed; no specimen explicitly enables setMasterCat()."
+    },
+    {
+      "id": "cat-shadow",
+      "label": "Cat contact-shadow blob",
+      "group": "Cat components",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/cat.js",
+          "anchor": "  buildShadowBlob("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "cat/anatomy",
+          "level": "embedded",
+          "note": "Visible with the complete cat; no isolated shadow study."
+        }
+      ]
+    },
+    {
+      "id": "valley-ground",
+      "label": "Valley ground and terrain",
+      "group": "Ground and water",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildGround("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "ground/today",
+          "level": "direct"
+        },
+        {
+          "target": "ground/height",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "path",
+      "label": "Cobbled valley path",
+      "group": "Ground and water",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildPath("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "ground/setts",
+          "level": "direct"
+        },
+        {
+          "target": "ground/pom",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "path-shoulders",
+      "label": "Earthen path shoulders",
+      "group": "Ground and water",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildPathShoulders("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "ground/today",
+          "level": "direct"
+        },
+        {
+          "target": "ground/height",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "path-slabs",
+      "label": "Walkway stone slabs",
+      "group": "Ground and water",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildWalkwaySlabs("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "ground/slabs",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "path-boulders",
+      "label": "Path boulders",
+      "group": "Ground and water",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildPathBoulders("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "rocks/game-boulder",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "key-rock",
+      "label": "Key-hiding rock and companion stones",
+      "group": "Ground and water",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildKeyHidingRock("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "rocks/game-rock",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "river",
+      "label": "River water surface and bed",
+      "group": "Ground and water",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildRiverAndBridge("
+        },
+        {
+          "file": "src/countryside.js",
+          "anchor": "  createRiverWaterMaterial("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "water/game",
+          "level": "direct"
+        },
+        {
+          "target": "water/kyoto",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "bridge",
+      "label": "Kiyomizu bridge, ramps and walkable rails",
+      "group": "Ground and water",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "bridge.name = 'Kiyomizu Bridge'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "water/b-game",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "paddies",
+      "label": "Rice-paddy water",
+      "group": "Ground and water",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildPaddies("
+        },
+        {
+          "file": "src/countryside.js",
+          "anchor": "  createPaddyWaterMaterial("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "water/p-game",
+          "level": "direct"
+        },
+        {
+          "target": "water/p-mirror",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "paddy-bunds",
+      "label": "Paddy beds and raised banks",
+      "group": "Ground and water",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "Paddy Ridge"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "water/p-game",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "rice",
+      "label": "Rice stalks",
+      "group": "Ground and water",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "rice.name = 'Rice Stalks'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "water/p-summer",
+          "level": "direct"
+        },
+        {
+          "target": "water/p-autumn",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "water-ripples",
+      "label": "Cat and koi ripple rings",
+      "group": "Ground and water",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildRipplePool("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "water/ripple",
+          "level": "direct",
+          "note": "Technique study; not a replay of the game ripple-pool logic."
+        }
+      ]
+    },
+    {
+      "id": "rain-ripples",
+      "label": "Separate raindrop ripple pool",
+      "group": "Ground and water",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildRainRipplePool("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "weather/splash",
+          "level": "direct",
+          "note": "Rain impact study; original pool eviction behavior is not tested."
+        }
+      ]
+    },
+    {
+      "id": "mountains",
+      "label": "Valley mountain terrain and ridges",
+      "group": "Landscape",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildMountains("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "ranges/stack",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "edge-forest",
+      "label": "Edge-forest broadleaf tree wall",
+      "group": "Landscape",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildEdgeForest("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "ranges/wall-mass",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "edge-undergrowth",
+      "label": "Edge shrubs and shrine corridor thicket",
+      "group": "Landscape",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildEdgeUndergrowth("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "ranges/edge",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "foothill-forest",
+      "label": "Foothill cedars and broadleaf crowns",
+      "group": "Landscape",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildFoothillForest("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "ranges/foothills",
+          "level": "embedded",
+          "note": "The hero valley includes the foothill carpet; there is no separate shelf specimen."
+        }
+      ]
+    },
+    {
+      "id": "distant-village",
+      "label": "Distant valley village houses and hearth windows",
+      "group": "Landscape",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildVillage("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/original-village",
+          "level": "related",
+          "note": "The street-house builder differs from buildVillage() distant silhouettes."
+        }
+      ]
+    },
+    {
+      "id": "mist-ring",
+      "label": "Valley mist ring",
+      "group": "Landscape",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildMistRing("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "ranges/air",
+          "level": "related",
+          "note": "Aerial perspective bench; it does not extract the original mist-ring mesh."
+        }
+      ]
+    },
+    {
+      "id": "dawn-mist",
+      "label": "River dawn mist ribbons",
+      "group": "Landscape",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildDawnMist("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "ranges/air",
+          "level": "related",
+          "note": "General haze study; no dawn-river specimen or time envelope."
+        }
+      ]
+    },
+    {
+      "id": "tea-house",
+      "label": "Machiya tea house",
+      "group": "Buildings",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildMachiyaTeaHouse("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/original-tea",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "residence",
+      "label": "Craftsman residence",
+      "group": "Buildings",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildMachiyaResidence("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/original-residence",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "secret-house",
+      "label": "Hisomu-an secret machiya",
+      "group": "Buildings",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildSecretMachiya("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/original-secret",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "street-house",
+      "label": "Village street house",
+      "group": "Buildings",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildVillageHouse("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/original-village",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "village-street",
+      "label": "Village street assembly",
+      "group": "Buildings",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildVillageStreet("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/original-village",
+          "level": "related",
+          "note": "Individual house references, not a specimen of the complete original street layout."
+        }
+      ]
+    },
+    {
+      "id": "kawara-roof",
+      "label": "Kawara roof slopes, end tiles, ridge and onigawara",
+      "group": "Building components",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  createKawaraRoof("
+        },
+        {
+          "file": "src/countryside.js",
+          "anchor": "  createCurvedSlope("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/roof-original",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "koushi",
+      "label": "Koushi lattice and framing",
+      "group": "Building components",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  createKoushi("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/lattice-original",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "engawa",
+      "label": "Engawa deck, plinths and stepping stone",
+      "group": "Building components",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  createEngawa("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/deck-original",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "timber-frame",
+      "label": "Timber posts, sills and eave beams",
+      "group": "Building components",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "// Dark timber foundation sill"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/frame-original",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "upper-windows",
+      "label": "Upper-storey timber lattice windows",
+      "group": "Building components",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "// Upper fine vertical lattice windows"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/window-original",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "noren",
+      "label": "Noren shop curtains",
+      "group": "Building components",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "// Front Facade: Lattice"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/cloth-original",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "namako",
+      "label": "Namako skirt walls",
+      "group": "Building components",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "// Namako-kabe skirt"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/original-village",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "tea-bench",
+      "label": "Tea-house bench and mosen cushion",
+      "group": "Building components",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "// Front Chamise Tea Bench"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/original-tea",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "secret-door",
+      "label": "Secret sliding door",
+      "group": "Building components",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "slidingDoor.name = 'Secret Sliding Door'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/original-secret",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "lock-plate",
+      "label": "Antique brass padlock emblem",
+      "group": "Building components",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "this.lockPlate.name = 'Brass Lock Plate'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/original-secret",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "crates",
+      "label": "Climbable crate stacks",
+      "group": "Props",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  createClimbCrates("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "alley/game-crates",
+          "level": "direct"
+        },
+        {
+          "target": "alley/crate",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "sake-barrel",
+      "label": "Climb-route sake barrel",
+      "group": "Props",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "// Bottom step: 2 heavy wooden crates + 1 sake barrel"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "alley/komodaru",
+          "level": "direct",
+          "note": "Generated as its own specimen by the PROPS map in recipes.js."
+        }
+      ]
+    },
+    {
+      "id": "nest",
+      "label": "Rooftop bird nest",
+      "group": "Props",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildBirdNest("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "nest/game-nest",
+          "level": "direct"
+        },
+        {
+          "target": "nest/lined",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "nest-eggs",
+      "label": "Three speckled nest eggs",
+      "group": "Props",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "// Twig nest bowl"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "nest/eggs",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "toro",
+      "label": "Stone toro lanterns and halos",
+      "group": "Props",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildToroLantern("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "lanterns/game-toro",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "chochin",
+      "label": "Hanging chochin lanterns",
+      "group": "Props",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  createChochinLantern("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "lanterns/game-chochin",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "street-lamps",
+      "label": "Street lamp posts",
+      "group": "Props",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildLanterns("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "lanterns/game-street",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "bamboo-fence",
+      "label": "Bamboo fence runs",
+      "group": "Props",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildBambooFence("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "fences/game-fence",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "corral",
+      "label": "Bamboo corral assembly",
+      "group": "Props",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildBambooCorral("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "fences/corral",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "corral-sign",
+      "label": "Corral warning sign",
+      "group": "Props",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "marker.name = 'Corral Warning Sign'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "fences/corral",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "shishi",
+      "label": "Shishi-odoshi feeder, rocker, pivot and basin",
+      "group": "Props",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildShishiOdoshi("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "garden/game-shishi",
+          "level": "direct"
+        },
+        {
+          "target": "garden/shishi",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "wind-chime",
+      "label": "Furin wind chime",
+      "group": "Props",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildWindChime("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "garden/game-chime",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "torii",
+      "label": "Valley torii gate and climbing joinery",
+      "group": "Shrine",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildTorii("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "shrine/game-torii",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "shrine-hall",
+      "label": "Shrine hall, steps and roof",
+      "group": "Shrine",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildShrine("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "shrine/game-hall",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "shimenawa",
+      "label": "Sacred shimenawa rope and shide",
+      "group": "Shrine",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "// Sacred Shimenawa"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "shrine/game-rope",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "shrine-bell",
+      "label": "Shrine hanging bell and cords",
+      "group": "Shrine",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "// Sacred Buddha / Shrine Spiritual Bell"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "shrine/suzu",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "offering-box",
+      "label": "Saisen-bako offering box",
+      "group": "Shrine",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "// Saisen-bako wooden offering box"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "shrine/game-hall",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "mist-altar",
+      "label": "Mist altar plinth, bell, spirit flame and ring",
+      "group": "Shrine",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildMistAltar("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "shrine/game-altar",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "distant-pagoda",
+      "label": "Valley distant pagoda",
+      "group": "Shrine",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildDistantPagoda("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "pagoda/orig-tower",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "yarn",
+      "label": "Yarn balls",
+      "group": "Items",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildYarn("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "keepsakes/game-yarn",
+          "level": "direct"
+        },
+        {
+          "target": "keepsakes/wound",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "key",
+      "label": "Antique secret-house key",
+      "group": "Items",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildSecretKey("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "keepsakes/game-key",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "guardian-feather",
+      "label": "Guardian’s Feather trophy",
+      "group": "Items",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "feather.name = \"Guardian's Feather\""
+        }
+      ],
+      "coverage": [
+        {
+          "target": "nest/feather",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "offering-bells",
+      "label": "Five collectible offering bells",
+      "group": "Items",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildOfferingBells("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "shrine/game-bell",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "dango",
+      "label": "Golden Dango / River-Spirit Charm",
+      "group": "Items",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "charm.name = 'River-Spirit Charm'"
+        }
+      ],
+      "coverage": [],
+      "note": "Water Lab studies water and bridges, but does not extract the charm as a specimen."
+    },
+    {
+      "id": "jade-paw",
+      "label": "Jade Paw corral reward",
+      "group": "Items",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "reward.name = 'Jade Paw Reward'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "fences/corral",
+          "level": "related",
+          "note": "The original builder creates this reward with visible=false. The corral tile does not reveal it; construction is not visible coverage."
+        }
+      ]
+    },
+    {
+      "id": "secret-fish",
+      "label": "Secret-house grilled fish treat",
+      "group": "Items",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "fish.name = 'Grilled Fish Treat'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/original-secret",
+          "level": "embedded",
+          "note": "Fish remains inside the furnished original secret-house reference."
+        }
+      ]
+    },
+    {
+      "id": "interior-fish",
+      "label": "Tea-house grilled sea-bream platter",
+      "group": "Items",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "fish.name = 'Grilled Sea Bream'"
+        }
+      ],
+      "coverage": [],
+      "note": "The standalone Interiors Lab does not reproduce this food item."
+    },
+    {
+      "id": "sakura",
+      "label": "Sakura trees",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/vegetation.js",
+          "anchor": "  sakuraTree("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "tree/hero",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "maples",
+      "label": "Maple trees",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/vegetation.js",
+          "anchor": "  mapleTree("
+        },
+        {
+          "file": "src/vegetation.js",
+          "anchor": "  buildMaplesAndPines("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "tree/hero",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "pines",
+      "label": "Garden pines",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/vegetation.js",
+          "anchor": "  pineTree("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "tree/hero",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "rim-trees",
+      "label": "Rim sakura, maple and pine leaf masses",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/vegetation.js",
+          "anchor": "  treeStyle("
+        },
+        {
+          "file": "src/vegetation.js",
+          "anchor": "  canopyTree("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "tree/rim",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "tree-trunks",
+      "label": "Tree trunks and limbs",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/vegetation.js",
+          "anchor": "  trunkMesh("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "tree/detail",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "tree-canopies",
+      "label": "Leaf sprays and clumped/mass canopy families",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/foliage.js",
+          "anchor": "export function buildCanopy"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "tree/compare",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "bamboo-groves",
+      "label": "Bamboo groves, culms and leaves",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/vegetation.js",
+          "anchor": "  buildBambooGrove("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "greenery/game-grove",
+          "level": "direct"
+        },
+        {
+          "target": "greenery/nodes",
+          "level": "direct"
+        },
+        {
+          "target": "greenery/leaves",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "street-bushes",
+      "label": "Street bushes",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildStreetBushes("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "greenery/game-bush",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "roadside-moss",
+      "label": "Roadside moss patches",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "  buildStreetGreenery("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "grass/moss",
+          "level": "related",
+          "note": "The grass moss pillow differs from the roadside instanced tufts."
+        }
+      ]
+    },
+    {
+      "id": "meadow-system",
+      "label": "Valley biome layout and grass LOD rings",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/vegetation.js",
+          "anchor": "  buildMeadow("
+        },
+        {
+          "file": "src/grass.js",
+          "anchor": "  addRing("
+        },
+        {
+          "file": "src/grass.js",
+          "anchor": "  addZone("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "grass/ring-lod",
+          "level": "direct"
+        }
+      ],
+      "note": "The meadow’s collider-derived biome layout has no isolated original specimen; Ring LOD studies the shared layout technique."
+    },
+    {
+      "id": "grass-near",
+      "label": "Near meadow blades and tufts",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/grass.js",
+          "anchor": "  near: {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "grass/bezier",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "grass-mid",
+      "label": "Mid-distance tri-quad clumps",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/grass.js",
+          "anchor": "  mid: {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "grass/triquad",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "grass-far",
+      "label": "Far painted tuft cards",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/grass.js",
+          "anchor": "  far: {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "grass/meadow-painted",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "grass-thicket",
+      "label": "Edge thicket grass",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/grass.js",
+          "anchor": "  thicket: {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "grass/meadow-thicket",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "grass-flowers",
+      "label": "Wildflower stems and bloom atlas",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/grass.js",
+          "anchor": "  flowers: {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "grass/wildflowers",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "grass-susuki",
+      "label": "Susuki plumes",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/grass.js",
+          "anchor": "  susuki: {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "grass/susuki",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "grass-mown",
+      "label": "Mown lawn stripes",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/grass.js",
+          "anchor": "  mown: {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "grass/mown",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "grass-lantern",
+      "label": "Lantern Glade luminous fibres",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/grass.js",
+          "anchor": "  lantern: {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "grass/lantern",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "grass-sumi",
+      "label": "Sumi ink-stroke grass",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/grass.js",
+          "anchor": "  sumi: {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "grass/sumi",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "grass-yarn",
+      "label": "Corral yarn-curl grass",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/grass.js",
+          "anchor": "  yarn: {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "grass/yarn",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "grass-shell",
+      "label": "Short shell-turf carpet",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/grass.js",
+          "anchor": "  addShell("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "grass/carpet-blades",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "grass-moss",
+      "label": "Moss pillows at roots and stones",
+      "group": "Vegetation",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/grass.js",
+          "anchor": "  addMoss("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "grass/moss",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "grass-fireflies",
+      "label": "River-bank grass fireflies",
+      "group": "Effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/grass.js",
+          "anchor": "  addFireflies("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/fireflies",
+          "level": "related",
+          "note": "Related hotaru study; not the GrassSystem particle shader."
+        }
+      ]
+    },
+    {
+      "id": "dappled-light",
+      "label": "Projected dappled light pools",
+      "group": "Effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/vegetation.js",
+          "anchor": "  buildDappledLight("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "komorebi/game-dapple",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "old-petal-drifts",
+      "label": "Removed static petal-drift discs",
+      "group": "Inactive code",
+      "lifecycle": "inactive",
+      "sources": [
+        {
+          "file": "src/vegetation.js",
+          "anchor": "  buildPetalDrifts("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "komorebi/game-drift",
+          "level": "direct"
+        }
+      ],
+      "note": "Method is a no-op. Its original lab tile is an empty baseline, not a shipped visible asset."
+    },
+    {
+      "id": "old-sakura-grove",
+      "label": "Unused empty sakura-grove method",
+      "group": "Inactive code",
+      "lifecycle": "inactive",
+      "sources": [
+        {
+          "file": "src/vegetation.js",
+          "anchor": "  buildSakuraGrove("
+        }
+      ],
+      "coverage": [],
+      "note": "Empty legacy entry point; active sakura are built by sakuraTree()."
+    },
+    {
+      "id": "moon-pool",
+      "label": "Moon Pool assembly",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "  buildMoonPool("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/game-water",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "pool-apron",
+      "label": "Moon Pool mossy apron",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "// Mossy ground apron"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/game-water",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "pool-water",
+      "label": "Moon Pool water and caustic layer",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "// The water: a deep"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/game-water",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "pool-moon",
+      "label": "Moon reflection disc",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "// Moon pooled on the water"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/game-moon",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "pool-rim",
+      "label": "Pool rim stones",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "// Rim stones"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/game-water",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "lily-pads",
+      "label": "Lily pads",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "// Lily pads"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/game-pad",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "lotus",
+      "label": "Lotus blossoms",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "// Lily pads"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/lotus",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "pool-seat",
+      "label": "Pool sitting stone",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "// Flat sitting stone"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/game-water",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "pool-toro",
+      "label": "Moon Pool stone toro",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "// A little stone toro"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/game-water",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "pool-motes",
+      "label": "Moon Pool rising motes",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "// Motes lifting off"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/game-motes",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "lantern-glade",
+      "label": "Lantern Glade complete clearing",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "  buildLanternGlade("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/game-lamp",
+          "level": "related",
+          "note": "The original tile extracts a lantern, not the complete clearing."
+        }
+      ]
+    },
+    {
+      "id": "glade-floor",
+      "label": "Glade leaf-litter ground",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "// Leaf-litter floor"
+        }
+      ],
+      "coverage": [],
+      "note": "No specimen extracts this leaf-litter texture or clearing floor."
+    },
+    {
+      "id": "glade-bamboo",
+      "label": "Glade bamboo ring and drooping leaves",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "stalks.name = 'Glade Bamboo'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "greenery/game-grove",
+          "level": "related",
+          "note": "Vegetation.buildBambooGrove differs from the hidden-place bamboo."
+        }
+      ]
+    },
+    {
+      "id": "glade-lanterns",
+      "label": "Glade paper lanterns and glow",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "// Paper lanterns strung"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/game-lamp",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "glade-seat",
+      "label": "Glade seat and mossy central boulder",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "// A flat sitting stone"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "rocks/moss-old",
+          "level": "related",
+          "note": "Related stone finish, without the glade objects."
+        }
+      ]
+    },
+    {
+      "id": "glade-fireflies",
+      "label": "Glade fireflies",
+      "group": "Hidden places",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/hidden_places.js",
+          "anchor": "// Fireflies that gather"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/fireflies",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "tea-interior",
+      "label": "Tea-house interior assembly",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "  buildInterior("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "interiors/garden",
+          "level": "direct",
+          "note": "A redesigned room study, not the original InteriorManager builder."
+        }
+      ]
+    },
+    {
+      "id": "tatami",
+      "label": "Eight-mat tatami floor and borders",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "floor.name = 'Tatami Floor'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "interiors/tatami",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "interior-frame",
+      "label": "Interior walls, timber posts and ceiling beams",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "// Ceiling beams & panel"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "interiors/garden",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "shoji-doors",
+      "label": "Entrance and exit shoji doors",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "exitDoor.name = 'Exit Door'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "interiors/shoji",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "tokonoma",
+      "label": "Tokonoma alcove",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "toko.name = 'Tokonoma Alcove'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "interiors/garden",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "scroll",
+      "label": "Kakejiku hanging scroll",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "// Hanging Scroll"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "interiors/garden",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "bonsai",
+      "label": "Tokonoma bonsai pine",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "// Mini Bonsai Pine"
+        }
+      ],
+      "coverage": [],
+      "note": "No original bonsai specimen; the lab alcove uses other decorations."
+    },
+    {
+      "id": "chabudai",
+      "label": "Chabudai low table",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "table.name = 'Chabudai Table'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "interiors/garden",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "teaware",
+      "label": "Ceramic teapot and yunomi cups",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "// Ceramic Teapot & Yunomi Cups"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "interiors/pottery",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "zabuton",
+      "label": "Zabuton nap bed and embroidered tassels",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "bed.name = 'Zabuton Nap Bed'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "interiors/garden",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "andon",
+      "label": "Andon paper floor lantern",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "andon.name = 'Andon Lantern'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "lanterns/andon",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "courtyard-gravel",
+      "label": "Courtyard rock-garden gravel",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "// Courtyard rock garden gravel"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "rocks/rake",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "courtyard-toro",
+      "label": "Courtyard stone lantern",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "toro.name = 'Courtyard Toro Lantern'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "lanterns/game-toro",
+          "level": "related",
+          "note": "Different source builder; no courtyard lantern extraction."
+        }
+      ]
+    },
+    {
+      "id": "courtyard-wall",
+      "label": "Courtyard boundary timber wall",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "// Courtyard outer timber wall"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "interiors/garden",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "knockables",
+      "label": "Three tabletop knockables (white cup, blue bowl, white sphere)",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/interior.js",
+          "anchor": "  buildKnockables("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "interiors/pottery",
+          "level": "related",
+          "note": "Vessel geometry is studied; these three original items are not specimens."
+        },
+        {
+          "target": "interiors/bat-cup",
+          "level": "related",
+          "note": "Lab physics supports batting lab vessels; original item geometry and physics differ."
+        }
+      ]
+    },
+    {
+      "id": "secret-tatami",
+      "label": "Secret-house tatami",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "tatamiFloor.name = 'Tatami Floor'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/original-secret",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "secret-table",
+      "label": "Secret-house table and teaware",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "table.name = 'Chabudai Table'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/original-secret",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "secret-bed",
+      "label": "Secret-house nap cushion",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "// Gold embroidery tassels"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/original-secret",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "secret-andon",
+      "label": "Secret-house andon",
+      "group": "Interiors",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/countryside.js",
+          "anchor": "andon.name = 'Andon Lantern'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "machiya/original-secret",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "sky-dome",
+      "label": "Sky dome and day/night palette",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/sky.js",
+          "anchor": "  buildDome("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "sky/sky-game",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "clouds",
+      "label": "Painted cloud sprites",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/sky.js",
+          "anchor": "  buildClouds("
+        },
+        {
+          "file": "src/sky.js",
+          "anchor": "  buildCloudTexture("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "sky/cloud-game",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "stars",
+      "label": "Twinkling stars",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/sky.js",
+          "anchor": "  buildStars("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "sky/sky-night",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "moon",
+      "label": "Crescent moon",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/sky.js",
+          "anchor": "  buildMoon("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "sky/sky-night",
+          "level": "embedded"
+        }
+      ]
+    },
+    {
+      "id": "sky-light",
+      "label": "Sun, hemisphere, fill and bounce lighting",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/sky.js",
+          "anchor": "  buildLights("
+        },
+        {
+          "file": "src/sky.js",
+          "anchor": "  buildPalettes("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "sky/sky-game",
+          "level": "related",
+          "note": "The baseline adapter hides the original lights; labs use their own rig."
+        }
+      ]
+    },
+    {
+      "id": "god-rays",
+      "label": "Valley god-ray cards",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/particles.js",
+          "anchor": "  buildGodRays("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "sky/air-rays",
+          "level": "related",
+          "note": "Sky-space rays are a different implementation from the game’s ground cards."
+        }
+      ]
+    },
+    {
+      "id": "rain",
+      "label": "Valley rain streaks",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/particles.js",
+          "anchor": "  buildRain("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "weather/game-rain",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "river-petals",
+      "label": "River petal rafts",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/particles.js",
+          "anchor": "  buildRiverPetals("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "water/hanaikada",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "falling-petals",
+      "label": "Falling sakura petals",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/particles.js",
+          "anchor": "  buildPetals("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "weather/game-petal",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "fireflies",
+      "label": "Ambient valley fireflies",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/particles.js",
+          "anchor": "  buildFireflies("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/fireflies",
+          "level": "related",
+          "note": "Related firefly study; not Particles.buildFireflies()."
+        }
+      ]
+    },
+    {
+      "id": "dust-motes",
+      "label": "Ambient dust motes",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/particles.js",
+          "anchor": "  buildMotes("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "moonpool/game-motes",
+          "level": "related",
+          "note": "Moon Pool motes are a separate system."
+        }
+      ]
+    },
+    {
+      "id": "snow",
+      "label": "Valley snowfall",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/particles.js",
+          "anchor": "  buildSnow("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "weather/game-snow",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "scent",
+      "label": "Scent-trail glowing particles",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/scent.js",
+          "anchor": "  build() {"
+        }
+      ],
+      "coverage": [],
+      "note": "No scent-trail specimen or interaction study."
+    },
+    {
+      "id": "splash",
+      "label": "Player water-entry splash droplets",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/player.js",
+          "anchor": "// Water-splash droplet pool"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "weather/splash",
+          "level": "related",
+          "note": "Rain impacts do not exercise the player water-entry splash."
+        }
+      ]
+    },
+    {
+      "id": "landing-dust",
+      "label": "Landing dust puffs",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/context_actions.js",
+          "anchor": "  spawnLandDust("
+        }
+      ],
+      "coverage": [],
+      "note": "No specimen exercises this pooled landing effect."
+    },
+    {
+      "id": "ao",
+      "label": "Screen-space ambient occlusion",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/postfx.js",
+          "anchor": "export class AOPass"
+        }
+      ],
+      "coverage": [],
+      "note": "Sky’s air-game baseline explicitly excludes the full game post-processing pipeline."
+    },
+    {
+      "id": "atmosphere",
+      "label": "Screen-space distance and height atmosphere",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/postfx.js",
+          "anchor": "export class AtmospherePass"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit/haze",
+          "level": "related",
+          "note": "Layered haze cards are not the game’s depth-buffer atmosphere pass."
+        }
+      ]
+    },
+    {
+      "id": "grade",
+      "label": "Painterly colour grading, vignette, grain and fringe",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/postfx.js",
+          "anchor": "export const GradeShader"
+        },
+        {
+          "file": "src/postfx.js",
+          "anchor": "export const GradeOutputShader"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "ground/kuwahara",
+          "level": "related",
+          "note": "Related finish study; Kuwahara is not the game grade/grain/fringe pipeline."
+        }
+      ]
+    },
+    {
+      "id": "summit-meadow",
+      "label": "Summit meadow clearing",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildMeadow("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "summit-entry",
+      "label": "Summit approach steps, landing and entrance torii",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildStepsAndGate("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "summit-trees",
+      "label": "Summit trees, back brush and brow stones",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildRocksAndTrees("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "meditation-stone",
+      "label": "Meditation stone, enso and approach stones",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildMeditationStone("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "meditation-atmosphere",
+      "label": "Meditation sun pool, motes and furin",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildMeditationAtmosphere("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "summit-shoulder",
+      "label": "Torii approach earthen shoulder",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildApproachShoulder("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "summit-path",
+      "label": "Lower stone path, stones and lanterns",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildLowerPath("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "summit-terrain",
+      "label": "Summit flanks and basin landform",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildSummitTerrain("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "vista-terrain",
+      "label": "Vista Yodo River and road ribbons",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildVistaTerrain("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "summit-pagoda",
+      "label": "Higashiyama pagoda and evening lanterns",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildKyotoPagoda("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        },
+        {
+          "target": "summit/game-city",
+          "level": "embedded",
+          "note": "buildKyotoCity() calls buildKyotoPagoda(); the tower is inside the original city tile. Its evening-light material starts at zero opacity."
+        }
+      ]
+    },
+    {
+      "id": "summit-bay",
+      "label": "Bay water, coastline and sun glints",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildSummitBay("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "harbour",
+      "label": "Harbour skyline, islands, bridge and Ferris wheel",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildHarbourAndIslands("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "horizon",
+      "label": "Summit horizon mountain ranges",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildHorizonRanges("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "slope-forest",
+      "label": "Summit slope forest species",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildSlopeForest("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "summit-clouds",
+      "label": "Summit cumulus and storm cloud banks",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildSummitClouds("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "summit-snow",
+      "label": "Summit snowfall",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildSummitSnow("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "summit-rain",
+      "label": "Summit rainfall",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildSummitRain("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "summit-pollen",
+      "label": "Summit pollen",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildPollen("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "summit-petals",
+      "label": "Summit sakura petals",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildSakuraPetals("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "summit-wildlife",
+      "label": "Summit butterflies and fly-by birds",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildAmbientWildlife("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "shrine-rays",
+      "label": "Valley-to-summit shrine beacon rays",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildShrineRays("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+        }
+      ]
+    },
+    {
+      "id": "summit-light",
+      "label": "Supplementary summit sky and rim lights",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildSummitLight("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "summit-grass",
+      "label": "Summit biome grass field",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildGrassField("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "grass/ring-lod",
+          "level": "related",
+          "note": "Same GrassSystem recipes, but no specimen of the summit’s field layout."
+        },
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "summit-vista",
+      "label": "Layered Kyoto Bay vista assembly",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildSkirtAndVista("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "kyoto-city",
+      "label": "Summit Kyoto houses, eaves, window lights and gardens",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildKyotoCity("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit/game-city",
+          "level": "direct"
+        },
+        {
+          "target": "summit/night",
+          "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "summit-transition",
+      "label": "Optional summit transition video",
+      "group": "Sky and effects",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "const SUMMIT_VIDEO_SRC ="
+        }
+      ],
+      "coverage": [],
+      "note": "Optional runtime transition media, outside the lab specimen set; availability is not checked."
+    },
+    {
+      "id": "blender-roofscape",
+      "label": "Optional Blender Kyoto roofscape GLB",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  loadVistaLandmarks("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review",
+          "note": "Optional runtime asset with fallback; availability is not verified by this source audit."
+        }
+      ]
+    },
+    {
+      "id": "legacy-summit-gate",
+      "label": "Legacy rear summit gate, stairs, toro and gorinto",
+      "group": "Inactive code",
+      "lifecycle": "inactive",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildLegacyRearGate("
+        }
+      ],
+      "coverage": [],
+      "note": "Defined but not called by the current summit constructor."
+    },
+    {
+      "id": "legacy-vista-approach",
+      "label": "Unused vista descent and torii",
+      "group": "Inactive code",
+      "lifecycle": "inactive",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "  buildVistaApproach("
+        }
+      ],
+      "coverage": [],
+      "note": "Defined but not called by the current summit constructor."
+    },
+    {
+      "id": "summit-enso",
+      "label": "Weathered enso marking",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "enso.name = 'Weathered Enso'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "summit-furin",
+      "label": "Summit meditation furin",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "furin.name = 'Summit Furin'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "bay-bridge",
+      "label": "Bay bridge",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "bridge.name = 'Bay Bridge'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "ferris-wheel",
+      "label": "Harbour Ferris wheel",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "wheel.name = 'Harbour Ferris Wheel'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "summit-butterflies",
+      "label": "Summit butterfly visitors",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "this.butterflies.name = 'Summit Butterfly Visitors'"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "summit-birds",
+      "label": "Summit fly-by bird palette variants",
+      "group": "Summit",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "src/mountaintop.js",
+          "anchor": "bird.name = `Summit Fly-by Bird"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "summit-review/whole-scene",
+          "level": "review"
+        }
+      ]
+    }
+  ],
+  "nonVisualEntries": [
+    {
+      "id": "bokuchi",
+      "label": "Bokuchi, the forest spirit",
+      "sources": [
+        {
+          "file": "src/main.js",
+          "anchor": "A forest spirit I know — Bokuchi"
+        }
+      ],
+      "reason": "Named in Kuro’s dialogue; no separate Bokuchi actor or mesh is constructed."
+    },
+    {
+      "id": "mist-charm",
+      "label": "Mist Charm",
+      "sources": [
+        {
+          "file": "src/context_actions.js",
+          "anchor": "id: 'mist-charm'"
+        }
+      ],
+      "reason": "Journal/progression reward from touching the altar; no collectible mesh."
+    },
+    {
+      "id": "bokuchi-blessing",
+      "label": "Bokuchi’s Blessing",
+      "sources": [
+        {
+          "file": "src/main.js",
+          "anchor": "id: 'bokuchi-blessing'"
+        }
+      ],
+      "reason": "Journal/progression reward for the offering-bell quest; no separate item mesh."
+    },
+    {
+      "id": "valley-home",
+      "label": "The valley became home",
+      "sources": [
+        {
+          "file": "src/context_actions.js",
+          "anchor": "id: 'valley-home'"
+        }
+      ],
+      "reason": "Journal memory from a quiet moment; no physical item."
+    }
+  ]
+}

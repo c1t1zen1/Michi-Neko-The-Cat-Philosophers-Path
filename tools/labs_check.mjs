@@ -50,5 +50,12 @@ for (const l of LABS.filter((x) => x.href)) {
 }
 for (const e of EXTRAS) check(existsSync(resolve('labs', e.href.split('?')[0])), `extra ${e.slug} -> ${e.href}`);
 
+try {
+  const report = execFileSync(process.execPath, ['tools/labs_coverage.mjs'], { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+  ok('asset inventory and coverage report\n' + report.trim());
+} catch (e) {
+  bad('asset inventory and coverage report\n' + String(e.stderr || e.message));
+}
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll labs checks OK');
 process.exit(failed ? 1 : 0);

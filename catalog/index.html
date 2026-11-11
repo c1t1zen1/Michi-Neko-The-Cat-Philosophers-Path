@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#171b1d">
+  <meta name="description" content="The Michi-Neko production asset library. Find game originals, compare lab studies, track work, and edit assets in cadJS.">
+  <title>Asset Library · Michi-Neko</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#results">Skip to assets</a>
+  <header class="app-header">
+    <button class="icon-button mobile-menu" id="toggle-sidebar" aria-label="Toggle library navigation" aria-expanded="false" data-icon="menu"></button>
+    <a class="brand" href="./"><img src="icon.svg" width="30" height="30" alt=""><span>MICHI<span class="brand-sep"> / </span>NEKO<small>ART &amp; WORLD DEVELOPMENT</small></span></a>
+    <nav class="app-nav" aria-label="Companion applications"><a class="current" href="./">Asset library</a><a href="../labs/">Labs<span>↗</span></a><a href="../cadJS/">cadJS<span>↗</span></a><a href="../dawCAT/">dawCAT<span>↗</span></a><a href="../">Game<span>↗</span></a></nav>
+    <div class="header-actions"><span class="workspace-badge"><i></i> LOCAL WORKSPACE</span><button class="button assistant-toggle" id="open-assistant"><span data-icon="spark"></span>Ask the library<span class="keycap">⌘ K</span></button></div>
+  </header>
+
+  <div class="workspace">
+    <aside class="sidebar" id="sidebar" aria-label="Library navigation">
+      <div class="project-label"><span class="project-mark">道</span><div>Philosopher’s Path<small>PRODUCTION ASSETS</small></div><span class="small-dot"></span></div>
+      <div class="side-section"><div class="side-heading">LIBRARY</div><div id="library-nav"></div></div>
+      <div class="side-section"><div class="side-heading">CATEGORIES<button class="icon-button tiny" id="clear-category" aria-label="Clear category filter" title="Clear category filter" data-icon="layers"></button></div><div class="category-tree" id="category-nav"></div></div>
+      <div class="side-section"><div class="side-heading">COLLECTIONS<button class="icon-button tiny" id="new-collection" aria-label="Create collection" title="Create collection" data-icon="plus"></button></div><div id="collection-nav"></div></div>
+      <div class="side-section"><div class="side-heading">SAVED VIEWS<button class="icon-button tiny" id="save-view" aria-label="Save current view" title="Save current view" data-icon="plus"></button></div><div id="view-nav"></div></div>
+      <div class="sidebar-foot"><a href="../labs/ASSET_COVERAGE.md"><span data-icon="audit"></span>Source &amp; coverage audit<span>↗</span></a><button id="show-help"><span data-icon="help"></span>Guide &amp; shortcuts</button><p>190 authored entries · Three.js r160</p></div>
+    </aside>
+
+    <main class="library-main" id="main">
+      <div class="page-heading"><div><div class="eyebrow">MICHI-NEKO <span>/</span> CONTENT BROWSER</div><h1 id="view-title">Asset library<span class="jp" lang="ja">素材帳</span></h1><p id="view-description">Every part of a little Kyoto. Find it, study it, make it yours.</p></div><div class="page-actions"><button class="button quiet" id="import-workspace"><span data-icon="upload"></span>Import</button><div class="menu-anchor"><button class="button quiet" id="export-menu-button" aria-haspopup="menu" aria-expanded="false"><span data-icon="download"></span>Export<span data-icon="chevron"></span></button><div class="popover-menu" id="export-menu" role="menu" hidden><button role="menuitem" id="export-workspace">Workspace JSON<span>Notes, tags &amp; collections</span></button><button role="menuitem" id="export-csv">Visible assets CSV<span>Spreadsheet-ready catalog</span></button><button role="menuitem" id="export-inventory">Audited inventory JSON<span>Source &amp; lab evidence</span></button></div></div><button class="button save-repo" id="save-repository" title="Save production metadata through the local cadJS server"><span data-icon="sync"></span>Save to repo</button></div></div>
+      <div class="overview" id="overview" aria-label="Catalog overview"></div>
+      <div class="search-row"><label class="search-box"><span data-icon="search"></span><input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search assets, tags, people, or source…" aria-label="Search the asset library"><kbd>/</kbd></label><button class="icon-button filter-help" id="query-help" title="Advanced search syntax" aria-label="Advanced search syntax" data-icon="filter"></button></div>
+      <div class="filter-row"><label><span class="sr-only">Category</span><select id="group-filter"><option value="">All categories</option></select></label><label><span class="sr-only">Lab coverage</span><select id="coverage-filter"><option value="">Any coverage</option></select></label><label><span class="sr-only">Production status</span><select id="status-filter"><option value="">Any status</option></select></label><label><span class="sr-only">Lifecycle</span><select id="lifecycle-filter"><option value="active">Active assets</option><option value="all">Include inactive</option><option value="inactive">Inactive code</option></select></label><button class="text-button" id="reset-filters">Reset</button><span class="filter-spacer"></span><label class="sort-label"><span data-icon="sort"></span><select id="sort"><option value="label">Name A–Z</option><option value="group">Category</option><option value="coverage">Lab coverage</option><option value="updated">Recently updated</option></select></label></div>
+      <div id="query-error" class="query-error" role="status" hidden></div>
+      <div class="results-toolbar"><div><span id="results-count" role="status">Loading the inventory…</span><span class="draft-state" id="draft-state"></span></div><div class="view-controls" role="group" aria-label="Catalog layout"><button class="icon-button selected" data-layout="grid" title="Thumbnail grid" aria-label="Thumbnail grid" aria-pressed="true" data-icon="grid"></button><button class="icon-button" data-layout="list" title="Details list" aria-label="Details list" aria-pressed="false" data-icon="list"></button><button class="icon-button" data-layout="board" title="Production board" aria-label="Production board" aria-pressed="false" data-icon="board"></button></div></div>
+      <div class="selection-bar" id="selection-bar" hidden><b id="selection-count"></b><button class="button small" id="bulk-status">Set status</button><button class="button small" id="add-to-collection">Add to collection</button><button class="button small" id="remove-from-collection" hidden>Remove</button><button class="text-button" id="clear-selection">Clear</button></div>
+      <div id="results" class="asset-results" tabindex="-1" aria-label="Assets"></div>
+      <footer class="results-foot"><span id="inventory-stamp">Source-backed catalog</span><span><kbd>↑</kbd><kbd>↓</kbd> Browse <span class="foot-sep">·</span> <kbd>Enter</kbd> Inspect <span class="foot-sep">·</span> <kbd>/</kbd> Search</span></footer>
+    </main>
+
+    <aside class="inspector" id="inspector" aria-label="Asset inspector"><div class="inspector-empty"><span data-icon="cube"></span><h2>A closer look.</h2><p>Select an asset to inspect its original, studies, sources, and production details.</p></div></aside>
+  </div>
+
+  <aside class="assistant-panel" id="assistant-panel" aria-label="AI library assistant" aria-hidden="true">
+    <div class="assistant-heading"><span class="assistant-symbol" data-icon="spark"></span><div><h2>Ask the library</h2><p>Find things. Plan the next pass.</p></div><button class="icon-button" id="close-assistant" aria-label="Close library assistant" data-icon="close"></button></div>
+    <div class="assistant-mode"><span class="small-dot"></span><span id="ai-provider-label">Local catalog guide</span><button class="text-button" id="toggle-ai-settings">Configure API<span data-icon="settings"></span></button></div>
+    <section class="ai-settings" id="ai-settings" hidden aria-label="AI connection settings"><label>Provider<select id="ai-provider"><option value="builtin">Local catalog guide · no API</option></select></label><div class="api-fields" id="api-fields"><label>API base URL<input id="ai-base-url" type="url" spellcheck="false" placeholder="http://127.0.0.1:8080/v1"></label><label>Model<input id="ai-model" list="ai-models" spellcheck="false"><datalist id="ai-models"></datalist></label><label>API key<input id="ai-key" type="password" autocomplete="off" placeholder="Session only by default"></label><label class="check-label"><input id="ai-remember" type="checkbox">Remember keys on this device</label><div class="field-pair"><label>Max output tokens<input id="ai-tokens" type="number" min="256" max="32000" value="2048"></label><label>Reasoning<select id="ai-reasoning"><option value="none">None</option><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></label></div><label>Connection<select id="ai-transport"><option value="auto">Automatic · local relay when available</option><option value="direct">Direct from browser</option></select></label><div class="settings-buttons"><button class="button small" id="test-ai">Test connection</button><button class="text-button" id="use-daw-settings">Use dawCAT settings</button><button class="text-button" id="use-cad-settings">Use cadJS settings</button></div><p class="fine-print">Requests go to the provider you configure. Keys stay out of catalog exports and repository files. Direct mode requires provider CORS support.</p></div><p class="connection-status" id="ai-connection" role="status"></p></section>
+    <div class="ai-chat" id="ai-chat" role="log" aria-live="polite"><div class="assistant-welcome"><div class="welcome-line"></div><p class="eyebrow">YOUR WORLD, WITH CONTEXT</p><h3>What shall we<br>work on today?</h3><p>Search all assets, surface gaps, organize a collection, or prepare production updates.</p><div class="prompt-suggestions"><button data-prompt="Find shrine assets without focused lab studies"><span data-icon="search"></span>Find gaps around the shrine<span>↗</span></button><button data-prompt="Show assets ready for cadJS"><span data-icon="cube"></span>Find editable assets<span>↗</span></button><button data-prompt="Show lantern assets"><span data-icon="layers"></span>Explore the lantern family<span>↗</span></button><button data-prompt="Mark selected assets as research and high priority"><span data-icon="flag"></span>Plan a research pass<span>↗</span></button></div><p class="fine-print">The local guide understands catalog commands. Connect a model for open-ended reasoning. Changes arrive as reviewable plans.</p></div></div>
+    <form class="ai-composer" id="ai-form"><label class="sr-only" for="ai-prompt">Ask the asset library</label><textarea id="ai-prompt" rows="3" maxlength="12000" placeholder="Ask about your assets…"></textarea><div><span id="ai-context-label">The whole catalog is in context</span><button class="text-button" id="cancel-ai" type="button" hidden>Cancel</button><button class="send-button" type="submit" id="send-ai" aria-label="Send prompt" data-icon="arrow-up"></button></div></form>
+  </aside>
+
+  <dialog class="modal" id="dialog"><div id="dialog-content"></div></dialog>
+  <dialog class="preview-modal" id="preview-dialog"><div class="preview-title"><span id="preview-title">Asset inspection</span><a id="preview-popout" target="_blank" rel="noopener">Open separately ↗</a><button class="icon-button" id="close-preview" aria-label="Close 3D preview" data-icon="close"></button></div><iframe id="preview-frame" title="Interactive 3D asset inspector" allow="fullscreen"></iframe></dialog>
+  <input id="workspace-file" type="file" accept=".json,application/json" hidden>
+  <div class="toast" id="toast" role="status" hidden></div>
+  <noscript><p class="fatal-error">This asset library needs JavaScript. Serve the repository over HTTP and enable JavaScript to browse it.</p></noscript>
+  <script type="module" src="js/app.mjs"></script>
+</body>
+</html>

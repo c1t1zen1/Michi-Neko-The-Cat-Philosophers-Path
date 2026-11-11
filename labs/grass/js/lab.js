@@ -5,6 +5,7 @@ import { GrassPatch } from './patch.js';
 import { TYPES, FAMILIES } from './types.js';
 import { Dropdown } from './ui.js';
 import { Hero, PATTERNS, MODES } from './hero.js';
+import { mountSpecimenLinks } from '../../shared/specimen-link.js';
 
 const q = new URLSearchParams(location.search);
 const $ = (s, r = document) => r.querySelector(s);
@@ -194,6 +195,7 @@ for (const c of lab.cubes) {
   c.card.addEventListener('keydown', (e) => { if (e.target === c.card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); go(); } });
 }
 lab.cubes[hero.state.a].card.classList.add('sel');
+mountSpecimenLinks(lab.cubes, { getId: (cube) => cube.type.slug, onSelect: (cube) => select(cube.type.index, false) });
 
 // segmented controls
 function seg(id, onPick) {

@@ -15,6 +15,8 @@ export const loadHiddenPlacesModule = () => import('../../src/hidden_places.js?v
 export const loadAmbientLifeModule = () => import('../../src/ambient_life.js?v=20261107a');
 export const loadParticlesModule = () => import('../../src/particles.js?v=20261107a');
 export const loadNpcModule = () => import('../../src/npc.js?v=20261107a');
+// Asset Library: the original unmerged tea-house interior for isolated editing.
+export const loadInteriorModule = () => import('../../src/interior.js?v=20261107a');
 // Statues (komainu and friends) use the cat's signed-distance sculptor.
 export const loadSculptModule = () => import('../../src/cat_sdf.js?v=20261107a');
 export const loadSummitModule = () => import('../../src/mountaintop.js?v=20261107a');

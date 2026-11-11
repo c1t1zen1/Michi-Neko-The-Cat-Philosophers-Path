@@ -1,0 +1,14 @@
+import { BASE, OUTPUT, launchBrowser, saveReport } from './browser-support.mjs';
+const browser = await launchBrowser();
+const page = await browser.newPage({ viewport: { width:1440,height:1000 } });
+const errors=[];page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(120000);
+try {
+ await page.goto(BASE+'/cadJS/?asset=larry&variant=original');
+ await page.waitForFunction(()=>window.cadApp?.lastCatalogAsset?.id==='larry',{timeout:120000});
+ const results=await page.evaluate(async()=>{const a=cadApp,out=[],check=(name,pass,detail='')=>out.push({name,pass:!!pass,detail});check('Larry URL handoff chooses requested original',a.lastCatalogAsset.id==='larry'&&a.lastCatalogAsset.variant==='original');check('starter cat and isolation plinth are absent',!a.catAdapter&&a.root.children.length===1&&!a.root.getObjectByName('Isolation Platform'));check('stable asset baseline registered',a.assetBaselines.has('catalog.larry')&&a.root.children[0].userData.cadAssetId==='catalog.larry');check('source provenance names the actual factory',a.root.children[0].userData.cadSourceModule==='src/countryside.js'&&a.root.children[0].userData.cadSourceSymbol==='buildBambooCorral');check('catalog return link points to this asset',document.querySelector('#asset-catalog-link')?.href.includes('/catalog/?asset=larry'));const original=a.root.children[0],fingerprint=a.assetBaselines.get('catalog.larry').baselineFingerprint;let mat;original.traverse(o=>{if(o.material&&!mat)mat=o.material;});const callback=mat.onBeforeCompile;a.workspaceDirty=false;const opened=await a.openInventoryAsset('bamboo-fence',{variant:'lab',targetId:'fences/koetsu'});check('updated fence imports through shared factory',opened&&a.root.children[0].userData.cadAssetId==='catalog.bamboo-fence'&&a.lastCatalogAsset.target==='fences/koetsu');a.history.undo();check('undo restores original live object',a.root.children[0]===original);check('undo restores catalog lineage',a.lastCatalogAsset?.id==='larry');check('undo restores original baseline',a.assetBaselines.get('catalog.larry')?.baselineFingerprint===fingerprint);check('undo retains material shader callback',mat.onBeforeCompile===callback);a.history.redo();check('redo restores updated fence',a.root.children[0].userData.cadAssetId==='catalog.bamboo-fence');a.workspaceDirty=false;const before=a.root.children[0];const bad=await a.openInventoryAsset('bad-asset');check('invalid handoff leaves workspace intact',bad===false&&a.root.children[0]===before);return out;});
+ const passed=results.filter(r=>r.pass).length;
+ results.forEach(r=>console.log((r.pass?'PASS ':'FAIL ')+r.name));
+ await saveReport('cad-handoff.json',{results,errors,passed,total:results.length});
+ console.log(`${passed}/${results.length} CAD handoff checks passed. Report: ${OUTPUT}`);
+ if(passed!==results.length||errors.length)process.exitCode=1;
+} finally {await browser.close();}

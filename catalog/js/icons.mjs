@@ -1,0 +1,37 @@
+const paths = {
+  search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+  list: '<path d="M9 5h12M9 12h12M9 19h12"/><rect x="3" y="4" width="2" height="2"/><rect x="3" y="11" width="2" height="2"/><rect x="3" y="18" width="2" height="2"/>',
+  board: '<rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="4" height="15" rx="1"/>',
+  cube: '<path d="m12 2 9 5v10l-9 5-9-5V7Zm0 10 9-5m-9 5-9-5m9 5v10m-4.5-17.5 9 5"/>',
+  folder: '<path d="M3 7V5a1 1 0 0 1 1-1h5l2 3h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/>',
+  layers: '<path d="m12 3 10 5-10 5L2 8Zm-9 10 9 5 9-5M3 18l9 5 9-5"/>',
+  audit: '<path d="M14 2H5v20h14V7Zm0 0v5h5M8 11h8m-8 4h8m-8 4h5"/>',
+  flag: '<path d="M5 22V3m0 1c5-4 9 4 15 0v10c-6 4-10-4-15 0"/>',
+  spark: '<path d="m12 3 2.7 6.3L21 12l-6.3 2.7L12 21l-2.7-6.3L3 12l6.3-2.7ZM20 1v5m-2.5-2.5h5"/>',
+  close: '<path d="m5 5 14 14M19 5 5 19"/>',
+  plus: '<path d="M12 4v16M4 12h16"/>',
+  menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
+  star: '<path d="m12 2 3.1 6.3L22 9.3l-5 4.9 1.2 6.8-6.2-3.2L5.8 21 7 14.2 2 9.3l6.9-1Z"/>',
+  chevron: '<path d="m7 10 5 5 5-5"/>',
+  download: '<path d="M12 2v13m-5-5 5 5 5-5M3 16v5h18v-5"/>',
+  upload: '<path d="M12 16V3m-5 5 5-5 5 5M3 16v5h18v-5"/>',
+  sync: '<path d="M20 9a8 8 0 0 0-14-4L3 8m0-5v5h5m-4 7a8 8 0 0 0 14 4l3-3m0 5v-5h-5"/>',
+  filter: '<path d="M3 5h18M6 12h12M9 19h6"/><circle cx="8" cy="5" r="2" fill="currentColor"/><circle cx="15" cy="12" r="2" fill="currentColor"/>',
+  sort: '<path d="M8 3v18m-4-4 4 4 4-4M15 5h6m-6 6h4m-4 6h2"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1 .7-1.5 1-1.5 3m0 3h.01"/>',
+  settings: '<path d="m9 3 1-1h4l1 1 .3 2.1 1.6.9 2-.8 2 3.5-1.7 1.4v1.8l1.7 1.4-2 3.5-2-.8-1.6.9L15 20l-1 1h-4l-1-1-.3-2.1-1.6-.9-2 .8-2-3.5L4.8 13v-1.8L3.1 9.8l2-3.5 2 .8 1.6-.9Z"/><circle cx="12" cy="11.5" r="3"/>',
+  'arrow-up': '<path d="M12 20V4m-6 6 6-6 6 6"/>',
+  external: '<path d="M14 3h7v7m0-7L10 14M10 3H3v18h18v-7"/>',
+  copy: '<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V3H3v13h5"/>',
+  eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+  check: '<path d="m4 12 5 5L20 6"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>',
+  leaf: '<path d="M20 3C7 0 0 10 6 17S22 18 20 3ZM5 20l11-12"/>',
+  cat: '<path d="m4 13 1-9 6 4h2l6-4 1 9c0 9-16 9-16 0Z"/><path d="m8 13 2 1m6-1-2 1m-4 3 2 1 2-1"/>',
+  source: '<path d="m8 5-7 7 7 7m8-14 7 7-7 7m-2-18-4 22"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="2"/><path d="m3 17 6-6 4 4 3-3 5 5"/>'
+};
+export const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${paths[name] || paths.cube}</svg>`;
+export function mountIcons(root = document) { for (const node of root.querySelectorAll('[data-icon]')) node.innerHTML = icon(node.dataset.icon); }
+export const groupIcon = (group = '') => /cat|character/i.test(group) ? 'cat' : /vegetation|landscape/i.test(group) ? 'leaf' : /effect|sky/i.test(group) ? 'spark' : /water|ground/i.test(group) ? 'layers' : 'cube';

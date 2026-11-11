@@ -239,6 +239,8 @@ Then open **http://127.0.0.1:8080** in your browser.
 | [docs/DAW_CADJS_DEEP_REVIEW_2026-09-20.md](docs/DAW_CADJS_DEEP_REVIEW_2026-09-20.md) | Feature-completeness review of dawCAT and cadJS |
 | [docs/SOCIAL_POST_PLAN_2026-10-22_195413.md](docs/SOCIAL_POST_PLAN_2026-10-22_195413.md) | Build-in-public post plan; finished posts live in [docs/social/](docs/social/) |
 | [labs/grass/research.md](labs/grass/research.md) | Grass Lab research: what 15 searches found, the numbers, the design decisions, sources |
+| [catalog/README.md](catalog/README.md) | Asset Library: searchable game inventory, production workflow, real cadJS imports and AI setup |
+| [labs/ASSET_COVERAGE.md](labs/ASSET_COVERAGE.md) | Asset-by-asset evidence and lab coverage audit |
 | [docs/VISUAL_NEXT_STEPS_2026-10-24.md](docs/VISUAL_NEXT_STEPS_2026-10-24.md) | Ranked list of what to research and rebuild next, after the grass |
 | [docs/ROOFTOPS_RESEARCH_2026-10-24.md](docs/ROOFTOPS_RESEARCH_2026-10-24.md) | Roof Road research: inner Kyoto's walls, gates, machiya roofs, districts and festivals, cat jump numbers, 2.5D path design, sources |
 | [docs/superpowers/specs/2026-10-24-rooftop-road-design.md](docs/superpowers/specs/2026-10-24-rooftop-road-design.md) | Roof Road design: the unlock, the seven mouths, twists and turns, mechanics, how it goes into the game |
@@ -344,7 +346,10 @@ Michi-Neko-The-Cat-Philosophers-Path/
 
 ## 🧰 Companion Tools
 
-Two standalone browser apps, a grass test bench and a rooftop prototype live in the repo. None is needed to play, and none writes to the game's source.
+Audio and CAD studios, an asset library, interactive labs and a rooftop prototype live in the repo. None is needed to play.
+
+### Asset Library — the production catalog (`catalog/`)
+**[Browse the Asset Library →](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/catalog/)** A searchable, source-backed inventory of 190 game asset entries. Browse thumbnails, a details list or a production board; compare original game objects with actual lab specimens; collect an art pass, assign owners, tag assets and keep notes. Explicit source adapters open editable originals and lab studies in **cadJS**, with stable asset IDs and undo. The integrated assistant supports local models and hosted APIs through the same provider transport as dawCAT, plus a local catalog guide that needs no API. Metadata changes arrive as reviewable plans. Start `node cadJS/server.mjs`, then open `http://127.0.0.1:4173/catalog/` for repository saves and the AI relay. Static hosting supports browsing, browser drafts, exports and direct API connections. [Guide](catalog/README.md) · [coverage audit](labs/ASSET_COVERAGE.md).
 
 ### dawCAT 2.0 — audio asset studio (`dawCAT/`)
 An Ableton-style DAW built from the game's own musical DNA. **Compose** (arrangement, piano roll, drum grid, mixer, devices, automation), **✦ Sound Design** (layered procedural SFX from 24 templates modelled on the game's sounds, exported as a zero-file `sfx-pack.js`), **🌊 Wave Lab** (import, record or resample audio; time-stretch, pitch, reverse, loop, filter, bitcrush; turn a sample into a chromatic sampler), a 42-groove drum rhythm library, and an **✦ AI assistant** that works with local models (llama-server, LM Studio, Ollama) or hosted providers, streams, self-repairs, and keeps every change one Ctrl+Z away. Run it at `/dawCAT/` from the game root. See [dawCAT/README.md](dawCAT/README.md).

@@ -11,6 +11,7 @@ import { Finisher, FINISHES } from './finish.js';
 import { Hero, VIEWS, HOURS } from './hero.js';
 import { PRESETS, byKey } from './presets.js';
 import { VARIANTS, FAMILIES, SOURCES } from './variants.js';
+import { mountSpecimenLinks } from '../../shared/specimen-link.js';
 import { buildTile } from './tiles.js';
 import { buildPagoda } from './pagoda.js';
 import { STEPS } from './steps.js';
@@ -213,6 +214,7 @@ function filterShelves() {
 $('#recipe-search').addEventListener('input', filterShelves);
 famFilter.addEventListener('change', filterShelves);
 filterShelves();
+mountSpecimenLinks(tiles, { getId: (tile) => tile.v.slug });
 
 function apply(v) {
   const a = v.apply || {};

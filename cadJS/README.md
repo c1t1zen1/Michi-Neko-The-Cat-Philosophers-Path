@@ -89,6 +89,7 @@ Open:
 | Address | Purpose |
 |---|---|
 | `http://127.0.0.1:4173/cadJS/` | cadJS application |
+| `http://127.0.0.1:4173/catalog/` | Searchable game Asset Library, production metadata and AI |
 | `http://127.0.0.1:4173/` | Original game through the same local server |
 | `http://127.0.0.1:4173/api/health` | Server health information |
 
@@ -402,6 +403,17 @@ The **STUDIO** menu / right-panel tab (search box: *Search prefabs, textures, pa
 ## Repository catalogue
 
 Press **SCAN** to refresh the repository catalogue. The server excludes `.git`, `node_modules`, `dist`, `build`, `.cache`, and cadJS itself from game-content scanning.
+
+The **[Asset Library](../catalog/README.md)** provides an audited visual inventory
+and explicit original/lab adapters for game factories that are prototype
+methods. Click **Edit in cadJS** there, or open
+`/cadJS/?asset=larry&variant=original`. Updated studies use a named target, for
+example `?asset=bamboo-fence&variant=lab&target=fences%2Fkoetsu`. The requested
+factory replaces the starter cat, registers a stable `catalog.<id>` baseline,
+and retains the source provenance. Undo/Redo keeps live objects and their
+procedural material callbacks. The **ASSET CATALOG** header link returns to
+the corresponding inventory entry. Catalog imports remain isolated editing
+work; they do not overwrite game source automatically.
 
 ### Source discovery
 

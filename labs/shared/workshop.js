@@ -13,6 +13,7 @@ import { Finisher, FINISHES } from './finish.js';
 import * as craft from './craft.js';
 import { M, paintify } from './painted.js';
 import { setMuted } from './sound.js';
+import { mountSpecimenLinks } from './specimen-link.js';
 
 const { V3, rng, canvas2d, canvasTexture, countScene, shadows, TAU, clamp } = craft;
 const _bc = new THREE.Vector3();
@@ -220,6 +221,7 @@ function buildTiles(lab) {
   };
   search.addEventListener('input', filter); fam.addEventListener('change', filter);
   filter();
+  mountSpecimenLinks(lab.tiles, { getId: (tile) => tile.spec.id });
 }
 
 function choose(lab, spec) {

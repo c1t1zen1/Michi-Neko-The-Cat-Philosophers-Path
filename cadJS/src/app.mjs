@@ -8,6 +8,7 @@ import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
 import { fingerprintDescriptor, splitLabel } from './catalog.mjs';
 import { AgentPanel } from './agent-panel.mjs';
+import { loadCatalogAsset } from '../../catalog/js/asset-loader.mjs';
 import {
   ASSET_PACKAGE_FORMAT, changedObjectComponents, createAssetPackage, evaluateAssetCompatibility,
   hashValue, normalizeAssetId, validateAssetPackage
@@ -268,8 +269,16 @@ class CadApp {
     this.frames = 0; this.fpsTime = performance.now();
     this.setupThree();
     this.setupUi();
-    this.addStarterScene();
-    this.loadCatalog();
+    const catalogQuery = new URLSearchParams(location.search);
+    const catalogAssetId = catalogQuery.get('asset');
+    // An explicit catalog handoff replaces the starter scene. Do not start an
+    // asynchronous cat build that could finish after the requested asset.
+    if (!catalogAssetId) this.addStarterScene();
+    this.catalogReady = this.loadCatalog();
+    if (catalogAssetId) this.catalogReady.finally(() => this.openInventoryAsset(catalogAssetId, {
+      variant: catalogQuery.get('variant') || 'original', targetId: catalogQuery.get('target') || null
+    }));
+    this.mountAssetCatalogLink(catalogAssetId);
     this.animate();
   }
 
@@ -315,6 +324,64 @@ class CadApp {
     const platform = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2, 0.16, 48), new THREE.MeshStandardMaterial({ color: 0x202b33, roughness: 0.78, metalness: 0.25 }));
     platform.name = 'Isolation Platform'; platform.position.y = -0.1; platform.receiveShadow = true; platform.userData.helper = true; this.root.add(platform);
     this.loadProceduralCat();
+  }
+
+  mountAssetCatalogLink(assetId = null) {
+    const host = $('.top-actions'); if (!host || $('#asset-catalog-link')) return;
+    const link = document.createElement('a'); link.id = 'asset-catalog-link';
+    const url = new URL('../catalog/', location.href); if (assetId) url.searchParams.set('asset', assetId);
+    link.href = url.href; link.textContent = 'ASSET CATALOG'; link.title = 'Return to the searchable game asset catalog';
+    link.style.cssText = 'font:inherit;color:var(--accent,#80cadb);text-decoration:none;white-space:nowrap;padding:7px 8px;border:1px solid #315363;border-radius:4px';
+    host.prepend(link);
+  }
+
+  async openInventoryAsset(assetId, options = {}) {
+    if (!await this.guardWorkspaceSwitch('Opening an asset from the catalog replaces this CAD workspace. Save the current work first if needed.')) return false;
+    const requestId = this.inventoryRequestId = (this.inventoryRequestId || 0) + 1;
+    this.status(`LOADING CATALOG ASSET ${String(assetId).toUpperCase()}…`);
+    let loaded;
+    try {
+      loaded = await loadCatalogAsset(assetId, { ...options, renderer: this.renderer });
+      if (requestId !== this.inventoryRequestId) { loaded.dispose?.(); return false; }
+      const object = loaded.group;
+      const before = {
+        children: [...this.root.children], baselines: new Map(this.assetBaselines), overrides: new Map(this.runtimeOverrides),
+        assetPackage: this.lastAssetPackage, cat: this.catAdapter, selected: this.selected, catalogAsset: this.lastCatalogAsset
+      };
+      const replace = (state) => {
+        this.transform.detach();
+        for (const child of [...this.root.children]) this.root.remove(child);
+        for (const child of state.children) this.root.add(child);
+        this.assetBaselines = new Map(state.baselines); this.runtimeOverrides = new Map(state.overrides);
+        this.lastAssetPackage = state.assetPackage; this.catAdapter = state.cat;
+        this.lastCatalogAsset = state.catalogAsset;
+        const catalogLink = $('#asset-catalog-link');
+        if (catalogLink) { const url = new URL(catalogLink.href); state.catalogAsset?.id ? url.searchParams.set('asset', state.catalogAsset.id) : url.searchParams.delete('asset'); catalogLink.href = url.href; }
+        this.sourceMode = 'editor'; $('#runtime-source').textContent = 'EDITOR';
+        this.select(state.selected && this.isEditorObject(state.selected) ? state.selected : null); this.rebuildTree();
+      };
+      try {
+        replace({ children: [object], baselines: new Map(), overrides: new Map(), assetPackage: null, cat: null, selected: object });
+        this.registerAsset(object, {
+          assetId: `catalog.${assetId}`, assetType: options.variant === 'lab' ? 'catalog-lab-study' : 'catalog-game-asset',
+          sourceModule: loaded.source.file, sourceSymbol: loaded.source.symbol
+        });
+      } catch (error) { replace(before); throw error; }
+      const after = { children: [object], baselines: new Map(this.assetBaselines), overrides: new Map(), assetPackage: null, cat: null, selected: object, catalogAsset: { id: assetId, variant: options.variant || 'original', target: options.targetId || null, fidelity: loaded.fidelity, caption: loaded.caption } };
+      // Retain live object references for undo, preserving custom shader
+      // callbacks that Three.ObjectLoader cannot restore from JSON alone.
+      this.history.push(`Open catalog ${assetId}`, () => replace(before), () => replace(after));
+      if (this.viewMode !== 'editor') this.toggleView('editor');
+      this.select(object); this.focusObject(object); this.rebuildTree(); this.workspaceDirty = false;
+      this.lastCatalogAsset = after.catalogAsset;
+      const link = $('#asset-catalog-link'); if (link) { const url = new URL(link.href); url.searchParams.set('asset', assetId); link.href = url.href; }
+      this.status(`${String(assetId).toUpperCase()} READY — ${loaded.caption}`);
+      return true;
+    } catch (error) {
+      loaded?.dispose?.();
+      this.status(`CATALOG IMPORT: ${error.message}`, true);
+      return false;
+    }
   }
 
   async loadProceduralCat() {

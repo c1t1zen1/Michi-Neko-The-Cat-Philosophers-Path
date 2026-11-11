@@ -7,6 +7,7 @@ import { Hero } from './hero.js?rev=20261107-staves';
 import { VARIANTS, FAMILIES, SOURCES } from './variants.js?rev=20261107-staves';
 import { buildMachiya } from './machiya.js?rev=20261107-staves';
 import { STEPS } from './steps.js';
+import { mountSpecimenLinks } from '../../shared/specimen-link.js';
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 mountLabChrome('machiya');
@@ -102,6 +103,7 @@ function filter() {
   $('#recipe-count').textContent=`${count} / ${VARIANTS.length} specimens`;$('#empty-search').hidden=count>0;
 }
 $('#recipe-search').addEventListener('input',filter);$('#family-filter').addEventListener('change',filter);filter();
+mountSpecimenLinks(tiles, { getId: (tile) => tile.v.slug });
 $('#srcList').innerHTML=Object.values(SOURCES).map(([l,u])=>`<li><a href="${u}" target="_blank" rel="noopener">${esc(l)}</a></li>`).join('');
 // A second live stage belongs to the assembly stepper, leaving the cat's street
 // intact while the reader studies how the house goes together.

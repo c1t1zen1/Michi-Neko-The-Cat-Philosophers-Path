@@ -15,6 +15,7 @@ import { Finish } from './finish.js';
 import { GameToday } from './today.js';
 import { FAMILIES, VARIANTS, SRC } from './variants.js';
 import { mulberry32, sstep } from './util.js';
+import { mountSpecimenLinks } from '../../shared/specimen-link.js';
 
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 const HINTS = { wetcycle: 'hover: rain', puddles: 'hover: rain', ladle: 'hover: a ladle', snow: 'hover: snow' };
@@ -72,6 +73,7 @@ export function buildGallery({ mount, views, renderer, layers, onPlant, getEnv =
     });
     tiles.push(info);
   }
+  mountSpecimenLinks(tiles, { getId: (tile) => tile.v.id });
   let statClock = 0;
   return {
     tiles,

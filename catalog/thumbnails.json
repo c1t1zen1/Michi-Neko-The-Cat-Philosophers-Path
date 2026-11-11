@@ -1,0 +1,3741 @@
+{
+  "version": 1,
+  "capturedAt": "2026-11-10",
+  "generatedAt": "2026-11-11",
+  "assets": {
+    "michi": {
+      "src": "thumbnails/villagers-sleep.webp",
+      "kind": "context",
+      "label": "Context for Michi (player cat) · Lab study · Asleep 眠り",
+      "targetId": "villagers/sleep",
+      "capturedAt": "2026-11-10",
+      "note": "The sleep specimen uses Michi’s coat/build; it is a pose study rather than a dedicated player-model lab."
+    },
+    "luna": {
+      "src": "thumbnails/villagers-luna.webp",
+      "kind": "original",
+      "label": "Original game reference · Luna ルナ",
+      "targetId": "villagers/luna",
+      "capturedAt": "2026-11-10"
+    },
+    "mochi": {
+      "src": "thumbnails/villagers-mochi.webp",
+      "kind": "original",
+      "label": "Original game reference · Mochi モチ",
+      "targetId": "villagers/mochi",
+      "capturedAt": "2026-11-10"
+    },
+    "kuro": {
+      "src": "thumbnails/villagers-kuro.webp",
+      "kind": "original",
+      "label": "Original game reference · Kuro クロ",
+      "targetId": "villagers/kuro",
+      "capturedAt": "2026-11-10"
+    },
+    "larry": {
+      "src": "thumbnails/fences-corral.webp",
+      "kind": "context",
+      "label": "Context for Larry the turtle · Original game reference · The corral, and Larry 囲い",
+      "targetId": "fences/corral",
+      "capturedAt": "2026-11-10",
+      "note": "The complete original corral includes Larry; there is no isolated turtle or patrol study."
+    },
+    "sparrows": {
+      "src": "thumbnails/critters-game-bird.webp",
+      "kind": "original",
+      "label": "Original game reference · A sparrow 今の雀",
+      "targetId": "critters/game-bird",
+      "capturedAt": "2026-11-10"
+    },
+    "koi": {
+      "src": "thumbnails/critters-game-koi.webp",
+      "kind": "original",
+      "label": "Original game reference · A koi from the river 今の鯉",
+      "targetId": "critters/game-koi",
+      "capturedAt": "2026-11-10"
+    },
+    "butterflies": {
+      "src": "thumbnails/critters-game-flutter.webp",
+      "kind": "original",
+      "label": "Original game reference · Our butterflies 今の蝶",
+      "targetId": "critters/game-flutter",
+      "capturedAt": "2026-11-10"
+    },
+    "valley-ground": {
+      "src": "thumbnails/ground-today.webp",
+      "kind": "study",
+      "label": "Baseline reconstruction · The game today",
+      "targetId": "ground/today",
+      "capturedAt": "2026-11-10"
+    },
+    "path": {
+      "src": "thumbnails/ground-setts.webp",
+      "kind": "study",
+      "label": "Lab study · Ishidatami setts",
+      "targetId": "ground/setts",
+      "capturedAt": "2026-11-10"
+    },
+    "path-shoulders": {
+      "src": "thumbnails/ground-today.webp",
+      "kind": "study",
+      "label": "Baseline reconstruction · The game today",
+      "targetId": "ground/today",
+      "capturedAt": "2026-11-10"
+    },
+    "path-slabs": {
+      "src": "thumbnails/ground-slabs.webp",
+      "kind": "study",
+      "label": "Lab study · Kiri-ishi slabs",
+      "targetId": "ground/slabs",
+      "capturedAt": "2026-11-10"
+    },
+    "path-boulders": {
+      "src": "thumbnails/rocks-game-boulder.webp",
+      "kind": "original",
+      "label": "Original game reference · A path boulder 今の岩",
+      "targetId": "rocks/game-boulder",
+      "capturedAt": "2026-11-10"
+    },
+    "key-rock": {
+      "src": "thumbnails/rocks-game-rock.webp",
+      "kind": "original",
+      "label": "Original game reference · The key rock 鍵の岩",
+      "targetId": "rocks/game-rock",
+      "capturedAt": "2026-11-10"
+    },
+    "river": {
+      "src": "thumbnails/water-game.webp",
+      "kind": "study",
+      "label": "Baseline reconstruction · Ours today",
+      "targetId": "water/game",
+      "capturedAt": "2026-11-10"
+    },
+    "bridge": {
+      "src": "thumbnails/water-b-game.webp",
+      "kind": "study",
+      "label": "Baseline reconstruction · Ours today",
+      "targetId": "water/b-game",
+      "capturedAt": "2026-11-10"
+    },
+    "paddies": {
+      "src": "thumbnails/water-p-game.webp",
+      "kind": "study",
+      "label": "Baseline reconstruction · Ours today",
+      "targetId": "water/p-game",
+      "capturedAt": "2026-11-10"
+    },
+    "paddy-bunds": {
+      "src": "thumbnails/water-p-game.webp",
+      "kind": "context",
+      "label": "Context for Paddy beds and raised banks · Baseline reconstruction · Ours today",
+      "targetId": "water/p-game",
+      "capturedAt": "2026-11-10"
+    },
+    "rice": {
+      "src": "thumbnails/water-p-summer.webp",
+      "kind": "study",
+      "label": "Lab study · Ao-ta",
+      "targetId": "water/p-summer",
+      "capturedAt": "2026-11-10"
+    },
+    "water-ripples": {
+      "src": "thumbnails/water-ripple.webp",
+      "kind": "study",
+      "label": "Lab study · Ripple tank",
+      "targetId": "water/ripple",
+      "capturedAt": "2026-11-10",
+      "note": "Technique study; not a replay of the game ripple-pool logic."
+    },
+    "rain-ripples": {
+      "src": "thumbnails/weather-splash.webp",
+      "kind": "study",
+      "label": "Lab study · Splash rings 水跳ね",
+      "targetId": "weather/splash",
+      "capturedAt": "2026-11-10",
+      "note": "Rain impact study; original pool eviction behavior is not tested."
+    },
+    "mountains": {
+      "src": "thumbnails/ranges-stack.webp",
+      "kind": "study",
+      "label": "Lab bench · Layered ridge bench",
+      "targetId": "ranges/stack",
+      "capturedAt": "2026-11-10"
+    },
+    "edge-forest": {
+      "src": "thumbnails/ranges-wall-mass.webp",
+      "kind": "original",
+      "label": "Original game recipe · Original leaf-mass forest wall bench",
+      "targetId": "ranges/wall-mass",
+      "capturedAt": "2026-11-10"
+    },
+    "edge-undergrowth": {
+      "src": "thumbnails/ranges-edge.webp",
+      "kind": "study",
+      "label": "Lab bench · Forest edge section bench",
+      "targetId": "ranges/edge",
+      "capturedAt": "2026-11-10"
+    },
+    "foothill-forest": {
+      "src": "thumbnails/ranges-hero-context.webp",
+      "kind": "context",
+      "label": "Context for Foothill cedars and broadleaf crowns · Range Lab context · foothill carpet in the hero valley",
+      "targetId": "ranges/foothills",
+      "capturedAt": "2026-11-10",
+      "note": "The hero valley includes the foothill carpet; there is no separate shelf specimen."
+    },
+    "distant-village": {
+      "src": "thumbnails/machiya-original-village.webp",
+      "kind": "context",
+      "label": "Context for Distant valley village houses and hearth windows · Original game reference · A village house",
+      "targetId": "machiya/original-village",
+      "capturedAt": "2026-11-10",
+      "note": "The street-house builder differs from buildVillage() distant silhouettes."
+    },
+    "mist-ring": {
+      "src": "thumbnails/ranges-air.webp",
+      "kind": "context",
+      "label": "Context for Valley mist ring · Lab bench · Aerial perspective bench",
+      "targetId": "ranges/air",
+      "capturedAt": "2026-11-10",
+      "note": "Aerial perspective bench; it does not extract the original mist-ring mesh."
+    },
+    "dawn-mist": {
+      "src": "thumbnails/ranges-air.webp",
+      "kind": "context",
+      "label": "Context for River dawn mist ribbons · Lab bench · Aerial perspective bench",
+      "targetId": "ranges/air",
+      "capturedAt": "2026-11-10",
+      "note": "General haze study; no dawn-river specimen or time envelope."
+    },
+    "tea-house": {
+      "src": "thumbnails/machiya-original-tea.webp",
+      "kind": "original",
+      "label": "Original game reference · The tea house",
+      "targetId": "machiya/original-tea",
+      "capturedAt": "2026-11-10"
+    },
+    "residence": {
+      "src": "thumbnails/machiya-original-residence.webp",
+      "kind": "original",
+      "label": "Original game reference · The craftsman’s residence",
+      "targetId": "machiya/original-residence",
+      "capturedAt": "2026-11-10"
+    },
+    "secret-house": {
+      "src": "thumbnails/machiya-original-secret.webp",
+      "kind": "original",
+      "label": "Original game reference · Hisomu-an",
+      "targetId": "machiya/original-secret",
+      "capturedAt": "2026-11-10"
+    },
+    "street-house": {
+      "src": "thumbnails/machiya-original-village.webp",
+      "kind": "original",
+      "label": "Original game reference · A village house",
+      "targetId": "machiya/original-village",
+      "capturedAt": "2026-11-10"
+    },
+    "village-street": {
+      "src": "thumbnails/machiya-original-village.webp",
+      "kind": "context",
+      "label": "Context for Village street assembly · Original game reference · A village house",
+      "targetId": "machiya/original-village",
+      "capturedAt": "2026-11-10",
+      "note": "Individual house references, not a specimen of the complete original street layout."
+    },
+    "kawara-roof": {
+      "src": "thumbnails/machiya-roof-original.webp",
+      "kind": "original",
+      "label": "Original game reference · The curved slab",
+      "targetId": "machiya/roof-original",
+      "capturedAt": "2026-11-10"
+    },
+    "koushi": {
+      "src": "thumbnails/machiya-lattice-original.webp",
+      "kind": "original",
+      "label": "Original game reference · Eleven original slats",
+      "targetId": "machiya/lattice-original",
+      "capturedAt": "2026-11-10"
+    },
+    "engawa": {
+      "src": "thumbnails/machiya-deck-original.webp",
+      "kind": "original",
+      "label": "Original game reference · One veranda slab",
+      "targetId": "machiya/deck-original",
+      "capturedAt": "2026-11-10"
+    },
+    "timber-frame": {
+      "src": "thumbnails/machiya-frame-original.webp",
+      "kind": "original",
+      "label": "Original game reference · Square hashira",
+      "targetId": "machiya/frame-original",
+      "capturedAt": "2026-11-10"
+    },
+    "upper-windows": {
+      "src": "thumbnails/machiya-window-original.webp",
+      "kind": "original",
+      "label": "Original game reference · Timber upper lattice",
+      "targetId": "machiya/window-original",
+      "capturedAt": "2026-11-10"
+    },
+    "noren": {
+      "src": "thumbnails/machiya-cloth-original.webp",
+      "kind": "original",
+      "label": "Original game reference · The original noren slab",
+      "targetId": "machiya/cloth-original",
+      "capturedAt": "2026-11-10"
+    },
+    "namako": {
+      "src": "thumbnails/machiya-original-village.webp",
+      "kind": "context",
+      "label": "Context for Namako skirt walls · Original game reference · A village house",
+      "targetId": "machiya/original-village",
+      "capturedAt": "2026-11-10"
+    },
+    "tea-bench": {
+      "src": "thumbnails/machiya-original-tea.webp",
+      "kind": "context",
+      "label": "Context for Tea-house bench and mosen cushion · Original game reference · The tea house",
+      "targetId": "machiya/original-tea",
+      "capturedAt": "2026-11-10"
+    },
+    "secret-door": {
+      "src": "thumbnails/machiya-original-secret.webp",
+      "kind": "context",
+      "label": "Context for Secret sliding door · Original game reference · Hisomu-an",
+      "targetId": "machiya/original-secret",
+      "capturedAt": "2026-11-10"
+    },
+    "lock-plate": {
+      "src": "thumbnails/machiya-original-secret.webp",
+      "kind": "context",
+      "label": "Context for Antique brass padlock emblem · Original game reference · Hisomu-an",
+      "targetId": "machiya/original-secret",
+      "capturedAt": "2026-11-10"
+    },
+    "crates": {
+      "src": "thumbnails/alley-game-crates.webp",
+      "kind": "original",
+      "label": "Original game reference · Our climb crates 今の木箱",
+      "targetId": "alley/game-crates",
+      "capturedAt": "2026-11-10"
+    },
+    "sake-barrel": {
+      "src": "thumbnails/alley-komodaru.webp",
+      "kind": "study",
+      "label": "Lab study · Sake barrel",
+      "targetId": "alley/komodaru",
+      "capturedAt": "2026-11-10",
+      "note": "Generated as its own specimen by the PROPS map in recipes.js."
+    },
+    "nest": {
+      "src": "thumbnails/nest-game-nest.webp",
+      "kind": "original",
+      "label": "Original game reference · Our nest 今の巣",
+      "targetId": "nest/game-nest",
+      "capturedAt": "2026-11-10"
+    },
+    "nest-eggs": {
+      "src": "thumbnails/nest-eggs.webp",
+      "kind": "study",
+      "label": "Lab study · Three eggs 卵",
+      "targetId": "nest/eggs",
+      "capturedAt": "2026-11-10"
+    },
+    "toro": {
+      "src": "thumbnails/lanterns-game-toro.webp",
+      "kind": "original",
+      "label": "Original game reference · Our tōrō 今の灯籠",
+      "targetId": "lanterns/game-toro",
+      "capturedAt": "2026-11-10"
+    },
+    "chochin": {
+      "src": "thumbnails/lanterns-game-chochin.webp",
+      "kind": "original",
+      "label": "Original game reference · Our chōchin 今の提灯",
+      "targetId": "lanterns/game-chochin",
+      "capturedAt": "2026-11-10"
+    },
+    "street-lamps": {
+      "src": "thumbnails/lanterns-game-street.webp",
+      "kind": "original",
+      "label": "Original game reference · A street lamp 今の街灯",
+      "targetId": "lanterns/game-street",
+      "capturedAt": "2026-11-10"
+    },
+    "bamboo-fence": {
+      "src": "thumbnails/fences-game-fence.webp",
+      "kind": "original",
+      "label": "Original game reference · Our takegaki 今の竹垣",
+      "targetId": "fences/game-fence",
+      "capturedAt": "2026-11-10"
+    },
+    "corral": {
+      "src": "thumbnails/fences-corral.webp",
+      "kind": "original",
+      "label": "Original game reference · The corral, and Larry 囲い",
+      "targetId": "fences/corral",
+      "capturedAt": "2026-11-10"
+    },
+    "corral-sign": {
+      "src": "thumbnails/fences-corral.webp",
+      "kind": "context",
+      "label": "Context for Corral warning sign · Original game reference · The corral, and Larry 囲い",
+      "targetId": "fences/corral",
+      "capturedAt": "2026-11-10"
+    },
+    "shishi": {
+      "src": "thumbnails/garden-game-shishi.webp",
+      "kind": "original",
+      "label": "Original game reference · Our shishi-odoshi 今の鹿威し",
+      "targetId": "garden/game-shishi",
+      "capturedAt": "2026-11-10"
+    },
+    "wind-chime": {
+      "src": "thumbnails/garden-game-chime.webp",
+      "kind": "original",
+      "label": "Original game reference · Our wind chime 今の風鈴",
+      "targetId": "garden/game-chime",
+      "capturedAt": "2026-11-10"
+    },
+    "torii": {
+      "src": "thumbnails/shrine-game-torii.webp",
+      "kind": "original",
+      "label": "Original game reference · Our torii 今の鳥居",
+      "targetId": "shrine/game-torii",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine-hall": {
+      "src": "thumbnails/shrine-game-hall.webp",
+      "kind": "original",
+      "label": "Original game reference · Our hall 今の本殿",
+      "targetId": "shrine/game-hall",
+      "capturedAt": "2026-11-10"
+    },
+    "shimenawa": {
+      "src": "thumbnails/shrine-game-rope.webp",
+      "kind": "original",
+      "label": "Original game reference · Our rope 今の注連縄",
+      "targetId": "shrine/game-rope",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine-bell": {
+      "src": "thumbnails/shrine-suzu.webp",
+      "kind": "study",
+      "label": "Lab study · Suzu and offering box 鈴と賽銭箱",
+      "targetId": "shrine/suzu",
+      "capturedAt": "2026-11-10"
+    },
+    "offering-box": {
+      "src": "thumbnails/shrine-game-hall.webp",
+      "kind": "context",
+      "label": "Context for Saisen-bako offering box · Original game reference · Our hall 今の本殿",
+      "targetId": "shrine/game-hall",
+      "capturedAt": "2026-11-10"
+    },
+    "mist-altar": {
+      "src": "thumbnails/shrine-game-altar.webp",
+      "kind": "original",
+      "label": "Original game reference · The mist altar 霧の祠",
+      "targetId": "shrine/game-altar",
+      "capturedAt": "2026-11-10"
+    },
+    "distant-pagoda": {
+      "src": "thumbnails/pagoda-orig-tower.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s pagoda",
+      "targetId": "pagoda/orig-tower",
+      "capturedAt": "2026-11-10"
+    },
+    "yarn": {
+      "src": "thumbnails/keepsakes-game-yarn.webp",
+      "kind": "original",
+      "label": "Original game reference · Our yarn 今の毛糸",
+      "targetId": "keepsakes/game-yarn",
+      "capturedAt": "2026-11-10"
+    },
+    "key": {
+      "src": "thumbnails/keepsakes-game-key.webp",
+      "kind": "original",
+      "label": "Original game reference · Our key 今の鍵",
+      "targetId": "keepsakes/game-key",
+      "capturedAt": "2026-11-10"
+    },
+    "guardian-feather": {
+      "src": "thumbnails/nest-feather.webp",
+      "kind": "study",
+      "label": "Lab study · A feather 羽根",
+      "targetId": "nest/feather",
+      "capturedAt": "2026-11-10"
+    },
+    "offering-bells": {
+      "src": "thumbnails/shrine-game-bell.webp",
+      "kind": "original",
+      "label": "Original game reference · An offering bell 今の鈴",
+      "targetId": "shrine/game-bell",
+      "capturedAt": "2026-11-10"
+    },
+    "jade-paw": {
+      "src": "thumbnails/fences-corral.webp",
+      "kind": "context",
+      "label": "Context for Jade Paw corral reward · Original game reference · The corral, and Larry 囲い",
+      "targetId": "fences/corral",
+      "capturedAt": "2026-11-10",
+      "note": "The original builder creates this reward with visible=false. The corral tile does not reveal it; construction is not visible coverage."
+    },
+    "secret-fish": {
+      "src": "thumbnails/machiya-original-secret.webp",
+      "kind": "context",
+      "label": "Context for Secret-house grilled fish treat · Original game reference · Hisomu-an",
+      "targetId": "machiya/original-secret",
+      "capturedAt": "2026-11-10",
+      "note": "Fish remains inside the furnished original secret-house reference."
+    },
+    "bamboo-groves": {
+      "src": "thumbnails/greenery-game-grove.webp",
+      "kind": "original",
+      "label": "Original game reference · The grove today 今の竹林",
+      "targetId": "greenery/game-grove",
+      "capturedAt": "2026-11-10"
+    },
+    "street-bushes": {
+      "src": "thumbnails/greenery-game-bush.webp",
+      "kind": "original",
+      "label": "Original game reference · A street bush 今の茂み",
+      "targetId": "greenery/game-bush",
+      "capturedAt": "2026-11-10"
+    },
+    "roadside-moss": {
+      "src": "thumbnails/grass-moss.webp",
+      "kind": "context",
+      "label": "Context for Roadside moss patches · Lab study · Moss Pillows",
+      "targetId": "grass/moss",
+      "capturedAt": "2026-11-10",
+      "note": "The grass moss pillow differs from the roadside instanced tufts."
+    },
+    "meadow-system": {
+      "src": "thumbnails/grass-ring-lod.webp",
+      "kind": "study",
+      "label": "Lab study · Ring LOD",
+      "targetId": "grass/ring-lod",
+      "capturedAt": "2026-11-10"
+    },
+    "grass-near": {
+      "src": "thumbnails/grass-bezier.webp",
+      "kind": "study",
+      "label": "Lab study · Bezier Blades",
+      "targetId": "grass/bezier",
+      "capturedAt": "2026-11-10"
+    },
+    "grass-mid": {
+      "src": "thumbnails/grass-triquad.webp",
+      "kind": "study",
+      "label": "Lab study · Tri-Quad Clumps",
+      "targetId": "grass/triquad",
+      "capturedAt": "2026-11-10"
+    },
+    "grass-far": {
+      "src": "thumbnails/grass-meadow-painted.webp",
+      "kind": "study",
+      "label": "Lab study · Painted Meadow",
+      "targetId": "grass/meadow-painted",
+      "capturedAt": "2026-11-10"
+    },
+    "grass-thicket": {
+      "src": "thumbnails/grass-meadow-thicket.webp",
+      "kind": "study",
+      "label": "Lab study · Cat-Eye Thicket",
+      "targetId": "grass/meadow-thicket",
+      "capturedAt": "2026-11-10"
+    },
+    "grass-flowers": {
+      "src": "thumbnails/grass-wildflowers.webp",
+      "kind": "study",
+      "label": "Lab study · Wildflower Cards",
+      "targetId": "grass/wildflowers",
+      "capturedAt": "2026-11-10"
+    },
+    "grass-susuki": {
+      "src": "thumbnails/grass-susuki.webp",
+      "kind": "study",
+      "label": "Lab study · Susuki Plumes",
+      "targetId": "grass/susuki",
+      "capturedAt": "2026-11-10"
+    },
+    "grass-mown": {
+      "src": "thumbnails/grass-mown.webp",
+      "kind": "study",
+      "label": "Lab study · Mown Stripes",
+      "targetId": "grass/mown",
+      "capturedAt": "2026-11-10"
+    },
+    "grass-lantern": {
+      "src": "thumbnails/grass-lantern.webp",
+      "kind": "study",
+      "label": "Lab study · Lantern Fibers",
+      "targetId": "grass/lantern",
+      "capturedAt": "2026-11-10"
+    },
+    "grass-sumi": {
+      "src": "thumbnails/grass-sumi.webp",
+      "kind": "study",
+      "label": "Lab study · Sumi-e Brush Grass",
+      "targetId": "grass/sumi",
+      "capturedAt": "2026-11-10"
+    },
+    "grass-yarn": {
+      "src": "thumbnails/grass-yarn.webp",
+      "kind": "study",
+      "label": "Lab study · Yarn Curls",
+      "targetId": "grass/yarn",
+      "capturedAt": "2026-11-10"
+    },
+    "grass-shell": {
+      "src": "thumbnails/grass-carpet-blades.webp",
+      "kind": "study",
+      "label": "Lab study · Carpet & Blades",
+      "targetId": "grass/carpet-blades",
+      "capturedAt": "2026-11-10"
+    },
+    "grass-moss": {
+      "src": "thumbnails/grass-moss.webp",
+      "kind": "study",
+      "label": "Lab study · Moss Pillows",
+      "targetId": "grass/moss",
+      "capturedAt": "2026-11-10"
+    },
+    "grass-fireflies": {
+      "src": "thumbnails/moonpool-fireflies.webp",
+      "kind": "context",
+      "label": "Context for River-bank grass fireflies · Lab study · Fireflies 蛍",
+      "targetId": "moonpool/fireflies",
+      "capturedAt": "2026-11-10",
+      "note": "Related hotaru study; not the GrassSystem particle shader."
+    },
+    "dappled-light": {
+      "src": "thumbnails/komorebi-game-dapple.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s dapples 今の木漏れ日",
+      "targetId": "komorebi/game-dapple",
+      "capturedAt": "2026-11-10"
+    },
+    "old-petal-drifts": {
+      "src": "thumbnails/komorebi-game-drift.webp",
+      "kind": "context",
+      "label": "Context for Removed static petal-drift discs · Inactive empty baseline · Petal drifts, today 今の花びら溜り",
+      "targetId": "komorebi/game-drift",
+      "capturedAt": "2026-11-10"
+    },
+    "moon-pool": {
+      "src": "thumbnails/moonpool-game-water.webp",
+      "kind": "original",
+      "label": "Original game reference · The Moon Pool, today 今の月の池",
+      "targetId": "moonpool/game-water",
+      "capturedAt": "2026-11-10"
+    },
+    "pool-apron": {
+      "src": "thumbnails/moonpool-game-water.webp",
+      "kind": "context",
+      "label": "Context for Moon Pool mossy apron · Original game reference · The Moon Pool, today 今の月の池",
+      "targetId": "moonpool/game-water",
+      "capturedAt": "2026-11-10"
+    },
+    "pool-water": {
+      "src": "thumbnails/moonpool-game-water.webp",
+      "kind": "original",
+      "label": "Original game reference · The Moon Pool, today 今の月の池",
+      "targetId": "moonpool/game-water",
+      "capturedAt": "2026-11-10"
+    },
+    "pool-moon": {
+      "src": "thumbnails/moonpool-game-moon.webp",
+      "kind": "study",
+      "label": "Baseline reconstruction · A moon sprite 今の月",
+      "targetId": "moonpool/game-moon",
+      "capturedAt": "2026-11-10"
+    },
+    "pool-rim": {
+      "src": "thumbnails/moonpool-game-water.webp",
+      "kind": "context",
+      "label": "Context for Pool rim stones · Original game reference · The Moon Pool, today 今の月の池",
+      "targetId": "moonpool/game-water",
+      "capturedAt": "2026-11-10"
+    },
+    "lily-pads": {
+      "src": "thumbnails/moonpool-game-pad.webp",
+      "kind": "original",
+      "label": "Original game reference · Our lily pad 今の葉",
+      "targetId": "moonpool/game-pad",
+      "capturedAt": "2026-11-10"
+    },
+    "lotus": {
+      "src": "thumbnails/moonpool-lotus.webp",
+      "kind": "study",
+      "label": "Lab study · Lotus 蓮",
+      "targetId": "moonpool/lotus",
+      "capturedAt": "2026-11-10"
+    },
+    "pool-seat": {
+      "src": "thumbnails/moonpool-game-water.webp",
+      "kind": "context",
+      "label": "Context for Pool sitting stone · Original game reference · The Moon Pool, today 今の月の池",
+      "targetId": "moonpool/game-water",
+      "capturedAt": "2026-11-10"
+    },
+    "pool-toro": {
+      "src": "thumbnails/moonpool-game-water.webp",
+      "kind": "context",
+      "label": "Context for Moon Pool stone toro · Original game reference · The Moon Pool, today 今の月の池",
+      "targetId": "moonpool/game-water",
+      "capturedAt": "2026-11-10"
+    },
+    "pool-motes": {
+      "src": "thumbnails/moonpool-game-motes.webp",
+      "kind": "original",
+      "label": "Original game reference · Pool motes 今の光",
+      "targetId": "moonpool/game-motes",
+      "capturedAt": "2026-11-10"
+    },
+    "lantern-glade": {
+      "src": "thumbnails/moonpool-game-lamp.webp",
+      "kind": "context",
+      "label": "Context for Lantern Glade complete clearing · Original game reference · A glade lantern 今の提灯",
+      "targetId": "moonpool/game-lamp",
+      "capturedAt": "2026-11-10",
+      "note": "The original tile extracts a lantern, not the complete clearing."
+    },
+    "glade-bamboo": {
+      "src": "thumbnails/greenery-game-grove.webp",
+      "kind": "context",
+      "label": "Context for Glade bamboo ring and drooping leaves · Original game reference · The grove today 今の竹林",
+      "targetId": "greenery/game-grove",
+      "capturedAt": "2026-11-10",
+      "note": "Vegetation.buildBambooGrove differs from the hidden-place bamboo."
+    },
+    "glade-lanterns": {
+      "src": "thumbnails/moonpool-game-lamp.webp",
+      "kind": "original",
+      "label": "Original game reference · A glade lantern 今の提灯",
+      "targetId": "moonpool/game-lamp",
+      "capturedAt": "2026-11-10"
+    },
+    "glade-seat": {
+      "src": "thumbnails/rocks-moss-old.webp",
+      "kind": "context",
+      "label": "Context for Glade seat and mossy central boulder · Lab study · A hundred years 苔むす",
+      "targetId": "rocks/moss-old",
+      "capturedAt": "2026-11-10",
+      "note": "Related stone finish, without the glade objects."
+    },
+    "glade-fireflies": {
+      "src": "thumbnails/moonpool-fireflies.webp",
+      "kind": "study",
+      "label": "Lab study · Fireflies 蛍",
+      "targetId": "moonpool/fireflies",
+      "capturedAt": "2026-11-10"
+    },
+    "tea-interior": {
+      "src": "thumbnails/interiors-garden.webp",
+      "kind": "study",
+      "label": "Lab study · The garden zashiki",
+      "targetId": "interiors/garden",
+      "capturedAt": "2026-11-10",
+      "note": "A redesigned room study, not the original InteriorManager builder."
+    },
+    "interior-frame": {
+      "src": "thumbnails/interiors-garden.webp",
+      "kind": "context",
+      "label": "Context for Interior walls, timber posts and ceiling beams · Lab study · The garden zashiki",
+      "targetId": "interiors/garden",
+      "capturedAt": "2026-11-10"
+    },
+    "tokonoma": {
+      "src": "thumbnails/interiors-garden.webp",
+      "kind": "context",
+      "label": "Context for Tokonoma alcove · Lab study · The garden zashiki",
+      "targetId": "interiors/garden",
+      "capturedAt": "2026-11-10"
+    },
+    "scroll": {
+      "src": "thumbnails/interiors-garden.webp",
+      "kind": "context",
+      "label": "Context for Kakejiku hanging scroll · Lab study · The garden zashiki",
+      "targetId": "interiors/garden",
+      "capturedAt": "2026-11-10"
+    },
+    "chabudai": {
+      "src": "thumbnails/interiors-garden.webp",
+      "kind": "context",
+      "label": "Context for Chabudai low table · Lab study · The garden zashiki",
+      "targetId": "interiors/garden",
+      "capturedAt": "2026-11-10"
+    },
+    "zabuton": {
+      "src": "thumbnails/interiors-garden.webp",
+      "kind": "context",
+      "label": "Context for Zabuton nap bed and embroidered tassels · Lab study · The garden zashiki",
+      "targetId": "interiors/garden",
+      "capturedAt": "2026-11-10"
+    },
+    "andon": {
+      "src": "thumbnails/lanterns-andon.webp",
+      "kind": "study",
+      "label": "Lab study · Andon 行灯",
+      "targetId": "lanterns/andon",
+      "capturedAt": "2026-11-10"
+    },
+    "courtyard-gravel": {
+      "src": "thumbnails/rocks-rake.webp",
+      "kind": "study",
+      "label": "Lab study · Raked gravel 枯山水",
+      "targetId": "rocks/rake",
+      "capturedAt": "2026-11-10"
+    },
+    "courtyard-toro": {
+      "src": "thumbnails/lanterns-game-toro.webp",
+      "kind": "context",
+      "label": "Context for Courtyard stone lantern · Original game reference · Our tōrō 今の灯籠",
+      "targetId": "lanterns/game-toro",
+      "capturedAt": "2026-11-10",
+      "note": "Different source builder; no courtyard lantern extraction."
+    },
+    "courtyard-wall": {
+      "src": "thumbnails/interiors-garden.webp",
+      "kind": "context",
+      "label": "Context for Courtyard boundary timber wall · Lab study · The garden zashiki",
+      "targetId": "interiors/garden",
+      "capturedAt": "2026-11-10"
+    },
+    "secret-tatami": {
+      "src": "thumbnails/machiya-original-secret.webp",
+      "kind": "context",
+      "label": "Context for Secret-house tatami · Original game reference · Hisomu-an",
+      "targetId": "machiya/original-secret",
+      "capturedAt": "2026-11-10"
+    },
+    "secret-table": {
+      "src": "thumbnails/machiya-original-secret.webp",
+      "kind": "context",
+      "label": "Context for Secret-house table and teaware · Original game reference · Hisomu-an",
+      "targetId": "machiya/original-secret",
+      "capturedAt": "2026-11-10"
+    },
+    "secret-bed": {
+      "src": "thumbnails/machiya-original-secret.webp",
+      "kind": "context",
+      "label": "Context for Secret-house nap cushion · Original game reference · Hisomu-an",
+      "targetId": "machiya/original-secret",
+      "capturedAt": "2026-11-10"
+    },
+    "secret-andon": {
+      "src": "thumbnails/machiya-original-secret.webp",
+      "kind": "context",
+      "label": "Context for Secret-house andon · Original game reference · Hisomu-an",
+      "targetId": "machiya/original-secret",
+      "capturedAt": "2026-11-10"
+    },
+    "sky-dome": {
+      "src": "thumbnails/sky-sky-game.webp",
+      "kind": "original",
+      "label": "Original game reference · Our game’s sky",
+      "targetId": "sky/sky-game",
+      "capturedAt": "2026-11-10"
+    },
+    "clouds": {
+      "src": "thumbnails/sky-cloud-game.webp",
+      "kind": "original",
+      "label": "Original game reference · Our painted puffs",
+      "targetId": "sky/cloud-game",
+      "capturedAt": "2026-11-10"
+    },
+    "stars": {
+      "src": "thumbnails/sky-sky-night.webp",
+      "kind": "context",
+      "label": "Context for Twinkling stars · Original game reference · A very quiet blue",
+      "targetId": "sky/sky-night",
+      "capturedAt": "2026-11-10"
+    },
+    "moon": {
+      "src": "thumbnails/sky-sky-night.webp",
+      "kind": "context",
+      "label": "Context for Crescent moon · Original game reference · A very quiet blue",
+      "targetId": "sky/sky-night",
+      "capturedAt": "2026-11-10"
+    },
+    "sky-light": {
+      "src": "thumbnails/sky-sky-game.webp",
+      "kind": "context",
+      "label": "Context for Sun, hemisphere, fill and bounce lighting · Original game reference · Our game’s sky",
+      "targetId": "sky/sky-game",
+      "capturedAt": "2026-11-10",
+      "note": "The baseline adapter hides the original lights; labs use their own rig."
+    },
+    "god-rays": {
+      "src": "thumbnails/sky-air-rays.webp",
+      "kind": "context",
+      "label": "Context for Valley god-ray cards · Lab study · A gap in the clouds",
+      "targetId": "sky/air-rays",
+      "capturedAt": "2026-11-10",
+      "note": "Sky-space rays are a different implementation from the game’s ground cards."
+    },
+    "rain": {
+      "src": "thumbnails/weather-game-rain.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s rain 今の雨",
+      "targetId": "weather/game-rain",
+      "capturedAt": "2026-11-10"
+    },
+    "river-petals": {
+      "src": "thumbnails/water-hanaikada.webp",
+      "kind": "study",
+      "label": "Lab study · Hanaikada",
+      "targetId": "water/hanaikada",
+      "capturedAt": "2026-11-10"
+    },
+    "falling-petals": {
+      "src": "thumbnails/weather-game-petal.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s petals 今の花弁",
+      "targetId": "weather/game-petal",
+      "capturedAt": "2026-11-10"
+    },
+    "fireflies": {
+      "src": "thumbnails/moonpool-fireflies.webp",
+      "kind": "context",
+      "label": "Context for Ambient valley fireflies · Lab study · Fireflies 蛍",
+      "targetId": "moonpool/fireflies",
+      "capturedAt": "2026-11-10",
+      "note": "Related firefly study; not Particles.buildFireflies()."
+    },
+    "dust-motes": {
+      "src": "thumbnails/moonpool-game-motes.webp",
+      "kind": "context",
+      "label": "Context for Ambient dust motes · Original game reference · Pool motes 今の光",
+      "targetId": "moonpool/game-motes",
+      "capturedAt": "2026-11-10",
+      "note": "Moon Pool motes are a separate system."
+    },
+    "snow": {
+      "src": "thumbnails/weather-game-snow.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s snow 今の雪",
+      "targetId": "weather/game-snow",
+      "capturedAt": "2026-11-10"
+    },
+    "splash": {
+      "src": "thumbnails/weather-splash.webp",
+      "kind": "context",
+      "label": "Context for Player water-entry splash droplets · Lab study · Splash rings 水跳ね",
+      "targetId": "weather/splash",
+      "capturedAt": "2026-11-10",
+      "note": "Rain impacts do not exercise the player water-entry splash."
+    },
+    "atmosphere": {
+      "src": "thumbnails/summit-haze.webp",
+      "kind": "context",
+      "label": "Context for Screen-space distance and height atmosphere · Lab study · Layered haze 霞",
+      "targetId": "summit/haze",
+      "capturedAt": "2026-11-10",
+      "note": "Layered haze cards are not the game’s depth-buffer atmosphere pass."
+    },
+    "grade": {
+      "src": "thumbnails/ground-kuwahara.webp",
+      "kind": "context",
+      "label": "Context for Painterly colour grading, vignette, grain and fringe · Lab study · Kuwahara brush",
+      "targetId": "ground/kuwahara",
+      "capturedAt": "2026-11-10",
+      "note": "Related finish study; Kuwahara is not the game grade/grain/fringe pipeline."
+    },
+    "summit-pagoda": {
+      "src": "thumbnails/summit-game-city.webp",
+      "kind": "context",
+      "label": "Context for Higashiyama pagoda and evening lanterns · Original game reference · The city, today 今の京都",
+      "targetId": "summit/game-city",
+      "capturedAt": "2026-11-10",
+      "note": "buildKyotoCity() calls buildKyotoPagoda(); the tower is inside the original city tile. Its evening-light material starts at zero opacity."
+    },
+    "summit-grass": {
+      "src": "thumbnails/grass-ring-lod.webp",
+      "kind": "context",
+      "label": "Context for Summit biome grass field · Lab study · Ring LOD",
+      "targetId": "grass/ring-lod",
+      "capturedAt": "2026-11-10",
+      "note": "Same GrassSystem recipes, but no specimen of the summit’s field layout."
+    },
+    "kyoto-city": {
+      "src": "thumbnails/summit-game-city.webp",
+      "kind": "original",
+      "label": "Original game reference · The city, today 今の京都",
+      "targetId": "summit/game-city",
+      "capturedAt": "2026-11-10"
+    }
+  },
+  "targets": {
+    "ground/today": {
+      "src": "thumbnails/ground-today.webp",
+      "kind": "study",
+      "label": "Baseline reconstruction · The game today",
+      "targetId": "ground/today",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/linear": {
+      "src": "thumbnails/ground-linear.webp",
+      "kind": "study",
+      "label": "Lab study · Linear splat",
+      "targetId": "ground/linear",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/height": {
+      "src": "thumbnails/ground-height.webp",
+      "kind": "study",
+      "label": "Lab study · Height blend",
+      "targetId": "ground/height",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/dither": {
+      "src": "thumbnails/ground-dither.webp",
+      "kind": "study",
+      "label": "Lab study · Threshold edge",
+      "targetId": "ground/dither",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/ink": {
+      "src": "thumbnails/ground-ink.webp",
+      "kind": "study",
+      "label": "Lab study · Painted edge",
+      "targetId": "ground/ink",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/repeat": {
+      "src": "thumbnails/ground-repeat.webp",
+      "kind": "study",
+      "label": "Lab study · Plain repeat",
+      "targetId": "ground/repeat",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/quilez1": {
+      "src": "thumbnails/ground-quilez1.webp",
+      "kind": "study",
+      "label": "Lab study · Per-tile offset",
+      "targetId": "ground/quilez1",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/quilez2": {
+      "src": "thumbnails/ground-quilez2.webp",
+      "kind": "study",
+      "label": "Lab study · Noise index",
+      "targetId": "ground/quilez2",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/hex": {
+      "src": "thumbnails/ground-hex.webp",
+      "kind": "study",
+      "label": "Lab study · Hex-tiling",
+      "targetId": "ground/hex",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/macro": {
+      "src": "thumbnails/ground-macro.webp",
+      "kind": "study",
+      "label": "Lab study · Big shapes first",
+      "targetId": "ground/macro",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/setts": {
+      "src": "thumbnails/ground-setts.webp",
+      "kind": "study",
+      "label": "Lab study · Ishidatami setts",
+      "targetId": "ground/setts",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/pom": {
+      "src": "thumbnails/ground-pom.webp",
+      "kind": "study",
+      "label": "Lab study · Setts in relief",
+      "targetId": "ground/pom",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/slabs": {
+      "src": "thumbnails/ground-slabs.webp",
+      "kind": "study",
+      "label": "Lab study · Kiri-ishi slabs",
+      "targetId": "ground/slabs",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/nobedan": {
+      "src": "thumbnails/ground-nobedan.webp",
+      "kind": "study",
+      "label": "Lab study · Nobedan",
+      "targetId": "ground/nobedan",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/arare": {
+      "src": "thumbnails/ground-arare.webp",
+      "kind": "study",
+      "label": "Lab study · Arare-koboshi",
+      "targetId": "ground/arare",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/uroko": {
+      "src": "thumbnails/ground-uroko.webp",
+      "kind": "study",
+      "label": "Lab study · Irokojiki",
+      "targetId": "ground/uroko",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/araidashi": {
+      "src": "thumbnails/ground-araidashi.webp",
+      "kind": "study",
+      "label": "Lab study · Araidashi",
+      "targetId": "ground/araidashi",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/tobi": {
+      "src": "thumbnails/ground-tobi.webp",
+      "kind": "study",
+      "label": "Lab study · Tobi-ishi in moss",
+      "targetId": "ground/tobi",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/trail": {
+      "src": "thumbnails/ground-trail.webp",
+      "kind": "study",
+      "label": "Lab study · A trail forming",
+      "targetId": "ground/trail",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/samon": {
+      "src": "thumbnails/ground-samon.webp",
+      "kind": "study",
+      "label": "Lab study · Samon",
+      "targetId": "ground/samon",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/hokime": {
+      "src": "thumbnails/ground-hokime.webp",
+      "kind": "study",
+      "label": "Lab study · Hōkime",
+      "targetId": "ground/hokime",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/moss": {
+      "src": "thumbnails/ground-moss.webp",
+      "kind": "study",
+      "label": "Lab study · Sugigoke",
+      "targetId": "ground/moss",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/matsuba": {
+      "src": "thumbnails/ground-matsuba.webp",
+      "kind": "study",
+      "label": "Lab study · Shikimatsuba",
+      "targetId": "ground/matsuba",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/tataki": {
+      "src": "thumbnails/ground-tataki.webp",
+      "kind": "study",
+      "label": "Lab study · Tataki",
+      "targetId": "ground/tataki",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/wet": {
+      "src": "thumbnails/ground-wet.webp",
+      "kind": "study",
+      "label": "Lab study · Wet and dry",
+      "targetId": "ground/wet",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/puddles": {
+      "src": "thumbnails/ground-puddles.webp",
+      "kind": "study",
+      "label": "Lab study · Puddles, lowest first",
+      "targetId": "ground/puddles",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/uchimizu": {
+      "src": "thumbnails/ground-uchimizu.webp",
+      "kind": "study",
+      "label": "Lab study · Uchimizu",
+      "targetId": "ground/uchimizu",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/snow": {
+      "src": "thumbnails/ground-snow.webp",
+      "kind": "study",
+      "label": "Lab study · First snow",
+      "targetId": "ground/snow",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/komorebi": {
+      "src": "thumbnails/ground-komorebi.webp",
+      "kind": "study",
+      "label": "Lab study · Komorebi",
+      "targetId": "ground/komorebi",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/kuwahara": {
+      "src": "thumbnails/ground-kuwahara.webp",
+      "kind": "study",
+      "label": "Lab study · Kuwahara brush",
+      "targetId": "ground/kuwahara",
+      "capturedAt": "2026-11-10"
+    },
+    "ground/toon": {
+      "src": "thumbnails/ground-toon.webp",
+      "kind": "study",
+      "label": "Lab study · Stepped light",
+      "targetId": "ground/toon",
+      "capturedAt": "2026-11-10"
+    },
+    "water/scroll": {
+      "src": "thumbnails/water-scroll.webp",
+      "kind": "study",
+      "label": "Lab study · Scrolling normals",
+      "targetId": "water/scroll",
+      "capturedAt": "2026-11-10"
+    },
+    "water/flowmap": {
+      "src": "thumbnails/water-flowmap.webp",
+      "kind": "study",
+      "label": "Lab study · Flow map",
+      "targetId": "water/flowmap",
+      "capturedAt": "2026-11-10"
+    },
+    "water/gerstner": {
+      "src": "thumbnails/water-gerstner.webp",
+      "kind": "study",
+      "label": "Lab study · Gerstner waves",
+      "targetId": "water/gerstner",
+      "capturedAt": "2026-11-10"
+    },
+    "water/toon": {
+      "src": "thumbnails/water-toon.webp",
+      "kind": "study",
+      "label": "Lab study · Toon water",
+      "targetId": "water/toon",
+      "capturedAt": "2026-11-10"
+    },
+    "water/ripple": {
+      "src": "thumbnails/water-ripple.webp",
+      "kind": "study",
+      "label": "Lab study · Ripple tank",
+      "targetId": "water/ripple",
+      "capturedAt": "2026-11-10"
+    },
+    "water/mirror": {
+      "src": "thumbnails/water-mirror.webp",
+      "kind": "study",
+      "label": "Lab study · Planar mirror",
+      "targetId": "water/mirror",
+      "capturedAt": "2026-11-10"
+    },
+    "water/caustic": {
+      "src": "thumbnails/water-caustic.webp",
+      "kind": "study",
+      "label": "Lab study · Caustic shallows",
+      "targetId": "water/caustic",
+      "capturedAt": "2026-11-10"
+    },
+    "water/game": {
+      "src": "thumbnails/water-game.webp",
+      "kind": "study",
+      "label": "Baseline reconstruction · Ours today",
+      "targetId": "water/game",
+      "capturedAt": "2026-11-10"
+    },
+    "water/kyoto": {
+      "src": "thumbnails/water-kyoto.webp",
+      "kind": "study",
+      "label": "Lab study · The lab’s river",
+      "targetId": "water/kyoto",
+      "capturedAt": "2026-11-10"
+    },
+    "water/painted": {
+      "src": "thumbnails/water-painted.webp",
+      "kind": "study",
+      "label": "Lab study · Ghibli painted",
+      "targetId": "water/painted",
+      "capturedAt": "2026-11-10"
+    },
+    "water/weir": {
+      "src": "thumbnails/water-weir.webp",
+      "kind": "study",
+      "label": "Lab study · Kamogawa weir",
+      "targetId": "water/weir",
+      "capturedAt": "2026-11-10"
+    },
+    "water/hanaikada": {
+      "src": "thumbnails/water-hanaikada.webp",
+      "kind": "study",
+      "label": "Lab study · Hanaikada",
+      "targetId": "water/hanaikada",
+      "capturedAt": "2026-11-10"
+    },
+    "water/toro": {
+      "src": "thumbnails/water-toro.webp",
+      "kind": "study",
+      "label": "Lab study · Moon & tōrō-nagashi",
+      "targetId": "water/toro",
+      "capturedAt": "2026-11-10"
+    },
+    "water/sumi": {
+      "src": "thumbnails/water-sumi.webp",
+      "kind": "study",
+      "label": "Lab study · Sumi-e",
+      "targetId": "water/sumi",
+      "capturedAt": "2026-11-10"
+    },
+    "water/b-game": {
+      "src": "thumbnails/water-b-game.webp",
+      "kind": "study",
+      "label": "Baseline reconstruction · Ours today",
+      "targetId": "water/b-game",
+      "capturedAt": "2026-11-10"
+    },
+    "water/b-sanjo": {
+      "src": "thumbnails/water-b-sanjo.webp",
+      "kind": "study",
+      "label": "Lab study · Sanjō Ōhashi",
+      "targetId": "water/b-sanjo",
+      "capturedAt": "2026-11-10"
+    },
+    "water/b-taiko": {
+      "src": "thumbnails/water-b-taiko.webp",
+      "kind": "study",
+      "label": "Lab study · Taikobashi",
+      "targetId": "water/b-taiko",
+      "capturedAt": "2026-11-10"
+    },
+    "water/b-yatsuhashi": {
+      "src": "thumbnails/water-b-yatsuhashi.webp",
+      "kind": "study",
+      "label": "Lab study · Yatsuhashi",
+      "targetId": "water/b-yatsuhashi",
+      "capturedAt": "2026-11-10"
+    },
+    "water/b-ippon": {
+      "src": "thumbnails/water-b-ippon.webp",
+      "kind": "study",
+      "label": "Lab study · Ippon-bashi",
+      "targetId": "water/b-ippon",
+      "capturedAt": "2026-11-10"
+    },
+    "water/b-nagare": {
+      "src": "thumbnails/water-b-nagare.webp",
+      "kind": "study",
+      "label": "Lab study · Nagare-bashi",
+      "targetId": "water/b-nagare",
+      "capturedAt": "2026-11-10"
+    },
+    "water/b-uji": {
+      "src": "thumbnails/water-b-uji.webp",
+      "kind": "study",
+      "label": "Lab study · Uji-bashi",
+      "targetId": "water/b-uji",
+      "capturedAt": "2026-11-10"
+    },
+    "water/b-stones": {
+      "src": "thumbnails/water-b-stones.webp",
+      "kind": "study",
+      "label": "Lab study · Kame-ishi",
+      "targetId": "water/b-stones",
+      "capturedAt": "2026-11-10"
+    },
+    "water/p-game": {
+      "src": "thumbnails/water-p-game.webp",
+      "kind": "study",
+      "label": "Baseline reconstruction · Ours today",
+      "targetId": "water/p-game",
+      "capturedAt": "2026-11-10"
+    },
+    "water/p-mirror": {
+      "src": "thumbnails/water-p-mirror.webp",
+      "kind": "study",
+      "label": "Lab study · Mizukagami",
+      "targetId": "water/p-mirror",
+      "capturedAt": "2026-11-10"
+    },
+    "water/p-taue": {
+      "src": "thumbnails/water-p-taue.webp",
+      "kind": "study",
+      "label": "Lab study · Taue",
+      "targetId": "water/p-taue",
+      "capturedAt": "2026-11-10"
+    },
+    "water/p-summer": {
+      "src": "thumbnails/water-p-summer.webp",
+      "kind": "study",
+      "label": "Lab study · Ao-ta",
+      "targetId": "water/p-summer",
+      "capturedAt": "2026-11-10"
+    },
+    "water/p-autumn": {
+      "src": "thumbnails/water-p-autumn.webp",
+      "kind": "study",
+      "label": "Lab study · Inaho",
+      "targetId": "water/p-autumn",
+      "capturedAt": "2026-11-10"
+    },
+    "water/p-winter": {
+      "src": "thumbnails/water-p-winter.webp",
+      "kind": "study",
+      "label": "Lab study · Fuyuta",
+      "targetId": "water/p-winter",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/original-tea": {
+      "src": "thumbnails/machiya-original-tea.webp",
+      "kind": "original",
+      "label": "Original game reference · The tea house",
+      "targetId": "machiya/original-tea",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/original-residence": {
+      "src": "thumbnails/machiya-original-residence.webp",
+      "kind": "original",
+      "label": "Original game reference · The craftsman’s residence",
+      "targetId": "machiya/original-residence",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/original-secret": {
+      "src": "thumbnails/machiya-original-secret.webp",
+      "kind": "original",
+      "label": "Original game reference · Hisomu-an",
+      "targetId": "machiya/original-secret",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/original-village": {
+      "src": "thumbnails/machiya-original-village.webp",
+      "kind": "original",
+      "label": "Original game reference · A village house",
+      "targetId": "machiya/original-village",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/roof-original": {
+      "src": "thumbnails/machiya-roof-original.webp",
+      "kind": "original",
+      "label": "Original game reference · The curved slab",
+      "targetId": "machiya/roof-original",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/roof-courses": {
+      "src": "thumbnails/machiya-roof-courses.webp",
+      "kind": "study",
+      "label": "Lab study · Overlapping pans",
+      "targetId": "machiya/roof-courses",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/roof-wave": {
+      "src": "thumbnails/machiya-roof-wave.webp",
+      "kind": "study",
+      "label": "Lab study · Sangawara study",
+      "targetId": "machiya/roof-wave",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/frame-original": {
+      "src": "thumbnails/machiya-frame-original.webp",
+      "kind": "original",
+      "label": "Original game reference · Square hashira",
+      "targetId": "machiya/frame-original",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/frame-bevel": {
+      "src": "thumbnails/machiya-frame-bevel.webp",
+      "kind": "study",
+      "label": "Lab study · Sun on the joinery",
+      "targetId": "machiya/frame-bevel",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/frame-bengara": {
+      "src": "thumbnails/machiya-frame-bengara.webp",
+      "kind": "study",
+      "label": "Lab study · Bengara frontage",
+      "targetId": "machiya/frame-bengara",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/wall-original": {
+      "src": "thumbnails/machiya-wall-original.webp",
+      "kind": "original",
+      "label": "Original game reference · Painted game plaster",
+      "targetId": "machiya/wall-original",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/wall-clay": {
+      "src": "thumbnails/machiya-wall-clay.webp",
+      "kind": "study",
+      "label": "Lab study · Warm earthen infill",
+      "targetId": "machiya/wall-clay",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/wall-namako": {
+      "src": "thumbnails/machiya-wall-namako.webp",
+      "kind": "study",
+      "label": "Lab study · Slate at the foot",
+      "targetId": "machiya/wall-namako",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/lattice-original": {
+      "src": "thumbnails/machiya-lattice-original.webp",
+      "kind": "original",
+      "label": "Original game reference · Eleven original slats",
+      "targetId": "machiya/lattice-original",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/lattice-itoya": {
+      "src": "thumbnails/machiya-lattice-itoya.webp",
+      "kind": "study",
+      "label": "Lab study · Thread-shop rhythm",
+      "targetId": "machiya/lattice-itoya",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/lattice-rice": {
+      "src": "thumbnails/machiya-lattice-rice.webp",
+      "kind": "study",
+      "label": "Lab study · Rice-shop red",
+      "targetId": "machiya/lattice-rice",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/window-original": {
+      "src": "thumbnails/machiya-window-original.webp",
+      "kind": "original",
+      "label": "Original game reference · Timber upper lattice",
+      "targetId": "machiya/window-original",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/window-plaster": {
+      "src": "thumbnails/machiya-window-plaster.webp",
+      "kind": "study",
+      "label": "Lab study · Plaster insect cage",
+      "targetId": "machiya/window-plaster",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/window-low": {
+      "src": "thumbnails/machiya-window-low.webp",
+      "kind": "study",
+      "label": "Lab study · The low storage loft",
+      "targetId": "machiya/window-low",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/deck-original": {
+      "src": "thumbnails/machiya-deck-original.webp",
+      "kind": "original",
+      "label": "Original game reference · One veranda slab",
+      "targetId": "machiya/deck-original",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/deck-boards": {
+      "src": "thumbnails/machiya-deck-boards.webp",
+      "kind": "study",
+      "label": "Lab study · Boards over shade",
+      "targetId": "machiya/deck-boards",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/deck-silver": {
+      "src": "thumbnails/machiya-deck-silver.webp",
+      "kind": "study",
+      "label": "Lab study · A well-used threshold",
+      "targetId": "machiya/deck-silver",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/bamboo-original": {
+      "src": "thumbnails/machiya-bamboo-original.webp",
+      "kind": "original",
+      "label": "Original game reference · The bare frontage",
+      "targetId": "machiya/bamboo-original",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/bamboo-straight": {
+      "src": "thumbnails/machiya-bamboo-straight.webp",
+      "kind": "study",
+      "label": "Lab study · Straight stave study",
+      "targetId": "machiya/bamboo-straight",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/bamboo-curved": {
+      "src": "thumbnails/machiya-bamboo-curved.webp",
+      "kind": "study",
+      "label": "Lab study · Bowed inuyarai",
+      "targetId": "machiya/bamboo-curved",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/cloth-original": {
+      "src": "thumbnails/machiya-cloth-original.webp",
+      "kind": "original",
+      "label": "Original game reference · The original noren slab",
+      "targetId": "machiya/cloth-original",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/cloth-indigo": {
+      "src": "thumbnails/machiya-cloth-indigo.webp",
+      "kind": "study",
+      "label": "Lab study · Pinned indigo cloth",
+      "targetId": "machiya/cloth-indigo",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/cloth-red": {
+      "src": "thumbnails/machiya-cloth-red.webp",
+      "kind": "study",
+      "label": "Lab study · Tea-house crimson",
+      "targetId": "machiya/cloth-red",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/lantern-original": {
+      "src": "thumbnails/machiya-lantern-original.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s chōchin",
+      "targetId": "machiya/lantern-original",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/lantern-ribs": {
+      "src": "thumbnails/machiya-lantern-ribs.webp",
+      "kind": "study",
+      "label": "Lab study · Paper over ribs",
+      "targetId": "machiya/lantern-ribs",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/lantern-dusk": {
+      "src": "thumbnails/machiya-lantern-dusk.webp",
+      "kind": "study",
+      "label": "Lab study · Open after sunset",
+      "targetId": "machiya/lantern-dusk",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/style-original": {
+      "src": "thumbnails/machiya-style-original.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s materials",
+      "targetId": "machiya/style-original",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/style-pbr": {
+      "src": "thumbnails/machiya-style-pbr.webp",
+      "kind": "study",
+      "label": "Lab study · Physical daylight",
+      "targetId": "machiya/style-pbr",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/style-paint": {
+      "src": "thumbnails/machiya-style-paint.webp",
+      "kind": "study",
+      "label": "Lab study · An afternoon in paint",
+      "targetId": "machiya/style-paint",
+      "capturedAt": "2026-11-10"
+    },
+    "machiya/style-toon": {
+      "src": "thumbnails/machiya-style-toon.webp",
+      "kind": "study",
+      "label": "Lab study · Three-band colour study",
+      "targetId": "machiya/style-toon",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/sky-game": {
+      "src": "thumbnails/sky-sky-game.webp",
+      "kind": "original",
+      "label": "Original game reference · Our game’s sky",
+      "targetId": "sky/sky-game",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/sky-pigment": {
+      "src": "thumbnails/sky-sky-pigment.webp",
+      "kind": "study",
+      "label": "Lab study · Poster-colour blue",
+      "targetId": "sky/sky-pigment",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/sky-preetham": {
+      "src": "thumbnails/sky-sky-preetham.webp",
+      "kind": "study",
+      "label": "Lab study · Air with a little maths",
+      "targetId": "sky/sky-preetham",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/sky-haze": {
+      "src": "thumbnails/sky-sky-haze.webp",
+      "kind": "study",
+      "label": "Lab study · Spring in the basin",
+      "targetId": "sky/sky-haze",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/sky-night": {
+      "src": "thumbnails/sky-sky-night.webp",
+      "kind": "original",
+      "label": "Original game reference · A very quiet blue",
+      "targetId": "sky/sky-night",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/cloud-game": {
+      "src": "thumbnails/sky-cloud-game.webp",
+      "kind": "original",
+      "label": "Original game reference · Our painted puffs",
+      "targetId": "sky/cloud-game",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/cloud-field": {
+      "src": "thumbnails/sky-cloud-field.webp",
+      "kind": "study",
+      "label": "Lab study · A thickness painting",
+      "targetId": "sky/cloud-field",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/cloud-paper": {
+      "src": "thumbnails/sky-cloud-paper.webp",
+      "kind": "study",
+      "label": "Lab study · Scissors & sunlight",
+      "targetId": "sky/cloud-paper",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/cloud-painted": {
+      "src": "thumbnails/sky-cloud-painted.webp",
+      "kind": "study",
+      "label": "Lab study · A sky kept in a painting",
+      "targetId": "sky/cloud-painted",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/cloud-volume": {
+      "src": "thumbnails/sky-cloud-volume.webp",
+      "kind": "study",
+      "label": "Lab study · Inside the cotton",
+      "targetId": "sky/cloud-volume",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/cloud-cirrus": {
+      "src": "thumbnails/sky-cloud-cirrus.webp",
+      "kind": "study",
+      "label": "Lab study · A brush pulled long",
+      "targetId": "sky/cloud-cirrus",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/cloud-scales": {
+      "src": "thumbnails/sky-cloud-scales.webp",
+      "kind": "study",
+      "label": "Lab study · The fish-scale sky",
+      "targetId": "sky/cloud-scales",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/cloud-sheep": {
+      "src": "thumbnails/sky-cloud-sheep.webp",
+      "kind": "study",
+      "label": "Lab study · A flock, going nowhere",
+      "targetId": "sky/cloud-sheep",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/cloud-tower": {
+      "src": "thumbnails/sky-cloud-tower.webp",
+      "kind": "study",
+      "label": "Lab study · The afternoon grows tall",
+      "targetId": "sky/cloud-tower",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/shade-game": {
+      "src": "thumbnails/sky-shade-game.webp",
+      "kind": "study",
+      "label": "Lab study · The valley today",
+      "targetId": "sky/shade-game",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/shade-hard": {
+      "src": "thumbnails/sky-shade-hard.webp",
+      "kind": "study",
+      "label": "Lab study · A moving cut-out",
+      "targetId": "sky/shade-hard",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/shade-soft": {
+      "src": "thumbnails/sky-shade-soft.webp",
+      "kind": "study",
+      "label": "Lab study · The wandering patch",
+      "targetId": "sky/shade-soft",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/shade-beer": {
+      "src": "thumbnails/sky-shade-beer.webp",
+      "kind": "study",
+      "label": "Lab study · A cloud lets some light in",
+      "targetId": "sky/shade-beer",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/shade-map": {
+      "src": "thumbnails/sky-shade-map.webp",
+      "kind": "study",
+      "label": "Lab study · Follow the field",
+      "targetId": "sky/shade-map",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/air-game": {
+      "src": "thumbnails/sky-air-game.webp",
+      "kind": "study",
+      "label": "Lab study · Our familiar air",
+      "targetId": "sky/air-game",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/air-mist": {
+      "src": "thumbnails/sky-air-mist.webp",
+      "kind": "study",
+      "label": "Lab study · Mist between the ridges",
+      "targetId": "sky/air-mist",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/air-rays": {
+      "src": "thumbnails/sky-air-rays.webp",
+      "kind": "study",
+      "label": "Lab study · A gap in the clouds",
+      "targetId": "sky/air-rays",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/air-halo": {
+      "src": "thumbnails/sky-air-halo.webp",
+      "kind": "study",
+      "label": "Lab study · A ring in thin ice",
+      "targetId": "sky/air-halo",
+      "capturedAt": "2026-11-10"
+    },
+    "sky/air-rainbow": {
+      "src": "thumbnails/sky-air-rainbow.webp",
+      "kind": "study",
+      "label": "Lab study · The shower moves on",
+      "targetId": "sky/air-rainbow",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/game-torii": {
+      "src": "thumbnails/shrine-game-torii.webp",
+      "kind": "original",
+      "label": "Original game reference · Our torii 今の鳥居",
+      "targetId": "shrine/game-torii",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/myojin": {
+      "src": "thumbnails/shrine-myojin.webp",
+      "kind": "study",
+      "label": "Lab study · Myōjin 明神",
+      "targetId": "shrine/myojin",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/shinmei": {
+      "src": "thumbnails/shrine-shinmei.webp",
+      "kind": "study",
+      "label": "Lab study · Shinmei 神明",
+      "targetId": "shrine/shinmei",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/ishi": {
+      "src": "thumbnails/shrine-ishi.webp",
+      "kind": "study",
+      "label": "Lab study · Ishi-dorii 石鳥居",
+      "targetId": "shrine/ishi",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/deep": {
+      "src": "thumbnails/shrine-deep.webp",
+      "kind": "study",
+      "label": "Lab study · A deep sweep 反り増し",
+      "targetId": "shrine/deep",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/ryobu": {
+      "src": "thumbnails/shrine-ryobu.webp",
+      "kind": "study",
+      "label": "Lab study · Ryōbu 両部",
+      "targetId": "shrine/ryobu",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/miwa": {
+      "src": "thumbnails/shrine-miwa.webp",
+      "kind": "study",
+      "label": "Lab study · Miwa 三輪",
+      "targetId": "shrine/miwa",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/mihashira": {
+      "src": "thumbnails/shrine-mihashira.webp",
+      "kind": "study",
+      "label": "Lab study · Mihashira 三柱",
+      "targetId": "shrine/mihashira",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/game-rope": {
+      "src": "thumbnails/shrine-game-rope.webp",
+      "kind": "original",
+      "label": "Original game reference · Our rope 今の注連縄",
+      "targetId": "shrine/game-rope",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/daikon": {
+      "src": "thumbnails/shrine-daikon.webp",
+      "kind": "study",
+      "label": "Lab study · Daikon-jime 大根注連",
+      "targetId": "shrine/daikon",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/gobo": {
+      "src": "thumbnails/shrine-gobo.webp",
+      "kind": "study",
+      "label": "Lab study · Gobō-jime 牛蒡注連",
+      "targetId": "shrine/gobo",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/yoshida": {
+      "src": "thumbnails/shrine-yoshida.webp",
+      "kind": "study",
+      "label": "Lab study · Yoshida shide 吉田流",
+      "targetId": "shrine/yoshida",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/shirakawa": {
+      "src": "thumbnails/shrine-shirakawa.webp",
+      "kind": "study",
+      "label": "Lab study · Shirakawa shide 白川流",
+      "targetId": "shrine/shirakawa",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/ise": {
+      "src": "thumbnails/shrine-ise.webp",
+      "kind": "study",
+      "label": "Lab study · Ise shide 伊勢流",
+      "targetId": "shrine/ise",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/game-approach": {
+      "src": "thumbnails/shrine-game-approach.webp",
+      "kind": "original",
+      "label": "Original game reference · The approach today 今の参道",
+      "targetId": "shrine/game-approach",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/agyo": {
+      "src": "thumbnails/shrine-agyo.webp",
+      "kind": "study",
+      "label": "Lab study · A-gyō 阿形",
+      "targetId": "shrine/agyo",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/ungyo": {
+      "src": "thumbnails/shrine-ungyo.webp",
+      "kind": "study",
+      "label": "Lab study · Un-gyō 吽形",
+      "targetId": "shrine/ungyo",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/chozuya": {
+      "src": "thumbnails/shrine-chozuya.webp",
+      "kind": "study",
+      "label": "Lab study · Chōzuya 手水舎",
+      "targetId": "shrine/chozuya",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/sando": {
+      "src": "thumbnails/shrine-sando.webp",
+      "kind": "study",
+      "label": "Lab study · Sandō and seichū 参道",
+      "targetId": "shrine/sando",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/game-hall": {
+      "src": "thumbnails/shrine-game-hall.webp",
+      "kind": "original",
+      "label": "Original game reference · Our hall 今の本殿",
+      "targetId": "shrine/game-hall",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/nagare": {
+      "src": "thumbnails/shrine-nagare.webp",
+      "kind": "study",
+      "label": "Lab study · Nagare-zukuri 流造",
+      "targetId": "shrine/nagare",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/shinmei-h": {
+      "src": "thumbnails/shrine-shinmei-h.webp",
+      "kind": "study",
+      "label": "Lab study · Shinmei-zukuri 神明造",
+      "targetId": "shrine/shinmei-h",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/kasuga-h": {
+      "src": "thumbnails/shrine-kasuga-h.webp",
+      "kind": "study",
+      "label": "Lab study · Kasuga-zukuri 春日造",
+      "targetId": "shrine/kasuga-h",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/suzu": {
+      "src": "thumbnails/shrine-suzu.webp",
+      "kind": "study",
+      "label": "Lab study · Suzu and offering box 鈴と賽銭箱",
+      "targetId": "shrine/suzu",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/game-altar": {
+      "src": "thumbnails/shrine-game-altar.webp",
+      "kind": "original",
+      "label": "Original game reference · The mist altar 霧の祠",
+      "targetId": "shrine/game-altar",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/game-bell": {
+      "src": "thumbnails/shrine-game-bell.webp",
+      "kind": "original",
+      "label": "Original game reference · An offering bell 今の鈴",
+      "targetId": "shrine/game-bell",
+      "capturedAt": "2026-11-10"
+    },
+    "shrine/bell-new": {
+      "src": "thumbnails/shrine-bell-new.webp",
+      "kind": "study",
+      "label": "Lab study · A proper offering bell 鈴",
+      "targetId": "shrine/bell-new",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/game-water": {
+      "src": "thumbnails/moonpool-game-water.webp",
+      "kind": "original",
+      "label": "Original game reference · The Moon Pool, today 今の月の池",
+      "targetId": "moonpool/game-water",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/flat": {
+      "src": "thumbnails/moonpool-flat.webp",
+      "kind": "study",
+      "label": "Lab study · Glass and sky 鏡",
+      "targetId": "moonpool/flat",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/scroll": {
+      "src": "thumbnails/moonpool-scroll.webp",
+      "kind": "study",
+      "label": "Lab study · Scrolled normals さざなみ",
+      "targetId": "moonpool/scroll",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/rings": {
+      "src": "thumbnails/moonpool-rings.webp",
+      "kind": "study",
+      "label": "Lab study · Rain rings, by formula 波紋",
+      "targetId": "moonpool/rings",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/sim": {
+      "src": "thumbnails/moonpool-sim.webp",
+      "kind": "study",
+      "label": "Lab study · A real heightfield 波動",
+      "targetId": "moonpool/sim",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/depth": {
+      "src": "thumbnails/moonpool-depth.webp",
+      "kind": "study",
+      "label": "Lab study · Depth tint and a bed 浅瀬",
+      "targetId": "moonpool/depth",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/painted": {
+      "src": "thumbnails/moonpool-painted.webp",
+      "kind": "study",
+      "label": "Lab study · A painted surface 絵の水",
+      "targetId": "moonpool/painted",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/glitter": {
+      "src": "thumbnails/moonpool-glitter.webp",
+      "kind": "study",
+      "label": "Lab study · Moon glitter 月の道",
+      "targetId": "moonpool/glitter",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/game-moon": {
+      "src": "thumbnails/moonpool-game-moon.webp",
+      "kind": "study",
+      "label": "Baseline reconstruction · A moon sprite 今の月",
+      "targetId": "moonpool/game-moon",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/moon-disc": {
+      "src": "thumbnails/moonpool-moon-disc.webp",
+      "kind": "study",
+      "label": "Lab study · A reflected disc 水鏡",
+      "targetId": "moonpool/moon-disc",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/moon-phase": {
+      "src": "thumbnails/moonpool-moon-phase.webp",
+      "kind": "study",
+      "label": "Lab study · A real phase 三日月",
+      "targetId": "moonpool/moon-phase",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/game-pad": {
+      "src": "thumbnails/moonpool-game-pad.webp",
+      "kind": "original",
+      "label": "Original game reference · Our lily pad 今の葉",
+      "targetId": "moonpool/game-pad",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/pad-new": {
+      "src": "thumbnails/moonpool-pad-new.webp",
+      "kind": "study",
+      "label": "Lab study · A pad with a rim 睡蓮",
+      "targetId": "moonpool/pad-new",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/lotus": {
+      "src": "thumbnails/moonpool-lotus.webp",
+      "kind": "study",
+      "label": "Lab study · Lotus 蓮",
+      "targetId": "moonpool/lotus",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/game-lamp": {
+      "src": "thumbnails/moonpool-game-lamp.webp",
+      "kind": "original",
+      "label": "Original game reference · A glade lantern 今の提灯",
+      "targetId": "moonpool/game-lamp",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/chochin": {
+      "src": "thumbnails/moonpool-chochin.webp",
+      "kind": "study",
+      "label": "Lab study · Washi and ribs 提灯",
+      "targetId": "moonpool/chochin",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/take-akari": {
+      "src": "thumbnails/moonpool-take-akari.webp",
+      "kind": "study",
+      "label": "Lab study · Take-akari 竹あかり",
+      "targetId": "moonpool/take-akari",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/float": {
+      "src": "thumbnails/moonpool-float.webp",
+      "kind": "study",
+      "label": "Lab study · Tōrō-nagashi 灯籠流し",
+      "targetId": "moonpool/float",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/game-motes": {
+      "src": "thumbnails/moonpool-game-motes.webp",
+      "kind": "original",
+      "label": "Original game reference · Pool motes 今の光",
+      "targetId": "moonpool/game-motes",
+      "capturedAt": "2026-11-10"
+    },
+    "moonpool/fireflies": {
+      "src": "thumbnails/moonpool-fireflies.webp",
+      "kind": "study",
+      "label": "Lab study · Fireflies 蛍",
+      "targetId": "moonpool/fireflies",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/orig-tower": {
+      "src": "thumbnails/pagoda-orig-tower.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s pagoda",
+      "targetId": "pagoda/orig-tower",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/tower-valley": {
+      "src": "thumbnails/pagoda-tower-valley.webp",
+      "kind": "study",
+      "label": "Lab study · Michi’s valley",
+      "targetId": "pagoda/tower-valley",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/tower-horyuji": {
+      "src": "thumbnails/pagoda-tower-horyuji.webp",
+      "kind": "study",
+      "label": "Lab study · Hōryū-ji",
+      "targetId": "pagoda/tower-horyuji",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/tower-daigoji": {
+      "src": "thumbnails/pagoda-tower-daigoji.webp",
+      "kind": "study",
+      "label": "Lab study · Daigo-ji",
+      "targetId": "pagoda/tower-daigoji",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/tower-yasaka": {
+      "src": "thumbnails/pagoda-tower-yasaka.webp",
+      "kind": "study",
+      "label": "Lab study · Yasaka-no-tō",
+      "targetId": "pagoda/tower-yasaka",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/tower-kofukuji": {
+      "src": "thumbnails/pagoda-tower-kofukuji.webp",
+      "kind": "study",
+      "label": "Lab study · Kōfuku-ji",
+      "targetId": "pagoda/tower-kofukuji",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/tower-ruriko": {
+      "src": "thumbnails/pagoda-tower-ruriko.webp",
+      "kind": "study",
+      "label": "Lab study · Rurikō-ji",
+      "targetId": "pagoda/tower-ruriko",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/tower-toji": {
+      "src": "thumbnails/pagoda-tower-toji.webp",
+      "kind": "study",
+      "label": "Lab study · Tō-ji",
+      "targetId": "pagoda/tower-toji",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/tower-ninnaji": {
+      "src": "thumbnails/pagoda-tower-ninnaji.webp",
+      "kind": "study",
+      "label": "Lab study · Ninna-ji",
+      "targetId": "pagoda/tower-ninnaji",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/tower-muroji": {
+      "src": "thumbnails/pagoda-tower-muroji.webp",
+      "kind": "study",
+      "label": "Lab study · Murō-ji",
+      "targetId": "pagoda/tower-muroji",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/orig-roof": {
+      "src": "thumbnails/pagoda-orig-roof.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s roofs",
+      "targetId": "pagoda/orig-roof",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/roof-straight": {
+      "src": "thumbnails/pagoda-roof-straight.webp",
+      "kind": "study",
+      "label": "Lab study · Straight hip",
+      "targetId": "pagoda/roof-straight",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/roof-heian": {
+      "src": "thumbnails/pagoda-roof-heian.webp",
+      "kind": "study",
+      "label": "Lab study · Heian sori",
+      "targetId": "pagoda/roof-heian",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/roof-edo": {
+      "src": "thumbnails/pagoda-roof-edo.webp",
+      "kind": "study",
+      "label": "Lab study · Edo sori",
+      "targetId": "pagoda/roof-edo",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/roof-painted": {
+      "src": "thumbnails/pagoda-roof-painted.webp",
+      "kind": "study",
+      "label": "Lab study · Painted sori ×2.2",
+      "targetId": "pagoda/roof-painted",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/roof-tile": {
+      "src": "thumbnails/pagoda-roof-tile.webp",
+      "kind": "study",
+      "label": "Lab study · Hongawara in the shader",
+      "targetId": "pagoda/roof-tile",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/roof-ribbon": {
+      "src": "thumbnails/pagoda-roof-ribbon.webp",
+      "kind": "study",
+      "label": "Lab study · Swept marugawara",
+      "targetId": "pagoda/roof-ribbon",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/roof-bark": {
+      "src": "thumbnails/pagoda-roof-bark.webp",
+      "kind": "study",
+      "label": "Lab study · Hiwada-buki",
+      "targetId": "pagoda/roof-bark",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/roof-copper": {
+      "src": "thumbnails/pagoda-roof-copper.webp",
+      "kind": "study",
+      "label": "Lab study · Dōban-buki",
+      "targetId": "pagoda/roof-copper",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/roof-snow": {
+      "src": "thumbnails/pagoda-roof-snow.webp",
+      "kind": "study",
+      "label": "Lab study · Snow on the tiles",
+      "targetId": "pagoda/roof-snow",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/orig-kumimono": {
+      "src": "thumbnails/pagoda-orig-kumimono.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s storey bands",
+      "targetId": "pagoda/orig-kumimono",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/kumi-shadow": {
+      "src": "thumbnails/pagoda-kumi-shadow.webp",
+      "kind": "study",
+      "label": "Lab study · A dark band",
+      "targetId": "pagoda/kumi-shadow",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/kumi-shelf": {
+      "src": "thumbnails/pagoda-kumi-shelf.webp",
+      "kind": "study",
+      "label": "Lab study · Stepped shelf",
+      "targetId": "pagoda/kumi-shelf",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/kumi-card": {
+      "src": "thumbnails/pagoda-kumi-card.webp",
+      "kind": "study",
+      "label": "Lab study · Painted card",
+      "targetId": "pagoda/kumi-card",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/kumi-mitesaki": {
+      "src": "thumbnails/pagoda-kumi-mitesaki.webp",
+      "kind": "study",
+      "label": "Lab study · Mitesaki tokyō",
+      "targetId": "pagoda/kumi-mitesaki",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/orig-eaves": {
+      "src": "thumbnails/pagoda-orig-eaves.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s eave edges",
+      "targetId": "pagoda/orig-eaves",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/eave-plain": {
+      "src": "thumbnails/pagoda-eave-plain.webp",
+      "kind": "study",
+      "label": "Lab study · Plain soffit",
+      "targetId": "pagoda/eave-plain",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/eave-painted": {
+      "src": "thumbnails/pagoda-eave-painted.webp",
+      "kind": "study",
+      "label": "Lab study · Painted rafters",
+      "targetId": "pagoda/eave-painted",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/eave-futanoki": {
+      "src": "thumbnails/pagoda-eave-futanoki.webp",
+      "kind": "study",
+      "label": "Lab study · Futanoki",
+      "targetId": "pagoda/eave-futanoki",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/eave-fan": {
+      "src": "thumbnails/pagoda-eave-fan.webp",
+      "kind": "study",
+      "label": "Lab study · Ōgidaruki",
+      "targetId": "pagoda/eave-fan",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/eave-kayaoi": {
+      "src": "thumbnails/pagoda-eave-kayaoi.webp",
+      "kind": "study",
+      "label": "Lab study · Kayaoi & tile ends",
+      "targetId": "pagoda/eave-kayaoi",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/orig-body": {
+      "src": "thumbnails/pagoda-orig-body.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s storey bodies",
+      "targetId": "pagoda/orig-body",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/body-plain": {
+      "src": "thumbnails/pagoda-body-plain.webp",
+      "kind": "study",
+      "label": "Lab study · Plain box",
+      "targetId": "pagoda/body-plain",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/body-wayo": {
+      "src": "thumbnails/pagoda-body-wayo.webp",
+      "kind": "study",
+      "label": "Lab study · Wayō, three bays",
+      "targetId": "pagoda/body-wayo",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/body-natural": {
+      "src": "thumbnails/pagoda-body-natural.webp",
+      "kind": "study",
+      "label": "Lab study · Aged hinoki",
+      "targetId": "pagoda/body-natural",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/body-mokoshi": {
+      "src": "thumbnails/pagoda-body-mokoshi.webp",
+      "kind": "study",
+      "label": "Lab study · Mokoshi skirt",
+      "targetId": "pagoda/body-mokoshi",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/orig-koran": {
+      "src": "thumbnails/pagoda-orig-koran.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s storey joints",
+      "targetId": "pagoda/orig-koran",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/koran-band": {
+      "src": "thumbnails/pagoda-koran-band.webp",
+      "kind": "study",
+      "label": "Lab study · A band",
+      "targetId": "pagoda/koran-band",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/koran-rail": {
+      "src": "thumbnails/pagoda-koran-rail.webp",
+      "kind": "study",
+      "label": "Lab study · Three-rail kōran",
+      "targetId": "pagoda/koran-rail",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/orig-sorin": {
+      "src": "thumbnails/pagoda-orig-sorin.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s finial",
+      "targetId": "pagoda/orig-sorin",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/sorin-needle": {
+      "src": "thumbnails/pagoda-sorin-needle.webp",
+      "kind": "study",
+      "label": "Lab study · Needle",
+      "targetId": "pagoda/sorin-needle",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/sorin-full": {
+      "src": "thumbnails/pagoda-sorin-full.webp",
+      "kind": "study",
+      "label": "Lab study · The eight-part chain",
+      "targetId": "pagoda/sorin-full",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/sorin-suien": {
+      "src": "thumbnails/pagoda-sorin-suien.webp",
+      "kind": "study",
+      "label": "Lab study · Suien openwork",
+      "targetId": "pagoda/sorin-suien",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/orig-bells": {
+      "src": "thumbnails/pagoda-orig-bells.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s corners",
+      "targetId": "pagoda/orig-bells",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/bell-futaku": {
+      "src": "thumbnails/pagoda-bell-futaku.webp",
+      "kind": "study",
+      "label": "Lab study · Fūtaku in the wind",
+      "targetId": "pagoda/bell-futaku",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/bell-hips": {
+      "src": "thumbnails/pagoda-bell-hips.webp",
+      "kind": "study",
+      "label": "Lab study · Hips & onigawara",
+      "targetId": "pagoda/bell-hips",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/orig-base": {
+      "src": "thumbnails/pagoda-orig-base.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s dais",
+      "targetId": "pagoda/orig-base",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/base-slab": {
+      "src": "thumbnails/pagoda-base-slab.webp",
+      "kind": "study",
+      "label": "Lab study · Slab",
+      "targetId": "pagoda/base-slab",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/base-kidan": {
+      "src": "thumbnails/pagoda-base-kidan.webp",
+      "kind": "study",
+      "label": "Lab study · Kidan with stairs",
+      "targetId": "pagoda/base-kidan",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/base-shin": {
+      "src": "thumbnails/pagoda-base-shin.webp",
+      "kind": "study",
+      "label": "Lab study · Shinbashira & the snake dance",
+      "targetId": "pagoda/base-shin",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/orig-distance": {
+      "src": "thumbnails/pagoda-orig-distance.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s pagoda at range",
+      "targetId": "pagoda/orig-distance",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/far-tiers": {
+      "src": "thumbnails/pagoda-far-tiers.webp",
+      "kind": "study",
+      "label": "Lab study · Pixel-budget tiers",
+      "targetId": "pagoda/far-tiers",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/far-dither": {
+      "src": "thumbnails/pagoda-far-dither.webp",
+      "kind": "study",
+      "label": "Lab study · Bayer crossfade",
+      "targetId": "pagoda/far-dither",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/far-impostor": {
+      "src": "thumbnails/pagoda-far-impostor.webp",
+      "kind": "study",
+      "label": "Lab study · 16-view impostor",
+      "targetId": "pagoda/far-impostor",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/far-air": {
+      "src": "thumbnails/pagoda-far-air.webp",
+      "kind": "study",
+      "label": "Lab study · Aerial perspective",
+      "targetId": "pagoda/far-air",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/far-rim": {
+      "src": "thumbnails/pagoda-far-rim.webp",
+      "kind": "study",
+      "label": "Lab study · Back-lit rim",
+      "targetId": "pagoda/far-rim",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/far-night": {
+      "src": "thumbnails/pagoda-far-night.webp",
+      "kind": "study",
+      "label": "Lab study · Night light-up",
+      "targetId": "pagoda/far-night",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/finish-physical": {
+      "src": "thumbnails/pagoda-finish-physical.webp",
+      "kind": "original",
+      "label": "Original game reference · Physical light",
+      "targetId": "pagoda/finish-physical",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/finish-background": {
+      "src": "thumbnails/pagoda-finish-background.webp",
+      "kind": "study",
+      "label": "Lab study · Background art",
+      "targetId": "pagoda/finish-background",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/finish-gouache": {
+      "src": "thumbnails/pagoda-finish-gouache.webp",
+      "kind": "study",
+      "label": "Lab study · Gouache",
+      "targetId": "pagoda/finish-gouache",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/finish-watercolor": {
+      "src": "thumbnails/pagoda-finish-watercolor.webp",
+      "kind": "study",
+      "label": "Lab study · Watercolour",
+      "targetId": "pagoda/finish-watercolor",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/finish-ink": {
+      "src": "thumbnails/pagoda-finish-ink.webp",
+      "kind": "study",
+      "label": "Lab study · Ink line",
+      "targetId": "pagoda/finish-ink",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/finish-cel": {
+      "src": "thumbnails/pagoda-finish-cel.webp",
+      "kind": "study",
+      "label": "Lab study · Cel",
+      "targetId": "pagoda/finish-cel",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/finish-woodblock": {
+      "src": "thumbnails/pagoda-finish-woodblock.webp",
+      "kind": "study",
+      "label": "Lab study · Woodblock",
+      "targetId": "pagoda/finish-woodblock",
+      "capturedAt": "2026-11-10"
+    },
+    "pagoda/finish-sumi": {
+      "src": "thumbnails/pagoda-finish-sumi.webp",
+      "kind": "study",
+      "label": "Lab study · Sumi-e",
+      "targetId": "pagoda/finish-sumi",
+      "capturedAt": "2026-11-10"
+    },
+    "summit/game-city": {
+      "src": "thumbnails/summit-game-city.webp",
+      "kind": "original",
+      "label": "Original game reference · The city, today 今の京都",
+      "targetId": "summit/game-city",
+      "capturedAt": "2026-11-10"
+    },
+    "summit/grid": {
+      "src": "thumbnails/summit-grid.webp",
+      "kind": "study",
+      "label": "Lab study · Roofs on a grid 瓦の海",
+      "targetId": "summit/grid",
+      "capturedAt": "2026-11-10"
+    },
+    "summit/card": {
+      "src": "thumbnails/summit-card.webp",
+      "kind": "study",
+      "label": "Lab study · A painted strip 絵の街",
+      "targetId": "summit/card",
+      "capturedAt": "2026-11-10"
+    },
+    "summit/night": {
+      "src": "thumbnails/summit-night.webp",
+      "kind": "study",
+      "label": "Lab study · Points for windows 街の灯",
+      "targetId": "summit/night",
+      "capturedAt": "2026-11-10"
+    },
+    "summit/haze": {
+      "src": "thumbnails/summit-haze.webp",
+      "kind": "study",
+      "label": "Lab study · Layered haze 霞",
+      "targetId": "summit/haze",
+      "capturedAt": "2026-11-10"
+    },
+    "nest/game-nest": {
+      "src": "thumbnails/nest-game-nest.webp",
+      "kind": "original",
+      "label": "Original game reference · Our nest 今の巣",
+      "targetId": "nest/game-nest",
+      "capturedAt": "2026-11-10"
+    },
+    "nest/base": {
+      "src": "thumbnails/nest-base.webp",
+      "kind": "study",
+      "label": "Lab study · Coarse base 土台",
+      "targetId": "nest/base",
+      "capturedAt": "2026-11-10"
+    },
+    "nest/wall": {
+      "src": "thumbnails/nest-wall.webp",
+      "kind": "study",
+      "label": "Lab study · Walls laid round 壁",
+      "targetId": "nest/wall",
+      "capturedAt": "2026-11-10"
+    },
+    "nest/rim": {
+      "src": "thumbnails/nest-rim.webp",
+      "kind": "study",
+      "label": "Lab study · Fine rim 縁",
+      "targetId": "nest/rim",
+      "capturedAt": "2026-11-10"
+    },
+    "nest/lined": {
+      "src": "thumbnails/nest-lined.webp",
+      "kind": "study",
+      "label": "Lab study · Lined with moss 苔の内張り",
+      "targetId": "nest/lined",
+      "capturedAt": "2026-11-10"
+    },
+    "nest/eggs": {
+      "src": "thumbnails/nest-eggs.webp",
+      "kind": "study",
+      "label": "Lab study · Three eggs 卵",
+      "targetId": "nest/eggs",
+      "capturedAt": "2026-11-10"
+    },
+    "nest/feather": {
+      "src": "thumbnails/nest-feather.webp",
+      "kind": "study",
+      "label": "Lab study · A feather 羽根",
+      "targetId": "nest/feather",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/game-toro": {
+      "src": "thumbnails/lanterns-game-toro.webp",
+      "kind": "original",
+      "label": "Original game reference · Our tōrō 今の灯籠",
+      "targetId": "lanterns/game-toro",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/kasuga": {
+      "src": "thumbnails/lanterns-kasuga.webp",
+      "kind": "study",
+      "label": "Lab study · Kasuga 春日",
+      "targetId": "lanterns/kasuga",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/yukimi": {
+      "src": "thumbnails/lanterns-yukimi.webp",
+      "kind": "study",
+      "label": "Lab study · Yukimi 雪見",
+      "targetId": "lanterns/yukimi",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/oribe": {
+      "src": "thumbnails/lanterns-oribe.webp",
+      "kind": "study",
+      "label": "Lab study · Oribe 織部",
+      "targetId": "lanterns/oribe",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/kotoji": {
+      "src": "thumbnails/lanterns-kotoji.webp",
+      "kind": "study",
+      "label": "Lab study · Kotoji 琴柱",
+      "targetId": "lanterns/kotoji",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/age": {
+      "src": "thumbnails/lanterns-age.webp",
+      "kind": "study",
+      "label": "Lab study · A century of lichen 古色",
+      "targetId": "lanterns/age",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/parts": {
+      "src": "thumbnails/lanterns-parts.webp",
+      "kind": "study",
+      "label": "Lab study · The parts, pulled apart 部位",
+      "targetId": "lanterns/parts",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/game-chochin": {
+      "src": "thumbnails/lanterns-game-chochin.webp",
+      "kind": "original",
+      "label": "Original game reference · Our chōchin 今の提灯",
+      "targetId": "lanterns/game-chochin",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/gifu": {
+      "src": "thumbnails/lanterns-gifu.webp",
+      "kind": "study",
+      "label": "Lab study · Lathed washi 丸提灯",
+      "targetId": "lanterns/gifu",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/odawara": {
+      "src": "thumbnails/lanterns-odawara.webp",
+      "kind": "study",
+      "label": "Lab study · Odawara 小田原提灯",
+      "targetId": "lanterns/odawara",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/crest": {
+      "src": "thumbnails/lanterns-crest.webp",
+      "kind": "study",
+      "label": "Lab study · A crested lantern 紋提灯",
+      "targetId": "lanterns/crest",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/take": {
+      "src": "thumbnails/lanterns-take.webp",
+      "kind": "study",
+      "label": "Lab study · Take-akari 竹あかり",
+      "targetId": "lanterns/take",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/game-street": {
+      "src": "thumbnails/lanterns-game-street.webp",
+      "kind": "original",
+      "label": "Original game reference · A street lamp 今の街灯",
+      "targetId": "lanterns/game-street",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/andon": {
+      "src": "thumbnails/lanterns-andon.webp",
+      "kind": "study",
+      "label": "Lab study · Andon 行灯",
+      "targetId": "lanterns/andon",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/just-emissive": {
+      "src": "thumbnails/lanterns-just-emissive.webp",
+      "kind": "study",
+      "label": "Lab study · Emissive only 灯りだけ",
+      "targetId": "lanterns/just-emissive",
+      "capturedAt": "2026-11-10"
+    },
+    "lanterns/pool": {
+      "src": "thumbnails/lanterns-pool.webp",
+      "kind": "study",
+      "label": "Lab study · A real pool of light 灯り溜まり",
+      "targetId": "lanterns/pool",
+      "capturedAt": "2026-11-10"
+    },
+    "fences/game-fence": {
+      "src": "thumbnails/fences-game-fence.webp",
+      "kind": "original",
+      "label": "Original game reference · Our takegaki 今の竹垣",
+      "targetId": "fences/game-fence",
+      "capturedAt": "2026-11-10"
+    },
+    "fences/yotsume": {
+      "src": "thumbnails/fences-yotsume.webp",
+      "kind": "study",
+      "label": "Lab study · Yotsume-gaki 四ツ目垣",
+      "targetId": "fences/yotsume",
+      "capturedAt": "2026-11-10"
+    },
+    "fences/kenninji": {
+      "src": "thumbnails/fences-kenninji.webp",
+      "kind": "study",
+      "label": "Lab study · Kenninji-gaki 建仁寺垣",
+      "targetId": "fences/kenninji",
+      "capturedAt": "2026-11-10"
+    },
+    "fences/teppo": {
+      "src": "thumbnails/fences-teppo.webp",
+      "kind": "study",
+      "label": "Lab study · Teppō-gaki 鉄砲垣",
+      "targetId": "fences/teppo",
+      "capturedAt": "2026-11-10"
+    },
+    "fences/koetsu": {
+      "src": "thumbnails/fences-koetsu.webp",
+      "kind": "study",
+      "label": "Lab study · Kōetsu-gaki 光悦垣",
+      "targetId": "fences/koetsu",
+      "capturedAt": "2026-11-10"
+    },
+    "fences/ginkaku": {
+      "src": "thumbnails/fences-ginkaku.webp",
+      "kind": "study",
+      "label": "Lab study · Ginkakuji-gaki 銀閣寺垣",
+      "targetId": "fences/ginkaku",
+      "capturedAt": "2026-11-10"
+    },
+    "fences/knot": {
+      "src": "thumbnails/fences-knot.webp",
+      "kind": "study",
+      "label": "Lab study · Lashing 結び",
+      "targetId": "fences/knot",
+      "capturedAt": "2026-11-10"
+    },
+    "fences/culm": {
+      "src": "thumbnails/fences-culm.webp",
+      "kind": "study",
+      "label": "Lab study · A culm, not a cylinder 節",
+      "targetId": "fences/culm",
+      "capturedAt": "2026-11-10"
+    },
+    "fences/aged": {
+      "src": "thumbnails/fences-aged.webp",
+      "kind": "study",
+      "label": "Lab study · What ten years does 経年",
+      "targetId": "fences/aged",
+      "capturedAt": "2026-11-10"
+    },
+    "fences/corral": {
+      "src": "thumbnails/fences-corral.webp",
+      "kind": "original",
+      "label": "Original game reference · The corral, and Larry 囲い",
+      "targetId": "fences/corral",
+      "capturedAt": "2026-11-10"
+    },
+    "rocks/game-boulder": {
+      "src": "thumbnails/rocks-game-boulder.webp",
+      "kind": "original",
+      "label": "Original game reference · A path boulder 今の岩",
+      "targetId": "rocks/game-boulder",
+      "capturedAt": "2026-11-10"
+    },
+    "rocks/game-rock": {
+      "src": "thumbnails/rocks-game-rock.webp",
+      "kind": "original",
+      "label": "Original game reference · The key rock 鍵の岩",
+      "targetId": "rocks/game-rock",
+      "capturedAt": "2026-11-10"
+    },
+    "rocks/noise": {
+      "src": "thumbnails/rocks-noise.webp",
+      "kind": "study",
+      "label": "Lab study · Noise only ノイズ",
+      "targetId": "rocks/noise",
+      "capturedAt": "2026-11-10"
+    },
+    "rocks/chisel": {
+      "src": "thumbnails/rocks-chisel.webp",
+      "kind": "study",
+      "label": "Lab study · Chiselled planes 割面",
+      "targetId": "rocks/chisel",
+      "capturedAt": "2026-11-10"
+    },
+    "rocks/sculpt": {
+      "src": "thumbnails/rocks-sculpt.webp",
+      "kind": "study",
+      "label": "Lab study · Sculpted field 彫塑",
+      "targetId": "rocks/sculpt",
+      "capturedAt": "2026-11-10"
+    },
+    "rocks/taido": {
+      "src": "thumbnails/rocks-taido.webp",
+      "kind": "study",
+      "label": "Lab study · Taidōseki 体胴石",
+      "targetId": "rocks/taido",
+      "capturedAt": "2026-11-10"
+    },
+    "rocks/reisho": {
+      "src": "thumbnails/rocks-reisho.webp",
+      "kind": "study",
+      "label": "Lab study · Reishōseki 霊象石",
+      "targetId": "rocks/reisho",
+      "capturedAt": "2026-11-10"
+    },
+    "rocks/shintai": {
+      "src": "thumbnails/rocks-shintai.webp",
+      "kind": "study",
+      "label": "Lab study · Shintaiseki 心体石",
+      "targetId": "rocks/shintai",
+      "capturedAt": "2026-11-10"
+    },
+    "rocks/shigyo": {
+      "src": "thumbnails/rocks-shigyo.webp",
+      "kind": "study",
+      "label": "Lab study · Shigyōseki 枝形石",
+      "targetId": "rocks/shigyo",
+      "capturedAt": "2026-11-10"
+    },
+    "rocks/kikyaku": {
+      "src": "thumbnails/rocks-kikyaku.webp",
+      "kind": "study",
+      "label": "Lab study · Kikyakuseki 寄脚石",
+      "targetId": "rocks/kikyaku",
+      "capturedAt": "2026-11-10"
+    },
+    "rocks/sanzon": {
+      "src": "thumbnails/rocks-sanzon.webp",
+      "kind": "study",
+      "label": "Lab study · Sanzon 三尊石組",
+      "targetId": "rocks/sanzon",
+      "capturedAt": "2026-11-10"
+    },
+    "rocks/moss-young": {
+      "src": "thumbnails/rocks-moss-young.webp",
+      "kind": "study",
+      "label": "Lab study · Just moved 新しい石",
+      "targetId": "rocks/moss-young",
+      "capturedAt": "2026-11-10"
+    },
+    "rocks/moss-old": {
+      "src": "thumbnails/rocks-moss-old.webp",
+      "kind": "study",
+      "label": "Lab study · A hundred years 苔むす",
+      "targetId": "rocks/moss-old",
+      "capturedAt": "2026-11-10"
+    },
+    "rocks/rake": {
+      "src": "thumbnails/rocks-rake.webp",
+      "kind": "study",
+      "label": "Lab study · Raked gravel 枯山水",
+      "targetId": "rocks/rake",
+      "capturedAt": "2026-11-10"
+    },
+    "garden/game-shishi": {
+      "src": "thumbnails/garden-game-shishi.webp",
+      "kind": "original",
+      "label": "Original game reference · Our shishi-odoshi 今の鹿威し",
+      "targetId": "garden/game-shishi",
+      "capturedAt": "2026-11-10"
+    },
+    "garden/shishi": {
+      "src": "thumbnails/garden-shishi.webp",
+      "kind": "study",
+      "label": "Lab study · A working sōzu 添水",
+      "targetId": "garden/shishi",
+      "capturedAt": "2026-11-10"
+    },
+    "garden/sozu-cut": {
+      "src": "thumbnails/garden-sozu-cut.webp",
+      "kind": "study",
+      "label": "Lab study · The diagonal cut 切り口",
+      "targetId": "garden/sozu-cut",
+      "capturedAt": "2026-11-10"
+    },
+    "garden/game-chime": {
+      "src": "thumbnails/garden-game-chime.webp",
+      "kind": "original",
+      "label": "Original game reference · Our wind chime 今の風鈴",
+      "targetId": "garden/game-chime",
+      "capturedAt": "2026-11-10"
+    },
+    "garden/glass": {
+      "src": "thumbnails/garden-glass.webp",
+      "kind": "study",
+      "label": "Lab study · Blown glass ガラス風鈴",
+      "targetId": "garden/glass",
+      "capturedAt": "2026-11-10"
+    },
+    "garden/iron": {
+      "src": "thumbnails/garden-iron.webp",
+      "kind": "study",
+      "label": "Lab study · Nanbu iron 南部風鈴",
+      "targetId": "garden/iron",
+      "capturedAt": "2026-11-10"
+    },
+    "garden/harp": {
+      "src": "thumbnails/garden-harp.webp",
+      "kind": "study",
+      "label": "Lab study · The buried jar 水琴窟",
+      "targetId": "garden/harp",
+      "capturedAt": "2026-11-10"
+    },
+    "greenery/game-stalk": {
+      "src": "thumbnails/greenery-game-stalk.webp",
+      "kind": "original",
+      "label": "Original game reference · Our culm 今の竹",
+      "targetId": "greenery/game-stalk",
+      "capturedAt": "2026-11-10"
+    },
+    "greenery/nodes": {
+      "src": "thumbnails/greenery-nodes.webp",
+      "kind": "study",
+      "label": "Lab study · Nodes and scars 節",
+      "targetId": "greenery/nodes",
+      "capturedAt": "2026-11-10"
+    },
+    "greenery/sheath": {
+      "src": "thumbnails/greenery-sheath.webp",
+      "kind": "study",
+      "label": "Lab study · Takenoko 筍",
+      "targetId": "greenery/sheath",
+      "capturedAt": "2026-11-10"
+    },
+    "greenery/colors": {
+      "src": "thumbnails/greenery-colors.webp",
+      "kind": "study",
+      "label": "Lab study · Age and species 色",
+      "targetId": "greenery/colors",
+      "capturedAt": "2026-11-10"
+    },
+    "greenery/game-grove": {
+      "src": "thumbnails/greenery-game-grove.webp",
+      "kind": "original",
+      "label": "Original game reference · The grove today 今の竹林",
+      "targetId": "greenery/game-grove",
+      "capturedAt": "2026-11-10"
+    },
+    "greenery/leaves": {
+      "src": "thumbnails/greenery-leaves.webp",
+      "kind": "study",
+      "label": "Lab study · Leaf cards 葉",
+      "targetId": "greenery/leaves",
+      "capturedAt": "2026-11-10"
+    },
+    "greenery/game-bush": {
+      "src": "thumbnails/greenery-game-bush.webp",
+      "kind": "original",
+      "label": "Original game reference · A street bush 今の茂み",
+      "targetId": "greenery/game-bush",
+      "capturedAt": "2026-11-10"
+    },
+    "greenery/karikomi": {
+      "src": "thumbnails/greenery-karikomi.webp",
+      "kind": "study",
+      "label": "Lab study · Karikomi 刈込",
+      "targetId": "greenery/karikomi",
+      "capturedAt": "2026-11-10"
+    },
+    "alley/game-crates": {
+      "src": "thumbnails/alley-game-crates.webp",
+      "kind": "original",
+      "label": "Original game reference · Our climb crates 今の木箱",
+      "targetId": "alley/game-crates",
+      "capturedAt": "2026-11-10"
+    },
+    "alley/crate": {
+      "src": "thumbnails/alley-crate.webp",
+      "kind": "study",
+      "label": "Lab study · A slatted crate 木箱",
+      "targetId": "alley/crate",
+      "capturedAt": "2026-11-10"
+    },
+    "alley/pot": {
+      "src": "thumbnails/alley-pot.webp",
+      "kind": "study",
+      "label": "Lab study · Potted plant",
+      "targetId": "alley/pot",
+      "capturedAt": "2026-11-10"
+    },
+    "alley/barrel": {
+      "src": "thumbnails/alley-barrel.webp",
+      "kind": "study",
+      "label": "Lab study · Rain barrel",
+      "targetId": "alley/barrel",
+      "capturedAt": "2026-11-10"
+    },
+    "alley/komodaru": {
+      "src": "thumbnails/alley-komodaru.webp",
+      "kind": "study",
+      "label": "Lab study · Sake barrel",
+      "targetId": "alley/komodaru",
+      "capturedAt": "2026-11-10"
+    },
+    "alley/bicycle": {
+      "src": "thumbnails/alley-bicycle.webp",
+      "kind": "study",
+      "label": "Lab study · Bicycle",
+      "targetId": "alley/bicycle",
+      "capturedAt": "2026-11-10"
+    },
+    "alley/sign": {
+      "src": "thumbnails/alley-sign.webp",
+      "kind": "study",
+      "label": "Lab study · Kanban",
+      "targetId": "alley/sign",
+      "capturedAt": "2026-11-10"
+    },
+    "alley/broom": {
+      "src": "thumbnails/alley-broom.webp",
+      "kind": "study",
+      "label": "Lab study · Bamboo broom",
+      "targetId": "alley/broom",
+      "capturedAt": "2026-11-10"
+    },
+    "alley/tanuki": {
+      "src": "thumbnails/alley-tanuki.webp",
+      "kind": "study",
+      "label": "Lab study · Tanuki",
+      "targetId": "alley/tanuki",
+      "capturedAt": "2026-11-10"
+    },
+    "alley/tiles": {
+      "src": "thumbnails/alley-tiles.webp",
+      "kind": "study",
+      "label": "Lab study · Spare tiles",
+      "targetId": "alley/tiles",
+      "capturedAt": "2026-11-10"
+    },
+    "keepsakes/game-yarn": {
+      "src": "thumbnails/keepsakes-game-yarn.webp",
+      "kind": "original",
+      "label": "Original game reference · Our yarn 今の毛糸",
+      "targetId": "keepsakes/game-yarn",
+      "capturedAt": "2026-11-10"
+    },
+    "keepsakes/wound": {
+      "src": "thumbnails/keepsakes-wound.webp",
+      "kind": "study",
+      "label": "Lab study · Wound thread 巻き糸",
+      "targetId": "keepsakes/wound",
+      "capturedAt": "2026-11-10"
+    },
+    "keepsakes/sheen": {
+      "src": "thumbnails/keepsakes-sheen.webp",
+      "kind": "study",
+      "label": "Lab study · Fibre sheen 光沢",
+      "targetId": "keepsakes/sheen",
+      "capturedAt": "2026-11-10"
+    },
+    "keepsakes/fuzz": {
+      "src": "thumbnails/keepsakes-fuzz.webp",
+      "kind": "study",
+      "label": "Lab study · Shell fuzz 毛羽",
+      "targetId": "keepsakes/fuzz",
+      "capturedAt": "2026-11-10"
+    },
+    "keepsakes/colors": {
+      "src": "thumbnails/keepsakes-colors.webp",
+      "kind": "study",
+      "label": "Lab study · A basket of colours 色",
+      "targetId": "keepsakes/colors",
+      "capturedAt": "2026-11-10"
+    },
+    "keepsakes/game-key": {
+      "src": "thumbnails/keepsakes-game-key.webp",
+      "kind": "original",
+      "label": "Original game reference · Our key 今の鍵",
+      "targetId": "keepsakes/game-key",
+      "capturedAt": "2026-11-10"
+    },
+    "keepsakes/old-key": {
+      "src": "thumbnails/keepsakes-old-key.webp",
+      "kind": "study",
+      "label": "Lab study · An old key 古鍵",
+      "targetId": "keepsakes/old-key",
+      "capturedAt": "2026-11-10"
+    },
+    "keepsakes/glint": {
+      "src": "thumbnails/keepsakes-glint.webp",
+      "kind": "study",
+      "label": "Lab study · A soft glint 瞬き",
+      "targetId": "keepsakes/glint",
+      "capturedAt": "2026-11-10"
+    },
+    "keepsakes/vs-field": {
+      "src": "thumbnails/keepsakes-vs-field.webp",
+      "kind": "study",
+      "label": "Lab study · Against the grass 草と毛糸",
+      "targetId": "keepsakes/vs-field",
+      "capturedAt": "2026-11-10"
+    },
+    "critters/game-koi": {
+      "src": "thumbnails/critters-game-koi.webp",
+      "kind": "original",
+      "label": "Original game reference · A koi from the river 今の鯉",
+      "targetId": "critters/game-koi",
+      "capturedAt": "2026-11-10"
+    },
+    "critters/kohaku": {
+      "src": "thumbnails/critters-kohaku.webp",
+      "kind": "study",
+      "label": "Lab study · Kohaku 紅白",
+      "targetId": "critters/kohaku",
+      "capturedAt": "2026-11-10"
+    },
+    "critters/sanke": {
+      "src": "thumbnails/critters-sanke.webp",
+      "kind": "study",
+      "label": "Lab study · Sanke 三色",
+      "targetId": "critters/sanke",
+      "capturedAt": "2026-11-10"
+    },
+    "critters/showa": {
+      "src": "thumbnails/critters-showa.webp",
+      "kind": "study",
+      "label": "Lab study · Shōwa 昭和",
+      "targetId": "critters/showa",
+      "capturedAt": "2026-11-10"
+    },
+    "critters/ogon": {
+      "src": "thumbnails/critters-ogon.webp",
+      "kind": "study",
+      "label": "Lab study · Ōgon 黄金",
+      "targetId": "critters/ogon",
+      "capturedAt": "2026-11-10"
+    },
+    "critters/tancho": {
+      "src": "thumbnails/critters-tancho.webp",
+      "kind": "study",
+      "label": "Lab study · Tanchō 丹頂",
+      "targetId": "critters/tancho",
+      "capturedAt": "2026-11-10"
+    },
+    "critters/game-bird": {
+      "src": "thumbnails/critters-game-bird.webp",
+      "kind": "original",
+      "label": "Original game reference · A sparrow 今の雀",
+      "targetId": "critters/game-bird",
+      "capturedAt": "2026-11-10"
+    },
+    "critters/flock": {
+      "src": "thumbnails/critters-flock.webp",
+      "kind": "study",
+      "label": "Lab study · A flock, as one draw 群れ",
+      "targetId": "critters/flock",
+      "capturedAt": "2026-11-10"
+    },
+    "critters/game-flutter": {
+      "src": "thumbnails/critters-game-flutter.webp",
+      "kind": "original",
+      "label": "Original game reference · Our butterflies 今の蝶",
+      "targetId": "critters/game-flutter",
+      "capturedAt": "2026-11-10"
+    },
+    "critters/hinge": {
+      "src": "thumbnails/critters-hinge.webp",
+      "kind": "study",
+      "label": "Lab study · Two painted hinges 羽ばたき",
+      "targetId": "critters/hinge",
+      "capturedAt": "2026-11-10"
+    },
+    "villagers/luna": {
+      "src": "thumbnails/villagers-luna.webp",
+      "kind": "original",
+      "label": "Original game reference · Luna ルナ",
+      "targetId": "villagers/luna",
+      "capturedAt": "2026-11-10"
+    },
+    "villagers/mochi": {
+      "src": "thumbnails/villagers-mochi.webp",
+      "kind": "original",
+      "label": "Original game reference · Mochi モチ",
+      "targetId": "villagers/mochi",
+      "capturedAt": "2026-11-10"
+    },
+    "villagers/kuro": {
+      "src": "thumbnails/villagers-kuro.webp",
+      "kind": "original",
+      "label": "Original game reference · Kuro クロ",
+      "targetId": "villagers/kuro",
+      "capturedAt": "2026-11-10"
+    },
+    "villagers/groom": {
+      "src": "thumbnails/villagers-groom.webp",
+      "kind": "study",
+      "label": "Lab study · Grooming 毛づくろい",
+      "targetId": "villagers/groom",
+      "capturedAt": "2026-11-10"
+    },
+    "villagers/yawn": {
+      "src": "thumbnails/villagers-yawn.webp",
+      "kind": "study",
+      "label": "Lab study · A yawn あくび",
+      "targetId": "villagers/yawn",
+      "capturedAt": "2026-11-10"
+    },
+    "villagers/sleep": {
+      "src": "thumbnails/villagers-sleep.webp",
+      "kind": "study",
+      "label": "Lab study · Asleep 眠り",
+      "targetId": "villagers/sleep",
+      "capturedAt": "2026-11-10"
+    },
+    "villagers/shine": {
+      "src": "thumbnails/villagers-shine.webp",
+      "kind": "study",
+      "label": "Lab study · Eye-shine 目の光",
+      "targetId": "villagers/shine",
+      "capturedAt": "2026-11-10"
+    },
+    "weather/game-rain": {
+      "src": "thumbnails/weather-game-rain.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s rain 今の雨",
+      "targetId": "weather/game-rain",
+      "capturedAt": "2026-11-10"
+    },
+    "weather/streak": {
+      "src": "thumbnails/weather-streak.webp",
+      "kind": "study",
+      "label": "Lab study · Streak quads 雨脚",
+      "targetId": "weather/streak",
+      "capturedAt": "2026-11-10"
+    },
+    "weather/splash": {
+      "src": "thumbnails/weather-splash.webp",
+      "kind": "study",
+      "label": "Lab study · Splash rings 水跳ね",
+      "targetId": "weather/splash",
+      "capturedAt": "2026-11-10"
+    },
+    "weather/wet": {
+      "src": "thumbnails/weather-wet.webp",
+      "kind": "study",
+      "label": "Lab study · Wet ground 濡れ色",
+      "targetId": "weather/wet",
+      "capturedAt": "2026-11-10"
+    },
+    "weather/game-snow": {
+      "src": "thumbnails/weather-game-snow.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s snow 今の雪",
+      "targetId": "weather/game-snow",
+      "capturedAt": "2026-11-10"
+    },
+    "weather/settle": {
+      "src": "thumbnails/weather-settle.webp",
+      "kind": "study",
+      "label": "Lab study · Snow that settles 積雪",
+      "targetId": "weather/settle",
+      "capturedAt": "2026-11-10"
+    },
+    "weather/game-petal": {
+      "src": "thumbnails/weather-game-petal.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s petals 今の花弁",
+      "targetId": "weather/game-petal",
+      "capturedAt": "2026-11-10"
+    },
+    "weather/drift": {
+      "src": "thumbnails/weather-drift.webp",
+      "kind": "study",
+      "label": "Lab study · Drifts 花筏",
+      "targetId": "weather/drift",
+      "capturedAt": "2026-11-10"
+    },
+    "interiors/garden": {
+      "src": "thumbnails/interiors-garden.webp",
+      "kind": "study",
+      "label": "Lab study · The garden zashiki",
+      "targetId": "interiors/garden",
+      "capturedAt": "2026-11-10"
+    },
+    "interiors/sukiya": {
+      "src": "thumbnails/interiors-sukiya.webp",
+      "kind": "study",
+      "label": "Lab study · One bowl of tea",
+      "targetId": "interiors/sukiya",
+      "capturedAt": "2026-11-10"
+    },
+    "interiors/study": {
+      "src": "thumbnails/interiors-study.webp",
+      "kind": "study",
+      "label": "Lab study · The rain reader",
+      "targetId": "interiors/study",
+      "capturedAt": "2026-11-10"
+    },
+    "interiors/potter": {
+      "src": "thumbnails/interiors-potter.webp",
+      "kind": "study",
+      "label": "Lab study · The potter’s pause",
+      "targetId": "interiors/potter",
+      "capturedAt": "2026-11-10"
+    },
+    "interiors/machiya": {
+      "src": "thumbnails/interiors-machiya.webp",
+      "kind": "study",
+      "label": "Lab study · Afternoon at home",
+      "targetId": "interiors/machiya",
+      "capturedAt": "2026-11-10"
+    },
+    "interiors/indigo": {
+      "src": "thumbnails/interiors-indigo.webp",
+      "kind": "study",
+      "label": "Lab study · The dyer’s room",
+      "targetId": "interiors/indigo",
+      "capturedAt": "2026-11-10"
+    },
+    "interiors/summer": {
+      "src": "thumbnails/interiors-summer.webp",
+      "kind": "study",
+      "label": "Lab study · A breeze in August",
+      "targetId": "interiors/summer",
+      "capturedAt": "2026-11-10"
+    },
+    "interiors/autumn": {
+      "src": "thumbnails/interiors-autumn.webp",
+      "kind": "study",
+      "label": "Lab study · Maple at the window",
+      "targetId": "interiors/autumn",
+      "capturedAt": "2026-11-10"
+    },
+    "interiors/winter": {
+      "src": "thumbnails/interiors-winter.webp",
+      "kind": "study",
+      "label": "Lab study · Under the quilt",
+      "targetId": "interiors/winter",
+      "capturedAt": "2026-11-10"
+    },
+    "interiors/lantern": {
+      "src": "thumbnails/interiors-lantern.webp",
+      "kind": "study",
+      "label": "Lab study · When the andon wakes",
+      "targetId": "interiors/lantern",
+      "capturedAt": "2026-11-10"
+    },
+    "interiors/moon": {
+      "src": "thumbnails/interiors-moon.webp",
+      "kind": "study",
+      "label": "Lab study · The moon-viewing room",
+      "targetId": "interiors/moon",
+      "capturedAt": "2026-11-10"
+    },
+    "interiors/guest": {
+      "src": "thumbnails/interiors-guest.webp",
+      "kind": "study",
+      "label": "Lab study · A place to stay",
+      "targetId": "interiors/guest",
+      "capturedAt": "2026-11-10"
+    },
+    "komorebi/game-dapple": {
+      "src": "thumbnails/komorebi-game-dapple.webp",
+      "kind": "original",
+      "label": "Original game reference · The game’s dapples 今の木漏れ日",
+      "targetId": "komorebi/game-dapple",
+      "capturedAt": "2026-11-10"
+    },
+    "komorebi/gobo": {
+      "src": "thumbnails/komorebi-gobo.webp",
+      "kind": "study",
+      "label": "Lab study · A scrolling gobo ゴボ",
+      "targetId": "komorebi/gobo",
+      "capturedAt": "2026-11-10"
+    },
+    "komorebi/voronoi": {
+      "src": "thumbnails/komorebi-voronoi.webp",
+      "kind": "study",
+      "label": "Lab study · Voronoi cells ボロノイ",
+      "targetId": "komorebi/voronoi",
+      "capturedAt": "2026-11-10"
+    },
+    "komorebi/shadowmap": {
+      "src": "thumbnails/komorebi-shadowmap.webp",
+      "kind": "study",
+      "label": "Lab study · Real shadow map 影",
+      "targetId": "komorebi/shadowmap",
+      "capturedAt": "2026-11-10"
+    },
+    "komorebi/coins": {
+      "src": "thumbnails/komorebi-coins.webp",
+      "kind": "study",
+      "label": "Lab study · Images of the sun 太陽の像",
+      "targetId": "komorebi/coins",
+      "capturedAt": "2026-11-10"
+    },
+    "komorebi/eclipse": {
+      "src": "thumbnails/komorebi-eclipse.webp",
+      "kind": "study",
+      "label": "Lab study · During an eclipse 日食",
+      "targetId": "komorebi/eclipse",
+      "capturedAt": "2026-11-10"
+    },
+    "komorebi/game-drift": {
+      "src": "thumbnails/komorebi-game-drift.webp",
+      "kind": "context",
+      "label": "Inactive empty baseline · Petal drifts, today 今の花びら溜り",
+      "targetId": "komorebi/game-drift",
+      "capturedAt": "2026-11-10"
+    },
+    "komorebi/drift": {
+      "src": "thumbnails/komorebi-drift.webp",
+      "kind": "study",
+      "label": "Lab study · Petals in the light 花筏",
+      "targetId": "komorebi/drift",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/meadow-classic": {
+      "src": "thumbnails/grass-meadow-classic.webp",
+      "kind": "study",
+      "label": "Lab study · Meadow Classic",
+      "targetId": "grass/meadow-classic",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/meadow-gpu": {
+      "src": "thumbnails/grass-meadow-gpu.webp",
+      "kind": "study",
+      "label": "Lab study · Zero-Attribute Meadow",
+      "targetId": "grass/meadow-gpu",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/meadow-tuft": {
+      "src": "thumbnails/grass-meadow-tuft.webp",
+      "kind": "study",
+      "label": "Lab study · Tuft Meadow",
+      "targetId": "grass/meadow-tuft",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/meadow-thicket": {
+      "src": "thumbnails/grass-meadow-thicket.webp",
+      "kind": "study",
+      "label": "Lab study · Cat-Eye Thicket",
+      "targetId": "grass/meadow-thicket",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/meadow-painted": {
+      "src": "thumbnails/grass-meadow-painted.webp",
+      "kind": "study",
+      "label": "Lab study · Painted Meadow",
+      "targetId": "grass/meadow-painted",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/cards": {
+      "src": "thumbnails/grass-cards.webp",
+      "kind": "study",
+      "label": "Lab study · Alpha-Card Tufts",
+      "targetId": "grass/cards",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/bezier": {
+      "src": "thumbnails/grass-bezier.webp",
+      "kind": "study",
+      "label": "Lab study · Bezier Blades",
+      "targetId": "grass/bezier",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/triquad": {
+      "src": "thumbnails/grass-triquad.webp",
+      "kind": "study",
+      "label": "Lab study · Tri-Quad Clumps",
+      "targetId": "grass/triquad",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/shell": {
+      "src": "thumbnails/grass-shell.webp",
+      "kind": "study",
+      "label": "Lab study · Shell Turf",
+      "targetId": "grass/shell",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/ring-lod": {
+      "src": "thumbnails/grass-ring-lod.webp",
+      "kind": "study",
+      "label": "Lab study · Ring LOD",
+      "targetId": "grass/ring-lod",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/carpet-blades": {
+      "src": "thumbnails/grass-carpet-blades.webp",
+      "kind": "study",
+      "label": "Lab study · Carpet & Blades",
+      "targetId": "grass/carpet-blades",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/wildflowers": {
+      "src": "thumbnails/grass-wildflowers.webp",
+      "kind": "study",
+      "label": "Lab study · Wildflower Cards",
+      "targetId": "grass/wildflowers",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/pressed": {
+      "src": "thumbnails/grass-pressed.webp",
+      "kind": "study",
+      "label": "Lab study · Pressed Meadow",
+      "targetId": "grass/pressed",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/halo-meadow": {
+      "src": "thumbnails/grass-halo-meadow.webp",
+      "kind": "study",
+      "label": "Lab study · Halo Meadow",
+      "targetId": "grass/halo-meadow",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/mown": {
+      "src": "thumbnails/grass-mown.webp",
+      "kind": "study",
+      "label": "Lab study · Mown Stripes",
+      "targetId": "grass/mown",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/lantern": {
+      "src": "thumbnails/grass-lantern.webp",
+      "kind": "study",
+      "label": "Lab study · Lantern Fibers",
+      "targetId": "grass/lantern",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/susuki": {
+      "src": "thumbnails/grass-susuki.webp",
+      "kind": "study",
+      "label": "Lab study · Susuki Plumes",
+      "targetId": "grass/susuki",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/sumi": {
+      "src": "thumbnails/grass-sumi.webp",
+      "kind": "study",
+      "label": "Lab study · Sumi-e Brush Grass",
+      "targetId": "grass/sumi",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/yarn": {
+      "src": "thumbnails/grass-yarn.webp",
+      "kind": "study",
+      "label": "Lab study · Yarn Curls",
+      "targetId": "grass/yarn",
+      "capturedAt": "2026-11-10"
+    },
+    "grass/moss": {
+      "src": "thumbnails/grass-moss.webp",
+      "kind": "study",
+      "label": "Lab study · Moss Pillows",
+      "targetId": "grass/moss",
+      "capturedAt": "2026-11-10"
+    },
+    "ranges/stack": {
+      "src": "thumbnails/ranges-stack.webp",
+      "kind": "study",
+      "label": "Lab bench · Layered ridge bench",
+      "targetId": "ranges/stack",
+      "capturedAt": "2026-11-10"
+    },
+    "ranges/wall-mass": {
+      "src": "thumbnails/ranges-wall-mass.webp",
+      "kind": "original",
+      "label": "Original game recipe · Original leaf-mass forest wall bench",
+      "targetId": "ranges/wall-mass",
+      "capturedAt": "2026-11-10"
+    },
+    "ranges/edge": {
+      "src": "thumbnails/ranges-edge.webp",
+      "kind": "study",
+      "label": "Lab bench · Forest edge section bench",
+      "targetId": "ranges/edge",
+      "capturedAt": "2026-11-10"
+    },
+    "ranges/air": {
+      "src": "thumbnails/ranges-air.webp",
+      "kind": "study",
+      "label": "Lab bench · Aerial perspective bench",
+      "targetId": "ranges/air",
+      "capturedAt": "2026-11-10"
+    },
+    "ranges/foothills": {
+      "src": "thumbnails/ranges-hero-context.webp",
+      "kind": "context",
+      "label": "Range Lab context · foothill carpet in the hero valley",
+      "targetId": "ranges/foothills",
+      "capturedAt": "2026-11-10"
+    }
+  },
+  "stats": {
+    "images": 386,
+    "bytes": 2447232,
+    "targetThumbnails": 386,
+    "assetThumbnails": 134,
+    "unmappedAssets": [
+      "guardian-crows",
+      "cat-coat",
+      "cat-face",
+      "cat-collar",
+      "master-bells",
+      "cat-shadow",
+      "dango",
+      "interior-fish",
+      "sakura",
+      "maples",
+      "pines",
+      "rim-trees",
+      "tree-trunks",
+      "tree-canopies",
+      "old-sakura-grove",
+      "glade-floor",
+      "tatami",
+      "shoji-doors",
+      "bonsai",
+      "teaware",
+      "knockables",
+      "scent",
+      "landing-dust",
+      "ao",
+      "summit-meadow",
+      "summit-entry",
+      "summit-trees",
+      "meditation-stone",
+      "meditation-atmosphere",
+      "summit-shoulder",
+      "summit-path",
+      "summit-terrain",
+      "vista-terrain",
+      "summit-bay",
+      "harbour",
+      "horizon",
+      "slope-forest",
+      "summit-clouds",
+      "summit-snow",
+      "summit-rain",
+      "summit-pollen",
+      "summit-petals",
+      "summit-wildlife",
+      "shrine-rays",
+      "summit-light",
+      "summit-vista",
+      "summit-transition",
+      "blender-roofscape",
+      "legacy-summit-gate",
+      "legacy-vista-approach",
+      "summit-enso",
+      "summit-furin",
+      "bay-bridge",
+      "ferris-wheel",
+      "summit-butterflies",
+      "summit-birds"
+    ]
+  }
+}
