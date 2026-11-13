@@ -7,15 +7,15 @@ recorded in `docs/fable/status/p0-baseline.md`).
 - Claimed:            2026-11-13 03:10 PST
 - Branch:             fable/p0-browser
 - Base commit:        ed9f5b9 (fable/integration = main)
-- State:              in progress
+- State:              ready for review
 
 ## Steps
 - [x] 1 `tools/headless.mjs`: shared headless CLI + module (pushed first, 6f0fca8; `local`/`init` options 09760ef)
-- [x] 2 Browser half of P0.2 → `docs/fable/baseline/checks-browser.md`
+- [x] 2 Browser half of P0.2 → `docs/fable/baseline/checks-browser.md` (6852c43)
 - [x] 3 P0.3 perf → `tools/perf_spots.mjs` + `docs/fable/baseline/perf.md` (bd46685)
 - [x] 4 P0.4 captures → masters (outside the repo) + previews + `captures.md` (1a86f0b)
 - [x] 5 P0.5 budgets → `docs/fable/baseline/budgets.md` (8a94d1b)
-- [ ] 6 Report + PR
+- [x] 6 Merged `origin/fable/integration` in (no overlap; merge, not rebase, so no force-push), checks rerun, report + PR
 
 ## Checks run (command → real result)
 - `node tools/headless.mjs "/tools/town_preview.html?sheet=street" --wait "…startsWith('town')" --shot …` → ok, 3.6 s, Metal renderer confirmed
@@ -27,9 +27,17 @@ recorded in `docs/fable/status/p0-baseline.md`).
 - same on `--gpu swiftshader` → ok; 132 s with a 10 s settle; timed run: world build 39.6 s, first frame 127.6 s, playing at 196 s
 - `node tools/capture_baseline.mjs --masters …/_baseline` → 62 captures × 2 passes in 5.3 min, exit 0, no console errors; noise floor in `captures.md`
 - `ls /tmp/michi-test` → No such file or directory (the 44-check smoke suite was not run)
+- After merging `origin/fable/integration` (5dc924a): `node tools/footprint_golden.mjs` (f1-golden's CLI, through this `runPage`) → `footprint golden: EQUAL`, exit 0, 3.3 s; `node tools/check_syntax.mjs` → All 37 modules OK; `node tools/verify.mjs` → All checks passed; `node tools/labs_check.mjs` → All labs checks OK; `git diff --check origin/fable/integration` → clean; `git diff --name-only origin/fable/integration` → only this lane's 8 files + 66 preview JPGs
 
 ## Notes for the Integrator
 - Phase 0 changes no game file. Lossless masters live outside the repo in
   `/Users/c1t1zen/Documents/GitHub/michi-wt/_baseline/` (ruling R8).
 - `tools/headless.mjs` API is exactly the brief's (`openPage`, `runPage`,
-  `diffImages`), plus additive exports and options.
+  `diffImages`), plus additive exports and options (`local`, `init`, `args`,
+  `ignore`, `waitUntil`; `convertImage`, `openImageTool`, `startServer`,
+  `gpuInfo`, `waitForExpression`). f1-golden's CLI already runs on it.
+- This lane's status file is `p0-browser.md`; p0-checks kept
+  `p0-baseline.md` for the Node half. Fold them if one lane record is wanted.
+- The review sheets (`tools/*_preview.js`) import game modules with
+  `?v=20261106a` while `src/` is on `20261107a`; pre-existing, not changed
+  here (tags are Integrator-only).
