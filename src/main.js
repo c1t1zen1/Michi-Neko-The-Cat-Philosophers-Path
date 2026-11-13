@@ -42,17 +42,22 @@ const AUTOSTART_KEY = 'catwalk_autostart';
 // picks the weather, and ?shot=1 makes frames repeatable: a fixed 1/60 s
 // timestep, a seeded Math.random and a frame-stepped performance.now, no
 // adaptive resolution / eco governor / startup probe, the day clock held and
-// the weather pinned. ?assets= and ?swap= are read by the kit runtime
-// (src/kit/runtime.js). tools/game_shot.mjs drives these headlessly.
+// the weather pinned; ?hold=N then freezes the loop at frame N. ?assets= and
+// ?swap= are read by the kit runtime (src/kit/runtime.js).
+// tools/game_shot.mjs drives these headlessly.
 const CAPTURE_DT = 1 / 60;
 const WEATHERS = ['clear', 'cloudy', 'rain', 'mist', 'snow'];
 let captureClock = null;
 
 export function parseCaptureFlags(search) {
   const q = new URLSearchParams(search || '');
-  const flags = { hour: null, cam: null, nohud: false, shot: false, weather: null, frame: 0, ready: false };
+  const flags = { hour: null, cam: null, nohud: false, shot: false, weather: null, hold: null, frame: 0, ready: false };
   const hour = q.has('hour') ? Number(q.get('hour')) : NaN;
   if (Number.isFinite(hour)) flags.hour = ((hour % 24) + 24) % 24;
+  // ?hold=N (with ?shot=1): stop simulating and rendering after frame N, so a
+  // screenshot taken any time later is exactly frame N.
+  const hold = q.has('hold') ? Number(q.get('hold')) : NaN;
+  if (Number.isInteger(hold) && hold > 0) flags.hold = hold;
   const cam = (q.get('cam') || '').split(',').map(Number);
   if (cam.length >= 6 && cam.slice(0, 6).every(Number.isFinite)) {
     flags.cam = { pos: cam.slice(0, 3), target: cam.slice(3, 6), fov: Number.isFinite(cam[6]) && cam[6] > 0 ? cam[6] : null };
@@ -72,13 +77,28 @@ export function parseCaptureFlags(search) {
  * boots with the same flags is then the same frame.
  */
 function installCaptureClock() {
-  let seed = 0x5eed1234;
-  Math.random = function () {
+  const mulberry = (seed) => () => {
     seed = (seed + 0x6D2B79F5) >>> 0;
     let t = seed;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  // Two streams: three's generateUUID() draws four numbers for every object,
+  // material and geometry it creates, and some of those are created on an
+  // async schedule (the optional summit GLB finishes parsing on a different
+  // frame each boot). Routing uuid draws to their own stream keeps the
+  // gameplay stream (particles, wander, idles) identical between boots.
+  // Frames are inspected structurally (V8's prepareStackTrace), so no stack
+  // string is built per call.
+  const world = mulberry(0x5eed1234), uuids = mulberry(0x0ddba11);
+  const fromUuid = (_, frames) => frames.some((f) => f.getFunctionName() === 'generateUUID');
+  Math.random = function () {
+    const prev = Error.prepareStackTrace;
+    Error.prepareStackTrace = fromUuid;
+    let uuid;
+    try { uuid = new Error().stack; } finally { Error.prepareStackTrace = prev; }
+    return (uuid === true || (typeof uuid === 'string' && uuid.includes('generateUUID'))) ? uuids() : world();
   };
   const clock = { ms: 0 };
   performance.now = () => clock.ms;
@@ -392,7 +412,9 @@ class Game {
     this.applySettings();
     this.buildJournalUI();
     this.installAudioEnableButton();
-    this.startTitleAudio();
+    // ?shot=1: the music director draws Math.random on audio timers, which
+    // would perturb the seeded stream at wall-clock times; a capture is silent.
+    if (!this.capture.shot) this.startTitleAudio();
 
     // A reload is used to reset the world for a new game. Starting the game
     // must never depend on audio being enabled first.
@@ -529,9 +551,11 @@ class Game {
     if (c.nohud && !document.getElementById('capture-nohud')) {
       const style = document.createElement('style');
       style.id = 'capture-nohud';
-      style.textContent = '#hud-scroll, #compass, #toast-stack, #prompt, #btn-enable-audio, #edge-arrow, ' +
-        '#photo-hint, #debug-overlay, #scenic-status, .touch-zone { display: none !important; }';
+      style.textContent = '#scroll-wrapper, #hud-scroll, #compass, #toast-stack, #prompt, #btn-enable-audio, #edge-arrow, ' +
+        '#photo-hint, #debug-overlay, #scenic-status, .touch-zone, .npc-nametag { display: none !important; }';
       document.head.appendChild(style);
+      // The waypoint markers live in an anonymous container.
+      if (this.waypoints && this.waypoints.container) this.waypoints.container.style.display = 'none';
     }
   }
 
@@ -1980,6 +2004,7 @@ Quality  ${this.settings.resolveQuality()}`;
     // startGame(), and no fps-driven governor, probe or resolution ladder,
     // so frame N is the same frame on every boot.
     const shot = this.capture.shot;
+    if (shot && this.capture.hold && this.capture.frame >= this.capture.hold) return;
     if (shot && captureClock) captureClock.ms += CAPTURE_DT * 1000;
     const dt = shot ? CAPTURE_DT : Math.min(this.clock.getDelta(), 0.1);
     this.elapsed = shot ? this.capture.frame * CAPTURE_DT : this.clock.elapsedTime;

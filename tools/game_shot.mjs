@@ -52,9 +52,12 @@ if (flag('diff')) {
   process.exit(0);
 }
 
-const query = String(opt('query', '')).replace(/^\?/, '');
+let query = String(opt('query', '')).replace(/^\?/, '');
 const out = resolve(opt('out'));
 const frames = Number(opt('frames', 120));
+// With ?shot=1 the game freezes at the frame we wait for (?hold=N), so the
+// screenshot is exactly frame N however long the evals before it take.
+if (/(^|&)shot=1(&|$)/.test(query) && !/(^|&)hold=/.test(query)) query += `&hold=${frames}`;
 const settle = Number(opt('settle', 0));
 const timeout = Number(opt('timeout', 600));
 const t0 = Date.now();
@@ -72,11 +75,13 @@ try {
   const deadline = t0 + timeout * 1000;
   await headless.waitForExpression(page, `window.game && window.game.capture && window.game.capture.frame >= ${frames}`, deadline, 200);
   if (settle > 0) await new Promise((r) => setTimeout(r, settle));
+  await page.screenshot({ path: out, type: /\.jpe?g$/i.test(out) ? 'jpeg' : 'png', ...(/\.jpe?g$/i.test(out) ? { quality: 85 } : {}), caret: 'hide' });
   summary.frame = await page.evaluate('window.game.capture.frame');
   summary.assets = await page.evaluate('window.game.assets.summary()');
-  summary.render = await page.evaluate('({ calls: game.renderer.info.render.calls, triangles: game.renderer.info.render.triangles, geometries: game.renderer.info.memory.geometries, textures: game.renderer.info.memory.textures })');
   summary.world = await page.evaluate('({ hour: game.sky.dayTime, weather: game.sky.weather, quality: game.settings.resolveQuality(), mode: game.menu.mode, cat: game.player.mesh.position.toArray().map((v) => +v.toFixed(3)), cam: game.camera.position.toArray().map((v) => +v.toFixed(3)) })');
-  await page.screenshot({ path: out, type: /\.jpe?g$/i.test(out) ? 'jpeg' : 'png', ...(/\.jpe?g$/i.test(out) ? { quality: 85 } : {}), caret: 'hide' });
+  // renderer.info holds the composer's last pass (one quad); render the scene
+  // once more, after the shot, to record the scene's own draw calls.
+  summary.render = await page.evaluate('(game.renderer.render(game.scene, game.camera), { calls: game.renderer.info.render.calls, triangles: game.renderer.info.render.triangles, geometries: game.renderer.info.memory.geometries, textures: game.renderer.info.memory.textures })');
   summary.gpu = await headless.gpuInfo(session.browser).catch(() => null);
   summary.errors = session.errors;
   summary.warnings = session.warnings;
