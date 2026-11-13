@@ -2,11 +2,12 @@
 //
 //   node tools/verify.mjs
 //
-// Runs three passes:
-//   1. ES-module syntax check across src/
-//   2. static wiring checks (the call sites main.js must make)
+// Runs five passes:
+//   1. ES-module syntax check across src/ and src/kit/**
+//   2. static wiring checks (the call sites main.js must make, summit + kit)
 //   3. the headless summit state-machine suite (tools/summit_test.mjs)
 //   4. an HTML/CSS sanity pass over index.html
+//   5. the kit: tools/kit_check.mjs and the node --test suite tools/kit_test.mjs
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -15,7 +16,7 @@ import { dirname, join } from 'node:path';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 let failures = 0;
 const step = (n, name, fn) => {
-  process.stdout.write(`\n[${n}/4] ${name}\n`);
+  process.stdout.write(`\n[${n}/5] ${name}\n`);
   try { fn(); } catch (e) { failures++; console.log('  ERROR ' + e.message); }
 };
 
@@ -69,6 +70,22 @@ step(2, 'main.js wiring', () => {
     ['card set keyed by kind (not opts.kind)', /this\.cardSets\[kind\]/.test(s)],
     ['summit landmark asset is module-relative',
       /SUMMIT_LANDMARKS_SRC\s*=\s*new URL\([^\n]+import\.meta\.url\)/.test(s)],
+    // Kit runtime wiring (BUILD_GUIDE_FABLE F1.8 / F1.12)
+    ['kit runtime imported', /import \{ AssetRuntime \} from '\.\/kit\/runtime\.js\?v=/.test(m)],
+    ['kit runtime constructed on the Game', /this\.assets = new AssetRuntime\(/.test(m)],
+    ['kit preload awaited before the world is built',
+      /await this\.assets\.preload\(\);[\s\S]{0,200}this\.assembleWorld\(\)/.test(m)],
+    ['Countryside receives the runtime', /new Countryside\(this\.scene, \{ assets: this\.assets \}\)/.test(m)],
+    ['Vegetation receives the runtime', /new Vegetation\([\s\S]{0,300}assets: this\.assets/.test(m)],
+    ['HiddenPlaces receives the runtime', /new HiddenPlaces\(this\.scene, this\.city, \{ assets: this\.assets \}\)/.test(m)],
+    ['Particles receives the runtime', /new Particles\(this\.scene, \{ assets: this\.assets \}\)/.test(m)],
+    ['AmbientLife receives the runtime', /new AmbientLife\(this\.scene, this\.audio, this\.city\.nestPos, \{ assets: this\.assets \}\)/.test(m)],
+    ['kit instances updated in the frame loop', /this\.assets\.update\(dt, this\.elapsed, /.test(m)],
+    ['kit tier follows applyQuality()', /applyQuality\(\) \{[\s\S]*?this\.assets\.setQuality\(q\)/.test(m)],
+    ['startGame is async and awaits init', /export async function startGame\(\)[\s\S]{0,200}await game\.init\(\)/.test(m)],
+    ['capture flags parsed from the URL', /parseCaptureFlags\(location\.search\)/.test(m)],
+    ['?cam= applied after every camera owner', /applyCaptureCamera\(\)/.test(m)],
+    ['?shot=1 fixes the timestep', /CAPTURE_DT/.test(m)],
   ];
   for (const [name, ok] of checks) {
     console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${name}`);
@@ -111,6 +128,21 @@ step(4, 'index.html markup + CSS', () => {
     console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${name}`);
     if (!ok) failures++;
   }
+});
+
+// 5. kit -------------------------------------------------------------------
+step(5, 'kit static checks + unit tests', () => {
+  const out = execFileSync(process.execPath, ['tools/kit_check.mjs'], { cwd: ROOT, encoding: 'utf8' });
+  const lines = out.trim().split(/\r?\n/);
+  const bad = lines.filter((l) => l.startsWith('FAIL'));
+  if (bad.length) { failures++; console.log(bad.join('\n')); }
+  console.log('  ' + lines[lines.length - 1]);
+  let tests;
+  try { tests = execFileSync(process.execPath, ['--test', 'tools/kit_test.mjs'], { cwd: ROOT, encoding: 'utf8' }); }
+  catch (e) { failures++; tests = String(e.stdout || '') + String(e.stderr || ''); }
+  const summary = tests.split(/\r?\n/).filter((l) => /^ℹ (tests|pass|fail) /.test(l)).map((l) => l.slice(2).trim());
+  console.log('  kit_test: ' + (summary.join(', ') || 'no summary (see output above)'));
+  if (!/^ℹ fail 0$/m.test(tests)) failures++;
 });
 
 console.log(failures

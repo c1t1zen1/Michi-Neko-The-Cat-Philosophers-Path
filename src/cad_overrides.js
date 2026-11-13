@@ -8,10 +8,12 @@ import * as THREE from 'three';
 const OVERRIDES_URL = 'cad-overrides.json';
 const OVERRIDES_FORMAT = 'michi-neko-cad-overrides';
 
+// Same table as cadJS/src/app.mjs (Uint16Array was missing here, so a
+// published Uint16 index came back as a float index and nothing drew).
 function arrayType(name) {
   return {
     Float32Array, Float64Array, Int8Array, Uint8Array, Uint8ClampedArray,
-    Int16Array, Int32Array, Uint32Array
+    Int16Array, Uint16Array, Int32Array, Uint32Array
   }[name] || Float32Array;
 }
 
@@ -102,24 +104,59 @@ function resolveChild(root, rel) {
   return node;
 }
 
-export async function applyCadOverrides(scene) {
-  let doc = null;
-  try {
-    const response = await fetch(OVERRIDES_URL, { cache: 'no-store' });
-    if (response.ok) doc = await response.json();
-  } catch { /* no file or static host without it — fine */ }
-  if (doc?.format !== OVERRIDES_FORMAT || !Array.isArray(doc.overrides)) return;
+// Kit assets (BUILD_GUIDE_FABLE §3.3) name their parts `asset:<id>/<part>`.
+// A node may address one by `part` ("kasagi", or the full "asset:torii/kasagi");
+// the id comes from the root group (userData.asset.id, or its `asset:<id>` name).
+function resolvePart(root, part) {
+  const wanted = String(part);
+  const id = root.userData?.asset?.id ?? (root.name?.startsWith('asset:') ? root.name.slice(6) : null);
+  const full = wanted.includes('/') ? wanted : (id ? `asset:${id}/${wanted}` : null);
+  let found = null;
+  root.traverse((object) => { if (!found && object !== root && full && object.name === full) found = object; });
+  return found;
+}
+
+// Part name first (modular set), then the child-index path — so an override
+// file authored against the classic tree applies exactly as before, and one
+// that names kit parts survives any reshuffle of child order.
+function resolveTarget(root, node) {
+  if (node.part) {
+    const byPart = resolvePart(root, node.part);
+    if (byPart) return byPart;
+  }
+  return node.rel ? resolveChild(root, node.rel) : root;
+}
+
+/** The root an entry addresses: its classic `name`, else the kit group `asset:<entry.asset>`. */
+function resolveRoot(scene, entry) {
+  return (entry.name ? resolveByName(scene, entry.name) : null) ||
+    (entry.asset ? resolveByName(scene, `asset:${entry.asset}`) : null);
+}
+
+/** Apply a parsed override document to a scene. Returns the number of entries applied. */
+export async function applyOverridesDoc(scene, doc) {
+  if (doc?.format !== OVERRIDES_FORMAT || !Array.isArray(doc.overrides)) return 0;
   let applied = 0;
   for (const entry of doc.overrides) {
-    const root = entry.name ? resolveByName(scene, entry.name) : null;
+    const root = resolveRoot(scene, entry);
     if (!root) continue;
     for (const node of entry.nodes || []) {
-      const target = node.rel ? resolveChild(root, node.rel) : root;
+      const target = resolveTarget(root, node);
       if (!target) continue;
       await applyState(target, node.state);
       if (node.geometry && target.geometry) target.geometry = parseGeometry(node.geometry);
     }
     applied++;
   }
+  return applied;
+}
+
+export async function applyCadOverrides(scene) {
+  let doc = null;
+  try {
+    const response = await fetch(OVERRIDES_URL, { cache: 'no-store' });
+    if (response.ok) doc = await response.json();
+  } catch { /* no file or static host without it — fine */ }
+  const applied = await applyOverridesDoc(scene, doc);
   if (applied) console.info(`[cadJS] ${applied} published override${applied === 1 ? '' : 's'} applied`);
 }

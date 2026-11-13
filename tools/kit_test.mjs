@@ -549,3 +549,86 @@ test('budgets are per tier, exceptions apply, source is cited', () => {
   assert.equal(BUDGET_SOURCE.file, 'docs/fable/baseline/budgets.md');
   assert.match(readFileSync(join(ROOT, 'src/kit/budgets.js'), 'utf8'), /docs\/fable\/baseline\/budgets\.md/);
 });
+
+/* ------------------------------------------------------ kit_check fixtures --- */
+
+import { mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
+
+// A throwaway repo tree: the real src/kit, src/main.js (for the tag) and the inventory.
+function fixtureRoot() {
+  const root = mkdtempSync(join(tmpdir(), 'kit-check-'));
+  mkdirSync(join(root, 'src'), { recursive: true });
+  mkdirSync(join(root, 'labs'), { recursive: true });
+  cpSync(join(ROOT, 'src', 'kit'), join(root, 'src', 'kit'), { recursive: true });
+  writeFileSync(join(root, 'src', 'main.js'), `import { x } from './kit/runtime.js?v=${TAG}';\n`);
+  writeFileSync(join(root, 'labs', 'asset_inventory.json'), JSON.stringify({ assets: [{ id: 'torii', lifecycle: 'active' }, { id: 'old-gate', lifecycle: 'inactive' }] }));
+  return root;
+}
+const runCheck = (root) => spawnSync(process.execPath, [join(ROOT, 'tools', 'kit_check.mjs'), '--root', root], { encoding: 'utf8' });
+
+test('kit_check passes on a clean fixture family and reports its id', () => {
+  const root = fixtureRoot();
+  try {
+    mkdirSync(join(root, 'src', 'kit', 'shrine'));
+    writeFileSync(join(root, 'src', 'kit', 'shrine', 'index.js'), `import { defineAsset } from '../contract.js?v=${TAG}';
+import { tube } from '../craft.js?v=${TAG}';
+export const assets = [defineAsset({
+  id: 'torii', family: 'shrine',
+  params: {
+    span: { type: 'number', default: 3.2, min: 2.4, max: 4.5, step: 0.05 },
+    finish: { type: 'enum', default: 'vermilion', options: ['vermilion', 'weathered'] }
+  },
+  build(ctx) { return { group: null, parts: {} }; }
+})];
+`);
+    // regenerate the index for the fixture tree
+    const { text } = generateIndex(root);
+    writeFileSync(join(root, 'src', 'kit', 'index.js'), text);
+    const r = runCheck(root);
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /OK   src\/kit\/shrine\/index\.js: id 'torii' is an active inventory id/);
+    assert.match(r.stdout, /1 kit asset id\(s\) across 1 family folder\(s\)/);
+    assert.match(r.stdout, /2 one-line param schema entries checked/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('kit_check fails on every rule: index drift, missing assets export, bad id, inactive id, duplicate id, labs import, Math.random, Date.now, bad defaults, stale tag', () => {
+  const root = fixtureRoot();
+  try {
+    mkdirSync(join(root, 'src', 'kit', 'bad'));
+    mkdirSync(join(root, 'src', 'kit', 'noindex'));
+    writeFileSync(join(root, 'src', 'kit', 'bad', 'index.js'), `import { defineAsset } from '../contract.js?v=stale0';
+import { M } from '../../../labs/shared/painted.js';
+export const things = [
+  defineAsset({ id: 'torii', family: 'bad', params: {
+    span: { type: 'number', default: 9, min: 2.4, max: 4.5 },
+    finish: { type: 'enum', default: 'gold', options: ['vermilion', 'weathered'] }
+  }, build() { return Math.random(); } }),
+  defineAsset({ id: 'torii', family: 'bad', build() { return Date.now(); } }),
+  defineAsset({ id: 'old-gate', family: 'bad', build() { return this.random(); } }),
+  defineAsset({ id: 'not-in-inventory', family: 'bad', build() {} })
+];
+`);
+    // index.js left as the zero-family version → out of date
+    const r = runCheck(root);
+    assert.equal(r.status, 1);
+    const out = r.stdout;
+    for (const expect of [
+      /FAIL src\/kit\/index\.js out of date/,
+      /FAIL src\/kit\/noindex\/ has no index\.js/,
+      /FAIL family bad: index\.js must export `assets`/,
+      /FAIL .*id 'not-in-inventory' is not in labs\/asset_inventory\.json/,
+      /FAIL .*id 'old-gate' is inactive in the inventory/,
+      /FAIL id 'torii' defined twice/,
+      /FAIL .*imports from labs\//,
+      /FAIL .*uses Math\.random/,
+      /FAIL .*uses Date\.now/,
+      /FAIL .*uses this\.random/,
+      /FAIL .*param 'span' default 9 outside \[2\.4, 4\.5\]/,
+      /FAIL .*enum param 'finish' default 'gold' is not in options/,
+      /FAIL .*\.\.\/contract\.js\?v=stale0 must carry \?v=/
+    ]) assert.match(out, expect, out);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

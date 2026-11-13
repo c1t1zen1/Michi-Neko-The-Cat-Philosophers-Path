@@ -32,8 +32,58 @@ import { chunkSceneInstances } from './instanced_chunks.js?v=20261107a';
 import { setFoliageDetail } from './foliage.js?v=20261107a';
 import { applyCadOverrides } from './cad_overrides.js?v=20261107a';
 import { HiddenPlaces } from './hidden_places.js?v=20261107a';
+import { AssetRuntime } from './kit/runtime.js?v=20261107a';
 
 const AUTOSTART_KEY = 'catwalk_autostart';
+
+// Capture flags (BUILD_GUIDE_FABLE F1.12), honoured only when present in the
+// URL: ?hour=<0-24> fixes the time of day, ?cam=px,py,pz,tx,ty,tz[,fov] pins
+// the camera, ?nohud=1 hides the interface, ?weather=clear|cloudy|rain|mist|snow
+// picks the weather, and ?shot=1 makes frames repeatable: a fixed 1/60 s
+// timestep, a seeded Math.random and a frame-stepped performance.now, no
+// adaptive resolution / eco governor / startup probe, the day clock held and
+// the weather pinned. ?assets= and ?swap= are read by the kit runtime
+// (src/kit/runtime.js). tools/game_shot.mjs drives these headlessly.
+const CAPTURE_DT = 1 / 60;
+const WEATHERS = ['clear', 'cloudy', 'rain', 'mist', 'snow'];
+let captureClock = null;
+
+export function parseCaptureFlags(search) {
+  const q = new URLSearchParams(search || '');
+  const flags = { hour: null, cam: null, nohud: false, shot: false, weather: null, frame: 0, ready: false };
+  const hour = q.has('hour') ? Number(q.get('hour')) : NaN;
+  if (Number.isFinite(hour)) flags.hour = ((hour % 24) + 24) % 24;
+  const cam = (q.get('cam') || '').split(',').map(Number);
+  if (cam.length >= 6 && cam.slice(0, 6).every(Number.isFinite)) {
+    flags.cam = { pos: cam.slice(0, 3), target: cam.slice(3, 6), fov: Number.isFinite(cam[6]) && cam[6] > 0 ? cam[6] : null };
+  }
+  flags.nohud = q.get('nohud') === '1';
+  flags.shot = q.get('shot') === '1';
+  if (WEATHERS.includes(q.get('weather'))) flags.weather = q.get('weather');
+  return flags;
+}
+
+/**
+ * ?shot=1: every source of wall-clock or random variation between two boots
+ * is replaced before the Game is constructed — Math.random by a seeded
+ * mulberry32 (particles, NPC wander, the weather draw and the cat's idles all
+ * read it) and performance.now by a clock that only advances with the frame
+ * loop (the post-FX dither and the cat's cooldowns read it). Frame N of two
+ * boots with the same flags is then the same frame.
+ */
+function installCaptureClock() {
+  let seed = 0x5eed1234;
+  Math.random = function () {
+    seed = (seed + 0x6D2B79F5) >>> 0;
+    let t = seed;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const clock = { ms: 0 };
+  performance.now = () => clock.ms;
+  return clock;
+}
 
 class Game {
   constructor() {
@@ -128,19 +178,48 @@ class Game {
     this.composer.addPass(this.gradePass);
 
     this.clock = new THREE.Clock();
+    this.elapsed = 0;
     this.audio = new AudioManager();
+
+    // Capture flags (?hour= ?cam= ?nohud=1 ?shot=1 ?weather=): inert unless present.
+    this.capture = parseCaptureFlags(location.search);
+
+    // The asset set switch (BUILD_GUIDE_FABLE §3): the classic builders, the
+    // kit, or auto. Constructed here, preloaded in init() before the valley
+    // is built, and handed to every owner module as `{ assets }`. The initial
+    // quality stands in for the resolved tier only to answer "is this the low
+    // tier?" (the two agree on that); applyQuality() refines it later.
+    this.assets = new AssetRuntime({
+      THREE,
+      assetSet: this.settings.values.assetSet,
+      search: location.search,
+      quality: this.initialQuality
+    });
+  }
+
+  /** Preload the kit (nothing on the classic set), then build the valley. */
+  async init() {
+    await this.assets.preload();
+    this.assembleWorld();
+    this.started = true;
+    return this;
+  }
+
+  /** Everything the original constructor built after the renderer, in the same order. */
+  assembleWorld() {
     this.sky = new Sky(this.scene);
     this.sky.attachRenderer(this.renderer);
-    this.city = new Countryside(this.scene);
+    this.city = new Countryside(this.scene, { assets: this.assets });
     // Hidden valley places register their clearings with the world before the
     // vegetation scatter reads its exclusion and water lists.
-    this.hidden = new HiddenPlaces(this.scene, this.city);
+    this.hidden = new HiddenPlaces(this.scene, this.city, { assets: this.assets });
     this.interior = new InteriorManager(this);
     this.vegetation = new Vegetation(this.scene, this.city.colliders, {
       pathSamples: this.city.pathSamples,
       waterRects: this.city.waterRects,
       riverSamples: this.city.riverSamples,
-      exclusionRects: this.city.vegetationExclusions
+      exclusionRects: this.city.vegetationExclusions,
+      assets: this.assets
     });
     // Every builder has run: split the instanced vegetation sets that span
     // the valley into spatial chunks so the frustum (and the sun's shadow
@@ -149,8 +228,8 @@ class Game {
     // of the scene — submitted regardless of where the camera looked.
     this.chunkStats = chunkSceneInstances(this.scene, { cell: 32, minRadius: 40, minCount: 12, minTriangles: 80000 });
 
-    this.particles = new Particles(this.scene);
-    this.ambientLife = new AmbientLife(this.scene, this.audio, this.city.nestPos);
+    this.particles = new Particles(this.scene, { assets: this.assets });
+    this.ambientLife = new AmbientLife(this.scene, this.audio, this.city.nestPos, { assets: this.assets });
     this.scent = new ScentTrail(this.scene);
     this.player = new Player(this.scene, this.camera, this.audio);
     this.dialogue = new Dialogue();
@@ -330,6 +409,7 @@ class Game {
     } else {
       this.controls.enabled = false; // title screen active
     }
+    this.applyCaptureFlags();
 
     // iOS Safari can interrupt an AudioContext after the browser is
     // backgrounded. Attempt recovery and surface the explicit control if the
@@ -426,6 +506,55 @@ class Game {
     } catch (e) {
       return false;
     }
+  }
+
+  /* ---------------- Capture flags (F1.12) ---------------- */
+
+  /** ?hour= ?weather= ?nohud=1 ?shot=1 — applied once the valley exists; inert when absent. */
+  applyCaptureFlags() {
+    const c = this.capture;
+    if (c.hour !== null) {
+      this.sky.dayTime = c.hour;
+      this.sky.cycleSpeed = 0;
+    }
+    if (c.weather || c.shot) {
+      const w = c.weather || 'clear';
+      this.sky.weather = w;
+      this.sky.targetWeather = w;
+      this.sky.previousWeather = w;
+      this.sky.weatherBlend = 1;
+      if (c.shot) this.sky.weatherTimer = 1e9; // no random weather draw during a capture
+    }
+    if (c.shot && c.hour === null) this.sky.cycleSpeed = 0; // hold the clock where the boot left it
+    if (c.nohud && !document.getElementById('capture-nohud')) {
+      const style = document.createElement('style');
+      style.id = 'capture-nohud';
+      style.textContent = '#hud-scroll, #compass, #toast-stack, #prompt, #btn-enable-audio, #edge-arrow, ' +
+        '#photo-hint, #debug-overlay, #scenic-status, .touch-zone { display: none !important; }';
+      document.head.appendChild(style);
+    }
+  }
+
+  /** ?cam=px,py,pz,tx,ty,tz[,fov]: a pinned camera, applied after every other camera owner. */
+  applyCaptureCamera() {
+    const c = this.capture.cam;
+    if (!c) return;
+    this.camera.position.set(c.pos[0], c.pos[1], c.pos[2]);
+    this.camera.lookAt(c.target[0], c.target[1], c.target[2]);
+    if (c.fov && this.camera.fov !== c.fov) {
+      this.camera.fov = c.fov;
+      this.camera.updateProjectionMatrix();
+    }
+  }
+
+  /** The world state kit instances respond to (§3.3 `update(dt, t, env)`), one reused object. */
+  assetEnv() {
+    const env = this._assetEnv || (this._assetEnv = { hour: 12, wind: 1, wet: 0, snow: 0, lanternOn: false });
+    env.hour = this.sky.dayTime;
+    env.wet = this.sky.weatherAmount('rain');
+    env.snow = this.sky.weatherAmount('snow');
+    env.lanternOn = !!this.city._lanternsLit;
+    return env;
   }
 
   saveIfPlaying() {
@@ -692,6 +821,10 @@ class Game {
 
   applyQuality() {
     const q = this.settings.resolveQuality();
+    // Kit tiers follow the quality tier (live instances re-tier; merged
+    // statics keep their build-time tier until the next boot — see
+    // src/kit/runtime.js "Tiers vs _mergeStatics").
+    this.assets.setQuality(q);
     const dpr = window.devicePixelRatio || 1;
     const cap = q === 'low' ? 1.0 : q === 'medium' ? 1.25 : Math.min(dpr, 1.75);
     this.renderer.setPixelRatio(Math.min(dpr, cap));
@@ -1333,6 +1466,9 @@ class Game {
       this.particles.update(dt, this.player.mesh.position, this.sky);
       this.hidden.update(dt, playing ? this.player.mesh.position : null, this.sky);
       this.ambientLife.update(dt, this.player.mesh.position, this.sky, this.player.cat, this.player, this.city);
+      // Kit instances that animate or glow (lanterns, chimes): nothing to do
+      // on the classic set, where the registry is empty.
+      this.assets.update(dt, this.elapsed, this.assetEnv());
     }
     // Scent gating (U1.4): the trail only flows near things worth finding.
     // Never on the summit — there is nothing there worth scenting.
@@ -1400,7 +1536,7 @@ class Game {
     // Title screen cinematic orbit camera
     if (onTitle) {
       // Reduce-motion holds the title backdrop as a still.
-      const t = this.reducedMotion ? 0.9 : this.clock.elapsedTime * 0.07;
+      const t = this.reducedMotion ? 0.9 : this.elapsed * 0.07;
       const r = 17;
       this.camera.position.set(
         Math.cos(t) * r,
@@ -1413,6 +1549,9 @@ class Game {
         this.camera.updateProjectionMatrix();
       }
     }
+
+    // ?cam= (F1.12): a pinned capture camera overrides every owner above.
+    this.applyCaptureCamera();
 
     // Objective markers + compass (playing only). Discovery-based markers
     // (U1.1): waypoint arrows only guide when the hints toggle is ON; the
@@ -1436,7 +1575,8 @@ class Game {
 
     // Startup calibration probe (A1.4): measure title-screen fps once,
     // ignore shader-compile time, and lower the starting tier if needed.
-    this.updateStartupProbe(dt);
+    // (Never during a repeatable capture: the tier must not depend on fps.)
+    if (!this.capture.shot) this.updateStartupProbe(dt);
 
     const debug = `Pos      ${this.player.mesh.position.x.toFixed(1)}, ${this.player.mesh.position.y.toFixed(1)}, ${this.player.mesh.position.z.toFixed(1)}
 Time     ${this.formatTime(this.sky.dayTime)} · ${this.sky.weather}
@@ -1836,8 +1976,14 @@ Quality  ${this.settings.resolveQuality()}`;
 
   loop() {
     requestAnimationFrame(() => this.loop());
-    const dt = Math.min(this.clock.getDelta(), 0.1);
-    this.updateFrameGovernor(dt);
+    // ?shot=1: a fixed timestep on the frame-stepped clock installed by
+    // startGame(), and no fps-driven governor, probe or resolution ladder,
+    // so frame N is the same frame on every boot.
+    const shot = this.capture.shot;
+    if (shot && captureClock) captureClock.ms += CAPTURE_DT * 1000;
+    const dt = shot ? CAPTURE_DT : Math.min(this.clock.getDelta(), 0.1);
+    this.elapsed = shot ? this.capture.frame * CAPTURE_DT : this.clock.elapsedTime;
+    if (!shot) this.updateFrameGovernor(dt);
     // Frame cadence cap: skip this frame's simulation + render entirely.
     // dt stays real elapsed time, so the world simulation stays in real
     // time — only the presentation rate is limited.
@@ -1848,9 +1994,9 @@ Quality  ${this.settings.resolveQuality()}`;
     }
     if (!this.menu.isPausedLike()) {
       this.update(dt);
-      this.updateAdaptiveResolution(dt);
+      if (!shot) this.updateAdaptiveResolution(dt);
     }
-    this.gradePass.uniforms.uTime.value = this.clock.elapsedTime;
+    this.gradePass.uniforms.uTime.value = this.elapsed;
     // Shadow map refreshes on a tier-driven cadence; the sun and cat move
     // slowly enough that a one-frame-old map is indistinguishable. Indoors
     // (A3.1) the valley is out of sight — the room's sun shadow is only
@@ -1860,6 +2006,9 @@ Quality  ${this.settings.resolveQuality()}`;
       this.sky.sun.shadow.needsUpdate = true;
     }
     this.composer.render();
+    // Frame counter + ready flag for tools/game_shot.mjs (window.game.capture).
+    this.capture.frame++;
+    this.capture.ready = true;
     // First frame is on screen: dissolve the soft-focus boot image away.
     if (!this._bootDissolved) {
       this._bootDissolved = true;
@@ -1879,9 +2028,14 @@ Quality  ${this.settings.resolveQuality()}`;
 /**
  * Kept explicit so bootstrap.js can fetch and compile the engine without
  * constructing the full valley until the player has chosen to enter it.
+ * Resolves once the kit runtime has preloaded (nothing on the classic set)
+ * and the valley is built; the WebGL2 gate leaves `renderer` unset, in which
+ * case no world is built.
  */
-export function startGame() {
+export async function startGame() {
+  if (parseCaptureFlags(location.search).shot) captureClock = installCaptureClock();
   const game = new Game();
   window.game = game;
+  if (game.renderer) await game.init();
   return game;
 }

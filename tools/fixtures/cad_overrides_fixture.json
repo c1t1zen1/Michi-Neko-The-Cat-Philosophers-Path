@@ -1,0 +1,30 @@
+{
+  "format": "michi-neko-cad-overrides",
+  "version": 1,
+  "publishedAt": "2026-11-13T00:00:00.000Z",
+  "overrides": [
+    {
+      "name": "Tea House",
+      "nodes": [
+        { "rel": "", "state": { "visible": true, "renderOrder": 3 } },
+        { "rel": "0.1", "state": { "position": [1.5, 0.25, -2], "rotation": [0, 1.57, 0, "XYZ"], "scale": [1, 2, 1], "material": { "color": 16711680, "roughness": 0.5, "metalness": 0.1 } } },
+        { "rel": "2", "state": { "castShadow": false }, "geometry": {
+          "type": "BufferGeometry", "name": "cad slab",
+          "index": { "arrayType": "Uint16Array", "itemSize": 1, "values": [0, 1, 2] },
+          "attributes": { "position": { "arrayType": "Float32Array", "itemSize": 3, "values": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+          "groups": [{ "start": 0, "count": 3, "materialIndex": 0 }],
+          "drawRange": { "start": 0, "count": 3 }
+        } },
+        { "rel": "9.9", "state": { "visible": false } }
+      ]
+    },
+    {
+      "name": "Toro Lantern 3",
+      "nodes": [
+        { "rel": "1", "state": { "material": { "emissive": 16753920, "emissiveIntensity": 2 } } }
+      ]
+    },
+    { "name": "Not In Scene", "nodes": [{ "rel": "", "state": { "visible": false } }] },
+    { "nodes": [{ "rel": "", "state": { "visible": false } }] }
+  ]
+}
