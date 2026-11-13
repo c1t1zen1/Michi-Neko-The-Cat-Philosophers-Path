@@ -14,7 +14,7 @@
 //   export PLAYWRIGHT_MODULE=/path/to/node_modules/playwright
 //
 // Module API (the CLI only runs when this file is executed directly):
-//   openPage(pathOrUrl, { root, size, gpu, session, timeout, console, args, ignore, waitUntil })
+//   openPage(pathOrUrl, { root, size, gpu, session, local, init, timeout, console, args, ignore, waitUntil })
 //     → { page, browser, context, url, origin, gpu, errors, warnings, close }
 //   runPage(pathOrUrl, { wait, eval, shot, settle, jpegQuality, failOnError, ...openPage options })
 //     → { ok, url, ms, errors, warnings, shot, value, gpu, error? }
@@ -203,7 +203,7 @@ function rootPath(target, root) {
  * server origin removed, so they read the same on every port.
  */
 export async function openPage(pathOrUrl, {
-  root, size = '1200x750', gpu, session = {}, timeout = 120, console: echo = false,
+  root, size = '1200x750', gpu, session = {}, local = {}, init, timeout = 120, console: echo = false,
   args = [], ignore = [], waitUntil = 'load'
 } = {}) {
   const t0 = Date.now();
@@ -252,14 +252,21 @@ export async function openPage(pathOrUrl, {
       if (!/ERR_ABORTED/.test(reason)) echoLine('requestfailed', `${clean(request.url())} ${reason}`);
     });
 
-    // sessionStorage before navigation (e.g. catwalk_autostart=new, as /__boot.html
-    // does): set it once on a stub page of the same origin, then navigate.
-    if (Object.keys(session).length) {
+    // Init scripts run before any page script, in every document (timing hooks).
+    for (const script of [].concat(init || [])) await page.addInitScript(script);
+
+    // sessionStorage / localStorage before navigation (e.g. catwalk_autostart=new,
+    // as /__boot.html does, or a saved quality tier): set them once on a stub page
+    // of the same origin, then navigate. The browser profile is fresh every run.
+    if (Object.keys(session).length || Object.keys(local).length) {
       const stub = origin + '/__headless_session__';
       await page.route(stub, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>session</title>' }));
       await page.goto(stub);
-      await page.evaluate((entries) => { for (const [k, v] of entries) sessionStorage.setItem(k, v); },
-        Object.entries(session).map(([k, v]) => [k, String(v)]));
+      const pairs = (o) => Object.entries(o).map(([k, v]) => [k, typeof v === 'string' ? v : JSON.stringify(v)]);
+      await page.evaluate(([s, l]) => {
+        for (const [k, v] of s) sessionStorage.setItem(k, v);
+        for (const [k, v] of l) localStorage.setItem(k, v);
+      }, [pairs(session), pairs(local)]);
       await page.unroute(stub);
     }
 
@@ -503,6 +510,7 @@ Page options:
   --console                   stream console, pageerror and failed requests to stderr,
                               prefixed [+seconds type]
   --session k=v               sessionStorage before navigation (repeatable)
+  --local k=v                 localStorage before navigation (repeatable), e.g. a saved quality tier
   --fail-on-error             exit 1 if the page logged an error or threw
   --ignore <regex>            leave matching messages out of errors/warnings (repeatable)
   --jpeg-quality N            for .jpg shots and --convert, default 80
@@ -527,20 +535,25 @@ Examples:
     --wait "document.getElementById('log').textContent.startsWith('town')" --shot /tmp/street.png
   node tools/headless.mjs /tools/labs_geometry_test.html --wait "window.__geometryResults" \\
     --eval "__geometryResults.filter(r => r.pass).length + '/' + __geometryResults.length" --fail-on-error
-  node tools/headless.mjs /index.html --session catwalk_autostart=new --timeout 900 --console \\
-    --wait "window.game?.started" --settle 5000 --eval "game.renderer.info.render" --shot /tmp/game.png
+  node tools/headless.mjs /__boot.html --timeout 1500 --console \\
+    --wait "window.game?._bootDissolved && game.menu.isPlaying" --settle 5000 \\
+    --eval "({ quality: game.settings.resolveQuality(), fps: game.ui.fps })" --shot /tmp/game.png
+  node tools/headless.mjs /index.html --session catwalk_autostart=new --local 'catwalk_settings_v1={"quality":"low"}' \\
+    --wait "window.game?._bootDissolved" --eval "game.settings.resolveQuality()"
+  node tools/headless.mjs "/kyoto-rooftops.html?mouth=3&shot=1&nohud=1" --wait "window.roofRoad?.catReady" \\
+    --settle 1500 --shot /tmp/mouth-3.png
   node tools/headless.mjs --diff /tmp/street.png /tmp/street-2.png --out /tmp/street-diff.png
   node tools/headless.mjs --convert /tmp/street.png /tmp/street.jpg --jpeg-quality 80
 `;
 
-const VALUE_OPTIONS = new Set(['shot', 'size', 'wait', 'eval', 'timeout', 'gpu', 'session', 'settle',
+const VALUE_OPTIONS = new Set(['shot', 'size', 'wait', 'eval', 'timeout', 'gpu', 'session', 'local', 'settle',
   'jpeg-quality', 'root', 'out', 'ignore', 'arg']);
 const FLAG_OPTIONS = new Set(['console', 'fail-on-error', 'help', 'diff', 'convert']);
 
 class UsageError extends Error {}
 
 function parseArgs(argv) {
-  const opts = { session: {}, ignore: [], arg: [] }, positional = [];
+  const opts = { session: {}, local: {}, ignore: [], arg: [] }, positional = [];
   for (let i = 0; i < argv.length; i++) {
     const token = argv[i];
     if (!token.startsWith('--') || token === '--') { positional.push(token); continue; }
@@ -558,10 +571,10 @@ function parseArgs(argv) {
       if (i + 1 >= argv.length) throw new UsageError(`--${name} needs a value`);
       value = argv[++i];
     }
-    if (name === 'session') {
+    if (name === 'session' || name === 'local') {
       const k = value.indexOf('=');
-      if (k < 1) throw new UsageError(`--session wants key=value (got ${value})`);
-      opts.session[value.slice(0, k)] = value.slice(k + 1);
+      if (k < 1) throw new UsageError(`--${name} wants key=value (got ${value})`);
+      opts[name][value.slice(0, k)] = value.slice(k + 1);
     } else if (name === 'ignore' || name === 'arg') opts[name].push(value);
     else opts[name] = value;
   }
@@ -618,7 +631,7 @@ async function main(argv) {
     if (opts.gpu && !GPU_ARGS[opts.gpu]) throw new UsageError(`--gpu must be metal or swiftshader (got ${opts.gpu})`);
     if (opts.size) parseSize(opts.size);
     const result = await runPage(positional[0], {
-      root: opts.root, size: opts.size || '1200x750', gpu: opts.gpu, session: opts.session,
+      root: opts.root, size: opts.size || '1200x750', gpu: opts.gpu, session: opts.session, local: opts.local,
       timeout: number(opts, 'timeout', 120), console: !!opts.console, ignore: opts.ignore, args: opts.arg,
       wait: opts.wait, eval: opts.eval, shot: opts.shot, settle: number(opts, 'settle', 0),
       jpegQuality: number(opts, 'jpeg-quality', 80), failOnError: !!opts['fail-on-error']
