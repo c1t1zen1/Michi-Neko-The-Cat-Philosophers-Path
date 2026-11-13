@@ -19,6 +19,8 @@
 //                Math.random() draws, colliders, platforms, exclusions, water
 //                rects and scene objects it added; `calls`: every build* /
 //                create* method's call count and inclusive totals
+//                (advisory: shown to explain a difference, not part of the
+//                verdict, since a faithful split may move a draw between methods)
 //   colliders    city.colliders in order; houseColliders (left/right)
 //   platforms    Box3 platforms as boxes; function platforms as their gating,
 //                the exact rect from addOrientedPlatform /
@@ -851,7 +853,7 @@ function finalize(A, B, sceneNote) {
 const ENTRY_SECTIONS = new Set(['objects', 'aggregates', 'baked', 'colliders', 'platforms', 'waterRects', 'exclusions']);
 
 // One entry per line: the document and its sections always open up; below
-// that, a list or map of records (rng.phases.countryside, anchors.collectibles,
+// that, a list or map of records (builders.countryside, anchors.collectibles,
 // samples.path …) opens up and every record stays on one line.
 function expandAt(path, v) {
   if (v === null || typeof v !== 'object') return false;
@@ -987,11 +989,57 @@ function align(A, B) {
 }
 
 const ENTRY_MAPS = /^(objects|aggregates|baked|anchors\.handles|builders\.\w+)$/;
+// Changes are listed causes first: the stream and the builders, then what
+// they produced; the counts (already in the summary) last.
+const DIFF_ORDER = ['format', 'version', 'scene', 'seed', 'rng', 'builders', 'colliders', 'houseColliders', 'platforms',
+  'waterRects', 'water', 'exclusions', 'samples', 'anchors', 'objects', 'aggregates', 'baked', 'counts', 'volatile'];
+
+/** Where a change starts: the first builder (in build order) and the methods whose totals moved. */
+function whereNote(gold, fresh) {
+  const b0 = (gold && gold.builders) || {}, b1 = (fresh && fresh.builders) || {};
+  const changed = (a, b) => (isPlainObj(a) && isPlainObj(b) ? [...new Set([...Object.keys(a), ...Object.keys(b)])]
+    .filter((k) => !deepEqual(a[k], b[k]))
+    .map((k) => `${k} (${!(k in a) ? 'new' : !(k in b) ? 'gone' : fieldNote(a[k], b[k])})`) : []);
+  const where = [];
+  for (const group of ['countryside', 'hidden']) {
+    const first = changed(b0[group], b1[group])[0];
+    if (first) where.push(`first ${group} builder to change: ${first}`);
+  }
+  const calls = changed(b0.calls, b1.calls);
+  if (calls.length) where.push(`methods whose totals changed: ${calls.slice(0, 8).join(', ')}${calls.length > 8 ? `, … ${calls.length - 8} more` : ''}`);
+  return where;
+}
+
+// Which method a draw or a collider is attributed to is not output: a
+// faithful split may move a draw from createChochinLantern into a layout step
+// and keep the stream order. `builders` is shown to explain a difference but
+// is not part of the verdict; the stream position (rng) is.
+const ADVISORY = new Set(['builders']);
+
+/** Lists that hold the same entries in another order. */
+function reordered(gold, fresh) {
+  const notes = [];
+  for (const k of ['colliders', 'platforms', 'exclusions', 'waterRects']) {
+    const a = gold && gold[k], b = fresh && fresh[k];
+    if (!Array.isArray(a) || !Array.isArray(b) || deepEqual(a, b) || a.length !== b.length) continue;
+    const sa = a.map(stable).sort(), sb = b.map(stable).sort();
+    if (sa.every((s, i) => s === sb[i])) notes.push(`${k}: the same ${a.length} entries in another order`);
+  }
+  return notes;
+}
 
 function diffDigests(gold, fresh) {
-  const out = { counts: { added: 0, removed: 0, changed: 0 }, sections: {}, items: [], truncated: false };
+  const out = {
+    counts: { added: 0, removed: 0, changed: 0 }, sections: {}, items: [], truncated: false,
+    where: whereNote(gold, fresh).concat(reordered(gold, fresh)), advisory: { count: 0, items: [] }
+  };
   const note = (op, path, extra = {}) => {
     const section = String(path[0]);
+    if (ADVISORY.has(section)) {
+      out.advisory.count++;
+      if (out.advisory.items.length < 200) out.advisory.items.push({ op, path: fmtPath(path), ...extra });
+      return;
+    }
     const s = out.sections[section] || (out.sections[section] = { added: 0, removed: 0, changed: 0 });
     const k = op === '+' ? 'added' : op === '-' ? 'removed' : 'changed';
     s[k]++;
@@ -1004,7 +1052,8 @@ function diffDigests(gold, fresh) {
     if (a === undefined) return note('+', path, { to: short(b) });
     if (b === undefined) return note('-', path, { from: short(a) });
     if (isPlainObj(a) && isPlainObj(b)) {
-      const keys = [...new Set([...Object.keys(b), ...Object.keys(a)])];
+      let keys = [...new Set([...Object.keys(b), ...Object.keys(a)])];
+      if (!path.length) keys = [...DIFF_ORDER.filter((k) => keys.includes(k)), ...keys.filter((k) => !DIFF_ORDER.includes(k))];
       if (ENTRY_MAPS.test(path.join('.'))) {
         for (const k of keys) {
           if (deepEqual(a[k], b[k])) continue;
@@ -1031,6 +1080,10 @@ function diffDigests(gold, fresh) {
   };
   walk([], gold, fresh);
   out.equal = out.counts.added + out.counts.removed + out.counts.changed === 0;
+  // The same changes by kind (paths only, first 200 of each; `counts` has the totals)
+  out.added = out.items.filter((it) => it.op === '+').slice(0, 200).map((it) => it.path);
+  out.removed = out.items.filter((it) => it.op === '-').slice(0, 200).map((it) => it.path);
+  out.changed = out.items.filter((it) => it.op === '~').slice(0, 200).map((it) => (it.note ? `${it.path}: ${it.note}` : it.path));
   return out;
 }
 
@@ -1057,7 +1110,12 @@ function summaryLines(r) {
 
 function changeLines(diff, max) {
   if (!diff) return [];
-  const lines = [];
+  if (diff.equal) {
+    return diff.advisory.count
+      ? [`builder attribution differs in ${diff.advisory.count} ${diff.advisory.count === 1 ? 'entry' : 'entries'} (not part of the verdict; --write refreshes it):`, ...diff.where]
+      : [];
+  }
+  const lines = diff.where.length ? [...diff.where, ''] : [];
   const sections = Object.entries(diff.sections);
   if (sections.length) {
     lines.push('section'.padEnd(16) + 'added'.padStart(8) + 'removed'.padStart(9) + 'changed'.padStart(9));
@@ -1140,7 +1198,7 @@ async function main() {
   window.__footprint = result;
 
   const statusEl = $('status');
-  $('golden').textContent = 'tools/' + GOLDEN_URL.replace(/^\.\//, '');
+  $('golden').textContent = GOLDEN_URL.startsWith('/') ? GOLDEN_URL.slice(1) : 'tools/' + GOLDEN_URL.replace(/^\.\//, '');
   if (!golden.found) {
     statusEl.textContent = `no usable golden at ${GOLDEN_URL} (${golden.error}): write it with node tools/footprint_golden.mjs --write`;
     statusEl.className = 'failed';

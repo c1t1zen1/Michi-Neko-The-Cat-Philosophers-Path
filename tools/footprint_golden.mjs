@@ -80,15 +80,14 @@ function parseArgs(argv) {
   return opts;
 }
 
-/** The page path with --query passed through and ?golden= when another golden is used. */
+/** The page path with --query passed through verbatim, plus golden= when another golden is used. */
 function pagePath(query, goldenFile) {
-  const params = new URLSearchParams(String(query || '').replace(/^[?&]/, ''));
+  let qs = String(query || '').trim().replace(/^[?&]+/, '');
   if (goldenFile !== DEFAULT_GOLDEN) {
     const rel = path.relative(ROOT, goldenFile);
     if (rel.startsWith('..') || path.isAbsolute(rel)) throw new UsageError(`--golden must be inside ${ROOT} (the page fetches it)`);
-    params.set('golden', '/' + rel.split(path.sep).join('/'));
+    qs += (qs ? '&' : '') + 'golden=' + encodeURIComponent('/' + rel.split(path.sep).join('/')).replace(/%2F/g, '/');
   }
-  const qs = params.toString();
   return PAGE + (qs ? '?' + qs : '');
 }
 
@@ -120,8 +119,14 @@ function printSummary(r, run, { write, out, goldenFile, max }) {
   lines.push(`  time     build ${r.timing.buildMs.join(' + ')} ms · page ${secs(r.timing.totalMs)} · run ${secs(run.ms)}`);
   for (const w of r.warnings || []) lines.push(`  warning  ${w}`);
   for (const e of run.errors || []) lines.push(`  console  ${e}`);
+  if (d && d.equal && d.advisory.count && !write) {
+    lines.push(`  note     builder attribution differs in ${d.advisory.count} ${d.advisory.count === 1 ? 'entry' : 'entries'}; not part of the verdict (--write refreshes it)`);
+    for (const w of d.where || []) lines.push(`           ${w}`);
+  }
   if (d && !d.equal && !write) {
     lines.push('');
+    for (const w of d.where || []) lines.push(`  ${w}`);
+    if ((d.where || []).length) lines.push('');
     lines.push('  section'.padEnd(18) + 'added'.padStart(7) + 'removed'.padStart(9) + 'changed'.padStart(9));
     for (const [s, n] of Object.entries(d.sections)) {
       lines.push(('  ' + s).padEnd(18) + String(n.added).padStart(7) + String(n.removed).padStart(9) + String(n.changed).padStart(9));
