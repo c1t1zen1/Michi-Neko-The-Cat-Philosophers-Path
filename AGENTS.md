@@ -8,7 +8,7 @@ companion apps. Last reviewed 2026-10-24.
 | Path | What lives there |
 |------|------------------|
 | `index.html`, `src/` | The game. `main.js` orchestrates; see the README's project tree for every module |
-| `src/mountaintop.js` | The summit clearing (天上). **Owned by a separate effort — don't edit it, or the summit UI in `index.html`/`ui.js`, unless asked.** Cache-tag bumps are the one exception (import lines only) |
+| `src/mountaintop.js` | The summit clearing (天上). **Opened to the Fable plan by decision D2 (`docs/fable/decisions.md`); single writer: lane `s1-summit-split`.** The summit UI in `index.html`/`ui.js` is a hot file: it changes only through the Integrator. Cache-tag bumps change only its `?v=` import strings |
 | `src/hidden_places.js` | Moon Pool + Lantern Glade (valley floor, never a hilltop) |
 | `src/grass.js` | Game grass: the Grass Lab recipes as LOD rings that follow the cat plus fixed zones, a CPU-baked `BiomeMask` (meadow / edge thicket / flowers / wild, plus lawns) and GPU spring + trail physics. The valley lays it out in `Vegetation.buildMeadow()`, the summit in `SummitManager.buildGrassField()` |
 | `tools/` | Review sheets (`cat_`, `tree_`, `town_`, `hidden_`, `summit_`, `grass_preview`) and `verify.mjs` / `check_syntax.mjs` / `summit_test.mjs` / `rooftop_test.mjs` |
