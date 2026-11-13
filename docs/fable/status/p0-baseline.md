@@ -10,7 +10,7 @@ rows, P0.3, P0.4, P0.5) and records it in `docs/fable/baseline/checks-browser.md
 - Claimed:            2026-11-13 03:05 PST
 - Branch:             fable/p0-checks
 - Base commit:        ed9f5b9 (`fable/integration` = `main` @ ed9f5b9, "Add BUILD_GUIDE_FABLE: the modular asset swap master plan")
-- State:              in progress
+- State:              ready for review (part 1, `p0-checks`; P0.3 to P0.5 are `p0-browser`'s)
 
 ## Assets
 Phase 0 changes nothing in the game and promotes no asset. Not applicable.
@@ -26,7 +26,7 @@ Phase 0 changes nothing in the game and promotes no asset. Not applicable.
 - [ ] P0.4 Baseline captures → `captures/`, `captures.md` (owned by `p0-browser`)
 - [ ] P0.5 Budgets → `budgets.md` (owned by `p0-browser`)
 - [x] P0.6 Swap matrix → `docs/fable/baseline/swap_matrix.md` (186 rows = 186 active inventory rows), regenerate with `node tools/fable_swap_matrix.mjs --write`, check with `node tools/fable_swap_matrix.mjs`
-- [ ] P0.7 Decisions D1–D8 → `docs/fable/decisions.md` (Integrator rulings; operator asleep)
+- [x] P0.7 Decisions D1–D8 → `docs/fable/decisions.md` (Integrator rulings; operator asleep; every answer labelled as an Integrator ruling the operator may overturn). Also `docs/fable/README.md`
 
 ## Checks run (command → real result)
 Full detail, exit codes, wall times and output: `docs/fable/baseline/checks.md` (run on `50bca49` = `main` @ `ed9f5b9` plus this file).
@@ -59,4 +59,9 @@ None (Phase 0).
 None (Phase 0).
 
 ## Notes for the Integrator
-(filled in at the end)
+1. **D2 evidence in the brief is not quite right.** It says the last substantive edit to `src/mountaintop.js` was 2026-10-28 (`2243d67`) with only cache-tag bumps since. Git shows `c16aeb0` (2026-11-06, a labs commit titled "cache tag bump") changed the file by +558/-168 lines (718 non-tag lines). Since then only `efbfd8c` (2026-11-07, four `?v=` strings). The ruling (Phase 4 OPEN) is recorded unchanged; the corrected evidence is in `decisions.md` D2. Nothing has touched the file for six days and no branch holds an unmerged change to it.
+2. **D3, question 3 (Chidori as a villager) is inferred, not quoted.** Spec section 11 poses the four questions and prints no recommendation. Questions 1, 2 and 4 take the answer the spec's own design states (Seven Posts walk; one continuous run; sky driven by route progress, so the finale is night). The spec is silent on a villager entry, so the recorded answer is "no, not now". Please confirm.
+3. **Swap matrix.** 186 rows = 186 active inventory rows, per the Integrator rulings including the offering-bells correction (v-shrine, not v-garden). 14 rows are `judgement` calls and 9 overlaps are listed in `swap_matrix.md` for confirmation. Notable: `god-rays` (v-sky by Appendix D) is built in `src/particles.js`, which v-weather owns as single writer; Appendix D lists `mist-altar` as a gap but the inventory says `direct`; `interior-fish` is claimed by both the v-keepsakes and v-interiors cards.
+4. **Checks.** All 14 required Node commands exit 0 on `main` (two passes); nothing to fix. `AGENTS.md` says `check_syntax.mjs` covers 36 modules, the tool reports 37. Plain `git diff --check` is vacuous for committed work: use `git diff --check origin/fable/integration...HEAD` at merge time as well.
+5. **Not run / not built.** `kit_check`, `kit_index`, the kit contract test and the footprint golden do not exist (Phase 1). `/tmp/michi-test/` (the 44-check smoke suite) does not exist on this machine. Browser rows are `p0-browser`'s (`checks-browser.md`).
+6. **Regenerate the matrix** after an inventory change or a lane re-assignment: `node tools/fable_swap_matrix.mjs --write`; `node tools/fable_swap_matrix.mjs` checks it is current (exit 1 if stale). It refuses to run if an active inventory row has no lane or two, and cross-checks the coverage counts against `labs/ASSET_COVERAGE.md`.
