@@ -210,7 +210,8 @@ export async function openPage(pathOrUrl, {
   const { width, height } = parseSize(size);
   const backend = gpu || DEFAULT_GPU;
   const errors = [], warnings = [];
-  const ignored = [].concat(ignore).map((re) => (re instanceof RegExp ? re : new RegExp(re)));
+  // Copies without the g/y flags: .test() on a global regex is stateful (lastIndex).
+  const ignored = [].concat(ignore).map((re) => (re instanceof RegExp ? new RegExp(re.source, re.flags.replace(/[gy]/g, '')) : new RegExp(re)));
   let server = null, browser = null, closing;
   const close = () => (closing ||= (async () => {
     await browser?.close().catch(() => {});
