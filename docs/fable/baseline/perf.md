@@ -168,9 +168,10 @@ first boot. `high` gets 4096 shadows because the GPU string matches
   build (the constructor) plus 0.7–1.3 s for the first frame (shader
   compilation). Building is not tier-dependent in the classic set; the first
   frame is (more programs, MSAA targets).
-- The SwiftShader boot (`checks-browser.md` §3) took about 2 minutes to its
-  first frame; SwiftShader was not used for frame timing (a CPU rasteriser
-  says nothing about GPU budgets).
+- On SwiftShader (`checks-browser.md` §3) the same timing hooks measured a
+  ~40 s world build and a ~128 s first frame (shader compilation on the CPU),
+  2.2–3.3 minutes from launch to playing. SwiftShader was not used for frame
+  timing (a CPU rasteriser says nothing about GPU budgets).
 
 ## Per-asset classic costs (for the AAA-7 budgets)
 
