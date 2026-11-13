@@ -21,7 +21,7 @@ Phase 0 changes nothing in the game and promotes no asset. Not applicable.
 
 ## Steps (guide §7, adapted to Phase 0)
 - [x] P0.1 `fable/integration` created from `main` @ ed9f5b9 and pushed (done by the Integrator; verified with `git ls-remote --heads origin fable/integration` → `ed9f5b943297caf357ac33dcec1cab2be2de84f0`)
-- [ ] P0.2 Verification matrix on `main`, **Node half** → `docs/fable/baseline/checks.md` (browser half: `p0-browser`, `checks-browser.md`)
+- [x] P0.2 Verification matrix on `main`, **Node half** → `docs/fable/baseline/checks.md` (browser half: `p0-browser`, `checks-browser.md`). All 14 required commands exit 0, two passes, nothing to fix
 - [ ] P0.3 Performance baseline → `perf.md` (owned by `p0-browser`)
 - [ ] P0.4 Baseline captures → `captures/`, `captures.md` (owned by `p0-browser`)
 - [ ] P0.5 Budgets → `budgets.md` (owned by `p0-browser`)
@@ -29,7 +29,28 @@ Phase 0 changes nothing in the game and promotes no asset. Not applicable.
 - [ ] P0.7 Decisions D1–D8 → `docs/fable/decisions.md` (Integrator rulings; operator asleep)
 
 ## Checks run (command → real result)
-(filled in as P0.2 completes; full detail in `docs/fable/baseline/checks.md`)
+Full detail, exit codes, wall times and output: `docs/fable/baseline/checks.md` (run on `50bca49` = `main` @ `ed9f5b9` plus this file).
+
+| Command | Exit | Result line |
+|---|:--:|---|
+| `node tools/check_syntax.mjs` | 0 | `All 37 modules OK` |
+| `node tools/verify.mjs` | 0 | `All checks passed` (summit state machine `70 passed, 0 failed`) |
+| `node tools/labs_check.mjs` | 0 | `All labs checks OK` |
+| `git diff --check` | 0 | no output (clean tree) |
+| `node tools/rooftop_test.mjs` | 0 | `38 passed, 0 failed` |
+| `node tools/summit_test.mjs` | 0 | `70 passed, 0 failed` |
+| `node tools/catalog_check.mjs` | 0 | `OK Asset Library: 17 modules, 190 records, 120 evidence targets, 134 pictured assets, 386 WebP files (2.45 MB), 126 active editable entries` |
+| `node tools/labs_coverage.mjs` | 0 | `OK 37 source modules, 112 construction methods, 190 inventory rows, 120 evidence targets` |
+| `node --test tools/labs_coverage_test.mjs` | 0 | tests 11, pass 11, fail 0 |
+| `node --test catalog/tests/*.test.mjs` | 0 | tests 37, pass 37, fail 0 |
+| `cd cadJS && npm run check` | 0 | `server/catalog/agent/asset modules: ok`, `15/15 tests passed` |
+| `cd dawCAT && npm test` | 0 | `246 passed, 0 failed` |
+| `node tools/interiors_test.mjs` | 0 | `28 interiors checks passed.` |
+| `node tools/ranges_test.mjs` | 0 | `19 ranges checks passed.` |
+
+Not yet built (Phase 1): `tools/kit_check.mjs`, `tools/kit_index.mjs`, `tools/kit_contract_test.html`,
+`tools/footprint_golden.html` + `tools/golden/`, `src/kit/`. The 44-check smoke suite `/tmp/michi-test/` does not exist, so it was not run.
+Browser rows: `docs/fable/baseline/checks-browser.md` (lane part 2).
 
 ## Deferred assets and why
 None (Phase 0).
