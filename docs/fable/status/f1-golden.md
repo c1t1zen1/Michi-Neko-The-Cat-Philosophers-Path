@@ -36,9 +36,18 @@ node tools/footprint_golden.mjs --write         # only when a change is intended
 ```
 About 3 s per run on Metal (5 s under SwiftShader; the page never renders).
 When it says DIFFERENT, read the "first … builder to change" and "methods whose
-totals changed" lines first: they name the builder where the valley stream or
-the footprint first moved. `builders` is advisory (a faithful split may move a
-draw between methods); everything else is the verdict.
+totals changed" lines first. They compare per-builder *counts*: stream draws,
+`Math.random()` draws, colliders, platforms, exclusions, water rects and
+objects. So they show where those counts first diverge, not where a value first
+moved. A change that keeps every count does not show there: two draws swapped
+inside one builder, a value-only reorder, a collider nudged in place. It shows
+only in the values; then the first changed entry in the list is the pointer
+(causes first, build order within a section). `builders` is advisory (a
+faithful split may move a draw between methods); everything else is the
+verdict. `--write` refuses a run with `--query` (unless `--golden` names another
+file), a failed rng probe, UUID routing off, or any page warning or console
+error. Hook coupling (what to update if a lane moves `this.rng`, the platform
+helpers or `_mergeStatics`): `docs/fable/handoff/f1-golden.md`.
 
 ## Checks run (command → real result)
 - `node tools/footprint_golden.mjs --out <scratch>/final_N.json` ×3 → `EQUAL`, exit 0 each; the three digests and the golden share SHA-256 `8e689522812eceddbb3ec27644b11f0f77de7580f85407c0c7b432ea5edb82c2`; 3.17 / 3.36 / 3.23 s wall
@@ -52,6 +61,25 @@ draw between methods); everything else is the verdict.
 - `node tools/check_syntax.mjs` → `All 37 modules OK`
 - `node --check tools/footprint_golden.mjs`; `node --input-type=module --check < tools/footprint_golden.js` → no output, exit 0
 - `git diff --check fable/integration...HEAD` → no output, exit 0
+
+### Fix round 1 (CLI write guard and nits; handoff hook coupling)
+
+The runs marked "worktree" used this branch. The others used a scratch copy of `src/` + `tools/`, discarded afterwards.
+
+- Worktree, `node tools/footprint_golden.mjs` → `EQUAL`, golden `181.9 kB, byte-identical to this build`, exit 0.
+- Worktree, `node tools/footprint_golden.mjs -h` → usage, exit 0.
+- Worktree, `--write --query "?assets=modular"` → `WRITE REFUSED` / `reason   --query is set ("assets=modular"): …`, exit 2; golden SHA `8e689522812ecedd` unchanged.
+- Scratch, `--write --query "?assets=modular" --golden tools/golden/modular_test.json` → `WROTE`, exit 0; the follow-up compare → `EQUAL`, exit 0.
+- Scratch, `this.rng` reassigned in `buildYarn`:
+  - `--write` → `WRITE REFUSED` (probe failed, page warning), exit 2; golden unchanged.
+  - Compare → `PROBE FAILED (11 changed, 1 added, 0 removed)`, exit 2.
+  - With that run's own digest copied in as the golden → `PROBE FAILED`, "the digest is equal", byte-identical, exit 2.
+- Scratch page, `calledFromUUID` forced false → `--write` refused (`three.js UUID draws were not kept apart from Math.random()`, page warning), exit 2.
+- Scratch, empty `Group` added after `_mergeStatics()` → `--write` refused (`page warning: object added after the merge: Group under (root)`), exit 2; compare → `EQUAL`, exit 0.
+- Scratch page, `throw` in `diffDigests` → `PAGE FAILED … TypeError: Cannot read properties of null (reading 'equal')`, exit 2. The page's own rendering crashes on the null diff; the patch is in the handoff.
+  - With that page patch applied → `COULD NOT COMPARE` / `reason   the comparison failed: diff exploded (scratch test)`, exit 2.
+  - With the patch alone → `EQUAL`, exit 0.
+- `node --check tools/footprint_golden.mjs` → exit 0.
 
 ## Neutralised sources (page only, no game file edited)
 - `Math.random()` at build time in `buildBirdNest` (egg tilt, 3 draws), `buildOfferingBells` (bell yaw, 5), `buildDawnMist` (sprite placement, 84): seeded in the page, then marked `"~"` (13 leaves) or left out of their aggregate (15 members) by the two-build comparison
