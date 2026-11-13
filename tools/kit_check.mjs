@@ -165,6 +165,27 @@ if (status === 'accepted') ok('budgets: accepted (D1)');
 else if (existsSync(join(ROOT, 'docs', 'fable', 'baseline', 'budgets.md'))) note(`budgets.js is ${status || 'unmarked'} but docs/fable/baseline/budgets.md exists — copy the accepted numbers in and set status: 'accepted'`);
 else note(`budgets.js is ${status || 'unmarked'}; docs/fable/baseline/budgets.md has not landed yet`);
 
+// --- root kit-overrides.json (optional; a missing file is normal) -----------------
+const overridesFile = join(ROOT, 'kit-overrides.json');
+if (!existsSync(overridesFile)) note('kit-overrides.json absent at the repo root (normal; the modular set then logs one 404)');
+else {
+  try {
+    const doc = JSON.parse(strip(readFileSync(overridesFile, 'utf8')));
+    if (doc.format !== 'michi-neko-kit-overrides') bad("kit-overrides.json: format must be 'michi-neko-kit-overrides'");
+    else if (!doc.assets || typeof doc.assets !== 'object' || Array.isArray(doc.assets)) bad('kit-overrides.json: assets must be an object keyed by asset id');
+    else {
+      const ids = Object.keys(doc.assets);
+      const unknown = ids.filter((id) => !inventoryIds.has(id));
+      const badVariant = ids.filter((id) => doc.assets[id] && doc.assets[id].variant !== undefined && !['classic', 'modular'].includes(doc.assets[id].variant));
+      if (unknown.length) bad(`kit-overrides.json: unknown asset id(s): ${unknown.join(', ')}`);
+      if (badVariant.length) bad(`kit-overrides.json: variant must be classic or modular: ${badVariant.join(', ')}`);
+      if (!unknown.length && !badVariant.length) ok(`kit-overrides.json valid (${ids.length} asset entr${ids.length === 1 ? 'y' : 'ies'})`);
+    }
+  } catch (error) {
+    bad(`kit-overrides.json is not valid JSON: ${error.message}`);
+  }
+}
+
 // --- the runtime keeps the frozen names -----------------------------------------
 const runtime = strip(readFileSync(join(KIT, 'runtime.js'), 'utf8'));
 const contract = strip(readFileSync(join(KIT, 'contract.js'), 'utf8'));

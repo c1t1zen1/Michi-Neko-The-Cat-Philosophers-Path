@@ -632,3 +632,44 @@ export const things = [
     ]) assert.match(out, expect, out);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+/* ------------------------------------------------- kit-overrides.json paths --- */
+
+test('kit-overrides.json: a missing file (404 / network error / null) is normal — no warning, modular still loads', async () => {
+  for (const fetchOverrides of [async () => null, async () => { throw new TypeError('Failed to fetch'); }, async () => undefined]) {
+    const log = quiet();
+    const rt = new AssetRuntime({
+      assetSet: 'modular', quality: 'high', logger: log, fetchOverrides,
+      loadFamilies: async () => ({ shrine: async () => ({ assets: [goodDef()] }) }),
+      createMaterials: async () => ({ bind() {} })
+    });
+    await rt.preload();
+    assert.equal(rt.overrides, null);
+    assert.deepEqual(log.warnings, []);
+    assert.ok(rt.loaded && rt.has('torii'));
+    assert.equal(rt.setFor('torii'), 'modular');
+    assert.ok(isAssetInstance(rt.build('torii', { index: 0 }, () => null)));
+  }
+});
+
+test('the committed root kit-overrides.json is valid, empty, and changes nothing', async () => {
+  const doc = JSON.parse(readFileSync(join(ROOT, 'kit-overrides.json'), 'utf8'));
+  assert.equal(doc.format, KIT_OVERRIDES_FORMAT);
+  assert.deepEqual(doc.assets, {});
+  assert.deepEqual(parseOverridesDoc(doc), { assets: {} });
+  const log = quiet();
+  const rt = new AssetRuntime({
+    assetSet: 'modular', quality: 'high', logger: log, fetchOverrides: async () => doc,
+    loadFamilies: async () => ({ shrine: async () => ({ assets: [goodDef()] }) }),
+    createMaterials: async () => ({ bind() {} })
+  });
+  await rt.preload();
+  assert.deepEqual(rt.overrides, { assets: {} });
+  assert.deepEqual(log.warnings, []);
+  assert.equal(rt.setFor('torii'), 'modular');       // falls through to the global set
+  assert.equal(rt.overrideParams('torii'), null);
+  const auto = new AssetRuntime({ assetSet: 'auto', quality: 'low', fetchOverrides: async () => doc, loadFamilies: async () => ({}), createMaterials: async () => ({}) });
+  await auto.preload();
+  assert.equal(auto.set, 'classic');
+  assert.equal(auto.needsKit(), false);
+});

@@ -409,7 +409,9 @@ kit files and never open `countryside.js`.
   Read by `AssetRuntime.preload()` when the set is not classic (or a `?swap`
   asks for the kit); missing means ignore, a wrong format warns once and is
   ignored. `variant` is `classic` or `modular`; `params` are validated
-  against the asset's schema.
+  against the asset's schema. An empty, valid file is committed at the repo
+  root so modular boots are console-clean (Integrator ruling); a missing
+  file is still handled, and unit-tested.
 - The existing `cad-overrides.json` path keeps working on both sets
   (`tools/cad_overrides_test.mjs` proves the fixture file applies as
   before). On the modular set a node may carry `part: "kasagi"` (or the
