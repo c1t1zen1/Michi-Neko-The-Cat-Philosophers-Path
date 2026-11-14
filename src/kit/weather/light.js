@@ -7,6 +7,7 @@ import { canvas2d, canvasTexture, rng as seeded } from '../craft.js?v=20261113a'
 import { sharedTexture, reducedMotion } from './sprites.js?v=20261113a';
 
 /** sin(sun elevation) from the hour: the same asymmetric sun path as Sky.updateDayNight() (daylight 6:00-19:12). */
+// Keep in step with Sky.updateDayNight() (dayStart 6.0, dayEnd 19.2, sunDir (cos, sin, 0.5) normalised).
 export function sunHeightAt(hour) {
   const h = ((hour % 24) + 24) % 24;
   const dayStart = 6.0, dayEnd = 19.2;

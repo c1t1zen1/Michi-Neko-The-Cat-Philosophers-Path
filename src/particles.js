@@ -53,7 +53,7 @@ export class Particles {
 
   /**
    * How much of their motion kit weather keeps: CALM (0.3) while the comfort
-   * setting is on (Game.applyComfort() toggles body.reduce-motion), else 1.
+   * setting is on (Game.applyComfort() toggles body.reduce-motion), else 1. The kit twin is reducedMotion()/CALM in kit/weather/sprites.js (not imported here: classic must not load the kit).
    * Classic systems never read it.
    */
   motionScale() {
@@ -611,11 +611,11 @@ export class Particles {
     this.time += dt;
     const t = this.time;
 
-    // dt for one system: slowed only when a kit system drives that handle and motion is reduced
+    // dt per system: slowed only when a kit system drives that handle and motion is reduced (no closure: this runs every frame)
     const calm = this.motionScale();
-    const dtOf = (handle) => (calm !== 1 && this.kitHandles.has(handle) ? dt * calm : dt);
-    this.updateSnow(dtOf('snow'), playerPos, sky);
-    this.updateRain(dtOf('rain'), playerPos, sky);
+    const kh = this.kitHandles;
+    this.updateSnow((calm !== 1 && kh.has('snow') ? dt * calm : dt), playerPos, sky);
+    this.updateRain((calm !== 1 && kh.has('rain') ? dt * calm : dt), playerPos, sky);
     this.updateGodRays(dt, sky, playerPos);
 
     const sunUp = sky ? Math.max(0, sky.sunDir.y) : 1;
@@ -623,7 +623,7 @@ export class Particles {
 
     // (each system's handle is missing only when a kit replaced it without its `points` part)
     const pp = this.petals ? this.petals.geometry.attributes.position : null;
-    const dtP = dtOf('petals');
+    const dtP = (calm !== 1 && kh.has('petals') ? dt * calm : dt);
     for (let i = 0; pp && i < this.petalActive; i++) {
       const seed = this.petalSeeds[i * 3];
       const fall = this.petalSeeds[i * 3 + 1];
@@ -650,7 +650,7 @@ export class Particles {
     }
     if (this.fireflies && this.fireflies.visible) {
       const fp = this.fireflies.geometry.attributes.position;
-      const dtF = dtOf('fireflies');
+      const dtF = (calm !== 1 && kh.has('fireflies') ? dt * calm : dt);
       for (let i = 0; i < this.fireflyActive; i++) {
         const seed = this.fireflySeeds[i * 3];
         const speed = this.fireflySeeds[i * 3 + 1];
@@ -663,7 +663,7 @@ export class Particles {
     }
 
     const rp = this.riverPetals ? this.riverPetals.geometry.attributes.position : null;
-    const dtR = dtOf('riverPetals');
+    const dtR = (calm !== 1 && kh.has('riverPetals') ? dt * calm : dt);
     for (let i = 0; rp && i < this.riverActive; i++) {
       const seed = this.riverSeeds[i * 2];
       const speed = this.riverSeeds[i * 2 + 1];
@@ -676,7 +676,7 @@ export class Particles {
     if (rp) this.uploadRange(rp, this.riverActive);
 
     const mp = this.motes ? this.motes.geometry.attributes.position : null;
-    const dtM = dtOf('motes');
+    const dtM = (calm !== 1 && kh.has('motes') ? dt * calm : dt);
     for (let i = 0; mp && i < this.moteActive; i++) {
       const seed = this.moteSeeds[i * 2];
       const speed = this.moteSeeds[i * 2 + 1];

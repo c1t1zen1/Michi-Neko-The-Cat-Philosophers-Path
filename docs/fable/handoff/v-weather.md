@@ -15,7 +15,14 @@ Set `production` to the kit adapter `weather/<id>` for the eight ids above. New 
 (`labs/ASSET_COVERAGE.md` is regenerated in this PR; re-run `node tools/labs_coverage.mjs --write` after the inventory edit.) `river-petals` also keeps `water/hanaikada` as its lab link.
 
 ## Deferred: `scent`, `splash`, `landing-dust`
-Specimens exist (L4) but no kit builder: those three effects live in `src/scent.js`, `src/player.js` (`splashPool`) and `src/context_actions.js` (`spawnLandDust`), none of which route through `placeAsset()` (they are not f3 systems), so a swap seam does not exist and building a kit asset would be dead code. Needs a small f3-style split (layout + classic mesh step + `placeAsset`) in each file, then the specimens' build code ports directly (sprite pool, per-mote age colour, ring + puffs, ballistic droplets).
+Specimens exist (L4) but no kit builder: those three effects live in `src/scent.js`, `src/player.js` (`splashPool`) and `src/context_actions.js` (`spawnLandDust`), none of which route through `placeAsset()` (they are not f3 systems), so a swap seam does not exist and building a kit asset would be dead code. Exact seam requests (each: split into `layoutX()` + `meshXClassic(layout)` routed through a `placeAsset(id, layout, classicFn)` like `src/particles.js`, with `bind` parts named below; classic goldens must stay EQUAL):
+- `src/scent.js` `ScentTrail.build()` -> id `scent`, part `motes` (the instanced mesh the per-frame update writes; keep `maxPoints` 80).
+- `src/player.js` splash pool (constructor lines ~97-105, `spawnSplash`/`updateSplash`) -> id `splash`, parts `drop_1` ... `drop_N` (own material each, opacity driven per droplet).
+- `src/context_actions.js` `spawnLandDust()` / `updateDust()` pool -> id `landing-dust`, parts `puff_1` ... `puff_N`.
+Needs a small f3-style split (layout + classic mesh step + `placeAsset`) in each file, then the specimens' build code ports directly (sprite pool, per-mote age colour, ring + puffs, ballistic droplets).
+
+## Reduce-motion / sun path
+`Particles.motionScale()` (particles.js) and `reducedMotion()`/`CALM` (kit/weather/sprites.js) are twins by design: particles.js must not import the kit (classic would load it). `light.js` `sunHeightAt()` copies Sky's sun path and is annotated to stay in step.
 
 ## Part names
 - `falling-petals`, `river-petals`, `snow`, `fireflies`, `dust-motes`: `points` (a `THREE.Points` over `layout.positions`; the game binds it as `petals` / `riverPetals` / `snow` / `fireflies` / `motes`; `snow`, `fireflies` also bind their material for opacity).
