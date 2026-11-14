@@ -8,6 +8,7 @@
 //   node tools/footprint_golden.mjs --write        regenerate the golden from this checkout
 //   node tools/footprint_golden.mjs --query "?assets=modular&swap=torii:modular"
 //   node tools/footprint_golden.mjs --out /tmp/valley.json    also save the fresh digest
+//   node tools/footprint_golden.mjs --systems      the systems golden (tools/golden/systems_classic.json, F3.3)
 //
 // --write only writes a golden from a run it can trust: no --query (unless
 // --golden names another file), the rng probe ok, three.js UUID draws kept
@@ -22,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PAGE = '/tools/footprint_golden.html';
 const DEFAULT_GOLDEN = path.join(ROOT, 'tools', 'golden', 'valley_classic.json');
+const SYSTEMS_GOLDEN = path.join(ROOT, 'tools', 'golden', 'systems_classic.json');
 
 const USAGE = `Usage: node tools/footprint_golden.mjs [options]
 
@@ -32,6 +34,8 @@ its digest with tools/golden/valley_classic.json.
                       --query is set without --golden, or when the run is not
                       trustworthy: rng probe failed, three.js UUID draws not kept
                       apart from Math.random(), any page warning or console error
+  --systems           the systems golden instead: interior, hidden places, vegetation,
+                      particles, ambient life (tools/golden/systems_classic.json)
   --query "<flags>"   page flags, passed through (e.g. "?assets=modular&swap=torii:modular");
                       flags the page does not know are ignored
   --out <file>        also write the fresh digest to <file>
@@ -60,7 +64,7 @@ class UsageError extends Error {}
 function parseArgs(argv) {
   const opts = { max: 25, timeout: 180 };
   const takes = new Set(['query', 'out', 'golden', 'max', 'gpu', 'timeout']);
-  const flags = new Set(['write', 'json', 'console', 'help']);
+  const flags = new Set(['write', 'json', 'console', 'help', 'systems']);
   for (let i = 0; i < argv.length; i++) {
     let name = argv[i], value;
     if (name === '-h') { opts.help = true; continue; }
@@ -147,7 +151,8 @@ function printSummary(r, run, v, { out, goldenFile, max }) {
   lines.push(`  digest   ${kb(r.digestBytes)}${out ? ' → ' + rel(out) : ''}${wrote ? ' → ' + rel(goldenFile) : ''}`);
   lines.push(`  counts   ${c.objects} objects · ${c.aggregates} aggregates (${c.members} members) · ${c.baked} baked · ` +
     `${c.colliders} colliders · ${c.platforms} platforms · ${c.waterRects} water rects · ${c.exclusions} exclusions · ${r.anchors} anchors`);
-  lines.push(`  rng      valley ${c.draws} draws (probe ${r.probe ? 'ok' : 'FAILED'}) · hidden ${r.hiddenDraws} · Math.random ${r.ambient.draws}` +
+  if (r.rngLine) lines.push(`  rng      ${r.rngLine}`);
+  else lines.push(`  rng      valley ${c.draws} draws (probe ${r.probe ? 'ok' : 'FAILED'}) · hidden ${r.hiddenDraws} · Math.random ${r.ambient.draws}` +
     ` · volatile ${r.volatile.leaves} leaves, ${r.volatile.members} members`);
   lines.push(`  time     build ${r.timing.buildMs.join(' + ')} ms · page ${secs(r.timing.totalMs)} · run ${secs(run.ms)}`);
   if (!v.state.startsWith('WRITE')) {
@@ -190,10 +195,11 @@ async function main(argv) {
   }
   if (opts.help) { process.stdout.write(USAGE); return 0; }
 
-  const goldenFile = opts.golden ? path.resolve(opts.golden) : DEFAULT_GOLDEN;
+  const goldenFile = opts.golden ? path.resolve(opts.golden) : opts.systems ? SYSTEMS_GOLDEN : DEFAULT_GOLDEN;
   const out = opts.out ? path.resolve(opts.out) : null;
   let page;
-  try { page = pagePath(opts.query, goldenFile); } catch (error) {
+  const pageQuery = [opts.systems ? 'systems=1' : '', normalizeQuery(opts.query)].filter(Boolean).join('&');
+  try { page = pagePath(pageQuery, goldenFile); } catch (error) {
     if (!(error instanceof UsageError)) throw error;
     process.stderr.write(`footprint_golden: ${error.message}\n`);
     return 64;
