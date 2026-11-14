@@ -192,7 +192,7 @@ export class Particles {
       ray.mesh.rotation.y = sunYaw + Math.PI * 0.5 + Math.sin(this.time * 0.22 + ray.phase) * 0.07;
       ray.mesh.rotation.z = 0.24 + Math.sin(this.time * 0.17 + ray.phase) * 0.02;
       ray.mesh.position.x = ray.baseX + Math.sin(this.time * 0.12 + ray.phase) * 0.4;
-      ray.mesh.material.opacity = strength * (0.75 + Math.sin(this.time * 0.5 + ray.phase) * 0.25);
+      if (ray.mesh.material) ray.mesh.material.opacity = strength * (0.75 + Math.sin(this.time * 0.5 + ray.phase) * 0.25);
     }
   }
 

@@ -369,7 +369,8 @@ export class InteriorManager {
         footprint: {}
       },
       frame: { index: 0, x: 0, y: 0, z: 0, size: [8.4, wallH, 7.2], beams: [-3, -1, 1, 3], posts: [-4.1, 4.1, -3.6, 3.6], footprint: {} },
-      tokonoma: { index: 0, name: 'Tokonoma Alcove', x: 0, y: 0, z: -3.0, footprint: {} },
+      // the alcove's group sits at the room origin (its parts and the scroll / bonsai are placed in that frame); the recess is at z -3
+      tokonoma: { index: 0, name: 'Tokonoma Alcove', x: 0, y: 0, z: 0, recess: [0, 0, -3.0], footprint: {} },
       scroll: { index: 0, x: 0, y: 0.8, z: -3.42, footprint: {} },
       bonsai: { index: 0, x: 0.9, y: 0.21, z: -3.0, footprint: {} },
       chabudai: { index: 0, name: 'Chabudai Table', x: 0, y: 0, z: -0.2, top: 0.49, footprint: {} },
@@ -395,19 +396,24 @@ export class InteriorManager {
     this.placeAsset('tatami', L.tatami, () => this.meshTatamiClassic(L.tatami, root), root);
     this.placeAsset('interior-frame', L.frame, () => this.meshFrameClassic(L.frame, root), root);
 
+    // The alcove and the table hold parts of their own (scroll, bonsai; tea
+    // set, the fish): those are placed into whichever alcove / table was
+    // built, classic or kit, so a kit table still carries the gameplay fish.
+    const holder = (out) => (isAssetInstance(out) ? out.group : out);
+
     // 3. Tokonoma Alcove (Sacred recess on back wall)
-    this.placeAsset('tokonoma', L.tokonoma, () => {
+    const toko = holder(this.placeAsset('tokonoma', L.tokonoma, () => {
       const toko = new THREE.Group();
       toko.name = 'Tokonoma Alcove';
       toko.add(box(3.2, 0.22, 1.2, MAT.timberDark, 0, 0.11, -3.0));
-      this.placeAsset('scroll', L.scroll, () => this.meshScrollClassic(L.scroll, toko), toko);
-      this.placeAsset('bonsai', L.bonsai, () => this.meshBonsaiClassic(L.bonsai, toko), toko);
       root.add(toko);
       return toko;
-    }, root);
+    }, root));
+    this.placeAsset('scroll', L.scroll, () => this.meshScrollClassic(L.scroll, toko), toko);
+    this.placeAsset('bonsai', L.bonsai, () => this.meshBonsaiClassic(L.bonsai, toko), toko);
 
     // 4. Low Chabudai Table with Ceramic Tea Set & Grilled Sea Bream (Fish Feast)
-    this.placeAsset('chabudai', L.chabudai, () => {
+    const table = holder(this.placeAsset('chabudai', L.chabudai, () => {
       const table = new THREE.Group();
       table.name = 'Chabudai Table';
       table.add(box(1.8, 0.1, 1.3, MAT.timberEngawa, 0, 0.44, 0));
@@ -416,12 +422,12 @@ export class InteriorManager {
           table.add(box(0.12, 0.4, 0.12, MAT.timberDark, sx * 0.75, 0.2, sz * 0.52));
         }
       }
-      this.placeAsset('teaware', L.teaware, () => this.meshTeawareClassic(L.teaware, table), table);
-      this.placeAsset('interior-fish', L.fish, () => this.meshFishClassic(L.fish, table), table);
       table.position.set(L.chabudai.x, 0, L.chabudai.z);
       root.add(table);
       return table;
-    }, root);
+    }, root));
+    this.placeAsset('teaware', L.teaware, () => this.meshTeawareClassic(L.teaware, table), table);
+    this.placeAsset('interior-fish', L.fish, () => this.meshFishClassic(L.fish, table), table);
 
     this.placeAsset('zabuton', L.zabuton, () => this.meshZabutonClassic(L.zabuton, root), root);
     this.placeAsset('andon', L.andon, () => this.meshAndonClassic(L.andon, root), root);

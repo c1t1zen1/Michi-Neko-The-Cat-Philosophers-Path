@@ -130,6 +130,8 @@ function verdict(r, run, write) {
   if (!r.probe) {
     return { state: 'PROBE FAILED', code: 2, reasons: [`the rng probe failed: the counted valley draws do not match the stream position (the digest is ${r.equal ? 'equal' : 'different'})`] };
   }
+  // --systems: the modular-path seam check runs beside the digest (tools/golden/systems_digest.js)
+  if (r.seam && r.seam.ok === false) return { state: 'SEAM FAILED', code: 1, reasons: (r.seam.failures || []).slice(0, 8) };
   return { state: r.equal ? 'EQUAL' : 'DIFFERENT', code: r.equal ? 0 : 1, reasons: [] };
 }
 
@@ -154,6 +156,7 @@ function printSummary(r, run, v, { out, goldenFile, max }) {
   if (r.rngLine) lines.push(`  rng      ${r.rngLine}`);
   else lines.push(`  rng      valley ${c.draws} draws (probe ${r.probe ? 'ok' : 'FAILED'}) · hidden ${r.hiddenDraws} · Math.random ${r.ambient.draws}` +
     ` · volatile ${r.volatile.leaves} leaves, ${r.volatile.members} members`);
+  if (r.seam) lines.push(`  seam     ${r.seam.skipped ? 'skipped: ' + r.seam.skipped : `${r.seam.ok ? 'ok' : 'FAILED'} · ${r.seam.ids} ids routed · wholes ${r.seam.runs.wholes.placed} instances (registries ${r.seam.runs.wholes.registries}) · parts ${r.seam.runs.parts.placed} instances (registries ${r.seam.runs.parts.registries})`}`);
   lines.push(`  time     build ${r.timing.buildMs.join(' + ')} ms · page ${secs(r.timing.totalMs)} · run ${secs(run.ms)}`);
   if (!v.state.startsWith('WRITE')) {
     for (const w of r.warnings || []) lines.push(`  warning  ${w}`);

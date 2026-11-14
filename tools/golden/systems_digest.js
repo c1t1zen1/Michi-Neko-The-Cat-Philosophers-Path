@@ -599,7 +599,7 @@ function makeGame(scene, city, opts) {
 
 const newRoots = (scene, before) => scene.children.filter((c) => !before.has(c));
 
-function buildOnce(M, spec) {
+function buildOnce(M, spec, stub = null) {
   const rec = B = {
     draws: { vegetation: 0, hidden: 0 }, random: {}, depth: 0, calls: new Map(),
     phases: Object.fromEntries(SYSTEMS.map((s) => [s, []])),
@@ -608,8 +608,9 @@ function buildOnce(M, spec) {
   };
   const t0 = H.realNow();
   let scene, city, hidden, interior, veg, particles, life, game, roots = {};
-  const opts = H.countrysideOptions ? H.countrysideOptions() : {};
-  const assets = opts && opts.assets ? { assets: opts.assets } : {};
+  // a seam run (stub) builds the valley classic and hands the five systems the stub kit
+  const opts = stub ? {} : (H.countrysideOptions ? H.countrysideOptions() : {});
+  const assets = stub ? { assets: stub } : (opts && opts.assets ? { assets: opts.assets } : {});
   try {
     H.setAmbient(seedFor('countryside', spec));
     scene = rec.scene = new THREE.Scene();
@@ -623,7 +624,7 @@ function buildOnce(M, spec) {
     rec.random.hidden = H.ambient.draws;
 
     H.setAmbient(seedFor('interior', spec));
-    game = makeGame(scene, city, opts);
+    game = makeGame(scene, city, stub ? { assets: stub } : opts);
     before = new Set(scene.children);
     interior = rec.interior = new M.InteriorManager(game);
     game.interior = interior;
@@ -657,6 +658,9 @@ function buildOnce(M, spec) {
     B = null;
   }
   const buildMs = H.realNow() - t0;
+  const world = { scene, city, hidden, interior, veg, particles, life, game };
+  rec.registry = registrySnapshot(world, rec);
+  if (stub) return { rec, world };
   B = rec; // records below read B.texOf / B.textures
   try {
     scene.updateMatrixWorld(true);
@@ -677,10 +681,141 @@ function buildOnce(M, spec) {
     const probe = typeof veg.rng === 'function' && veg.rng() === fresh();
 
     const sections = digestSections({ city, hidden, interior, veg, particles, life, game, walks, rec, M });
-    return { buildMs, warnings, probe, walks, rec, sections };
+    return { buildMs, warnings, probe, walks, rec, sections, world };
   } finally {
     B = null;
   }
+}
+
+// --------------------------------------------------------------- the seam ---
+// The modular path of every placeAsset() in the five modules, run with a stub
+// kit runtime (no kit assets exist yet): once with every inventory id modular
+// (the wholes replace their parts), once with every part modular inside the
+// classic wholes. The layout steps must advance the seeded streams and
+// Math.random exactly as classic, every registry the classic builders fill
+// (colliders, exclusions, water, platforms, anchors, knockables, creature and
+// god-ray records, spawn seeds) must come out the same through the
+// footprint registration path, and each system's update() must run. Not part
+// of the digest: reported beside it, and the CLI fails on it.
+
+const WHOLES = new Set(['moon-pool', 'lantern-glade', 'tea-interior']);
+
+/** Everything the classic builders register, in order, as comparable data. */
+function registrySnapshot(w, rec) {
+  const box = H.box6;
+  const nums = (o, keys) => keys.map((k) => o[k]);
+  const arr = (v) => (v ? Array.from(v) : null);
+  return {
+    streams: { vegetation: rec.draws.vegetation, hidden: rec.draws.hidden, random: { ...rec.random } },
+    colliders: w.city.colliders.map(box),
+    exclusions: w.city.vegetationExclusions.map((e) => [e.x, e.z, e.width, e.depth]),
+    waterRects: w.city.waterRects.map((r) => [...r]),
+    hiddenAnchors: [w.hidden.poolRestPos, w.hidden.gladeRestPos],
+    stalkTops: (w.hidden.stalkTops || []).map((t) => [t.x, t.y, t.z, t.a]),
+    interior: {
+      colliders: w.interior.colliders.map(box), platforms: w.interior.platforms.map(box),
+      anchors: [w.interior.eatFishAnchor, w.interior.napAnchor, w.interior.enterAnchor, w.interior.exitZone],
+      knockables: w.interior.knockables.map((k) => [k.floorY, k.knocked, k.settled]),
+      fish: !!w.interior.fishMesh
+    },
+    birds: (w.life.birds || []).map((b) => [b.center.x, b.center.y, b.center.z, ...nums(b, ['radius', 'speed', 'yAmp', 'yFreq', 'seed', 'wingSpeed']), b.wings.length]),
+    crows: (w.life.guardianBirds || []).map((g) => [g.state, g.circleAngle, g.swoopTimer, g.wings.length]),
+    koi: (w.life.koi || []).map((k) => [...nums(k, ['x', 'z', 'cruiseSpeed', 'speed', 'direction', 'lane', 'wobble', 'surfaceTimer', 'len']), !!k.tail, k.pectorals.length]),
+    godRays: (w.particles.godRays || []).map((g) => [g.baseX, g.phase, g.w]),
+    seeds: {
+      petals: arr(w.particles.petalSeeds), fireflies: arr(w.particles.fireflySeeds), motes: arr(w.particles.moteSeeds),
+      river: arr(w.particles.riverSeeds), snow: arr(w.particles.snowSeeds), rain: arr(w.particles.rainSeeds), butterflies: arr(w.life.bflySeeds)
+    }
+  };
+}
+
+/** A stand-in kit runtime: every id `modular(id)` names gets an empty instance with the parts its layout binds. */
+function stubRuntime(modular) {
+  const placed = [];
+  const partsFor = (layout) => {
+    const names = new Set(Object.values(layout.bind || {}));
+    const fp = layout.footprint || {};
+    for (const k of fp.knockables || []) names.add(k.part);
+    for (const b of [...(fp.birds || []), ...(fp.guardianBirds || [])]) b.wings.forEach((n) => names.add(n));
+    for (const k of fp.koi || []) { names.add(k.tail); k.pectorals.forEach((n) => names.add(n)); }
+    const parts = {};
+    for (const n of names) {
+      if ((n === 'points' || n === 'lines') && layout.positions) {
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(layout.positions), 3));
+        parts[n] = n === 'lines' ? new THREE.LineSegments(g, new THREE.LineBasicMaterial()) : new THREE.Points(g, new THREE.PointsMaterial());
+      } else {
+        parts[n] = new THREE.Object3D();
+      }
+    }
+    return parts;
+  };
+  return {
+    placed, instances: [], update() {},
+    build(id, layout, classicFn) {
+      if (!modular(id)) return classicFn();
+      const group = new THREE.Group();
+      group.name = (layout && layout.name) || `asset:${id}`;
+      const parts = partsFor(layout || {});
+      for (const p of Object.values(parts)) group.add(p);
+      placed.push(id);
+      return { group, parts, sockets: {}, footprint: layout.footprint, live: [], dispose() {} };
+    }
+  };
+}
+
+const SKY = () => ({
+  sunDir: new THREE.Vector3(0.3, 0.4, 0.2).normalize(), weather: 'clear', targetWeather: 'clear', weatherBlend: 1,
+  weatherAmount: () => 0
+});
+
+/** Five frames of every system's update(); the errors by system. */
+function runUpdates(w) {
+  const errors = {};
+  const sky = SKY(), at = new THREE.Vector3(-20, 0, -23);
+  const steps = {
+    hidden: () => w.hidden.update(1 / 30, at, sky),
+    interior: () => { w.interior.isInside = true; w.interior.update(1 / 30); w.interior.isInside = false; },
+    vegetation: () => w.veg.update(1 / 30, at, sky),
+    particles: () => w.particles.update(1 / 30, at, sky),
+    ambient: () => w.life.update(1 / 30, at, sky, null, null, w.city)
+  };
+  for (const [k, step] of Object.entries(steps)) {
+    try { for (let i = 0; i < 5; i++) step(); } catch (error) { errors[k] = String(error && error.message || error).slice(0, 160); }
+  }
+  return errors;
+}
+
+function seamCheck(M, spec, classic) {
+  if (typeof M.HiddenPlaces.prototype.placeAsset !== 'function') return { ok: true, skipped: 'no placeAsset() in this checkout' };
+  const base = classic.rec.registry;
+  const classicErrors = runUpdates(classic.world);
+  const runs = {}, failures = [];
+  for (const [name, modular] of [['wholes', () => true], ['parts', (id) => !WHOLES.has(id)]]) {
+    const stub = stubRuntime(modular);
+    let out;
+    try { out = buildOnce(M, spec, stub); } catch (error) {
+      failures.push(`${name}: the build threw — ${String(error && error.stack || error).split('\n').slice(0, 2).join(' ')}`);
+      runs[name] = { placed: stub.placed.length };
+      continue;
+    }
+    const reg = out.rec.registry;
+    const differs = Object.keys(base).filter((k) => JSON.stringify(base[k]) !== JSON.stringify(reg[k]));
+    for (const k of differs) {
+      const a = base[k], b = reg[k];
+      const sub = a && b && typeof a === 'object' && !Array.isArray(a)
+        ? Object.keys(a).filter((s) => JSON.stringify(a[s]) !== JSON.stringify(b[s])).map((s) => `${s} ${JSON.stringify(a[s]).slice(0, 60)} → ${JSON.stringify(b[s]).slice(0, 60)}`)
+        : [];
+      failures.push(`${name}: ${k} differs from classic${sub.length ? ' (' + sub.join('; ') + ')' : ''}`);
+    }
+    const errors = runUpdates(out.world);
+    for (const [k, e] of Object.entries(errors)) if (classicErrors[k] !== e) failures.push(`${name}: ${k}.update() threw — ${e}`);
+    const counts = {};
+    for (const id of stub.placed) counts[id] = (counts[id] || 0) + 1;
+    runs[name] = { placed: stub.placed.length, ids: counts, registries: Object.keys(base).length - differs.length + '/' + Object.keys(base).length };
+  }
+  const placedAll = new Set([...Object.keys(runs.wholes.ids || {}), ...Object.keys(runs.parts.ids || {})]);
+  return { ok: failures.length === 0, failures, runs, ids: placedAll.size, classicUpdateErrors: classicErrors };
 }
 
 // ------------------------------------------------------------ the digest ---
@@ -727,7 +862,7 @@ function digestSections({ city, hidden, interior, veg, particles, life, game, wa
       .map((k) => [k, hidden[k] ? matRecord(hidden[k], 'hidden.' + k) : null])),
     objects: Object.fromEntries(['moonGlow', 'poolMotePoints', 'gladeFlyPoints'].map((k) => [k, keyIn('hidden', hidden[k])])),
     causticTex: hidden.causticTex ? texRecord(hidden.causticTex, 'hidden.causticTex') : null,
-    found: hidden.found, soundTimers: hidden.soundTimers,
+    found: { ...hidden.found }, soundTimers: { ...hidden.soundTimers },
     footprint: {
       exclusions: city.vegetationExclusions.map((e) => [e.x, e.z, e.width, e.depth].map(r4)),
       waterRects: city.waterRects.map((w) => w.map(r4))
@@ -899,6 +1034,8 @@ export async function systemsGolden(helpers) {
   const spec = { salt: 0, t0: 1e6, step: 0.5 };
   const builds = [buildOnce(M, spec), buildOnce(M, spec)];
   const tBuilt = H.realNow();
+  // the seam check runs on its own worlds (and on build B's for the classic updates)
+  const seam = seamCheck(M, spec, builds[1]);
   const DA = assemble(builds[0], sceneNote), DB = assemble(builds[1], sceneNote);
   const vol = { leaves: [], shape: [] };
   const digest = mask(DA, DB, [], vol);
@@ -949,6 +1086,7 @@ export async function systemsGolden(helpers) {
     rngLine: `vegetation ${c.draws} draws (probe ${digest.rng.vegetation.probe ? 'ok' : 'FAILED'}) · hidden ${digest.rng.hidden.draws}` +
       ` · Math.random ${SYSTEMS.map((k) => `${k} ${random[k]}`).join(', ')} · textures ${c.textures} · trees ${c.trees}` +
       ` · volatile ${digest.volatile.leaves} leaves`,
+    seam,
     golden, equal: !!(diff && diff.equal), diff, warnings,
     digestBytes: new TextEncoder().encode(text).length,
     timing: {
@@ -982,6 +1120,8 @@ export async function systemsGolden(helpers) {
     `          colliders ${c.colliders} (interior + vegetation) · platforms ${c.platforms} · trees ${c.trees}`,
     `digest    ${result.digestBytes} bytes · golden ${golden.found ? golden.bytes + ' bytes' : 'missing'} (${goldenUrl})`,
     `time      import ${result.timing.importMs} ms · build ${result.timing.buildMs.join(' + ')} ms · digest ${result.timing.digestMs} ms · total ${result.timing.totalMs} ms`,
+    `seam      ${seam.skipped ? 'skipped: ' + seam.skipped : (seam.ok ? 'ok' : 'FAILED') + ` · ${seam.ids} ids routed · wholes ${seam.runs.wholes.placed} instances, registries ${seam.runs.wholes.registries} · parts ${seam.runs.parts.placed} instances, registries ${seam.runs.parts.registries}`}`,
+    ...(seam.failures && seam.failures.length ? seam.failures.map((f) => '  seam: ' + f) : []),
     ...(warnings.length ? ['', 'warnings:', ...warnings.map((w) => '  ' + w)] : [])
   ].join('\n');
   $('changes').textContent = H.changeLines(diff, maxShown).join('\n');
