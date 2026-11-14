@@ -42,3 +42,11 @@ None. Chochin/andon/courtyard/pool shots not captured (interior and hidden place
 ## Footprint waivers requested
 
 ## Notes for the Integrator
+
+## Scope completion
+- Merged origin/fable/integration (kit_test fixture fix); `node tools/verify.mjs`: "All checks passed".
+- L6 compare JPGs now exist for all six ids at 6/12/18/22 h (classic and modular; 44 files, none byte-identical per pair, all under 150 KB). Swap confirmed visually (hollow firebox, lathed chochin, framed andon).
+- chochin (street house at 4.2,2,-5.3): AAA-1 round lathed washi with red band and tassel reads as a real chochin vs a box; AAA-5 glow and warm bloom at 18/22 h match the classic dusk curve.
+- andon (interior, cam y 100.9): AAA-1 frame, ribs and four panes beat the flat box; AAA-5 lit all hours like the classic (paper glow base 0.4). Concern: at night the paper is close to blown out white; gain could be lowered by the Integrator/design pass.
+- courtyard-toro: AAA-1 hollow Kasuga with visible higuchi vs four boxes; AAA-5 always warm, matching the interior being lit.
+- pool-toro (-16.1,0,-24.6): AAA-1 hollow firebox and swept roof; AAA-5 halo is a tighter bloom than the classic big orange disc, lamp lights at dusk and stays dark by day; judged better, flagged as a visible look difference.
