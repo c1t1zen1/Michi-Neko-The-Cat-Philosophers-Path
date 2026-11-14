@@ -116,8 +116,7 @@ export const assets = [
     id: 'knockables', family: 'interiors', lab: 'interiors/knockables', label: 'Table knick-knacks', legacyName: 'Table Knick-knacks',
     params: {}, floating: ['cup', 'bowl', 'ball'], sample: { index: 0, x: 0, y: 0, z: 0, footprint: { knockables: [] } }, build: knockBuild,
     footprintWaiver: 'the knick-knacks rest and settle in room-group space (table top 0.49, floor 0.08) instead of the classic origin-doubled numbers that hang them 100 m up (f3 handoff §3)'
-  })
-  ,
+  }),
   defineAsset({
     id: 'courtyard-gravel', family: 'interiors', lab: 'rocks/rake', label: 'Courtyard rock garden', legacyName: 'Courtyard Gravel',
     params: { rakes: { type: 'number', default: 24, min: 6, max: 40, step: 2, label: 'Rake lines' } },

@@ -48,3 +48,4 @@ For s3-vista and r4-festival (import with the current `?v=` tag):
 | s4-summit-life | summitlife/summit-snow, summit-rain, summit-pollen, summit-petals, summit-butterflies, summit-birds, shrine-rays, summit-light | `src/kit/summitlife/index.js` `assets` |
 | s2-clearing | meditation-stone, summit-enso, summit-furin, summit-entry, summit-path | `src/kit/clearing/index.js` `assets` (production: "clearing") |
 | v-sky | clouds, stars, moon | src/kit/sky/index.js assets (production: "sky") |
+| v-interiors-b | interiors/courtyard-gravel, courtyard-wall, secret-tatami, secret-table, secret-bed, secret-andon | src/kit/interiors/index.js assets (production: "interiors/<id>") |
