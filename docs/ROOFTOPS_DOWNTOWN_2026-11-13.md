@@ -49,33 +49,28 @@ construction: convincing joinery, worn surfaces, useful clutter and everyday wor
 Validation results and phase commit links are recorded below as work completes.
 
 ## Playable expansion checkpoint
-+
-+- Route: **1,082.05m** (3.21× the previous ~337m), 14 legs and 13 rounded
-+  intersections, with turns in both directions through the downtown blocks.
-+- 619 original/added platforms plus the final delivery step; eight solid
-+  tunnel soffits, five deep alley pockets, two moving takasebune, nineteen
-+  yatai, thirty residents, trellises, pole crossarms and three market skylights.
-+- Chidori now uses `Runner` physics and local support planning. The sequence
-+  includes saunter, dash, wait, prowl, backtrack feint and optional detour.
-+  Stopping, dropping and reversing from every lantern are regression-tested.
-+- Portrait fits the volumes of both cats. Small dithered architectural openings
-+  reveal cats hidden behind foreground houses or canal banks; the feature uses
-+  the existing opaque render pass. Desktop keeps a wider side view.
-+- Static meshes are merged by material and 32m spatial cell. Nearby detail and
-+  live workers are culled by distance; background roofs remain instanced.
-+- Adapted the Greenery leaf paint and directly reused the shared nodal bamboo
-+  geometry. New paving, work cloth, weathered timber, rope and clay paint maps
-+  are procedural and no larger than 256px. No bitmap download was added.
-+
-+Checks at this checkpoint: `node tools/rooftop_test.mjs` (40/40),
-+`node tools/rooftop_companion_test.mjs` (4 scenario suites),
-+`node tools/verify.mjs`, `node tools/labs_check.mjs`, and portrait Chromium
-+boot/captures at all seven lanterns. The tests exposed and fixed a pre-existing
-+vent-wall error: its collision wall now begins on the canopy, so it no longer
-+blocks the market underneath. Real-device frame-rate validation remains a
-+separate hardware check; browser emulation does not establish phone performance.
-+EOF
-node tools/rooftop_test.mjs > /tmp/rooftop-qa/route-phase2.txt
-node tools/rooftop_companion_test.mjs > /tmp/rooftop-qa/companion-phase2.txt
-git diff --check
-git add kyoto-rooftops.html rooftops tools/rooftop_test.mjs tools/rooftop_companion_test.mjs docs/ROOFTOPS_DOWNTOWN_2026-11-13.md && git commit -m 'Expand Roof Road into a mobile Kyoto downtown maze' && git push
+
+- Route: **1,082.05m** (3.21× the previous ~337m), 14 legs and 13 rounded
+  intersections, with turns in both directions through the downtown blocks.
+- 620 platforms, including the final delivery step; eight solid
+  tunnel soffits, five deep alley pockets, two moving takasebune, nineteen
+  yatai, thirty residents, trellises, pole crossarms and three market skylights.
+- Chidori now uses `Runner` physics and local support planning. The sequence
+  includes saunter, dash, wait, prowl, backtrack feint and optional detour.
+  Stopping, dropping and reversing from every lantern are regression-tested.
+- Portrait fits the volumes of both cats. Small dithered architectural openings
+  reveal cats hidden behind foreground houses or canal banks; the feature uses
+  the existing opaque render pass. Desktop keeps a wider side view.
+- Static meshes are merged by material and 32m spatial cell. Nearby detail and
+  live workers are culled by distance; background roofs remain instanced.
+- Adapted the Greenery leaf paint and directly reused the shared nodal bamboo
+  geometry. New paving, work cloth, weathered timber, rope and clay paint maps
+  are procedural and no larger than 256px. No bitmap download was added.
+
+Checks at this checkpoint: `node tools/rooftop_test.mjs` (40/40),
+`node tools/rooftop_companion_test.mjs` (4 scenario suites),
+`node tools/verify.mjs`, `node tools/labs_check.mjs`, and portrait Chromium
+boot/captures at all seven lanterns. The tests exposed and fixed a pre-existing
+vent-wall error: its collision wall now begins on the canopy, so it no longer
+blocks the market underneath. Real-device frame-rate validation remains a
+separate hardware check; browser emulation does not establish phone performance.

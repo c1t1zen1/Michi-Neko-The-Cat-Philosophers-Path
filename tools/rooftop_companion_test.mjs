@@ -10,13 +10,15 @@ function check(name, fn) { fn(); checks++; console.log('PASS ' + name); }
 check('guide traverses the entire real-physics run without losing the player', () => {
   const player = new Runner(level), guide = new Companion(level), auto = new Autopilot(level);
   player.reset(1, 1.1); guide.reset(player);
-  let maxGap = 0, maxSpeed = 0; const moods = new Set(), paces = new Set();
+  let maxGap = 0, maxSpeed = 0, feints = 0, detours = 0; const moods = new Set(), paces = new Set();
   for (let i = 0; i < 120 * 370; i++) {
     const t = i * dt; player.step(dt, auto.input(player, t, dt), t);
     const before = guide.runner.s;
     guide.update(dt, player, t, true);
     maxGap = Math.max(maxGap, Math.abs(player.s - guide.runner.s));
     maxSpeed = Math.max(maxSpeed, Math.abs(guide.runner.s - before));
+    if (guide.mood === 'feint' && guide.runner.vs < -.5 && player.vs > .5) feints++;
+    if (guide.mood === 'detour' && guide.runner.ground && player.ground && guide.runner.ground !== player.ground) detours++;
     moods.add(guide.mood); paces.add(Math.round(Math.abs(guide.runner.vs)));
   }
   assert.ok(player.ground?.kind === 'perch', 'player reaches finale');
@@ -24,7 +26,22 @@ check('guide traverses the entire real-physics run without losing the player', (
   assert.ok(maxGap < 8, `guide separation ${maxGap.toFixed(2)}m`);
   assert.ok(maxSpeed < 0.6, 'guide never teleports between perches');
   assert.ok(['saunter', 'dash', 'wait', 'prowl', 'feint', 'detour'].every(m => moods.has(m)));
+  assert.ok(feints > 20 && detours > 20, 'guide really reverses and chooses alternate surfaces');
   assert.ok(paces.has(0) && [...paces].some(v => v >= 7) && paces.has(2), 'wait, slow walk and sprint all occur');
+});
+check('guide keeps up when cargo boats begin at different points in their cycles', () => {
+  for (const phase of [4, 9, 13, 18]) {
+    const player = new Runner(level), guide = new Companion(level), auto = new Autopilot(level);
+    player.time = phase; player.reset(1, 1.1); guide.reset(player, phase);
+    let maxGap = 0;
+    for (let i = 0; i < 48000; i++) {
+      const t = phase + i * dt; player.step(dt, auto.input(player, t, dt), t);
+      guide.update(dt, player, t, true);
+      maxGap = Math.max(maxGap, Math.abs(player.s - guide.runner.s));
+    }
+    assert.ok(player.ground?.kind === 'perch');
+    assert.ok(maxGap < 10, `boat phase ${phase}: guide gap ${maxGap.toFixed(2)}m`);
+  }
 });
 check('guide follows stopping, dropping and backtracking from all seven lanterns', () => {
   for (const cp of level.checkpoints) {

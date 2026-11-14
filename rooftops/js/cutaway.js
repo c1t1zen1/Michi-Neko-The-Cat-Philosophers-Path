@@ -37,7 +37,14 @@ export function makeCutaway(M) {
           return smoothstep(0.8, 1.12, d);
         }`);
       shader.fragmentShader = shader.fragmentShader.replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
-        float opening = min(roofOpening(uRoofPlayer, 0.80), roofOpening(uRoofGuide, 0.74));
+        // Join the two openings into one small cutaway so the alley between
+        // the cats remains readable, rather than showing two isolated holes.
+        vec3 cutA = normalize(uRoofPlayer - uRoofCamera);
+        vec3 cutB = normalize(uRoofGuide - uRoofCamera);
+        vec3 cutQ = normalize(vRoofCutWorld - uRoofCamera);
+        vec3 cutAB = cutB - cutA;
+        float cutU = clamp(dot(cutQ - cutA, cutAB) / max(.00001, dot(cutAB, cutAB)), 0.0, 1.0);
+        float opening = roofOpening(mix(uRoofPlayer, uRoofGuide, cutU), mix(.80, .74, cutU));
         float screenDoor = fract(gl_FragCoord.x * 0.75487766 + gl_FragCoord.y * 0.56984029);
         if (opening < screenDoor) discard;`);
     };

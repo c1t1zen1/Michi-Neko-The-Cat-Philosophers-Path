@@ -72,6 +72,31 @@ export function downtownMaterials(M, canvasTex) {
   }), roughness: 1 }));
 }
 
+// A light version of the Labs' painted finish: two stable world-space dabs
+// and ground grime, without a post-process or a multi-octave noise pass.
+export function paintDowntown(M) {
+  for (const mat of [M.plaster, M.plasterWarm, M.bengara, M.stone, M.slab, M.wetStone, M.roof, M.agedWood, M.terracotta]) {
+    mat.onBeforeCompile = shader => {
+      shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vRoofPaint;')
+        .replace('#include <project_vertex>', `#include <project_vertex>
+          vec4 paintP = vec4(transformed, 1.0);
+          #ifdef USE_INSTANCING
+            paintP = instanceMatrix * paintP;
+          #endif
+          vRoofPaint = (modelMatrix * paintP).xyz;`);
+      shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vRoofPaint;')
+        .replace('#include <color_fragment>', `#include <color_fragment>
+          vec3 paintCell = floor(vRoofPaint * vec3(11.0, 16.0, 11.0));
+          float dab = fract(sin(dot(paintCell, vec3(12.9898, 78.233, 39.425))) * 43758.5453);
+          float wash = fract(sin(dot(floor(vRoofPaint.xz * 2.1), vec2(127.1, 311.7))) * 17291.53);
+          diffuseColor.rgb *= .95 + dab * .07 + wash * .035;
+          float grime = (1.0 - smoothstep(.03, .72, vRoofPaint.y)) * (.5 + wash * .5);
+          diffuseColor.rgb *= vec3(1.0) - vec3(.18, .15, .19) * grime;`);
+    };
+    mat.customProgramCacheKey = () => 'roof-painted-dabs-v1';
+  }
+}
+
 export function installDowntown(B, H) {
   const { box, cyl, frameGroup, hiraRoof, ribbon, hash1 } = H;
   const beam = (g, a, b, radius, mat) => {

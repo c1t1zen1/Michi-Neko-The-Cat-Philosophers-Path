@@ -14,6 +14,7 @@ import { buildWorld } from './build.js';
 import { Sky } from './sky.js';
 import { RooftopAtmosphere } from './atmosphere.js';
 import { Companion } from './companion.js';
+import { neighbourhoodMap } from './neighbourhood-map.js';
 
 const Q = new URLSearchParams(location.search);
 const flag = (k, d = null) => (Q.has(k) ? Q.get(k) : d);
@@ -513,6 +514,7 @@ setMuted(false, false);
 /* ---------------- Chidori, the guide cat ---------------- */
 
 const companion = new Companion(level);
+const townMap = neighbourhoodMap(level, () => { keys.clear(); resetTouch(); });
 const chidori = { pos: new THREE.Vector3(), heading: 0, depth: 0 };
 function initChidori() {
   companion.reset(runner, time);
@@ -527,7 +529,8 @@ function updateChidori(dt) {
   let r = companion.runner;
   const events = new Set();
   for (let i = 0; i < steps; i++) {
-    r = companion.update(step, runner, time - dt + i * step, portrait);
+    if (finale) r.step(step, { move: 0 }, time - dt + i * step);
+    else r = companion.update(step, runner, time - dt + i * step, portrait);
     for (const event of r.events) events.add(event);
   }
   chidori.depth = damp(chidori.depth, r.depth, 9, dt);
@@ -600,17 +603,15 @@ function checkProgress() {
 
 function startFinale() {
   finale = { t: 0, lit: 0, shown: false };
+  document.body.classList.add('at-finale');
   seenMouths.add(7);
   showCard(level.mouths[6]);
   updateStrip();
   if (cat) { cat.startIdleAction('sit', 9999); cat.setLookTarget(null); }
-  // Chidori comes to the float roof beside the perch.
-  const last = level.perches.length - 1;
-  if (chidori.idx !== last) {
-    chidori.from = chidori.pos.clone();
-    chidori.to = perchWorld(level.perches[last], new THREE.Vector3());
-    chidori.dur = 1.2; chidori.t = 0; chidori.peak = 1; chidori.hopping = true; chidori.idx = last;
-  }
+  // Chidori settles on the real roof he reached beside Michi. The chase
+  // ends here; no scripted long leap or old perch index takes over.
+  companion.runner.vs = 0;
+  if (guide && companion.runner.grounded) guide.startIdleAction('sit', 9999);
 }
 
 function updateFinale(dt) {
@@ -638,6 +639,7 @@ function updateFinale(dt) {
 
 $('again') && $('again').addEventListener('click', () => {
   $('finale').classList.remove('show');
+  document.body.classList.remove('at-finale');
   finale = null;
   sky.resetFires();
   if (cat) cat.endIdleAction();
@@ -723,13 +725,16 @@ function stepPhysics(inp) {
 
 function frame(now) {
   requestAnimationFrame(frame);
+  tick(now);
+}
+function tick(now, draw = true) {
   let dt = Math.min(0.1, (now - lastNow) / 1000);
   lastNow = now;
   if (flag('shot') === '1') dt = Math.min(dt, 1 / 30);
 
   if (isPaused || contextLost) {
     acc = 0;
-    if (!contextLost) { updateCamera(0); renderer.render(scene, camera); }
+    if (!contextLost) { updateCamera(0); if (draw) renderer.render(scene, camera); }
     return;
   }
 
@@ -810,6 +815,7 @@ function frame(now) {
   }
 
   updateChidori(dt);
+  townMap.update(runner.s, companion.runner.s);
   if (!finale) { checkPickups(); checkProgress(); }
   else updateFinale(dt);
 
@@ -849,7 +855,7 @@ function frame(now) {
     fpsT = 0; fpsN = 0;
   }
 
-  renderer.render(scene, camera);
+  if (draw) renderer.render(scene, camera);
 }
 
 function updateCamera(dt) {
@@ -867,9 +873,14 @@ function updateCamera(dt) {
     const c = catRoot.position;
     const want = tmpV.set(c.x - 5.2, c.y + 0.7, c.z + 3.6);
     camera.position.lerp(want, 1 - Math.exp(-(reduceMotion ? 1.2 : 2.2) * dt * (0.3 + k)));
-    const look = tmpL.set(c.x + 40, c.y + 2.0 + 4 * k, c.z - 9);
+    // The new downtown endpoint faces a different bearing. Aim at the real
+    // hill fires; a portrait panorama needs a wider horizontal field as well.
+    const look = tmpL.set(0, 0, 0);
+    for (const fire of sky.fires) look.add(fire.center);
+    look.multiplyScalar(1 / sky.fires.length); look.y -= 20;
     camera.lookAt(look);
-    camera.fov = damp(camera.fov, 50, 1.5, dt);
+    const finaleFov = camera.aspect < .85 ? 96 : 50;
+    camera.fov = damp(camera.fov, finaleFov, 1.5, dt);
     camera.updateProjectionMatrix();
     world.setView(camera, catRoot, guideRoot);
     return;
@@ -947,7 +958,15 @@ window.roofRoad = {
   get companion() { return companion; },
   get view() {
     const ndc = p => { const v = p.clone().add(new THREE.Vector3(0, 0.3, 0)).project(camera); return { x: v.x, y: v.y, z: v.z }; };
-    return { player: ndc(catRoot.position), guide: ndc(guideRoot.position), distance: cam.dist, aspect: camera.aspect, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, mood: companion.mood };
+    const bounds = p => {
+      const b = { left: Infinity, right: -Infinity, top: -Infinity, bottom: Infinity };
+      for (const x of [-.42,.42]) for (const y of [0,.72]) for (const z of [-.42,.42]) {
+        const v = p.clone().add(new THREE.Vector3(x,y,z)).project(camera);
+        b.left = Math.min(b.left,v.x); b.right = Math.max(b.right,v.x); b.top = Math.max(b.top,v.y); b.bottom = Math.min(b.bottom,v.y);
+      }
+      b.pixelsHigh = (b.top - b.bottom) * canvas.clientHeight / 2; return b;
+    };
+    return { player: ndc(catRoot.position), guide: ndc(guideRoot.position), fires: sky.fires.map(f => ndc(f.center)), bounds: { player: bounds(catRoot.position), guide: bounds(guideRoot.position) }, distance: cam.dist, aspect: camera.aspect, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, mood: companion.mood };
   },
   setAuto(on = true) { autopilot = on ? new Autopilot(level) : null; },
   get finale() { return finale; },
@@ -978,4 +997,20 @@ window.roofRoad = {
     sky.fires.forEach((f, i) => { sky.lightFire(i); f.kindle = 1; });
   }
 };
+// Deterministic browser review runs the actual frame pipeline without drawing
+// every intermediate tick. Available only with ?qa=1; normal play has no clock.
+if (flag('qa') === '1') {
+  roofRoad.advanceForReview = seconds => {
+    const n = Math.ceil(clamp(Number(seconds) || 0, 0, 450) * 60);
+    const samples = [], moods = new Set();
+    for (let i = 0; i < n; i++) {
+      tick(lastNow + 1000 / 60, false);
+      if (i % 30 === 0 && !finale) { const v = roofRoad.view; samples.push({ s: runner.s, y: runner.y, ...v }); moods.add(companion.mood); }
+    }
+    // The accelerated review clock must never leak into the next real RAF.
+    lastNow = performance.now(); acc = 0;
+    renderer.render(scene, camera);
+    return { samples, moods: [...moods], s: runner.s, finale: !!finale, catReady: !!cat };
+  };
+}
 start();

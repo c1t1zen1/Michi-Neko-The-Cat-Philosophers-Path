@@ -50,11 +50,23 @@
   <p class="toast" id="toast" aria-live="polite"></p>
 
   <nav class="tools" aria-label="Roof Road controls">
+    <button id="btn-map" type="button" aria-label="Show neighbourhood map" aria-expanded="false" aria-controls="neighbourhood-map" title="Neighbourhood map"><svg aria-hidden="true" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2Z M9 3v16 M15 5v16"/></svg></button>
     <button id="btn-guide" type="button" aria-label="Hide guidance" title="Show or hide guidance"><span aria-hidden="true">◉</span></button>
     <button id="btn-sound" type="button" aria-label="Mute sound" title="Sound on or off"><span aria-hidden="true">♪</span></button>
     <button id="btn-reset" type="button" aria-label="Return to the last lantern" title="Return to the last lantern"><span aria-hidden="true">↺</span></button>
     <button id="btn-pause" type="button" aria-label="Pause" title="Pause"><span aria-hidden="true">Ⅱ</span></button>
   </nav>
+
+  <aside class="neighbourhood-map" id="neighbourhood-map" aria-labelledby="map-title" hidden>
+    <button id="close-map" type="button" aria-label="Close neighbourhood map">×</button>
+    <p class="map-kicker">屋根から路地へ</p>
+    <h2 id="map-title">The downtown roofs</h2>
+    <p>Roofs above, little alleys below. Every path finds its way back.</p>
+    <svg id="route-map" role="img" aria-label="The winding downtown route with lantern checkpoints and both cats"></svg>
+    <p class="map-key"><span class="michi-dot"></span> Michi <span class="chidori-dot"></span> Chidori <span>○</span> lantern</p>
+    <ol class="map-districts"><li>Awataguchi</li><li>Pontochō</li><li>Takase</li><li>Nishiki</li><li>Laundry Sky</li><li>Festival Streets</li><li>Sending Fires</li></ol>
+    <p class="map-foot">Jump for the high road. Drop for a quieter way through.</p>
+  </aside>
 
   <section class="pause-panel" id="pause-panel" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden>
     <p class="k">ひと休み</p>

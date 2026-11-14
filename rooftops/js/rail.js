@@ -6,8 +6,8 @@
 //
 // Frame at s: tangent t (direction of travel), up (0,1,0), normal n = t × up
 // = (-t.z, t.x). n points at the camera, so +s is screen-right and +d is
-// toward the viewer. All turns in the level bend away from n (toward -n),
-// so the camera always rides the outside of a corner.
+// toward the viewer. Downtown turns in both directions; smoothNormalAt()
+// carries the side camera through the inside and outside intersections.
 
 export class Rail {
   /**

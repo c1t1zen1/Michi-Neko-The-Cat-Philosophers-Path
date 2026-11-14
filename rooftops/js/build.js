@@ -16,7 +16,7 @@ import {
   dirtTextures, texturedMaterial, worldScaleBoxUVs
 } from '../../src/textures.js?v=20261106a';
 import { hash1 } from './level.js';
-import { downtownMaterials, installDowntown } from './downtown.js';
+import { downtownMaterials, paintDowntown, installDowntown } from './downtown.js';
 import { makeCutaway } from './cutaway.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -321,6 +321,7 @@ function makeMaterials() {
   M.lanternRed.emissiveMap = M.lanternRed.map;
   M.lanternWhite = panel(new THREE.MeshStandardMaterial({ map: lanternTex('#f4e6c8', '#2a1a12'), emissive: 0xffc070, emissiveIntensity: 0.15, roughness: 0.8 }));
   M.lanternWhite.emissiveMap = M.lanternWhite.map;
+  M.lanternWhite.userData.paper = M.lanternRed.userData.paper = true;
   M.fire = new THREE.MeshBasicMaterial({ color: 0xffd08a });
   M.tapestry = panel(new THREE.MeshStandardMaterial({ map: tapestryTex(), roughness: 0.85 }));
   M.brocade = [
@@ -355,11 +356,21 @@ function box(w, h, d, mat, x = 0, y = 0, z = 0) {
   return m;
 }
 
+const paperCapMaterial = new THREE.MeshStandardMaterial({ color: 0x2d261e, roughness: .85 });
 function cyl(r, len, mat, axis = 'y', seg = 10) {
-  const g = new THREE.CylinderGeometry(r, r, len, seg);
+  const paper = mat.userData.paper;
+  const g = paper ? new THREE.LatheGeometry([[-.5,.7],[-.42,.94],[-.25,1],[.25,1],[.42,.94],[.5,.7]].map(([y,w]) => new THREE.Vector2(r * w, len * y)), seg) : new THREE.CylinderGeometry(r, r, len, seg);
   if (axis === 'x') g.rotateZ(Math.PI / 2);
   if (axis === 'z') g.rotateX(Math.PI / 2);
-  return new THREE.Mesh(g, mat);
+  const mesh = new THREE.Mesh(g, mat);
+  if (paper) for (const sign of [-1,1]) {
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(r * .74, r * .74, len * .065, seg), paperCapMaterial);
+    if (axis === 'x') { cap.rotation.z = Math.PI / 2; cap.position.x = sign * len * .5; }
+    else if (axis === 'z') { cap.rotation.x = Math.PI / 2; cap.position.z = sign * len * .5; }
+    else cap.position.y = sign * len * .5;
+    mesh.add(cap);
+  }
+  return mesh;
 }
 
 /**
@@ -636,6 +647,10 @@ B.canalQuarter = (pc, ctx) => {
       g.add(cap);
     }
   }
+
+  // A near-bank stone walk connects the canal to the town around it.
+  // Its weathered edge replaces the empty ground beyond the water ribbon.
+  g.add(box(len, 0.16, 5.0, M.slab, 0, 0.0, zNear + 2.55));
 
   // A narrow far-bank towpath and its timber edge. It gives the canal depth
   // behind the cat, especially where the route jumps onto the far boughs.
@@ -970,23 +985,6 @@ B.kido = (pc, ctx) => {
   }
   ctx.add(g);
   ctx.light(rail, sm, 1.9, pc.d + 0.5);
-};
-
-B.barrel = (pc, ctx) => {
-  const g = frameGroup(ctx.rail, (pc.s0 + pc.s1) / 2);
-  const b = cyl(0.3, 0.8, ctx.M.timberMed, 'y', 12);
-  b.position.set(0, 0.4, pc.d);
-  g.add(b);
-  for (const y of [0.15, 0.65]) { const r = cyl(0.31, 0.05, ctx.M.dark, 'y', 12); r.position.set(0, y, pc.d); g.add(r); }
-  ctx.add(g);
-};
-
-B.crate = (pc, ctx) => {
-  const g = frameGroup(ctx.rail, (pc.s0 + pc.s1) / 2);
-  const w = pc.s1 - pc.s0;
-  g.add(box(w, pc.y * 0.5, 0.7, ctx.M.timberMed, 0, pc.y * 0.25, pc.d));
-  g.add(box(w * 0.9, pc.y * 0.5, 0.65, ctx.M.timberMed, 0.03, pc.y * 0.75, pc.d - 0.02));
-  ctx.add(g);
 };
 
 B.komayose = (pc, ctx) => {
@@ -1569,7 +1567,7 @@ B.shopfronts = (pc, ctx) => {
   const { M, rail } = ctx;
   // Covered market stalls along the back of the market street.
   for (let s = pc.s0 + 0.2; s < pc.s1 - 1; s += 3.2) {
-    if ((s > 187.6 && s < 192.8) || (s > 203.6 && s < 208.8)) continue;
+    if (pc.gaps?.some(([a, b]) => s + 3 > a - .4 && s < b + .4)) continue;
     const g = frameGroup(rail, s + 1.5);
     const k = hash1(s);
     g.add(box(3.0, 3.6, 4.0, k > 0.5 ? M.plaster : M.plasterWarm, 0, 1.8, -2.0));
@@ -1839,9 +1837,17 @@ function buildDistantCity(level, M) {
   const rail = level.rail;
   const houseGeo = new THREE.BoxGeometry(1, 1, 1);
   houseGeo.translate(0, 0.5, 0);
-  const roofGeo = new THREE.ConeGeometry(0.75, 0.5, 4, 1);
-  roofGeo.rotateY(Math.PI / 4);
-  roofGeo.translate(0, 0.25, 0);
+  // Gabled machiya silhouettes, with enough pitch to read as tiled Kyoto
+  // roofs at distance instead of almost-flat pyramids on bare cubes.
+  const roofGeo = new THREE.BufferGeometry();
+  const rp = [], ru = [];
+  const quad = (a, b, c, d) => { for (const p of [a,b,c,a,c,d]) { rp.push(...p); ru.push(p[2] * 4, p[0] * 4); } };
+  quad([-.57,0,-.6],[-.57,0,.6],[0,.8,.6],[0,.8,-.6]);
+  quad([0,.8,-.6],[0,.8,.6],[.57,0,.6],[.57,0,-.6]);
+  quad([-.57,0,.6],[.57,0,.6],[0,.8,.6],[0,.8,.6]);
+  quad([.57,0,-.6],[-.57,0,-.6],[0,.8,-.6],[0,.8,-.6]);
+  roofGeo.setAttribute('position', new THREE.Float32BufferAttribute(rp, 3));
+  roofGeo.setAttribute('uv', new THREE.Float32BufferAttribute(ru, 2)); roofGeo.computeVertexNormals();
   const pts = [];
   // Distance from the rail polyline (cheap: sample the rail every 2 m).
   const samples = [];
@@ -1851,7 +1857,7 @@ function buildDistantCity(level, M) {
     for (let z = (level.bounds?.z0 ?? -260) - 80; z <= (level.bounds?.z1 ?? 150) + 80; z += 7) {
       const h = hash1(x * 0.37 + z * 1.71);
       const jx = x + (h - 0.5) * 3, jz = z + (hash1(x + z * 3.3) - 0.5) * 3;
-      if (nearRail(jx, jz, 22)) continue;
+      if (nearRail(jx, jz, 14)) continue;
       pts.push([jx, jz, h]);
     }
   }
@@ -1865,7 +1871,7 @@ function buildDistantCity(level, M) {
   pts.forEach(([x, z, h], i) => {
     const w = 4.5 + h * 3, d = 5 + hash1(h * 91) * 4, hh = 1.7 + (h > 0.86 ? 1.5 : 0) + hash1(h * 7) * 0.7;
     dummy.position.set(x, 0, z);
-    dummy.rotation.y = 0;
+    dummy.rotation.y = h > .5 ? 0 : Math.PI / 2;
     dummy.scale.set(w, hh, d);
     dummy.updateMatrix();
     walls.setMatrixAt(i, dummy.matrix);
@@ -1945,6 +1951,7 @@ const downtown = installDowntown(B, { box, cyl, frameGroup, hiraRoof, ribbon, ha
 
 export function buildWorld(level, opts = {}) {
   const M = makeMaterials();
+  paintDowntown(M);
   const setView = makeCutaway(M);
   const rail = level.rail;
   const motionScale = opts.reduceMotion ? 0.22 : 1;

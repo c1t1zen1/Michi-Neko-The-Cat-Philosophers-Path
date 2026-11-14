@@ -141,6 +141,12 @@ export class Companion {
       inp.move = Math.sign(wanted - r.s); inp.sprint = true;
       if (r.peering || r.blockedBy) { inp.jumpPressed = true; this.jumpT = 0.5; }
     }
+    // A boat can leave a wading guide behind. Chidori uses ordinary running
+    // jumps through the shallow canal to catch up, rather than trudging below
+    // Michi's rooftop pace or teleporting to another perch.
+    if (r.grounded && r.ground.kind === 'water' && separation < 1.2 && (player.y > r.y + .6 || Math.abs(player.vs) > 2.7)) {
+      inp.move = facing; inp.sprint = true; inp.jumpPressed = true; this.jumpT = .5;
+    }
     if (this.jumpT > 0) { this.jumpT -= dt; inp.jumpHeld = true; }
     const before = r.s;
     r.step(dt, inp, time);
