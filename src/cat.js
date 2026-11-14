@@ -23,6 +23,9 @@ import {
   makeNeutralPose, placeBody, poseSit, getActionPose, applyLook, setLookTarget, setDrinking,
   rollIdleInterval, startIdleAction, beginIdleAction, endIdleAction
 } from './characters/behaviour/poses.js?v=20261107a';
+import {
+  getMoodConfig, setMood, canPlaySound, triggerMeow, applyMood
+} from './characters/behaviour/mood.js?v=20261107a';
 
 export { catRimUniforms };
 
@@ -330,37 +333,15 @@ export class Cat {
   /* ------------------------------------------------------------------ */
 
   getMoodConfig() {
-    const map = {
-      calm:       { earTwitchBase: 1.5, blinkBase: 1.0, pupilScale: 1.0, tailSpeed: 1.0, tailLift: 0.0,  headScan: 1.0, ear: [-0.08, 0.0] },
-      curious:    { earTwitchBase: 1.0, blinkBase: 0.9, pupilScale: 1.08, tailSpeed: 0.9, tailLift: 0.10, headScan: 1.4, ear: [0.18, -0.04] },
-      playful:    { earTwitchBase: 0.6, blinkBase: 0.85, pupilScale: 1.15, tailSpeed: 1.6, tailLift: 0.25, headScan: 1.8, ear: [0.12, -0.02] },
-      sleepy:     { earTwitchBase: 3.0, blinkBase: 1.8, pupilScale: 0.90, tailSpeed: 0.4, tailLift: -0.05, headScan: 0.4, ear: [-0.22, 0.22] },
-      startled:   { earTwitchBase: 0.2, blinkBase: 0.15, pupilScale: 1.25, tailSpeed: 2.2, tailLift: 0.4, headScan: 2.5, ear: [-0.5, 0.42] },
-      alert:      { earTwitchBase: 0.7, blinkBase: 0.7, pupilScale: 1.10, tailSpeed: 1.3, tailLift: 0.15, headScan: 1.3, ear: [0.2, -0.06] },
-      cautious:   { earTwitchBase: 1.2, blinkBase: 1.0, pupilScale: 1.0, tailSpeed: 0.7, tailLift: -0.10, headScan: 0.8, ear: [-0.36, 0.3] }
-    };
-    return map[this.mood] || map.calm;
+    return getMoodConfig(this);
   }
 
   setMood(name, duration = 2.0, priority = 0) {
-    if (priority < this.moodPriority && this.moodTimer > 0 && name !== 'calm') return;
-    if (name === 'calm') priority = 0;
-    this.mood = name;
-    this.moodTimer = Math.max(duration, 0);
-    this.moodPriority = priority;
-    if (this.audio) {
-      if (name === 'playful' && this.canPlaySound('trill')) this.audio.playTrill();
-      else if (name === 'startled' && this.canPlaySound('hiss')) this.audio.playHiss();
-      else if (name === 'curious' && this.canPlaySound('chirp')) this.audio.playChirp();
-    }
+    return setMood(this, name, duration, priority);
   }
 
   canPlaySound(type, cooldown = 1.5) {
-    const now = performance.now() / 1000;
-    this.soundCooldowns = this.soundCooldowns || {};
-    if (now - (this.soundCooldowns[type] || 0) < cooldown) return false;
-    this.soundCooldowns[type] = now;
-    return true;
+    return canPlaySound(this, type, cooldown);
   }
 
   onJump() {
@@ -398,10 +379,7 @@ export class Cat {
   }
 
   triggerMeow() {
-    this.isMeowing = true;
-    this.meowTimer = 0.55;
-    this.setMood('playful', 1.0, 2);
-    if (this.audio) this.audio.playMeow();
+    return triggerMeow(this);
   }
 
   /**
@@ -419,106 +397,6 @@ export class Cat {
   }
 
   applyMood(dt, time, cfg) {
-    // Ears: mood carriage (forward when interested, flattened when uneasy)
-    // plus quick independent flicks
-    const sleeping = this.idleAction === 'sleep';
-    let earX = cfg.ear[0], earZ = cfg.ear[1];
-    if (sleeping) { earX = -0.2; earZ = 0.26; }
-    if (this.isSprinting) earX -= 0.2;
-    if (this.yawnOpen > 0) { earX -= 0.25 * this.yawnOpen; earZ += 0.15 * this.yawnOpen; }
-    this.earPose.x = approach(this.earPose.x, earX, 8, dt);
-    this.earPose.z = approach(this.earPose.z, earZ, 8, dt);
-    this.earTwitchTimer -= dt;
-    if (this.earTwitchTimer <= 0) {
-      this.earTwitch = 0.25;
-      this.earTwitchSide = Math.random() < 0.5 ? 0 : 1;
-      this.earTwitchTimer = (2.5 + Math.random() * 5) * cfg.earTwitchBase;
-    }
-    let flick = 0;
-    if (this.earTwitch > 0) {
-      this.earTwitch -= dt;
-      flick = Math.sin(this.earTwitch * 40) * Math.max(0, this.earTwitch) * 1.4;
-    }
-    for (let i = 0; i < this.ears.length; i++) {
-      const ear = this.ears[i];
-      const s = ear.userData.side;
-      const f = i === this.earTwitchSide ? flick : 0;
-      ear.rotation.set(this.earPose.x + f + Math.sin(time * 1.1 + i) * 0.02, f * 0.4 * s, -s * this.earPose.z);
-    }
-
-    // Eyes: blinks, slow "I trust you" blinks when calm and still, sleepy
-    // lids, and the pupil size for the mood
-    this.blinkTimer -= dt;
-    if (this.blinkTimer <= 0) {
-      this.blink = 0.16;
-      this.blinkTimer = (2 + Math.random() * 4) * cfg.blinkBase;
-    }
-    let blinkK = 0;
-    if (this.blink > 0) {
-      this.blink -= dt;
-      blinkK = this.blink > 0.08 ? (0.16 - this.blink) / 0.08 : Math.max(0, this.blink) / 0.08;
-    }
-    const still = this.state === 'idle' && this.speed < 0.1;
-    if (this.mood === 'calm' && still) this.slowBlinkTimer -= dt;
-    if (this.slowBlinkTimer <= 0 && this.slowBlink <= 0) {
-      this.slowBlink = 1.6;
-      this.slowBlinkTimer = 9 + Math.random() * 14;
-    }
-    let slow = 0;
-    if (this.slowBlink > 0) {
-      this.slowBlink -= dt;
-      const p = 1 - Math.max(0, this.slowBlink) / 1.6;
-      slow = Math.sin(Math.PI * p) * 0.95;
-    }
-    let lids = this.mood === 'sleepy' ? 0.42 : 0;
-    if (this.actionName === 'groom') lids = Math.max(lids, 0.55 * this.actionWeight);
-    if (this.actionName === 'sit' && this.purr > 0) lids = Math.max(lids, 0.4 * this.actionWeight);
-    if (this.actionName === 'stretch') lids = Math.max(lids, 0.6 * this.actionWeight);
-    const closed = Math.max(this.yawnOpen * 0.95, sleeping ? this.actionWeight : 0);
-    this.squint = approach(this.squint, lids, 6, dt);
-    const blink = Math.min(1, Math.max(blinkK, slow, closed, this.squint));
-    const st = this.face.state;
-    st.x = blink;
-    st.y = this.mood === 'playful' ? 0.12 : 0;
-    st.z = approach(st.z, cfg.pupilScale, 5, dt);
-    st.w = sleeping ? 1 : 0;
-
-    // Little saccades so the eyes never look painted on
-    this.gazeTimer -= dt;
-    if (this.gazeTimer <= 0) {
-      this.gazeTimer = 1.2 + Math.random() * 3;
-      this.gazeTarget.set((Math.random() - 0.5) * 0.24, (Math.random() - 0.5) * 0.1);
-      if (this.lookTarget) this.gazeTarget.x = clamp(this.lookYaw * 0.25, -0.18, 0.18);
-    }
-    this.gaze.x = approach(this.gaze.x, this.gazeTarget.x, 18, dt);
-    this.gaze.y = approach(this.gaze.y, this.gazeTarget.y, 18, dt);
-    this.face.look.copy(this.gaze);
-
-    // Mouth: meow, yawn, licking and lapping
-    let mouth = this.yawnOpen;
-    if (this.isMeowing) {
-      this.meowTimer -= dt;
-      const meowOpen = Math.sin((1 - Math.max(0, this.meowTimer) / 0.55) * Math.PI);
-      mouth = Math.max(mouth, meowOpen * 0.7);
-      this.head.rotation.x -= meowOpen * 0.18;
-      if (this.meowTimer <= 0) this.isMeowing = false;
-    }
-    if (this.actionName === 'groom') mouth = Math.max(mouth, (0.2 + 0.12 * Math.sin(this.idleActionTimer * 9.5)) * this.actionWeight);
-    if (this.isDrinking) mouth = Math.max(mouth, Math.max(0, Math.sin(time * 13)) * 0.3 * this.actionWeight);
-    this.mouthOpen = approach(this.mouthOpen, mouth, 16, dt);
-    this.face.mouth.value = this.mouthOpen;
-
-    // A startled cat's tail fluffs up into a bottlebrush. The swell is a
-    // morph on the tail tube: scaling the chained tail bones would compound
-    // down the chain (and stretch the tail along its length).
-    this.tailPuff = approach(this.tailPuff, this.mood === 'startled' ? 1 : 0, this.mood === 'startled' ? 10 : 2, dt);
-    this.tailMesh.morphTargetInfluences[0] = this.tailPuff;
-    this.tailMesh.userData.outline.morphTargetInfluences[0] = this.tailPuff;
-
-    if (!this.idleAction) {
-      const scan = cfg.headScan;
-      this.head.rotation.y += Math.sin(time * 0.45) * 0.1 * (scan - 1) * (1 - Math.min(1, Math.abs(this.lookYaw) * 2));
-      this.head.rotation.x += Math.sin(time * 0.7) * 0.03 * (scan - 1);
-    }
+    return applyMood(this, dt, time, cfg);
   }
 }
