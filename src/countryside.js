@@ -3126,30 +3126,47 @@ export class Countryside {
   }
 
   buildLanterns() {
+    const layout = this.layoutLanterns();
+    for (const lamp of layout.lamps) this.placeAsset('street-lamps', lamp, () => this.meshStreetLampClassic(lamp));
+  }
+
+  layoutLanterns() {
     const spots = [
       [-2.6, -18], [2.6, -18], [-2.8, -26], [2.8, -26],
       [-3, -4], [3.2, 2], [-2.8, 14]
     ];
     let lampIdx = 0;
-    for (const [x, z] of spots) {
-      const l = new THREE.Group();
-      l.name = `Street Lamp ${++lampIdx}`;
-      l.add(box(0.5, 0.25, 0.5, MAT.stone, 0, 0.125, 0));
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 0.9, 8), MAT.stone);
-      post.position.y = 0.7;
-      post.castShadow = true;
-      l.add(post);
-      l.add(box(0.44, 0.14, 0.44, MAT.stone, 0, 1.22, 0));
-      l.add(box(0.3, 0.3, 0.3, MAT.lanternGlow, 0, 1.45, 0));
-      const cap = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.3, 4), MAT.stoneDark);
-      cap.position.y = 1.75;
-      cap.rotation.y = Math.PI / 4;
-      cap.castShadow = true;
-      l.add(cap);
-      l.position.set(x, 0, z);
-      this.scene.add(l);
-      this.addCollider(l.children[1], 0.15);
-    }
+    return {
+      lamps: spots.map(([x, z]) => {
+        // collider: the stone post (children[1]), padded 0.15
+        const post = shapeBox(frameOf(frameOf(null, x, 0, z), 0, 0.7, 0), 'CylinderGeometry', 0.1, 0.13, 0.9, 8);
+        return {
+          index: this.nextIndex('street-lamps'), name: `Street Lamp ${++lampIdx}`, x, z,
+          footprint: footprint({ colliders: [post.expandByScalar(0.15)] })
+        };
+      })
+    };
+  }
+
+  meshStreetLampClassic(layout) {
+    const { x, z } = layout;
+    const l = new THREE.Group();
+    l.name = layout.name;
+    l.add(box(0.5, 0.25, 0.5, MAT.stone, 0, 0.125, 0));
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 0.9, 8), MAT.stone);
+    post.position.y = 0.7;
+    post.castShadow = true;
+    l.add(post);
+    l.add(box(0.44, 0.14, 0.44, MAT.stone, 0, 1.22, 0));
+    l.add(box(0.3, 0.3, 0.3, MAT.lanternGlow, 0, 1.45, 0));
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.3, 4), MAT.stoneDark);
+    cap.position.y = 1.75;
+    cap.rotation.y = Math.PI / 4;
+    cap.castShadow = true;
+    l.add(cap);
+    l.position.set(x, 0, z);
+    this.scene.add(l);
+    this.addCollider(l.children[1], 0.15);
   }
 
   buildMountains() {
