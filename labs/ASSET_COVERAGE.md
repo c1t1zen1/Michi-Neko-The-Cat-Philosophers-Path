@@ -6,7 +6,7 @@ Reviewed 2026-11-10. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **113 of 186 (60.8%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **114 of 186 (61.3%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -28,17 +28,17 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 113 | 60.8% |
+| Focused lab study | 114 | 61.3% |
 | Review sheet | 41 | 22.0% |
 | Embedded in a specimen | 12 | 6.5% |
 | Related evidence only | 14 | 7.5% |
-| No mapped evidence | 6 | 3.2% |
+| No mapped evidence | 5 | 2.7% |
 
 ## Coverage by area
 
 | Area | Active rows | Focused | Review | Embedded | Related | Missing |
 |---|---:|---:|---:|---:|---:|---:|
-| Characters | 9 | 6 | 1 | 1 | 0 | 1 |
+| Characters | 9 | 7 | 1 | 1 | 0 | 0 |
 | Cat components | 5 | 0 | 3 | 1 | 0 | 1 |
 | Ground and water | 13 | 12 | 0 | 1 | 0 | 0 |
 | Landscape | 7 | 3 | 0 | 1 | 3 | 0 |
@@ -62,7 +62,6 @@ This list includes every active row without a focused study, including review-on
 |---|---|---|
 | [Michi (player cat)](#michi) | Review sheet | The sleep specimen uses Michi’s coat/build; it is a pose study rather than a dedicated player-model lab. |
 | [Larry the turtle](#larry) | Embedded in a specimen | The complete original corral includes Larry; there is no isolated turtle or patrol study. |
-| [Nest guardian crows](#guardian-crows) | No mapped evidence | Critters extracts a sparrow, not guardianBirds; constructing AmbientLife alone does not put the crows on a specimen. |
 | [Cat body, fur and tabby coats](#cat-coat) | Review sheet | No individual focused specimen is mapped. |
 | [Cat nose, muzzle, whiskers, ears and painted eyes](#cat-face) | Review sheet | No individual focused specimen is mapped. |
 | [Braided collar, bow and brass bell](#cat-collar) | Review sheet | No individual focused specimen is mapped. |
@@ -147,7 +146,7 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="mochi"></a>`mochi` — Mochi | [src/main.js:'Mochi',](../src/main.js#L291)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / mochi](../labs/villagers/js/recipes.js#L43) (direct) |  |
 | <a id="kuro"></a>`kuro` — Kuro | [src/main.js:'Kuro',](../src/main.js#L306)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / kuro](../labs/villagers/js/recipes.js#L47) (direct) |  |
 | <a id="larry"></a>`larry` — Larry the turtle | [src/countryside.js:turtle.name = 'Turtle Guardian (Larry)'](../src/countryside.js#L3451) | [fences / corral](../labs/fences/js/recipes.js#L71) (embedded) — The complete original corral includes Larry; there is no isolated turtle or patrol study. |  |
-| <a id="guardian-crows"></a>`guardian-crows` — Nest guardian crows | [src/ambient_life.js:buildGuardianBirds(](../src/ambient_life.js#L221) | **No mapped evidence** | Critters extracts a sparrow, not guardianBirds; constructing AmbientLife alone does not put the crows on a specimen. |
+| <a id="guardian-crows"></a>`guardian-crows` — Nest guardian crows | [src/ambient_life.js:buildGuardianBirds(](../src/ambient_life.js#L221) | [critters / guardian-crow](../labs/critters/js/recipes.js#L50) (direct) |  |
 | <a id="sparrows"></a>`sparrows` — Valley sparrows | [src/ambient_life.js:buildBirds(](../src/ambient_life.js#L160) | [critters / game-bird](../labs/critters/js/recipes.js#L42) (direct)<br>[critters / flock](../labs/critters/js/recipes.js#L46) (direct) |  |
 | <a id="koi"></a>`koi` — River koi (procedural coat variants) | [src/ambient_life.js:buildKoi(](../src/ambient_life.js#L637) | [critters / game-koi](../labs/critters/js/recipes.js#L32) (direct) | Repeated koi and randomized markings are instances of this type, not additional inventory rows. |
 | <a id="butterflies"></a>`butterflies` — Valley butterflies | [src/ambient_life.js:buildButterflies(](../src/ambient_life.js#L415) | [critters / game-flutter](../labs/critters/js/recipes.js#L54) (direct)<br>[critters / hinge](../labs/critters/js/recipes.js#L58) (direct) |  |

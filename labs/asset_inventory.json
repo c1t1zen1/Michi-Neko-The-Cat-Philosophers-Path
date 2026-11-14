@@ -277,6 +277,13 @@
       "file": "labs/fences/js/recipes.js",
       "anchor": "id: 'corral-sign'"
     },
+    "critters/guardian-crow": {
+      "lab": "critters",
+      "selector": "guardian-crow",
+      "kind": "specimen",
+      "file": "labs/critters/js/recipes.js",
+      "anchor": "id: 'guardian-crow'"
+    },
     "critters/game-bird": {
       "lab": "critters",
       "selector": "game-bird",
@@ -1383,8 +1390,12 @@
           "anchor": "  buildGuardianBirds("
         }
       ],
-      "coverage": [],
-      "note": "Critters extracts a sparrow, not guardianBirds; constructing AmbientLife alone does not put the crows on a specimen."
+      "coverage": [
+        {
+          "target": "critters/guardian-crow",
+          "level": "direct"
+        }
+      ]
     },
     {
       "id": "sparrows",

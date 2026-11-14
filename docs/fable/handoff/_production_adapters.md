@@ -39,3 +39,4 @@ For s3-vista and r4-festival (import with the current `?v=` tag):
 | v-machiya-a | kawara-roof, koushi, upper-windows, noren, timber-frame, namako, engawa, tea-bench, secret-door, lock-plate | src/kit/machiya/index.js assets (production: "machiya") |
 | v-hidden | all 15 hidden ids (moon-pool, lantern-glade, glade-lanterns, ...) | src/kit/hidden/index.js assets (production: "hidden") |
 | v-interiors-a | tea-interior, tatami, interior-frame, shoji-doors, tokonoma, scroll, bonsai, chabudai, teaware, zabuton, knockables | src/kit/interiors/index.js assets (production: "interiors/<id>") |
+| v-critters | sparrows, koi, butterflies | src/kit/critters/index.js assets (family critters; lab ids critters/flock, critters/sanke, critters/hinge) |
