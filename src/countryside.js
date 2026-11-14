@@ -443,9 +443,14 @@ export class Countryside {
     return counts[kind] - 1;
   }
 
-  /** addCollider for a routed component: its classic mesh, or its layout box when the kit built it. */
+  /**
+   * addCollider for a routed component: from its classic meshes, or, when the
+   * kit built it or anything inside it, the classic box its layout holds.
+   */
   addComponentCollider(obj, pad, box) {
-    if (obj && obj.userData && obj.userData.placedAsset) {
+    let kit = false;
+    if (obj) obj.traverse((o) => { if (o.userData && o.userData.placedAsset) kit = true; });
+    if (kit) {
       this.colliders.push(box);
       return box;
     }
