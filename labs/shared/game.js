@@ -1,6 +1,8 @@
 // The single bridge from the labs to the game's own modules (cache-tagged).
 export * from '../../src/textures.js?v=20261113a';
 export const loadCatModule = () => import('../../src/cat.js?v=20261113a');
+// The modular Michi def and its parts (labs/cat).
+export const loadMichiModule = () => import('../../src/characters/defs/michi.js?v=20261113a');
 // The Machiya Lab calls the original builders without constructing the valley.
 export const loadCountrysideModule = () => import('../../src/countryside.js?v=20261113a');
 // The Ranges Lab builds its wall from the game's own canopy/foliage kit.

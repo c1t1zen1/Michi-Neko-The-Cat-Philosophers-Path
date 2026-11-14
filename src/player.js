@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Cat } from './cat.js?v=20261113a';
+import { MICHI_MODULAR, michiIsModular } from './characters/defs/michi.js?v=20261113a';
 import { ColliderGrid } from './collider_grid.js?v=20261113a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
@@ -16,13 +17,17 @@ const _rayHit = new THREE.Vector3();
 const _pushDir = new THREE.Vector3();
 
 export class Player {
-  constructor(scene, camera, audio = null) {
+  constructor(scene, camera, audio = null, { assets = null, quality = 'medium' } = {}) {
     this.scene = scene;
     this.camera = camera;
     this.audio = audio;
 
     // Tan coat with light-brown mackerel tabby stripes (Ghibli reference palette)
-    this.cat = new Cat({ fur: 0xae8450, belly: 0xeedcb8, accent: 0x5e3d26, audio });
+    // Modular Michi (Fable, c2): only when the asset runtime resolves 'michi' to modular.
+    // Classic (and quality low, and no assets passed) builds today's Cat from options.
+    this.cat = michiIsModular(assets, quality)
+      ? new Cat({ def: MICHI_MODULAR, audio, quality })
+      : new Cat({ fur: 0xae8450, belly: 0xeedcb8, accent: 0x5e3d26, audio });
     this.mesh = new THREE.Group();
     this.mesh.name = 'Player Character (Michi)';
     this.mesh.add(this.cat.group);
