@@ -319,7 +319,8 @@ function trackLoads() {
   const load = GLTFLoader.prototype.load;
   GLTFLoader.prototype.load = function (url, onLoad, onProgress, onError) {
     let settle;
-    const file = String(url).replace(/^.*\/assets\//, 'assets/');
+    // Recorded without the cache tag, so a tag bump never reads as a change.
+    const file = String(url).replace(/^.*\/assets\//, 'assets/').replace(/\?v=[^&#]*/, '');
     pendingLoads.push(new Promise((resolve) => { settle = resolve; }));
     return load.call(this, url, (gltf) => {
       try { if (onLoad) onLoad(gltf); } finally { settle({ url: file, ok: true }); }

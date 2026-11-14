@@ -149,7 +149,7 @@
   "vistaRiverX"
  ],
  "loads": [
-  "assets/models/summit_kyoto_landmarks.glb?v=20261107a"
+  "assets/models/summit_kyoto_landmarks.glb"
  ],
  "colliders": [
   [-1.278,-1201.6,15.93,-0.738,-1197.74,16.47],
