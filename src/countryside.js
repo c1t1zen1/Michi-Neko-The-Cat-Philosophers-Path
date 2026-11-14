@@ -686,6 +686,19 @@ export class Countryside {
   }
 
   buildGround() {
+    const layout = this.layoutGround();
+    return this.placeAsset('valley-ground', layout, () => this.meshGroundClassic(layout));
+  }
+
+  /** The valley floor and its far slopes (one height field, no draws); the shoulders are a component. */
+  layoutGround() {
+    return {
+      index: this.nextIndex('valley-ground'), name: 'Village Ground', band: 'near', footprint: footprint(), bind: { groundMesh: '.' },
+      components: [component('path-shoulders', this.layoutPathShoulders(), 'meshPathShouldersClassic')]
+    };
+  }
+
+  meshGroundClassic(layout) {
     const size = 260;
     const geo = new THREE.PlaneGeometry(size, size, 150, 150);
     geo.rotateX(-Math.PI / 2);
@@ -770,7 +783,7 @@ export class Countryside {
 
     // Soft earthen shoulders either side of the cobbled road so the pavement
     // fades into the meadow rather than ending in a hard seam.
-    this.buildPathShoulders();
+    this.placeComponent(layout.components[0], this.scene);
   }
 
   buildPathShoulders() {
