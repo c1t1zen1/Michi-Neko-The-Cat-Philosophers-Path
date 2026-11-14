@@ -75,7 +75,7 @@ export const assets = [
   }),
   defineAsset({
     id: 'rain', family: 'weather', lab: 'weather/game-rain', label: 'Rain streaks', floating: ['lines'],
-    params: { strength: num(1, 0.4, 1.4, 0.05, 'Streak strength') },
+    params: { strength: num(1.35, 0.5, 1.8, 0.05, 'Streak strength') },
     sample: SAMPLE.rain,
     build: (ctx, layout, p) => buildRain(ctx, layout, p)
   }),

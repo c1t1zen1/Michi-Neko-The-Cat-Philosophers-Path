@@ -23,7 +23,7 @@ export function buildRain(ctx, layout, p) {
   const col = new Float32Array(verts * 4);
   const tail = ctx.tier === 'far' ? 0.7 : 0;     // the far tier keeps a faint tail (no alpha ramp to read at range)
   for (let s = 0; s < verts / 2; s++) {
-    const a = (0.4 + 0.6 * r()) * p.strength;       // how near / heavy this streak is
+    const a = Math.min(1, (0.55 + 0.45 * r()) * p.strength);       // how near / heavy this streak is
     col.set([0.86, 0.93, 1, a], s * 8);            // head (the lower vertex)
     col.set([0.78, 0.88, 1, a * tail], s * 8 + 4);  // tail fades to nothing
   }
