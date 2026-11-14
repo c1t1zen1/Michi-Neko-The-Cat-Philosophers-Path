@@ -157,7 +157,7 @@ const PROFILE = {
 };
 const STEP = { hero: 0.4, mid: 1.0, far: 0 };
 // sRGB hex, converted to the linear vertex colours three multiplies in
-const COL_HEX = { mud: 0x5a4a34, mudWet: 0x3e3226, grass: 0x5b7434, grass2: 0x7a8c42, earth: 0x6e6444 };
+const COL_HEX = { mud: 0x4e3f2c, mudWet: 0x33291f, grass: 0x4a6329, grass2: 0x627634, earth: 0x54472f };
 
 /**
  * One aze ridge from A to B (xz), `out` the unit direction away from the
@@ -191,7 +191,7 @@ function ridgeGeometry(T, A, B, out, tier, seed, notch) {
       let rgb;
       if (top) rgb = mix(COL.grass, COL.grass2, n);
       else if (c < 0) rgb = mix(COL.mudWet, COL.mud, Math.min(1, Math.max(0, y0 / 0.2)) * 0.6 + n * 0.3);
-      else rgb = mix(COL.earth, COL.grass, n * 0.7);
+      else rgb = mix(COL.earth, COL.grass, n * 0.35 + Math.max(0, y0 - 0.16) * 2);
       col.push(...rgb);
     }
   }

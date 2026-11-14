@@ -27,7 +27,7 @@ function noise(x, y, z) {
 
 // cross-section, paddy side first: base 0.5 m, crest 0.28 m (the game ridge's size)
 export const AZE_PROFILE = [[-0.25, -0.02], [-0.205, 0.16], [-0.14, 0.25], [-0.06, 0.28], [0.06, 0.28], [0.14, 0.25], [0.205, 0.16], [0.25, -0.02]];
-const COL_HEX = { mud: 0x5a4a34, mudWet: 0x3e3226, grass: 0x5b7434, grass2: 0x7a8c42, earth: 0x6e6444 };
+const COL_HEX = { mud: 0x4e3f2c, mudWet: 0x33291f, grass: 0x4a6329, grass2: 0x627634, earth: 0x54472f };
 
 /** One bank from A to B ([x, z]) at height y, `out` the unit direction away from the paddy, a notch at `notch` (0..1) or -1. */
 export function azeGeometry(A, B, out, { y = 0, seed = 1, step = 0.4, notch = -1, profile = AZE_PROFILE } = {}) {
@@ -52,7 +52,7 @@ export function azeGeometry(A, B, out, { y = 0, seed = 1, step = 0.4, notch = -1
       const n = noise(d * 2.3, seed + 7, j * 0.9);
       const rgb = top ? mix(COL.grass, COL.grass2, n)
         : c < 0 ? mix(COL.mudWet, COL.mud, Math.min(1, Math.max(0, y0 / 0.2)) * 0.6 + n * 0.3)
-          : mix(COL.earth, COL.grass, n * 0.7);
+          : mix(COL.earth, COL.grass, n * 0.35 + Math.max(0, y0 - 0.16) * 2);
       col.push(...rgb);
     }
   }

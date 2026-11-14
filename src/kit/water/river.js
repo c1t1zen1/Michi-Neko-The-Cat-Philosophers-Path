@@ -133,7 +133,7 @@ void main() {
   vec4 fm = flowFoam(q, flow, t, 0.6);
   // lapping at the banks: soft streaks broken by a few bubbles, not a lace of cells
   float lap = 0.5 + 0.5 * sin(q.x * 1.3 - t * 0.9 + fm.g * 4.);
-  float shore = (1. - smoothstep(0.022, 0.06 + lap * 0.02, depth)) * smoothstep(0.5, 0.95, fm.g * 0.75 + fm.r * 0.3 + lap * 0.15) * 0.55;
+  float shore = (1. - smoothstep(0.022, 0.06 + lap * 0.02, depth)) * smoothstep(0.55, 0.95, fm.g * 0.85 + lap * 0.2) * 0.5;
   float fieldFoam = smoothstep(0.2, 0.7, F.a * (0.5 + fm.r * 0.65 + fm.g * 0.45));
   float foam = max(shore, fieldFoam) * uFoamAmt;
   foam = max(foam, smoothstep(0.35, 1.2, crest) * 0.55);
