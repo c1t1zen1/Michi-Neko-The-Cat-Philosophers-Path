@@ -518,6 +518,34 @@
       "file": "labs/machiya/js/variants.js",
       "anchor": "baseline('roof',"
     },
+    "machiya/namako-original": {
+      "lab": "machiya",
+      "selector": "namako-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('namako',"
+    },
+    "machiya/bench-original": {
+      "lab": "machiya",
+      "selector": "bench-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('bench',"
+    },
+    "machiya/door-original": {
+      "lab": "machiya",
+      "selector": "door-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('door',"
+    },
+    "machiya/lock-original": {
+      "lab": "machiya",
+      "selector": "lock-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('lock',"
+    },
     "machiya/lattice-original": {
       "lab": "machiya",
       "selector": "lattice-original",
@@ -2032,8 +2060,8 @@
       ],
       "coverage": [
         {
-          "target": "machiya/original-village",
-          "level": "embedded"
+          "target": "machiya/namako-original",
+          "level": "direct"
         }
       ]
     },
@@ -2050,8 +2078,8 @@
       ],
       "coverage": [
         {
-          "target": "machiya/original-tea",
-          "level": "embedded"
+          "target": "machiya/bench-original",
+          "level": "direct"
         }
       ]
     },
@@ -2068,8 +2096,8 @@
       ],
       "coverage": [
         {
-          "target": "machiya/original-secret",
-          "level": "embedded"
+          "target": "machiya/door-original",
+          "level": "direct"
         }
       ]
     },
@@ -2086,8 +2114,8 @@
       ],
       "coverage": [
         {
-          "target": "machiya/original-secret",
-          "level": "embedded"
+          "target": "machiya/lock-original",
+          "level": "direct"
         }
       ]
     },

@@ -6,7 +6,7 @@ Reviewed 2026-11-10. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **95 of 186 (51.1%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **99 of 186 (53.2%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -28,9 +28,9 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 95 | 51.1% |
+| Focused lab study | 99 | 53.2% |
 | Review sheet | 41 | 22.0% |
-| Embedded in a specimen | 24 | 12.9% |
+| Embedded in a specimen | 20 | 10.8% |
 | Related evidence only | 18 | 9.7% |
 | No mapped evidence | 8 | 4.3% |
 
@@ -43,7 +43,7 @@ Each active row is counted once at its strongest evidence level, in the order ab
 | Ground and water | 13 | 12 | 0 | 1 | 0 | 0 |
 | Landscape | 7 | 3 | 0 | 1 | 3 | 0 |
 | Buildings | 5 | 4 | 0 | 0 | 1 | 0 |
-| Building components | 10 | 6 | 0 | 4 | 0 | 0 |
+| Building components | 10 | 10 | 0 | 0 | 0 | 0 |
 | Props | 12 | 12 | 0 | 0 | 0 | 0 |
 | Shrine | 7 | 7 | 0 | 0 | 0 | 0 |
 | Items | 8 | 8 | 0 | 0 | 0 | 0 |
@@ -74,10 +74,6 @@ This list includes every active row without a focused study, including review-on
 | [Valley mist ring](#mist-ring) | Related evidence only | Aerial perspective bench; it does not extract the original mist-ring mesh. |
 | [River dawn mist ribbons](#dawn-mist) | Related evidence only | General haze study; no dawn-river specimen or time envelope. |
 | [Village street assembly](#village-street) | Related evidence only | Individual house references, not a specimen of the complete original street layout. |
-| [Namako skirt walls](#namako) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Tea-house bench and mosen cushion](#tea-bench) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Secret sliding door](#secret-door) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Antique brass padlock emblem](#lock-plate) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Sakura trees](#sakura) | Review sheet | No individual focused specimen is mapped. |
 | [Maple trees](#maples) | Review sheet | No individual focused specimen is mapped. |
 | [Garden pines](#pines) | Review sheet | No individual focused specimen is mapped. |
@@ -230,10 +226,10 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="timber-frame"></a>`timber-frame` — Timber posts, sills and eave beams | [src/countryside.js:// Dark timber foundation sill](../src/countryside.js#L2279) | [machiya / frame-original](../labs/machiya/js/variants.js#L79) (direct) |  |
 | <a id="upper-windows"></a>`upper-windows` — Upper-storey timber lattice windows | [src/countryside.js:// Upper fine vertical lattice windows](../src/countryside.js#L2231) | [machiya / window-original](../labs/machiya/js/variants.js#L88) (direct) |  |
 | <a id="noren"></a>`noren` — Noren shop curtains | [src/countryside.js:// Front Facade: Lattice](../src/countryside.js#L2199) | [machiya / cloth-original](../labs/machiya/js/variants.js#L97) (direct) |  |
-| <a id="namako"></a>`namako` — Namako skirt walls | [src/countryside.js:// Namako-kabe skirt](../src/countryside.js#L98) | [machiya / original-village](../labs/machiya/js/variants.js#L63) (embedded) |  |
-| <a id="tea-bench"></a>`tea-bench` — Tea-house bench and mosen cushion | [src/countryside.js:// Front Chamise Tea Bench](../src/countryside.js#L2290) | [machiya / original-tea](../labs/machiya/js/variants.js#L63) (embedded) |  |
-| <a id="secret-door"></a>`secret-door` — Secret sliding door | [src/countryside.js:slidingDoor.name = 'Secret Sliding Door'](../src/countryside.js#L2663) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
-| <a id="lock-plate"></a>`lock-plate` — Antique brass padlock emblem | [src/countryside.js:this.lockPlate.name = 'Brass Lock Plate'](../src/countryside.js#L2679) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
+| <a id="namako"></a>`namako` — Namako skirt walls | [src/countryside.js:// Namako-kabe skirt](../src/countryside.js#L98) | [machiya / namako-original](../labs/machiya/js/variants.js#L108) (direct) |  |
+| <a id="tea-bench"></a>`tea-bench` — Tea-house bench and mosen cushion | [src/countryside.js:// Front Chamise Tea Bench](../src/countryside.js#L2290) | [machiya / bench-original](../labs/machiya/js/variants.js#L110) (direct) |  |
+| <a id="secret-door"></a>`secret-door` — Secret sliding door | [src/countryside.js:slidingDoor.name = 'Secret Sliding Door'](../src/countryside.js#L2663) | [machiya / door-original](../labs/machiya/js/variants.js#L112) (direct) |  |
+| <a id="lock-plate"></a>`lock-plate` — Antique brass padlock emblem | [src/countryside.js:this.lockPlate.name = 'Brass Lock Plate'](../src/countryside.js#L2679) | [machiya / lock-original](../labs/machiya/js/variants.js#L114) (direct) |  |
 
 ### Props
 
