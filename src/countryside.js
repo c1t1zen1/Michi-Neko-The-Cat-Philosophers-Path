@@ -4701,19 +4701,40 @@ export class Countryside {
   }
 
   buildMistRing() {
-    const tex = this.mistTexture();
-    this.mists = [];
+    const layout = this.layoutMistRing();
+    return this.placeAsset('mist-ring', layout, () => this.meshMistRingClassic(layout));
+  }
+
+  /** 14 haze sprites round the rim (parts mist_1 … mist_14); per sprite: bearing, radius, height, size, drift phase, speed. */
+  layoutMistRing() {
+    const sprites = [];
     for (let i = 0; i < 14; i++) {
       const a = (i / 14) * Math.PI * 2 + this.random() * 0.3;
       const r = 58 + this.random() * 14;
-      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.75, depthWrite: false });
-      const spr = new THREE.Sprite(mat);
       const mx = Math.cos(a) * r, mz = Math.sin(a) * r;
       const baseY = this.terrainHeight(mx, mz) + 2.0 + this.random() * 4;
-      spr.position.set(mx, baseY, mz);
-      spr.scale.set(28 + this.random() * 22, 10 + this.random() * 8, 1);
+      const scale = [28 + this.random() * 22, 10 + this.random() * 8];
+      sprites.push({ x: mx, y: baseY, z: mz, scale, phase: this.random() * 6, speed: 0.03 + this.random() * 0.04 });
+    }
+    return {
+      index: this.nextIndex('mist-ring'), band: 'rim', sprites,
+      footprint: footprint({
+        lists: { mists: sprites.map((m, i) => ({ spr: part(`mist_${i + 1}`), baseX: m.x, baseY: m.y, phase: m.phase, speed: m.speed })) }
+      })
+    };
+  }
+
+  meshMistRingClassic(layout) {
+    const tex = this.mistTexture();
+    this.mists = [];
+    for (const m of layout.sprites) {
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.75, depthWrite: false });
+      const spr = new THREE.Sprite(mat);
+      const baseY = m.y;
+      spr.position.set(m.x, baseY, m.z);
+      spr.scale.set(m.scale[0], m.scale[1], 1);
       this.scene.add(spr);
-      this.mists.push({ spr, baseX: spr.position.x, baseY, phase: this.random() * 6, speed: 0.03 + this.random() * 0.04 });
+      this.mists.push({ spr, baseX: spr.position.x, baseY, phase: m.phase, speed: m.speed });
     }
   }
 
@@ -4723,21 +4744,48 @@ export class Countryside {
    * mid-morning — the "valley waking up" beat.
    */
   buildDawnMist() {
-    if (!this.riverSamples.length) return;
-    const tex = this.mistTexture();
-    this.dawnMists = [];
+    const layout = this.layoutDawnMist();
+    if (!layout) return;
+    return this.placeAsset('dawn-mist', layout, () => this.meshDawnMistClassic(layout));
+  }
+
+  /**
+   * 12 low river-mist sprites for first light (parts mist_1 … mist_12), set
+   * along the river samples. Their scatter is Math.random() (not the valley
+   * stream), drawn here in the classic order. None without a river.
+   */
+  layoutDawnMist() {
+    if (!this.riverSamples.length) return null;
     const n = 12;
+    const sprites = [];
     for (let i = 0; i < n; i++) {
       const s = this.riverSamples[Math.floor((i + 0.5) / n * (this.riverSamples.length - 1))];
+      const baseY = 0.75 + Math.random() * 0.5;
+      const x = s.x + (Math.random() - 0.5) * 3, z = s.z + (Math.random() - 0.5) * 3;
+      const scale = [15 + Math.random() * 9, 3.2 + Math.random() * 1.6];
+      sprites.push({ x, y: baseY, z, scale, phase: Math.random() * 6, speed: 0.04 + Math.random() * 0.05 });
+    }
+    return {
+      index: this.nextIndex('dawn-mist'), band: 'near', sprites,
+      footprint: footprint({
+        lists: { dawnMists: sprites.map((m, i) => ({ spr: part(`mist_${i + 1}`), baseX: m.x, baseY: m.y, phase: m.phase, speed: m.speed })) }
+      })
+    };
+  }
+
+  meshDawnMistClassic(layout) {
+    const tex = this.mistTexture();
+    this.dawnMists = [];
+    for (const m of layout.sprites) {
       const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false, color: 0xf6efe4 });
       const spr = new THREE.Sprite(mat);
-      const baseY = 0.75 + Math.random() * 0.5;
-      spr.position.set(s.x + (Math.random() - 0.5) * 3, baseY, s.z + (Math.random() - 0.5) * 3);
-      spr.scale.set(15 + Math.random() * 9, 3.2 + Math.random() * 1.6, 1);
+      const baseY = m.y;
+      spr.position.set(m.x, baseY, m.z);
+      spr.scale.set(m.scale[0], m.scale[1], 1);
       spr.visible = false;
       spr.renderOrder = 1;
       this.scene.add(spr);
-      this.dawnMists.push({ spr, baseX: spr.position.x, baseY, phase: Math.random() * 6, speed: 0.04 + Math.random() * 0.05 });
+      this.dawnMists.push({ spr, baseX: spr.position.x, baseY, phase: m.phase, speed: m.speed });
     }
   }
 
