@@ -41,3 +41,4 @@ For s3-vista and r4-festival (import with the current `?v=` tag):
 | v-interiors-a | tea-interior, tatami, interior-frame, shoji-doors, tokonoma, scroll, bonsai, chabudai, teaware, zabuton, knockables | src/kit/interiors/index.js assets (production: "interiors/<id>") |
 | v-critters | sparrows, koi, butterflies | src/kit/critters/index.js assets (family critters; lab ids critters/flock, critters/sanke, critters/hinge) |
 | v-ranges | mountains, edge-forest, edge-undergrowth, foothill-forest, distant-village, mist-ring, dawn-mist | src/kit/ranges/index.js assets |
+| v-weather | falling-petals, river-petals, snow, fireflies, dust-motes, rain, rain-ripples, dappled-light | src/kit/weather/index.js assets (production: "weather/<id>") |

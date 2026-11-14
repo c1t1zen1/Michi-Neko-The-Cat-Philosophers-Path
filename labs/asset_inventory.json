@@ -448,6 +448,41 @@
       "file": "labs/water/js/variants.js",
       "anchor": "id: 'ripple'"
     },
+    "weather/fireflies": {
+      "lab": "weather",
+      "selector": "fireflies",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'fireflies'"
+    },
+    "weather/dust-motes": {
+      "lab": "weather",
+      "selector": "dust-motes",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'dust-motes'"
+    },
+    "weather/scent": {
+      "lab": "weather",
+      "selector": "scent",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'scent'"
+    },
+    "weather/landing-dust": {
+      "lab": "weather",
+      "selector": "landing-dust",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'landing-dust'"
+    },
+    "weather/entry-splash": {
+      "lab": "weather",
+      "selector": "entry-splash",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'entry-splash'"
+    },
     "weather/splash": {
       "lab": "weather",
       "selector": "splash",
@@ -4116,6 +4151,10 @@
       ],
       "coverage": [
         {
+          "target": "weather/fireflies",
+          "level": "direct"
+        },
+        {
           "target": "moonpool/fireflies",
           "level": "related",
           "note": "Related firefly study; not Particles.buildFireflies()."
@@ -4134,6 +4173,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "weather/dust-motes",
+          "level": "direct"
+        },
         {
           "target": "moonpool/game-motes",
           "level": "related",
@@ -4170,8 +4213,12 @@
           "anchor": "  build() {"
         }
       ],
-      "coverage": [],
-      "note": "No scent-trail specimen or interaction study."
+      "coverage": [
+        {
+          "target": "weather/scent",
+          "level": "direct"
+        }
+      ]
     },
     {
       "id": "splash",
@@ -4185,6 +4232,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "weather/entry-splash",
+          "level": "direct"
+        },
         {
           "target": "weather/splash",
           "level": "related",
@@ -4203,8 +4254,12 @@
           "anchor": "  spawnLandDust("
         }
       ],
-      "coverage": [],
-      "note": "No specimen exercises this pooled landing effect."
+      "coverage": [
+        {
+          "target": "weather/landing-dust",
+          "level": "direct"
+        }
+      ]
     },
     {
       "id": "ao",

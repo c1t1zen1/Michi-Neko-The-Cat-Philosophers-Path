@@ -6,7 +6,7 @@ Reviewed 2026-11-10. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **118 of 186 (63.4%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **123 of 186 (66.1%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -28,11 +28,11 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 118 | 63.4% |
+| Focused lab study | 123 | 66.1% |
 | Review sheet | 41 | 22.0% |
 | Embedded in a specimen | 11 | 5.9% |
-| Related evidence only | 11 | 5.9% |
-| No mapped evidence | 5 | 2.7% |
+| Related evidence only | 8 | 4.3% |
+| No mapped evidence | 3 | 1.6% |
 
 ## Coverage by area
 
@@ -51,7 +51,7 @@ Each active row is counted once at its strongest evidence level, in the order ab
 | Effects | 2 | 1 | 0 | 0 | 1 | 0 |
 | Hidden places | 16 | 15 | 0 | 1 | 0 | 0 |
 | Interiors | 19 | 13 | 0 | 5 | 1 | 0 |
-| Sky and effects | 19 | 6 | 0 | 2 | 7 | 4 |
+| Sky and effects | 19 | 11 | 0 | 2 | 4 | 2 |
 | Summit | 32 | 1 | 31 | 0 | 0 | 0 |
 
 ## Gaps requiring focused specimens
@@ -88,11 +88,6 @@ This list includes every active row without a focused study, including review-on
 | [Crescent moon](#moon) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Sun, hemisphere, fill and bounce lighting](#sky-light) | Related evidence only | The baseline adapter hides the original lights; labs use their own rig. |
 | [Valley god-ray cards](#god-rays) | Related evidence only | Sky-space rays are a different implementation from the game’s ground cards. |
-| [Ambient valley fireflies](#fireflies) | Related evidence only | Related firefly study; not Particles.buildFireflies(). |
-| [Ambient dust motes](#dust-motes) | Related evidence only | Moon Pool motes are a separate system. |
-| [Scent-trail glowing particles](#scent) | No mapped evidence | No scent-trail specimen or interaction study. |
-| [Player water-entry splash droplets](#splash) | Related evidence only | Rain impacts do not exercise the player water-entry splash. |
-| [Landing dust puffs](#landing-dust) | No mapped evidence | No specimen exercises this pooled landing effect. |
 | [Screen-space ambient occlusion](#ao) | No mapped evidence | Sky’s air-game baseline explicitly excludes the full game post-processing pipeline. |
 | [Screen-space distance and height atmosphere](#atmosphere) | Related evidence only | Layered haze cards are not the game’s depth-buffer atmosphere pass. |
 | [Painterly colour grading, vignette, grain and fringe](#grade) | Related evidence only | Related finish study; Kuwahara is not the game grade/grain/fringe pipeline. |
@@ -346,12 +341,12 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="rain"></a>`rain` — Valley rain streaks | [src/particles.js:buildRain(](../src/particles.js#L215) | [weather / game-rain](../labs/weather/js/recipes.js#L56) (direct) |  |
 | <a id="river-petals"></a>`river-petals` — River petal rafts | [src/particles.js:buildRiverPetals(](../src/particles.js#L302) | [water / hanaikada](../labs/water/js/variants.js#L198) (direct) |  |
 | <a id="falling-petals"></a>`falling-petals` — Falling sakura petals | [src/particles.js:buildPetals(](../src/particles.js#L371) | [weather / game-petal](../labs/weather/js/recipes.js#L82) (direct) |  |
-| <a id="fireflies"></a>`fireflies` — Ambient valley fireflies | [src/particles.js:buildFireflies(](../src/particles.js#L411) | [moonpool / fireflies](../labs/moonpool/js/recipes.js#L267) (related) — Related firefly study; not Particles.buildFireflies(). |  |
-| <a id="dust-motes"></a>`dust-motes` — Ambient dust motes | [src/particles.js:buildMotes(](../src/particles.js#L455) | [moonpool / game-motes](../labs/moonpool/js/recipes.js#L263) (related) — Moon Pool motes are a separate system. |  |
+| <a id="fireflies"></a>`fireflies` — Ambient valley fireflies | [src/particles.js:buildFireflies(](../src/particles.js#L411) | [weather / fireflies](../labs/weather/js/recipes.js#L90) (direct)<br>[moonpool / fireflies](../labs/moonpool/js/recipes.js#L267) (related) — Related firefly study; not Particles.buildFireflies(). |  |
+| <a id="dust-motes"></a>`dust-motes` — Ambient dust motes | [src/particles.js:buildMotes(](../src/particles.js#L455) | [weather / dust-motes](../labs/weather/js/recipes.js#L94) (direct)<br>[moonpool / game-motes](../labs/moonpool/js/recipes.js#L263) (related) — Moon Pool motes are a separate system. |  |
 | <a id="snow"></a>`snow` — Valley snowfall | [src/particles.js:buildSnow(](../src/particles.js#L510) | [weather / game-snow](../labs/weather/js/recipes.js#L73) (direct) |  |
-| <a id="scent"></a>`scent` — Scent-trail glowing particles | [src/scent.js:build() {](../src/scent.js#L33) | **No mapped evidence** | No scent-trail specimen or interaction study. |
-| <a id="splash"></a>`splash` — Player water-entry splash droplets | [src/player.js:// Water-splash droplet pool](../src/player.js#L97) | [weather / splash](../labs/weather/js/recipes.js#L64) (related) — Rain impacts do not exercise the player water-entry splash. |  |
-| <a id="landing-dust"></a>`landing-dust` — Landing dust puffs | [src/context_actions.js:spawnLandDust(](../src/context_actions.js#L832) | **No mapped evidence** | No specimen exercises this pooled landing effect. |
+| <a id="scent"></a>`scent` — Scent-trail glowing particles | [src/scent.js:build() {](../src/scent.js#L33) | [weather / scent](../labs/weather/js/recipes.js#L98) (direct) |  |
+| <a id="splash"></a>`splash` — Player water-entry splash droplets | [src/player.js:// Water-splash droplet pool](../src/player.js#L97) | [weather / entry-splash](../labs/weather/js/recipes.js#L106) (direct)<br>[weather / splash](../labs/weather/js/recipes.js#L64) (related) — Rain impacts do not exercise the player water-entry splash. |  |
+| <a id="landing-dust"></a>`landing-dust` — Landing dust puffs | [src/context_actions.js:spawnLandDust(](../src/context_actions.js#L832) | [weather / landing-dust](../labs/weather/js/recipes.js#L102) (direct) |  |
 | <a id="ao"></a>`ao` — Screen-space ambient occlusion | [src/postfx.js:export class AOPass](../src/postfx.js#L142) | **No mapped evidence** | Sky’s air-game baseline explicitly excludes the full game post-processing pipeline. |
 | <a id="atmosphere"></a>`atmosphere` — Screen-space distance and height atmosphere | [src/postfx.js:export class AtmospherePass](../src/postfx.js#L377) | [summit / haze](../labs/summit/js/recipes.js#L73) (related) — Layered haze cards are not the game’s depth-buffer atmosphere pass. |  |
 | <a id="grade"></a>`grade` — Painterly colour grading, vignette, grain and fringe | [src/postfx.js:export const GradeShader](../src/postfx.js#L479)<br>[src/postfx.js:export const GradeOutputShader](../src/postfx.js#L560) | [ground / kuwahara](../labs/ground/js/variants.js#L252) (related) — Related finish study; Kuwahara is not the game grade/grain/fringe pipeline. |  |
