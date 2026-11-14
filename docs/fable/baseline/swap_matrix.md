@@ -8,7 +8,7 @@ Sources: `labs/asset_inventory.json` (schema 1, reviewed 2026-11-10), `catalog/j
 ## Totals
 
 - Inventory rows: **190**, of which **186 active** and **4 inactive**. This matrix has **186 rows, one per active row**; the generator refuses to run if any active row has no lane or two.
-- Coverage of the 186 active rows (strongest evidence, as `labs/ASSET_COVERAGE.md`): direct 94, review 41, embedded 25, related 18, missing 8. Rows without a focused lab study: 92.
+- Coverage of the 186 active rows (strongest evidence, as `labs/ASSET_COVERAGE.md`): direct 95, review 41, embedded 24, related 18, missing 8. Rows without a focused lab study: 91.
 - Asset Library adapters: 124 rows have an original adapter; 61 rows have a lab adapter, backed by 71 unique lab specimens (85 row-to-specimen links). The guide's "71 lab recipes" is the 71 specimens, not the 61 rows.
 
 ## Lanes and the rules used to assign them
@@ -42,7 +42,7 @@ Coverage levels, as in the inventory:
 
 "Best lab target" is the first evidence target at the row's strongest level, as `lab/selector` (`(+n)` means n more targets at the same level). "Lab adapter" and "Original adapter" are what the Asset Library can load today (`getAssetCapabilities(id).lab` and `.original`); the specimens the catalog opens for a row can differ from the inventory's evidence target.
 
-A lab adapter is not a focused study, and the reverse. 7 rows have a lab adapter without a `direct` study (the catalog opens a specimen that embeds or relates to the row): `namako`, `tokonoma`, `chabudai`, `zabuton`, `knockables`, `michi`, `summit-pagoda`. 40 rows have a `direct` study but no lab adapter, mostly because the ground, water, ranges, sky, weather, grass and summit labs are not wired into the catalog (see the "Lab adapter" counts per lane below).
+A lab adapter is not a focused study, and the reverse. 7 rows have a lab adapter without a `direct` study (the catalog opens a specimen that embeds or relates to the row): `namako`, `tokonoma`, `chabudai`, `zabuton`, `knockables`, `michi`, `summit-pagoda`. 41 rows have a `direct` study but no lab adapter, mostly because the ground, water, ranges, sky, weather, grass and summit labs are not wired into the catalog (see the "Lab adapter" counts per lane below).
 
 ## Summary per lane
 
@@ -56,7 +56,7 @@ A lab adapter is not a focused study, and the reverse. 7 rows have a lab adapter
 | v-alley | 2.1 | `src/kit/alley/` | 16 `labs/alley/` | 2 | 2 | 0 | 0 | 0 | 0 | 0 | 2 | 2 |
 | v-keepsakes | 2.1 | `src/kit/keepsakes/` | 17 `labs/keepsakes/` | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 2 | 6 |
 | v-nest | 2.1 | `src/kit/nest/` | 10 `labs/nest/` | 3 | 3 | 0 | 0 | 0 | 0 | 0 | 3 | 3 |
-| v-shrine | 2.2 | `src/kit/shrine/` | 06 `labs/shrine/` | 7 | 6 | 0 | 1 | 0 | 0 | 1 | 5 | 7 |
+| v-shrine | 2.2 | `src/kit/shrine/` | 06 `labs/shrine/` | 7 | 7 | 0 | 0 | 0 | 0 | 0 | 5 | 7 |
 | v-machiya | 2.2 | `src/kit/machiya/` | 04 `labs/machiya/` | 15 | 10 | 0 | 4 | 1 | 0 | 5 | 11 | 15 |
 | v-pagoda | 2.2 | `src/kit/pagoda/` | 08 `labs/pagoda/` | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 1 |
 | v-hidden | 2.2 | `src/kit/hidden/` | 07 `labs/moonpool/` | 15 | 8 | 0 | 3 | 3 | 1 | 7 | 7 | 15 |
@@ -76,7 +76,7 @@ A lab adapter is not a focused study, and the reverse. 7 rows have a lab adapter
 | s4-summit-life | 4 | summit (`src/summit/`) | 09 `labs/summit/` | 9 | 0 | 9 | 0 | 0 | 0 | 9 | 0 | 0 |
 | at-standard | - | already at standard (`src/grass.js`, not rebuilt; guide section 9 wave 2.3) | - | 14 | 13 | 0 | 0 | 1 | 0 | 1 | 0 | 12 |
 | media | - | media, not a kit asset (optional runtime media with fallbacks) | - | 2 | 0 | 1 | 0 | 0 | 1 | 2 | 0 | 1 |
-| **All lanes** | | | | **186** | **94** | **41** | **25** | **18** | **8** | **92** | **61** | **124** |
+| **All lanes** | | | | **186** | **95** | **41** | **24** | **18** | **8** | **91** | **61** | **124** |
 
 Roof Road lanes `r1` to `r5` have no rows here: the Roof Road is listed under `exclusions` in the inventory and r1 adds roughly forty rows (guide section 12, R1.1).
 
@@ -92,7 +92,7 @@ Active rows whose strongest evidence is not `direct`. Under the standard lane re
 - **v-alley** (0 of 2): none
 - **v-keepsakes** (0 of 6): none
 - **v-nest** (0 of 3): none
-- **v-shrine** (1 of 7): `offering-box` (embedded)
+- **v-shrine** (0 of 7): none
 - **v-machiya** (5 of 15): `village-street` (related), `namako` (embedded), `tea-bench` (embedded), `secret-door` (embedded), `lock-plate` (embedded)
 - **v-pagoda** (0 of 1): none
 - **v-hidden** (7 of 15): `pool-apron` (embedded), `pool-rim` (embedded), `pool-seat` (embedded), `lantern-glade` (related), `glade-floor` (missing), `glade-bamboo` (related), `glade-seat` (related)
@@ -116,7 +116,7 @@ Active rows whose strongest evidence is not `direct`. Under the standard lane re
 ### Differences from the guide's Appendix D
 
 - Moved by a ruling: `pool-toro` (Appendix D: v-hidden; this matrix: v-lanterns); `courtyard-toro` (Appendix D: v-interiors; this matrix: v-lanterns); `grass-fireflies` (Appendix D: v-weather; this matrix: at-standard); `roadside-moss` (Appendix D: v-trees; this matrix: v-greenery); `guardian-crows` (Appendix D: v-critters; this matrix: c4-creatures).
-- Listed in Appendix D but not a gap in the inventory: `corral-sign` (listed under v-fences; the inventory has `direct` coverage); `dango` (listed under v-keepsakes; the inventory has `direct` coverage); `jade-paw` (listed under v-keepsakes; the inventory has `direct` coverage); `secret-fish` (listed under v-keepsakes; the inventory has `direct` coverage); `interior-fish` (listed under v-keepsakes; the inventory has `direct` coverage); `mist-altar` (listed under v-shrine; the inventory has `direct` coverage).
+- Listed in Appendix D but not a gap in the inventory: `corral-sign` (listed under v-fences; the inventory has `direct` coverage); `dango` (listed under v-keepsakes; the inventory has `direct` coverage); `jade-paw` (listed under v-keepsakes; the inventory has `direct` coverage); `secret-fish` (listed under v-keepsakes; the inventory has `direct` coverage); `interior-fish` (listed under v-keepsakes; the inventory has `direct` coverage); `offering-box` (listed under v-shrine; the inventory has `direct` coverage); `mist-altar` (listed under v-shrine; the inventory has `direct` coverage).
 - Gaps in the inventory that Appendix D does not list (outside the summit and media rows): none.
 - Appendix D says "31 summit rows with review-sheet evidence only" for s2 to s4. In the inventory that is 30 kit rows assigned to s2, s3 and s4 plus the media row `blender-roofscape` (review) = 31, which matches; `kyoto-city` is `direct`.
 
@@ -240,14 +240,14 @@ Phase 2 wave 2.1, props the cat walks past · kit family `src/kit/nest/` · lab 
 
 ### v-shrine
 
-Phase 2 wave 2.2, landmarks where players stop · kit family `src/kit/shrine/` · lab 06 `labs/shrine/` · 7 rows, 6 with a focused study.
+Phase 2 wave 2.2, landmarks where players stop · kit family `src/kit/shrine/` · lab 06 `labs/shrine/` · 7 rows, 7 with a focused study.
 
 | Inventory id | Area | Lane | Basis | Best lab target | Coverage | Lab adapter | Original adapter |
 |---|---|---|---|---|---|---|---|
 | `torii` | Shrine | v-shrine | card | `shrine/game-torii` | direct | yes | yes |
 | `shrine-hall` | Shrine | v-shrine | card | `shrine/game-hall` | direct | yes | yes |
 | `mist-altar` | Shrine | v-shrine | card | `shrine/game-altar` | direct | no | yes |
-| `offering-box` | Shrine | v-shrine | appendix-d | `shrine/game-hall` | embedded | no | yes |
+| `offering-box` | Shrine | v-shrine | appendix-d | `shrine/saisen-bako` | direct | no | yes |
 | `offering-bells` | Items | v-shrine | ruling | `shrine/game-bell` | direct | yes | yes |
 | `shimenawa` | Shrine | v-shrine | judgement | `shrine/game-rope` | direct | yes | yes |
 | `shrine-bell` | Shrine | v-shrine | judgement | `shrine/suzu` | direct | yes | yes |

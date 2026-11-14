@@ -679,6 +679,13 @@
       "file": "labs/shrine/js/recipes.js",
       "anchor": "id: 'suzu'"
     },
+    "shrine/saisen-bako": {
+      "lab": "shrine",
+      "selector": "saisen-bako",
+      "kind": "specimen",
+      "file": "labs/shrine/js/recipes.js",
+      "anchor": "id: 'saisen-bako'"
+    },
     "shrine/game-altar": {
       "lab": "shrine",
       "selector": "game-altar",
@@ -2402,8 +2409,8 @@
       ],
       "coverage": [
         {
-          "target": "shrine/game-hall",
-          "level": "embedded"
+          "target": "shrine/saisen-bako",
+          "level": "direct"
         }
       ]
     },

@@ -6,7 +6,7 @@ Reviewed 2026-11-10. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **94 of 186 (50.5%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **95 of 186 (51.1%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -28,9 +28,9 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 94 | 50.5% |
+| Focused lab study | 95 | 51.1% |
 | Review sheet | 41 | 22.0% |
-| Embedded in a specimen | 25 | 13.4% |
+| Embedded in a specimen | 24 | 12.9% |
 | Related evidence only | 18 | 9.7% |
 | No mapped evidence | 8 | 4.3% |
 
@@ -45,7 +45,7 @@ Each active row is counted once at its strongest evidence level, in the order ab
 | Buildings | 5 | 4 | 0 | 0 | 1 | 0 |
 | Building components | 10 | 6 | 0 | 4 | 0 | 0 |
 | Props | 12 | 12 | 0 | 0 | 0 | 0 |
-| Shrine | 7 | 6 | 0 | 1 | 0 | 0 |
+| Shrine | 7 | 7 | 0 | 0 | 0 | 0 |
 | Items | 8 | 8 | 0 | 0 | 0 | 0 |
 | Vegetation | 22 | 15 | 6 | 0 | 1 | 0 |
 | Effects | 2 | 1 | 0 | 0 | 1 | 0 |
@@ -78,7 +78,6 @@ This list includes every active row without a focused study, including review-on
 | [Tea-house bench and mosen cushion](#tea-bench) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Secret sliding door](#secret-door) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Antique brass padlock emblem](#lock-plate) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Saisen-bako offering box](#offering-box) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Sakura trees](#sakura) | Review sheet | No individual focused specimen is mapped. |
 | [Maple trees](#maples) | Review sheet | No individual focused specimen is mapped. |
 | [Garden pines](#pines) | Review sheet | No individual focused specimen is mapped. |
@@ -261,7 +260,7 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="shrine-hall"></a>`shrine-hall` — Shrine hall, steps and roof | [src/countryside.js:buildShrine(](../src/countryside.js#L3889) | [shrine / game-hall](../labs/shrine/js/recipes.js#L368) (direct) |  |
 | <a id="shimenawa"></a>`shimenawa` — Sacred shimenawa rope and shide | [src/countryside.js:// Sacred Shimenawa](../src/countryside.js#L3963) | [shrine / game-rope](../labs/shrine/js/recipes.js#L264) (direct) |  |
 | <a id="shrine-bell"></a>`shrine-bell` — Shrine hanging bell and cords | [src/countryside.js:// Sacred Buddha / Shrine Spiritual Bell](../src/countryside.js#L3973) | [shrine / suzu](../labs/shrine/js/recipes.js#L400) (direct) |  |
-| <a id="offering-box"></a>`offering-box` — Saisen-bako offering box | [src/countryside.js:// Saisen-bako wooden offering box](../src/countryside.js#L3993) | [shrine / game-hall](../labs/shrine/js/recipes.js#L368) (embedded) |  |
+| <a id="offering-box"></a>`offering-box` — Saisen-bako offering box | [src/countryside.js:// Saisen-bako wooden offering box](../src/countryside.js#L3993) | [shrine / saisen-bako](../labs/shrine/js/recipes.js#L453) (direct) |  |
 | <a id="mist-altar"></a>`mist-altar` — Mist altar plinth, bell, spirit flame and ring | [src/countryside.js:buildMistAltar(](../src/countryside.js#L3632) | [shrine / game-altar](../labs/shrine/js/recipes.js#L418) (direct) |  |
 | <a id="distant-pagoda"></a>`distant-pagoda` — Valley distant pagoda | [src/countryside.js:buildDistantPagoda(](../src/countryside.js#L4124) | [pagoda / orig-tower](../labs/pagoda/js/variants.js#L62) (direct) |  |
 

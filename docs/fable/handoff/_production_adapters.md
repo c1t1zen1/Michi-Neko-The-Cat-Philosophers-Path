@@ -35,3 +35,4 @@ For s3-vista and r4-festival (import with the current `?v=` tag):
   - `buildPagoda({ preset, H, ... }, { detail: 'hero'|'mid'|'far', material })`: use the kit's shared vertex-colour material, `ctx.kitMaterials.shared('matte')` (G-V1: was `bag({ rough: 0.78, brush: 0.05 })`; budgets.md section 4).
   - Presets (`src/kit/pagoda/presets.js`, verbatim copy of `labs/pagoda/js/presets.js`, keep in step): nine measured towers plus the game-fit `valley`; also `muroji`, `daigoji`, `yasaka`.
   - Detail meshes: hero 7, mid 7, far 3 (podium, tower, sorin). One material (`km.shared('matte')`), deterministic, mergeable.
+| v-shrine | torii, shrine-hall, shimenawa, shrine-bell, offering-box, mist-altar, offering-bells | src/kit/shrine/index.js assets |
