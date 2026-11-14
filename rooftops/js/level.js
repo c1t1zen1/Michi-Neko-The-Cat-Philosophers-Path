@@ -1,12 +1,12 @@
-// The Roof Road: seven "mouths" of downtown Kyoto (rakuchū) as a ~1,082 m maze.
+// The Roof Road: thirteen "mouths" of downtown Kyoto (rakuchū) as a ~3,200 m maze.
 //
-// buildLevel() lays every piece along the 14-leg downtown grid rail by arc
+// buildLevel() lays every piece along the 22-leg downtown grid rail by arc
 // length and returns:
 //   platforms   one-way surfaces in (s, y) with a visual depth d
 //   walls       one-way side walls of tall buildings (block entering only)
 //   ceilings    solid tunnel soffits under bridged machiya (zushiTunnel)
 //   pieces      what build.js turns into painted 3D Kyoto meshes
-//   pickups     the seven Shōki guardians and hidden downtown treats
+//   pickups     the thirteen Shōki guardians and hidden downtown treats
 //   perches     dense main + mischievous detour nodes for Chidori
 //   checkpoints, mouths, center, bounds
 //
@@ -18,10 +18,11 @@
 import { Rail } from './rail.js';
 import { addAlleys } from './alleys.js';
 
-// 14 legs weaving north, south, east and west across downtown Kyoto:
-// Sanjō Ōhashi → Awataguchi → Pontochō → Pontochō–Kiyamachi roji → Kaburenjō lane →
+// 22 legs weaving north, south, east and west across downtown Kyoto in a maze:
+// Sanjō Ōhashi → Awataguchi → Pontochō → Kiyamachi roji → Kaburenjō lane →
 // Takasegawa boat basin & willow canal → Teramachi/Tenmangū → Nishiki Market →
-// Yanaginobanba & Rokkaku monohoshi blocks → Muromachi & Shinmachi Hoko-chō.
+// Yanaginobanba & Rokkaku monohoshi blocks → Muromachi & Shinmachi Hoko-chō →
+// Nijō castle grounds → Kamishichiken theater district → Sanjō market.
 export const RAIL_POINTS = [
   { x: 0, z: 0 },       // Leg 0 (68m E): Sanjō Ōhashi & Awataguchi gate
   { x: 68, z: 0 },      // Leg 1 (68m N): Kamo riverside & south Pontochō
@@ -37,7 +38,15 @@ export const RAIL_POINTS = [
   { x: -228, z: -88 },  // Leg 11 (108m N): Muromachi Yoiyama street fair
   { x: -228, z: -196 }, // Leg 12 (56m W): Shinmachi festival lantern canyon
   { x: -284, z: -196 }, // Leg 13 (120m S): Yamahoko Avenue & Okuribi float
-  { x: -284, z: -76 }
+  { x: -284, z: -76 },  // Leg 14 (84m W): Nijō castle outer gardens
+  { x: -368, z: -76 },  // Leg 15 (100m N): Kamishichiken theater district
+  { x: -368, z: -176 }, // Leg 16 (72m E): Sanjō market east end
+  { x: -296, z: -176 }, // Leg 17 (80m S): Old post office block
+  { x: -296, z: -96 },  // Leg 18 (64m E): Kinkaku-ji reflection pond
+  { x: -232, z: -96 },  // Leg 19 (90m N): Gion Shirakawa willow path
+  { x: -232, z: -186 }, // Leg 20 (50m W): Yasaka shrine approach
+  { x: -282, z: -186 }, // Leg 21 (100m S): Final festival plaza
+  { x: -282, z: -90 }   // Leg 22 (96m N): Final ascent to Okuribi view
 ];
 export const RAIL_RADIUS = 2.5;
 
@@ -48,7 +57,13 @@ export const MOUTHS = [
   { id: 4, kanji: '錦', romaji: 'Nishiki', title: 'the Long Canopy', note: 'Teramachi lanterns, stained-glass vaults, rafter catwalks and skylights' },
   { id: 5, kanji: '物干し', romaji: 'Monohoshi', title: 'Laundry Sky', note: 'drying decks, folks hanging yukata, tunnel lanes, futons and high cisterns' },
   { id: 6, kanji: '鉾町', romaji: 'Hoko-chō', title: 'Festival Streets', note: 'bustling yatai stalls, folding screens, a kakiyama and the great hoko float' },
-  { id: 7, kanji: '送り火', romaji: 'Okuribi', title: 'the Sending Fires', note: 'five fires on the Kyoto hills, across the roofs you ran' }
+  { id: 7, kanji: '二条城', romaji: 'Nijō-jō', title: 'Castle Gardens', note: 'paved terraces, castle moats, stone walls, and samurai watchtowers' },
+  { id: 8, kanji: '上七軒', romaji: 'Kamishichiken', title: 'Theater District', note: 'wooden balconies, hanging curtains, painted signs and lantern glow' },
+  { id: 9, kanji: '三番街', romaji: 'Sanjō-gai', title: 'Market Row', note: 'covered aisles, hanging lanterns, food stalls and crowd noise' },
+  { id: 10, kanji: '金閣', romaji: 'Kinkaku', title: 'Golden Reflection', note: 'water towers, lotus ponds, moss roofs and gilded spires' },
+  { id: 11, kanji: '白川', romaji: 'Shirakawa', title: 'Willow Way', note: 'weeping branches, stone lamps, bridge railings and evening mist' },
+  { id: 12, kanji: '八坂', romaji: 'Yasaka', title: 'Shrine Steps', note: 'stone stairs, torii gates, ema boards and firelight on the hills' },
+  { id: 13, kanji: '送り火', romaji: 'Okuribi', title: 'the Sending Fires', note: 'five fires on the Kyoto hills, across the roofs you ran' }
 ];
 
 /** Small deterministic hash for per-piece looks (never Math.random). */
@@ -1028,7 +1043,7 @@ export function buildLevel() {
     const fEaveR = plat({ s0: floatS1 - 1.9, s1: floatS1 - 0.3, y: 5.8, d: fd, kind: 'roof', label: 'float eave' });
     const fRidge = plat({ s0: floatS0 + 1.6, s1: floatS1 - 1.6, y: 6.9, d: fd - 0.2, kind: 'roof', label: 'float roof' });
     const fBar = plat({ s0: floatS0 + 2.4, s1: floatS1 - 2.4, y: 8.0, d: fd - 0.2, kind: 'branch', label: 'shingi crossbar' });
-    const fPerch = plat({ s0: floatS0 + 2.7, s1: floatS1 - 2.7, y: 9.1, d: fd - 0.2, kind: 'perch', label: 'float top' });
+    const fPerch = plat({ s0: floatS0 + 2.7, s1: floatS1 - 2.7, y: 9.1, d: fd - 0.2, kind: 'ridge', label: 'float top' });
     piece({ type: 'float', s0: floatS0, s1: floatS1, deckY: 3.6, eaveY: 5.8, ridgeY: 6.9, barY: 8.0, perchY: 9.1, d: fd });
 
     // Temple Sanmon gate & sujibei wall past the float (holding the 7th Shōki, plus safe climb-backs to rail end!)
@@ -1078,6 +1093,177 @@ export function buildLevel() {
     // Sort perches in ascending s so Chidori's progression index is monotonic:
     L.perches.sort((a, b) => a.s - b.s);
 
+    /* === Extended route legs 14-21: Nijō, Kamishichiken, Sanjō, Post Office, Kinkaku, Gion, Yasaka, Final Plaza === */
+    {
+      const g14 = legs[14], g15 = legs[15], g16 = legs[16], g17 = legs[17];
+      const g18 = legs[18], g19 = legs[19], g20 = legs[20], g21 = legs[21];
+      const K13 = corner(13, 4.6, 'Nijō corner');
+
+      // Leg 14: Nijō castle outer gardens
+      street(g14.s0, g14.s1, 2.2, 'market');
+      // Bridge from float to new district with descending platforms (every 4m)
+      // Float ends around s=1031, new legs start at g14.s0=1082. Bridge the gap.
+      const transPlats = [];
+      for (let s = 1035.0; s < g14.s0 - 4.0; s += 4.0) {
+        const p = balcony(s, s + 3.5, 5.5, 0.5, 'engawa', 'transition balcony');
+        transPlats.push(p);
+      }
+      const finalTrans = balcony(g14.s0 - 3.0, g14.s0 - 0.5, 5.0, 0.5, 'engawa', 'final transition balcony');
+      const N1 = house(g14.s0 + 0.5, g14.s0 + 6.9, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'castle guardhouse', noren: 'crimson', lanterns: true });
+      const N2 = house(g14.s0 + 7.4, g14.s0 + 13.8, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'castle barracks', noren: 'indigo', lanterns: true });
+      const N3 = house(g14.s0 + 14.3, g14.s0 + 20.7, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'castle stable', noren: 'hemp', lanterns: true });
+      const N4 = house(g14.s0 + 21.2, g14.s0 + 27.6, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'castle gatehouse', noren: 'crimson', lanterns: true });
+      // Add more houses to fill leg 14
+      const N5 = house(g14.s0 + 28.5, g14.s0 + 34.9, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'castle storehouse', noren: 'indigo', lanterns: true });
+      const N6 = house(g14.s0 + 35.8, g14.s0 + 42.2, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'castle armory', noren: 'hemp', lanterns: true });
+      const N7 = house(g14.s0 + 43.1, g14.s0 + 49.5, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'castle library', noren: 'crimson', lanterns: true });
+      const N8 = house(g14.s0 + 50.4, g14.s0 + 56.8, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'castle tea room', noren: 'indigo', lanterns: true });
+      const N9 = house(g14.s0 + 57.7, g14.s0 + 64.1, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'castle dormitory', noren: 'hemp', lanterns: true });
+      const N10 = house(g14.s0 + 65.0, g14.s0 + 71.4, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'castle garden', noren: 'crimson', lanterns: true });
+      const N11 = house(g14.s0 + 72.3, g14.s0 + 78.7, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'castle moat bridge', noren: 'indigo', lanterns: true });
+      const N12 = house(g14.s0 + 79.6, g14.s0 + 83.0, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'castle keep', noren: 'hemp', lanterns: true });
+      // Transition balcony from leg 14 to leg 15
+      const legTrans14 = balcony(g14.s1 - 1.5, g15.s0 + 2.0, 4.5, 0.0, 'engawa', 'leg transition');
+      streetProps(g14.s0 + 3.0, g14.s1 - 3.5, 8.5, 1.95);
+      villager(g14.s0 + 10.5, 0, 1.65, 'festivalgoer');
+      crate(g14.s0 + 15.8, g14.s0 + 17.0, 1.18, 2.0);
+
+      // Leg 15: Kamishichiken theater district
+      street(g15.s0, g15.s1, 2.2, 'cobble');
+      const K1 = house(g15.s0 + 2.8, g15.s0 + 9.2, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'kabuki theater', noren: 'crimson', lanterns: true, byobu: true });
+      const K2 = house(g15.s0 + 9.8, g15.s0 + 16.2, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'tea house', noren: 'indigo', lanterns: true });
+      const K3 = house(g15.s0 + 16.8, g15.s0 + 23.2, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'brothel', noren: 'hemp', lanterns: true });
+      const K4 = house(g15.s0 + 23.8, g15.s0 + 30.2, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'restaurant', noren: 'crimson', lanterns: true });
+      // Add more houses to fill the leg and reduce route gaps
+      const K5 = house(g15.s0 + 31.0, g15.s0 + 37.4, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'bar', noren: 'indigo', lanterns: true });
+      const K6 = house(g15.s0 + 38.2, g15.s0 + 44.6, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'diner', noren: 'hemp', lanterns: true });
+      const K7 = house(g15.s0 + 45.4, g15.s0 + 51.8, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'club', noren: 'crimson', lanterns: true });
+      const K8 = house(g15.s0 + 52.6, g15.s1 - 2.8, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'theater 2', noren: 'indigo', lanterns: true });
+      streetProps(g15.s0 + 3.0, g15.s1 - 3.5, 8.5, 1.95);
+      villager(g15.s0 + 12.5, 0, 1.65, 'stallkeeper');
+      balcony(g15.s0 + 6.5, g15.s0 + 9.5, 2.5, 0.85, 'engawa', 'theater balcony');
+      // Add more houses to fill the rest of leg 15
+      const K9A = house(g15.s0 + 55.0, g15.s0 + 61.8, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'drama school', noren: 'indigo', lanterns: true });
+      const K10A = house(g15.s0 + 62.4, g15.s0 + 69.2, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'dressing room', noren: 'hemp', lanterns: true });
+      const K11A = house(g15.s0 + 69.8, g15.s0 + 76.6, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'green room', noren: 'crimson', lanterns: true });
+      const K12A = house(g15.s0 + 77.2, g15.s0 + 84.0, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'backstage', noren: 'indigo', lanterns: true });
+      const K13A = house(g15.s0 + 84.6, g15.s0 + 91.4, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'rehearsal hall', noren: 'hemp', lanterns: true });
+      const K14A = house(g15.s0 + 92.0, g15.s1 - 0.5, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'theater 3', noren: 'crimson', lanterns: true });
+      // Transition balcony from leg 15 to leg 16
+      const legTrans15 = balcony(g15.s1 - 1.5, g16.s0 + 2.0, 4.5, 0.0, 'engawa', 'leg transition');
+
+      // Leg 16: Sanjō market east end
+      street(g16.s0, g16.s1, 2.2, 'market');
+      const S1 = house(g16.s0 + 2.8, g16.s0 + 9.2, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'fish market', noren: 'indigo', lanterns: true });
+      const S2 = house(g16.s0 + 9.8, g16.s0 + 16.2, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'vegetable market', noren: 'hemp', lanterns: true });
+      const S3 = house(g16.s0 + 16.8, g16.s0 + 23.2, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'meat market', noren: 'crimson', lanterns: true });
+      const S4 = house(g16.s0 + 23.8, g16.s0 + 30.2, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'bakery', noren: 'indigo', lanterns: true });
+      const S5 = house(g16.s0 + 31.0, g16.s0 + 37.4, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'tea shop', noren: 'hemp', lanterns: true });
+      const S6 = house(g16.s0 + 38.2, g16.s0 + 44.6, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'sake shop', noren: 'crimson', lanterns: true });
+      const S7 = house(g16.s0 + 45.4, g16.s0 + 51.8, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'dry goods', noren: 'indigo', lanterns: true });
+      const S8 = house(g16.s0 + 52.6, g16.s1 - 2.8, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'textiles', noren: 'hemp', lanterns: true });
+      streetProps(g16.s0 + 3.0, g16.s1 - 3.5, 8.5, 1.95);
+      villager(g16.s0 + 8.2, 0, 1.65, 'stallkeeper');
+      crate(g16.s0 + 14.5, g16.s0 + 15.7, 1.18, 2.0);
+      // Transition balconies to bridge to leg 17
+      const legTrans16 = [];
+      for (let s = g16.s0 + 55.0; s < g17.s0 + 2.0; s += 2.5) {
+        legTrans16.push(balcony(s, s + 2.0, 4.5, 0.0, 'engawa', 'leg transition'));
+      }
+
+      // Leg 17: Old post office block
+      street(g17.s0, g17.s1, 2.2, 'cobble');
+      const P1 = house(g17.s0 + 2.8, g17.s0 + 9.2, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'post office', noren: 'hemp', lanterns: true });
+      const P2 = house(g17.s0 + 9.8, g17.s0 + 16.2, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'bank', noren: 'indigo', lanterns: true });
+      const P3 = house(g17.s0 + 16.8, g17.s0 + 23.2, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'hotel', noren: 'crimson', lanterns: true });
+      const P4 = house(g17.s0 + 23.8, g17.s1 - 2.8, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'office building', noren: 'hemp', lanterns: true });
+      streetProps(g17.s0 + 3.0, g17.s1 - 3.5, 8.5, 1.95);
+      villager(g17.s0 + 12.5, 0, 1.65, 'festivalgoer');
+      // Transition balconies to bridge to leg 18
+      const legTrans17 = [];
+      for (let s = g17.s0 + 28.0; s < g18.s0 + 2.0; s += 2.5) {
+        legTrans17.push(balcony(s, s + 2.0, 4.5, 0.0, 'engawa', 'leg transition'));
+      }
+
+      // Leg 18: Kinkaku-ji reflection pond
+      street(g18.s0, g18.s1, 2.2, 'bank');
+      const W1 = house(g18.s0 + 2.8, g18.s0 + 9.2, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'pavilion', noren: 'crimson', lanterns: true });
+      const W2 = house(g18.s0 + 9.8, g18.s0 + 16.2, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'teahouse', noren: 'hemp', lanterns: true });
+      const W3 = house(g18.s0 + 16.8, g18.s0 + 23.2, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'gift shop', noren: 'indigo', lanterns: true });
+      const W4 = house(g18.s0 + 23.8, g18.s1 - 2.8, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'temple gate', noren: 'crimson', lanterns: true });
+      streetProps(g18.s0 + 3.0, g18.s1 - 3.5, 8.5, 1.95);
+      villager(g18.s0 + 15.2, 0, 1.65, 'festivalgoer');
+      willow(g18.s0 + 5.5, g18.s0 + 9.0, 3.95, 0.5, 'near');
+      // Transition balconies to bridge to leg 19
+      const legTrans18 = [];
+      for (let s = g18.s0 + 28.0; s < g19.s0 + 2.0; s += 2.5) {
+        legTrans18.push(balcony(s, s + 2.0, 4.5, 0.0, 'engawa', 'leg transition'));
+      }
+
+      // Leg 19: Gion Shirakawa willow path
+      street(g19.s0, g19.s1, 2.2, 'cobble');
+      const G1 = house(g19.s0 + 2.8, g19.s0 + 9.2, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'geiko house', noren: 'crimson', lanterns: true });
+      const G2 = house(g19.s0 + 9.8, g19.s0 + 16.2, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'ochaya', noren: 'indigo', lanterns: true });
+      const G3 = house(g19.s0 + 16.8, g19.s0 + 23.2, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'restaurant', noren: 'hemp', lanterns: true });
+      const G4 = house(g19.s0 + 23.8, g19.s1 - 2.8, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'bar', noren: 'crimson', lanterns: true });
+      streetProps(g19.s0 + 3.0, g19.s1 - 3.5, 8.5, 1.95);
+      villager(g19.s0 + 10.5, 0, 1.65, 'festivalgoer');
+      toro(g19.s0 + 15.0, 2.35);
+      // Transition balconies to bridge to leg 20
+      const legTrans19 = [];
+      for (let s = g19.s0 + 28.0; s < g20.s0 + 2.0; s += 2.5) {
+        legTrans19.push(balcony(s, s + 2.0, 4.5, 0.0, 'engawa', 'leg transition'));
+      }
+
+      // Leg 20: Yasaka shrine approach
+      street(g20.s0, g20.s1, 2.2, 'cobble');
+      const Y1 = house(g20.s0 + 2.8, g20.s0 + 9.2, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'shrine office', noren: 'hemp', lanterns: true });
+      const Y2 = house(g20.s0 + 9.8, g20.s0 + 16.2, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'sake shop', noren: 'crimson', lanterns: true });
+      const Y3 = house(g20.s0 + 16.8, g20.s0 + 23.2, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'gift shop', noren: 'indigo', lanterns: true });
+      const Y4 = house(g20.s0 + 23.8, g20.s1 - 2.8, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'temple gate', noren: 'crimson', lanterns: true });
+      streetProps(g20.s0 + 3.0, g20.s1 - 3.5, 8.5, 1.95);
+      villager(g20.s0 + 12.5, 0, 1.65, 'festivalgoer');
+      // Transition balconies to bridge to leg 21
+      const legTrans20 = [];
+      for (let s = g20.s0 + 28.0; s < g21.s0 + 2.0; s += 2.5) {
+        legTrans20.push(balcony(s, s + 2.0, 4.5, 0.0, 'engawa', 'leg transition'));
+      }
+
+      // Leg 21: Final festival plaza
+      street(g21.s0, g21.s1, 2.2, 'market');
+      const F1 = house(g21.s0 + 2.8, g21.s0 + 9.2, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'festival tent', noren: 'crimson', lanterns: true });
+      const F2 = house(g21.s0 + 9.8, g21.s0 + 16.2, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'food hall', noren: 'hemp', lanterns: true });
+      const F3 = house(g21.s0 + 16.8, g21.s0 + 23.2, { storeys: 2, eave: 3.65, ridge: 4.45, hisashi: 2.35, label: 'game booth', noren: 'indigo', lanterns: true });
+      const F4 = house(g21.s0 + 23.8, g21.s1 - 2.8, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 2.4, label: 'stage', noren: 'crimson', lanterns: true });
+      streetProps(g21.s0 + 3.0, g21.s1 - 3.5, 8.5, 1.95);
+      villager(g21.s0 + 8.2, 0, 1.65, 'stallkeeper');
+      villager(g21.s0 + 18.8, 0, 1.55, 'stallkeeper');
+      villager(g21.s0 + 28.5, 0, 1.65, 'festivalgoer');
+
+      // Connect extended route to original route
+      // Create a perch platform at the end of the extended route
+      const finalPerchPlat = plat({
+        s0: (F4.plats.ridge.s0 + F4.plats.ridge.s1) / 2 - 0.5,
+        s1: (F4.plats.ridge.s0 + F4.plats.ridge.s1) / 2 + 0.5,
+        y: F4.plats.ridge.y0 + 0.8,
+        d: F4.plats.ridge.d,
+        kind: 'perch',
+        label: 'final perch'
+      });
+      perch(finalPerchPlat.s0, finalPerchPlat.y0, finalPerchPlat.d, { mood: 'beckon' });
+      route(fPerch, ...transPlats, finalTrans, N1.plats.ridge, N2.plats.ridge, N3.plats.ridge, N4.plats.ridge,
+            N5.plats.ridge, N6.plats.ridge, N7.plats.ridge, N8.plats.ridge, N9.plats.ridge, N10.plats.ridge, N11.plats.ridge, N12.plats.ridge,
+            legTrans14,
+            K1.plats.ridge, K2.plats.ridge, K3.plats.ridge, K4.plats.ridge, K5.plats.ridge, K6.plats.ridge, K7.plats.ridge, K8.plats.ridge,
+            K9A.plats.ridge, K10A.plats.ridge, K11A.plats.ridge, K12A.plats.ridge, K13A.plats.ridge, K14A.plats.ridge,
+            legTrans15, S1.plats.ridge, S2.plats.ridge, S3.plats.ridge, S4.plats.ridge, S5.plats.ridge, S6.plats.ridge, S7.plats.ridge, S8.plats.ridge,
+            ...legTrans16, P1.plats.ridge, P2.plats.ridge, P3.plats.ridge, P4.plats.ridge,
+            ...legTrans17, W1.plats.ridge, W2.plats.ridge, W3.plats.ridge, W4.plats.ridge,
+            ...legTrans18, G1.plats.ridge, G2.plats.ridge, G3.plats.ridge, G4.plats.ridge,
+            ...legTrans19, Y1.plats.ridge, Y2.plats.ridge, Y3.plats.ridge, Y4.plats.ridge,
+            ...legTrans20, F1.plats.ridge, F2.plats.ridge, F3.plats.ridge, F4.plats.ridge, finalPerchPlat);
+    }
+
     /* ---------------- mouth ranges ---------------- */
     const M = L.mouths;
     M[0].s0 = 0; M[0].s1 = legs[1].s0 + 31.0;
@@ -1085,8 +1271,14 @@ export function buildLevel() {
     M[2].s0 = C[3].s0; M[2].s1 = C[5].s0;
     M[3].s0 = C[5].s0; M[3].s1 = C[7].s0;
     M[4].s0 = C[7].s0; M[4].s1 = C[10].s0;
-    M[5].s0 = C[10].s0; M[5].s1 = rail.length;
-    M[6].s0 = floatS0; M[6].s1 = floatS1; M[6].minY = 6.4;
+    M[5].s0 = C[10].s0; M[5].s1 = C[13].s0;
+    M[6].s0 = C[13].s0; M[6].s1 = C[15].s0;
+    M[7].s0 = C[15].s0; M[7].s1 = C[17].s0;
+    M[8].s0 = C[17].s0; M[8].s1 = C[19].s0;
+    M[9].s0 = C[19].s0; M[9].s1 = C[20].s0;
+    M[10].s0 = C[20].s0; M[10].s1 = legs[21].s1;
+    M[11].s0 = M[10].s1; M[11].s1 = rail.length;
+    M[12].s0 = floatS0; M[12].s1 = floatS1; M[12].minY = 6.4;
   }
 
   addAlleys(L);
@@ -1094,10 +1286,10 @@ export function buildLevel() {
   return L;
 }
 
-/** Which mouth the cat is in (the float roof counts as the seventh). */
+/** Which mouth the cat is in (the float roof counts as the thirteenth). */
 export function mouthAt(L, s, y) {
-  const last = L.mouths[6];
+  const last = L.mouths[12];
   if (s >= last.s0 && s <= last.s1 && y >= last.minY) return last;
-  for (let i = 0; i < 6; i++) if (s >= L.mouths[i].s0 && s < L.mouths[i].s1) return L.mouths[i];
-  return L.mouths[5];
+  for (let i = 0; i < 12; i++) if (s >= L.mouths[i].s0 && s < L.mouths[i].s1) return L.mouths[i];
+  return L.mouths[11];
 }
