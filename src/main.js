@@ -586,6 +586,7 @@ class Game {
     env.wet = this.sky.weatherAmount('rain');
     env.snow = this.sky.weatherAmount('snow');
     env.lanternOn = !!this.city._lanternsLit;
+    env.audio = (this.assets && this.assets.audio) || null;   // kit sound hook (src/kit/audio.js); classic has none
     return env;
   }
 
