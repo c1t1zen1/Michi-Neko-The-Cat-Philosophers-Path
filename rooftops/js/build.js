@@ -6,69 +6,30 @@
 // camera (depth d) — then the static meshes are merged one per material, the
 // way Countryside._mergeStatics() does it in the valley.
 //
+// This file is the facade: buildWorld() walks level.pieces and builds each
+// through the PIECES table (pieces/index.js: one module per piece type under
+// pieces/, the material set in pieces/paint.js, the shared geometry in
+// pieces/common.js and pieces/machiya.js), then merges, adds the ground, the
+// distant city, the skyline pagodas, the Shōki and the treats, and returns the
+// per-frame update.
+//
 // Returns { root, dynamic: {...}, lights: [Vector3], update(t, night) }.
 
 import * as THREE from 'three';
-import { hash1 } from './level.js';
-import { paintDowntown, installDowntown } from './downtown.js';
+import { paintDowntown } from './downtown.js';
 import { makeCutaway } from './cutaway.js';
 import { makeMaterials } from './pieces/paint.js';
-import { box, cyl, frameGroup, ribbon, mergeByMaterial } from './pieces/common.js';
-import { hiraRoof } from './pieces/machiya.js';
-import { street } from './pieces/street.js';
-import { steps } from './pieces/steps.js';
-import { bridge } from './pieces/bridge.js';
-import { kido } from './pieces/kido.js';
-import { house } from './pieces/house.js';
-import { kura } from './pieces/kura.js';
-import { corner } from './pieces/corner.js';
-import { komayose } from './pieces/komayose.js';
-import { inuyarai } from './pieces/inuyarai.js';
-import { roji } from './pieces/roji.js';
-import { tsuboniwa } from './pieces/tsuboniwa.js';
-import { deck } from './pieces/deck.js';
-import { balcony } from './pieces/balcony.js';
-import { post } from './pieces/post.js';
-import { water } from './pieces/water.js';
-import { canalQuarter } from './pieces/canalQuarter.js';
-import { steppingStone } from './pieces/steppingStone.js';
-import { canalLanding } from './pieces/canalLanding.js';
-import { canalBridge } from './pieces/canalBridge.js';
-import { toro } from './pieces/toro.js';
-import { cherry } from './pieces/cherry.js';
-import { boat } from './pieces/boat.js';
-import { canopy } from './pieces/canopy.js';
-import { vent } from './pieces/vent.js';
-import { shopfronts } from './pieces/shopfronts.js';
-import { marketCrossing } from './pieces/marketCrossing.js';
-import { rope } from './pieces/rope.js';
-import { cistern } from './pieces/cistern.js';
-import { chimney } from './pieces/chimney.js';
-import { futonRack } from './pieces/futonRack.js';
-import { yatai } from './pieces/yatai.js';
-import { rack } from './pieces/rack.js';
-import { float } from './pieces/float.js';
-import { gate } from './pieces/gate.js';
-import { tsuiji } from './pieces/tsuiji.js';
+import { mergeByMaterial } from './pieces/common.js';
+import { PIECES, downtown } from './pieces/index.js';
 import { makeShoki, makeTreat } from './pieces/pickups.js';
 import { buildDistantCity, buildPagoda } from './pieces/skyline.js';
-
-/* ------------------------------------------------------------------ */
-/*  Piece builders                                                      */
-/* ------------------------------------------------------------------ */
-
-const B = {};
-Object.assign(B, { street, steps, bridge, kido, house, kura, corner, komayose, inuyarai, roji, tsuboniwa, deck, balcony, post });
-Object.assign(B, { water, canalQuarter, steppingStone, canalLanding, canalBridge, toro, cherry, boat, canopy, vent, shopfronts, marketCrossing, rope, cistern, chimney, futonRack });
-Object.assign(B, { yatai, rack, float, gate, tsuiji });
 
 /* ------------------------------------------------------------------ */
 /*  Assembly                                                            */
 /* ------------------------------------------------------------------ */
 
-const downtown = installDowntown(B, { box, cyl, frameGroup, hiraRoof, ribbon, hash1, mergeParts: mergeByMaterial });
-
 export { makeShoki } from './pieces/pickups.js';
+export { PIECES } from './pieces/index.js';
 
 export function buildWorld(level, opts = {}) {
   const M = makeMaterials();
@@ -89,11 +50,10 @@ export function buildWorld(level, opts = {}) {
     light: (r, s, y, d) => { const p = r.place(s, d); lights.push(new THREE.Vector3(p.x, y, p.z)); }
   };
   for (const pc of level.pieces) {
-    const fn = B[pc.type];
-    if (!fn) throw new Error('No Roof Road renderer for ' + pc.type);
-    fn(pc, ctx);
-    if (pc.type === 'house') downtown.decorateHouse(pc, ctx);
-    if (pc.type === 'yatai') downtown.decorateStall(pc, ctx);
+    const piece = PIECES[pc.type];
+    if (!piece) throw new Error('No Roof Road renderer for ' + pc.type);
+    piece.build(pc, ctx);
+    if (piece.decorate) piece.decorate(pc, ctx);
   }
   // Glass meshes were added inside frame groups: pull them out with their
   // world transforms so they merge into the transparent bucket.
