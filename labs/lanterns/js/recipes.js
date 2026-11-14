@@ -101,7 +101,15 @@ export const SPECIMENS = [
   { id: 'pool', family: 'light', name: 'A real pool of light', jp: '灯り溜まり', tag: 'A point light, warm and short', plinth: 'stone', hour: 21, animatedShadow: false,
     blurb: 'One PointLight with a short distance and a square falloff. The floor and the stone both warm up, and now it belongs there.',
     how: ['PointLight(warm, 1.6, 2.6, 2).', 'In the game, a pool of four lights hops between the lanterns nearest the cat.'], use: 'The nearest few lanterns only.', sources: ['point'],
-    build(k) { return litToro('kasuga', { pool: 1.8 }); } }
+    build(k) { return litToro('kasuga', { pool: 1.8 }); } },
+  { id: 'courtyard-toro', family: 'stone', name: 'Courtyard tōrō', jp: '坪庭の灯籠', tag: 'A small Kasuga for the tea-house courtyard', plinth: 'gravel', hour: 20,
+    blurb: 'The interior\u2019s courtyard lantern is a stack of four boxes, 1.04 m tall. This is the same lantern drawn properly at that size: a short shaft, a hollow firebox with its higuchi, a kasa with a swept skirt, a lit paper chamber inside.',
+    how: ['The Kasuga builder squeezed to 1.05 m: x/z \u00d7 0.72, y \u00d7 0.58 (nothing is rebuilt).', 'The paper inside is always warm: the courtyard is seen from a room that is already lit.'], use: 'The courtyard behind the tea house; any small garden corner.', sources: ['mark', 'gardens'], also: [toro],
+    build(k) { const g = toro('kasuga', { moss: 0.25, lichen: 0.35, tint: 0x8f968f }); g.scale.set(0.72, 0.58, 0.72); g.userData.paper.userData.u.uGlow.value = 1.2; return g; } },
+  { id: 'pool-toro', family: 'stone', name: 'Moon Pool tōrō', jp: '月池の灯籠', tag: 'The little lantern at the pool\u2019s edge', plinth: 'moss', hour: 21, animatedShadow: false,
+    blurb: 'A 1.14 m stone lantern that wakes when the light goes. The game\u2019s version is a stack of cylinders with one glowing cube and a halo sprite; this one has a hollow firebox, so the flame reads through the openings and the halo is only the bloom around it.',
+    how: ['Kasuga scaled to 1.14 m (x/z \u00d7 0.8, y \u00d7 0.63).', 'A short warm PointLight stands in for the game\u2019s halo sprite and glow ramp.'], use: 'The edge of the Moon Pool, and any water\u2019s edge that needs one light.', sources: ['mark', 'wikic', 'point'], also: [toro],
+    build(k) { const g = litToro('kasuga', { pool: 1.4 }); g.scale.set(0.8, 0.63, 0.8); return g; } }
 ];
 
 function litToro(kind, { pool = 0 } = {}) {

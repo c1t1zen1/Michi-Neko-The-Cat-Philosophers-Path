@@ -270,6 +270,13 @@
       "file": "labs/fences/js/recipes.js",
       "anchor": "id: 'corral'"
     },
+    "fences/corral-sign": {
+      "lab": "fences",
+      "selector": "corral-sign",
+      "kind": "specimen",
+      "file": "labs/fences/js/recipes.js",
+      "anchor": "id: 'corral-sign'"
+    },
     "critters/game-bird": {
       "lab": "critters",
       "selector": "game-bird",
@@ -636,6 +643,13 @@
       "kind": "specimen",
       "file": "labs/garden/js/recipes.js",
       "anchor": "id: 'game-chime'"
+    },
+    "garden/glass": {
+      "lab": "garden",
+      "selector": "glass",
+      "kind": "specimen",
+      "file": "labs/garden/js/recipes.js",
+      "anchor": "id: 'glass'"
     },
     "shrine/game-torii": {
       "lab": "shrine",
@@ -2226,8 +2240,8 @@
       ],
       "coverage": [
         {
-          "target": "fences/corral",
-          "level": "embedded"
+          "target": "fences/corral-sign",
+          "level": "direct"
         }
       ]
     },
@@ -2267,6 +2281,10 @@
       "coverage": [
         {
           "target": "garden/game-chime",
+          "level": "direct"
+        },
+        {
+          "target": "garden/glass",
           "level": "direct"
         }
       ]

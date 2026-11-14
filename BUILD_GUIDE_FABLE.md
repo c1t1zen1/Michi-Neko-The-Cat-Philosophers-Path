@@ -247,7 +247,7 @@ none), `label`. `tiers` defaults to all three.
   `InteriorManager`, …) writes one line in its constructor,
   `this.assets = scopeAssets(options.assets, { MAT, textures: TEX })`
   (`scopeAssets` from `src/kit/runtime.js`), and builds through that scoped
-  view: `ctx.MAT`/`ctx.textures` are that owner's, the kit materials are
+  view: `ctx.MAT`/`ctx.textures` are that owner's (Vegetation, HiddenPlaces, Particles and AmbientLife scope with the same shared `KIT_TABLES` exported by `countryside.js`, so every owner's `ctx` carries the shared `MAT` + `textures`), the kit materials are
   registered into EVERY bound MAT table (so each owner's `_mergeStatics()`
   merges them) and `scope.instances` lists what the owner built. Given
   nothing or `CLASSIC_ASSETS` it returns `CLASSIC_ASSETS`; `THREE` comes from `main.js`;
@@ -622,12 +622,12 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 1 | `f1-runtime` | `src/kit/` runtime, contract, tools (F1.6, the footprint golden, was split into lane `f1-golden`, also merged) | G-P0 | [x] |
 | 1 | `f2-countryside-split` | Layout/mesh split in `countryside.js` | f1 API frozen | [x] |
 | 1 | `f3-systems-split` | Hooks in vegetation, interior, hidden places, ambient life, particles | f1 API frozen | [x] |
-| 2.1 | `v-lanterns` | Lanterns (lab 11) | G-F | [ ] |
-| 2.1 | `v-fences` | Fences and corral (lab 12) | G-F | [ ] |
+| 2.1 | `v-lanterns` | Lanterns (lab 11) | G-F | [x] |
+| 2.1 | `v-fences` | Fences and corral (lab 12) | G-F | [x] |
 | 2.1 | `v-rocks` | Rocks and boulders (lab 13) | G-F | [x] |
-| 2.1 | `v-garden` | Shishi-odoshi, fūrin, bells (lab 14) | G-F | [ ] |
+| 2.1 | `v-garden` | Shishi-odoshi, fūrin, bells (lab 14) | G-F | [x] |
 | 2.1 | `v-greenery` | Bushes, street greenery, bamboo (lab 15) | G-F | [ ] |
-| 2.1 | `v-alley` | Climb crates and street clutter (lab 16) | G-F | [ ] |
+| 2.1 | `v-alley` | Climb crates and street clutter (lab 16) | G-F | [x] |
 | 2.1 | `v-keepsakes` | Yarn, key, reward and food items (lab 17) | G-F | [ ] |
 | 2.1 | `v-nest` | The nest, eggs, feather (lab 10) | G-F | [ ] |
 | 2.2 | `v-shrine` | Torii, sandō, shrine, altar (lab 06) | G-V1 | [ ] |

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261113a';
+import { KIT_TABLES } from './countryside.js?v=20261113a';
 
 /**
  * Hidden places — secrets of the valley floor, found by wandering rather than
@@ -85,8 +86,8 @@ export class HiddenPlaces {
   constructor(scene, city, { assets } = {}) {
     this.scene = scene;
     this.city = city;
-    // Hidden places build with their own inline materials: no table to scope with.
-    this.assets = scopeAssets(assets, {});
+    // Hidden places build with their own inline materials: the shared kit tables (MAT + textures).
+    this.assets = scopeAssets(assets, KIT_TABLES);
     this.time = 0;
     this.rand = mulberry(0x4d43);
     this.group = new THREE.Group();

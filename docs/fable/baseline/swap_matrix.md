@@ -8,7 +8,7 @@ Sources: `labs/asset_inventory.json` (schema 1, reviewed 2026-11-10), `catalog/j
 ## Totals
 
 - Inventory rows: **190**, of which **186 active** and **4 inactive**. This matrix has **186 rows, one per active row**; the generator refuses to run if any active row has no lane or two.
-- Coverage of the 186 active rows (strongest evidence, as `labs/ASSET_COVERAGE.md`): direct 89, review 41, embedded 27, related 19, missing 10. Rows without a focused lab study: 97.
+- Coverage of the 186 active rows (strongest evidence, as `labs/ASSET_COVERAGE.md`): direct 90, review 41, embedded 26, related 19, missing 10. Rows without a focused lab study: 96.
 - Asset Library adapters: 124 rows have an original adapter; 61 rows have a lab adapter, backed by 71 unique lab specimens (85 row-to-specimen links). The guide's "71 lab recipes" is the 71 specimens, not the 61 rows.
 
 ## Lanes and the rules used to assign them
@@ -42,14 +42,14 @@ Coverage levels, as in the inventory:
 
 "Best lab target" is the first evidence target at the row's strongest level, as `lab/selector` (`(+n)` means n more targets at the same level). "Lab adapter" and "Original adapter" are what the Asset Library can load today (`getAssetCapabilities(id).lab` and `.original`); the specimens the catalog opens for a row can differ from the inventory's evidence target.
 
-A lab adapter is not a focused study, and the reverse. 7 rows have a lab adapter without a `direct` study (the catalog opens a specimen that embeds or relates to the row): `namako`, `tokonoma`, `chabudai`, `zabuton`, `knockables`, `michi`, `summit-pagoda`. 35 rows have a `direct` study but no lab adapter, mostly because the ground, water, ranges, sky, weather, grass and summit labs are not wired into the catalog (see the "Lab adapter" counts per lane below).
+A lab adapter is not a focused study, and the reverse. 7 rows have a lab adapter without a `direct` study (the catalog opens a specimen that embeds or relates to the row): `namako`, `tokonoma`, `chabudai`, `zabuton`, `knockables`, `michi`, `summit-pagoda`. 36 rows have a `direct` study but no lab adapter, mostly because the ground, water, ranges, sky, weather, grass and summit labs are not wired into the catalog (see the "Lab adapter" counts per lane below).
 
 ## Summary per lane
 
 | Lane | Phase | Kit family or module | Lab | Rows | direct | review | embedded | related | missing | No focused study | Lab adapter | Original adapter |
 |---|---|---|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
 | v-lanterns | 2.1 | `src/kit/lanterns/` | 11 `labs/lanterns/` | 6 | 4 | 0 | 1 | 1 | 0 | 2 | 4 | 6 |
-| v-fences | 2.1 | `src/kit/fences/` | 12 `labs/fences/` | 3 | 2 | 0 | 1 | 0 | 0 | 1 | 2 | 3 |
+| v-fences | 2.1 | `src/kit/fences/` | 12 `labs/fences/` | 3 | 3 | 0 | 0 | 0 | 0 | 0 | 2 | 3 |
 | v-rocks | 2.1 | `src/kit/rocks/` | 13 `labs/rocks/` | 2 | 2 | 0 | 0 | 0 | 0 | 0 | 2 | 2 |
 | v-garden | 2.1 | `src/kit/garden/` | 14 `labs/garden/` | 2 | 2 | 0 | 0 | 0 | 0 | 0 | 2 | 2 |
 | v-greenery | 2.1 | `src/kit/greenery/` | 15 `labs/greenery/` | 3 | 2 | 0 | 0 | 1 | 0 | 1 | 2 | 3 |
@@ -76,7 +76,7 @@ A lab adapter is not a focused study, and the reverse. 7 rows have a lab adapter
 | s4-summit-life | 4 | summit (`src/summit/`) | 09 `labs/summit/` | 9 | 0 | 9 | 0 | 0 | 0 | 9 | 0 | 0 |
 | at-standard | - | already at standard (`src/grass.js`, not rebuilt; guide section 9 wave 2.3) | - | 14 | 13 | 0 | 0 | 1 | 0 | 1 | 0 | 12 |
 | media | - | media, not a kit asset (optional runtime media with fallbacks) | - | 2 | 0 | 1 | 0 | 0 | 1 | 2 | 0 | 1 |
-| **All lanes** | | | | **186** | **89** | **41** | **27** | **19** | **10** | **97** | **61** | **124** |
+| **All lanes** | | | | **186** | **90** | **41** | **26** | **19** | **10** | **96** | **61** | **124** |
 
 Roof Road lanes `r1` to `r5` have no rows here: the Roof Road is listed under `exclusions` in the inventory and r1 adds roughly forty rows (guide section 12, R1.1).
 
@@ -85,7 +85,7 @@ Roof Road lanes `r1` to `r5` have no rows here: the Roof Road is listed under `e
 Active rows whose strongest evidence is not `direct`. Under the standard lane recipe (guide section 9, step L4) a row with no focused study gets a lab specimen first, or stays classic and is listed as deferred. The level is shown in brackets.
 
 - **v-lanterns** (2 of 6): `courtyard-toro` (related), `pool-toro` (embedded)
-- **v-fences** (1 of 3): `corral-sign` (embedded)
+- **v-fences** (0 of 3): none
 - **v-rocks** (0 of 2): none
 - **v-garden** (0 of 2): none
 - **v-greenery** (1 of 3): `roadside-moss` (related)
@@ -116,7 +116,7 @@ Active rows whose strongest evidence is not `direct`. Under the standard lane re
 ### Differences from the guide's Appendix D
 
 - Moved by a ruling: `pool-toro` (Appendix D: v-hidden; this matrix: v-lanterns); `courtyard-toro` (Appendix D: v-interiors; this matrix: v-lanterns); `grass-fireflies` (Appendix D: v-weather; this matrix: at-standard); `roadside-moss` (Appendix D: v-trees; this matrix: v-greenery); `guardian-crows` (Appendix D: v-critters; this matrix: c4-creatures).
-- Listed in Appendix D but not a gap in the inventory: `mist-altar` (listed under v-shrine; the inventory has `direct` coverage).
+- Listed in Appendix D but not a gap in the inventory: `corral-sign` (listed under v-fences; the inventory has `direct` coverage); `mist-altar` (listed under v-shrine; the inventory has `direct` coverage).
 - Gaps in the inventory that Appendix D does not list (outside the summit and media rows): none.
 - Appendix D says "31 summit rows with review-sheet evidence only" for s2 to s4. In the inventory that is 30 kit rows assigned to s2, s3 and s4 plus the media row `blender-roofscape` (review) = 31, which matches; `kyoto-city` is `direct`.
 
@@ -170,13 +170,13 @@ Phase 2 wave 2.1, props the cat walks past · kit family `src/kit/lanterns/` · 
 
 ### v-fences
 
-Phase 2 wave 2.1, props the cat walks past · kit family `src/kit/fences/` · lab 12 `labs/fences/` · 3 rows, 2 with a focused study.
+Phase 2 wave 2.1, props the cat walks past · kit family `src/kit/fences/` · lab 12 `labs/fences/` · 3 rows, 3 with a focused study.
 
 | Inventory id | Area | Lane | Basis | Best lab target | Coverage | Lab adapter | Original adapter |
 |---|---|---|---|---|---|---|---|
 | `bamboo-fence` | Props | v-fences | card | `fences/game-fence` | direct | yes | yes |
 | `corral` | Props | v-fences | card | `fences/corral` | direct | yes | yes |
-| `corral-sign` | Props | v-fences | card | `fences/corral` | embedded | no | yes |
+| `corral-sign` | Props | v-fences | card | `fences/corral-sign` | direct | no | yes |
 
 ### v-rocks
 
@@ -194,7 +194,7 @@ Phase 2 wave 2.1, props the cat walks past · kit family `src/kit/garden/` · la
 | Inventory id | Area | Lane | Basis | Best lab target | Coverage | Lab adapter | Original adapter |
 |---|---|---|---|---|---|---|---|
 | `shishi` | Props | v-garden | ruling | `garden/game-shishi (+1)` | direct | yes | yes |
-| `wind-chime` | Props | v-garden | ruling | `garden/game-chime` | direct | yes | yes |
+| `wind-chime` | Props | v-garden | ruling | `garden/game-chime (+1)` | direct | yes | yes |
 
 ### v-greenery
 

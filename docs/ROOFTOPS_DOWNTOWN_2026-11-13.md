@@ -74,3 +74,15 @@ boot/captures at all seven lanterns. The tests exposed and fixed a pre-existing
 vent-wall error: its collision wall now begins on the canopy, so it no longer
 blocks the market underneath. Real-device frame-rate validation remains a
 separate hardware check; browser emulation does not establish phone performance.
+
+## Agility and atmosphere follow-up
+
+The next three passes are recorded in
+[ROOFTOPS_AGILITY_2026-11-13.md](ROOFTOPS_AGILITY_2026-11-13.md), including the
+additional reference dive and lab reuse. Six explicitly chosen alley loops
+now curve through the interiors of blocks (about 225m of winding ground),
+with 50 added surfaces and twelve entrance/exit soffits. The total is 670
+platforms and twenty soffits along the unchanged 1,082m main route.
+Chidori's contextual pacing, portrait cutaways, street work, cloth, boats,
+water and surface art received another pass. Browser coverage now includes
+chosen alleys, desktop cat legibility, buffered input and moving-object culling.
