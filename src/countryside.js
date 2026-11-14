@@ -1120,6 +1120,12 @@ export class Countryside {
   }
 
   buildPath() {
+    const layout = this.layoutPath();
+    return this.placeAsset('path', layout, () => this.meshPathClassic(layout));
+  }
+
+  /** The cobbled road's centreline; its samples are the path the valley reads. Boulders are a component. */
+  layoutPath() {
     const pts = [
       new THREE.Vector3(0, 0, 34),
       new THREE.Vector3(-2, 0, 20),
@@ -1129,6 +1135,15 @@ export class Countryside {
       new THREE.Vector3(0, 0, -30)
     ];
     const curve = new THREE.CatmullRomCurve3(pts);
+    return {
+      index: this.nextIndex('path'), name: 'Cobbled Path', points: pts.map((p) => [p.x, p.y, p.z]),
+      footprint: footprint({ anchors: { pathSamples: curve.getPoints(100) } }),
+      components: [component('path-boulders', this.layoutPathBoulders(curve), 'meshPathBouldersClassic')]
+    };
+  }
+
+  meshPathClassic(layout) {
+    const curve = new THREE.CatmullRomCurve3(layout.points.map(([x, y, z]) => new THREE.Vector3(x, y, z)));
     this.pathSamples = curve.getPoints(100);
     const steps = 80;
     const width = 3.8;
@@ -1173,7 +1188,7 @@ export class Countryside {
     gravel.receiveShadow = true;
     this.scene.add(gravel);
 
-    this.buildPathBoulders(curve);
+    this.placeComponent(layout.components[0], this.scene);
   }
 
   /**
