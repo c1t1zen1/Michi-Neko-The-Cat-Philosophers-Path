@@ -585,25 +585,276 @@ function pretty(v, pad = '') {
  * split). Each returns [name, pass, detail]. Absent on the unsplit code.
  */
 async function runChecks(mod) {
-  let character;
+  let character, rig;
   try {
     character = await import(`../src/characters/character.js?v=${TAG}`);
+    rig = await import(`../src/characters/rig.js?v=${TAG}`);
   } catch (e) {
     return { skipped: 'src/characters/character.js is not present: ' + String(e.message || e).split('\n')[0] };
   }
+  const { Cat } = mod;
+  const C = character;
+  const stats = rig.sculptStats;
   const results = [];
   const check = (name, fn) => {
     try {
       const r = fn();
-      results.push([name, r === true || (r && r.pass === true), r && r.detail !== undefined ? r.detail : (r === true ? '' : String(r))]);
+      const pass = r === true || (r && r.pass === true);
+      results.push([name, pass, r && r.detail !== undefined ? r.detail : (pass ? '' : JSON.stringify(r))]);
     } catch (e) {
       results.push([name, false, 'threw: ' + String(e && e.message || e)]);
     }
   };
-  if (typeof character.contractChecks === 'function') {
-    for (const [name, fn] of character.contractChecks(mod, THREE)) check(name, fn);
+  const ok = (pass, detail = '') => ({ pass: !!pass, detail });
+  const throwsContract = (fn) => { try { fn(); return false; } catch (e) { return e instanceof C.CharacterContractError; } };
+
+  // Two cats built from the same seed: identical down to the uuids, once
+  // table references are resolved (the materials and geometry are separate
+  // objects, described by value)
+  const resolve = (x) => {
+    if (Array.isArray(x)) return x.map(resolve);
+    if (x && typeof x === 'object') {
+      const keys = Object.keys(x);
+      if (keys.length === 1) {
+        if (keys[0] === 'mat') return { mat: resolve(T.materials[x.mat]) };
+        if (keys[0] === 'geo') return { geo: T.geometries[x.geo] };
+        if (keys[0] === 'tex') return { tex: T.textures[x.tex] };
+        if (keys[0] === 'skel') return { skel: T.skeletons[x.skel] };
+      }
+      const table = { mat: 'materials', geo: 'geometries', tex: 'textures', skel: 'skeletons', map: 'textures', gradientMap: 'textures' };
+      const o = {};
+      for (const k of keys) {
+        const v = x[k];
+        if (table[k] && typeof v === 'number') o[k] = resolve(T[table[k]][v]);
+        else if (k === 'mat' && Array.isArray(v)) o[k] = v.map((i) => resolve(T.materials[i]));
+        else o[k] = resolve(v);
+      }
+      return o;
+    }
+    return x;
+  };
+  const twin = (a, b) => {
+    const s0 = seed;
+    const ca = new Cat(a);
+    const da = describeCat(ca, 'a');
+    seed = s0;
+    const cb = new Cat(b);
+    const db = describeCat(cb, 'b');
+    delete da.fields.def; delete db.fields.def;
+    delete da.label; delete db.label;
+    const ja = JSON.stringify(resolve(da)), jb = JSON.stringify(resolve(db));
+    if (ja === jb) return ok(true, `${da.nodes.length} nodes, uuids and fields equal`);
+    let k = 0; while (k < ja.length && ja[k] === jb[k]) k++;
+    return ok(false, 'first difference: …' + ja.slice(Math.max(0, k - 80), k + 60) + ' vs …' + jb.slice(Math.max(0, k - 80), k + 60));
+  };
+  const LUNA_OPTS = { stripeAmount: 0.3, idleProfile: { weights: { groom: 0.42, sit: 0.4, stretch: 0.1, yawn: 0.08 }, interval: [9, 16] },
+    fur: 0x7f8796, belly: 0xdadce2, accent: 0x474e5f, eyeColor: 0xdec056, ribbonColor: 0x2b3d63, build: 'luna' };
+  const LUNA_DEF = { id: 'luna', build: 'luna', palette: { fur: 0x7f8796, belly: 0xdadce2, accent: 0x474e5f, stripes: 0.3 },
+    face: { eyes: 0xdec056, nose: null }, accessories: [{ slot: 'collar', part: 'kumihimo', color: 0x2b3d63 }, { slot: 'bell', part: 'suzu' }],
+    scale: 1, personality: { idle: LUNA_OPTS.idleProfile } };
+
+  // ---- CharacterDef contract (C1.3)
+  check('MICHI is a valid, frozen CharacterDef with the classic collar and bell', () => {
+    const v = C.validateCharacterDef({ ...C.MICHI });
+    return ok(v.ok && Object.isFrozen(C.MICHI) && C.MICHI.accessories.map((a) => a.part).join() === 'kumihimo,suzu', v.errors.join('; '));
+  });
+  check('defineCharacter fills defaults; accessories omitted = classic, [] = none', () => {
+    const d = C.defineCharacter({ id: 'plain' });
+    const n = C.defineCharacter({ id: 'bare', accessories: [] });
+    return ok(d.build === 'michi' && d.palette.fur === 0xae8450 && d.face.eyes === 0xebb02a && d.face.nose === null && d.scale === 1 &&
+      d.personality === null && d.accessories.length === 2 && n.accessories.length === 0 && C.defineCharacter(d) === d);
+  });
+  const bad = {
+    'bad id': { id: 'Luna Cat' },
+    'unknown field': { id: 'x', colour: 1 },
+    'unknown slot': { id: 'x', accessories: [{ slot: 'tail', part: 'suzu' }] },
+    'slot twice': { id: 'x', accessories: [{ slot: 'collar', part: 'kumihimo' }, { slot: 'collar', part: 'kumihimo' }] },
+    'unknown part': { id: 'x', accessories: [{ slot: 'collar', part: 'velvet' }] },
+    'part in the wrong slot': { id: 'x', accessories: [{ slot: 'collar', part: 'suzu' }] },
+    'bell before collar': { id: 'x', accessories: [{ slot: 'bell', part: 'suzu' }, { slot: 'collar', part: 'kumihimo' }] },
+    'bad colour': { id: 'x', palette: { fur: 'brown' } },
+    'stripes out of range': { id: 'x', palette: { stripes: 2 } },
+    'scale out of range': { id: 'x', scale: 0 },
+    'bad idle interval': { id: 'x', personality: { idle: { interval: [9] } } },
+    'bad proportions': { id: 'x', build: { girth: 3 } }
+  };
+  for (const [name, def] of Object.entries(bad)) {
+    check(`rejects a def with ${name}`, () => ok(!C.validateCharacterDef(def).ok && throwsContract(() => C.defineCharacter(def)),
+      C.validateCharacterDef(def).errors.join('; ')));
   }
-  return { results, passed: results.filter((r) => r[1]).length, failed: results.filter((r) => !r[1]).length };
+  check('registerCharacterPart rejects a part without a slot or build, and a clash of ids', () => ok(
+    throwsContract(() => C.registerCharacterPart({ id: 'nope', slot: 'tail', build() {} })) &&
+    throwsContract(() => C.registerCharacterPart({ id: 'nope', slot: 'head' })) &&
+    throwsContract(() => C.registerCharacterPart({ id: 'suzu', slot: 'bell', build() {} }))));
+
+  // ---- def ↔ legacy options: the same cat, call for call
+  check('new Cat({ def: MICHI }) is the player cat of src/player.js (same seed → same uuids, graph, fields)',
+    () => twin({ fur: 0xae8450, belly: 0xeedcb8, accent: 0x5e3d26 }, { def: C.MICHI }));
+  check('a Luna CharacterDef is the Luna src/npc.js builds from options', () => twin(LUNA_OPTS, { def: LUNA_DEF }));
+  check('def.personality.idle drives the idle verbs, def.scale the group', () => {
+    const cat = new Cat({ def: { ...LUNA_DEF, id: 'luna-big', scale: 1.05 } });
+    return ok(cat.idleProfile === LUNA_OPTS.idleProfile && cat.group.scale.x === 1.05 && cat.def.id === 'luna-big');
+  });
+
+  // ---- sculpt cache and part swaps (C1.5)
+  check('the sculpt is cached per body type: a second Mochi asks once and sculpts nothing', () => {
+    const before = { ...stats };
+    const a = new Cat({ build: 'mochi' });
+    const b = new Cat({ build: 'mochi' });
+    return ok(stats.sculpts === before.sculpts && stats.requests === before.requests + 2 && a.anatomy === b.anatomy &&
+      a.coat.geometry === b.coat.geometry, `requests +${stats.requests - before.requests}, sculpts +${stats.sculpts - before.sculpts}`);
+  });
+  check('a new body type sculpts once, then hits the cache', () => {
+    const s0 = stats.sculpts;
+    const build = { girth: 1.07, leg: 0.97, head: 1.0, tail: 1.0, cheeks: 1.03 };
+    new Cat({ build });
+    const s1 = stats.sculpts;
+    new Cat({ build: { ...build } });
+    return ok(s1 === s0 + 1 && stats.sculpts === s1, `sculpts ${s0} → ${s1} → ${stats.sculpts}`);
+  });
+
+  const hat = C.registerCharacterPart({
+    id: 'golden-test-hat', slot: 'head', label: 'test part (tools/cat_golden.js)',
+    build(host, entry, mount) {
+      const geo = new THREE.ConeGeometry(0.03, 0.05, 8);
+      const mat = new THREE.MeshBasicMaterial({ color: entry.color ?? 0x335577 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.name = 'Test Hat';
+      mesh.position.set(0, 0.07, 0.02);
+      mount.add(mesh);
+      host.testHat = mesh;
+      return { objects: [mesh], fields: ['testHat'], owned: { geometries: [geo], materials: [mat] } };
+    }
+  });
+  const pack = C.registerCharacterPart({
+    id: 'golden-test-pack', slot: 'back', label: 'test part (tools/cat_golden.js)',
+    build(host, entry, mount) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.03, 0.08), new THREE.MeshBasicMaterial());
+      mesh.position.set(0, 0.1, 0);
+      mount.add(mesh);
+      return { objects: [mesh], owned: { geometries: [mesh.geometry], materials: [mesh.material] } };
+    },
+    setTier(host, handle, tier) { handle.objects[0].visible = tier !== 'far'; }
+  });
+
+  check('setMasterCat is the bell slot swap: same bell mesh, gold, one twin, no sculpt', () => {
+    const cat = new Cat({ build: 'kuro' });
+    const before = { ...stats };
+    const bell = cat.collarBell;
+    const kids = cat.bellMount.children.length;
+    cat.setMasterCat();
+    cat.setMasterCat();
+    const h = cat.slots.bell;
+    return ok(h.part.id === 'suzu-master' && cat.collarBell === bell && bell.material === cat.matGoldBell &&
+      cat.bellMount.children.length === kids + 1 && cat.collarBellTwin && cat.collarBellTwin.parent === cat.bellMount &&
+      stats.sculpts === before.sculpts && stats.requests === before.requests,
+      `part ${h.part.id}, bell mount children ${kids} → ${cat.bellMount.children.length}`);
+  });
+  check('suzu-master → suzu swaps back in place (brass, twin gone)', () => {
+    const cat = new Cat({});
+    cat.setAccessory('bell', 'suzu-master');
+    const twinGeo = cat.collarBellTwin.geometry;
+    cat.setAccessory('bell', 'suzu');
+    return ok(cat.collarBell.material === cat.matBellBrass && !cat.collarBellTwin && cat.slots.bell.part.id === 'suzu' &&
+      !cat.bellMount.children.some((c) => c.geometry === twinGeo));
+  });
+  check('emptying the collar slot takes the bell with it and frees what they owned; no sculpt', () => {
+    const cat = new Cat({ build: 'luna' });
+    const before = { ...stats };
+    const collar = cat.collar;
+    const outlines = cat.outlines.length;
+    let disposed = 0;
+    for (const g of [...cat.slots.collar.owned.geometries, ...cat.slots.bell.owned.geometries]) g.addEventListener('dispose', () => disposed++);
+    cat.setAccessory('collar', null);
+    return ok(!cat.slots.collar && !cat.slots.bell && !collar.parent && cat.collar === undefined && cat.collarBell === undefined &&
+      cat.outlines.length === outlines - 1 && disposed === 6 && stats.sculpts === before.sculpts && stats.requests === before.requests,
+      `outlines ${outlines} → ${cat.outlines.length}, geometries disposed ${disposed}`);
+  });
+  check('a collar and bell put back on a bare cat hang where the classic ones do', () => {
+    const ref = new Cat({ build: 'luna' });
+    const cat = new Cat({ build: 'luna' });
+    cat.setAccessory('collar', null);
+    cat.setAccessory('collar', { part: 'kumihimo', color: 0x2b3d63 });
+    cat.setAccessory('bell', 'suzu');
+    const p = (o) => o.getWorldPosition(new THREE.Vector3());
+    ref.group.updateMatrixWorld(true); cat.group.updateMatrixWorld(true);
+    return ok(cat.collar.parent === cat.neck && cat.collar.name === 'Collar' && cat.collarBell.parent === cat.bellMount &&
+      p(cat.collarBell).distanceTo(p(ref.collarBell)) < 1e-9 && cat.slots.collar.entry.color === 0x2b3d63 && cat.outlines.length === ref.outlines.length);
+  });
+  check('head and back slots: mount on the head and chest bones, swap and empty without a sculpt', () => {
+    const cat = new Cat({ build: 'mochi' });
+    const before = { ...stats };
+    const h1 = cat.setAccessory('head', 'golden-test-hat');
+    const mesh = cat.testHat;
+    const again = cat.setAccessory('head', 'golden-test-hat');
+    const h2 = cat.setAccessory('head', { part: 'golden-test-hat', color: 0xff0000 });
+    const recolored = cat.testHat !== mesh && !mesh.parent && cat.testHat.parent === cat.head;
+    cat.setAccessory('back', 'golden-test-pack');
+    const packOn = cat.slots.back.objects[0].parent === cat.chest;
+    cat.setAccessory('head', null);
+    cat.setAccessory('back', null);
+    return ok(h1 && again === h1 && h2 !== h1 && recolored && packOn && !cat.slots.head && !cat.slots.back && cat.testHat === undefined &&
+      stats.sculpts === before.sculpts && stats.requests === before.requests);
+  });
+  check('setAccessory rejects an unknown slot, an unknown part and a part for another slot', () => {
+    const cat = new Cat({});
+    return ok(throwsContract(() => cat.setAccessory('tail', 'suzu')) && throwsContract(() => cat.setAccessory('head', 'velvet')) &&
+      throwsContract(() => cat.setAccessory('head', 'suzu')));
+  });
+  check('a swapped cat keeps animating (600 frames, finite bones)', () => {
+    const cat = new Cat({ build: 'kuro' });
+    cat.setAccessory('head', 'golden-test-hat');
+    cat.setMasterCat();
+    cat.setAccessory('collar', null);
+    for (let i = 0; i < 600; i++) cat.update(STEP, i < 300 ? 4.5 : 0, true, false, false);
+    return ok(cat.bones.every((b) => Number.isFinite(b.quaternion.x) && Number.isFinite(b.position.y)));
+  });
+
+  // ---- tiers
+  check('tiers: hero by default; mid and far hide every outline hull and the whiskers; hero restores them', () => {
+    const cat = new Cat({});
+    const all = () => cat.outlines.every((o) => o.visible) && cat.whiskers.visible;
+    const none = () => cat.outlines.every((o) => !o.visible) && !cat.whiskers.visible;
+    const h0 = cat.tier === 'hero' && all() && cat.outlines.length === 6;   // coat, tail, head, two ears, collar
+    const m = cat.setTier('mid') === 'mid' && none();
+    const f = cat.setTier('far') === 'far' && none();
+    const h = cat.setTier('hero') === 'hero' && all();
+    return ok(h0 && m && f && h, `outline hulls ${cat.outlines.length}`);
+  });
+  check('tier hooks run on every change; part setTier hooks too', () => {
+    const seen = [];
+    const off = C.onCharacterTier((host, tier, prev) => seen.push(prev + '>' + tier));
+    const cat = new Cat({});
+    cat.setAccessory('back', 'golden-test-pack');
+    cat.setTier('far');
+    const packHidden = !cat.slots.back.objects[0].visible;
+    cat.setTier('far');
+    cat.setTier('hero');
+    off();
+    cat.setTier('mid');
+    return ok(seen.join() === 'hero>far,far>hero' && packHidden && cat.slots.back.objects[0].visible, seen.join());
+  });
+  check('quality low keeps the classic character: setTier stays hero', () => {
+    const cat = new Cat({ quality: 'low', tier: 'far' });
+    return ok(cat.tier === 'hero' && cat.setTier('mid') === 'hero' && cat.outlines.every((o) => o.visible));
+  });
+  check('new Cat({ tier: "mid" }) is built at mid; a collar added at mid has no outline', () => {
+    const cat = new Cat({ tier: 'mid' });
+    cat.setAccessory('collar', null);
+    cat.setAccessory('collar', 'kumihimo');
+    return ok(cat.tier === 'mid' && cat.outlines.every((o) => !o.visible));
+  });
+  check('setTier rejects an unknown tier', () => ok(throwsContract(() => new Cat({}).setTier('ultra'))));
+  check('characterTierFor: low and classic stay hero; modular steps down with distance', () => ok(
+    C.characterTierFor({ quality: 'low', set: 'modular', distance: 100 }) === 'hero' &&
+    C.characterTierFor({ quality: 'high', set: 'classic', distance: 100 }) === 'hero' &&
+    C.characterTierFor({ quality: 'high', set: 'modular', distance: 2 }) === 'hero' &&
+    C.characterTierFor({ quality: 'medium', set: 'modular', distance: C.TIER_DISTANCE.mid }) === 'mid' &&
+    C.characterTierFor({ quality: 'medium', set: 'modular', distance: C.TIER_DISTANCE.far + 1 }) === 'far'));
+  check('src/cat.js re-exports the def helpers', () => ok(mod.MICHI === C.MICHI && mod.defineCharacter === C.defineCharacter &&
+    mod.CHARACTER_SLOTS === C.CHARACTER_SLOTS && mod.CHARACTER_TIERS === C.CHARACTER_TIERS));
+  void hat; void pack;
+  return { results, passed: results.filter((r) => r[1]).length, failed: results.filter((r) => !r[1]).length, sculptStats: { ...stats } };
 }
 
 // ------------------------------------------------------------------- the page
