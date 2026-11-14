@@ -150,4 +150,4 @@ None (every asset's footprint is `layout.footprint`; the contract's R12 checks p
 - See `docs/fable/handoff/v-water.md`: inventory coverage rows (paddy-bunds → `water/p-aze` direct), production adapter,
   part names and Roof Road sockets, the two BUDGET_EXCEPTIONS, an optional `assetEnv()` patch (sun + palette in env).
 - The kit water finds the Sky through its dome uniforms; if v-sky renames them, the water falls back to an hour-based palette.
-- Size: about 1,700 added lines of code (kit ~1,450, lab ~150) plus 52 JPGs: one PR as asked.
+- Size: 2,043 added lines in src/ and labs/ (17 files; the kit family is ~1,800 of them) plus 52 JPGs, above the ~1,500-line guide; kept as one PR because the six assets share the water state (sky, rings, field) and split badly.
