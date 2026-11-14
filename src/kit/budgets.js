@@ -49,6 +49,16 @@ export const KIT_LIMITS = Object.freeze({
  */
 export const BUDGET_EXCEPTIONS = Object.freeze({
   // 'tea-house': { hero: { triangles: 40000, meshes: 40 }, why: 'a whole building with interior-facing walls' }
+  // v-hidden: the two wholes are whole clearings (see docs/fable/handoff/v-hidden.md for measured numbers)
+  'moon-pool': {
+    hero: { meshes: 20, materials: 11 }, mid: { meshes: 18, materials: 10 }, far: { triangles: 1500, meshes: 12, materials: 9 },
+    why: 'a whole pool: apron, water + caustic, moon, glints, 34 rim stones, seat, pads, lotus, motes and the lanterns-family toro, each its own material (all private ones are live light)'
+  },
+  'lantern-glade': {
+    hero: { materials: 10 }, mid: { meshes: 10, materials: 10 }, far: { triangles: 1900, meshes: 10, materials: 10 },
+    why: 'a whole clearing: floor, noded culms + blades, one lantern set (3 draws for 11 lanterns), seat, boulder, fireflies'
+  },
+  'glade-lanterns': { far: { materials: 3 }, why: 'frame, lit paper and halo are three materials even at far (the halo is the night read)' },
   // classic grove 82.3k hero tris; modular 89.9k/12.5k/4.7k; ruling R40, v-greenery handoff
   'bamboo-groves': {
     hero: { triangles: 92000 }, mid: { triangles: 13000 }, far: { triangles: 5000 },

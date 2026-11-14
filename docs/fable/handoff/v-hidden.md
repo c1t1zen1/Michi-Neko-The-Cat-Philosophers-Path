@@ -27,7 +27,7 @@ One: `leafMaterial` = `km.bamboo({ color: 0xffffff, vcol: true, side: DoubleSide
 - No `layout.bind` exists for hidden places; nothing binds a part.
 
 ## 4. Behaviour the kit owns (classic handles stay null)
-Water emissive, caustic opacity and drift, the moon sprite and its glints, the motes, the fireflies, every glade lantern's kindle and halo run in the kit's own `update(dt, t, env)` from `env.hour` (nightness and daylight are the Sky's sun path, `common.js` `sunUpAt`) and `env.wet` (rain halves the calm things, as classic weather rain/mist did; mist alone is not in `env`, so a misty clear-sky pool stays at full calm: one small deviation). The classic update() guards (`if (this.causticMat)`, `this.lanterns.length`, `poolMotePoints`) skip a kit part, as f3 intended. `this.stalkTops` is layout data and stays.
+Water emissive, caustic opacity and drift, the moon sprite and its glints, the motes, the fireflies, every glade lantern's kindle and halo run in the kit's own `update(dt, t, env)` from `env.hour` (nightness and daylight are the Sky's sun path, `common.js` `sunUpAt`) and `env.wet` (rain halves the calm things, as classic weather rain/mist did; `env.mist` now exists (main.js assetEnv, runtime.js initial env), so rain and mist both halve them as classic did). The classic update() guards (`if (this.causticMat)`, `this.lanterns.length`, `poolMotePoints`) skip a kit part, as f3 intended. `this.stalkTops` is layout data and stays.
 
 ## 5. Footprint
 No waiver. Every id's footprint is `layout.footprint` (colliders, exclusions, water rects, the two rest anchors are untouched: `--systems` modular still lists 135 colliders / 5 water rects / 4 exclusions / 5 anchors). The kit pool sits on the same registry order because the parent registers the whole footprint once.
@@ -51,3 +51,7 @@ Imported read-only: lanterns `buildStoneLantern`, `washiTexture`, `haloTexture`,
 
 ## 8. Hot-file wiring
 None needed. `hidden_places.js` already routes all 15 ids.
+
+## Fix round 1 notes
+- Lantern sway (3 cm bob) is dropped in the kit set; swap `glade-lanterns` as a whole with the glade (per-part children cost 3 draws each).
+- `rimVariants` is a module cache of chiselled geometry (placed() clones), never freed.

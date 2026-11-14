@@ -6,7 +6,8 @@
 import * as THREE from 'three';
 import { TAU, sstep, canvas2d, canvasTexture, merge, indexed, rockGeometry, withUv } from '../craft.js?v=20261113a';
 import { fitRock, variantRock, placed, bake, DETAIL, rockMaterials } from '../rocks/stone.js?v=20261113a';
-import { buildStoneLantern } from '../lanterns/build.js?v=20261113a';
+import { assets as lanternAssets } from '../lanterns/index.js?v=20261113a';
+import { defaultParams } from '../contract.js?v=20261113a';
 import {
   nightnessAt, dayLightAt, calmAt, hourOf, shared, glowTexture, leafMaterial, freePrivate,
   polarDisc, bakeAt, tint, glowPoints, compose, single
@@ -284,8 +285,8 @@ function lotusGeometry(tier, flower, rng, p) {
   });
   if (tier !== 'far') parts.push(tint(new THREE.CylinderGeometry(0.036, 0.03, 0.03, 8).translate(0, top + 0.04, 0), 0xd6c866));
   if (tier === 'hero') {                                             // the standing leaf: lotus raises its leaves, lilies do not
-    const a = rng() * TAU, lx = Math.cos(a) * 0.36, lz = Math.sin(a) * 0.36, lh = 0.3 + rng() * 0.12;
-    const dish = polarDisc(0.19, 2, 18, { y: (rn) => 0.07 * rn * rn, color: (rn) => { const k = 0.8 + 0.2 * rn; return [0.17 * k, 0.34 * k, 0.16 * k]; } }).translate(lx, lh, lz);
+    const a = rng() * TAU, lx = Math.cos(a) * 0.36, lz = Math.sin(a) * 0.36, lh = 0.12 + rng() * 0.06;
+    const dish = polarDisc(0.2, 3, 18, { y: (rn) => 0.07 * Math.pow(rn, 1.6), color: (rn) => { const k = 0.9 + 0.5 * rn; return [0.22 * k, 0.42 * k, 0.2 * k]; } }).rotateZ(0.22).rotateY(a).translate(lx, lh, lz);
     parts.push(dish, tint(new THREE.CylinderGeometry(0.008, 0.011, lh + 0.08, 4, 1, true).translate(lx, (lh - 0.08) / 2, lz), 0x5f8a4a));
   }
   const geo = indexed(merge(parts));
@@ -352,7 +353,8 @@ export function buildMoonPool(ctx, L, p) {
     lotus: buildLotus(ctx, L.lotus, { height: 1 }, 'bloom'),
     motes: sub(buildMotes, L.motes, { density: p.density })
   };
-  const toro = buildStoneLantern(ctx, { index: 0 }, { girth: 1, flame: 0.5 }, { kind: 'kasuga', height: 1.14, kasaR: 0.3, halo: { scale: 1.5, fog: false }, base: 0.2, gain: 2.0 });
+  const toroDef = lanternAssets.find((d) => d.id === 'pool-toro');   // the lanterns family's own pool toro (classic does not rotate it by L.toro.angle)
+  const toro = toroDef.build(ctx, L.toro, defaultParams(toroDef.params));
   toro.group.name = 'toro';
   return compose([
     ['apron', near.apron], ['water', near.water], ['moon', near.moon, { x: L.moon.x, y: L.moon.y, z: L.moon.z }], ['rim', near.rim],

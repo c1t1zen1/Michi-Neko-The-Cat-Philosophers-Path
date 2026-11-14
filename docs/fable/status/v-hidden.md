@@ -48,3 +48,10 @@ Draw calls fall by 26 and 17 (pad and lotus meshes merge into one, the glade's 4
 ## Concerns
 - Size: about 1.4k source lines (src/kit/hidden 5 files) plus the lab tiles; within the ~1500 guide.
 - 14 contract rows fail until handoff §1 is applied (budget exceptions for the two wholes).
+
+## Fix round 1
+- Merged origin/fable/integration (kit index regenerated, 10 families). Committed budgets.js exceptions; added `env.mist` (main.js assetEnv, runtime.js initial env); `calmAt` uses max(wet, mist).
+- Pool toro now built from the lanterns family's `pool-toro` asset def (defaultParams); classic does not rotate it by `angle` (only positions it), so no ry.
+- Lotus standing leaf: lowered (12-18 cm), cupped, tilted, lighter; moon-pool-12/22-cat-modular re-shot and Read.
+- Checks: kit_contract_test --family hidden 1232 checks 0 failed (committed tree); footprint_golden classic EQUAL; --systems EQUAL; kit_check 153 OK; check_syntax 91 OK; classic boot: errors [] warnings [].
+- Known: lantern sway dropped; rim colours are the rocks default.

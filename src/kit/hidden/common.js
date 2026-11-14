@@ -25,7 +25,7 @@ export const hourOf = (env) => (env && typeof env.hour === 'number' ? env.hour :
 /** Daylight the caustics need (HiddenPlaces.update: smooth(0.05, 0.4, sunUp)). */
 export const dayLightAt = (hour) => sstep(0.05, 0.4, sunUpAt(hour));
 /** Rain quiets the pool's drifting things (classic: weather rain or mist halves them). */
-export const calmAt = (env) => 1 - 0.5 * sstep(0.15, 0.5, (env && env.wet) || 0);
+export const calmAt = (env) => 1 - 0.5 * sstep(0.15, 0.5, Math.max((env && env.wet) || 0, (env && env.mist) || 0));
 
 /* ------------------------------------------------------- shared textures --- */
 
