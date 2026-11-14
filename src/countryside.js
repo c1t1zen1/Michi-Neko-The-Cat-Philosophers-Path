@@ -1236,9 +1236,15 @@ export class Countryside {
   }
 
   buildWalkwaySlabs(curve) {
-    const slabMats = [MAT.stone, MAT.stoneDark, MAT.slabWarm];
+    const layout = this.layoutWalkwaySlabs(curve);
+    return this.placeAsset('path-slabs', layout, () => this.meshWalkwaySlabsClassic(layout));
+  }
+
+  /** Stepping slabs along a curve (not in the valley today; the catalog shows it). */
+  layoutWalkwaySlabs(curve) {
     const len = curve.getLength();
     const rows = Math.floor(len / 0.62);
+    const slabs = [];
     for (let i = 0; i < rows; i++) {
       const t = i / rows;
       const p = curve.getPoint(t);
@@ -1250,17 +1256,28 @@ export class Countryside {
         const d = 0.45 + this.random() * 0.3;
         const h = 0.06 + this.random() * 0.05;
         const off = cols === 1 ? (this.random() - 0.5) * 0.3 : (c === 0 ? -0.55 - this.random() * 0.15 : 0.55 + this.random() * 0.15);
-        const slab = new THREE.Mesh(
-          new THREE.BoxGeometry(w, h, d),
-          slabMats[Math.floor(this.random() * slabMats.length)]
-        );
-        slab.position.set(p.x + side.x * off, h / 2 + 0.03, p.z + side.z * off);
-        slab.rotation.y = Math.atan2(tan.x, tan.z) + (this.random() - 0.5) * 0.35;
-        slab.receiveShadow = true;
-        slab.castShadow = true;
-        slab.name = `Path Slab ${i}-${c}`;
-        this.scene.add(slab);
+        const mat = Math.floor(this.random() * 3);
+        const position = [p.x + side.x * off, h / 2 + 0.03, p.z + side.z * off];
+        const ry = Math.atan2(tan.x, tan.z) + (this.random() - 0.5) * 0.35;
+        slabs.push({ i, c, w, d, h, mat, position, ry });
       }
+    }
+    return { index: this.nextIndex('path-slabs'), slabs, footprint: footprint() };
+  }
+
+  meshWalkwaySlabsClassic(layout) {
+    const slabMats = [MAT.stone, MAT.stoneDark, MAT.slabWarm];
+    for (const { i, c, w, d, h, mat, position, ry } of layout.slabs) {
+      const slab = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, d),
+        slabMats[mat]
+      );
+      slab.position.set(...position);
+      slab.rotation.y = ry;
+      slab.receiveShadow = true;
+      slab.castShadow = true;
+      slab.name = `Path Slab ${i}-${c}`;
+      this.scene.add(slab);
     }
   }
 
