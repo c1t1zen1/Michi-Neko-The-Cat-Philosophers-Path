@@ -8,11 +8,12 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { buildLevel, mouthAt } from './level.js';
-import { Runner, PHYS, platOffset, platTop } from './physics.js';
+import { Runner, PHYS, platOffset, platTop, platDepth } from './physics.js';
 import { Autopilot } from './autopilot.js';
 import { buildWorld } from './build.js';
 import { Sky } from './sky.js';
 import { RooftopAtmosphere } from './atmosphere.js';
+import { alleyEntrance } from './alleys.js';
 import { Companion } from './companion.js';
 import { neighbourhoodMap } from './neighbourhood-map.js';
 
@@ -30,12 +31,12 @@ const damp = (cur, target, rate, dt) => cur + (target - cur) * (1 - Math.exp(-ra
 /* ---------------- renderer, scene, camera ---------------- */
 
 const canvas = $('gl');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: flag('shot') === '1' });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: lowPower ? 'low-power' : 'high-performance', preserveDrawingBuffer: flag('shot') === '1' });
 const basePixelRatio = Math.min(devicePixelRatio || 1, lowPower ? 1.15 : 1.5);
 renderer.setPixelRatio(basePixelRatio);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-const shadows = flag('shadows') !== '0';
+const shadows = flag('shadows') === '1' || (!lowPower && flag('shadows') !== '0');
 renderer.shadowMap.enabled = shadows;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -86,7 +87,7 @@ let guide = null;
 async function loadCats() {
   if (flag('cat') === '0') { hideWake(); return; }
   try {
-    const mod = await import('../../src/cat.js?v=20261106a');
+    const mod = await import('../../src/cat.js?v=20261107a');
     await new Promise((r) => setTimeout(r, 60));          // let the page paint first
     cat = new mod.Cat({ fur: 0xae8450, belly: 0xeedcb8, accent: 0x5e3d26 });
     cat.group.position.y = 0.02;
@@ -379,12 +380,12 @@ function readInput() {
     move = touch.move;
     sprint = touch.sprint;
   }
+  press.jump ||= gp.jumpPressed; press.down ||= gp.downPressed;
   const inp = {
     move, sprint,
     jumpHeld: keys.has('jump') || gp.jumpHeld, jumpPressed: press.jump || gp.jumpPressed, jumpReleased: press.jumpUp,
     downHeld: keys.has('down') || gp.downHeld, downPressed: press.down || gp.downPressed
   };
-  press.jump = press.down = press.jumpUp = false;
   return inp;
 }
 
@@ -482,7 +483,7 @@ function respawn() {
 
 function setPaused(on, reason = 'The roofs will wait.') {
   isPaused = !!on;
-  keys.clear(); resetTouch();
+  keys.clear(); resetTouch(); press.jump = press.down = press.jumpUp = false;
   audio.setPaused(isPaused);
   document.body.classList.toggle('paused', isPaused);
   const panel = $('pause-panel');
@@ -548,7 +549,7 @@ function updateChidori(dt) {
     if (events.has('jump') || events.has('bounce')) guide.onJump();
     if (events.has('land')) guide.onLand();
     if (!watch && guide.idleAction) guide.endIdleAction();
-    if (watch && companion.modeTime > 0.65 && !guide.idleAction) guide.startIdleAction('sit', 2);
+    if (watch && companion.modeTime > 0.65 && !guide.idleAction) guide.startIdleAction(companion.mood === 'prowl' ? 'groom' : companion.mood === 'feint' ? 'stretch' : 'sit', 2);
     guide.setProwling(companion.mood === 'prowl');
     guide.update(dt, Math.abs(r.vs), r.grounded, r.sprinting, false, r.inWater, null);
     guide.setLookTarget(watch ? catRoot.position : null);
@@ -728,7 +729,7 @@ function frame(now) {
   tick(now);
 }
 function tick(now, draw = true) {
-  let dt = Math.min(0.1, (now - lastNow) / 1000);
+  let dt = Math.max(0, Math.min(0.1, (now - lastNow) / 1000));
   lastNow = now;
   if (flag('shot') === '1') dt = Math.min(dt, 1 / 30);
 
@@ -747,6 +748,7 @@ function tick(now, draw = true) {
     let use = inp;
     if (autopilot && !finale) use = autopilot.input(runner, time, STEP);
     stepPhysics(use);
+    press.jump = press.down = press.jumpUp = false;
     // Only the first sub-step sees the edge presses.
     inp = { ...inp, jumpPressed: false, downPressed: false, jumpReleased: false };
     acc -= STEP;
@@ -769,7 +771,7 @@ function tick(now, draw = true) {
   let targetD = runner.depth;
   if (!runner.grounded) {
     const below = runner.support(runner.s, runner.y, 0, 40);
-    if (below) targetD = below.d;
+    if (below) targetD = platDepth(below, runner.s);
   }
   vis.depth = damp(vis.depth, targetD, runner.grounded ? 10 : 5, dt);
   const p = rail.place(runner.s, vis.depth);
@@ -815,7 +817,14 @@ function tick(now, draw = true) {
   }
 
   updateChidori(dt);
-  townMap.update(runner.s, companion.runner.s);
+  townMap.update(runner.s, companion.runner.s, runner.depth, companion.runner.depth);
+  const entrance = runner.alley === null ? alleyEntrance(level, runner.s, runner.y) : null;
+  const alley = runner.alley !== null ? level.alleys[runner.alley] : null;
+  const alleyHint = $('alley-hint');
+  alleyHint.hidden = !!finale || !(entrance || alley);
+  alleyHint.textContent = entrance ? '↓ ' + entrance.name : alley ? alley.kanji + ' · ' + alley.name : '';
+  $('btn-down').querySelector('span').textContent = entrance ? 'alley' : 'drop';
+  $('btn-down').setAttribute('aria-label', entrance ? 'Enter ' + entrance.name : 'Drop down');
   if (!finale) { checkPickups(); checkProgress(); }
   else updateFinale(dt);
 
@@ -882,7 +891,7 @@ function updateCamera(dt) {
     const finaleFov = camera.aspect < .85 ? 96 : 50;
     camera.fov = damp(camera.fov, finaleFov, 1.5, dt);
     camera.updateProjectionMatrix();
-    world.setView(camera, catRoot, guideRoot);
+    world.setView(camera, catRoot, guideRoot, runner.alley !== null || companion.runner.alley !== null ? 1 : 0);
     return;
   }
 
@@ -905,7 +914,7 @@ function updateCamera(dt) {
   const minDist = portrait ? 10.2 : 9.8 + vertical * 1.8;
   let distance = Math.max(minDist, damp(cam.dist, minDist, 3, dt));
   const placeCamera = () => {
-    camera.position.set(cam.center.x + nrm.x * distance, cam.center.y + distance * (runner.inWater ? 0.32 : portrait ? 0.22 : 0.17), cam.center.z + nrm.z * distance);
+    camera.position.set(cam.center.x + nrm.x * distance, cam.center.y + distance * (runner.alley !== null ? 0.48 : runner.inWater ? 0.32 : portrait ? 0.22 : 0.17), cam.center.z + nrm.z * distance);
     camera.lookAt(cam.center); camera.updateMatrixWorld(true);
   };
   // Fit a volume around each cat, including ears, paws and its turning body.
@@ -922,7 +931,7 @@ function updateCamera(dt) {
     distance *= Math.min(1.8, overflow * 1.025);
   }
   cam.dist = distance; placeCamera();
-  world.setView(camera, catRoot, guideRoot);
+  world.setView(camera, catRoot, guideRoot, runner.alley !== null || companion.runner.alley !== null ? 1 : 0);
 }
 
 /* ---------------- start ---------------- */
@@ -1000,6 +1009,14 @@ window.roofRoad = {
 // Deterministic browser review runs the actual frame pipeline without drawing
 // every intermediate tick. Available only with ?qa=1; normal play has no clock.
 if (flag('qa') === '1') {
+  roofRoad.advanceFramesForReview = milliseconds => {
+    acc=0;const states=[];
+    for(const ms of milliseconds.slice(0,120)) {
+      tick(lastNow+clamp(Number(ms)||0,0,100),false);
+      states.push({y:runner.y,vy:runner.vy,grounded:runner.grounded});
+    }
+    lastNow=performance.now();acc=0;renderer.render(scene,camera);return states;
+  };
   roofRoad.advanceForReview = seconds => {
     const n = Math.ceil(clamp(Number(seconds) || 0, 0, 450) * 60);
     const samples = [], moods = new Set();

@@ -54,6 +54,12 @@ function topAtEdge(p, s) {
  * Returns { ok, how, gap, rise } — how ∈ walk | jump | climb | drop.
  */
 export function link(A, B, opts = {}) {
+  // Lanes connect only at the two explicit street portals. Their overlapping
+  // arc lengths must not create imaginary mid-block exits in the reach graph.
+  if ((A.alley ?? null) !== (B.alley ?? null)) {
+    const branch = A.alley != null ? A : B;
+    if (!branch.portal || (A.alley != null && B.alley != null)) return { ok: false, how: 'lane' };
+  }
   const strict = !!opts.strict;
   const [a0, a1] = sweep(A);
   const [b0, b1] = sweep(B);
@@ -80,6 +86,7 @@ export function link(A, B, opts = {}) {
     if (opts.ceilings) {
       const yA = topAtEdge(A, sm), yB = topAtEdge(B, sm);
       for (const c of opts.ceilings) {
+        if ((c.alley ?? null) !== (A.alley ?? null)) continue;
         const coversAll = c.s0 <= ovl0 + 0.2 && c.s1 >= ovl1 - 0.2;
         const inDepth = A.d >= c.d0 - 0.3 && A.d <= c.d1 + 0.3 && B.d >= c.d0 - 0.3 && B.d <= c.d1 + 0.3;
         if (coversAll && inDepth && c.y > yA + PHYS.body - 0.05 && c.y < yB + 0.05) {

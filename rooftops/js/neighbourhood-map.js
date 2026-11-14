@@ -1,3 +1,4 @@
+import { alleyDepth } from './alleys.js';
 // Optional paper map: the same rail used by the player, with live cat marks.
 const NS = 'http://www.w3.org/2000/svg';
 export function neighbourhoodMap(level, onOpen = () => {}) {
@@ -18,6 +19,14 @@ export function neighbourhoodMap(level, onOpen = () => {}) {
   let d = '';
   for (let s = 0; s <= level.length; s += 1) { const p = level.rail.pointAt(s); d += `${s ? 'L' : 'M'}${p.x.toFixed(2)},${p.z.toFixed(2)}`; }
   add('path', {d, class:'map-streets'});
+  for (const a of level.alleys || []) {
+    let path = '';
+    for (let s=a.s0;s<=a.s1+.001;s+=.25) {
+      const p=level.rail.place(s,alleyDepth(a,s)); path += `${s===a.s0?'M':'L'}${p.x},${p.z}`;
+    }
+    const lane=add('path',{d:path,class:'map-alley'});
+    const title=document.createElementNS(NS,'title');title.textContent=a.name;lane.append(title);
+  }
   const progress = add('path', {d, class:'map-travelled', pathLength:100});
   level.checkpoints.forEach(cp => {
     const p = level.rail.pointAt(cp.s);
@@ -34,9 +43,9 @@ export function neighbourhoodMap(level, onOpen = () => {}) {
   document.getElementById('close-map').addEventListener('click', () => toggle(false));
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden) { e.preventDefault(); e.stopImmediatePropagation(); toggle(false); } }, true);
   return {
-    update(s, guideS) {
+    update(s, guideS, depth = 0, guideDepth = 0) {
       if (panel.hidden) return;
-      for (const [dot, at] of [[cat,s],[guide,guideS]]) { const p=level.rail.pointAt(at); dot.setAttribute('cx',p.x);dot.setAttribute('cy',p.z); }
+      for (const [dot, at, d] of [[cat,s,depth],[guide,guideS,guideDepth]]) { const p=level.rail.place(at,d); dot.setAttribute('cx',p.x);dot.setAttribute('cy',p.z); }
       progress.style.strokeDasharray = `${Math.min(100, Math.max(0, s / level.length * 100))} 100`;
     }
   };

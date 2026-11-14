@@ -16,6 +16,7 @@
 // Pure data — no three.js.
 
 import { Rail } from './rail.js';
+import { addAlleys } from './alleys.js';
 
 // 14 legs weaving north, south, east and west across downtown Kyoto:
 // Sanjō Ōhashi → Awataguchi → Pontochō → Pontochō–Kiyamachi roji → Kaburenjō lane →
@@ -1088,6 +1089,7 @@ export function buildLevel() {
     M[6].s0 = floatS0; M[6].s1 = floatS1; M[6].minY = 6.4;
   }
 
+  addAlleys(L);
   delete L._r;
   return L;
 }

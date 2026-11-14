@@ -9,7 +9,7 @@ const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a
 
 // Keyframes by route progress p ∈ [0, 1].
 const KEYS = [
-  { p: 0.00, top: 0x78a9d6, hor: 0xf1dcb8, sun: 0xfff0d2, sunI: 2.5, elev: 34, hemiS: 0xcfe2f2, hemiG: 0x8a7a60, hemiI: 0.75, fog: 0xe6d9c2, fogD: 0.0022, exp: 1.0 },
+  { p: 0.00, top: 0x689fcb, hor: 0xd3e1d8, sun: 0xfff0d2, sunI: 2.5, elev: 34, hemiS: 0xcfe2f2, hemiG: 0x8a7a60, hemiI: 0.75, fog: 0xcddbd3, fogD: 0.0022, exp: 1.0 },
   { p: 0.38, top: 0x7aa0c8, hor: 0xf6cf9e, sun: 0xffd496, sunI: 2.3, elev: 15, hemiS: 0xd8d2c8, hemiG: 0x8a6e50, hemiI: 0.7, fog: 0xeccba2, fogD: 0.0024, exp: 1.0 },
   { p: 0.60, top: 0x56648e, hor: 0xe8a27c, sun: 0xffaa7a, sunI: 1.3, elev: 3, hemiS: 0x9a8aa8, hemiG: 0x6a4a3a, hemiI: 0.62, fog: 0xbf9282, fogD: 0.0026, exp: 1.05 },
   { p: 0.76, top: 0x253058, hor: 0x6c608c, sun: 0x8fa0e0, sunI: 0.4, elev: -6, hemiS: 0x4f5f90, hemiG: 0x2a2430, hemiI: 0.6, fog: 0x3e3f62, fogD: 0.0028, exp: 1.15 },
