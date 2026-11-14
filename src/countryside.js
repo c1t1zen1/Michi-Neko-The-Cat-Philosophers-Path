@@ -2240,6 +2240,23 @@ export class Countryside {
   }
 
   buildKeyHidingRock(x, z) {
+    const layout = this.layoutKeyHidingRock(x, z);
+    return this.placeAsset('key-rock', layout, () => this.meshKeyHidingRockClassic(layout));
+  }
+
+  layoutKeyHidingRock(x, z) {
+    // companion stones' yaw: one draw each
+    const stoneYaw = [0, 1].map(() => this.random() * Math.PI);
+    // collider: the main rock (dodecahedron 0.78/1, scaled, tilted), padded 0.08
+    const main = shapeBox(frameOf(frameOf(null, x, 0, z), 0, 0.58, 0, 0.12, 0.38, -0.08, 1.35, 1.0, 0.9), 'DodecahedronGeometry', 0.78, 1);
+    return {
+      index: this.nextIndex('key-rock'), name: 'Key Hiding Rock', x, z, stoneYaw,
+      footprint: footprint({ colliders: [main.expandByScalar(0.08)] })
+    };
+  }
+
+  meshKeyHidingRockClassic(layout) {
+    const { x, z } = layout;
     const rockGroup = new THREE.Group();
     rockGroup.name = 'Key Hiding Rock';
     const rockGeo = new THREE.DodecahedronGeometry(0.78, 1);
@@ -2251,12 +2268,12 @@ export class Countryside {
 
     // Small companion stones ground the cover rock and make the hiding place
     // read as a deliberate field-side rock cluster rather than a lone prop.
-    for (const [ox, oz, s] of [[-0.68, 0.28, 0.3], [0.55, 0.35, 0.24]]) {
+    [[-0.68, 0.28, 0.3], [0.55, 0.35, 0.24]].forEach(([ox, oz, s], k) => {
       const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 0), MAT.stone);
       stone.position.set(ox, s * 0.55, oz);
-      stone.rotation.set(0.18, this.random() * Math.PI, 0.1);
+      stone.rotation.set(0.18, layout.stoneYaw[k], 0.1);
       rockGroup.add(stone);
-    }
+    });
 
     rockGroup.position.set(x, 0, z);
     rockGroup.traverse((mesh) => {
