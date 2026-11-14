@@ -251,7 +251,7 @@ class Game {
     this.particles = new Particles(this.scene, { assets: this.assets });
     this.ambientLife = new AmbientLife(this.scene, this.audio, this.city.nestPos, { assets: this.assets });
     this.scent = new ScentTrail(this.scene);
-    this.player = new Player(this.scene, this.camera, this.audio);
+    this.player = new Player(this.scene, this.camera, this.audio, { assets: this.assets, quality: this.initialQuality });
     this.dialogue = new Dialogue();
     this.progression = new ProgressionManager(this.ui, this.player);
     this.quest = new QuestManager(this.ui, (quest) => this.progression.addXP(50, 'Quest complete'));
@@ -1368,6 +1368,10 @@ class Game {
       const onSummit = this.summit.active;
       const world = onSummit ? this.summit : this.city;
       this.player.update(dt, world.colliders, world, this.luna);
+      if (this.player.cat.setEyeShine) { // modular Michi: dusk eye shine
+        const h = this.sky.dayTime;
+        this.player.cat.setEyeShine(h > 12 ? Math.min(1, Math.max(0, (h - 17.3) / 2.2)) : 1 - Math.min(1, Math.max(0, (h - 4.8) / 2)));
+      }
       // Nothing in the valley applies while the cat is on the mountain: no
       // collectibles, no turtle, no NPCs, no corridor guardian, no prompts.
       const yarnFinished = !onSummit &&
