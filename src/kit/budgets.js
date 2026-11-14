@@ -94,6 +94,12 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
     hero: { materials: 28 }, mid: { materials: 28 }, far: { materials: 28 },
     why: 'the game animates each ring through its own material (f2 handoff): 28 rings, 28 materials, as classic'
   },
+  // s4-summit-life: the summit facade drives four bird records (mesh + two wings each) and pulses every beacon ray's own opacity
+  'summit-birds': { mid: { meshes: 12 }, far: { meshes: 12 }, why: 'the facade pool is four birds (body + two hinged wings each = 12 live meshes); the summit builds near-band layouts only, so mid/far are not real LODs' },
+  'shrine-rays': {
+    hero: { meshes: 11, materials: 11 }, mid: { meshes: 11, materials: 11 }, far: { meshes: 11, materials: 11 },
+    why: 'nine shafts, a bloom and a ground pool: the facade pulses each one through its own material.opacity (as classic), so 11 materials, each a single additive draw'
+  },
 });
 
 /** The budget row for one asset and tier, with exceptions applied. */
