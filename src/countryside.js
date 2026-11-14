@@ -4318,6 +4318,51 @@ export class Countryside {
 
   /** Undergrowth shrubs thickening the edge-forest wall between trunks. */
   buildEdgeUndergrowth() {
+    const layout = this.layoutEdgeUndergrowth();
+    return this.placeAsset('edge-undergrowth', layout, () => this.meshEdgeUndergrowthClassic(layout));
+  }
+
+  /**
+   * 160 shrubs in the edge-forest ring; per shrub: bearing, radius, size, yaw,
+   * hue, lightness. Those inside r 41 block the cat; the ones in the shrine's
+   * rear corridor (part 'thicket') part when the thicket opens.
+   */
+  layoutEdgeUndergrowth() {
+    const bushes = [], colliders = [], thicketBushes = [];
+    let nThicket = 0;
+    for (let n = 0; n < 160; n++) {
+      const a = this.random() * Math.PI * 2;
+      const r = 35.5 + this.random() * 8;
+      const s = 0.9 + this.random() * 1.6;
+      const x = Math.cos(a) * r;
+      const z = Math.sin(a) * r;
+      const rotY = this.random() * Math.PI;
+      const hue = (this.random() - 0.5) * 0.03;
+      const light = (this.random() - 0.5) * 0.08;
+      bushes.push({ r, s, x, z, rotY, hue, light });
+      const inThicket = Math.abs(x) < 9 && z < -32;
+      let box = null;
+      if (r < 41) {
+        box = new THREE.Box3(
+          new THREE.Vector3(x - s * 0.6, 0, z - s * 0.6),
+          new THREE.Vector3(x + s * 0.6, Math.max(0.9, s), z + s * 0.6)
+        );
+        colliders.push(box);
+      }
+      if (inThicket) {
+        thicketBushes.push({
+          mesh: part('thicket'), i: nThicket++, x, z, y: s * 0.5, sx: s * 1.2, sy: s * 0.8, sz: s * 1.2,
+          rotY, side: x >= 0 ? 1 : -1, box
+        });
+      }
+    }
+    return {
+      index: this.nextIndex('edge-undergrowth'), name: 'Wall Undergrowth', band: 'rim', bushes,
+      footprint: footprint({ colliders, lists: { shrineThicketBushes: thicketBushes } })
+    };
+  }
+
+  meshEdgeUndergrowthClassic(layout) {
     const dummy = new THREE.Object3D();
     const bushGeo = bushGeometry(7, { lobes: 7, detail: 1, lump: 0.36 });
     const bushMat = createFoliageMaterial({
@@ -4334,13 +4379,7 @@ export class Countryside {
     this.shrineThicketBushes = [];
     const bushCol = new THREE.Color();
     let nWall = 0, nThicket = 0;
-    for (let n = 0; n < 160; n++) {
-      const a = this.random() * Math.PI * 2;
-      const r = 35.5 + this.random() * 8;
-      const s = 0.9 + this.random() * 1.6;
-      const x = Math.cos(a) * r;
-      const z = Math.sin(a) * r;
-      const rotY = this.random() * Math.PI;
+    for (const { r, s, x, z, rotY, hue, light } of layout.bushes) {
       const inThicket = Math.abs(x) < 9 && z < -32;
       const mesh = inThicket ? thicket : bushes;
       const i = inThicket ? nThicket++ : nWall++;
@@ -4349,7 +4388,7 @@ export class Countryside {
       dummy.rotation.set(0, rotY, 0);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
-      mesh.setColorAt(i, bushCol.setHex(0x4c7c36).offsetHSL((this.random() - 0.5) * 0.03, 0, (this.random() - 0.5) * 0.08));
+      mesh.setColorAt(i, bushCol.setHex(0x4c7c36).offsetHSL(hue, 0, light));
       let box = null;
       if (r < 41) {
         box = new THREE.Box3(
