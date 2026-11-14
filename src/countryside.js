@@ -1355,6 +1355,53 @@ export class Countryside {
   }
 
   buildRiverAndBridge() {
+    const layout = this.layoutRiverAndBridge();
+    return this.placeAsset('river', layout, () => this.meshRiverClassic(layout));
+  }
+
+  /**
+   * The river ribbon is this builder's own mesh (its curve and samples are
+   * what the valley's water tests read); the bridge, with its deck, railing
+   * and ramp platforms, and the River-Spirit Charm under it are components.
+   */
+  layoutRiverAndBridge() {
+    const curve = new THREE.CatmullRomCurve3(RIVER_POINTS.map(p => p.clone()));
+    const deckY = 1.0, rampLen = 2.6, bridgeTop = deckY + 0.08;
+    const bridge = {
+      index: this.nextIndex('bridge'), name: 'Kiyomizu Bridge', x: -1, z: 30.5,
+      footprint: footprint({
+        // the full deck and approaches stay clear of grass and reeds
+        exclusions: [{ x: -1, z: 30.5, width: 4.2, depth: 15.2 }],
+        anchors: {
+          bridgeDeckWaterClearance: { x: -1, z: 30.5, width: 2.7, depth: 8.5, underpassY: 0.42 },
+          bridgeRampWaterExclusions: [
+            { x: -1, z: 25.0, width: 3.0, depth: 2.95 },
+            { x: -1, z: 36.0, width: 3.0, depth: 2.95 }
+          ]
+        },
+        platforms: [
+          new THREE.Box3(new THREE.Vector3(-1 - 1.3, 0, 30.5 - 4.2), new THREE.Vector3(-1 + 1.3, deckY + 0.08, 30.5 + 4.2)),
+          ...[-1, 1].map((s) => new THREE.Box3(
+            new THREE.Vector3(-1 + s * 1.24 - 0.21, 0, 30.5 - 4.2),
+            new THREE.Vector3(-1 + s * 1.24 + 0.21, deckY + 0.66, 30.5 + 4.2)
+          )),
+          ...[-1, 1].map((sz) => this.bridgeRampPlatform(sz, rampLen, bridgeTop))
+        ]
+      })
+    };
+    const charm = {
+      index: this.nextIndex('dango'), name: 'River-Spirit Charm', x: -1, y: 0.28, z: 30.5,
+      footprint: footprint({ lists: { collectibles: [part('.', { userData: { id: 90, isCharm: true } })] } })
+    };
+    return {
+      index: this.nextIndex('river'), name: 'River', band: 'near',
+      footprint: footprint({ anchors: { riverCurve: curve, riverSamples: curve.getPoints(60) } }),
+      bind: { riverMat: 'water.material' },
+      components: [component('bridge', bridge, 'meshBridgeClassic'), component('dango', charm, 'meshRiverCharmClassic')]
+    };
+  }
+
+  meshRiverClassic(layout) {
     const riverPts = RIVER_POINTS.map(p => p.clone());
     const curve = new THREE.CatmullRomCurve3(riverPts);
     this.riverCurve = curve;
@@ -1388,6 +1435,25 @@ export class Countryside {
     river.receiveShadow = true;
     this.scene.add(river);
 
+    this.placeComponent(layout.components[0], this.scene);
+    this.placeComponent(layout.components[1], this.scene);
+  }
+
+  /** One walk-up ramp of the bridge (sz = -1 north, 1 south): a sloped platform matching the visible ramp. */
+  bridgeRampPlatform(sz, rampLen, bridgeTop) {
+    return {
+      getHeightAt: (x, z, margin = 0) => {
+        if (x < -1 - 1.3 - margin || x > -1 + 1.3 + margin) return null;
+        const outward = sz * (z - 30.5) - 4.2;
+        if (outward < -margin || outward > rampLen + margin) return null;
+        return Math.max(0.03, bridgeTop * (1 - THREE.MathUtils.clamp(outward / rampLen, 0, 1)));
+      },
+      getNormalAt: () => new THREE.Vector3(0, 1, sz * bridgeTop / rampLen).normalize()
+    };
+  }
+
+  /** The Kiyomizu bridge over the river (a component of 'river'). */
+  meshBridgeClassic() {
     // Kyoto-style river bridge: flat walkable deck, wide railings usable
     // as ledge-walk surfaces, stone abutment colliders, and a hidden
     // golden dango charm secret tucked underneath.
@@ -1464,17 +1530,12 @@ export class Countryside {
     // directions, avoiding stair seams and making walking down reliable.
     const bridgeTop = deckY + 0.08;
     for (const sz of [-1, 1]) {
-      this.addPlatform({
-        getHeightAt: (x, z, margin = 0) => {
-          if (x < -1 - 1.3 - margin || x > -1 + 1.3 + margin) return null;
-          const outward = sz * (z - 30.5) - 4.2;
-          if (outward < -margin || outward > rampLen + margin) return null;
-          return Math.max(0.03, bridgeTop * (1 - THREE.MathUtils.clamp(outward / rampLen, 0, 1)));
-        },
-        getNormalAt: () => new THREE.Vector3(0, 1, sz * bridgeTop / rampLen).normalize()
-      });
+      this.addPlatform(this.bridgeRampPlatform(sz, rampLen, bridgeTop));
     }
+  }
 
+  /** The golden dango charm hidden under the bridge (a component of 'river'). */
+  meshRiverCharmClassic() {
     // Hidden secret under the bridge: a glowing golden dango charm
     const charm = new THREE.Mesh(
       new THREE.OctahedronGeometry(0.14),
