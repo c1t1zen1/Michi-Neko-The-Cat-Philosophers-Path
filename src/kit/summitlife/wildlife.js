@@ -119,7 +119,7 @@ function wingGeometry(tier, [, wingC, , pale], mirror) {
   for (let i = 1; i < pts.length; i++) shape.lineTo(pts[i][0], pts[i][1]);
   shape.closePath();
   const g = new THREE.ShapeGeometry(shape).rotateX(Math.PI / 2); // flat in XZ
-  paint(g, (k, x, y, z) => { k.copy(col(wingC)).lerp(col(pale), THREE.MathUtils.smoothstep(0.55, 0.1, x) * 0.55 + (tier !== 'far' && z > 0.04 && x > 0.2 && x < 0.62 ? 0.28 : 0)); k.multiplyScalar(1 - 0.22 * THREE.MathUtils.smoothstep(0.6, 0.95, x)); });
+  paint(g, (k, x, y, z) => { k.copy(col(wingC)).lerp(col(pale), THREE.MathUtils.smoothstep(0.55, 0.1, x) * 0.3 + (tier !== 'far' && z > 0.04 && x > 0.2 && x < 0.62 ? 0.16 : 0)); k.multiplyScalar(1 - 0.22 * THREE.MathUtils.smoothstep(0.6, 0.95, x)); });
   prep(g); both(g);
   if (mirror) { const p = g.attributes.position; for (let i = 0; i < p.count; i++) p.setX(i, -p.getX(i)); const ix = g.index.array; for (let i = 0; i < ix.length; i += 3) { const a = ix[i + 1]; ix[i + 1] = ix[i + 2]; ix[i + 2] = a; } }
   g.computeVertexNormals();

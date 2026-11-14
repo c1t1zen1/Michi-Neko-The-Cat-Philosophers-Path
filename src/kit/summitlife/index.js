@@ -65,7 +65,7 @@ export const assets = [
   }),
   defineAsset({
     id: 'summit-butterflies', family: 'summitlife', lab: 'summit/life-butterflies', label: 'Summit butterfly visitors', floating: ['swarm', 'flock'],
-    params: { size: num(1.15, 0.6, 1.8, 0.05, 'Wing size'), flutter: num(10, 5, 16, 0.5, 'Flutter rate') },
+    params: { size: num(0.9, 0.5, 1.6, 0.05, 'Wing size'), flutter: num(10, 5, 16, 0.5, 'Flutter rate') },
     sample: SAMPLE.butterflies, build: (ctx, layout, p) => buildSummitButterflies(ctx, layout, p)
   }),
   defineAsset({

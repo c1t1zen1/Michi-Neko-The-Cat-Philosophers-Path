@@ -36,7 +36,7 @@ function rayTexture(km, tier) {
     if (tier !== 'far') {
       const r = seeded(31);
       x.globalCompositeOperation = 'destination-out';
-      for (let i = 0; i < 9; i++) { const px = 8 + r() * 48; x.fillStyle = `rgba(0,0,0,${0.12 + r() * 0.16})`; x.fillRect(px, 0, 1 + r() * 3, 256); }
+      for (let i = 0; i < 7; i++) { const px = 8 + r() * 48; x.fillStyle = `rgba(0,0,0,${0.06 + r() * 0.1})`; x.fillRect(px, 0, 2 + r() * 4, 256); }
       x.globalCompositeOperation = 'destination-in';
     } else x.globalCompositeOperation = 'destination-in';
     const gy = x.createLinearGradient(0, 256, 0, 0);
