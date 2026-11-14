@@ -534,11 +534,21 @@ test('generated src/kit/index.js is in sync and exports FAMILIES', async () => {
   assert.match(two, /FAMILY_NAMES = Object\.freeze\(\['lanterns', 'shrine'\]\)/);
 });
 
-test('runtime default loaders read the generated index (zero families today)', async () => {
-  const rt = new AssetRuntime({ assetSet: 'modular', quality: 'high', fetchOverrides: async () => null, createMaterials: async () => ({ bind() {} }) });
+test('runtime default loaders read the generated index', async () => {
+  const { FAMILY_NAMES } = await import('../src/kit/index.js');
+  const log = quiet();
+  const rt = new AssetRuntime({ assetSet: 'modular', quality: 'high', logger: log, fetchOverrides: async () => null, createMaterials: async () => ({ bind() {} }) });
   await rt.preload();
   assert.ok(rt.loaded);
-  assert.deepEqual(rt.summary().assets, []);
+  // Families import the bare 'three' specifier, which only the browser's import map resolves:
+  // under Node each listed family is attempted, fails once, and stays classic (the browser
+  // contract test, tools/kit_contract_test.mjs, builds them for real). Every warning must name a
+  // family from the generated index — no other family is attempted.
+  for (const w of log.warnings) {
+    const m = /family '([^']+)' failed to load/.exec(w);
+    assert.ok(m && FAMILY_NAMES.includes(m[1]), w);
+  }
+  assert.ok(log.warnings.length <= FAMILY_NAMES.length);
 });
 
 test('budgets are per tier, exceptions apply, source is cited', () => {
