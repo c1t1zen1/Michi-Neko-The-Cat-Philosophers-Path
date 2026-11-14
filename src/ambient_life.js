@@ -416,6 +416,7 @@ export class AmbientLife {
     const layout = this.layoutButterflies();
     // The spawn seeds are layout data: the classic drift reads them (a kit swarm may too)
     this.bflySeeds = layout.seeds;
+    this._bflyLayout = layout; // a kit swarm reads the player and the sky off this (set each frame below)
     return this.placeAsset('butterflies', layout, () => this.meshButterfliesClassic(layout));
   }
 
@@ -767,7 +768,10 @@ export class AmbientLife {
   }
 
   updateButterflies(dt, t, sky, playerPos) {
-    if (!this.butterflies) return; // a kit swarm animates itself
+    if (!this.butterflies) { // a kit swarm animates itself; hand it what the classic drift reads
+      if (this._bflyLayout) { this._bflyLayout.playerPos = playerPos; this._bflyLayout.sky = sky; }
+      return;
+    }
     const sunUp = sky ? Math.max(0, sky.sunDir.y) : 1;
     const raining = sky && sky.weather === 'rain';
     const day = sunUp > 0.2 && !raining;

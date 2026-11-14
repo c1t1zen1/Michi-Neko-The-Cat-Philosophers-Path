@@ -4,7 +4,7 @@ import { loadAmbientLifeModule } from '../../shared/game.js';
 import { ownMaterials } from '../../shared/original.js';
 import { V3, TAU, Bag, instances } from '../../shared/craft.js';
 import { M } from '../../shared/painted.js';
-import { KOI_KINDS, koiTexture, koiGeometry, koiMaterial, sparrowGeo, wingGeo, butterfly, wingTexture } from './kit.js';
+import { KOI_KINDS, koiTexture, koiGeometry, koiMaterial, sparrowGeo, wingGeo, butterfly, wingTexture, crow } from './kit.js';
 
 let AL = null;
 export const loadDeps = async () => { AL = (await loadAmbientLifeModule()).AmbientLife; };
@@ -47,6 +47,10 @@ export const SPECIMENS = [
     blurb: 'One small flock, instanced: body, left wing and right wing are three instanced meshes.',
     how: ['Separation, alignment, cohesion.', 'Beyond a few hundred, O(n²) is the bottleneck, and a spatial hash or GPU flocking takes over.'], use: 'The stage’s sparrows.', sources: ['boid', 'reef', 'gpu'], also: [sparrowGeo],
     build(k) { const body = new k.THREE.InstancedMesh(sparrowGeo(), k.M.plain(0x6a5444, { rough: 0.8 }), 8), wings = [new k.THREE.InstancedMesh(wingGeo(), k.M.plain(0x54402f, { side: k.THREE.DoubleSide, rough: 0.8 }), 8), new k.THREE.InstancedMesh(wingGeo(), k.M.plain(0x54402f, { side: k.THREE.DoubleSide, rough: 0.8 }), 8)]; const o = new k.THREE.Object3D(), g = new k.THREE.Group(); g.add(body, ...wings); const result = { group: g, update(t) { for (let i = 0; i < 8; i++) { const a = t * 0.8 + i * 0.78, x = Math.cos(a) * 0.5, y = 0.6 + Math.sin(a * 2.1) * 0.08, z = Math.sin(a) * 0.5; o.position.set(x, y, z); o.rotation.set(0, -a, 0); o.scale.setScalar(0.9); o.updateMatrix(); body.setMatrixAt(i, o.matrix); const f = Math.sin(t * 14 + i) * 0.9; for (const [m, s] of [[wings[0], 1], [wings[1], -1]]) { o.rotation.set(0, -a, f * s); o.scale.set(0.9 * s, 0.9, 0.9); o.updateMatrix(); m.setMatrixAt(i, o.matrix); m.scale?.set?.(1, 1, 1); } } body.instanceMatrix.needsUpdate = true; wings[0].instanceMatrix.needsUpdate = true; wings[1].instanceMatrix.needsUpdate = true; } }; result.update(0); return result; } },
+  { id: 'guardian-crow', family: 'birds', name: 'A guardian crow, hinged', jp: '見張りの烏', tag: 'Shoulder and wrist hinges', plinth: 'wood', hour: 12, animatedShadow: false,
+    blurb: 'The nest guardian rebuilt with a two-joint wing: a shoulder hinge that flaps and a wrist hinge that folds the primaries on the upstroke. Glide, flap and dive poses.',
+    how: ['wing_l / wing_r are Groups pivoting at the shoulder; wing_*_hand pivots at the wrist.', 'Parts: body, head, beak, tail, leg_l, leg_r, wing_{l,r}, wing_{l,r}_arm, wing_{l,r}_hand, wing_{l,r}_primaries.', 'The game keeps driving wing_l / wing_r rotation.z; the wrist is the extra life.'], use: 'Lane c4-creatures promotes this to the guardian-crows asset.', sources: ['notes'], also: [crow],
+    build(k) { const c = crow(); c.group.position.y = 0.5; c.group.scale.setScalar(2.2); c.group.rotation.y = 0.5; return { group: c.group, noCast: false, update: (t) => { const m = Math.floor(t / 3) % 3; c.pose(t, ['flap', 'glide', 'dive'][m]); } }; } },
   { id: 'game-flutter', family: 'flutter', original: true, name: 'Our butterflies', jp: '今の蝶', tag: 'A cloud of coloured points', plinth: 'moss', hour: 12, animatedShadow: false, game: () => AL.prototype.buildButterflies,
     blurb: 'The real system: fifty additive sprites with a bobbing path. Lovely from afar. They have no wings up close.',
     how: ['A Points cloud with an additive butterfly texture.'], use: 'Baseline.', sources: ['notes'],

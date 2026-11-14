@@ -277,6 +277,13 @@
       "file": "labs/fences/js/recipes.js",
       "anchor": "id: 'corral-sign'"
     },
+    "critters/guardian-crow": {
+      "lab": "critters",
+      "selector": "guardian-crow",
+      "kind": "specimen",
+      "file": "labs/critters/js/recipes.js",
+      "anchor": "id: 'guardian-crow'"
+    },
     "critters/game-bird": {
       "lab": "critters",
       "selector": "game-bird",
@@ -1054,6 +1061,55 @@
       "file": "labs/interiors/js/craft.js",
       "anchor": "  shoji:"
     },
+    "interiors/frame": {
+      "lab": "interiors",
+      "selector": "frame",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens.js",
+      "anchor": "  frame: {"
+    },
+    "interiors/tokonoma": {
+      "lab": "interiors",
+      "selector": "tokonoma",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens.js",
+      "anchor": "  tokonoma: {"
+    },
+    "interiors/scroll": {
+      "lab": "interiors",
+      "selector": "scroll",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens.js",
+      "anchor": "  scroll: {"
+    },
+    "interiors/chabudai": {
+      "lab": "interiors",
+      "selector": "chabudai",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens.js",
+      "anchor": "  chabudai: {"
+    },
+    "interiors/zabuton": {
+      "lab": "interiors",
+      "selector": "zabuton",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens.js",
+      "anchor": "  zabuton: {"
+    },
+    "interiors/bonsai": {
+      "lab": "interiors",
+      "selector": "bonsai",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens.js",
+      "anchor": "  bonsai: {"
+    },
+    "interiors/knockables": {
+      "lab": "interiors",
+      "selector": "knockables",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens.js",
+      "anchor": "  knockables: {"
+    },
     "interiors/pottery": {
       "lab": "interiors",
       "selector": "pottery",
@@ -1334,8 +1390,12 @@
           "anchor": "  buildGuardianBirds("
         }
       ],
-      "coverage": [],
-      "note": "Critters extracts a sparrow, not guardianBirds; constructing AmbientLife alone does not put the crows on a specimen."
+      "coverage": [
+        {
+          "target": "critters/guardian-crow",
+          "level": "direct"
+        }
+      ]
     },
     {
       "id": "sparrows",
@@ -3530,8 +3590,8 @@
       ],
       "coverage": [
         {
-          "target": "interiors/garden",
-          "level": "embedded"
+          "target": "interiors/frame",
+          "level": "direct"
         }
       ]
     },
@@ -3566,8 +3626,8 @@
       ],
       "coverage": [
         {
-          "target": "interiors/garden",
-          "level": "embedded"
+          "target": "interiors/tokonoma",
+          "level": "direct"
         }
       ]
     },
@@ -3584,8 +3644,8 @@
       ],
       "coverage": [
         {
-          "target": "interiors/garden",
-          "level": "embedded"
+          "target": "interiors/scroll",
+          "level": "direct"
         }
       ]
     },
@@ -3600,8 +3660,12 @@
           "anchor": "// Mini Bonsai Pine"
         }
       ],
-      "coverage": [],
-      "note": "No original bonsai specimen; the lab alcove uses other decorations."
+      "coverage": [
+        {
+          "target": "interiors/bonsai",
+          "level": "direct"
+        }
+      ]
     },
     {
       "id": "chabudai",
@@ -3616,8 +3680,8 @@
       ],
       "coverage": [
         {
-          "target": "interiors/garden",
-          "level": "embedded"
+          "target": "interiors/chabudai",
+          "level": "direct"
         }
       ]
     },
@@ -3652,8 +3716,8 @@
       ],
       "coverage": [
         {
-          "target": "interiors/garden",
-          "level": "embedded"
+          "target": "interiors/zabuton",
+          "level": "direct"
         }
       ]
     },
@@ -3751,6 +3815,10 @@
           "target": "interiors/bat-cup",
           "level": "related",
           "note": "Lab physics supports batting lab vessels; original item geometry and physics differ."
+        },
+        {
+          "target": "interiors/knockables",
+          "level": "direct"
         }
       ]
     },
