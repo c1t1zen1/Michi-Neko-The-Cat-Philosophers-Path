@@ -2752,9 +2752,31 @@ export class Countryside {
   }
 
   buildToroLantern(x, z) {
-    const t = new THREE.Group();
+    const layout = this.layoutToroLantern(x, z);
+    return this.placeAsset('toro', layout, () => this.meshToroLanternClassic(layout));
+  }
+
+  layoutToroLantern(x, z) {
     this._toroCount = (this._toroCount || 0) + 1;
-    t.name = `Toro Lantern ${this._toroCount}`;
+    const lists = { toroSpots: [new THREE.Vector3(x, 0.95, z)] };
+    if (this.lanternHaloTex) lists.lanternHalos = [part('halo.material')];
+    return {
+      index: this.nextIndex('toro'), name: `Toro Lantern ${this._toroCount}`, x, z,
+      footprint: footprint({
+        lists,
+        // Perchable lantern cap — first hop of the street rooftop parkour route
+        platforms: [new THREE.Box3(
+          new THREE.Vector3(x - 0.34, 0.8, z - 0.34),
+          new THREE.Vector3(x + 0.34, 1.31, z + 0.34)
+        )]
+      })
+    };
+  }
+
+  meshToroLanternClassic(layout) {
+    const { x, z } = layout;
+    const t = new THREE.Group();
+    t.name = layout.name;
     const base = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.34, 0.18, 8), MAT.stoneDark);
     base.position.y = 0.09;
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.62, 7), MAT.stone);
