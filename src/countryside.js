@@ -874,12 +874,24 @@ export class Countryside {
    * never evicts the cat's and the koi's ripples from the shared pool.
    */
   buildRainRipplePool() {
+    const layout = this.layoutRainRipplePool();
+    return this.placeAsset('rain-ripples', layout, () => this.meshRainRipplePoolClassic(layout));
+  }
+
+  /** 28 small raindrop rings (parts ring_1 … ring_28) for updateRainRipples(). */
+  layoutRainRipplePool() {
+    const rainRipples = [];
+    for (let i = 0; i < 28; i++) rainRipples.push({ mesh: part(`ring_${i + 1}`), age: 0, life: 0, dur: 0.8, size: 0.4 });
+    return { index: this.nextIndex('rain-ripples'), count: 28, footprint: footprint({ lists: { rainRipples }, anchors: { rainDropAccum: 0 } }) };
+  }
+
+  meshRainRipplePoolClassic(layout) {
     const geo = new THREE.RingGeometry(0.72, 1, 18);
     const mat = new THREE.MeshBasicMaterial({
       color: 0xeef7f8, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide
     });
     this.rainRipples = [];
-    for (let i = 0; i < 28; i++) {
+    for (let i = 0; i < layout.count; i++) {
       const ring = new THREE.Mesh(geo, mat.clone());
       ring.name = `Raindrop Ring ${i + 1}`;
       ring.rotation.x = -Math.PI / 2;
