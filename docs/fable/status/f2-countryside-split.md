@@ -86,8 +86,11 @@ Every builder commit (scratch `check.sh`): `node tools/check_syntax.mjs` → `Al
 colliders, 65 platforms, 5 water rects, 4 exclusions, 25 anchors); `node tools/labs_coverage.mjs --write`
 then `node tools/labs_coverage.mjs` → `OK 37 source modules, 112 construction methods, 190 inventory rows,
 120 evidence targets`; `node --test tools/labs_coverage_test.mjs` → 11 pass, 0 fail; `git diff --check`
-clean; `tools/place_asset_test.html` → PASS (the koushi/engawa/roof/chochin/crates/nest commits were
-committed with one known part-B difference, resolved by the `buildSecretMachiya` commit; see the report).
+clean; `tools/place_asset_test.html` → PASS, with one correction: from `dbbcdb8` (createKoushi) the
+classic secret door took its collider from a kit koushi's bounds. The all-ids-fake run showed it until
+`5531db3` (buildSecretMachiya); the one-id-at-a-time run (`?per=1`, not part of the per-commit check)
+failed for `koushi` from `dbbcdb8` through `e0063cd`, and `9c6bb56` fixed it (addComponentCollider now
+checks the whole subtree). The footprint golden was EQUAL at every commit.
 
 Final runs, HEAD of this branch, 2026-11-13:
 - `node tools/footprint_golden.mjs` → `EQUAL` (advisory note only: builder attribution, see handoff)
@@ -100,6 +103,14 @@ Final runs, HEAD of this branch, 2026-11-13:
 - `node tools/capture_baseline.mjs --previews none --no-repeat --compare …/_baseline --only town,hidden,tree,grass` → hidden 3/3 and tree 14/14 byte-identical (0 / 0 / 0); town within its render noise (two fresh captures differ from each other as much as from the masters, see report); grass within its non-repeatable floor except sheet-b maxΔ 215 (floor 207; meanΔ and px>8 inside) — Phase 0: rely on the golden for grass
 - Full boot `/__boot.html` (Metal) → plays; console: only the known optional `cad-overrides.json` 404. `/index.html?assets=modular` → same; `assets.summary().problems` empty
 - Catalog originals: all 59 countryside inventory ids build through `loadCatalogAsset(id, { variant: 'original' })` before (5dc924a) and after; identical mesh counts and bounds except `nest-eggs` and `offering-bells`, whose shape follows unseeded `Math.random` (it varies run to run on the base too)
+
+Follow-up after review (`0c1d6c5`, on 6dc0ee5): unbound kit parts warn once per id and part; `caller`
+components attach before their footprint registers; handoff gains origins, material expectations and the
+"kit parents never build their components" rule. Re-run: `node tools/footprint_golden.mjs` → `EQUAL`;
+`--query "?assets=modular"` → `EQUAL`; `tools/place_asset_test.html?per=1` → `PASS` (A 162 placements,
+0 problems, 479/479 bit-exact; B equal; one id at a time 67/67; C part-less kit instances: 8 warnings, one
+per id and part); `node tools/check_syntax.mjs` → `All 44 modules OK`; `node tools/verify.mjs` → `All checks
+passed`; labs_coverage OK, its test 11/11.
 
 ## Deferred assets and why
 None (no kit asset in this lane).

@@ -52,13 +52,29 @@ to apply. Read the "For kit lanes" section before promoting a valley asset.
 - **Placeholders.** Inside anchors, lists and bind: `{ $part: 'name' }`
   resolves to `instance.parts[name]` or `instance.sockets[name]`; `'.'` is the
   instance group; `'name.prop'` (`'.material'`) a property of it. A placeholder
-  may carry `userData` (merged into the object) and `visible: false`.
+  may carry `userData` (merged into the object) and `visible: false`. A part
+  (or property) the instance lacks resolves to `null` and logs one
+  `console.warn('[kit] <id>: the instance has no part …')` per id and part —
+  watch the console when you swap an asset in (a null handle can crash
+  `update()`, e.g. a missing `thicket_crown_N` in `setShrineThicketOpen`).
 - **Components** (F2.4): `{ id, layout, mesh, attach }`, attach `scene`,
   `parent` (the classic mesh method takes the parent group) or `caller` (the
   method returns the object; `placeComponent` sets x/y/z/ry in the parent and
-  adds it). A kit parent gets its classic (or kit) components placed into its
-  group after its own footprint — the classic registration order (parent first)
-  holds for every builder (checked by part B with `?per=1`).
+  adds it; a kit instance of a `caller` component is attached and positioned by
+  `placeInstance` before its footprint registers). A kit parent gets its
+  classic (or kit) components placed into its group after its own footprint —
+  the classic registration order (parent first) holds for every builder
+  (checked by part B with `?per=1`).
+- **Restriction on component footprints.** `{ oriented }` / `{ sloped }`
+  descriptors resolve against the placed group's world matrix when they
+  register. That is right for top-level assets and for the components of a
+  kit parent (placed after the parent is positioned), but a classic house
+  places most components before it positions itself, and a standalone
+  `createKoushi()` / `createKawaraRoof()` / `createEngawa()` call returns the
+  group to its caller unattached. So a component's footprint must be world
+  data computed in the layout (Box3s, as `crates` does from the parent's
+  frame) or empty — every classic component's is. Use descriptors only on
+  top-level assets.
 - `addComponentCollider(obj, pad, box)`: the secret house's table and door
   colliders come from their classic meshes, or from the layout's box when kit
   meshes sit anywhere in that subtree (a kit `koushi` inside the classic door).
@@ -67,6 +83,15 @@ to apply. Read the "For kit lanes" section before promoting a valley asset.
   merged in pass 1, skipped as a child in pass 2, never merged inside).
 
 ## For kit lanes: what a layout gives you and what it expects back
+
+**A kit parent must not build its listed components itself.** `tea-house`,
+`residence`, `secret-house`, `street-house`, `shrine-hall`, `crates`, `nest`,
+`secret-table`, `secret-door`, `corral`, `roadside-moss`, `village-street`,
+`paddies`, `path`, `valley-ground`, `river`, `mountains`, `edge-forest` and
+`distant-village` list components in `layout.components`; the Countryside
+places every one of them into (or beside) your group after your footprint,
+each as its own asset (classic or kit by its own id). Build only the parent's
+own body, or the koushi, roofs, lanterns, nest, crates, fences… appear twice.
 
 Every layout carries `index` (instance number, seeds `ctx.rng`), `name` where
 the classic object has one, its transform fields, the random choices the
@@ -105,9 +130,30 @@ Other notes:
   `buildCanopy` geometries; they consume valley-stream draws, so they are made
   in the layout step). A kit forest may reuse or ignore them; ignored ones are
   never disposed (four small geometry pairs).
-- Component layouts are in their parent's frame (`x/y/z` local to the house);
-  sub-objects without their own classic group (`timber-frame`, `namako`,
-  `tea-bench`, `noren`) are placed at the parent origin (`noren`, at its centre).
+- Component layouts are in their parent's frame (`x/y/z` local to the house).
+  Where the group's origin sits (build your asset around the same point):
+
+  | Origin | Components |
+  |---|---|
+  | the parent's origin (pieces laid out in the parent frame) | `timber-frame`, `namako`, `secret-tatami`, `nest-eggs` (nest frame), `lock-plate` (door frame) |
+  | base, on the ground or the surface it stands on | `tea-bench` (-2.2, 0, 3.6), `sake-barrel` (0.5, 0, 0.9 in the crates frame), `offering-box` (0, 0.7, 0.95: on the upper dan), `engawa`, `crates`, `shishi`, `secret-table`, `secret-andon`, `secret-door`, `paddy-bunds` (plot centre), `bridge`, `corral-sign`, `larry`, `bamboo-fence`, `toro`, `street-house` |
+  | the mesh's own centre | `noren`, `secret-bed` (-1.8, 0.07, -0.8), `shimenawa` (0, 2.42, 0.96), `shrine-bell` (0, 2.05, 0.96; cords hang below), `secret-fish`, `dango`, `jade-paw`, `koushi` and `upper-windows` (lattice centre), `nest` |
+  | the hanging point | `chochin` (the lantern hangs below its cap), `wind-chime` |
+  | the eave plane at the house centre | `kawara-roof` |
+- **Materials the valley animates** (`Countryside.update()`): every
+  `ring_N` of `water-ripples` / `rain-ripples` and every `mist_N` sprite needs
+  its own material (opacity, scale and visibility are driven per ring and
+  sprite); `toro`'s `halo` material opacity follows dusk;
+  `villageWindowMat.emissiveIntensity` is set each frame (an emissive standard
+  material); `_altarFadeMats` are three transparent materials whose `opacity`
+  fades with the mist (index 2 is the flame, a sprite material that also
+  breathes) and the altar group's visibility follows the first; `bushMat`
+  must carry the foliage sway uniforms `userData.uSwayTime` / `uSwayBoost`
+  (`createFoliageMaterial`), or the rustle simply stops; `matHazeFar.color`
+  is copied from the sky each frame; a collectible with a `material` gets its
+  `emissiveIntensity` pulsed. `riverMat`, `chimeClapperMat` and
+  `paddyWaterMaterials` are registered but not read by `update()` today (the
+  water shaders share the module's `riverUniforms`).
 - Footprints of mesh-derived colliders (boulders, key rock, lamps, shrine hall,
   secret-house walls, table and door, fences, crates) are computed with
   `shapeBox()` / `frameOf()` — the compose/multiply of `updateMatrixWorld` and
