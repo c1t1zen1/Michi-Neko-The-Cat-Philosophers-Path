@@ -166,10 +166,10 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="michi"></a>`michi` — Michi (player cat) | [src/player.js:this.mesh.name = 'Player Character (Michi)'](../src/player.js#L32)<br>[src/cat.js:buildCoat(](../src/cat.js#L88) | [cat / anatomy](../tools/cat_preview.js#L117) (review)<br>[villagers / sleep](../labs/villagers/js/recipes.js#L60) (embedded) — The sleep specimen uses Michi’s coat/build; it is a pose study rather than a dedicated player-model lab. |  |
-| <a id="luna"></a>`luna` — Luna | [src/main.js:'Luna',](../src/main.js#L261)<br>[src/npc.js:export class NPC](../src/npc.js#L38) | [villagers / luna](../labs/villagers/js/recipes.js#L39) (direct) |  |
-| <a id="mochi"></a>`mochi` — Mochi | [src/main.js:'Mochi',](../src/main.js#L285)<br>[src/npc.js:export class NPC](../src/npc.js#L38) | [villagers / mochi](../labs/villagers/js/recipes.js#L43) (direct) |  |
-| <a id="kuro"></a>`kuro` — Kuro | [src/main.js:'Kuro',](../src/main.js#L300)<br>[src/npc.js:export class NPC](../src/npc.js#L38) | [villagers / kuro](../labs/villagers/js/recipes.js#L47) (direct) |  |
+| <a id="michi"></a>`michi` — Michi (player cat) | [src/player.js:this.mesh.name = 'Player Character (Michi)'](../src/player.js#L32)<br>[src/cat.js:buildCoat(](../src/cat.js#L88) | [cat / anatomy](../tools/cat_preview.js#L128) (review)<br>[villagers / sleep](../labs/villagers/js/recipes.js#L60) (embedded) — The sleep specimen uses Michi’s coat/build; it is a pose study rather than a dedicated player-model lab. |  |
+| <a id="luna"></a>`luna` — Luna | [src/main.js:'Luna',](../src/main.js#L262)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / luna](../labs/villagers/js/recipes.js#L39) (direct) |  |
+| <a id="mochi"></a>`mochi` — Mochi | [src/main.js:'Mochi',](../src/main.js#L286)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / mochi](../labs/villagers/js/recipes.js#L43) (direct) |  |
+| <a id="kuro"></a>`kuro` — Kuro | [src/main.js:'Kuro',](../src/main.js#L301)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / kuro](../labs/villagers/js/recipes.js#L47) (direct) |  |
 | <a id="larry"></a>`larry` — Larry the turtle | [src/countryside.js:turtle.name = 'Turtle Guardian (Larry)'](../src/countryside.js#L3446) | [fences / corral](../labs/fences/js/recipes.js#L70) (embedded) — The complete original corral includes Larry; there is no isolated turtle or patrol study. |  |
 | <a id="guardian-crows"></a>`guardian-crows` — Nest guardian crows | [src/ambient_life.js:buildGuardianBirds(](../src/ambient_life.js#L220) | **No mapped evidence** | Critters extracts a sparrow, not guardianBirds; constructing AmbientLife alone does not put the crows on a specimen. |
 | <a id="sparrows"></a>`sparrows` — Valley sparrows | [src/ambient_life.js:buildBirds(](../src/ambient_life.js#L159) | [critters / game-bird](../labs/critters/js/recipes.js#L42) (direct)<br>[critters / flock](../labs/critters/js/recipes.js#L46) (direct) |  |
@@ -180,11 +180,11 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="cat-coat"></a>`cat-coat` — Cat body, fur and tabby coats | [src/cat.js:buildCoat(](../src/cat.js#L88)<br>[src/cat_anatomy.js:export function getCatAnatomy](../src/cat_anatomy.js#L515)<br>[src/cat_shading.js:export function furMaterial](../src/cat_shading.js#L340) | [cat / coat](../tools/cat_preview.js#L152) (review) |  |
-| <a id="cat-face"></a>`cat-face` — Cat nose, muzzle, whiskers, ears and painted eyes | [src/cat.js:buildFace(](../src/cat.js#L92) | [cat / face](../tools/cat_preview.js#L126) (review) |  |
-| <a id="cat-collar"></a>`cat-collar` — Braided collar, bow and brass bell | [src/cat.js:buildCollar(](../src/cat.js#L96) | [cat / closeup](../tools/cat_preview.js#L169) (review) |  |
+| <a id="cat-coat"></a>`cat-coat` — Cat body, fur and tabby coats | [src/cat.js:buildCoat(](../src/cat.js#L88)<br>[src/cat_anatomy.js:export function getCatAnatomy](../src/cat_anatomy.js#L515)<br>[src/cat_shading.js:export function furMaterial](../src/cat_shading.js#L340) | [cat / coat](../tools/cat_preview.js#L163) (review) |  |
+| <a id="cat-face"></a>`cat-face` — Cat nose, muzzle, whiskers, ears and painted eyes | [src/cat.js:buildFace(](../src/cat.js#L92) | [cat / face](../tools/cat_preview.js#L137) (review) |  |
+| <a id="cat-collar"></a>`cat-collar` — Braided collar, bow and brass bell | [src/cat.js:buildCollar(](../src/cat.js#L96) | [cat / closeup](../tools/cat_preview.js#L180) (review) |  |
 | <a id="master-bells"></a>`master-bells` — Master Cat gold and twin bells | [src/cat.js:setMasterCat(](../src/cat.js#L229) | **No mapped evidence** | The ordinary collar is reviewed; no specimen explicitly enables setMasterCat(). |
-| <a id="cat-shadow"></a>`cat-shadow` — Cat contact-shadow blob | [src/cat.js:buildShadowBlob(](../src/cat.js#L101) | [cat / anatomy](../tools/cat_preview.js#L117) (embedded) — Visible with the complete cat; no isolated shadow study. |  |
+| <a id="cat-shadow"></a>`cat-shadow` — Cat contact-shadow blob | [src/cat.js:buildShadowBlob(](../src/cat.js#L101) | [cat / anatomy](../tools/cat_preview.js#L128) (embedded) — Visible with the complete cat; no isolated shadow study. |  |
 
 ### Ground and water
 
@@ -293,8 +293,8 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="rim-trees"></a>`rim-trees` — Rim sakura, maple and pine leaf masses | [src/vegetation.js:treeStyle(](../src/vegetation.js#L183)<br>[src/vegetation.js:canopyTree(](../src/vegetation.js#L210) | [tree / rim](../tools/tree_preview.js#L104) (review) |  |
 | <a id="tree-trunks"></a>`tree-trunks` — Tree trunks and limbs | [src/vegetation.js:trunkMesh(](../src/vegetation.js#L324) | [tree / detail](../tools/tree_preview.js#L128) (review) |  |
 | <a id="tree-canopies"></a>`tree-canopies` — Leaf sprays and clumped/mass canopy families | [src/foliage.js:export function buildCanopy](../src/foliage.js#L1172) | [tree / compare](../tools/tree_preview.js#L118) (review) |  |
-| <a id="bamboo-groves"></a>`bamboo-groves` — Bamboo groves, culms and leaves | [src/vegetation.js:buildBambooGrove(](../src/vegetation.js#L457) | [greenery / game-grove](../labs/greenery/js/recipes.js#L46) (direct)<br>[greenery / nodes](../labs/greenery/js/recipes.js#L33) (direct)<br>[greenery / leaves](../labs/greenery/js/recipes.js#L50) (direct) |  |
-| <a id="street-bushes"></a>`street-bushes` — Street bushes | [src/countryside.js:buildStreetBushes(](../src/countryside.js#L3065) | [greenery / game-bush](../labs/greenery/js/recipes.js#L67) (direct) |  |
+| <a id="bamboo-groves"></a>`bamboo-groves` — Bamboo groves, culms and leaves | [src/vegetation.js:buildBambooGrove(](../src/vegetation.js#L457) | [greenery / game-grove](../labs/greenery/js/recipes.js#L54) (direct)<br>[greenery / nodes](../labs/greenery/js/recipes.js#L33) (direct)<br>[greenery / leaves](../labs/greenery/js/recipes.js#L58) (direct) |  |
+| <a id="street-bushes"></a>`street-bushes` — Street bushes | [src/countryside.js:buildStreetBushes(](../src/countryside.js#L3065) | [greenery / game-bush](../labs/greenery/js/recipes.js#L75) (direct) |  |
 | <a id="roadside-moss"></a>`roadside-moss` — Roadside moss patches | [src/countryside.js:buildStreetGreenery(](../src/countryside.js#L3148) | [grass / moss](../labs/grass/js/types_wild.js#L375) (related) — The grass moss pillow differs from the roadside instanced tufts. |  |
 | <a id="meadow-system"></a>`meadow-system` — Valley biome layout and grass LOD rings | [src/vegetation.js:buildMeadow(](../src/vegetation.js#L748)<br>[src/grass.js:addRing(](../src/grass.js#L1523)<br>[src/grass.js:addZone(](../src/grass.js#L1532) | [grass / ring-lod](../labs/grass/js/types_field.js#L273) (direct) | The meadow’s collider-derived biome layout has no isolated original specimen; Ring LOD studies the shared layout technique. |
 | <a id="grass-near"></a>`grass-near` — Near meadow blades and tufts | [src/grass.js:near: {](../src/grass.js#L881) | [grass / bezier](../labs/grass/js/types_field.js#L25) (direct) |  |
@@ -333,7 +333,7 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="pool-motes"></a>`pool-motes` — Moon Pool rising motes | [src/hidden_places.js:// Motes lifting off](../src/hidden_places.js#L450) | [moonpool / game-motes](../labs/moonpool/js/recipes.js#L263) (direct) |  |
 | <a id="lantern-glade"></a>`lantern-glade` — Lantern Glade complete clearing | [src/hidden_places.js:buildLanternGlade(](../src/hidden_places.js#L485) | [moonpool / game-lamp](../labs/moonpool/js/recipes.js#L245) (related) — The original tile extracts a lantern, not the complete clearing. |  |
 | <a id="glade-floor"></a>`glade-floor` — Glade leaf-litter ground | [src/hidden_places.js:// Leaf-litter floor](../src/hidden_places.js#L616) | **No mapped evidence** | No specimen extracts this leaf-litter texture or clearing floor. |
-| <a id="glade-bamboo"></a>`glade-bamboo` — Glade bamboo ring and drooping leaves | [src/hidden_places.js:stalks.name = 'Glade Bamboo'](../src/hidden_places.js#L662) | [greenery / game-grove](../labs/greenery/js/recipes.js#L46) (related) — Vegetation.buildBambooGrove differs from the hidden-place bamboo. |  |
+| <a id="glade-bamboo"></a>`glade-bamboo` — Glade bamboo ring and drooping leaves | [src/hidden_places.js:stalks.name = 'Glade Bamboo'](../src/hidden_places.js#L662) | [greenery / game-grove](../labs/greenery/js/recipes.js#L54) (related) — Vegetation.buildBambooGrove differs from the hidden-place bamboo. |  |
 | <a id="glade-lanterns"></a>`glade-lanterns` — Glade paper lanterns and glow | [src/hidden_places.js:// Paper lanterns strung](../src/hidden_places.js#L598) | [moonpool / game-lamp](../labs/moonpool/js/recipes.js#L245) (direct) |  |
 | <a id="glade-seat"></a>`glade-seat` — Glade seat and mossy central boulder | [src/hidden_places.js:// A flat sitting stone](../src/hidden_places.js#L736) | [rocks / moss-old](../labs/rocks/js/recipes.js#L67) (related) — Related stone finish, without the glade objects. |  |
 | <a id="glade-fireflies"></a>`glade-fireflies` — Glade fireflies | [src/hidden_places.js:// Fireflies that gather](../src/hidden_places.js#L758) | [moonpool / fireflies](../labs/moonpool/js/recipes.js#L267) (direct) |  |
@@ -483,7 +483,7 @@ Every current `src/*.js` module is classified. Every class method declared with 
 | [src/cat.js:buildSkeleton(](../src/cat.js#L76) | Rigging helper; the rendered cat body and components are inventoried separately. |
 | [src/cat.js:buildMaterials(](../src/cat.js#L80) | Material setup for the inventoried cat; not another object. |
 | [src/countryside.js:createRiverUniforms(](../src/countryside.js#L1585) | Shader parameter state for the inventoried river/paddies, not another visible asset. |
-| [src/npc.js:createNameTag(](../src/npc.js#L209) | DOM character label; interface is outside the visible world-asset inventory. |
+| [src/npc.js:createNameTag(](../src/npc.js#L212) | DOM character label; interface is outside the visible world-asset inventory. |
 | [src/main.js:buildJournalUI(](../src/main.js#L1693) | DOM journal interface; journal text rewards are not physical inventory objects. |
 | [src/menus.js:buildSettings(](../src/menus.js#L140) | DOM settings interface, outside the world-asset scope. |
 | [src/postfx.js:buildKernel(](../src/postfx.js#L176) | AO sampling-kernel data, not a second visual asset. |

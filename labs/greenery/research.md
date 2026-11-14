@@ -81,3 +81,18 @@ Leaf cards now attach along twigs rooted at culm nodes, in both the hero and the
 [Shisendō garden photograph](https://souda-kyoto.jp/blog/01414.html) and [Sugimoto residence courtyard](https://en.sugimotoke.or.jp/) (garden photographs inspected), alongside the botanical sources already listed above.
 
 See the [complete lab review and before/after gallery](../REVIEW_2026-11-10.md).
+
+## Expanded bamboo and plant set — 2026-11-13
+
+Added two new bamboo species and four ornamental plants to the Greenery Lab:
+
+- **Gold bamboo (金竹)** — Phyllostachys aurea with golden stems and vertical green stripes. A classic ornamental specimen.
+- **Black bamboo (黒竹)** — Phyllostachys nigra with narrow culms that turn almost jet black with age. A striking silhouette.
+- **Black pine (黒松)** — A matted, pruned garden pine in its classic horizontal shape. The centrepiece of any formal Kyoto garden.
+- **Japanese maple (紅いも)** — A small ornamental maple, kept at shrub height.
+- **Maple in autumn (紅葉)** — The same maple at its autumn peak, in deep red.
+- **Hydrangea (紫陽花)** — A bush of blue-green flower balls, a sign of the rainy season.
+- **Cherry blossom (桜)** — A dwarf ornamental cherry in pink-white bloom.
+- **Camellia (椿)** — A camellia with glossy red flowers, blooming in late winter and early spring.
+
+These bring the lab from 10 to 18 specimens, covering more of the seasonal colour of a Kyoto garden.

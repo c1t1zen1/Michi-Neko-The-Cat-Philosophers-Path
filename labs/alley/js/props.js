@@ -67,6 +67,107 @@ export const PROPS = {
   tiles: { label: 'Spare tiles', r: 0.3, build() {
     const g = new THREE.Group(); const mat = M.plain(0x5e6872, { rough: 0.5 }), r = rng(11);
     for (let i = 0; i < 10; i++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.15, 0.3, 14, 1, true, 0, Math.PI), M.plain(0x5e6872, { rough: 0.5, side: THREE.DoubleSide })); m.rotation.set(0, r() * 0.4, Math.PI / 2); m.position.set((i % 3 - 1) * 0.19, 0.05 + Math.floor(i / 3) * 0.1, (r() - 0.5) * 0.08); g.add(m); }
+    return g; } },
+  noren: { label: 'Noren curtain', r: 0.4, build() {
+    const g = new THREE.Group();
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.8), M.plain(0x3a2f20, { metal: 0.4 }));
+    rod.rotation.z = Math.PI / 2; rod.position.y = 1.6; g.add(rod);
+    const chars = ['茶', '屋', '本'];
+    for (let i = 0; i < 3; i++) {
+      const [c, x] = canvas2d(128, 256);
+      x.fillStyle = i === 0 ? '#4a6fa5' : i === 1 ? '#8a3a24' : '#2e5a34';
+      x.fillRect(0, 0, 128, 256);
+      x.fillStyle = '#f2e2c6'; x.font = 'bold 96px serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.fillText(chars[i], 64, 128);
+      x.fillStyle = i === 0 ? '#3a5f95' : i === 1 ? '#7a2a14' : '#1e4a24';
+      for (let j = 0; j < 10; j++) { x.beginPath(); x.moveTo(j * 12.8, 240); x.lineTo(j * 12.8 + 6.4, 256); x.lineTo(j * 12.8 + 12.8, 240); x.closePath(); x.fill(); }
+      const panel = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.6), new THREE.MeshStandardMaterial({ map: canvasTexture(c), roughness: 0.8, side: THREE.DoubleSide }));
+      panel.position.set(-0.3 + i * 0.3, 1.3, 0);
+      panel.rotation.x = 0.05 + (i - 1) * 0.03;
+      g.add(panel);
+    }
+    return g; } },
+  laundry: { label: 'Hanging laundry', r: 0.35, build() {
+    const g = new THREE.Group();
+    const line = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 1.2), M.plain(0x888888, { metal: 0.6 }));
+    line.rotation.z = Math.PI / 2 - 0.1; line.position.y = 1.4; g.add(line);
+    const colours = [0xf2e2c6, 0x4a6fa5, 0xc8a888, 0x3a5f95, 0xd4c4a4];
+    const r = rng(13);
+    for (let i = 0; i < 5; i++) {
+      const shirt = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.22), M.plain(colours[i], { side: THREE.DoubleSide, rough: 0.7 }));
+      shirt.position.set(-0.45 + i * 0.22, 1.28 + (r() - 0.5) * 0.04, 0);
+      shirt.rotation.x = (r() - 0.5) * 0.15;
+      g.add(shirt);
+      const pin = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.015, 0.008), M.wood({ base: 0x9a8a6a }));
+      pin.position.set(-0.45 + i * 0.22, 1.39, 0);
+      g.add(pin);
+    }
+    return g; } },
+  firebucket: { label: 'Fire bucket', r: 0.18, build() {
+    const g = new THREE.Group();
+    const bucket = new THREE.Mesh(lathe([[0.08, 0], [0.14, 0.02], [0.16, 0.22], [0.18, 0.24], [0.001, 0.24]]), M.plain(0x6a3a1a, { rough: 0.85, grime: 0.4 }));
+    g.add(bucket);
+    const handle = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.008, 6, 24, Math.PI), M.plain(0x8a7a5a, { rough: 1 }));
+    handle.position.y = 0.23; g.add(handle);
+    const water = new THREE.Mesh(new THREE.CircleGeometry(0.17, 24).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x2a4a5a, roughness: 0.1, metalness: 0.4 }));
+    water.position.y = 0.2; g.add(water);
+    return g; } },
+  sandbucket: { label: 'Sand bucket', r: 0.16, build() {
+    const g = new THREE.Group();
+    const bucket = new THREE.Mesh(lathe([[0.07, 0], [0.12, 0.015], [0.14, 0.18], [0.15, 0.19], [0.001, 0.19]]), M.plain(0x5a4a3a, { rough: 0.9 }));
+    g.add(bucket);
+    const sand = new THREE.Mesh(new THREE.CircleGeometry(0.145, 24).rotateX(-Math.PI / 2), M.plain(0xc8b888, { rough: 1 }));
+    sand.position.y = 0.16; g.add(sand);
+    const shovel = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.35), M.wood({ base: 0x7a5a3a }));
+    shovel.position.set(0.02, 0.2, -0.04); shovel.rotation.x = 0.4;
+    g.add(shovel);
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.008, 0.04), M.plain(0x4a4a4a, { metal: 0.5 }));
+    blade.position.set(0.02, 0.05, -0.16);
+    g.add(blade);
+    return g; } },
+  gutter: { label: 'Rain gutter', r: 0.2, build() {
+    const g = new THREE.Group();
+    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.6), M.plain(0x5a5a5a, { metal: 0.3 }));
+    pipe.position.set(0, 0.3, 0); g.add(pipe);
+    const elbow = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.15), M.plain(0x5a5a5a, { metal: 0.3 }));
+    elbow.rotation.x = Math.PI / 2; elbow.position.set(0, 0.6, 0.07); g.add(elbow);
+    const splash = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.005, 0.08), M.plain(0x5a5a5a, { metal: 0.3 }));
+    splash.position.set(0, 0.01, 0.04); g.add(splash);
+    return g; } },
+  woodpile: { label: 'Woodpile', r: 0.35, build() {
+    const g = new THREE.Group(), r = rng(17);
+    for (let i = 0; i < 12; i++) {
+      const len = 0.3 + r() * 0.2;
+      const log = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, len), M.wood({ base: 0x8a6a4a, dark: 0x5a3a2a, grime: 0.5 }));
+      const row = Math.floor(i / 4);
+      const pos = i % 4;
+      log.rotation.z = Math.PI / 2;
+      log.rotation.y = (r() - 0.5) * 0.1;
+      log.position.set((pos - 1.5) * 0.08, 0.035 + row * 0.06, (r() - 0.5) * 0.04);
+      g.add(log);
+    }
+    for (let i = 0; i < 3; i++) {
+      const stone = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.02, 0.08), M.plain(0x7a7a6a, { rough: 1 }));
+      stone.position.set(-0.1 + i * 0.1, 0.01, 0.02);
+      stone.rotation.y = (r() - 0.5) * 0.4;
+      g.add(stone);
+    }
+    return g; } },
+  catbed: { label: 'Cat sleeping spot', r: 0.25, build() {
+    const g = new THREE.Group();
+    const mat = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.24, 0.03, 32), M.plain(0xc8a868, { rough: 1 }));
+    g.add(mat);
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.08, 14, 10), M.plain(0x6a4a2a, { rough: 0.5 }));
+    body.scale.set(1.4, 0.6, 1.2);
+    body.position.y = 0.05; g.add(body);
+    const tail = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.012, 6, 24), M.plain(0x6a4a2a, { rough: 0.5 }));
+    tail.position.set(0.08, 0.04, 0.04);
+    tail.rotation.x = Math.PI / 2 - 0.3;
+    g.add(tail);
+    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.015, 0.03, 6), M.plain(0x6a4a2a, { rough: 0.5 }));
+    ear.position.set(-0.06, 0.1, 0.02);
+    ear.rotation.z = 0.3;
+    g.add(ear);
     return g; } }
 };
 

@@ -237,7 +237,7 @@ export class Runner {
       const prevY = this.y;
       this.y += this.vy * dt;
 
-      // Ceilings: solid platforms (the canopy) stop a jump from below.
+      // Ceilings: solid platforms (the canopy) and tunnel soffits stop a jump from below.
       if (this.vy > 0) {
         for (const p of L.platforms) {
           if (!p.solid || !platCovers(p, this.s, time, -PHYS.halfLen * 0.5)) continue;
@@ -245,6 +245,17 @@ export class Runner {
           if (prevY + P.body <= under + 1e-6 && this.y + P.body > under) {
             this.y = under - P.body;
             this.vy = 0;
+          }
+        }
+        if (L.ceilings) {
+          const d = this.depth;
+          for (const c of L.ceilings) {
+            if (this.s < c.s0 + P.halfLen * 0.5 || this.s > c.s1 - P.halfLen * 0.5) continue;
+            if (d < c.d0 - 0.3 || d > c.d1 + 0.3) continue;
+            if (prevY + P.body <= c.y + 1e-6 && this.y + P.body > c.y) {
+              this.y = c.y - P.body;
+              this.vy = 0;
+            }
           }
         }
       }

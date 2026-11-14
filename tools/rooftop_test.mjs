@@ -98,21 +98,31 @@ ok('every platform has s0 < s1 and finite heights',
 {
   const pieces = (type, m = null) => L.pieces.filter((pc) => pc.type === type && (!m || (pc.s1 ?? pc.s0) >= m.s0 && (pc.s0 ?? pc.s1) <= m.s1));
   const m = L.mouths;
-  ok('Takase keeps water, nine stones, the boat, footbridge and five boughs',
-    pieces('water', m[2]).length === 1 && pieces('steppingStone', m[2]).length === 9 &&
-    pieces('boat', m[2]).length === 1 && pieces('canalBridge', m[2]).length === 1 && pieces('cherry', m[2]).length === 5);
-  ok('Pontochō keeps complete low and middle zigzag roads',
-    pieces('deck', m[1]).filter((pc) => pc.style === 'yuka').length === 7 && pieces('balcony', m[1]).length === 11);
-  ok('Nishiki keeps three canopy runs and two lowered crossings',
-    P.filter((p) => p.kind === 'canopy').length === 3 && pieces('marketCrossing', m[3]).length === 2 && pieces('canopy', m[3])[0]?.gaps.length === 2);
-  ok('Laundry Sky keeps its low futons and high cistern/chimney route',
-    pieces('futonRack', m[4]).length === 2 && pieces('cistern', m[4]).length === 1 && pieces('chimney', m[4]).length === 1);
-  ok('Hoko-chō keeps five yatai and its lantern-rack ascent',
-    pieces('yatai', m[5]).length === 5 && pieces('rack', m[5]).length >= 2 &&
-    pieces('rope', m[5]).filter((pc) => pc.style === 'lanterns').length >= 2 && pieces('float', m[5]).length === 1);
+  ok('downtown Kyoto maze route is ~3x the original 337 m (>= 980 m across >= 12 corners)',
+    L.length >= 980 && L.rail.corners.length >= 12, `${L.length.toFixed(1)} m, ${L.rail.corners.length} corners`);
+  ok('playable tunnel-roji (zushiTunnel) and branching back-alley pockets weave through the city',
+    pieces('zushiTunnel').length >= 5 && pieces('alleyPocket').length >= 4 && L.ceilings.length >= 5,
+    `tunnels=${pieces('zushiTunnel').length}, alleys=${pieces('alleyPocket').length}`);
+  ok('Takase keeps dual canal reaches, >= 20 stones, two takasebune boats, footbridges and cherry/willow boughs',
+    pieces('water', m[2]).length >= 2 && pieces('steppingStone', m[2]).length >= 20 &&
+    pieces('boat', m[2]).length >= 2 && pieces('canalBridge', m[2]).length >= 3 &&
+    pieces('cherry', m[2]).length >= 7 && pieces('willow', m[2]).length >= 4);
+  ok('Pontochō keeps complete low yuka decks, crooked middle balconies and roji tunnel',
+    pieces('deck', m[1]).filter((pc) => pc.style === 'yuka').length >= 8 && pieces('balcony', m[1]).length >= 16 &&
+    pieces('zushiTunnel', m[1]).length >= 1);
+  ok('Nishiki & Teramachi keep four canopy runs, three skylight crossings and Tenmangū gate',
+    P.filter((p) => p.kind === 'canopy').length >= 4 && pieces('marketCrossing', m[3]).length >= 3 &&
+    pieces('canopy', m[3])[0]?.gaps.length >= 3 && pieces('tenmanguGate', m[3]).length >= 1);
+  ok('Laundry Sky keeps low futon bounces, high cisterns/chimneys, tunnels and laundry villagers',
+    pieces('futonRack', m[4]).length >= 2 && pieces('cistern', m[4]).length >= 2 && pieces('chimney', m[4]).length >= 2 &&
+    pieces('villager', m[4]).filter((v) => v.role === 'laundry').length >= 5);
+  ok('Hoko-chō keeps >= 12 yatai street-fair stalls, stallkeepers, kakiyama and grand hoko float',
+    pieces('yatai', m[5]).length >= 12 && pieces('villager', m[5]).filter((v) => v.role === 'stallkeeper').length >= 8 &&
+    pieces('yamaFloat', m[5]).length >= 1 && pieces('rack', m[5]).length >= 4 &&
+    pieces('rope', m[5]).filter((pc) => pc.style === 'lanterns').length >= 4 && pieces('float', m[5]).length === 1);
   const route = P.filter((p) => p.route !== undefined).sort((a, b) => a.route - b.route);
   const depthChanges = route.slice(1).filter((p, i) => Math.abs(p.d - route[i].d) >= 1).length;
-  ok('the main road visibly changes depth at least 35 times', depthChanges >= 35, depthChanges);
+  ok('the main road visibly changes depth at least 80 times across the downtown maze', depthChanges >= 80, depthChanges);
 }
 
 console.log('interface');
@@ -269,7 +279,7 @@ console.log('physics');
   r.reset(start.s0 + 0.6, platTop(start, start.s0 + 0.6));
   let t = 0, touched = null, stalled = 0, lastS = r.s;
   const dt = 1 / 120;
-  for (let step = 0; step < 120 * 360 && !pilot.done; step++) {
+  for (let step = 0; step < 120 * 720 && !pilot.done; step++) {
     const input = pilot.input(r, t, dt);
     if (r.grounded && (r.ground.kind === 'street' || r.ground.kind === 'water') && !touched) touched = r.s.toFixed(1);
     r.step(dt, input, t);
