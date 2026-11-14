@@ -66,7 +66,9 @@ import { assetRng } from './rng.js?v=20261107a';
 export { isAssetInstance } from './contract.js?v=20261107a';
 
 export const ASSET_SETS = Object.freeze(['classic', 'modular', 'auto']);
-export const KIT_OVERRIDES_URL = 'kit-overrides.json';
+// Resolved against this module, not the document, so tools/ and labs pages
+// read the real root file.
+export const KIT_OVERRIDES_URL = new URL('../../kit-overrides.json', import.meta.url).href;
 export const KIT_OVERRIDES_FORMAT = 'michi-neko-kit-overrides';
 
 const CTX_FIELDS = Object.freeze(['THREE', 'MAT', 'kitMaterials', 'tier', 'rng', 'quality', 'textures']);
@@ -160,6 +162,7 @@ export class AssetRuntime {
     this.loaded = false;            // families imported
     this.kitMaterials = null;
     this.ctxBase = { THREE, MAT: {}, textures: {} };
+    this._tables = new Set();        // every owner MAT table the kit materials are bound into
     this.warned = new Set();
     this.logger = logger;
     this._loadFamilies = loadFamilies;
@@ -176,16 +179,16 @@ export class AssetRuntime {
   setContext(fields) {
     if (!fields || typeof fields !== 'object') return this;
     if (fields.THREE) this.ctxBase.THREE = fields.THREE;
-    if (fields.MAT && typeof fields.MAT === 'object') this.ctxBase.MAT = fields.MAT;
+    if (fields.MAT && typeof fields.MAT === 'object') { this.ctxBase.MAT = fields.MAT; this._tables.add(fields.MAT); }
     if (fields.textures && typeof fields.textures === 'object') this.ctxBase.textures = fields.textures;
     this._bindMaterials();
     return this;
   }
 
+  /** Bind the kit materials into every owner table seen so far (idempotent). */
   _bindMaterials() {
-    if (this.kitMaterials && this.ctxBase.MAT && typeof this.kitMaterials.bind === 'function') {
-      this.kitMaterials.bind(this.ctxBase.MAT);
-    }
+    if (!this.kitMaterials || typeof this.kitMaterials.bind !== 'function') return;
+    for (const table of this._tables) this.kitMaterials.bind(table);
   }
 
   anySwap(set) { return Object.values(this.swaps).includes(set); }
@@ -195,8 +198,16 @@ export class AssetRuntime {
     return !!assets && Object.values(assets).some((a) => a.variant === variant);
   }
 
+  /**
+   * The compatibility promise (§3.6): on quality 'low' without an explicit
+   * `?assets=`, the kit is neither resolved nor downloaded — only a `?swap`
+   * (a developer flag) can ask for it.
+   */
+  get lowLocked() { return this.quality === 'low' && !this.explicit; }
+
   /** Whether preload() must import the kit at all. */
   needsKit() {
+    if (this.lowLocked) return this.anySwap('modular');
     return this.set === 'modular' || this.anySwap('modular') || this.anyOverride('modular');
   }
 
@@ -204,7 +215,7 @@ export class AssetRuntime {
   setFor(id) {
     const swap = this.swaps[id];
     if (swap) return swap;
-    if (this.quality === 'low' && !this.explicit) return 'classic';
+    if (this.lowLocked) return 'classic';
     const o = this.overrides && this.overrides.assets && this.overrides.assets[id];
     if (o && o.variant) return o.variant;
     return this.set;
@@ -243,7 +254,9 @@ export class AssetRuntime {
   }
 
   async _doPreload() {
-    if (this.chosen !== 'classic' || this.anySwap('modular')) {
+    // kit-overrides.json is read only when it can change anything: never on
+    // a low-locked device (the promise), never on the classic default.
+    if (!this.lowLocked && (this.chosen !== 'classic' || this.anySwap('modular'))) {
       this.overrides = await this._loadOverrides();
     }
     if (!this.needsKit()) return;
@@ -291,17 +304,59 @@ export class AssetRuntime {
     return tierFor(this.quality, bandFor(layout), tiers);
   }
 
-  /** ctx for one build: exactly the seven frozen fields. */
-  makeContext(def, layout, tier) {
+  /** ctx for one build: exactly the seven frozen fields. `scope` is an owner's { MAT, textures } (see scope()). */
+  makeContext(def, layout, tier, scope = null) {
     return {
       THREE: this.ctxBase.THREE,
-      MAT: this.ctxBase.MAT,
+      MAT: (scope && scope.MAT) || this.ctxBase.MAT,
       kitMaterials: this.kitMaterials,
       tier,
       rng: assetRng(def.id, layout && layout.index),
       quality: this.quality,
-      textures: this.ctxBase.textures
+      textures: (scope && scope.textures) || this.ctxBase.textures
     };
+  }
+
+  /**
+   * An owner's view of the runtime (Integrator ruling, review round 1): the
+   * same registry and resolution, but builds get THAT owner's MAT and
+   * textures in ctx, the kit materials are bound into the owner's MAT table
+   * (so its own _mergeStatics() merges them) and `instances` lists what the
+   * owner built. Every owner with a MAT table and a merge pass (Countryside,
+   * InteriorManager) does `this.assets = scopeAssets(options.assets, { MAT, textures })`.
+   */
+  scope({ MAT = null, textures = null } = {}) {
+    const runtime = this;
+    const ctxScope = { MAT: MAT || null, textures: textures || null };
+    if (MAT) {
+      this._tables.add(MAT);
+      this._bindMaterials();
+    }
+    const view = {
+      isClassic: false,
+      isScoped: true,
+      runtime,
+      instances: [],
+      get set() { return runtime.set; },
+      get chosen() { return runtime.chosen; },
+      get quality() { return runtime.quality; },
+      get swaps() { return runtime.swaps; },
+      get problems() { return runtime.problems; },
+      get kitMaterials() { return runtime.kitMaterials; },
+      build: (id, layout, classicFn) => runtime.build(id, layout, classicFn, ctxScope, view),
+      update: (dt, t, env) => runtime.update(dt, t, env, view.instances),
+      setQuality: (q) => runtime.setQuality(q),
+      setContext: () => view,
+      scope: (s) => runtime.scope(s),
+      setFor: (id) => runtime.setFor(id),
+      has: (id) => runtime.has(id),
+      needsKit: () => runtime.needsKit(),
+      preload: () => runtime.preload(),
+      dispose: (instance) => (instance ? runtime.dispose(instance) : view.instances.slice().forEach((i) => i.dispose())),
+      tierFor: (layout, def) => runtime.tierFor(layout, def),
+      summary: () => runtime.summary()
+    };
+    return view;
   }
 
   /**
@@ -309,8 +364,9 @@ export class AssetRuntime {
    * registered; otherwise (and whenever the kit builder throws or returns
    * something that is not an AssetInstance) build the classic asset.
    * Returns the AssetInstance, or whatever `classicFn` returns.
+   * `scope` / `owner` are supplied by scope() views, never by callers.
    */
-  build(id, layout, classicFn) {
+  build(id, layout, classicFn, scope = null, owner = null) {
     if (typeof classicFn !== 'function') throw new TypeError(`assets.build('${id}'): classicFn must be a function`);
     const def = this.defs.get(id);
     if (!def || this.setFor(id) !== 'modular') return classicFn();
@@ -320,9 +376,11 @@ export class AssetRuntime {
       const { values: params, problems } = resolveParams(def.params, this.overrideParams(id), layout && layout.params);
       for (const p of problems) this.warnOnce(`params:${id}:${p}`, `${id}: ${p}`);
       const t0 = now();
-      raw = def.build(this.makeContext(def, layout, tier), layout || {}, params);
+      raw = def.build(this.makeContext(def, layout, tier, scope), layout || {}, params);
       const instance = this._adopt(raw, def, layout, tier, params, now() - t0);
+      instance.owner = owner;
       this.instances.push(instance);
+      if (owner) owner.instances.push(instance);
       return instance;
     } catch (error) {
       this.warnOnce('build:' + id, `${id}: kit build failed, using the classic asset — ${error && error.message || error}`);
@@ -360,11 +418,11 @@ export class AssetRuntime {
   }
 
   /** Per frame; env = { hour, wind, wet, snow, lanternOn }. A throwing update is disabled after one warning. */
-  update(dt, t, env) {
-    if (!this.instances.length) return;
+  update(dt, t, env, list = this.instances) {
+    if (!list.length) return;
     const e = env || this._env;
     if (this.kitMaterials && typeof this.kitMaterials.setEnv === 'function') this.kitMaterials.setEnv(e);
-    for (const instance of this.instances) {
+    for (const instance of list) {
       if (typeof instance.update !== 'function') continue;
       try { instance.update(dt, t, e); }
       catch (error) {
@@ -408,6 +466,10 @@ export class AssetRuntime {
     }
     const i = this.instances.indexOf(instance);
     if (i >= 0) this.instances.splice(i, 1);
+    if (instance.owner && instance.owner.instances) {
+      const j = instance.owner.instances.indexOf(instance);
+      if (j >= 0) instance.owner.instances.splice(j, 1);
+    }
   }
 
   /** One console warning per key; also kept in `problems` for tests and the debug overlay. */
@@ -464,6 +526,7 @@ export const CLASSIC_ASSETS = Object.freeze({
   update() {},
   setQuality() {},
   setContext() { return this; },
+  scope() { return this; },
   setFor() { return 'classic'; },
   has() { return false; },
   needsKit() { return false; },
@@ -472,6 +535,21 @@ export const CLASSIC_ASSETS = Object.freeze({
   tierFor() { return 'far'; },
   summary() { return { chosen: 'classic', set: 'classic', explicit: false, quality: 'medium', swaps: {}, loaded: false, families: {}, assets: [], instances: 0, problems: [] }; }
 });
+
+/**
+ * The one line every owner module writes:
+ *   this.assets = scopeAssets(options.assets, { MAT, textures: TEX });
+ * Returns the owner's scoped view of the runtime (ctx.MAT / ctx.textures are
+ * the owner's; kit materials are bound into the owner's MAT table; `instances`
+ * are the owner's). Given nothing, CLASSIC_ASSETS, or anything without a
+ * scope(), it returns CLASSIC_ASSETS / the object as is, so the classic game
+ * never changes.
+ */
+export function scopeAssets(assets, scope = {}) {
+  if (!assets || assets.isClassic || typeof assets.build !== 'function') return CLASSIC_ASSETS;
+  if (typeof assets.scope === 'function') return assets.scope(scope || {});
+  return assets;
+}
 
 /** The ctx field names, for tests and documentation. */
 export const CONTEXT_FIELDS = CTX_FIELDS;

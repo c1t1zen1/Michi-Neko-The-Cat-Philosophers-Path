@@ -96,7 +96,13 @@ console.log('[2/2] kit part names on the modular set');
   const torii = new Node('Torii Gate', [postL, postR, kasagi]);   // kasagi is child 2; a classic file said rel "0"
   torii.userData.asset = { id: 'torii', family: 'shrine', tier: 'hero', index: 0 };
   const bare = new Node('asset:toro', [mesh('asset:toro/base'), mesh('asset:toro/firebox')]);
-  const scene = new Node('scene', [torii, bare]);
+  bare.userData.asset = { id: 'toro', family: 'lanterns', tier: 'hero', index: 0 };
+  // a classic root whose second child is a kit group: a child-index path must not walk into it
+  const kitChild = new Node('asset:toro', [mesh('asset:toro/base'), mesh('asset:toro/firebox')]);
+  kitChild.userData.asset = { id: 'toro', family: 'lanterns', tier: 'hero', index: 1 };
+  const shrine = new Node('Shrine', [mesh('step'), kitChild]);
+  const scene = new Node('scene', [torii, bare, shrine]);
+  const warnings = [];
   const doc = {
     format: 'michi-neko-cad-overrides',
     overrides: [
@@ -104,20 +110,31 @@ console.log('[2/2] kit part names on the modular set');
       { name: 'Torii Gate', nodes: [
         { part: 'kasagi', rel: '0', state: { material: { color: 0x112233 } } },
         { part: 'asset:torii/post_r', state: { position: [0, 0, 9] } },
-        { part: 'no_such_part', rel: '1', state: { visible: false } },          // falls back to rel → post_r
-        { part: 'gone', state: { renderOrder: 7 } }                              // no rel: the root itself
+        { part: 'no_such_part', rel: '1', state: { visible: false } },          // unknown part: skipped, never the rel guess
+        { part: 'gone', state: { renderOrder: 7 } },                             // unknown part, no rel: skipped, never the root
+        { rel: '2', state: { castShadow: false } },                              // rel into a kit tree: skipped (kasagi untouched)
+        { state: { renderOrder: 3 } }                                            // no part, no rel: the root itself
       ] },
       // a kit group addressed by asset id when the classic name is gone
-      { asset: 'toro', nodes: [{ part: 'firebox', state: { material: { emissive: 0xffa500 } } }] }
+      { asset: 'toro', nodes: [{ part: 'firebox', state: { material: { emissive: 0xffa500 } } }] },
+      // a classic root: rel may reach its classic children but never descend into a kit group
+      { name: 'Shrine', nodes: [{ rel: '0', state: { visible: false } }, { rel: '1.1', state: { visible: false } }] },
+      // an entry whose every node is skipped does not count as applied
+      { name: 'Shrine', nodes: [{ part: 'nothing', state: { visible: false } }] }
     ]
   };
-  const applied = await applyOverridesDoc(scene, doc);
-  ok('both entries applied', applied === 2, String(applied));
+  const applied = await applyOverridesDoc(scene, doc, { warn: (m) => warnings.push(m) });
+  ok('three entries applied (the all-skipped one is not counted)', applied === 3, String(applied));
   ok("part 'kasagi' resolved by name, not rel 0 (post_l)", kasagi.material.color.hex === 0x112233 && postL.material.color.hex === 0xffffff);
   ok('full part name accepted', postR.position.z === 9);
-  ok('unknown part falls back to rel', postR.visible === false && postL.visible === true);
-  ok('unknown part with no rel targets the root', torii.renderOrder === 7);
+  ok('unknown part with a rel is skipped (post_r untouched)', postR.visible === true && postL.visible === true);
+  ok('unknown part without a rel is skipped (root untouched)', torii.renderOrder === 3);
+  ok('child-index path never descends into a kit group (kasagi keeps its shadow)', kasagi.castShadow === true);
+  ok('node with neither part nor rel still targets the root', torii.renderOrder === 3);
   ok('entry.asset finds asset:<id>', bare.children[1].material.emissive.hex === 0xffa500 && bare.children[0].material.emissive.hex === 0);
+  ok('classic child under a classic root still resolves by index', shrine.children[0].visible === false);
+  ok('rel path into a kit child group is skipped', kitChild.children[1].visible === true && kitChild.visible === true);
+  ok('one warning per skipped part', warnings.length === 3 && warnings.every((w) => /\[cadJS\] override for .* skipped: part '/.test(w)), JSON.stringify(warnings));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

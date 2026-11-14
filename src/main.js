@@ -535,6 +535,8 @@ class Game {
   /** ?hour= ?weather= ?nohud=1 ?shot=1 — applied once the valley exists; inert when absent. */
   applyCaptureFlags() {
     const c = this.capture;
+    c.active = c.hour !== null || !!c.cam || c.nohud || c.shot || !!c.weather || c.hold !== null;
+    if (c.active) this.saveSuspended = true;   // never write a capture state into the save
     if (c.hour !== null) {
       this.sky.dayTime = c.hour;
       this.sky.cycleSpeed = 0;
@@ -1271,6 +1273,9 @@ class Game {
   }
 
   saveGame() {
+    // A capture boot (?hour= ?cam= ?shot=1 …) never persists: its held clock,
+    // pinned weather and camera must not land in a player's save.
+    if (this.saveSuspended) return;
     const p = this.player;
     // Never persist an interior, mid-transition or summit position as the
     // spawn (S1.5): the tea house reloads outside its front door, and the

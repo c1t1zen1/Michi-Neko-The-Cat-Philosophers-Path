@@ -63,3 +63,17 @@ Full report: `.superpowers/sdd/BUILD_GUIDE_FABLE/reports/f1-runtime-report.md`
 - Root `kit-overrides.json` committed (`{"format":"michi-neko-kit-overrides","assets":{}}`): modular boot console now identical to the baseline set. `kit_check` validates the file when present; `kit_test` adds the missing-file path (null / rejected fetch / undefined → no warning, kit still loads) and the empty-file case (33 tests).
 - Concern 4 confirmed: `node tools/labs_coverage.mjs` (check mode) FAILS on `main.js` line drift; this lane regenerated `labs/ASSET_COVERAGE.md` with `--write` and check mode is OK.
 - Checks after the round: check_syntax 44 OK · verify 5/5 · kit_check 27 OK · kit_test 33/33 · cad_overrides_test 22/22 · labs_check OK · labs_coverage check OK · git diff --check clean · golden classic/modular EQUAL · modular boot console = baseline.
+
+## Review fix round 1 (findings 1–10)
+- Rebased onto fable/integration b45953d (clean, no overlap).
+- 1 low lock: `lowLocked` (quality low, no `?assets=`) → no kit-overrides fetch, `needsKit()` only on `?swap`; unit tests with a modular-naming overrides file for auto+low and modular+low (nothing fetched/imported), plus the `?assets=`/`?swap=` exceptions; §3.6 reworded.
+- 2 gate: contract page fails on any load/preload problem and on an empty filter match; CLI prints GATE reasons and problems in text mode; `--broken-family` self-test exits 1; `--family typo` exits 1.
+- 3 `scopeAssets(assets, { MAT, textures })` in runtime.js; `AssetRuntime.scope()` views; KitMaterials binds into every owner table; CLASSIC pass-through; unit-tested; §3.3 documents the one line per owner.
+- 4 R18: footprint extra keys (`platforms`, `waterRects`, …); §3.4 sketch registers colliders, platforms, waterRects, exclusions, anchors in classic order.
+- 5 cad-overrides: unknown `part` skips the node with one warning; child-index paths never enter a kit group (root or descendant); `applied` counts entries with ≥1 hit; test updated (27 checks).
+- 6 contract materials section: bind() into two owner tables asserted; real `_mergeStatics()` filter proven with a MAT-material pair (merged) vs an unbound kit-material pair (stayed).
+- 7 AGENTS.md bump one-liner uses `find src -name '*.js' -exec sed …`; the Node variant walks src/**.
+- 8 any capture flag sets `saveSuspended`; `saveGame()` guards on it (headless proof: `saveSuspended:true, saved:null`).
+- 9 AAA-9: builder-received params asserted at range ends; "param changes the build" at the most detailed tier (`visual:false` opt-out); dispose counts textures and private materials; knobs dropParam / leakMaterial / leakTexture.
+- 10 `KIT_OVERRIDES_URL` resolved from the kit module (`../../kit-overrides.json`).
+- Checks: kit_test 36/36 · kit_check 27 OK · cad_overrides_test 27/27 · contract PASS (merge OK, self-test 12/12) · broken-family FAIL(1) · typo filter FAIL(1) · golden classic EQUAL, modular EQUAL · check_syntax 44 · verify 5/5 · labs_check OK (coverage regenerated) · classic boot console = baseline.

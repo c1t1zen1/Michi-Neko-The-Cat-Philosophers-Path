@@ -94,12 +94,16 @@ function resolveByName(scene, name) {
   return found;
 }
 
-// rel is a dot-joined child-index path below the named root ("0.2.1").
+// rel is a dot-joined child-index path below the named root ("0.2.1"). It
+// never descends into a kit asset group (userData.asset): a kit tree is
+// addressed by part name, its child order is not an interface.
 function resolveChild(root, rel) {
+  if (root.userData?.asset) return null;
   let node = root;
   for (const part of String(rel).split('.')) {
     node = node?.children?.[Number(part)];
     if (!node) return null;
+    if (node.userData?.asset) return null;
   }
   return node;
 }
@@ -116,15 +120,18 @@ function resolvePart(root, part) {
   return found;
 }
 
-// Part name first (modular set), then the child-index path — so an override
-// file authored against the classic tree applies exactly as before, and one
-// that names kit parts survives any reshuffle of child order.
+// A node that names a kit part resolves by that name only: an unknown part
+// is skipped (never the root, never a child-index guess). A node without a
+// part keeps the classic child-index path, so an override file authored
+// against the classic tree applies exactly as before.
 function resolveTarget(root, node) {
   if (node.part) {
     const byPart = resolvePart(root, node.part);
-    if (byPart) return byPart;
+    return byPart ? { target: byPart } : { skipped: `part '${node.part}' not found` };
   }
-  return node.rel ? resolveChild(root, node.rel) : root;
+  if (!node.rel) return { target: root };
+  const byIndex = resolveChild(root, node.rel);
+  return byIndex ? { target: byIndex } : { skipped: `path '${node.rel}' not found (kit groups are addressed by part)` };
 }
 
 /** The root an entry addresses: its classic `name`, else the kit group `asset:<entry.asset>`. */
@@ -133,20 +140,31 @@ function resolveRoot(scene, entry) {
     (entry.asset ? resolveByName(scene, `asset:${entry.asset}`) : null);
 }
 
-/** Apply a parsed override document to a scene. Returns the number of entries applied. */
-export async function applyOverridesDoc(scene, doc) {
+/**
+ * Apply a parsed override document to a scene. Returns the number of entries
+ * with at least one node applied. A node whose `part` does not exist is
+ * skipped with one warning (`warn`, default console.warn).
+ */
+export async function applyOverridesDoc(scene, doc, { warn = (m) => console.warn(m) } = {}) {
   if (doc?.format !== OVERRIDES_FORMAT || !Array.isArray(doc.overrides)) return 0;
   let applied = 0;
+  const warned = new Set();
   for (const entry of doc.overrides) {
     const root = resolveRoot(scene, entry);
     if (!root) continue;
+    let hits = 0;
     for (const node of entry.nodes || []) {
-      const target = resolveTarget(root, node);
-      if (!target) continue;
+      const { target, skipped } = resolveTarget(root, node);
+      if (!target) {
+        const key = `${entry.name || entry.asset}:${skipped}`;
+        if (node.part && !warned.has(key)) { warned.add(key); warn(`[cadJS] override for '${entry.name || entry.asset}' skipped: ${skipped}`); }
+        continue;
+      }
       await applyState(target, node.state);
       if (node.geometry && target.geometry) target.geometry = parseGeometry(node.geometry);
+      hits++;
     }
-    applied++;
+    if (hits) applied++;
   }
   return applied;
 }

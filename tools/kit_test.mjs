@@ -673,3 +673,110 @@ test('the committed root kit-overrides.json is valid, empty, and changes nothing
   assert.equal(auto.set, 'classic');
   assert.equal(auto.needsKit(), false);
 });
+
+/* ------------------------------------------ review round 1: low lock, scopes --- */
+
+const MODULAR_DOC = { format: KIT_OVERRIDES_FORMAT, assets: { torii: { variant: 'modular', params: { span: 3.4 } } } };
+
+test('low quality without ?assets=: a NON-empty overrides file naming modular neither fetches nor downloads the kit', async () => {
+  for (const assetSet of ['auto', 'modular']) {
+    let fetched = 0, families = 0, materials = 0;
+    const log = quiet();
+    const rt = new AssetRuntime({
+      assetSet, quality: 'low', logger: log,
+      fetchOverrides: async () => { fetched++; return MODULAR_DOC; },
+      loadFamilies: async () => { families++; return { shrine: async () => ({ assets: [goodDef()] }) }; },
+      createMaterials: async () => { materials++; return { bind() {} }; }
+    });
+    await rt.preload();
+    assert.ok(rt.lowLocked);
+    assert.deepEqual([fetched, families, materials], [0, 0, 0], assetSet);
+    assert.equal(rt.needsKit(), false);
+    assert.equal(rt.overrides, null);
+    assert.equal(rt.loaded, false);
+    assert.equal(rt.setFor('torii'), 'classic');
+    assert.equal(rt.build('torii', {}, () => 'classic'), 'classic');
+    assert.deepEqual(log.warnings, []);
+  }
+  // the developer exception: an explicit ?assets=modular on low loads it
+  let fetched = 0, families = 0;
+  const dev = new AssetRuntime({
+    assetSet: 'classic', search: '?assets=modular', quality: 'low',
+    fetchOverrides: async () => { fetched++; return MODULAR_DOC; },
+    loadFamilies: async () => { families++; return { shrine: async () => ({ assets: [goodDef()] }) }; },
+    createMaterials: async () => ({ bind() {} })
+  });
+  await dev.preload();
+  assert.equal(dev.lowLocked, false);
+  assert.deepEqual([fetched, families], [1, 1]);
+  assert.equal(dev.setFor('torii'), 'modular');
+  // ?swap on a low device is the other developer flag: kit loaded, overrides not read
+  let swapFetched = 0, swapFamilies = 0;
+  const swap = new AssetRuntime({
+    assetSet: 'classic', search: '?swap=torii:modular', quality: 'low',
+    fetchOverrides: async () => { swapFetched++; return MODULAR_DOC; },
+    loadFamilies: async () => { swapFamilies++; return { shrine: async () => ({ assets: [goodDef()] }) }; },
+    createMaterials: async () => ({ bind() {} })
+  });
+  await swap.preload();
+  assert.deepEqual([swapFetched, swapFamilies], [0, 1]);
+  assert.equal(swap.setFor('torii'), 'modular');
+  assert.equal(swap.setFor('toro'), 'classic');
+});
+
+test('KIT_OVERRIDES_URL is resolved against the kit module, not the page', async () => {
+  const { KIT_OVERRIDES_URL } = await kit('runtime');
+  assert.ok(/^file:\/\//.test(KIT_OVERRIDES_URL));
+  assert.ok(KIT_OVERRIDES_URL.endsWith('/kit-overrides.json'));
+  assert.ok(!KIT_OVERRIDES_URL.includes('/src/'), KIT_OVERRIDES_URL);
+});
+
+test('scopeAssets: classic pass-through for nothing / CLASSIC_ASSETS; owner scopes get their own MAT and textures', async () => {
+  const { scopeAssets } = await kit('runtime');
+  assert.equal(scopeAssets(undefined, { MAT: {} }), CLASSIC_ASSETS);
+  assert.equal(scopeAssets(null), CLASSIC_ASSETS);
+  assert.equal(scopeAssets(CLASSIC_ASSETS, { MAT: {} }), CLASSIC_ASSETS);
+  assert.equal(scopeAssets({ build: 1 }), CLASSIC_ASSETS);
+  assert.equal(scopeAssets(CLASSIC_ASSETS).build('torii', {}, () => 'classic'), 'classic');
+
+  const tables = [];
+  const materials = { bind: (t) => { if (!tables.includes(t)) tables.push(t); }, list: () => [] };
+  const { rt } = modularRuntime([goodDef()], { createMaterials: null });
+  rt.kitMaterials = materials;
+  const MAT_A = { stone: 'a' }, MAT_B = { tatami: 'b' };
+  const owner1 = scopeAssets(rt, { MAT: MAT_A, textures: { wood: 'A' } });
+  const owner2 = scopeAssets(rt, { MAT: MAT_B, textures: { wood: 'B' } });
+  assert.ok(owner1.isScoped && !owner1.isClassic);
+  assert.deepEqual(tables.slice(-2), [MAT_A, MAT_B]);     // bound into both owner tables (after the helper's default one)
+  const a = owner1.build('torii', { index: 1 }, () => null);
+  const b = owner2.build('torii', { index: 2 }, () => null);
+  assert.equal(a.ctx.MAT, MAT_A); assert.equal(a.ctx.textures.wood, 'A');
+  assert.equal(b.ctx.MAT, MAT_B); assert.equal(b.ctx.textures.wood, 'B');
+  assert.deepEqual(Object.keys(a.ctx).sort(), [...CONTEXT_FIELDS].sort());
+  assert.deepEqual(owner1.instances, [a]);
+  assert.deepEqual(owner2.instances, [b]);
+  assert.deepEqual(rt.instances, [a, b]);
+  assert.equal(owner1.setFor('torii'), 'modular');
+  assert.equal(owner1.set, 'modular');
+  // scoped update touches only the owner's instances; the root updates all
+  const seen = [];
+  a.update = () => seen.push('a'); b.update = () => seen.push('b');
+  owner2.update(0.016, 1, {});
+  assert.deepEqual(seen, ['b']);
+  rt.update(0.016, 1, {});
+  assert.deepEqual(seen, ['b', 'a', 'b']);
+  // dispose leaves both registries
+  a.dispose();
+  assert.deepEqual(owner1.instances, []);
+  assert.deepEqual(rt.instances, [b]);
+  owner2.dispose();
+  assert.deepEqual([owner2.instances.length, rt.instances.length], [0, 0]);
+  // a scope made before the materials exist is bound once preload creates them
+  const { rt: late } = modularRuntime([], { createMaterials: null });
+  const lateTables = [];
+  const view = scopeAssets(late, { MAT: { x: 1 } });
+  late.kitMaterials = { bind: (t) => lateTables.push(t) };
+  late._bindMaterials();
+  assert.ok(lateTables.some((t) => t.x === 1));   // the scope's table is bound once the materials exist
+  assert.equal(view.build('nothing', {}, () => 'classic'), 'classic');
+});

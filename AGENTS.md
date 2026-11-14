@@ -45,7 +45,7 @@ network access required at runtime.
 Every module import carries `?v=<tag>`. Keep all tags in sync when editing:
 
 ```
-sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDD<letter>/g" src/*.js src/kit/*.js src/kit/*/*.js index.html
+find src -name '*.js' -exec sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDD<letter>/g" {} + && sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDD<letter>/g" index.html
 ```
 
 Current tag: `20261107a` (the `tools/*_preview.*` sheets and

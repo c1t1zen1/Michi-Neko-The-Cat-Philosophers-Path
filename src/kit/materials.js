@@ -211,16 +211,22 @@ export class KitMaterials {
   constructor({ MAT = null } = {}) {
     this.memo = new Map();
     this.created = [];
-    this.MAT = null;
+    // Every owner MAT table bound so far (Countryside's, InteriorManager's …):
+    // each kit material is registered into ALL of them, so every owner's own
+    // _mergeStatics() pass merges kit meshes.
+    this.tables = new Set();
     // Shared weather uniforms: AssetRuntime.update(env) → setEnv(env).
     this.env = { wet: { value: 0 }, snow: { value: 0 } };
     if (MAT) this.bind(MAT);
   }
 
-  /** Register every kit material (made so far and later) into a MAT table so _mergeStatics() merges them. */
+  /** The first bound table (kept for callers that read `.MAT`). */
+  get MAT() { return this.tables.values().next().value || null; }
+
+  /** Register every kit material (made so far and later) into a MAT table so that owner's _mergeStatics() merges them. */
   bind(MAT) {
-    if (!MAT || typeof MAT !== 'object' || this.MAT === MAT) return this;
-    this.MAT = MAT;
+    if (!MAT || typeof MAT !== 'object' || this.tables.has(MAT)) return this;
+    this.tables.add(MAT);
     for (const m of this.created) MAT[MAT_KEY_PREFIX + m.name] = m;
     return this;
   }
@@ -242,7 +248,7 @@ export class KitMaterials {
       mat.name = `${name}#${this.created.length + 1}`;
       mat.userData.kit = true;
       this.created.push(mat);
-      if (this.MAT) this.MAT[MAT_KEY_PREFIX + mat.name] = mat;
+      for (const table of this.tables) table[MAT_KEY_PREFIX + mat.name] = mat;
       this.memo.set(key, mat);
     }
     return this.memo.get(key);
@@ -322,7 +328,7 @@ export class KitMaterials {
   /** Dispose every created material (tests and teardown; the game never calls this). */
   dispose() {
     for (const m of this.created) m.dispose();
-    if (this.MAT) for (const m of this.created) delete this.MAT[MAT_KEY_PREFIX + m.name];
+    for (const table of this.tables) for (const m of this.created) delete table[MAT_KEY_PREFIX + m.name];
     this.created = [];
     this.memo.clear();
   }

@@ -18,7 +18,7 @@ const opt = (name, fallback = null) => { const i = args.indexOf('--' + name); re
 const flag = (name) => args.includes('--' + name);
 
 if (flag('help') || flag('h')) {
-  console.log('usage: node tools/kit_contract_test.mjs [--family <name>] [--asset <id>] [--no-merge] [--no-selftest] [--gpu metal|swiftshader] [--shot out.png] [--json] [--timeout <s>]');
+  console.log('usage: node tools/kit_contract_test.mjs [--family <name>] [--asset <id>] [--no-merge] [--no-selftest] [--broken-family] [--gpu metal|swiftshader] [--shot out.png] [--json] [--timeout <s>]');
   process.exit(0);
 }
 if (!existsSync(join(HERE, 'headless.mjs'))) {
@@ -31,6 +31,7 @@ const query = new URLSearchParams();
 if (opt('family')) query.set('family', opt('family'));
 if (opt('asset')) query.set('asset', opt('asset'));
 if (flag('no-merge')) query.set('merge', '0');
+if (flag('broken-family')) query.set('brokenfamily', '1');   // gate self-test: must exit 1
 if (flag('no-selftest')) query.set('selftest', '0');
 const page = '/tools/kit_contract_test.html' + (query.toString() ? '?' + query : '');
 
@@ -60,6 +61,8 @@ else {
     for (const c of r.selftest.cases) console.log(`  ${c.pass ? 'PASS' : 'FAIL'} ${c.knob.padEnd(16)} → ${c.failing.join('; ') || 'nothing failed'}`);
   }
   console.log(`budgets: ${r.budgets.status} (${r.budgets.file})`);
+  for (const reason of r.reasons || []) console.log(`  GATE ${reason}`);
+  for (const p of r.problems || []) console.log(`  problem: ${p}`);
   if (run.errors?.length) console.log('page errors: ' + run.errors.join(' | '));
   console.log(r.ok ? 'PASS: kit contract' : 'FAIL: kit contract');
 }

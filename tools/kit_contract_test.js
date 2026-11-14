@@ -29,11 +29,14 @@ import { AssetRuntime, isAssetInstance } from '../src/kit/runtime.js?v=20261107a
 import { defineAsset, partName, groupName } from '../src/kit/contract.js?v=20261107a';
 import { budgetFor, BUDGET_SOURCE } from '../src/kit/budgets.js?v=20261107a';
 import { countScene } from '../src/kit/craft.js?v=20261107a';
+import { FAMILIES } from '../src/kit/index.js?v=20261107a';
 
 const q = new URLSearchParams(location.search);
 const FAMILY = q.get('family'), ASSET = q.get('asset');
 const SELFTEST = q.get('selftest') !== '0';
 const MERGE = q.get('merge') !== '0';
+// ?brokenfamily=1 adds a family whose import throws: the gate must FAIL.
+const BROKEN_FAMILY = q.get('brokenfamily') === '1';
 const ENV = { hour: 19.5, wind: 1, wet: 0.3, snow: 0, lanternOn: true };
 
 /* ------------------------------------------------------------ reporting --- */
@@ -87,6 +90,9 @@ function hashInstance(inst) {
   inst.group.traverse((o) => {
     str(o.name || o.type);
     scratch.set(o.matrixWorld.elements); f32(scratch);
+    // materials by name and colour, not uuid (a private material is a new
+    // object every build; kit materials are memoised and keep their name)
+    for (const m of [].concat(o.material || [])) { str(m.name || m.type); if (m.color) word(m.color.getHex()); if (m.emissive) word(m.emissive.getHex()); word(Math.round((m.roughness || 0) * 1000)); }
     const g = o.geometry;
     if (g) {
       for (const k of ['position', 'normal', 'uv', 'color']) if (g.attributes[k]) { const a = g.attributes[k].array; a instanceof Float32Array ? f32(a) : [...a].forEach(word); }
@@ -137,6 +143,13 @@ async function checkAsset(rt, def, tier, list, tag = '') {
   const layout = sampleLayout(def, tier);
   const classicCalls = [];
   const classic = () => { classicCalls.push(1); return null; };
+  // Spy on the builder so the params it RECEIVES can be asserted (AAA-9).
+  const received = [];
+  rt.defs.set(def.id, { ...def, build: (ctx, l, params) => { received.push(params); return def.build(ctx, l, params); } });
+  // Warm-up: one untracked build + render + dispose uploads the shared kit
+  // textures, so the leak check below measures only this instance's own
+  // geometry, materials and textures.
+  { const w = rt.build(def.id, sampleLayout(def, tier), classic); if (isAssetInstance(w)) { scene.add(w.group); render(); w.dispose(); render(); } }
   const baseline = render();
 
   // three's generateUUID() draws Math.random for every Object3D, material and
@@ -185,20 +198,42 @@ async function checkAsset(rt, def, tier, list, tag = '') {
 
   for (const [key, p] of Object.entries(def.params)) {
     const values = p.type === 'number' ? [p.min, p.max] : p.type === 'enum' ? p.options.slice(0, 4) : p.type === 'boolean' ? [true, false] : [p.default];
+    const hashes = [];
     for (const v of values) {
+      received.length = 0;
       const i = rt.build(def.id, { ...sampleLayout(def, tier), params: { [key]: v } }, classic);
+      const got = received[0] && received[0][key];
       check(`param ${key}=${JSON.stringify(v)} builds (AAA-9)`, isAssetInstance(i) && finiteTree(i.group));
-      if (isAssetInstance(i)) i.dispose();
+      check(`param ${key}=${JSON.stringify(v)} reaches the builder (AAA-9)`, isAssetInstance(i) && got === v && i.params[key] === v, `builder received ${JSON.stringify(got)}`);
+      if (isAssetInstance(i)) { hashes.push(hashInstance(i)); i.dispose(); }
+    }
+    // A param must change what is built (at the asset's most detailed tier),
+    // unless the schema says it is not visual (`visual: false`, e.g. a
+    // behaviour switch read only by update()).
+    if (p.visual !== false && tier === def.tiers[0] && hashes.length >= 2) {
+      check(`param ${key} changes the build between ${JSON.stringify(values[0])} and ${JSON.stringify(values[1])} (AAA-9)`, hashes[0] !== hashes[1], hashes[0] === hashes[1] ? 'identical geometry and materials' : '');
     }
   }
+  rt.defs.set(def.id, def);
   if (inst.update) { let ok = true, err = ''; try { inst.update(1 / 60, 1, ENV); } catch (e) { ok = false; err = e.message; } check('update(dt, t, env) runs (AAA-5)', ok, err); }
   if (inst.setTier) { let ok = true, err = ''; try { inst.setTier(tier === 'far' ? 'mid' : 'far'); inst.setTier(tier); } catch (e) { ok = false; err = e.message; } check('setTier() runs (AAA-4)', ok, err); }
 
+  // Leak check: geometries and textures through the renderer's counts;
+  // materials by watching Material.dispose — every material under the
+  // instance that is not a shared kit material must be disposed by it.
   scene.add(inst.group); if (isAssetInstance(inst2)) scene.add(inst2.group);
   const during = render();
-  inst.dispose(); if (isAssetInstance(inst2)) inst2.dispose();
+  const privateMaterials = new Set();
+  for (const root of [inst.group, isAssetInstance(inst2) ? inst2.group : null]) root && root.traverse((o) => { for (const m of [].concat(o.material || [])) if (m && !m.userData.kit) privateMaterials.add(m); });
+  const disposedMaterials = new Set();
+  const origDispose = THREE.Material.prototype.dispose;
+  THREE.Material.prototype.dispose = function () { disposedMaterials.add(this); return origDispose.call(this); };
+  try { inst.dispose(); if (isAssetInstance(inst2)) inst2.dispose(); } finally { THREE.Material.prototype.dispose = origDispose; }
   const after = render();
+  const undisposed = [...privateMaterials].filter((m) => !disposedMaterials.has(m));
   check('dispose leaves no geometry behind (AAA-9)', after.geometries === baseline.geometries, `geometries ${baseline.geometries} → ${during.geometries} → ${after.geometries}`);
+  check('dispose leaves no texture behind (AAA-9)', after.textures === baseline.textures, `textures ${baseline.textures} → ${during.textures} → ${after.textures}`);
+  check('dispose frees every private material (AAA-9)', undisposed.length === 0, undisposed.length ? `${undisposed.length} private material(s) not disposed (${privateMaterials.size} private, shared kit materials excluded)` : `${privateMaterials.size} private material(s)`);
   check('group removed from the scene on dispose (AAA-9)', !inst.group.parent);
   return into;
 }
@@ -207,7 +242,7 @@ async function checkAsset(rt, def, tier, list, tag = '') {
 
 // A throwaway asset for the self-test: never registered in the game. Knobs
 // make it fail one check at a time.
-const knobs = { badName: false, floating: false, overBudget: false, nondeterministic: false, mathRandom: false, leak: false, footprintDrift: false, orphan: false };
+const knobs = { badName: false, floating: false, overBudget: false, nondeterministic: false, mathRandom: false, leak: false, leakMaterial: false, leakTexture: false, dropParam: false, footprintDrift: false, orphan: false };
 let fixtureBuilds = 0;
 const FIXTURE_FOOTPRINT = { colliders: [{ min: [-0.3, 0, -0.3], max: [0.3, 1.5, 0.3] }], exclusions: [[-0.5, -0.5, 1, 1]], anchors: { hook: { x: 0, y: 1.4, z: 0 } } };
 const fixtureDef = defineAsset({
@@ -219,10 +254,19 @@ const fixtureDef = defineAsset({
     const T = ctx.THREE, km = ctx.kitMaterials;
     const group = new T.Group();
     const stone = km.stone(), wood = km.wood();
+    const height = knobs.dropParam ? 1.2 : params.height;   // dropParam: the builder ignores the param
     const base = new T.Mesh(new T.BoxGeometry(0.6, 0.2, 0.6), stone); base.position.y = 0.1;
-    const post = new T.Mesh(new T.CylinderGeometry(0.08, 0.1, params.height, ctx.tier === 'hero' ? 12 : 6), wood); post.position.y = 0.2 + params.height / 2;
+    const post = new T.Mesh(new T.CylinderGeometry(0.08, 0.1, height, ctx.tier === 'hero' ? 12 : 6), wood); post.position.y = 0.2 + height / 2;
     const cap = new T.Mesh(new T.BoxGeometry(0.5, 0.12, 0.5), params.cap === 'stone' ? stone : wood);
-    cap.position.y = 0.2 + params.height + 0.06 + (knobs.floating ? 0.5 : 0);
+    cap.position.y = 0.2 + height + 0.06 + (knobs.floating ? 0.5 : 0);
+    // Private (non-kit) material and texture: must be freed by the builder's own dispose().
+    let privateMat = null, privateTex = null;
+    if (knobs.leakMaterial || knobs.leakTexture) {
+      const c = document.createElement('canvas'); c.width = c.height = 8; c.getContext('2d').fillRect(0, 0, 8, 8);
+      privateTex = new T.CanvasTexture(c);
+      privateMat = new T.MeshStandardMaterial({ color: 0x884422, map: privateTex });
+      base.material = privateMat;   // on the base, so the `cap` param still changes the build
+    }
     if (knobs.nondeterministic) cap.position.x += 0.01 * fixtureBuilds;
     if (knobs.mathRandom) cap.rotation.y = Math.random() * 0.001;
     cap.position.z += ctx.rng() * 0.02;           // the legitimate per-instance draw
@@ -231,7 +275,9 @@ const fixtureDef = defineAsset({
     if (knobs.orphan) { const stray = new T.Mesh(new T.BoxGeometry(0.1, 0.1, 0.1), stone); stray.position.y = 0.05; group.add(stray); }
     if (knobs.leak) { base.userData.sharedGeometry = true; }   // skipped by the default dispose and never freed by the builder
     const parts = knobs.badName ? { base, post, 'Cap Stone': cap } : { base, post, cap };
-    return { group, parts, sockets: { hook: new T.Object3D() }, live: [], footprint: knobs.footprintDrift ? { colliders: [], exclusions: [], anchors: {} } : undefined };
+    // leakMaterial: no dispose at all; leakTexture: the material is freed but its map is not
+    const dispose = privateMat && !knobs.leakMaterial ? () => { privateMat.dispose(); if (!knobs.leakTexture) privateTex.dispose(); } : undefined;
+    return { group, parts, sockets: { hook: new T.Object3D() }, live: [], dispose, footprint: knobs.footprintDrift ? { colliders: [], exclusions: [], anchors: {} } : undefined };
   }
 });
 
@@ -244,6 +290,9 @@ const SELFTEST_CASES = [
   ['nondeterministic', 'nondeterministic', /identical \(AAA-8\)/, null],
   ['mathRandom', 'mathRandom', /no Math\.random/, /no Math\.random|identical \(AAA-8\)/],   // random geometry also breaks the hash
   ['leak', 'leak', /dispose leaves no geometry/, null],
+  ['leakMaterial', 'leakMaterial', /dispose frees every private material/, /dispose frees every private material|dispose leaves no texture/],   // its map leaks with it
+  ['leakTexture', 'leakTexture', /dispose leaves no texture/, null],
+  ['dropParam', 'dropParam', /param height changes the build/, null],
   ['footprintDrift', 'footprintDrift', /footprint equals/, null],
   ['orphan', 'orphan', /every mesh belongs to a part/, null]
 ];
@@ -255,7 +304,8 @@ async function selfTest() {
     const allowed = allowedRe || expect;
     for (const k of Object.keys(knobs)) knobs[k] = false;
     if (knob) knobs[knob] = true;
-    const rt = new AssetRuntime({ THREE, search: '?assets=modular', quality: 'high', fetchOverrides: async () => null, loadFamilies: async () => ({}), logger: { warn: (m) => results.problems.push(m) } });
+    // the fixture's expected failures must not count as page problems
+    const rt = new AssetRuntime({ THREE, search: '?assets=modular', quality: 'high', fetchOverrides: async () => null, loadFamilies: async () => ({}), logger: { warn: (m) => (out.problems || (out.problems = [])).push(m) } });
     await rt.preload();
     rt.register(fixtureDef);
     const before = results.failed;
@@ -310,8 +360,30 @@ async function mergeCheck(rt) {
     report(list, `48 kit-material meshes add 48 draw calls before merging`, r1, `${before} calls`);
     report(list, `after Countryside._mergeInto: 3 draw calls for 3 kit materials`, r2, `${after} calls`);
     report(list, `merged into ${baked.length} "Baked Statics" meshes with kit materials`, r3);
-    report(list, `kit materials bound into MAT under 'kit:' keys (MAT keys: ${Object.keys(km.MAT || {}).filter((k) => k.startsWith('kit:')).length})`, !!km.MAT || true, km.MAT ? '' : 'runtime.setContext({ MAT }) is called by Countryside once f2 wires it; the merge path itself is proven above');
-    out.ok = r1 && r2 && r3;
+
+    // bind(): every kit material lands in EVERY bound owner table (made before and after binding)
+    const tableA = {}, tableB = {};
+    km.bind(tableA);
+    const late = km.plain(0x3355aa);
+    km.bind(tableB);
+    const inA = km.list().every((m) => Object.values(tableA).includes(m)), inB = km.list().every((m) => Object.values(tableB).includes(m));
+    const r4 = inA && inB && Object.values(tableA).includes(late) && Object.keys(tableA).every((k) => k.startsWith('kit:')) && km.tables.size >= 2;
+    report(list, `bind(): ${km.list().length} kit materials registered into both owner tables under 'kit:' keys (one made after the first bind)`, r4);
+
+    // The real _mergeStatics() filter path is membership in the owner's MAT:
+    // a mesh with a MAT material merges, a mesh whose kit material is not yet
+    // in Countryside's own table (f2's scopeAssets line) does not.
+    // (pairs: _mergeInto groups by material + shadow flags and skips a group of one)
+    const matMaterial = valley.children.find((o) => /^Baked Statics/.test(o.name) && !o.material.userData.kit).material;
+    const pair = (material, name, x) => [0, 1].map((i) => { const m = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), material); m.name = `${name}-${i}`; m.position.set(x, 40, i); valley.add(m); return m; });
+    const inMat = pair(matMaterial, 'contract-in-MAT', 4.5);
+    const notInMat = pair(km.stone(), 'contract-not-in-MAT', -4.5);
+    city._mergeStatics();
+    const merged = inMat.every((m) => !m.parent), stayed = notInMat.every((m) => m.parent === valley);
+    const r5 = merged && stayed;
+    report(list, `real _mergeStatics(): the MAT-material pair merged (${merged}), the unbound kit-material pair stayed (${stayed}) — membership is the gate; Countryside binds its MAT through scopeAssets()`, r5);
+    out.bindBoth = r4; out.mergeStaticsFilter = r5;
+    out.ok = r1 && r2 && r3 && r4 && r5;
     // tear down the valley (keep the renderer's state sane for the next section)
     valley.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
   } catch (error) {
@@ -324,13 +396,23 @@ async function mergeCheck(rt) {
 /* ------------------------------------------------------------------ main --- */
 
 async function main() {
-  const rt = new AssetRuntime({ THREE, search: '?assets=modular', quality: 'high', fetchOverrides: async () => null, logger: { warn: (m) => { results.problems.push(m); console.warn(m); } } });
+  const loadFamilies = BROKEN_FAMILY
+    ? async () => ({ ...FAMILIES, 'broken-fixture': async () => { throw new Error('fixture: family import failed'); } })
+    : null;
+  const rt = new AssetRuntime({ THREE, search: '?assets=modular', quality: 'high', fetchOverrides: async () => null, loadFamilies, logger: { warn: (m) => { results.problems.push(m); console.warn(m); } } });
   await rt.preload();
+  // Anything the runtime had to warn about while loading (a family whose
+  // import threw, a defineAsset that rejected its schema, a duplicate id, a
+  // failed preload) is a gate failure: a dropped family must never pass.
+  results.loadProblems = [...rt.problems];
   const defs = [...rt.defs.values()].filter((d) => (!FAMILY || d.family === FAMILY) && (!ASSET || d.id === ASSET));
   results.assets = defs.length;
   results.families = [...rt.families.keys()];
+  results.reasons = [];
+  if (results.loadProblems.length) results.reasons.push(`${results.loadProblems.length} load problem(s): ${results.loadProblems.join(' | ')}`);
+  if ((FAMILY || ASSET) && !defs.length) results.reasons.push(`the filter matched nothing (family=${FAMILY || '*'} asset=${ASSET || '*'}; registered: ${[...rt.defs.keys()].join(', ') || 'none'})`);
   if (!defs.length) {
-    const li = document.createElement('li'); li.className = 'note'; li.textContent = '0 assets registered' + (FAMILY || ASSET ? ` for the filter (${FAMILY || ''} ${ASSET || ''})` : ' (no kit families yet)'); lists.assets.append(li);
+    const li = document.createElement('li'); li.className = results.reasons.length ? 'fail' : 'note'; li.textContent = '0 assets registered' + (FAMILY || ASSET ? ` for the filter (${FAMILY || ''} ${ASSET || ''})` : ' (no kit families yet)'); lists.assets.append(li);
     console.log('0 assets');
   }
   for (const def of defs) {
@@ -338,9 +420,11 @@ async function main() {
   }
   if (MERGE) results.merge = await mergeCheck(rt); else report(lists.merge, 'skipped (?merge=0)', true);
   if (SELFTEST) results.selftest = await selfTest();
-  const ok = results.failed === 0 && (!results.merge || results.merge.ok) && (!results.selftest || results.selftest.ok);
+  const ok = results.failed === 0 && results.reasons.length === 0 && (!results.merge || results.merge.ok) && (!results.selftest || results.selftest.ok);
   results.ok = ok;
+  for (const r of results.reasons) report(lists.assets, r, false);
   const summary = `${results.assets} assets, ${results.tiers} asset×tier builds, ${results.checks.length} checks, ${results.failed} failed` +
+    (results.reasons.length ? `; ${results.reasons.length} gate reason(s)` : '') +
     (results.merge ? `; merge ${results.merge.ok ? 'OK' : 'FAIL'}` : '') + (results.selftest ? `; self-test ${results.selftest.ok ? 'OK' : 'FAIL'}` : '') +
     `; budgets ${BUDGET_SOURCE.status}`;
   document.getElementById('summary').textContent = `${ok ? 'PASS' : 'FAIL'}: ${summary}`;

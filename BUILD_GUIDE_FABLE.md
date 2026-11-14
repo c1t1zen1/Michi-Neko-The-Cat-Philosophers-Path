@@ -242,9 +242,15 @@ none), `label`. `tiers` defaults to all three.
 
 - `ctx`: `{ THREE, MAT, kitMaterials, tier, rng, quality, textures }` — exactly
   these seven. `rng` is `mulberry32(hashId(id) ^ layout.index)`, **never** the
-  valley stream. `MAT` and `textures` are the owning module's tables,
-  provided once with `assets.setContext({ MAT, textures: TEX })` in the
-  `Countryside` constructor (one line, lane f2); `THREE` comes from `main.js`;
+  valley stream. `MAT` and `textures` are the owning module's own tables:
+  every owner with a MAT table and a merge pass (`Countryside`,
+  `InteriorManager`, …) writes one line in its constructor,
+  `this.assets = scopeAssets(options.assets, { MAT, textures: TEX })`
+  (`scopeAssets` from `src/kit/runtime.js`), and builds through that scoped
+  view: `ctx.MAT`/`ctx.textures` are that owner's, the kit materials are
+  registered into EVERY bound MAT table (so each owner's `_mergeStatics()`
+  merges them) and `scope.instances` lists what the owner built. Given
+  nothing or `CLASSIC_ASSETS` it returns `CLASSIC_ASSETS`; `THREE` comes from `main.js`;
   `kitMaterials` is the shared `KitMaterials` set; `quality` is the resolved
   quality tier.
 - `layout`: plain data from the classic builder's layout step: position,
@@ -253,7 +259,9 @@ none), `label`. `tiers` defaults to all three.
   optionally `tier` or `params`).
 - `params`: defaults merged with `kit-overrides.json` (`assets[id].params`)
   and `layout.params`, clamped to the schema; unusable values are reported
-  once and ignored.
+  once and ignored. The contract test asserts each param reaches the builder
+  at its range ends and changes the built result at the asset's most
+  detailed tier; a param read only by `update()` declares `visual: false`.
 
 Local-space rule: build with the asset's ground point at the origin and +y
 up (ground at `y = 0`); the owning module places `instance.group` from the
@@ -370,8 +378,16 @@ identically in both sets and the valley does not shift.
 The contract test compares `instance.footprint` with `layout.footprint`;
 the footprint golden run with `?swap=` catches registration drift.
 
+Footprint keys (Integrator ruling R18): `{ colliders, exclusions, anchors }`
+is the minimum; a footprint may carry extra keys mirroring the owner's
+registries — `platforms` (climb surfaces, AAA-6), `waterRects`, `houseColliders`,
+… — in the classic formats, and `placeAsset` registers every key in the
+same order the classic builder did. `anchors` is keyed by the owner's own
+field name (`this.secretKeyPos`, `this.toriiTopPos`, …) so registration is
+`this[name] = value`.
+
 ```js
-// the owner's helper (sketch)
+// the owner's helper (sketch); `this.assets` is the scoped view (§3.3)
 placeAsset(id, layout, classicFn) {
   const out = this.assets.build(id, layout, classicFn);
   if (!isAssetInstance(out)) return out;                 // classic: already registered
@@ -379,8 +395,12 @@ placeAsset(id, layout, classicFn) {
   out.group.position.set(layout.x, layout.y || 0, layout.z);
   out.group.rotation.y = layout.ry || 0;
   parent.add(out.group);
-  for (const box of out.footprint.colliders) this.colliders.push(box);           // same path, same order
-  for (const rect of out.footprint.exclusions) this.vegetationExclusions.push(rect);
+  const f = out.footprint;                                // same registries, same order as the classic builder
+  for (const box of f.colliders) this.colliders.push(box);
+  for (const p of f.platforms || []) this.platforms.push(p);
+  for (const rect of f.waterRects || []) this.waterRects.push(rect);
+  for (const rect of f.exclusions) this.vegetationExclusions.push(rect);
+  for (const [name, value] of Object.entries(f.anchors)) this[name] = value;
   for (const [field, part] of Object.entries(layout.bind || {})) this[field] = out.parts[part] || out.sockets[part] || null;
   return out;
 }
@@ -415,9 +435,11 @@ kit files and never open `countryside.js`.
 - The existing `cad-overrides.json` path keeps working on both sets
   (`tools/cad_overrides_test.mjs` proves the fixture file applies as
   before). On the modular set a node may carry `part: "kasagi"` (or the
-  full `asset:torii/kasagi`), resolved by name before the child-index
-  `rel` path; an entry may address a kit group by `asset: "torii"` when
-  its classic `name` is gone.
+  full `asset:torii/kasagi`), resolved by name; an unknown part skips the
+  node with one warning (never the root, never a child-index guess). A
+  node without `part` keeps the child-index `rel` path, which never
+  descends into a kit group (`userData.asset`). An entry may address a kit
+  group by `asset: "torii"` when its classic `name` is gone.
 - The catalog gains a third variant, `production`, beside `original` and `lab`
   (Phase 6). `Edit in cadJS` opens `?asset=<id>&variant=production`.
 - cadJS gains a parameter panel driven by the `params` schema, and the AI
@@ -431,7 +453,7 @@ kit files and never open `countryside.js`.
 | The classic game keeps working at every commit on the integration branch | `assetSet` defaults to `classic`; CI-style gate G1 at every merge |
 | Saves stay valid | No save schema change for asset swaps. New flags (Roof Road) are additive |
 | Lab, catalog, cadJS, review sheets and Roof Road keep using `Cat`, `Countryside`, `SummitManager` | These stay as facades with the same public API |
-| Low-power devices are unaffected | Quality `low` always resolves to `classic`; the kit is never downloaded |
+| Low-power devices are unaffected | Quality `low` always resolves to `classic` and the kit is never downloaded (families, materials, `kit-overrides.json`), whatever the `assetSet` setting or the published file say. The only exceptions are the developer flags `?assets=` and `?swap=` (§3.1) |
 
 ---
 
