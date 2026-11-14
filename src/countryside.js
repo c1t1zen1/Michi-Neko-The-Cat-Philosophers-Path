@@ -2569,6 +2569,16 @@ export class Countryside {
 
   // --- 6. Interactive Shishi-Odoshi (Bamboo Clacker) ---
   buildShishiOdoshi(x, y, z, parentGroup) {
+    const layout = setParent(this.layoutShishiOdoshi(x, y, z), parentGroup);
+    return this.placeAsset('shishi', layout, () => this.meshShishiOdoshiClassic(layout, parentGroup));
+  }
+
+  /** The bamboo clacker at (x, y, z) in its parent; gameplay rocks its 'rocker' part. */
+  layoutShishiOdoshi(x, y, z) {
+    return { index: this.nextIndex('shishi'), name: 'Shishi-Odoshi', x, y, z, footprint: footprint(), bind: { shishiRocker: 'rocker' } };
+  }
+
+  meshShishiOdoshiClassic({ x, y, z }, parentGroup) {
     const shishi = new THREE.Group();
     shishi.name = 'Shishi-Odoshi';
 
@@ -2607,6 +2617,7 @@ export class Countryside {
 
     shishi.position.set(x, y, z);
     parentGroup.add(shishi);
+    return shishi;
   }
 
   unlockSecretHouse() {
