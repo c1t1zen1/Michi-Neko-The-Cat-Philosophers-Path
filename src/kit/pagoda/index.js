@@ -15,7 +15,8 @@ export { buildPagoda, PRESETS };
 export function buildTower(ctx, layout, p) {
   const T = ctx.THREE;
   const k = (layout && layout.scale) || 1;
-  const material = ctx.kitMaterials.bag({ rough: 0.78, brush: 0.05 });
+  // the kit's shared vertex-colour matte (KIT_SHARED.matte, ruling R39): one merged draw with the nest
+  const material = ctx.kitMaterials.shared('matte');
   const base = PRESETS.find((x) => x.key === p.preset) || PRESETS[0];
   const H = base.H * p.height_scale;
   const { group: tower, parts, dims } = buildPagoda({

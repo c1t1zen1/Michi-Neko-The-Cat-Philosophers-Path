@@ -245,7 +245,7 @@ async function checkAsset(rt, def, tier, list, tag = '') {
 
 // A throwaway asset for the self-test: never registered in the game. Knobs
 // make it fail one check at a time.
-const knobs = { badName: false, floating: false, overBudget: false, nondeterministic: false, mathRandom: false, leak: false, leakMaterial: false, leakTexture: false, dropParam: false, footprintDrift: false, orphan: false };
+const knobs = { badName: false, floating: false, overBudget: false, overBudgetInstanced: false, overBudgetInstancedGeometry: false, nondeterministic: false, mathRandom: false, leak: false, leakMaterial: false, leakTexture: false, dropParam: false, footprintDrift: false, orphan: false };
 let fixtureBuilds = 0;
 const FIXTURE_FOOTPRINT = { colliders: [{ min: [-0.3, 0, -0.3], max: [0.3, 1.5, 0.3] }], exclusions: [[-0.5, -0.5, 1, 1]], anchors: { hook: { x: 0, y: 1.4, z: 0 } } };
 const fixtureDef = defineAsset({
@@ -275,6 +275,14 @@ const fixtureDef = defineAsset({
     cap.position.z += ctx.rng() * 0.02;           // the legitimate per-instance draw
     group.add(base, post, cap);
     if (knobs.overBudget) { const big = new T.Mesh(new T.SphereGeometry(0.2, 160, 160), stone); big.position.y = 0.3; post.add(big); }
+    // 12-triangle boxes drawn 2,500 times = 30,000 triangles: the budget must count instances, not the geometry once
+    if (knobs.overBudgetInstanced) { const im = new T.InstancedMesh(new T.BoxGeometry(0.05, 0.05, 0.05), stone, 2500); post.add(im); }
+    if (knobs.overBudgetInstancedGeometry) {
+      const ig = new T.InstancedBufferGeometry().copy(new T.BoxGeometry(0.05, 0.05, 0.05));
+      ig.setAttribute('aOffset', new T.InstancedBufferAttribute(new Float32Array(2500 * 3), 3));
+      ig.instanceCount = 2500;
+      post.add(new T.Mesh(ig, stone));
+    }
     if (knobs.orphan) { const stray = new T.Mesh(new T.BoxGeometry(0.1, 0.1, 0.1), stone); stray.position.y = 0.05; group.add(stray); }
     if (knobs.leak) { base.userData.sharedGeometry = true; }   // skipped by the default dispose and never freed by the builder
     const parts = knobs.badName ? { base, post, 'Cap Stone': cap } : { base, post, cap };
@@ -290,6 +298,8 @@ const SELFTEST_CASES = [
   ['badName', 'badName', /builds as a kit instance/, null],
   ['floating', 'floating', /bears on the ground/, null],
   ['overBudget', 'overBudget', /triangles ≤/, null],
+  ['overBudgetInstanced', 'overBudgetInstanced', /triangles ≤/, null],                    // InstancedMesh: triangles × count
+  ['overBudgetInstancedGeometry', 'overBudgetInstancedGeometry', /triangles ≤/, null],    // InstancedBufferGeometry: × instanceCount
   ['nondeterministic', 'nondeterministic', /identical \(AAA-8\)/, null],
   ['mathRandom', 'mathRandom', /no Math\.random/, /no Math\.random|identical \(AAA-8\)/],   // random geometry also breaks the hash
   ['leak', 'leak', /dispose leaves no geometry/, null],
@@ -307,6 +317,7 @@ async function selfTest() {
     const allowed = allowedRe || expect;
     for (const k of Object.keys(knobs)) knobs[k] = false;
     if (knob) knobs[knob] = true;
+    fixtureBuilds = 0;   // each case starts fresh, so its drift does not depend on how many cases ran before it
     // the fixture's expected failures must not count as page problems
     const rt = new AssetRuntime({ THREE, search: '?assets=modular', quality: 'high', fetchOverrides: async () => null, loadFamilies: async () => ({}), logger: { warn: (m) => (out.problems || (out.problems = [])).push(m) } });
     await rt.preload();
