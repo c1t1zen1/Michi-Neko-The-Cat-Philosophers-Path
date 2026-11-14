@@ -176,3 +176,27 @@ summaries); where two excerpts disagreed, both are given.
 * Dickerson, Mills & Hu (2012) — *Wet mammals shake at tuned frequencies to dry* — <https://pmc.ncbi.nlm.nih.gov/articles/PMC3481573> (excerpt)
 * Baird (WTAMU) — *Why does water make a shirt darker?* — <https://wtamu.edu/~cbaird/sq/2013/11/06/why-does-water-make-a-shirt-darker> (excerpt)
 * Catster — *Can cats swim?* — <https://www.catster.com/lifestyle/can-cats-swim/> (excerpt)
+
+---
+
+# Aze study for the game — 2026-11-14 (lane v-water, step L4)
+
+The inventory row `paddy-bunds` (the game's 0.5 m × 0.28 m box ridges) had no
+focused specimen, only the embedded ridges of `p-game`. `p-aze` (`js/bunds.js`)
+studies the banks on their own at the game's size, from the notes above
+(second pass, *Aze*): no dimensions were found, so the footprint stays the
+game's; aze-nuri plasters the paddy side with wet mud to stop leaks; the
+mizuguchi is the notch where water enters, closed by a board (seki-ita) that
+sets the level.
+
+| Part | What the specimen does |
+|------|------------------------|
+| Bank | An eight-point cross-section (base 0.5 m, rounded crest at 0.28 m) swept every 40 cm, wandering ±2.5 cm in plan and up to ±1.7 cm in height |
+| Faces | Wet dark mud on the paddy side, grass on the crest, earth and grass on the outer slope: vertex colour on one mesh for every bank |
+| Corners | North and south banks run over the corners; west and east tuck 15 cm under them, so no corner opens |
+| Mizuguchi | One bank's crest dips 8 cm over ~0.4 m, with a timber board standing in the notch |
+
+Promoted as `src/kit/water/paddies.js` `buildBunds()`: the same section and
+colours, the four banks on the kit's shared vertex-colour `matte` material,
+the silty bed on the game's `MAT.paddyMud`, the board on `MAT.timberDark`.
+
