@@ -169,7 +169,7 @@ export class AssetRuntime {
     this._createMaterials = createMaterials;
     this._fetchOverrides = fetchOverrides;
     this._preload = null;
-    this._env = { hour: 12, wind: 1, wet: 0, snow: 0, lanternOn: false };
+    this._env = { hour: 12, wind: 1, wet: 0, mist: 0, snow: 0, lanternOn: false };
     for (const p of swap.problems) this.warnOnce('swap:' + p, p);
   }
 

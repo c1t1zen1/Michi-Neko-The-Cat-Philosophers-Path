@@ -581,9 +581,10 @@ class Game {
 
   /** The world state kit instances respond to (§3.3 `update(dt, t, env)`), one reused object. */
   assetEnv() {
-    const env = this._assetEnv || (this._assetEnv = { hour: 12, wind: 1, wet: 0, snow: 0, lanternOn: false });
+    const env = this._assetEnv || (this._assetEnv = { hour: 12, wind: 1, wet: 0, mist: 0, snow: 0, lanternOn: false });
     env.hour = this.sky.dayTime;
     env.wet = this.sky.weatherAmount('rain');
+    env.mist = this.sky.weatherAmount('mist');
     env.snow = this.sky.weatherAmount('snow');
     env.lanternOn = !!this.city._lanternsLit;
     return env;
