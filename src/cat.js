@@ -11,6 +11,7 @@ import {
   anatomyFor, buildSkeleton, applyPose, layTailOnGround
 } from './characters/rig.js?v=20261107a';
 import { coatPalette, coatMaterials, buildCoat } from './characters/parts/coat.js?v=20261107a';
+import { faceFrame, faceMaterials, buildFace } from './characters/parts/face.js?v=20261107a';
 
 export { catRimUniforms };
 
@@ -56,7 +57,6 @@ const _qWorld = new THREE.Quaternion();
 const _qLocal = new THREE.Quaternion();
 const _dir = new THREE.Vector3();
 
-let _whiskerMat = null;
 let _blobTex = null;
 
 export class Cat {
@@ -156,31 +156,9 @@ export class Cat {
   }
 
   buildMaterials(eyeColor, ribbonColor, options) {
-    const A = this.anatomy;
-    const f = A.face;
-    // Eye frame on the sculpted face: up projected onto the skin, the
-    // outer corner tilted up a touch for the almond, cat-like set
-    const n = new THREE.Vector3(...f.eyeN);
-    const up = new THREE.Vector3(0, 1, 0).addScaledVector(n, -n.y).normalize();
-    const right = new THREE.Vector3().crossVectors(up, n).normalize();
-    const tilt = 0.14;
-    const r = right.clone().multiplyScalar(Math.cos(tilt)).addScaledVector(up, Math.sin(tilt));
-    const u = up.clone().multiplyScalar(Math.cos(tilt)).addScaledVector(right, -Math.sin(tilt));
-    const hk = f.headScale;
-    this.face = {
-      eyeC: new THREE.Vector3(...f.eyeC).addScaledVector(n, 0.0004),
-      eyeR: r, eyeU: u, eyeN: n,
-      eyeSize: new THREE.Vector2(0.0228 * hk, 0.0208 * hk),
-      eyeColor: new THREE.Color(eyeColor),
-      state: new THREE.Vector4(0, 0, 1, 0),
-      look: new THREE.Vector2(),
-      nose: new THREE.Vector3(...f.nose),
-      mouth: { value: 0 }
-    };
+    faceFrame(this, eyeColor);
     coatMaterials(this);
-    const cool = this.palette.cool;
-    this.matEarInner = toonMat(new THREE.Color(0xffffff).lerp(new THREE.Color(0x7d6168), cool * 0.75), { map: getEarInnerTexture() });
-    this.matNose = toonMat(options.noseColor ?? new THREE.Color(0xd9868c).lerp(new THREE.Color(0x4f3a40), cool));
+    faceMaterials(this, options.noseColor);
     this.matRibbon = toonMat(0xffffff, { map: makeCollarTexture(ribbonColor) });
     this.matBellBrass = new THREE.MeshStandardMaterial({
       map: makeBellTexture(0xc79a4e), metalness: 0.5, roughness: 0.36, envMapIntensity: 1.2
@@ -197,74 +175,7 @@ export class Cat {
   }
 
   buildFace() {
-    const A = this.anatomy;
-    const f = A.face;
-    const hk = f.headScale;
-    // Muzzle group: nose leather and whiskers
-    this.muzzle = new THREE.Group();
-    this.muzzle.name = 'Muzzle';
-    this.head.add(this.muzzle);
-    const nose = new THREE.Mesh(A.nose, this.matNose);
-    const nn = new THREE.Vector3(...f.noseN);
-    nose.position.set(...f.nose).addScaledVector(nn, 0.0015 * hk);
-    nose.quaternion.setFromUnitVectors(_v2.set(0, 0, 1), nn);
-    this.muzzle.add(nose);
-    this.nose = nose;
-
-    // Whiskers: four per side, fanning out and drooping a little
-    if (!_whiskerMat) _whiskerMat = new THREE.LineBasicMaterial({ color: 0xf4eee4, transparent: true, opacity: 0.7 });
-    const pts = [];
-    const root = f.whiskerRoot;
-    for (const s of [-1, 1]) {
-      for (let i = 0; i < 4; i++) {
-        const lift = 0.07 - i * 0.055;
-        const len = (0.105 + (i === 1 ? 0.012 : 0)) * hk;
-        let prev = null;
-        for (let k = 0; k <= 4; k++) {
-          const t = k / 4;
-          const p = new THREE.Vector3(
-            s * (root[0] + 0.004 * hk + len * t),
-            root[1] - i * 0.0042 * hk + len * lift * t - 0.016 * hk * t * t,
-            root[2] - 0.002 * hk - len * 0.28 * t
-          );
-          if (prev) pts.push(prev, p);
-          prev = p;
-        }
-      }
-    }
-    const whiskers = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), _whiskerMat);
-    this.muzzle.add(whiskers);
-
-    // Eye markers (the eyes themselves are painted by the head shader)
-    this.eyes = [];
-    this.pupils = [];
-    for (const s of [-1, 1]) {
-      const eye = new THREE.Object3D();
-      eye.position.set(s * this.face.eyeC.x, this.face.eyeC.y, this.face.eyeC.z);
-      const pupil = new THREE.Object3D();
-      eye.add(pupil);
-      this.head.add(eye);
-      this.eyes.push(eye);
-      this.pupils.push(pupil);
-    }
-
-    // Ears: a fixed base orientation, with an inner pivot that animates
-    this.ears = [];
-    for (const e of f.earBase) {
-      const s = e.side;
-      const base = new THREE.Group();
-      base.position.set(e.pos[0], e.pos[1], e.pos[2]);
-      base.rotation.set(-0.12, s * 0.38, s * -0.34);
-      const ear = new THREE.Group();
-      const outer = new THREE.Mesh(A.ears.outer, this.matEar);
-      outer.castShadow = true;
-      const inner = new THREE.Mesh(A.ears.inner, this.matEarInner);
-      ear.add(outer, inner, new THREE.Mesh(A.ears.outer, outlineMaterial(0.0016)));
-      base.add(ear);
-      this.head.add(base);
-      ear.userData.side = s;
-      this.ears.push(ear);
-    }
+    return buildFace(this);
   }
 
   buildCollar() {
