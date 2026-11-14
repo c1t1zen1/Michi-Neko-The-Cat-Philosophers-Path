@@ -8,11 +8,12 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { buildLevel, mouthAt } from './level.js';
-import { Runner, PHYS, platOffset, platTop } from './physics.js';
+import { Runner, PHYS, platOffset, platTop, platDepth } from './physics.js';
 import { Autopilot } from './autopilot.js';
 import { buildWorld } from './build.js';
 import { Sky } from './sky.js';
 import { RooftopAtmosphere } from './atmosphere.js';
+import { alleyEntrance } from './alleys.js';
 import { Companion } from './companion.js';
 import { neighbourhoodMap } from './neighbourhood-map.js';
 
@@ -769,7 +770,7 @@ function tick(now, draw = true) {
   let targetD = runner.depth;
   if (!runner.grounded) {
     const below = runner.support(runner.s, runner.y, 0, 40);
-    if (below) targetD = below.d;
+    if (below) targetD = platDepth(below, runner.s);
   }
   vis.depth = damp(vis.depth, targetD, runner.grounded ? 10 : 5, dt);
   const p = rail.place(runner.s, vis.depth);
@@ -815,7 +816,14 @@ function tick(now, draw = true) {
   }
 
   updateChidori(dt);
-  townMap.update(runner.s, companion.runner.s);
+  townMap.update(runner.s, companion.runner.s, runner.depth, companion.runner.depth);
+  const entrance = runner.alley === null ? alleyEntrance(level, runner.s, runner.y) : null;
+  const alley = runner.alley !== null ? level.alleys[runner.alley] : null;
+  const alleyHint = $('alley-hint');
+  alleyHint.hidden = !!finale || !(entrance || alley);
+  alleyHint.textContent = entrance ? '↓ ' + entrance.name : alley ? alley.kanji + ' · ' + alley.name : '';
+  $('btn-down').querySelector('span').textContent = entrance ? 'alley' : 'drop';
+  $('btn-down').setAttribute('aria-label', entrance ? 'Enter ' + entrance.name : 'Drop down');
   if (!finale) { checkPickups(); checkProgress(); }
   else updateFinale(dt);
 

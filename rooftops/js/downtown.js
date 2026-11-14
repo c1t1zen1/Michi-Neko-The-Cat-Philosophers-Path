@@ -1,6 +1,7 @@
 // Downtown craft kit. Geometry recipes adapted from labs/alley/js/props.js;
 // actual leaf paint and nodal bamboo are reused from the Greenery/shared labs.
 import * as THREE from 'three';
+import { alleyDepth } from './alleys.js';
 // Leaf paint adapted from labs/greenery/js/kit.js without importing its
 // workshop material registry (which would eagerly load every game builder).
 function leafTexture() {
@@ -43,6 +44,8 @@ export function downtownMaterials(M, canvasTex) {
   const leafPaint = leafTexture();
   M.leaves = [0x63884d, 0xa1a660, 0x406950].map(color => new THREE.MeshStandardMaterial({ map: leafPaint, color, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 1 }));
   M.wisteria = new THREE.MeshStandardMaterial({ color: 0xbda0c6, roughness: 1 });
+  M.alleyEarth = new THREE.MeshStandardMaterial({ map: paint('clay'), color:0x6f7560, roughness:1 });
+  M.alleyGravel = new THREE.MeshStandardMaterial({ map: paint('rope'), color:0xc4c0aa, roughness:1 });
   M.moss = new THREE.MeshStandardMaterial({ color: 0x5c7046, roughness: 1 });
   const paving = canvasTex(256, 256, c => {
     c.fillStyle = '#55594f'; c.fillRect(0, 0, 256, 256);
@@ -188,6 +191,82 @@ export function installDowntown(B, H) {
     g.add(box(sw, 1.8, 0.9, M.koshi, sx, 1.08, p[3].d - 0.3)); g.add(box(sw + 0.18, 0.1, 1.5, M.roof, sx, pc.topY - 0.05, p[3].d));
     pot(g, M, -w * 0.1, 0.18, d + 0.66, sm); pot(g, M, -w * 0.32, 0.18, d - 0.65, sm + 3);
     vine(g, M, -w * 0.3, w * 0.4, 1.74, d - 0.3, sm);
+    ctx.add(g);
+  };
+  B.alleyRoute = (pc, ctx) => {
+    const { M, rail } = ctx, a = ctx.alleys[pc.alley], sm = (a.s0 + a.s1) / 2;
+    const g = frameGroup(rail, sm), len = a.s1 - a.s0;
+    // The same sampled curve drives both the visible paving and paw depth.
+    const strip = (s0, s1, y, width, offset, mat) => {
+      const vertices = [], uv = [], indices = [], n = Math.ceil((s1 - s0) * 4);
+      for (let i = 0; i <= n; i++) {
+        const s = s0 + (s1 - s0) * i / n, d = alleyDepth(a, s) + offset;
+        vertices.push(s-sm, y, d-width/2, s-sm, y, d+width/2);
+        uv.push((s-a.s0)*.5,0,(s-a.s0)*.5,width*.5);
+        if(i<n) { const k=i*2; indices.push(k,k+1,k+2,k+1,k+3,k+2); }
+      }
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+      geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); geo.setIndex(indices); geo.computeVertexNormals();
+      g.add(new THREE.Mesh(geo,mat));
+    };
+    strip(a.s0,a.s1,-.015,2.15,0,M.alleyEarth);
+    strip(a.s0,a.s1,.004,1.35,0,a.theme==='tea'||a.theme==='moss'?M.alleyGravel:M.slab);
+    strip(a.s0,a.s1,.009,.14,.8,M.moss);
+    for(let s=a.s0+.3;s<a.s1;s+=.85) {
+      const x=s-sm,d=alleyDepth(a,s);
+      // Damp drain bed and stepping stones, open to a miniature planted court.
+      g.add(box(.72,.08,.18,M.wetStone,x,-.02,d-.84));
+      if(a.theme==='tea'||a.theme==='moss') {
+        const stone = cyl(.32,.065,M.stone,'y',7); stone.scale.x=1.35; stone.position.set(x,.035,d); stone.rotation.y=hash1(s)*2; g.add(stone);
+      }
+      if(s>a.s0+4&&s<a.s1-4) {
+        g.add(box(.87,1.25,.10,M.plasterWarm,x,.55,d-1.12));
+        g.add(box(.88,.085,.2,M.roof,x,1.2,d-1.12));
+        if(Math.floor(s*2)%4===0) pot(g,M,x,.02,d-1.0,s);
+      }
+    }
+    for(const id of a.plats) {
+      const p=ctx.platforms[id]; if(p.kind==='street') continue;
+      const mid=(p.s0+p.s1)/2, d=alleyDepth(a,mid), x=mid-sm;
+      if(p.kind==='rope') {
+        for(let s=p.s0;s<p.s1;s+=.35) {
+          beam(g,[s-sm,p.y0-.025,alleyDepth(a,s)],[Math.min(p.s1,s+.35)-sm,p.y0-.025,alleyDepth(a,Math.min(p.s1,s+.35))],.033,M.twine);
+        }
+        for(const s of [p.s0,p.s1]) beam(g,[s-sm,0,alleyDepth(a,s)],[s-sm,p.y0+.2,alleyDepth(a,s)],.055,M.bamboo);
+      } else {
+        strip(p.s0,p.s1,p.y0,.7,0,p.kind==='futon'?M.cloth[0]:M.agedWood);
+        for(let s=p.s0+.15;s<p.s1;s+=.55) {
+          const d=alleyDepth(a,s);
+          if(p.kind==='step') crate(g,M,s-sm,0,d,.5,p.y0-.015,.65);
+          else { g.add(box(.06,p.y0,.06,M.timber,s-sm,p.y0/2,d-.26));g.add(box(.06,p.y0,.06,M.timber,s-sm,p.y0/2,d+.26)); }
+          if(p.kind==='rack') { const l=cyl(.11,.28,M.lanternWhite,'y',10);l.position.set(s-sm,p.y0-.3,d-.25);g.add(l); }
+        }
+      }
+      if(a.theme==='indigo'&&p.kind==='deck'||a.theme==='laundry'&&p.kind==='rope') {
+        for(let s=p.s0+.2;s<p.s1;s+=.6) g.add(box(.38,.6,.025,M.workCloth[0],s-sm,p.y0-.35,alleyDepth(a,s)-.2));
+      }
+    }
+    // A noren and beam over each entrance make the choice visible at cat height.
+    for(const end of [a.s0+.45,a.s1-.45]) {
+      const x=end-sm,d=alleyDepth(a,end);
+      for(const z of [-.85,.85]) g.add(box(.10,a.tunnelH,.1,M.agedWood,x,a.tunnelH/2,d+z));
+      g.add(box(.55,.12,1.95,M.timber,x,a.tunnelH-.06,d));
+      const curtain=box(.035,.55,1.55,M.noren[a.theme==='festival'?'crimson':'indigo'],x,a.tunnelH-.4,d); g.add(curtain);
+      const lamp=cyl(.13,.3,M.lanternWhite,'y',10);lamp.position.set(x+.25,1.45,d+.82);g.add(lamp);
+      ctx.light(rail,end,1.45,d+.82);
+    }
+    for(const [lo,hi] of [[a.s0+.25,a.s0+3.6],[a.s1-3.6,a.s1-.25]]) {
+      strip(lo,hi,a.tunnelH,1.95,0,M.timber);
+      for(let s=lo;s<hi;s+=.7) g.add(box(.10,.15,1.95,M.agedWood,s-sm,a.tunnelH-.07,alleyDepth(a,s)));
+    }
+    const center=a.s0+len*.52, d=alleyDepth(a,center);
+    vine(g,M,center-sm-2,center-sm+2,2.5,d-1.1,sm,a.theme==='festival');
+    pot(g,M,center-sm,.02,d-.8,sm);
+    if(a.theme==='bamboo') for(let i=0;i<7;i++) {
+      const b=new THREE.Mesh(bambooGeo,M.bamboo);b.scale.set(.045,2.6+hash1(i+sm),.045);b.position.set(center-sm-1.3+i*.4,0,d-1.5);b.rotation.z=(hash1(i+3)-.5)*.12;g.add(b);
+      leaves(g,M,b.position.x,2.8,d-1.5,12,sm+i,1.5);
+    }
+    if(a.theme==='tea'||a.theme==='moss') { cask(g,M,center-sm+2,0,d-.5,.58,.32);g.add(box(.6,.07,.5,M.stone,center-sm+2,.62,d-.5)); }
     ctx.add(g);
   };
   B.utilityPole = (pc, ctx) => {

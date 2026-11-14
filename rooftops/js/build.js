@@ -1961,7 +1961,7 @@ export function buildWorld(level, opts = {}) {
   const lights = [];
   const dynamic = { boat: null, boats: [], people: [], float: null, shoki: [], treats: [] };
   const ctx = {
-    M, rail, dynamic, platforms: level.platforms,
+    M, rail, dynamic, platforms: level.platforms, alleys: level.alleys,
     add: (o) => staticGroup.add(o),
     addGlass: (m) => { m.userData.glass = true; glassGroup.add(m); },
     addDyn: (o) => root.add(o),

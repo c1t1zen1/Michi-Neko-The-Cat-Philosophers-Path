@@ -2,6 +2,7 @@
 // Intent changes independently of the player; distance is a leash, not a clock.
 import { Runner, PHYS, platTop, platOffset, platCovers } from './physics.js';
 import { buildGraph } from './reach.js';
+import { alleyEntrance } from './alleys.js';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const FLOOR = new Set(['street', 'water']);
 const MOODS = [
@@ -24,16 +25,19 @@ export class Companion {
   get mood() { return MOODS[this.modeIndex].name; }
   reset(player, time = 0) {
     this.runner.time = time;
+    this.runner.alley = player.alley ?? null;
     const s = clamp(player.s + 2.2, 0.4, this.level.length - 0.4);
     const support = this.pickSupport(s, player.y, player.depth, time);
     const at = support ? clamp(s, support.s0 + platOffset(support, time) + 0.05, support.s1 + platOffset(support, time) - 0.05) : player.s;
     this.runner.reset(at, support ? platTop(support, at, time) : player.y);
+    if (player.alley != null) this.runner.enterAlley(this.level.alleys[player.alley]);
     this.modeIndex = 0; this.modeTime = 0; this.target = null; this.replan = 0;
     this.stuckT = 0; this.jumpT = 0;
   }
   pickSupport(s, y, d, time, detour = false) {
     let best = null, score = Infinity;
     for (const p of this.level.platforms) {
+      if (!this.runner.acceptsPlatform(p)) continue;
       const off = platOffset(p, time);
       const horizontal = Math.max(0, p.s0 + off - s, s - p.s1 - off);
       if (horizontal > 2.3) continue;
@@ -54,6 +58,7 @@ export class Companion {
       for (const id of this.graph[q[i]]) {
         if (prev.has(id)) continue;
         const p = this.level.platforms[id];
+        if (!this.runner.acceptsPlatform(p)) continue;
         if (p.s0 > player.s + 11 || p.s1 < player.s - 8) continue;
         if (p.y0 > player.y + 2.6 || p.y1 < player.y - 3.0) continue;
         prev.set(id, q[i]); q.push(id);
@@ -68,6 +73,10 @@ export class Companion {
   }
   update(dt, player, time, portrait = false) {
     const r = this.runner;
+    if (player.alley != null && r.alley === null) {
+      const a = this.level.alleys[player.alley];
+      if (r.enterAlley(a)) { this.target = null; this.replan = 0; }
+    }
     this.modeTime += dt;
     if (this.modeTime >= MOODS[this.modeIndex].duration) {
       this.modeTime = 0; this.modeIndex = (this.modeIndex + 1) % MOODS.length;

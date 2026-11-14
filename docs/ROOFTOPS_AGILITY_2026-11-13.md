@@ -63,3 +63,20 @@ Kyoto. All new runtime art remains procedural, with maps at most 256px.
    shader errors, reachability, touch controls and finale, then merge and push.
 
 Results and checkpoint commits will be recorded here when measured.
+
+## Pass 1 — chosen alley routes
+
+Six optional curved lanes now enter the actual interiors of blocks: the indigo
+court, bamboo lane, tea garden, wash lane, moss court and lantern-maker lane.
+They add 178m measured along the route axis (longer on the winding ground),
+54 floor/agility surfaces and twelve low, solid entrance/exit soffits. Each
+lane has two explicit street portals. Main-road landings cannot silently
+switch lanes, and the reach graph cannot invent exits through the middle of
+a block. Chidori follows the chosen lane using the real runner.
+
+Validation: 40/40 existing route checks; the new actual-physics alley suite
+traverses all six routes in both directions, hops and lands within each lane,
+reverses halfway, confirms companion exits and checks lane isolation. Initial
+390×844 captures exposed a street prop at two entrances; the entrance cue now
+also accepts low crates, so drop still chooses the lane there. Portrait camera
+and scenery refinement continue in the following passes.
