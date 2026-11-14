@@ -179,7 +179,7 @@ const SHADE_BEFORE_FOG = /* glsl */`
 #endif
         // mostly the sunlit surfaces lose light; what already sits in shade keeps its colour
         float kitLum = dot(col.rgb, vec3(0.2126, 0.7152, 0.0722));
-        float kitK = uCloudShade * kitShade * mix(0.4, 1.0, smoothstep(0.04, 0.5, kitLum));
+        float kitK = uCloudShade * kitShade * mix(0.4, 1.0, smoothstep(0.02, 0.3, kitLum));
         col.rgb *= mix(vec3(1.0), uCloudShadeTint, kitK);
       }
 `;
@@ -256,7 +256,7 @@ export function buildClouds(ctx, layout, p) {
   const group = new T.Group();
   group.add(deck);
 
-  const shadeTint = new T.Color(0.6, 0.65, 0.8);
+  const shadeTint = new T.Color(0.5, 0.55, 0.72);   // cool: the sky still lights what the sun no longer does
   const post = code === 0 ? null : {
     key: `clouds-${tier}`,
     uniforms: { ...shared, uCloudShade: { value: 0 }, uCloudShadeTint: { value: shadeTint }, uCloudSkyAlpha: { value: 0 } },

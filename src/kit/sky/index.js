@@ -24,7 +24,7 @@ export const assets = [
       coverage: { type: 'number', default: 0.46, min: 0.2, max: 0.85, step: 0.01, visual: false, label: 'Fair-weather cover' },
       altitude: { type: 'number', default: 170, min: 90, max: 320, step: 5, visual: false, label: 'Deck height above the cat (m)' },
       drift: { type: 'number', default: 1, min: 0, max: 2.5, step: 0.05, visual: false, label: 'Wind drift' },
-      shade: { type: 'number', default: 0.45, min: 0, max: 0.8, step: 0.01, visual: false, label: 'Cloud shade on the valley' }
+      shade: { type: 'number', default: 0.6, min: 0, max: 1, step: 0.01, visual: false, label: 'Cloud shade on the valley' }
     },
     floating: ['deck'],
     sample: sample('asset:clouds'),
