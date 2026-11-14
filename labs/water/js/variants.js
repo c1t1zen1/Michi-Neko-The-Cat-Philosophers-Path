@@ -1,4 +1,4 @@
-// The twenty-eight variants: what each one is, how it is made, what it is
+// The twenty-nine variants: what each one is, how it is made, what it is
 // good for and where the idea came from. Clicking a card plants it on the
 // stage; the cube beside it is built by gallery.js from `kind` + `style`.
 
@@ -355,6 +355,17 @@ bend += away / d * smoothstep(r, 0., d) * .5 * h;`,
                               + vnoise2(p * 4.3) * .3);
 if (pud < .02) discard;`,
     use: 'autumn, with the valley’s harvest.', sources: S('haza', 'hasakake')
+  },
+  {
+    id: 'p-aze', family: 'paddies', kind: 'paddy', paddy: 'aze', name: 'Aze banks', jp: '畦', gpu: 1,
+    tag: 'the banks round the water, on their own',
+    blurb: 'The earth banks that hold a paddy’s water, at the game’s size: half a metre wide and 28 cm high, with a rounded crest instead of a box. The paddy side is plastered smooth and dark with wet mud (aze-nuri, the coat that stops leaks), the crest is grass, the outer slope earth and grass, and one bank has a mizuguchi notch with the board that sets the water level.',
+    how: ['An eight-point cross-section swept along each bank every 40 cm, wandering a few centimetres in plan and height.', 'Colour by face: wet mud on the paddy side, grass on the crest, earth and grass outside; one vertex-coloured mesh for every bank.', 'North and south banks run over the corners, west and east tuck under them, so no corner is open.'],
+    code: `const prof = [[-.25, -.02], [-.205, .16], [-.14, .25], [-.06, .28],
+              [.06, .28], [.14, .25], [.205, .16], [.25, -.02]];
+pos = A + along * d + out * (c + wob), y0 + lift - dip;   // dip: the mizuguchi
+col = top ? grass : c < 0 ? wetMud : earth;`,
+    use: 'the valley paddies’ banks (the game’s paddy-bunds).', sources: []
   },
   {
     id: 'p-winter', family: 'paddies', kind: 'paddy', paddy: 'winter', name: 'Fuyuta', jp: '冬田', gpu: 2,

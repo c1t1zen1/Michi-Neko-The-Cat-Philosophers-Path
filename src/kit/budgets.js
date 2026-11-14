@@ -100,6 +100,15 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
     hero: { triangles: 92000 }, mid: { triangles: 13000 }, far: { triangles: 5000 },
     why: 'a grove is 40-78 culms with 72 leaf cards each; classic is 82k (r=7); modular hero ~90k, mid/far far below classic'
   },
+  // v-water: whole-system water assets whose mesh/material count is bound by gameplay (layout.bind / footprint lists), not by detail
+  'paddies': {
+    far: { meshes: 4, materials: 4 },
+    why: 'four plot sheets bound one-to-one to paddyWaterMaterials (parts water_1..4, a material each); classic 4 meshes / 4 materials / 8 tris; modular 4 / 4 / 8 at every tier'
+  },
+  'water-ripples': {
+    hero: { materials: 24 }, mid: { materials: 24 }, far: { materials: 24 },
+    why: 'the 24-ring pool: Countryside.update() writes each ring\'s own material opacity (parts ring_1..24); classic 24 meshes / 24 materials, hidden until spawned; modular the same (0 visible meshes, 0 tris at build)'
+  },
   // Countryside.updateRainRipples() sets opacity per ring, so each of the 28 rings owns a material (as classic does); the texture is shared
   'rain-ripples': {
     hero: { materials: 28 }, mid: { materials: 28 }, far: { materials: 28 },

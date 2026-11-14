@@ -7,8 +7,9 @@ import { HASH, NOISE } from '../../shared/glsl.js';
 import { WATER_UNIFORMS, WATER_FUNCS } from './glsl.js';
 import { Parts } from './bridges.js';
 import { rectSolid } from './physics.js';
+import { buildAze } from './bunds.js';
 
-export const PADDY_STYLES = ['mirror', 'taue', 'summer', 'autumn', 'winter', 'game'];
+export const PADDY_STYLES = ['mirror', 'taue', 'summer', 'autumn', 'winter', 'aze', 'game'];
 const MODE = { game: 0, mirror: 1, taue: 2, summer: 3, autumn: 4, winter: 5 };
 // rice height (m) by stage: seedlings ~15 cm after transplanting, ~70 cm in
 // high summer, ~100 cm at heading (Koshihikari, Toyama data); winter stubble.
@@ -231,7 +232,11 @@ function riceMaterial(U, wind, cat) {
  * plots: [{ x0, z0, x1, z1, floor, level, notch?: { side: 'x0'|'x1', z } }]
  * Returns { group, solids, waters: [{ mesh, plot }], update(dt, t, catPos), dispose }.
  */
-export function buildPaddies({ style, plots, U, groundMat, wind, rnd, rw = 0.42, rh = 0.22 }) {
+export function buildPaddies({ style, plots, U, groundMat, wind, rnd, rw = 0.42, rh = 0.22, woodMat = null }) {
+  // 'aze': the bund study (v-water L4) — early-summer water and seedlings,
+  // banks at the game's size (0.5 m wide, 0.28 m high) built by bunds.js
+  const aze = style === 'aze';
+  if (aze) { style = 'taue'; rw = 0.5; rh = 0.28; }
   const group = new THREE.Group();
   group.name = 'paddies-' + style;
   const solids = [], waters = [];
@@ -244,9 +249,11 @@ export function buildPaddies({ style, plots, U, groundMat, wind, rnd, rw = 0.42,
   const ridge = (xa, za, xb, zb, y) => {
     const len = Math.hypot(xb - xa, zb - za);
     if (len < 0.05) return;
-    const g = new THREE.ExtrudeGeometry(profile, { depth: len, bevelEnabled: false, steps: Math.max(1, Math.round(len * 2)) });
-    const ang = Math.atan2(xb - xa, zb - za);
-    P.put('ridge', g, new THREE.Matrix4().compose(new THREE.Vector3(xa, y, za), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, ang, 0)), new THREE.Vector3(1, 1, 1)));
+    if (!aze) {
+      const g = new THREE.ExtrudeGeometry(profile, { depth: len, bevelEnabled: false, steps: Math.max(1, Math.round(len * 2)) });
+      const ang = Math.atan2(xb - xa, zb - za);
+      P.put('ridge', g, new THREE.Matrix4().compose(new THREE.Vector3(xa, y, za), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, ang, 0)), new THREE.Vector3(1, 1, 1)));
+    }
     solids.push(rectSolid({ x0: Math.min(xa, xb) - (xa === xb ? rw / 2 : 0), x1: Math.max(xa, xb) + (xa === xb ? rw / 2 : 0), z0: Math.min(za, zb) - (za === zb ? rw / 2 : 0), z1: Math.max(za, zb) + (za === zb ? rw / 2 : 0), top: y + rh, bottom: -20, kind: 'ridge', name: 'an aze ridge' }));
   };
   for (const pl of plots) {
@@ -274,7 +281,8 @@ export function buildPaddies({ style, plots, U, groundMat, wind, rnd, rw = 0.42,
       waters.push({ mesh: water, plot: pl });
     }
   }
-  group.add(P.build({ ridge: groundMat }));
+  if (aze) group.add(buildAze(plots, { rw, woodMat: woodMat || new THREE.MeshStandardMaterial({ color: 0x4a3524, roughness: 0.85 }) }).group);
+  else group.add(P.build({ ridge: groundMat }));
   // rice: hills on a 30 x 15 cm grid (rows 30 cm apart)
   let rice = null;
   if (style === 'game') {
