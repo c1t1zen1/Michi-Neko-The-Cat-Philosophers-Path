@@ -608,8 +608,11 @@ export const clearingMethods = {
    * constrain() holds the cat at the landing.
    */
   buildLowerPath() {
+    // lanternY: the toro heights exactly as the classic mesh step sets them (terrain - 0.05); no stream draw.
+    const lanternZ = LANDING_Z1 + 5.5 * LOWER_STEP_RUN;
+    const lanternY = [-1, 1].map((side) => this.terrainHeightAt(side * 3.15, lanternZ) - 0.05);
     const layout = {
-      index: 0, name: 'Lower Stone Path', x: 0, y: 0, z: 0,
+      index: 0, name: 'Lower Stone Path', x: 0, y: 0, z: 0, lanternY,
       footprint: summitFootprint(), bind: { lowerPath: 'path' }
     };
     return this.placeAsset('summit-path', layout, () => clearingMethods.meshLowerPathClassic.call(this, layout));
