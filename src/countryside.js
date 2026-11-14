@@ -3764,31 +3764,51 @@ export class Countryside {
   }
 
   buildYarn() {
+    const layout = this.layoutYarn();
+    for (const ball of layout.balls) this.placeAsset('yarn', ball, () => this.meshYarnBallClassic(ball));
+  }
+
+  layoutYarn() {
     let id = 0;
     const yarnSpots = [
       [-20, 14], [12, 20], [24, 4], [-4, -12], [2.5, -24],
       [-10, 28], [18, -10], [-26, -2], [8, 30], [-16, -18]
     ];
-    for (const [x, z] of yarnSpots) {
-      const yarn = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), MAT.yarn);
-      yarn.name = `Yarn Ball ${String(id).padStart(2, '0')}`;
-      yarn.position.set(x, 0.35, z);
-      yarn.castShadow = true;
-      yarn.userData.id = id++;
-      yarn.userData.isCollectible = true;
-      yarn.userData.velocity = new THREE.Vector3();
-      yarn.userData.batted = false;
-
-      const wrapMat = new THREE.MeshStandardMaterial({ color: 0xf27a9f, roughness: 0.7 });
-      const wrap = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 6, 16), wrapMat);
-      wrap.rotation.x = this.random() * Math.PI;
-      wrap.rotation.y = this.random() * Math.PI;
-      yarn.add(wrap);
-
-      this.scene.add(yarn);
-      this.collectibles.push(yarn);
-    }
+    return {
+      balls: yarnSpots.map(([x, z]) => {
+        const ballId = id++;
+        // the wrap's tilt: two draws per ball
+        const wrap = [this.random() * Math.PI, this.random() * Math.PI];
+        const userData = { id: ballId, isCollectible: true, velocity: new THREE.Vector3(), batted: false };
+        return {
+          index: this.nextIndex('yarn'), name: `Yarn Ball ${String(ballId).padStart(2, '0')}`, x, y: 0.35, z, id: ballId, wrap,
+          footprint: footprint({ lists: { collectibles: [part('.', { userData })] } })
+        };
+      })
+    };
   }
+
+  meshYarnBallClassic(layout) {
+    const { x, z } = layout;
+    const yarn = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), MAT.yarn);
+    yarn.name = layout.name;
+    yarn.position.set(x, 0.35, z);
+    yarn.castShadow = true;
+    yarn.userData.id = layout.id;
+    yarn.userData.isCollectible = true;
+    yarn.userData.velocity = new THREE.Vector3();
+    yarn.userData.batted = false;
+
+    const wrapMat = new THREE.MeshStandardMaterial({ color: 0xf27a9f, roughness: 0.7 });
+    const wrap = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 6, 16), wrapMat);
+    wrap.rotation.x = layout.wrap[0];
+    wrap.rotation.y = layout.wrap[1];
+    yarn.add(wrap);
+
+    this.scene.add(yarn);
+    this.collectibles.push(yarn);
+  }
+
 
   /**
    * A small pool of real point lights hops between the lanterns nearest the
