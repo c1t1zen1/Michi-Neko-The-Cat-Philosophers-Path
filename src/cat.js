@@ -19,6 +19,10 @@ import { buildShadowBlob, updateShadow } from './characters/parts/shadow.js?v=20
 import {
   computeLocomotion, onJump, onLand, onSprint, setProwling
 } from './characters/behaviour/locomotion.js?v=20261107a';
+import {
+  makeNeutralPose, placeBody, poseSit, getActionPose, applyLook, setLookTarget, setDrinking,
+  rollIdleInterval, startIdleAction, beginIdleAction, endIdleAction
+} from './characters/behaviour/poses.js?v=20261107a';
 
 export { catRimUniforms };
 
@@ -186,16 +190,7 @@ export class Cat {
 
   /** Standing at rest: paws under the girdles, tail up in a soft hook. */
   makeNeutralPose() {
-    const P = makePose();
-    for (let i = 0; i < 4; i++) {
-      const r = this.rest.paws[i];
-      P.paws[i].x = r.x; P.paws[i].y = r.y; P.paws[i].z = r.z;
-    }
-    P.neckPitch = -0.04;
-    P.tailLift = 1.05;
-    P.tailCurl = 0.95;
-    P.tailSway = 1;
-    return P;
+    return makeNeutralPose(this);
   }
 
   /* ------------------------------------------------------------------ */
@@ -293,131 +288,16 @@ export class Cat {
 
   /** Place the body so the pelvis lands at (y, z) with the given pitch. */
   placeBody(P, hipsY, hipsZ, pitch) {
-    const pv = this.rest.pivot;
-    const hy = this.rest.hips.y - pv.y, hz = this.rest.hips.z - pv.z;
-    const c = Math.cos(pitch), s = Math.sin(pitch);
-    P.bodyPitch = pitch;
-    P.bodyY = hipsY - pv.y - (hy * c - hz * s);
-    P.bodyZ = hipsZ - pv.z - (hy * s + hz * c);
+    return placeBody(this, P, hipsY, hipsZ, pitch);
   }
 
   /** A sitting cat: rump down, forelegs straight, tail curled round. */
   poseSit(P) {
-    const R = this.rest;
-    this.placeBody(P, GROUND + 0.168, R.hips.z + 0.045, -0.78);
-    P.chestPitch = 0.06;
-    P.neckPitch = 0.42;
-    P.headPitch = 0.3 + Math.sin(this.time * 0.6) * 0.04;
-    P.headYaw = Math.sin(this.time * 0.37) * 0.25;
-    for (let i = 0; i < 2; i++) {
-      const r = R.paws[i], q = P.paws[i];
-      q.x = r.x * 0.85; q.y = r.y; q.z = r.z - 0.005; q.flex = 0; q.toe = 0;
-    }
-    for (let i = 2; i < 4; i++) {
-      const r = R.paws[i], q = P.paws[i];
-      q.x = r.x * 1.08; q.y = r.y; q.z = R.hips.z + 0.17; q.flex = 0; q.toe = -0.05;
-    }
-    P.tailLift = 0.42;
-    P.tailCurl = 0.05;
-    P.tailSide = 2.3;
-    P.tailDroop = 0.2;
-    P.tailSway = 0.25;
-    P.tailGround = 1;
-    P.bodyY += Math.sin(this.time * 1.7) * 0.0025;
+    return poseSit(this, P);
   }
 
   getActionPose(name, P) {
-    copyPose(P, this.neutral);
-    const R = this.rest;
-    const t = this.idleActionTimer;
-    const time = this.time;
-    if (name === 'sit') {
-      this.poseSit(P);
-    } else if (name === 'groom') {
-      this.poseSit(P);
-      // Lick a forepaw, then wash behind the ear with it, and repeat
-      const cyc = (t * 0.32) % 1;
-      const wash = smoothstep(0.55, 0.68, cyc) * (1 - smoothstep(0.9, 1.0, cyc));
-      const lick = Math.sin(t * 9.5);
-      const q = P.paws[0];
-      q.x = -0.015 + wash * -0.035;
-      q.y = R.paws[0].y + lerp(0.43, 0.51, wash) + lick * 0.006 * (1 - wash);
-      q.z = R.paws[0].z + lerp(0.13, 0.07, wash);
-      q.flex = lerp(1.35, 1.0, wash);
-      P.neckPitch = lerp(0.86, 0.62, wash);
-      P.headPitch = lerp(0.55, 0.25, wash) + lick * 0.05 * (1 - wash);
-      P.headYaw = lerp(-0.28, -0.12, wash);
-      P.headRoll = lerp(0.05, -0.4, wash);
-    } else if (name === 'stretch') {
-      // Play-bow stretch: elbows down, forepaws reaching, rump high
-      this.placeBody(P, R.trunkY + 0.04, R.hips.z - 0.03, 0.45);
-      for (let i = 0; i < 2; i++) {
-        const r = R.paws[i], q = P.paws[i];
-        q.x = r.x * 0.9; q.y = r.y; q.z = r.z + 0.27; q.flex = -0.25; q.toe = 0;
-      }
-      for (let i = 2; i < 4; i++) {
-        const r = R.paws[i], q = P.paws[i];
-        q.x = r.x; q.y = r.y; q.z = r.z - 0.02;
-      }
-      P.chestY = -0.06;
-      P.scapLift = 0.035;
-      P.neckPitch = -0.6;
-      P.headPitch = -0.1;
-      P.tailLift = 1.3;
-      P.tailCurl = 0.35;
-    } else if (name === 'yawn') {
-      P.neckPitch = -0.14;
-      P.headPitch = -0.36;
-      P.paws[0].z += 0.02; P.paws[1].z += 0.02;
-      P.tailLift = 0.95;
-      P.tailCurl = 0.7;
-    } else if (name === 'drink') {
-      // Crouch at the water: elbows up, chest low, muzzle to the surface
-      this.placeBody(P, R.trunkY - 0.075, R.hips.z + 0.03, 0.2);
-      for (let i = 0; i < 2; i++) {
-        const r = R.paws[i], q = P.paws[i];
-        q.x = r.x * 1.05; q.y = r.y; q.z = r.z + 0.035;
-      }
-      for (let i = 2; i < 4; i++) {
-        const r = R.paws[i], q = P.paws[i];
-        q.x = r.x; q.y = r.y; q.z = r.z + 0.06;
-      }
-      const lap = Math.max(0, Math.sin(time * 13));
-      P.chestY = -0.05;
-      P.scapLift = 0.03;
-      P.neckPitch = 1.0;
-      P.headPitch = 0.55 + lap * 0.04;
-      P.tailLift = 0.55;
-      P.tailCurl = 0.25;
-    } else if (name === 'sleep') {
-      // Curled up: belly down, spine in a C, paws tucked, chin on the
-      // flank and the tail wrapped round the front
-      const R2 = this.rest;
-      P.bodyY = -(R2.trunkY - 0.128 - GROUND) + 0.012 + Math.sin(t * 1.9) * 0.006;
-      P.bodyRoll = 0.12;
-      P.chestYaw = 0.7;
-      P.hipsYaw = -0.6;
-      P.chestRoll = 0.08;
-      for (let i = 0; i < 2; i++) {
-        const r = R2.paws[i], q = P.paws[i];
-        q.x = r.x * 0.8 + 0.03; q.y = r.y; q.z = r.z - 0.02; q.flex = 1.5;
-      }
-      for (let i = 2; i < 4; i++) {
-        const r = R2.paws[i], q = P.paws[i];
-        q.x = r.x * 0.9 + 0.02; q.y = r.y; q.z = r.z + 0.14; q.toe = 0.2;
-      }
-      P.neckPitch = 1.25;
-      P.neckYaw = 0.9;
-      P.headPitch = 0.35;
-      P.headYaw = 0.35;
-      P.headRoll = -0.5;
-      P.tailLift = -1.05;
-      P.tailCurl = 0.55;
-      P.tailSide = -2.0;
-      P.tailDroop = 0.0;
-      P.tailGround = 1;
-      P.tailSway = 0.08;
-    }
+    return getActionPose(this, name, P);
   }
 
   /* ------------------------------------------------------------------ */
@@ -425,29 +305,11 @@ export class Cat {
   /* ------------------------------------------------------------------ */
 
   applyLook(dt) {
-    const P = this.pose;
-    let yaw = 0, pitch = 0;
-    const active = this.lookTarget && this.idleAction !== 'sleep' && !this.isDrinking;
-    if (active) {
-      this.group.updateWorldMatrix(true, false);
-      _v1.copy(this.lookTarget);
-      this.group.worldToLocal(_v1);
-      const dx = _v1.x, dy = _v1.y - 0.62, dz = _v1.z - 0.3;
-      yaw = clamp(Math.atan2(dx, dz), -1.0, 1.0);
-      pitch = clamp(-Math.atan2(dy, Math.hypot(dx, dz)), -0.45, 0.35);
-      if (Math.abs(Math.atan2(dx, dz)) > 2.2) yaw = 0;
-    }
-    this.lookYaw = approach(this.lookYaw, yaw, 4, dt);
-    this.lookPitch = approach(this.lookPitch, pitch, 4, dt);
-    P.neckYaw += this.lookYaw * 0.45;
-    P.headYaw = P.headYaw * (1 - Math.min(1, Math.abs(this.lookYaw) * 2)) + this.lookYaw * 0.55;
-    P.headPitch += this.lookPitch * 0.6;
+    return applyLook(this, dt);
   }
 
   setLookTarget(worldPos) {
-    if (!worldPos) { this.lookTarget = null; return; }
-    if (!this.lookTarget) this.lookTarget = new THREE.Vector3();
-    this.lookTarget.copy(worldPos);
+    return setLookTarget(this, worldPos);
   }
 
   applyPose(P) {
@@ -514,56 +376,25 @@ export class Cat {
   }
 
   setDrinking(active) {
-    this.isDrinking = !!active;
-    if (this.isDrinking && this.idleAction) this.endIdleAction();
+    return setDrinking(this, active);
   }
 
   /** Seconds of stillness before the next idle verb. */
   rollIdleInterval() {
-    const [lo, hi] = (this.idleProfile && this.idleProfile.interval) || [18, 32];
-    return lo + Math.random() * (hi - lo);
+    return rollIdleInterval(this);
   }
 
   /** Start a named idle verb now (sit, groom, stretch, yawn, sleep). */
   startIdleAction(name, duration = 3) {
-    if (this.isDrinking) return;
-    this.idleAction = name;
-    this.idleActionTimer = 0;
-    this.idleActionDuration = duration;
-    this.yawnOpen = 0;
+    return startIdleAction(this, name, duration);
   }
 
   beginIdleAction() {
-    // Balanced idle repertoire (gentle stretches, yawns, occasional grooming/sitting)
-    const actions = ['stretch', 'yawn', 'groom', 'sit'];
-    const w = (this.idleProfile && this.idleProfile.weights) || null;
-    const weights = w
-      ? (() => {
-        const raw = actions.map((a) => Math.max(0, w[a] ?? 0));
-        const sum = raw.reduce((x, y) => x + y, 0) || 1;
-        return raw.map((x) => x / sum);
-      })()
-      : [0.35, 0.30, 0.20, 0.15];
-    const r = Math.random();
-    let choice = 'stretch';
-    let c = 0;
-    for (let i = 0; i < actions.length; i++) {
-      c += weights[i];
-      if (r <= c) { choice = actions[i]; break; }
-    }
-    this.idleAction = choice;
-    this.idleActionTimer = 0;
-    this.idleActionDuration = choice === 'sit' ? 4 + Math.random() * 2 : choice === 'groom' ? 2.5 + Math.random() * 1.5 : choice === 'stretch' ? 2.2 + Math.random() : 1.6 + Math.random();
-    this.yawnOpen = 0;
-    if (this.audio && choice === 'sit' && Math.random() > 0.6) this.audio.playPurr(this.idleActionDuration);
+    return beginIdleAction(this);
   }
 
   endIdleAction() {
-    this.idleAction = null;
-    this.idleActionTimer = 0;
-    this.idleTimer = 0;
-    this.nextIdleTime = this.rollIdleInterval();
-    this.yawnOpen = 0;
+    return endIdleAction(this);
   }
 
   triggerMeow() {
