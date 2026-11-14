@@ -19,7 +19,7 @@
 // shadows (neither does the classic one).
 import { HASH, NOISE } from '../materials.js?v=20261113a';
 import { RiverField, riverFrames, WATER_Y } from './field.js?v=20261113a';
-import { waterSky, WATER_GLSL, FOG_PREMULT } from './sky.js?v=20261113a';
+import { waterShared, WATER_GLSL, FOG_PREMULT } from './sky.js?v=20261113a';
 import { rippleNormals, foamTexture } from './textures.js?v=20261113a';
 
 export const HALF_W = 3.4;
@@ -125,7 +125,8 @@ void main() {
   refl = mix(refl, uWarm, uDusk * 0.2);
 
   vec3 amb = ambientWater();
-  float absorb = 1. - exp(-depth * uClarity);
+  // Beer-Lambert, with a floor in the shallows so a thin sheet still reads as water over the bank
+  float absorb = max(1. - exp(-depth * uClarity), 0.36 * smoothstep(0.022, 0.09, depth));
   vec3 body = mix(uShallow, uDeep, smoothstep(0.05, 0.95, depth)) * amb * 2.2;
   float sunUp = smoothstep(-0.05, 0.08, uSunDir.y);
 
@@ -218,7 +219,7 @@ export function buildRiver(ctx, layout, p) {
   const det = DETAIL[tier] || DETAIL.mid;
   const frames = riverFrames(curveOf(T, layout), det.sections);
   const field = new RiverField(frames, { halfW: HALF_W, resS: det.resS, nu: det.nu, speed: p.flow });
-  const sky = waterSky(km);
+  const sky = waterShared(km);
   const uniforms = Object.assign(T.UniformsUtils.clone(T.UniformsLib.fog), sky.u, {
     uField: { value: field.texture },
     uFieldScale: { value: new T.Vector2(1 / frames.length, 1 / (2 * HALF_W)) },
@@ -247,9 +248,10 @@ export function buildRiver(ctx, layout, p) {
   group.userData.riverField = field;
 
   // the kit bridge (a component placed after the river) publishes its pier posts
-  // on the family's shared state; once one is placed in the world, its posts
-  // become obstacles in the field (wakes, eddies, pillows)
-  let piersFound = 0;
+  // on the family's shared state; whenever that registry changes (a bridge is
+  // built, placed, rebuilt or disposed) the posts placed in the world are
+  // re-laid as obstacles in the field (wakes, eddies, pillows)
+  let seen = '';
   const v = new T.Vector3();
   return {
     group,
@@ -259,7 +261,11 @@ export function buildRiver(ctx, layout, p) {
     field,
     update(dt, t, env) {
       sky.sync(t, env);
-      if (piersFound || !sky.obstacles.size) return;
+      let placed = 0;
+      for (const g of sky.obstacles.keys()) if (g.parent) placed++;
+      const key = sky.obstaclesVersion + ':' + placed;
+      if (key === seen) return;
+      seen = key;
       const posts = [];
       for (const [g, list] of sky.obstacles) {
         if (!g.parent) continue;                       // built but not placed (yet)
@@ -270,7 +276,7 @@ export function buildRiver(ctx, layout, p) {
           if (at) posts.push({ s: at.s, u: at.u, r: ob.r });
         }
       }
-      if (posts.length) { piersFound = posts.length; field.setObstacles(posts); }
+      if (posts.length || field.obstacles.length) field.setObstacles(posts);
     },
     dispose() { material.dispose(); field.dispose(); }
   };

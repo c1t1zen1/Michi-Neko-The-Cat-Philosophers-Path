@@ -1,10 +1,11 @@
 // The valley bridge as a Sanjō-style mokugeta-bashi, promoted from Lab 02's
 // `b-sanjo` (the lab's recommendation for the valley bridge): plank deck
 // (shiki-ita) on keta beams, two pier bents (hashigui) standing in the river,
-// dressed-stone abutments (ishigaki) with wing walls along the ramps, and a
-// wayō kōran on each side: jifuku curb rail, the seven posts, hirageta middle
-// rail, tozuka struts on masu blocks, the top rail (hokogi), and oyabashira at
-// the four ends capped with bronze giboshi.
+// dressed-stone abutments (ishigaki) under the deck ends, stone skirts under
+// the ramp treads with low kerbs beside them, and a wayō kōran on each side:
+// jifuku curb rail, the seven posts, hirageta middle rail, tozuka struts on
+// masu blocks, the top rail (hokogi); oyabashira at the four corners, capped
+// with bronze giboshi.
 //
 // Gameplay stays the classic bridge's, exactly (the footprint is the layout's:
 // deck platform, both railing platforms, both ramp slopes, the deck water
@@ -15,9 +16,16 @@
 //     and only chamfers its edges)
 //   - the seven posts per side sit at the classic z = −4 + i·8/6 (Roof Road:
 //     the Seven Posts), the ramps' treads lie exactly on the sloped platforms
-//     (1.08 m over 2.6 m), nothing new stands on a walkable surface, and the
-//     channel under the deck between the pier posts (|x| < 0.9) stays open for
-//     a swimming cat and the River-Spirit Charm at the centre.
+//     (1.08 m over 2.6 m), and the channel under the deck between the pier
+//     posts (|x| < 1.09) stays open for a swimming cat and the River-Spirit
+//     Charm at the centre.
+//   - nothing solid stands in a walk volume (review r1): the rails end at
+//     z ±4.2 with the oyabashira outboard of the rail band (centre |x| 1.66,
+//     clear of the rail's 1.03–1.45 by 0.12 m), the retaining stone under the
+//     ramps stays inside the ramp band (|x| ≤ 1.30, under the tread) and beside
+//     the ramps only a kerb rises, 0.2 m like the classic's 0.22 m kerbs.
+//     Proved by a box probe of the rail, deck, ramp and bank walk volumes
+//     (status file, fix round 1). No colliders are added (footprint = layout).
 // Sockets for the Roof Road (r6): post_e_1…7 / post_w_1…7 on the top rail
 // over each post (east = +x), and `shoki` on the south (+z) end of the east
 // railing, its +z turned to look north along the rail.
@@ -28,13 +36,13 @@
 // deck, timberDark / timberMedium wood, stoneDark stone, spiritualBellBronze
 // caps), so every mesh merges with the classic statics: no new material.
 import { Parts } from './parts.js?v=20261113a';
-import { waterSky } from './sky.js?v=20261113a';
+import { waterShared } from './sky.js?v=20261113a';
 
 export const BRIDGE = Object.freeze({
   top: 1.08, halfL: 4.2, halfW: 1.3, railX: 1.24, railTop: 1.66, railHalf: 0.21, ramp: 2.6,
   posts: Object.freeze([0, 1, 2, 3, 4, 5, 6].map((i) => -4 + (i / 6) * 8)),
-  bents: Object.freeze([-2.0, 2.0]), pierX: 1.0, pierR: 0.11,
-  oyaX: 1.4, oyaZ: 4.36
+  bents: Object.freeze([-2.0, 2.0]), pierX: 1.2, pierR: 0.11,
+  oyaX: 1.66, oyaZ: 4.2, kerbX: [1.3, 1.46], kerbTop: 0.2
 });
 
 /** The ramp's walkable height `o` metres out from the deck end (Countryside.bridgeRampPlatform). */
@@ -66,7 +74,7 @@ function materials(ctx, tier) {
 
 /** The kōran of one side (sx = +1 east, −1 west). */
 function koran(P, key, bronzeKey, sx, det, caps) {
-  const B = BRIDGE, x = sx * B.railX, zEnd = B.oyaZ - 0.085;
+  const B = BRIDGE, x = sx * B.railX, zEnd = B.halfL;   // the rails end where the walkable rail ends
   // jifuku: the curb rail standing on the deck edge
   P.box(key, 0.12, 0.1, zEnd * 2, x, B.top + 0.05, 0);
   // the seven posts, each with a masu block under the top rail
@@ -88,10 +96,11 @@ function koran(P, key, bronzeKey, sx, det, caps) {
     ? [[-0.15, 1.58], [0.15, 1.58], [0.21, 1.615], [0.21, 1.64], [0.19, 1.66], [-0.19, 1.66], [-0.21, 1.64], [-0.21, 1.615]]
     : [[-0.17, 1.58], [0.17, 1.58], [0.21, 1.62], [0.21, 1.66], [-0.21, 1.66], [-0.21, 1.62]];
   P.extrudeZ(key, sec, x, -zEnd, zEnd);
-  // oyabashira at both ends, rising out of the wing walls, bronze giboshi on top
+  // oyabashira at the corners, outboard of the rail band, bronze giboshi on top
+  // (they stand on stone footings of kerb height, built with the abutments)
   for (const sz of [-1, 1]) {
     const ox = sx * B.oyaX, oz = sz * B.oyaZ;
-    P.box(key, 0.17, 1.3, 0.17, ox, 0.5 + 0.65, oz);
+    P.box(key, 0.17, 1.62, 0.17, ox, 0.18 + 0.81, oz);
     if (caps) P.lathe(bronzeKey, GIBOSHI, ox, 1.8, oz, det.giboshiSeg);
     else P.box(key, 0.21, 0.05, 0.21, ox, 1.825, oz);
   }
@@ -106,11 +115,12 @@ function planks(P, key, det, rng, hero, gap) {
     const dy = hero ? -rng() * 0.004 : 0;
     P.box(key, w, t, pitch - gap, (hero ? (rng() - 0.5) * 0.02 : 0), B.top - t / 2 + dy, z, { rx: hero ? (rng() - 0.5) * 0.006 : 0 });
   }
-  // ramps: contiguous treads (no gaps: the space under them is closed)
-  const m = det.rampPlanks, step = B.ramp / m;
+  // ramps: contiguous treads (no gaps: the space under them is closed), on the
+  // platform's exact profile: the slope down to where it reaches 0.03 m, then flat
+  const m = det.rampPlanks, oKink = B.ramp * (1 - 0.03 / B.top), step = oKink / m;
   for (const sz of [-1, 1]) {
-    for (let i = 0; i < m; i++) {
-      const a = i * step, b = (i + 1) * step;
+    for (let i = 0; i <= m; i++) {
+      const a = i < m ? i * step : oKink, b = i < m ? (i + 1) * step : B.ramp;
       const ha = rampHeight(a), hb = rampHeight(b);
       const ang = Math.atan2(ha - hb, step);
       const len = Math.hypot(step, ha - hb) + 0.004;
@@ -130,13 +140,13 @@ function frame(P, key, det) {
     P.box(key, 2.7, capH, 0.24, 0, capTop - capH / 2, z);
     for (const sx of [-1, 1]) P.post(key, B.pierR, sx * B.pierX, -1.2, capTop - capH, z, det.postSeg);
     // the tie runs above a swimming cat's head (deck clearance 0.42)
-    if (det.nuki) P.box(key, 2.3, 0.08, 0.06, 0, 0.49, z + B.pierR + 0.03);
+    if (det.nuki) P.box(key, 2.5, 0.08, 0.06, 0, 0.49, z + B.pierR + 0.03);
   }
 }
 
-/** The stone abutment at one end (sz = −1 north, +1 south): ishigaki face under the deck end, wing walls along the ramp. */
+/** The stone abutment at one end (sz = −1 north, +1 south): ishigaki face under the deck end, skirts under the ramp, kerbs beside it. */
 function abutment(P, key, sz, det, rng) {
-  const B = BRIDGE, z0 = sz * B.halfL, depthZ = 0.35, x1 = 1.54;
+  const B = BRIDGE, z0 = sz * B.halfL, depthZ = 0.35, x1 = B.halfW;   // inside the ramp band
   // dressed-stone courses facing the river, joints staggered
   const top = 0.8;
   if (det.courses) {
@@ -159,12 +169,19 @@ function abutment(P, key, sz, det, rng) {
   const zA = z0, zB = z0 + sz * depthZ;
   const yA = rampHeight(0) - 0.07, yB = rampHeight(depthZ) - 0.07;
   P.hexa(key, [[-x1, top, zA], [x1, top, zA], [x1, top, zB], [-x1, top, zB], [-x1, yA, zA], [x1, yA, zA], [x1, yB, zB], [-x1, yB, zB]]);
-  // wing walls: earth-retaining stone along both sides of the ramp, a curb 7 cm above the tread
-  const zE = z0 + sz * (B.ramp + 0.15);
+  // skirts: the retaining stone under each tread edge, inside the ramp band and below the tread
+  const zE = z0 + sz * B.ramp;
   for (const sx of [-1, 1]) {
-    const xa = sx * B.halfW, xb = sx * x1;
-    const ya = rampHeight(0) + 0.07, yb = rampHeight(B.ramp + 0.15) + 0.07;
-    P.hexa(key, [[xa, -0.05, z0], [xb, -0.05, z0], [xb, -0.05, zE], [xa, -0.05, zE], [xa, ya, z0], [xb, ya, z0], [xb, yb, zE], [xa, yb, zE]]);
+    const xa = sx * (B.halfW - 0.14), xb = sx * B.halfW;
+    const ya = rampHeight(0) - 0.07, yb = rampHeight(B.ramp) - 0.07;
+    P.hexa(key, [[xa, -0.08, z0], [xb, -0.08, z0], [xb, -0.08, zE], [xa, -0.08, zE], [xa, ya, z0], [xb, ya, z0], [xb, yb, zE], [xa, yb, zE]]);
+  }
+  // kerbs beside the ramps (the classic's low stone kerbs), and the oyabashira footings
+  const zK = z0 + sz * (B.ramp + 0.1), [k0, k1] = B.kerbX, kt = B.kerbTop;
+  for (const sx of [-1, 1]) {
+    P.hexa(key, [[sx * k0, -0.05, z0], [sx * k1, -0.05, z0], [sx * k1, -0.05, zK], [sx * k0, -0.05, zK],
+      [sx * (k0 + 0.015), kt, z0], [sx * (k1 - 0.015), kt, z0], [sx * (k1 - 0.015), kt, zK], [sx * (k0 + 0.015), kt, zK]]);
+    P.box(key, 0.27, 0.2, 0.27, sx * B.oyaX, kt / 2 - 0.02, sz * B.oyaZ);
   }
 }
 
@@ -201,8 +218,8 @@ export function buildBridge(ctx, layout, p) {
     farBridge(P, { plank: keyOf('deck', 'plank') });
     for (const sz of [-1, 1]) {
       const k = keyOf(sz < 0 ? 'abutment_n' : 'abutment_s', 'stone');
-      P.box(k, 3.08, 1.1, 0.35, 0, 0.25, sz * (BRIDGE.halfL + 0.175));
-      for (const sx of [-1, 1]) P.box(k, 0.24, 0.6, BRIDGE.ramp, sx * 1.42, 0.25, sz * (BRIDGE.halfL + BRIDGE.ramp / 2));
+      P.box(k, BRIDGE.halfW * 2, 1.1, 0.35, 0, 0.25, sz * (BRIDGE.halfL + 0.175));
+      for (const sx of [-1, 1]) P.box(k, 0.14, BRIDGE.kerbTop + 0.05, BRIDGE.ramp, sx * 1.38, (BRIDGE.kerbTop - 0.05) / 2, sz * (BRIDGE.halfL + BRIDGE.ramp / 2));
     }
   }
   for (const part of ['deck', 'frame', 'koran_e', 'koran_w', 'giboshi', 'abutment_n', 'abutment_s']) {
@@ -242,7 +259,7 @@ export function buildBridge(ctx, layout, p) {
 
   // the pier posts as flow obstacles for a kit river's field (group space), on the family's shared state
   const obstacles = det ? BRIDGE.bents.flatMap((z) => [-1, 1].map((sx) => ({ x: sx * BRIDGE.pierX, z, r: BRIDGE.pierR * 1.1 }))) : [];
-  const shared = waterSky(ctx.kitMaterials);
+  const shared = waterShared(ctx.kitMaterials);
   if (obstacles.length) shared.registerObstacles(group, obstacles);
   return { group, parts, sockets, live: [], dispose() { shared.unregisterObstacles(group); } };
 }

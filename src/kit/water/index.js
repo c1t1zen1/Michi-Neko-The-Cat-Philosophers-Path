@@ -144,7 +144,7 @@ export const assets = [
       color: { type: 'color', default: 0xf2fbf7, label: 'Ring colour' }
     },
     // the rings lie on the water (y = 0.045), not on the ground
-    floating: Array.from({ length: 64 }, (_, i) => `ring_${i + 1}`),
+    floating: Array.from({ length: 24 }, (_, i) => `ring_${i + 1}`),
     tiers: ['hero', 'mid', 'far'], sample: sampleRipples, build: buildRipples
   })
 ];

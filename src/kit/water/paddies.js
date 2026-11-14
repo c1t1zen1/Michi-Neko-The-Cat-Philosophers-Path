@@ -20,7 +20,7 @@
 import { HASH, NOISE } from '../materials.js?v=20261113a';
 import { noise3 } from '../craft.js?v=20261113a';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { waterSky, WATER_GLSL, FOG_PREMULT } from './sky.js?v=20261113a';
+import { waterShared, WATER_GLSL, FOG_PREMULT } from './sky.js?v=20261113a';
 import { rippleNormals } from './textures.js?v=20261113a';
 import { WATER_Y } from './field.js?v=20261113a';
 
@@ -115,7 +115,7 @@ void main() {
 
 export function buildPaddies(ctx, layout, p) {
   const { THREE: T, kitMaterials: km, tier } = ctx;
-  const sky = waterSky(km);
+  const sky = waterShared(km);
   const group = new T.Group();
   const parts = {}, live = [], materials = [];
   const plots = layout.plots || [];
@@ -403,7 +403,7 @@ function riceMaterial(T, sky, name) {
 export function buildRice(ctx, layout, p) {
   const { THREE: T, tier, rng, kitMaterials: km } = ctx;
   const grid = GRID[tier] || GRID.mid;
-  const sky = waterSky(km);
+  const sky = waterShared(km);
   const stalks = layout.stalks || [];
   const rects = plotsFromStalks(stalks);
   const spots = [];

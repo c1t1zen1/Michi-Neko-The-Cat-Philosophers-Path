@@ -4,7 +4,7 @@ Nothing in a hot file is required for the classic set or for the swap to work:
 every asset routes through `Countryside.placeAsset` with the layouts f2 split
 (`layoutRiverAndBridge`, `layoutPaddies`, `layoutRipplePool`), and every
 footprint is the layout's own. `src/kit/index.js` was regenerated with
-`node tools/kit_index.mjs` (10 families). `src/kit/budgets.js` was edited
+`node tools/kit_index.mjs` (21 families after the fix-round-1 merge). `src/kit/budgets.js` was edited
 in-lane (granted): two BUDGET_EXCEPTIONS rows, below.
 
 ## 1. Inventory rows (`labs/asset_inventory.json`)
@@ -37,7 +37,7 @@ Append the row to `docs/fable/handoff/_production_adapters.md`.
 | Asset | Parts | Sockets / extras |
 |---|---|---|
 | `river` | `water` (bound: `riverMat` ← `water.material`) | `group.userData.riverField` (RiverField: `flowAt(x, z)`, `locate(x, z)`) |
-| `bridge` | `deck`, `frame`, `koran_e`, `koran_w`, `giboshi`, `abutment_n`, `abutment_s` (a part with one mesh is that mesh; at `far` the timber/bronze parts are empty groups) | `post_e_1…7`, `post_w_1…7` (top of the walkable rail, y 1.66, over each of the seven posts at z = −4 + i·8/6; east = +x), `shoki` (south end of the east rail, its +z looking north along the rail); the pier posts are published to the family's shared state (`sky.js` `registerObstacles`) for the river field |
+| `bridge` | `deck`, `frame`, `koran_e`, `koran_w`, `giboshi`, `abutment_n`, `abutment_s` (a part with one mesh is that mesh; at `far` the timber/bronze parts are empty groups) | `post_e_1…7`, `post_w_1…7` (top of the walkable rail, y 1.66, over each of the seven posts at z = −4 + i·8/6; east = +x), `shoki` (south end of the east rail, its +z looking north along the rail); the pier posts (x ±1.2, under the deck edges) are published to the family's shared state (`sky.js` `registerObstacles`) for the river field |
 | `paddies` | `water_1…water_4` (bound: `paddyWaterMaterials[k].material`) | — |
 | `paddy-bunds` | `bed`, `ridges`, `weir` (the seki-ita board, or an empty marker) | — |
 | `rice` | `stalks` (one InstancedMesh) | — |
@@ -80,26 +80,54 @@ read-only. `labs/ASSET_COVERAGE.md` was regenerated for the shifted `src/main.js
   `rampHeight(o)`; r2-roofs-streets may reuse `buildBridge` for the Roof Road's
   Sanjō bridge (its parts are in the bridge's local frame, deck at 1.08).
 
+### Requests from review r1 (optional, for the Integrator)
+
+- **One sun path.** `src/kit/water/sky.js` `sunDirAt()` / `palAt()` (the env
+  fallback only) re-derive `Sky.updateDayNight()` / `getDayPhase()`, a third
+  copy after `src/kit/materials.js` `nightnessAt()`. Suggest moving a shared
+  `sunDirAt(hour, out)` into `materials.js` (next to `nightnessAt`, which can
+  then use it) and importing it in the water family.
+- **Rice plots in the layout.** The rice layout carries stalks, not plots;
+  `paddies.js` `plotsFromStalks()` recovers the four plots by clustering stalks
+  on a 1 m grid (±2 cells). The real layout's nearest plots are 3.2 m apart in
+  stalks, so they stay separate (4 rects), but plots closer than ~2 m would
+  merge. Optional patch to `countryside.js` `layoutPaddies()` (adds one field
+  to the `rice` component layout; the kit uses `layout.plots` when present —
+  not wired yet, so this needs a one-line follow-up in `buildRice` too):
+  ```diff
+  -    components.push(component('rice', { index: this.nextIndex('rice'), name: 'Rice Stalks', capacity: riceCount, stalks, footprint: footprint() }, 'meshRiceClassic'));
+  +    components.push(component('rice', { index: this.nextIndex('rice'), name: 'Rice Stalks', capacity: riceCount, stalks, plots: plots.map((p) => p.slice()), footprint: footprint() }, 'meshRiceClassic'));
+  ```
+  (Run the footprint golden after it; the golden may digest layout fields.)
+
 ## 7. Notes for other lanes
 
 - **r6-game-wiring (Seven Posts):** caps go on the `post_e_*` / `post_w_*`
   sockets (rail top, y 1.66), the Shōki on `shoki`. On the kit bridge the
-  seven posts are real kōran posts under the top rail; the four end posts
-  (oyabashira) already wear bronze giboshi as part of the merged statics and
-  stand outside the walkable rail band (z ±4.36). The east railing platform is
+  seven posts are real kōran posts under the top rail; the rails end at
+  z ±4.2 and the four corner posts (oyabashira, bronze giboshi, merged
+  statics) stand outboard of the rail band (centre |x| 1.66, z ±4.2), so the
+  rail walk, its ends and the ramps are clear (fix round 1 probe). The east railing platform is
   unchanged (x = −1 + 1.24 ± 0.21, top 1.66).
 - **v-ground:** the river's depth model is the classic carve
   (`riverBedDepth()`: 0.85 m mid-stream, out to 3.8 m; `src/kit/water/field.js`
   `BED_DEEP`, `BED_OUT`, `BED_IN`). If the ground lane changes the carve, keep
   these in step.
-- **v-weather:** `rain-ripples` stays yours (not swapped here). The kit water
-  also draws procedural rain rings from `env.wet`. River petals can ride the
-  same current: `scene.getObjectByName('River').userData.riverField.flowAt(x, z)`.
+- **v-weather:** `rain-ripples` stays yours (not swapped here) and owns the
+  visible rain-ring events. Decision (review r1, no doubling): the kit river
+  and paddies add only a fine, faint rain *pocking* from `env.wet` (small,
+  short-lived normal dimples, no bright crest), not a second ring system. If
+  you want the water to bend under your rain rings too, register them on the
+  family's shared state (`waterShared(km).registerRings(meshes)`). River petals
+  can ride the same current:
+  `scene.getObjectByName('River').userData.riverField.flowAt(x, z)`.
 - **v-critters:** koi ripples still go through `Countryside.spawnRipple()`; the
   kit ripple pool registers its rings with the family (`sky.js` `registerRings`)
   and the kit river and paddies bend their surface under every visible ring.
-  On the classic ripple set the rings draw as before and the water does not
-  bend (the classic pool's meshes are not looked up by name any more).
+  The bending needs BOTH `river` (or `paddies`) and `water-ripples` modular;
+  on the classic ripple set the rings draw as before and the water does not
+  bend (the classic pool's meshes are not looked up by name). Note it in the
+  swap matrix as a coupled pair.
 - **Draw calls:** the kit adds no merged material. Static meshes use MAT
   (`timberEngawa`, `timberDark`, `timberMedium`, `stoneDark`,
   `spiritualBellBronze`, `paddyMud`) and `KIT_SHARED.matte` (aze banks); the

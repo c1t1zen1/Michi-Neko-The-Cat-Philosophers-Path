@@ -10,7 +10,7 @@
 // laid flat at y = 0.045 in world space (the group stays at the origin),
 // hidden until spawned, outer radius 1 × scale, render order 2.
 import { ringTexture } from './textures.js?v=20261113a';
-import { waterSky } from './sky.js?v=20261113a';
+import { waterShared } from './sky.js?v=20261113a';
 
 export function buildRipples(ctx, layout, p) {
   const { THREE: T, kitMaterials: km } = ctx;
@@ -37,7 +37,7 @@ export function buildRipples(ctx, layout, p) {
   }
   // the kit river and paddies bend their surface under every visible ring
   const rings = Object.values(parts);
-  const shared = waterSky(km);
+  const shared = waterShared(km);
   shared.registerRings(rings);
   return {
     group, parts, sockets: {}, live: rings,

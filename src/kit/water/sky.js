@@ -18,6 +18,7 @@
 import * as THREE from 'three';
 
 export const MAX_RINGS = 16;
+const _ringPos = new THREE.Vector3();
 
 // Sky.buildPalettes() base colours (day / sunset / night), for the fallback only.
 const PAL = {
@@ -56,7 +57,7 @@ function palAt(hour, u) {
   lerpPal(u.uSunColor.value, 'sun', A, B, k);
 }
 
-export class WaterSky {
+export class WaterShared {
   constructor() {
     this.u = {
       uTime: { value: 0 },
@@ -77,6 +78,7 @@ export class WaterSky {
     this.stamp = NaN;
     this.rings = new Set();
     this.obstacles = new Map();
+    this.obstaclesVersion = 0;
   }
 
   /** The kit ripple pool's ring meshes (removed again on its dispose). */
@@ -84,8 +86,8 @@ export class WaterSky {
   unregisterRings(list) { for (const m of list) this.rings.delete(m); }
 
   /** Posts standing in the water ({ x, z, r } in `group` space), published by the kit bridge for the river field. */
-  registerObstacles(group, list) { this.obstacles.set(group, list); }
-  unregisterObstacles(group) { this.obstacles.delete(group); }
+  registerObstacles(group, list) { this.obstacles.set(group, list); this.obstaclesVersion++; }
+  unregisterObstacles(group) { if (this.obstacles.delete(group)) this.obstaclesVersion++; }
 
   /** Once per frame (t is the game clock): light, weather and rings for every water surface. */
   sync(t, env = {}) {
@@ -121,18 +123,18 @@ export class WaterSky {
     for (const m of this.rings) {
       if (k >= MAX_RINGS) break;
       if (!m.visible || !m.material || m.material.opacity <= 0.01) continue;
-      const px = m.parent ? m.parent.position.x : 0, pz = m.parent ? m.parent.position.z : 0;
-      rip[k++].set(m.position.x + px, m.position.z + pz, m.scale.x * 0.84, Math.min(1, m.material.opacity * 2));
+      m.getWorldPosition(_ringPos);
+      rip[k++].set(_ringPos.x, _ringPos.z, m.scale.x * 0.84, Math.min(1, m.material.opacity * 2));
     }
     for (; k < MAX_RINGS; k++) rip[k].w = 0;
   }
 }
 
 const skies = new WeakMap();
-/** The family's shared WaterSky for one KitMaterials set. */
-export function waterSky(km) {
-  if (!km || typeof km !== 'object') return new WaterSky();
-  if (!skies.has(km)) skies.set(km, new WaterSky());
+/** The family's shared WaterShared for one KitMaterials set. */
+export function waterShared(km) {
+  if (!km || typeof km !== 'object') return new WaterShared();
+  if (!skies.has(km)) skies.set(km, new WaterShared());
   return skies.get(km);
 }
 
@@ -162,7 +164,7 @@ vec3 ambientWater() {
 // stand-in), so grazing views darken toward the treeline as real water does.
 vec3 reflColor(vec3 R) {
   vec3 forest = vec3(0.045, 0.085, 0.04) * (ambientWater() * 2.2 + 0.04) + uWarm * uDusk * 0.04;
-  return mix(forest, skyColor(R) * 0.78, smoothstep(0.08, 0.45, R.y));
+  return mix(forest, skyColor(R) * 0.82, smoothstep(0.035, 0.32, R.y));
 }
 
 // the wave train under each ripple ring of the pool (lab: effects.js rings)
@@ -182,20 +184,24 @@ vec2 ringWaves(vec2 p, out float crest) {
   return g;
 }
 
-// raindrop rings: two hashed cell layers, density follows the downpour
+// rain pocking: fine, short-lived dimples over the whole sheet (two hashed cell
+// layers, density follows the downpour). The visible ring events stay the
+// rain-ripples pool's sprites near the player; this is only the texture the
+// rain gives the surface between them, small and faint so the two do not read
+// as two ring systems.
 vec2 rainRings(vec2 p, float t) {
   vec2 g = vec2(0.);
   if (uRain < 0.01) return g;
   for (int l = 0; l < 2; l++) {
-    vec2 q = p * (3.1 + float(l) * 1.9) + float(l) * 7.31;
+    vec2 q = p * (6.2 + float(l) * 3.8) + float(l) * 7.31;
     vec2 id = floor(q);
     float h = hash12(id + float(l) * 13.1);
     if (h > uRain) continue;
     vec2 d = fract(q) - 0.5 - (hash22(id) - 0.5) * 0.5;
-    float ph = fract(t * (0.8 + h * 0.7) + h * 7.);
+    float ph = fract(t * (1.1 + h * 0.9) + h * 7.);
     float dist = length(d) + 1e-4;
-    float k = dist - ph * 0.42;
-    g += d / dist * sin(k * 62.) * exp(-k * k * 320.) * (1. - ph) * 0.8;
+    float k = dist - ph * 0.3;
+    g += d / dist * sin(k * 70.) * exp(-k * k * 420.) * (1. - ph) * 0.4;
   }
   return g;
 }
