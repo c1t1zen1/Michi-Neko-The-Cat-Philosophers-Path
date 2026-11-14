@@ -5,6 +5,7 @@ import {
   strawTextures, metalTextures, texturedMaterial, worldScaleBoxUVs
 } from './textures.js?v=20261107a';
 import { lumpyTuftGeometry } from './foliage.js?v=20261107a';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261107a';
 
 const panel = (m) => { m.userData.uvPanel = true; return m; };
 const MAT = {
@@ -40,12 +41,6 @@ function box(w, h, d, mat, x = 0, y = 0, z = 0) {
 // the gameplay anchors, the knockables' physics) and hands a classic mesh step
 // to placeAsset(), which builds the kit asset instead when one is registered
 // and active for that inventory id. The interior draws no random numbers.
-// src/kit/runtime.js is not on this lane's base yet: these local fallbacks
-// stand in for its exports until the Integrator swaps in
-//   import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261107a';
-const CLASSIC_ASSETS = { build: (id, layout, classicFn) => classicFn(), update() {}, instances: [] };
-const isAssetInstance = (x) => x && x.group && x.parts && typeof x.dispose === 'function';
-const scopeAssets = (a) => a || CLASSIC_ASSETS;
 
 /**
  * The knick-knacks' physics (F3.2): kept in the layout so a kit interior's
@@ -82,9 +77,12 @@ export class InteriorManager {
     this.fishMesh = null;
     this.fishEaten = false;
     this.knockables = [];
-    // Gameplay anchors from the layout (origin-relative): eatFish, nap,
-    // enter, exitZone. See layoutInterior().
-    this.anchors = {};
+    // Gameplay anchors (origin-relative, from layoutInterior(); R18: each
+    // footprint anchor lands on the field of its name).
+    this.eatFishAnchor = null;
+    this.napAnchor = null;
+    this.enterAnchor = null;
+    this.exitZone = null;
     this.assetInstances = [];
 
     this.wipeEl = document.getElementById('door-wipe');
@@ -140,7 +138,7 @@ export class InteriorManager {
         floorY: k.floorY
       });
     }
-    if (fp.anchors) this.anchors = Object.assign(this.anchors || {}, fp.anchors);
+    for (const [name, value] of Object.entries(fp.anchors || {})) this[name] = value;
   }
 
   /**
@@ -352,10 +350,10 @@ export class InteriorManager {
       new THREE.Vector3(o.x + 1.0, o.y + 0.58, o.z + 0.5)
     )];
     const anchors = {
-      eatFish: [0.3, 0.5, -0.1],                 // the platter (context action "eat Grilled Sea Bream")
-      nap: [-2.2, 0.1, -1.2],                    // the zabuton (context action "cozy nap")
-      enter: { at: [0, 0, 2.6], heading: Math.PI, camera: [0, 1.4, 4.6] },
-      exitZone: { minZ: 1.8, halfX: 1.8, rearmZ: 1.2 }
+      eatFishAnchor: [0.3, 0.5, -0.1],           // the platter (context action "eat Grilled Sea Bream")
+      napAnchor: [-2.2, 0.1, -1.2],              // the zabuton (context action "cozy nap")
+      enterAnchor: { at: [0, 0, 2.6], heading: Math.PI, camera: [0, 1.4, 4.6] },
+      exitZone: { minZ: 1.8, halfX: 1.8, rearmZ: 1.2 }   // context actions send the cat out past minZ
     };
     return {
       index: 0, name: 'Tea House Interior', x: 0, y: 0, z: 0, wallH,
@@ -376,8 +374,8 @@ export class InteriorManager {
       bonsai: { index: 0, x: 0.9, y: 0.21, z: -3.0, footprint: {} },
       chabudai: { index: 0, name: 'Chabudai Table', x: 0, y: 0, z: -0.2, top: 0.49, footprint: {} },
       teaware: { index: 0, x: -0.45, y: 0.49, z: -0.25, footprint: {} },
-      fish: { index: 0, name: 'Grilled Sea Bream', x: 0.3, y: 0.49, z: 0.1, bind: { fishMesh: 'fish' }, footprint: { anchors: { eatFish: anchors.eatFish } } },
-      zabuton: { index: 0, name: 'Zabuton Nap Bed', x: -2.2, y: 0, z: -1.2, footprint: { anchors: { nap: anchors.nap } } },
+      fish: { index: 0, name: 'Grilled Sea Bream', x: 0.3, y: 0.49, z: 0.1, bind: { fishMesh: 'fish' }, footprint: { anchors: { eatFishAnchor: anchors.eatFishAnchor } } },
+      zabuton: { index: 0, name: 'Zabuton Nap Bed', x: -2.2, y: 0, z: -1.2, footprint: { anchors: { napAnchor: anchors.napAnchor } } },
       andon: { index: 0, name: 'Andon Lantern', x: 2.8, y: 0, z: -2.2, footprint: {} },
       gravel: { index: 0, x: 7.2, y: 0, z: 0, size: [4.0, 0.1, 6.0], footprint: {} },
       toro: { index: 0, name: 'Courtyard Toro Lantern', x: 7.2, y: 0, z: -1.2, footprint: {} },
@@ -682,7 +680,7 @@ export class InteriorManager {
       this.isInside = true;
       // Position player at entrance threshold facing the warm room
       const p = this.game.player;
-      const enter = this.anchors.enter; // origin-relative (layoutInterior)
+      const enter = this.enterAnchor; // origin-relative (layoutInterior)
       p.mesh.position.set(this.origin.x + enter.at[0], this.origin.y + enter.at[1], this.origin.z + enter.at[2]);
       p.heading = enter.heading; // Face north into the room
       p.yaw = enter.heading;

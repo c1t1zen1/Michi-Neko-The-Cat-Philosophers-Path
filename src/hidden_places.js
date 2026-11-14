@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261107a';
 
 /**
  * Hidden places — secrets of the valley floor, found by wandering rather than
@@ -33,12 +34,6 @@ const PENTATONIC = [440.0, 523.25, 587.33, 659.25, 783.99, 880.0];
 // builds the kit asset instead when one is registered and active for that
 // inventory id. The layout step always runs, so the hidden-places stream
 // advances the same on both asset sets.
-// src/kit/runtime.js is not on this lane's base yet: these local fallbacks
-// stand in for its exports until the Integrator swaps in
-//   import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261107a';
-const CLASSIC_ASSETS = { build: (id, layout, classicFn) => classicFn(), update() {}, instances: [] };
-const isAssetInstance = (x) => x && x.group && x.parts && typeof x.dispose === 'function';
-const scopeAssets = (a) => a || CLASSIC_ASSETS;
 
 // Small seeded generator so the layout is identical every load.
 function mulberry(seed) {
@@ -102,9 +97,11 @@ export class HiddenPlaces {
     this.lanterns = [];
     this.soundTimers = { pool: 3, glade: 2 };
     this.ctx = null;
-    // Gameplay anchors registered by the builders' footprints (the two
-    // sit-and-watch spots attach() hands to the ContextActionManager).
-    this.anchors = {};
+    // Gameplay anchors (R18: footprint `anchors` land on fields of these
+    // names): poolRestPos and gladeRestPos, the two sit-and-watch spots
+    // attach() hands to the ContextActionManager.
+    this.poolRestPos = null;
+    this.gladeRestPos = null;
 
     this.buildMoonPool();
     this.buildLanternGlade();
@@ -138,7 +135,8 @@ export class HiddenPlaces {
   /**
    * One footprint into the world's registries, each in its list order:
    * vegetation exclusions, water rects and colliders (the valley's lists,
-   * read by Vegetation and the player), then the anchors attach() reads.
+   * read by Vegetation and the player), then the anchors, each onto the
+   * field of its name (R18), which attach() reads.
    */
   registerFootprint(fp) {
     if (!fp) return;
@@ -146,7 +144,7 @@ export class HiddenPlaces {
     for (const rect of fp.exclusions || []) city.vegetationExclusions.push(rect);
     for (const rect of fp.waterRects || []) city.waterRects.push(rect);
     for (const box of fp.colliders || []) city.colliders.push(box);
-    if (fp.anchors) Object.assign(this.anchors, fp.anchors);
+    for (const [name, value] of Object.entries(fp.anchors || {})) this[name] = value;
   }
 
   /* ------------------------------------------------------------------ */
@@ -173,7 +171,7 @@ export class HiddenPlaces {
     const side = r * 1.7;
     const exclusion = { x, z, width: clear, depth: clear };
     const water = [x, z, side, side];
-    const poolRest = [x, 0, z + r + 0.95];
+    const poolRestPos = [x, 0, z + r + 0.95];
 
     // apron texture marks: [r, g, b, a, x/size, y/size, w, h]
     const marks = [];
@@ -222,14 +220,14 @@ export class HiddenPlaces {
     return {
       index: 0, name: 'Moon Pool', x, y: 0, z, r,
       // the whole pool's footprint (a kit that replaces the whole pool inherits all of it)
-      footprint: { colliders: [], exclusions: [exclusion], waterRects: [water], anchors: { poolRest } },
+      footprint: { colliders: [], exclusions: [exclusion], waterRects: [water], anchors: { poolRestPos } },
       apron: { index: 0, x: 0, y: 0, z: 0, radius: r + 2.4, lift: 0.022, marks, footprint: {} },
       water: { index: 0, x: 0, y: 0, z: 0, radius: r, surface: 0.05, rings, footprint: {} },
       moon: { index: 0, x: r * 0.12, y: 0.09, z: -r * 0.1, size: r * 1.5, footprint: {} },
       rim: { index: 0, x: 0, y: 0, z: 0, capacity: 34, stones, footprint: {} },
       pads: pads.map((p) => Object.assign(p, { footprint: {} })),
       lotus: lotus.map((p) => Object.assign(p, { footprint: {} })),
-      seat: { index: 0, x: 0, y: 0, z: r + 0.95, height: 0.09, footprint: { anchors: { poolRest } } },
+      seat: { index: 0, x: 0, y: 0, z: r + 0.95, height: 0.09, footprint: { anchors: { poolRestPos } } },
       toro: { index: 0, x: toroX, y: 0, z: toroZ, angle: toroAngle, glowY: 0.84, footprint: {} },
       motes: { index: 0, x: 0, y: 0, z: 0, list: motes, footprint: {} }
     };
@@ -502,7 +500,7 @@ export class HiddenPlaces {
     const rand = this.rand;
     const clear = r * 2 + 4;
     const exclusion = { x, z, width: clear, depth: clear };
-    const gladeRest = [x, 0, z];
+    const gladeRestPos = [x, 0, z];
 
     // floor texture litter: [hue, sat, light, alpha, x/size, y/size, turn, length]
     const litter = [];
@@ -572,13 +570,13 @@ export class HiddenPlaces {
 
     return {
       index: 0, name: 'Lantern Glade', x, y: 0, z, r,
-      footprint: { colliders: [...stalkColliders, boulderCollider], exclusions: [exclusion], waterRects: [], anchors: { gladeRest } },
+      footprint: { colliders: [...stalkColliders, boulderCollider], exclusions: [exclusion], waterRects: [], anchors: { gladeRestPos } },
       floor: { index: 0, x: 0, y: 0, z: 0, radius: r - 0.4, lift: 0.025, litter, footprint: {} },
       bamboo: { index: 0, x: 0, y: 0, z: 0, stalks, tops, capacity: stalkCount, leavesPerStalk: 6, footprint: { colliders: stalkColliders } },
       lanterns,
       seat: {
         index: 0, x: 0, y: 0, z: 0, boulder: { x: -1.7, y: 0.3, z: -0.9, scale: [1.2, 0.75, 1] },
-        footprint: { colliders: [boulderCollider], anchors: { gladeRest } }
+        footprint: { colliders: [boulderCollider], anchors: { gladeRestPos } }
       },
       flies: { index: 0, x: 0, y: 0, z: 0, list: flies, footprint: {} }
     };
@@ -799,7 +797,7 @@ export class HiddenPlaces {
     const ca = ctx.contextActions;
     ca.restSpots.push({
       id: 'moonpool', name: 'Moon Pool', hidden: true,
-      pos: new THREE.Vector3().fromArray(this.anchors.poolRest || this.poolLayout.footprint.anchors.poolRest),
+      pos: new THREE.Vector3().fromArray(this.poolRestPos || this.poolLayout.footprint.anchors.poolRestPos),
       poem: 'The water holds the sky very still, and so, for a while, do you.',
       quiet: {
         day: 'Light from the water wanders across the leaves, slow as breathing.',
@@ -809,7 +807,7 @@ export class HiddenPlaces {
     });
     ca.restSpots.push({
       id: 'glade', name: 'Lantern Glade', hidden: true,
-      pos: new THREE.Vector3().fromArray(this.anchors.gladeRest || this.gladeLayout.footprint.anchors.gladeRest),
+      pos: new THREE.Vector3().fromArray(this.gladeRestPos || this.gladeLayout.footprint.anchors.gladeRestPos),
       poem: 'Bamboo knocks softly on bamboo, like someone asking to come in.',
       quiet: {
         day: 'The grove creaks and sways, and the light moves with it.',
