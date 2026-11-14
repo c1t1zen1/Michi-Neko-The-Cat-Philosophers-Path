@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Michi as parts — Michi-Neko</title>
+  <meta name="description" content="The player cat as swappable parts: coat, face, collar, bell, master bells, contact shadow and dusk eye shine. Classic and modular side by side.">
+  <link rel="stylesheet" href="../shared/lab.css">
+  <style>
+    body{margin:0;background:#1d1b22;color:#eee;font:14px system-ui,sans-serif}
+    canvas#gl{display:block;width:100vw;height:70vh}
+    #ui{padding:12px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+    label{display:flex;flex-direction:column;gap:4px}
+    #out{padding:0 16px 16px;white-space:pre-wrap;font:12px ui-monospace,monospace;color:#bfd}
+  </style>
+  <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <canvas id="gl"></canvas>
+  <div id="ui">
+    <label>Collar<select id="collar"><option>kumihimo</option><option>kumihimo-indigo</option></select></label>
+    <label>Bell<select id="bell"><option>suzu</option><option>suzu-master</option></select></label>
+    <label>Eye shine (dusk)<input id="shine" type="range" min="0" max="1" step="0.05" value="0.8"></label>
+    <label>Contact shadow<input id="shadow" type="checkbox" checked></label>
+    <label>Master Cat<button id="master">setMasterCat()</button></label>
+  </div>
+  <pre id="out"></pre>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
