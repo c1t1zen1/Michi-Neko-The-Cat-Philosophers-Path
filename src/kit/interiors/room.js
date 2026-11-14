@@ -48,7 +48,7 @@ export function buildFrame(ctx, L = {}, tier = 'hero') {
   for (const sx of [posts[0], posts[1]]) for (const sz of [posts[2], posts[3]]) timber.box(0.35, H, 0.35, sx, H / 2, sz);
   if (!far) {
     const dark = 0x2b1b10, mid = 0x4a3220, y = 2.35;
-    trim.box(7.9, 0.13, 0.08, { x: 0, y, z: -3.41, color: dark });                                     // nageshi, back
+    for (const sx of [-1, 1]) trim.box(2.25, 0.13, 0.08, { x: sx * 2.825, y, z: -3.41, color: dark });   // nageshi, back (it stops at the alcove)
     trim.box(0.08, 0.13, 7.0, { x: -3.91, y, z: 0, color: dark });                                     // left
     for (const s of [-1, 1]) trim.box(2.7, 0.13, 0.08, { x: s * 2.65, y, z: 3.41, color: dark });      // front, both sides of the door
     trim.box(2.7, 0.12, 0.1, { x: 0, y: 2.26, z: 3.4, color: dark });                                  // kamoi over the door
@@ -71,7 +71,7 @@ export function buildDoor(ctx, L = {}, tier = 'hero') {
     for (const s of [-1, 1]) wood.box(0.05, H - 0.1, 0.045, { x: cx + s * (lw / 2 - 0.025), y: H / 2, z, color: light });
     wood.box(lw, 0.07, 0.045, { x: cx, y: H - 0.035, z, color: light });
     wood.box(lw, 0.09, 0.045, { x: cx, y: 0.095, z, color: light });
-    wood.box(lw - 0.1, 0.34, 0.03, { x: cx, y: 0.3, z, color: kick });
+    wood.box(lw - 0.1, 0.4, 0.03, { x: cx, y: 0.33, z, color: kick });
     const y0 = 0.5, y1 = H - 0.07;
     const pane = new THREE.PlaneGeometry(lw - 0.1, y1 - y0);
     pane.translate(cx, (y0 + y1) / 2, z);

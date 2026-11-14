@@ -76,7 +76,7 @@ export function buildTeaInterior(ctx, layout, p) {
   const lights = [lamp, fill];
   const paper = paperMat(ctx);
   shojiLight(paper, 12);
-  let lit = null;
+  let lit = null, hooked = false;
   const setLightsActive = (on) => { if (lit === on) return; lit = on; for (const l of lights) l.visible = on; };
 
   void km; void far;
@@ -86,8 +86,12 @@ export function buildTeaInterior(ctx, layout, p) {
     update(dt, t, env) {
       shojiLight(paper, env && env.hour);
       for (const u of updates) u(dt, t, env);
-      const gi = typeof window !== 'undefined' && window.game && window.game.interior;   // lights follow the cat's presence even without the owner's hook
-      if (gi && typeof gi.isInside === 'boolean') setLightsActive(gi.isInside);
+      // The owner switches roomLights with the cat's presence (setLightsActive each frame). A kit room
+      // hands it its two lights the first frame it runs (it only runs outside, before any visit).
+      if (!hooked) {
+        const gi = typeof window !== 'undefined' && window.game && window.game.interior;
+        if (gi && root.parent && root.parent === gi.group) { gi.roomLights = lights; hooked = true; }
+      }
     },
     dispose() { for (const d of disposers) d(); }
   };

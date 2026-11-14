@@ -7,8 +7,9 @@ import { Bag, UNIT, tube, catmull, V3 } from '../craft.js?v=20261113a';
 import { roomMats, bagMesh, groupOf, tierFlags } from './common.js?v=20261113a';
 
 const lathe = (pts, seg, scale = 1) => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r * scale, y * scale)), seg);
-const ell = (bag, sx, sy, sz, o) => bag.add(UNIT.sphere, { ...o, sx, sy, sz });
-const SEG = { hero: 28, mid: 16, far: 8 };
+const LOW = new THREE.SphereGeometry(1, 8, 6);
+const ell = (bag, sx, sy, sz, o, hi = true) => bag.add(hi ? UNIT.sphere : LOW, { ...o, sx, sy, sz });
+const SEG = { hero: 28, mid: 12, far: 8 };
 
 /** Nap cushion: a stuffed pillow with a tufted button, piping and four gold tassels. Local origin on the floor, centred. */
 export const CUSHIONS = { crimson: 0xa8241e, indigo: 0x2f4a6a, moss: 0x4f6a3a };
@@ -50,14 +51,14 @@ export function buildBonsai(ctx, L = {}, tier = 'hero', o = {}) {
     for (const [x, z] of [[-0.14, 0.1], [0.14, 0.12], [0, -0.17]]) bag.box(0.06, 0.02, 0.05, { x, y: 0.01, z, color: 0x3c4c54 });
     for (let i = 0; i < (hi ? 5 : 2); i++) bag.add(new THREE.DodecahedronGeometry(0.02 + rng() * 0.015, 0), { x: -0.12 + rng() * 0.24, y: 0.13, z: 0.05 + rng() * 0.1, sy: 0.6, color: 0x8b8a80 });
   }
-  const trunk = tube(catmull([[0, 0.11, 0], [-0.03, 0.22, 0.01], [0.04, 0.34, -0.01], [0.01, 0.48, 0.02], [0.08, 0.6, 0]].map((a) => V3(...a)), far ? 6 : 14), (t) => 0.05 * (1 - t) + 0.014, { radial: far ? 4 : 7 });
+  const trunk = tube(catmull([[0, 0.11, 0], [-0.03, 0.22, 0.01], [0.04, 0.34, -0.01], [0.01, 0.48, 0.02], [0.08, 0.6, 0]].map((a) => V3(...a)), far ? 6 : 14), (t) => 0.05 * (1 - t) + 0.014, { radial: far ? 4 : hi ? 7 : 5 });
   bag.add(trunk, { color: 0x4a3524 });
   const limbs = far ? [] : [[[0.0, 0.3, 0], [-0.1, 0.36, 0.03], [-0.17, 0.42, 0.04]], [[0.03, 0.42, 0], [0.12, 0.46, -0.03], [0.2, 0.52, -0.02]], [[0.03, 0.54, 0.01], [-0.06, 0.6, 0.03], [-0.12, 0.66, 0.02]]];
   for (const l of limbs) bag.add(tube(catmull(l.map((a) => V3(...a)), 6), (t) => 0.02 * (1 - t) + 0.007, { radial: 5 }), { color: 0x4a3524 });
   const pads = [[-0.18, 0.47, 0, 0.24, 0.075, 0.18], [0.2, 0.55, 0.02, 0.22, 0.07, 0.17], [-0.04, 0.66, -0.02, 0.18, 0.065, 0.15], [0.14, 0.75, 0, 0.14, 0.06, 0.12]];
   const greens = FOLIAGE[o.foliage] || FOLIAGE.green;
   pads.forEach(([x, y, z, sx, sy, sz], i) => {
-    const g = new THREE.IcosahedronGeometry(1, far ? 1 : hi ? 3 : 2), p = g.attributes.position;
+    const g = new THREE.IcosahedronGeometry(1, hi ? 2 : 1), p = g.attributes.position;
     for (let k = 0; k < p.count; k++) {
       const f = 1 + (Math.sin(p.getX(k) * 9 + i) * Math.cos(p.getZ(k) * 8 - i) * 0.12) + (rng() - 0.5) * 0.04;
       p.setXYZ(k, p.getX(k) * f, p.getY(k) * f * (p.getY(k) < 0 ? 0.55 : 1), p.getZ(k) * f);
@@ -94,9 +95,9 @@ export function buildFishPlatter(ctx, tier = 'hero') {
   if (!far) ell(plate, 0.04, 0.022, 0.04, { x: -0.1, y: 0.02, z: 0.1, color: 0xf4f1ea });               // grated daikon
   if (hi) ell(plate, 0.03, 0.016, 0.024, { x: -0.06, y: 0.025, z: 0.15, color: 0xc7c94a });     // a wedge of sudachi
   const fish = new Bag();
-  ell(fish, 0.21, 0.056, 0.081, { y: 0.04, color: 0xcc7438 });
-  ell(fish, 0.17, 0.022, 0.06, { x: 0.01, y: 0.08, color: 0x8f4a22 });                // the darker, grilled back
-  fish.add(new THREE.ConeGeometry(0.075, 0.15, 4), { x: -0.27, y: 0.04, rz: Math.PI / 2, sz: 0.3, color: 0xb25f2c });
+  ell(fish, 0.21, 0.056, 0.081, { y: 0.04, color: 0xcc7438 }, hi);
+  ell(fish, 0.17, 0.022, 0.06, { x: 0.01, y: 0.08, color: 0x8f4a22 }, hi);                // the darker, grilled back
+  fish.add(new THREE.ConeGeometry(0.075, 0.12, 4), { x: -0.27, y: 0.04, rz: -Math.PI / 2, sz: 0.3, color: 0xb25f2c });   // a tail fan: wide at the end, narrowing into the body
   if (!far) {
     fish.add(new THREE.ConeGeometry(0.05, 0.09, 3), { x: -0.02, y: 0.12, rz: 0, sz: 0.25, color: 0x8f4a22 });   // dorsal fin
     fish.sphere(0.014, { x: 0.19, y: 0.06, z: 0.06, color: 0x1c130c });
