@@ -35,6 +35,10 @@ step(1, 'ES module syntax', () => {
 step(2, 'main.js wiring', () => {
   const m = readFileSync(join(ROOT, 'src', 'main.js'), 'utf8');
   const s = readFileSync(join(ROOT, 'src', 'mountaintop.js'), 'utf8');
+  // The summit's builders live in src/summit/*.js behind the SummitManager
+  // facade (BUILD_GUIDE_FABLE S1.5): a check reads the file its code moved to.
+  const summit = (name) => readFileSync(join(ROOT, 'src', 'summit', name), 'utf8');
+  const planting = summit('planting.js');
   const checks = [
     ['summit.update() is called every frame', /this\.summit\.update\(dt, playing\)/.test(m)],
     ['summit imported', /import \{ SummitManager \} from '\.\/mountaintop\.js/.test(m)],
@@ -67,7 +71,7 @@ step(2, 'main.js wiring', () => {
       /this\.buildHorizonRanges\(\)/.test(s)],
     ['summit weather includes rain and mist',
       /SUMMIT_WEATHER_POOL[\s\S]{0,220}'mist'[\s\S]{0,80}'rain'/.test(s)],
-    ['card set keyed by kind (not opts.kind)', /this\.cardSets\[kind\]/.test(s)],
+    ['card set keyed by kind (not opts.kind)', /this\.cardSets\[kind\]/.test(planting)],
     ['summit landmark asset is module-relative',
       /SUMMIT_LANDMARKS_SRC\s*=\s*new URL\([^\n]+import\.meta\.url\)/.test(s)],
     // Kit runtime wiring (BUILD_GUIDE_FABLE F1.8 / F1.12)
