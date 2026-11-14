@@ -17,6 +17,8 @@
 //   - outside the field rectangle the weights fade to plain meadow;
 //   - POM marches the nobedan too (a cheap height-only pavingH), and moss
 //     under the paving fills the joints;
+//   - cost: edge noise only where weights are in between, wet / puddles /
+//     snow only when the weather asks (uniform branches), 3 macro noises;
 //   - tiers: hero = everything; mid (quality medium) drops POM, puddles and
 //     rain rings; far also drops to the 2-tap Quilez sampler;
 //   - EDGE_ALPHA (standalone shoulder strip only) fades the strip's edges by
@@ -94,7 +96,11 @@ const FRAG_SURFACE = /* glsl */`
   float w[8];
   w[1] = A.r + B.a; w[2] = A.g; w[3] = A.b; w[4] = A.a; w[5] = B.g; w[6] = B.b; w[7] = B.r;
   // the field is a coarse grid: break its bilinear edges with a little noise
-  float en = vn(p * 7.3) * .6 + vn(p * 21.) * .4;
+  // (game: only where a weight or the wear is in between, so open meadow skips it)
+  float frac = G * (1. - G);
+  for (int i = 1; i < 8; i++) frac = max(frac, w[i] * (1. - w[i]));
+  float en = .5;
+  if (frac > .001) en = vn(p * 7.3) * .6 + vn(p * 21.) * .4;
   for (int i = 1; i < 8; i++) w[i] = sat(w[i] + (en - .5) * .5 * w[i] * (1. - w[i]) * 4.);
   float worn = 0.;
 #if WEAR
@@ -147,8 +153,8 @@ const FRAG_SURFACE = /* glsl */`
     vec3 jointC = mix(vec3(.30, .27, .22), lc[2] * .8, sat(w[2] * 2.5));   // game: moss grows in the joints
     lc[7] = mix(jointC, pc.rgb, pc.a);
     lh[7] = .08 + ph * .85;
-    float e = .006;
-    ls[7] = vec2(pavingH(pp - vec2(e, 0.), style) - pavingH(pp + vec2(e, 0.), style), pavingH(pp - vec2(0., e), style) - pavingH(pp + vec2(0., e), style)) * 1.4;
+    float e = .006, h0 = pavingH(pp, style);                    // game: forward differences, 3 taps not 4
+    ls[7] = vec2(h0 - pavingH(pp + vec2(e, 0.), style), h0 - pavingH(pp + vec2(0., e), style)) * 2.8;
     lcav[7] = .35 + .3 * ph;
   }
 
@@ -185,7 +191,7 @@ const FRAG_SURFACE = /* glsl */`
   col *= 1. + bStone * G * .06;
 
 #if MACRO
-  float m1 = fbm3(p * .11), m2 = fbm3(p * .37 + 3.1);
+  float m1 = vn(p * .11) * .62 + vn(p * .23 + 7.) * .38, m2 = vn(p * .37 + 3.1);   // game: 3 noises, not 6
   col *= mix(1., mix(.86, 1.1, m1), uMacro);
   col = mix(col, col * vec3(1.07, .98, .88), (m2 - .5) * .7 * uMacro);              // warm-cool drift, big shapes first
 #endif
@@ -193,6 +199,7 @@ const FRAG_SURFACE = /* glsl */`
   vec3 N = normalize(vWN + vec3(sl.x, 0., sl.y));
 
 #if WET
+  if (uWet > .001 || uWetSpec > .001 || F.g > .001) {        // game: dry ground skips the weather
   // first drops speckle dry ground before it darkens all over
   vec2 dc = floor(p * 38.);
   float drop = step(h12(dc), uWet * 1.8) * step(length(fract(p * 38.) - .5 - (h22(dc + 3.) - .5) * .4), .32 + .18 * h12(dc + 9.));
@@ -204,6 +211,7 @@ const FRAG_SURFACE = /* glsl */`
   col *= dark;
   rough *= mix(1., mix(.32, .66, por), wetS);
 #if PUDDLES
+  if (uWater > -.059) {
   // puddles: water stands on compacted, sealed ground, lowest first (never in the river channel)
   float imperm = sat(G * 1.1 * (bEarth + bMeadow) + bStone + b[5] / bs * .4 + (1. - por) * .25);
   float ground = vW.y + rel + (hgt - .5) * .018;
@@ -218,17 +226,21 @@ const FRAG_SURFACE = /* glsl */`
     N = normalize(N + vec3(rr.x, 0., rr.y) * .9);
   }
   cav = mix(cav, .5, pud);
+  }
 #endif
+  }
 #endif
 
 #if SNOW
+  if (uSnow > .001) {
   float sn = uSnow * F.b;
-  float sc = smoothstep(.32, .62, sn * 1.25 + (hgt - .5) * .55 + (vn(p * 6.7) - .5) * .32 - bEarth * .1 * (1. - sn)) * step(.0001, uSnow);
+  float sc = smoothstep(.32, .62, sn * 1.25 + (hgt - .5) * .55 + (vn(p * 6.7) - .5) * .32 - bEarth * .1 * (1. - sn));
   col = mix(col, vec3(.92, .94, .97), sc);
   rough = mix(rough, .7, sc);
   N = normalize(mix(N, normalize(vWN + vec3((vn(p * 3.1) - .5) * .12, 0., (vn(p * 3.1 + 7.) - .5) * .12)), sc * .85));
   vec2 sk = floor(p * 520.);
   gSpark = sc * step(.9965, h12(sk + floor(uTime * .5))) * 3.;
+  }
 #endif
 
   col *= uTint;
