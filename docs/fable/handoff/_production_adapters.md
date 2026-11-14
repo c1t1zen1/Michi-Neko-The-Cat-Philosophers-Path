@@ -14,6 +14,9 @@
 
 ## Pending helper moves
 
+Done at G-V1 (chores item 1): lanterns -> `src/kit/materials.js`, fences culm/knot -> `src/kit/craft.js`, pagoda `CBag` -> `src/kit/craft.js` (exported class; `Bag` internals unchanged). The family files re-export what moved, so existing imports keep working. Kept below for the record.
+
+
 - lanterns: `lanterns/light.js` `litWashi`, `washiTexture`, `haloTexture`, `nightnessAt` -> `src/kit/materials.js`
 - fences: `fences/culm.js` `culmGeometry`, `knotGeometry` -> `src/kit/craft.js`
 - garden: none requested.
@@ -29,6 +32,6 @@ For s3-vista and r4-festival (import with the current `?v=` tag):
 
 - `src/kit/pagoda/index.js` exports `buildTower(ctx, layout, p)`, `buildPagoda`, `PRESETS`, and `assets`.
   - `buildTower(ctx, layout, p)`: e.g. `p.preset = 'yasaka'`; divides H by `layout.scale`, so layout scale does not change world height.
-  - `buildPagoda({ preset, H, ... }, { detail: 'hero'|'mid'|'far', material })`: use a vertex-colour material, `ctx.kitMaterials.bag({ rough: 0.78, brush: 0.05 })`.
+  - `buildPagoda({ preset, H, ... }, { detail: 'hero'|'mid'|'far', material })`: use the kit's shared vertex-colour material, `ctx.kitMaterials.shared('matte')` (G-V1: was `bag({ rough: 0.78, brush: 0.05 })`; budgets.md section 4).
   - Presets (`src/kit/pagoda/presets.js`, verbatim copy of `labs/pagoda/js/presets.js`, keep in step): nine measured towers plus the game-fit `valley`; also `muroji`, `daigoji`, `yasaka`.
-  - Detail meshes: hero 7, mid 7, far 3 (podium, tower, sorin). One material (`km.bag`), deterministic, mergeable.
+  - Detail meshes: hero 7, mid 7, far 3 (podium, tower, sorin). One material (`km.shared('matte')`), deterministic, mergeable.

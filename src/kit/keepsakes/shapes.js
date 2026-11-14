@@ -200,4 +200,3 @@ export function garnishGeometry(det = FISH_DETAIL.mid) {
   bag.add(new THREE.SphereGeometry(0.035, det[0] > 10 ? 10 : 6, det[0] > 10 ? 6 : 4, 0, Math.PI), { x: 0.12, y: 0.03, z: 0.13, rz: Math.PI / 2, ry: 0.4, color: 0x8fb04a });
   return bag.geometry();
 }
-

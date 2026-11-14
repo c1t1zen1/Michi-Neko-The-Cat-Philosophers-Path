@@ -23,7 +23,8 @@ export const BUDGET_SOURCE = Object.freeze({
  * Tree: 25,000 / 6,000 / 1,000 triangles; first-build 6 / 3 / 1.5 ms).
  * Smaller classes (prop, structure, character) may be held tighter through
  * BUDGET_EXCEPTIONS. `triangles` and `meshes` are per instance (an
- * InstancedMesh counts its instances in triangles and once in meshes);
+ * instanced draw, InstancedMesh or InstancedBufferGeometry, counts every
+ * instance in triangles and once in meshes: craft.js countScene);
  * `buildMs` is the warm-build allowance; `materials` is the per-asset
  * distinct-material cap (6 / 4 / 2, all from MAT / KitMaterials).
  * Handover distances: hero < 12 m, mid 12-45 m, far >= 45 m.
@@ -48,6 +49,11 @@ export const KIT_LIMITS = Object.freeze({
  * fields it names and must cite why. Added by the owning lane in its PR.
  */
 export const BUDGET_EXCEPTIONS = Object.freeze({
+  // 11 m valley runs build 12,660 mid tris (contract sample 3.4 m); ruling R51
+  'bamboo-fence': {
+    mid: { triangles: 13000 },
+    why: '11 m valley runs build 12,660 mid tris (contract sample 3.4 m); ruling R51; a1-village lightens the mid tier and removes this'
+  },
   // 'tea-house': { hero: { triangles: 40000, meshes: 40 }, why: 'a whole building with interior-facing walls' }
   // classic grove 82.3k hero tris; modular 89.9k/12.5k/4.7k; ruling R40, v-greenery handoff
   'bamboo-groves': {

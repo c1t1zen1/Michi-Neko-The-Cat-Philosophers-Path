@@ -197,3 +197,102 @@ tiered assets merge (per tier per chunk, or only `far` merges and `hero` /
 `mid` stay live, or tier chosen at build time by quality); whichever it
 picks, re-run `tools/perf_spots.mjs` in the same session as classic to prove
 §1.
+
+## 4. Kit materials (ruling R39, gate G-V1)
+
+In place of the kit-wide "≤11 new merged materials" cap (section 3): **each new merged material is justified in its lane handoff with its draw cost, and at the four spots modular draw calls ≤ classic per tier (perf_gv1.md); ruling R52, operator may overturn**. A merged material is one draw for the whole valley (plus its shadow
+draw), whatever family built the meshes on it; a kit material that only ever
+sits on one static mesh costs the same draw, so it counts too. Kit materials
+that only sit on unmerged meshes (pickups the game holds by reference, `live`
+meshes, instancing) do not join the merge and are budgeted as live draws
+instead (section 3, "Live meshes").
+
+**Census (2026-11-13, G-V1 chores).** Every `KitMaterials._once` call was
+recorded with its calling family (stack trace) in a headless boot of the
+whole game on `?assets=modular`, all nine merged families on (the eight
+wave-2.1 families plus `pagoda`, wave 2.2), at quality high and medium; then
+every scene object on a kit material was counted. The instrumented copy and
+scripts are outside the repo (`michi-wt/_scratch/gate-v1-chores/`). High and
+medium create the same materials.
+
+| | before | after |
+|---|---:|---:|
+| Kit materials created | 21 | 16 |
+| … on static meshes (merged, or a single static mesh) | 15 | **11** |
+| … only on pickups / live / instanced meshes | 6 | 5 |
+| Scene objects on kit materials (valley-wide, high) | 38 | 36 |
+
+**Dedupes made** (identical or visually equivalent arguments; L6 re-shoots in
+`docs/fable/baseline/gv1-materials/`, classic / modular before / modular
+after, hours 12 and 18; before→after pixel diffs at 960 × 600):
+
+| Change | Families | Before → after pixels (max Δ, pixels > 8) |
+|---|---|---|
+| Pagoda `bag({ rough: 0.78, brush: 0.05 })` → the nest's `bag({ rough: 0.9, brush: 0.1 })` (`shared('matte')`) | pagoda | 20, 3,170 (noon, 10 m from the tower, nearer than any player stands); 16, 33 (dusk) |
+| Shishi stake/feed `bamboo({ color: 0x82914b, rough: 0.48 })` → the fences' straw `bamboo` with the green in vertex colour | garden | 1, 0; 8, 0 |
+| Corral-sign post `bamboo({ color: 0x8a7242 })` → the same, colour in vertex colour (exact in linear space) | fences | post region 4, 0 |
+| Corral-sign board kit `wood({ base: 0x9b7a4e })` → the classic sign's own `MAT.timberLight` (`0x9a744c`) | fences | 33, 3,947; 64, 5,859: the grain on the board's 7 cm rim (the face covers the rest); colour within 1 % |
+| Grove lower culms `bamboo({ color: 0xa9c06a })` → the straw `bamboo`, colour in the instance colour (ruling R38 assumed this was already one material; it was not: the fences default to straw) | greenery | 7, 0 |
+
+Geometry is byte-identical everywhere else (a geometry-only hash of every
+asset × tier: alley, keepsakes, lanterns, nest, rocks, fences' bamboo-fence
+and corral, garden's wind-chime, greenery's bushes and moss unchanged; the
+pagoda's geometry unchanged, material only). Colliders, platforms,
+exclusions, anchors and water rects are unchanged (modular footprint digest).
+
+**The 11 merged kit materials** are named in `src/kit/materials.js`
+`KIT_SHARED` (use `km.shared(name)`; carry your own colour in vertex or
+instance colour with `tintToward()` / `tintGeometry()`), plus the corral
+sign's painted face (a private map):
+
+| Name | Factory call | Families | Objects (high) | Triangles high / medium |
+|---|---|---|---|---:|
+| `bamboo` | `bamboo({ color: 0xd2b87c, vcol: true, rough: 0.5 })` | fences, garden, greenery (instanced groves) | 1 baked + 1 + 2 instanced | 136,392 / 66,512 |
+| `matte` | `bag({ rough: 0.9, brush: 0.1 })` | nest, pagoda | 2 baked | 18,284 / 3,970 |
+| `crate` | `bag({ rough: 0.85, grime: 0.4, grimeH: 0.3 })` | alley | 1 baked | 7,840 / 4,824 |
+| `cord` | `plain(0x2a2017, { rough: 1 })` | fences | 1 baked | 58,688 / 31,380 |
+| `darkWood` | `wood({ base: 0x4a3320, dark: 0x2a1a10 })` | fences (sign cap, far sign) | 1 | 24 / 15 |
+| `stone` | `stone()` | lanterns | 1 baked + 5 (pool tōrō, hidden places has no merge pass) | 4,722 / 3,726 |
+| `basinStone` | `stone({ tint: 0x77736a })` | garden | 1 baked | 928 / 504 |
+| `rock` | `rock({ moss: 0.4, lichen: 0.22 })` | rocks | 1 baked | 3,080 / 1,520 |
+| `rockDark` | `rock({ a: 0x45433e, b: 0x7d786d, moss: 0.4, lichen: 0.15 })` | rocks | 1 baked | 1,940 / 960 |
+| `moss` | `moss()` | greenery | 1 | 1,302 / 930 |
+| (sign face) | `paper({ map: <sign face> })` | fences | 1 | 2 / 2 |
+
+Unmerged by design (5): the keepsakes' `bag` finishes for yarn (10 pickups),
+fish (3) and dango (1), held by reference as collectibles; the shishi's hero
+tube `bamboo` (DoubleSide, live) and the fūrin strip `paper` (live).
+
+**Draws kit materials cost at the four spots** (scene objects on a kit
+material inside the camera frustum, plus shadow casters inside the sun's
+shadow frustum; one boot each, hour 10.5, perf_spots' camera). Medium refreshes
+shadows every second frame, so its amortised cost is main + shadow / 2:
+
+| Spot | high before | high after | medium before | medium after |
+|---|---|---|---|---|
+| street | 20 + 33 = 53 | 19 + 31 = 50 | 20 + 33 = 53 | 19 + 31 = 50 |
+| shrine | 10 + 29 = 39 | 10 + 27 = 37 | 10 + 29 = 39 | 10 + 27 = 37 |
+| river | 10 + 28 = 38 | 10 + 26 = 36 | 10 + 28 = 38 | 10 + 26 = 36 |
+| meadow | 18 + 33 = 51 | 17 + 31 = 48 | 18 + 33 = 51 | 17 + 31 = 48 |
+
+Whole-scene draw calls and triangles, classic against modular at the four
+spots on all three tiers, are in `perf_gv1.md`.
+
+**Headroom and the rule for wave 2.2 on.** After wave 2.1 and the pagoda
+the kit is **at the cap: 11 of 11**. A lane reuses a `KIT_SHARED` material
+(colour in vertex or instance colour) or a `ctx.MAT` material; it may not add
+a merged material on its own (this replaces ruling R26's "one per family
+without asking"). A new one needs an Integrator ruling backed by a same-session
+`perf_spots` run at the shrine spot on high (the binding spot), or it must
+retire one. Recommendation for the operator: the cap is a proxy for draw
+calls derived from a worst case (68 live draws, every merged material in view
+and casting); the gate that matters is section 1, measured per spot in
+`perf_gv1.md`. If later lanes need more materials, re-derive the cap from
+measured draws rather than raising it by fiat.
+
+**Known per-asset overrun (G-V1).** The contract samples `bamboo-fence` on a
+3.4 m run; the valley's longest runs (about 11 m) build 12,660 triangles at
+`mid` against the 6,000 cap (hero 22,638 ≤ 25,000, far 568 ≤ 1,000). The
+scene budgets hold with it (`perf_gv1.md`); it needs a ruling: a
+`BUDGET_EXCEPTIONS` entry or a lighter mid culm, and a contract sample that is
+the longest run.
