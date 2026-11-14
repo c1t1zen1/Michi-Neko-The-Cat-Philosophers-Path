@@ -84,7 +84,7 @@ world ready; prefer the same-session comparison here too.)
 | Tier | World ready | World build | Boot total | Rule |
 |---|---|---|---|---|
 | **low** | = classic low (1,184–1,235 ms range) | = classic | = classic | the kit is never loaded |
-| **medium** | ≤ 1.25 × classic medium = **1,573 ms** | ≤ 1.25 × = 1,120 ms | ≤ classic + 1,000 ms = **2,930 ms** | +25 % is about +0.22 s of building behind the boot screen. Boot total also carries the kit's module downloads (`runtime.preload()` runs before the constructor), hence an absolute +1 s |
+| **medium** | ≤ 1.25 × classic medium = **1,573 ms** | ≤ 1.25 × = 1,120 ms | ≤ classic + 1,000 ms = **2,930 ms** | +25 % is about +0.22 s behind the boot screen. Since f1-runtime, `Game.init()` awaits `assets.preload()` (the kit's module downloads) after the constructor starts and before the world builds, so world build and world ready include it; on the local test server that is small, on a real network it is not, hence the absolute +1 s on boot total |
 | **high** | ≤ 1.25 × classic high = **1,539 ms** | ≤ 1.25 × = 1,113 ms | ≤ classic + 1,000 ms = **2,877 ms** | same |
 
 ## 3. Per-asset budgets for the contract test (AAA-7)

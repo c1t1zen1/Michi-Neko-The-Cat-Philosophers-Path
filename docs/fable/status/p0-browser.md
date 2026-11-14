@@ -34,7 +34,7 @@ recorded in `docs/fable/status/p0-baseline.md`).
 - [x] Contention: boots interleaved across tiers, `os.loadavg()` per boot; re-baselined at load 1.35–2.54 (`node tools/perf_spots.mjs --shots … --out …` → exit 0, 9.6 min); frame-ms budgets marked provisional; gate prefers a same-session run (`--url-suffix` is repeatable)
 - [x] budgets.md: shadow pass ×1.5 (medium) / ×2 (high) in the derivation; caps lowered to 25k / 6k / 1k (worst case 1.54 M ≤ 1.84 M medium, 2.06 M ≤ 2.08 M high); draw calls re-checked (≤ 11 new merged materials)
 - [x] Raw JSON in `/Users/c1t1zen/Documents/GitHub/michi-wt/_baseline/perf/` (cited in perf.md with SHA-256); probe page is `labs_geometry_test.html`
-- [x] Merged `origin/fable/integration` @ b45953d
+- [x] Merged `origin/fable/integration` @ b45953d, then @ 4bac869 (f1-runtime); perf hooks re-checked on the new `Game.init()` wiring with a same-session run (`--url-suffix "" --url-suffix "?assets=modular"`, medium/shrine: both sets measured, identical counts with no kit families yet); `tools/game_shot.mjs` exit 0; check_syntax 44 OK, verify passed, kit_check 27 passed, labs_check OK, footprint golden EQUAL
 
 ## Notes for the Integrator
 - Phase 0 changes no game file. Lossless masters live outside the repo in
