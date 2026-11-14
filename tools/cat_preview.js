@@ -11,6 +11,7 @@
 import * as THREE from 'three';
 import { Cat, catRimUniforms } from '../src/cat.js?v=20261106a';
 import { getCatAnatomy, BUILDS } from '../src/cat_anatomy.js?v=20261106a';
+import { VILLAGER_DEFS } from '../src/characters/defs/index.js?v=20261107a';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 /**
@@ -51,13 +52,23 @@ function rawAnatomy(buildName) {
 let seed = 20261022;
 Math.random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
 
+/** The Cat options a def describes (what src/npc.js passes on the classic path). */
+function optionsFromDef(d) {
+  return { fur: d.palette.fur, belly: d.palette.belly, accent: d.palette.accent, stripeAmount: d.palette.stripes,
+    eyeColor: d.face.eyes, ribbonColor: d.accessories[0].color };
+}
+
 const PALETTES = {
   michi: { fur: 0xae8450, belly: 0xeedcb8, accent: 0x5e3d26 },
-  // Mirrors src/npc.js (coat + PERSONALITIES.stripes)
-  luna: { fur: 0x7f8796, belly: 0xdadce2, accent: 0x474e5f, stripeAmount: 0.3, eyeColor: 0xdec056, ribbonColor: 0x2b3d63 },
-  mochi: { fur: 0xe8b06a, belly: 0xfaf0dc, accent: 0xb07840, stripeAmount: 1.0, eyeColor: 0xa2ba6e, ribbonColor: 0xc8402a },
-  kuro: { fur: 0x1c1c22, belly: 0x2e2e38, accent: 0x101014, stripeAmount: 0.0, eyeColor: 0xd8b04a, ribbonColor: 0xc8402a }
+  // The villagers read their CharacterDefs (src/characters/defs); no mirrored copy
+  ...Object.fromEntries(Object.entries(VILLAGER_DEFS).map(([k, d]) => [k, optionsFromDef(d)]))
 };
+
+// &def=1 builds the villagers from their CharacterDef (the modular path of src/npc.js)
+const viaDef = new URLSearchParams(location.search).get('def') === '1';
+function makeCat(name) {
+  return viaDef && VILLAGER_DEFS[name] ? new Cat({ def: VILLAGER_DEFS[name] }) : new Cat({ ...PALETTES[name], build: name });
+}
 
 const STEP = 1 / 60;
 function run(cat, seconds, args) {
@@ -193,7 +204,7 @@ if (params.get('perf') === '1') {
   const cats = [];
   for (const name of ['michi', 'luna', 'mochi', 'kuro', 'michi']) {
     const t0 = performance.now();
-    const cat = new Cat({ ...PALETTES[name], build: name });
+    const cat = makeCat(name);
     lines.push(`${name}: ${(performance.now() - t0).toFixed(0)} ms` + (cat.anatomy.timings ? ` (sculpt ${cat.anatomy.buildMs.toFixed(0)})` : ''));
     cats.push(cat);
   }
@@ -259,7 +270,7 @@ const cells = sheet.cells.map((c, i) => {
   if (raw) {
     cat = { group: rawAnatomy(c.cat || 'michi') };
   } else {
-    cat = new Cat({ ...PALETTES[c.cat || 'michi'], build: c.cat || 'michi' });
+    cat = makeCat(c.cat || 'michi');
     pose(cat, c.pose || 'stand', c.phase || 0);
   }
   cat.group.position.x = (i - (sheet.cells.length - 1) / 2) * SPACING;
