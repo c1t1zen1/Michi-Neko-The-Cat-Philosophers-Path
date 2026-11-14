@@ -199,4 +199,3 @@ sets the level.
 Promoted as `src/kit/water/paddies.js` `buildBunds()`: the same section and
 colours, the four banks on the kit's shared vertex-colour `matte` material,
 the silty bed on the game's `MAT.paddyMud`, the board on `MAT.timberDark`.
-
