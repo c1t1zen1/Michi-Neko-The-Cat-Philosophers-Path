@@ -2951,31 +2951,49 @@ export class Countryside {
       [-24, 0.45, -15],   // open field by the key rock
       [-29, 0.45, 12]     // corral fence corner
     ];
+    const layout = this.layoutOfferingBells(spots);
     this.offeringBells = [];
-    for (let i = 0; i < spots.length; i++) {
-      const [x, y, z] = spots[i];
-      const bell = new THREE.Group();
-      bell.name = `Offering Bell ${i + 1}`;
-      const mat = new THREE.MeshStandardMaterial({
-        color: 0xc9a86a, metalness: 0.8, roughness: 0.35,
-        emissive: 0x6a5426, emissiveIntensity: 0.5
-      });
-      const dome = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 8, 0, Math.PI * 2, 0, Math.PI / 1.7), mat);
-      dome.position.y = 0.06;
-      bell.add(dome);
-      const clapper = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.12, 5), mat);
-      clapper.position.y = -0.02;
-      bell.add(clapper);
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.012, 6, 14), mat);
-      ring.position.y = 0.13;
-      bell.add(ring);
-      bell.position.set(x, y, z);
-      bell.rotation.y = Math.random() * Math.PI;
-      this.scene.add(bell);
-      bell.userData = { id: 100 + i, isOfferingBell: true };
-      this.collectibles.push(bell);
-      this.offeringBells.push(bell);
-    }
+    for (const bell of layout.bells) this.placeAsset('offering-bells', bell, () => this.meshOfferingBellClassic(bell));
+  }
+
+  layoutOfferingBells(spots) {
+    return {
+      bells: spots.map(([x, y, z], i) => {
+        const userData = { id: 100 + i, isOfferingBell: true };
+        return {
+          index: this.nextIndex('offering-bells'), name: `Offering Bell ${i + 1}`, x, y, z,
+          ry: Math.random() * Math.PI, // the bell's yaw (Math.random, not the valley stream)
+          id: 100 + i,
+          footprint: footprint({ lists: { collectibles: [part('.', { userData })], offeringBells: [part('.', { userData })] } })
+        };
+      })
+    };
+  }
+
+  meshOfferingBellClassic(layout) {
+    const { x, y, z } = layout;
+    const i = layout.id - 100;
+    const bell = new THREE.Group();
+    bell.name = layout.name;
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xc9a86a, metalness: 0.8, roughness: 0.35,
+      emissive: 0x6a5426, emissiveIntensity: 0.5
+    });
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 8, 0, Math.PI * 2, 0, Math.PI / 1.7), mat);
+    dome.position.y = 0.06;
+    bell.add(dome);
+    const clapper = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.12, 5), mat);
+    clapper.position.y = -0.02;
+    bell.add(clapper);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.012, 6, 14), mat);
+    ring.position.y = 0.13;
+    bell.add(ring);
+    bell.position.set(x, y, z);
+    bell.rotation.y = layout.ry;
+    this.scene.add(bell);
+    bell.userData = { id: 100 + i, isOfferingBell: true };
+    this.collectibles.push(bell);
+    this.offeringBells.push(bell);
   }
 
   buildTorii(x, z) {

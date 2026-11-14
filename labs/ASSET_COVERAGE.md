@@ -208,13 +208,13 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="mountains"></a>`mountains` — Valley mountain terrain and ridges | [src/countryside.js:buildMountains(](../src/countryside.js#L3172) | [ranges / stack](../labs/ranges/js/main.js#L144) (direct) |  |
-| <a id="edge-forest"></a>`edge-forest` — Edge-forest broadleaf tree wall | [src/countryside.js:buildEdgeForest(](../src/countryside.js#L3348) | [ranges / wall-mass](../labs/ranges/js/main.js#L157) (direct) |  |
-| <a id="edge-undergrowth"></a>`edge-undergrowth` — Edge shrubs and shrine corridor thicket | [src/countryside.js:buildEdgeUndergrowth(](../src/countryside.js#L3466) | [ranges / edge](../labs/ranges/js/main.js#L193) (direct) |  |
-| <a id="foothill-forest"></a>`foothill-forest` — Foothill cedars and broadleaf crowns | [src/countryside.js:buildFoothillForest(](../src/countryside.js#L3632) | [ranges / foothills](../labs/ranges/js/main.js#L31) (embedded) — The hero valley includes the foothill carpet; there is no separate shelf specimen. |  |
-| <a id="distant-village"></a>`distant-village` — Distant valley village houses and hearth windows | [src/countryside.js:buildVillage(](../src/countryside.js#L3575) | [machiya / original-village](../labs/machiya/js/variants.js#L63) (related) — The street-house builder differs from buildVillage() distant silhouettes. |  |
-| <a id="mist-ring"></a>`mist-ring` — Valley mist ring | [src/countryside.js:buildMistRing(](../src/countryside.js#L3706) | [ranges / air](../labs/ranges/js/main.js#L211) (related) — Aerial perspective bench; it does not extract the original mist-ring mesh. |  |
-| <a id="dawn-mist"></a>`dawn-mist` — River dawn mist ribbons | [src/countryside.js:buildDawnMist(](../src/countryside.js#L3728) | [ranges / air](../labs/ranges/js/main.js#L211) (related) — General haze study; no dawn-river specimen or time envelope. |  |
+| <a id="mountains"></a>`mountains` — Valley mountain terrain and ridges | [src/countryside.js:buildMountains(](../src/countryside.js#L3190) | [ranges / stack](../labs/ranges/js/main.js#L144) (direct) |  |
+| <a id="edge-forest"></a>`edge-forest` — Edge-forest broadleaf tree wall | [src/countryside.js:buildEdgeForest(](../src/countryside.js#L3366) | [ranges / wall-mass](../labs/ranges/js/main.js#L157) (direct) |  |
+| <a id="edge-undergrowth"></a>`edge-undergrowth` — Edge shrubs and shrine corridor thicket | [src/countryside.js:buildEdgeUndergrowth(](../src/countryside.js#L3484) | [ranges / edge](../labs/ranges/js/main.js#L193) (direct) |  |
+| <a id="foothill-forest"></a>`foothill-forest` — Foothill cedars and broadleaf crowns | [src/countryside.js:buildFoothillForest(](../src/countryside.js#L3650) | [ranges / foothills](../labs/ranges/js/main.js#L31) (embedded) — The hero valley includes the foothill carpet; there is no separate shelf specimen. |  |
+| <a id="distant-village"></a>`distant-village` — Distant valley village houses and hearth windows | [src/countryside.js:buildVillage(](../src/countryside.js#L3593) | [machiya / original-village](../labs/machiya/js/variants.js#L63) (related) — The street-house builder differs from buildVillage() distant silhouettes. |  |
+| <a id="mist-ring"></a>`mist-ring` — Valley mist ring | [src/countryside.js:buildMistRing(](../src/countryside.js#L3724) | [ranges / air](../labs/ranges/js/main.js#L211) (related) — Aerial perspective bench; it does not extract the original mist-ring mesh. |  |
+| <a id="dawn-mist"></a>`dawn-mist` — River dawn mist ribbons | [src/countryside.js:buildDawnMist(](../src/countryside.js#L3746) | [ranges / air](../labs/ranges/js/main.js#L211) (related) — General haze study; no dawn-river specimen or time envelope. |  |
 
 ### Buildings
 
@@ -251,7 +251,7 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="nest-eggs"></a>`nest-eggs` — Three speckled nest eggs | [src/countryside.js:// Twig nest bowl](../src/countryside.js#L2161) | [nest / eggs](../labs/nest/js/recipes.js#L48) (direct) |  |
 | <a id="toro"></a>`toro` — Stone toro lanterns and halos | [src/countryside.js:buildToroLantern(](../src/countryside.js#L2754) | [lanterns / game-toro](../labs/lanterns/js/recipes.js#L34) (direct) |  |
 | <a id="chochin"></a>`chochin` — Hanging chochin lanterns | [src/countryside.js:createChochinLantern(](../src/countryside.js#L1741) | [lanterns / game-chochin](../labs/lanterns/js/recipes.js#L63) (direct) |  |
-| <a id="street-lamps"></a>`street-lamps` — Street lamp posts | [src/countryside.js:buildLanterns(](../src/countryside.js#L3128) | [lanterns / game-street](../labs/lanterns/js/recipes.js#L88) (direct) |  |
+| <a id="street-lamps"></a>`street-lamps` — Street lamp posts | [src/countryside.js:buildLanterns(](../src/countryside.js#L3146) | [lanterns / game-street](../labs/lanterns/js/recipes.js#L88) (direct) |  |
 | <a id="bamboo-fence"></a>`bamboo-fence` — Bamboo fence runs | [src/countryside.js:buildBambooFence(](../src/countryside.js#L2527) | [fences / game-fence](../labs/fences/js/recipes.js#L32) (direct) |  |
 | <a id="corral"></a>`corral` — Bamboo corral assembly | [src/countryside.js:buildBambooCorral(](../src/countryside.js#L2571) | [fences / corral](../labs/fences/js/recipes.js#L70) (direct) |  |
 | <a id="corral-sign"></a>`corral-sign` — Corral warning sign | [src/countryside.js:marker.name = 'Corral Warning Sign'](../src/countryside.js#L2610) | [fences / corral](../labs/fences/js/recipes.js#L70) (embedded) |  |
@@ -262,19 +262,19 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="torii"></a>`torii` — Valley torii gate and climbing joinery | [src/countryside.js:buildTorii(](../src/countryside.js#L2981) | [shrine / game-torii](../labs/shrine/js/recipes.js#L165) (direct) |  |
-| <a id="shrine-hall"></a>`shrine-hall` — Shrine hall, steps and roof | [src/countryside.js:buildShrine(](../src/countryside.js#L3058) | [shrine / game-hall](../labs/shrine/js/recipes.js#L368) (direct) |  |
-| <a id="shimenawa"></a>`shimenawa` — Sacred shimenawa rope and shide | [src/countryside.js:// Sacred Shimenawa](../src/countryside.js#L3097) | [shrine / game-rope](../labs/shrine/js/recipes.js#L264) (direct) |  |
-| <a id="shrine-bell"></a>`shrine-bell` — Shrine hanging bell and cords | [src/countryside.js:// Sacred Buddha / Shrine Spiritual Bell](../src/countryside.js#L3103) | [shrine / suzu](../labs/shrine/js/recipes.js#L400) (direct) |  |
-| <a id="offering-box"></a>`offering-box` — Saisen-bako offering box | [src/countryside.js:// Saisen-bako wooden offering box](../src/countryside.js#L3119) | [shrine / game-hall](../labs/shrine/js/recipes.js#L368) (embedded) |  |
+| <a id="torii"></a>`torii` — Valley torii gate and climbing joinery | [src/countryside.js:buildTorii(](../src/countryside.js#L2999) | [shrine / game-torii](../labs/shrine/js/recipes.js#L165) (direct) |  |
+| <a id="shrine-hall"></a>`shrine-hall` — Shrine hall, steps and roof | [src/countryside.js:buildShrine(](../src/countryside.js#L3076) | [shrine / game-hall](../labs/shrine/js/recipes.js#L368) (direct) |  |
+| <a id="shimenawa"></a>`shimenawa` — Sacred shimenawa rope and shide | [src/countryside.js:// Sacred Shimenawa](../src/countryside.js#L3115) | [shrine / game-rope](../labs/shrine/js/recipes.js#L264) (direct) |  |
+| <a id="shrine-bell"></a>`shrine-bell` — Shrine hanging bell and cords | [src/countryside.js:// Sacred Buddha / Shrine Spiritual Bell](../src/countryside.js#L3121) | [shrine / suzu](../labs/shrine/js/recipes.js#L400) (direct) |  |
+| <a id="offering-box"></a>`offering-box` — Saisen-bako offering box | [src/countryside.js:// Saisen-bako wooden offering box](../src/countryside.js#L3137) | [shrine / game-hall](../labs/shrine/js/recipes.js#L368) (embedded) |  |
 | <a id="mist-altar"></a>`mist-altar` — Mist altar plinth, bell, spirit flame and ring | [src/countryside.js:buildMistAltar(](../src/countryside.js#L2819) | [shrine / game-altar](../labs/shrine/js/recipes.js#L418) (direct) |  |
-| <a id="distant-pagoda"></a>`distant-pagoda` — Valley distant pagoda | [src/countryside.js:buildDistantPagoda(](../src/countryside.js#L3230) | [pagoda / orig-tower](../labs/pagoda/js/variants.js#L62) (direct) |  |
+| <a id="distant-pagoda"></a>`distant-pagoda` — Valley distant pagoda | [src/countryside.js:buildDistantPagoda(](../src/countryside.js#L3248) | [pagoda / orig-tower](../labs/pagoda/js/variants.js#L62) (direct) |  |
 
 ### Items
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="yarn"></a>`yarn` — Yarn balls | [src/countryside.js:buildYarn(](../src/countryside.js#L3766) | [keepsakes / game-yarn](../labs/keepsakes/js/recipes.js#L31) (direct)<br>[keepsakes / wound](../labs/keepsakes/js/recipes.js#L35) (direct) |  |
+| <a id="yarn"></a>`yarn` — Yarn balls | [src/countryside.js:buildYarn(](../src/countryside.js#L3784) | [keepsakes / game-yarn](../labs/keepsakes/js/recipes.js#L31) (direct)<br>[keepsakes / wound](../labs/keepsakes/js/recipes.js#L35) (direct) |  |
 | <a id="key"></a>`key` — Antique secret-house key | [src/countryside.js:buildSecretKey(](../src/countryside.js#L2200) | [keepsakes / game-key](../labs/keepsakes/js/recipes.js#L52) (direct) |  |
 | <a id="guardian-feather"></a>`guardian-feather` — Guardian’s Feather trophy | [src/countryside.js:feather.name = "Guardian's Feather"](../src/countryside.js#L2182) | [nest / feather](../labs/nest/js/recipes.js#L52) (direct) |  |
 | <a id="offering-bells"></a>`offering-bells` — Five collectible offering bells | [src/countryside.js:buildOfferingBells(](../src/countryside.js#L2946) | [shrine / game-bell](../labs/shrine/js/recipes.js#L433) (direct) |  |
