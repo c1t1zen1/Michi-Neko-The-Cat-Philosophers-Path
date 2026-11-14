@@ -55,7 +55,7 @@ None. Chochin/andon/courtyard/pool shots not captured (interior and hidden place
 - Andon lit-paper emissive lowered (base 0.4 to 0.22, gain 1.4 to 0.55, texture glow 0.4 to 0.22). 18 h and 22 h modular shots re-taken and Read: paper is warm cream with the rib texture visible, no longer white; brightness is now close to the classic yellow box.
 - pool-toro halo kept: shot from the Moon Pool seat distance (about 4 m) at 22 h reads clearly lit with a warm bloom; no widening needed.
 - kit_contract_test --family lanterns: 6 assets, 18 asset×tier builds, 509 checks, 0 failed (gpu: ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version), 1705 ms)
-- verify: 
+- verify:
 
 ## Fix round 1
 - Draw cost (R36): stone-lantern flame prisms now use the owner's shared merged glow (`ownerGlow`), only the halo sprite is live; the street-lamp halo (not in classic) is removed; `flame` param dropped from street-lamps and courtyard-toro (nothing left for it to tint). Andon is the one private lit material (+1 draw); chochin unchanged.
