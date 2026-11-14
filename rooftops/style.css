@@ -437,3 +437,21 @@ body.nohud .mast, body.nohud .guide, body.nohud .card, body.nohud .toast, body.n
 @media (prefers-reduced-motion: reduce) {
   .card, .toast, .finale { transition: opacity 0.4s ease; transform: translate(-50%, 0); }
 }
+
+/* Portrait is the primary play frame: clear top rail and thumb-safe lower area. */
+#gl { height: 100dvh; }
+@media (orientation: portrait) and (max-width: 640px) {
+  .mast { top: max(12px, env(safe-area-inset-top)); left: 12px; }
+  .mast h1, .mast .kicker, .mast .sandbox { display: none; }
+  .mast .back { margin: 5px 0 0; padding: 9px 12px; }
+  .tools { top: max(12px, env(safe-area-inset-top)); right: 12px; gap: 3px; }
+  .tools button { width: 44px; height: 44px; }
+  .progress { top: max(68px, calc(env(safe-area-inset-top) + 56px)); bottom: auto; }
+  .card { top: max(112px, calc(env(safe-area-inset-top) + 100px)); width: calc(100vw - 36px); }
+  .card .k { font-size: 2.1rem; }
+  .card .r { font-size: .66rem; }
+  .card .t { font-size: 1.15rem; }
+  .card .n { max-width: 25rem; margin: 6px auto 0; font-size: .8rem; line-height: 1.4; }
+  .toast { bottom: 160px; max-width: calc(100vw - 32px); }
+  .pause-panel { max-width: calc(100vw - 32px); }
+}

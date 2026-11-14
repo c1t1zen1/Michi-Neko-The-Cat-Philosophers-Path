@@ -41,13 +41,14 @@ export class Autopilot {
       const a0 = A.s0 + aOff, a1 = A.s1 + aOff;
       const rise = platTop(B, Math.min(Math.max(r.s, b0), b1), t) - r.y;
       const overlap = Math.min(a1, b1) - Math.max(a0, b0) > 0.25;
-      if (overlap) {
+      if (overlap && Math.abs(rise) > PHYS.step) {
         // Stand under the middle of the overlap, then climb or drop.
         const mid = (Math.max(a0, b0) + Math.min(a1, b1)) / 2;
         if (Math.abs(r.s - mid) > 0.15) input.move = Math.sign(mid - r.s);
         else if (rise > PHYS.step) jump();
-        else if (rise < -PHYS.step) { input.downPressed = true; input.downHeld = true; }
-        else input.move = Math.sign((b0 + b1) / 2 - r.s) || 1;
+        else { input.downPressed = true; input.downHeld = true; }
+      } else if (overlap) {
+        input.move = Math.sign((b0 + b1) / 2 - r.s) || 1;
       } else {
         const dir = Math.sign((b0 + b1) / 2 - r.s);
         const edge = dir > 0 ? a1 : a0;
@@ -71,9 +72,10 @@ export class Autopilot {
       // A hurdle (canopy vent, taller neighbour) stopped us last tick: hop it.
       if (r.blockedBy && input.move) jump();
     } else {
-      // In the air: steer onto B.
-      const tgt = Math.min(Math.max(r.s, b0 + 0.3), b1 - 0.3);
-      if (Math.abs(tgt - r.s) > 0.05) input.move = Math.sign(tgt - r.s);
+      // In the air: steer onto B (handles narrow caps cleanly).
+      const pad = Math.min(0.3, (b1 - b0) * 0.35);
+      const tgt = Math.min(Math.max(r.s, b0 + pad), b1 - pad);
+      if (Math.abs(tgt - r.s) > 0.04) input.move = Math.sign(tgt - r.s);
     }
     if (this.jumpHeldT > 0) { this.jumpHeldT -= dt; input.jumpHeld = true; }
     return input;

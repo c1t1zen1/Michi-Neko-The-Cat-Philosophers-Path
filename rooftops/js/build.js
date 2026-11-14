@@ -16,6 +16,8 @@ import {
   dirtTextures, texturedMaterial, worldScaleBoxUVs
 } from '../../src/textures.js?v=20261106a';
 import { hash1 } from './level.js';
+import { downtownMaterials, installDowntown } from './downtown.js';
+import { makeCutaway } from './cutaway.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const TAU = Math.PI * 2;
@@ -253,12 +255,23 @@ function flowWaterMaterial(flowAlongDepth = false) {
         float cross = sin(flowUv.x * 17.0 + flowUv.y * 22.0 + uTime * 1.25);
         float glint = pow(max(0.0, current * 0.55 + cross * 0.45), 8.0);
         float depthBand = 0.5 + 0.5 * sin(flowUv.y * 2.4 + 0.7);
+        float bed = sin(flowUv.x * 7.3 + sin(flowUv.y * 12.0)) * sin(flowUv.y * 15.1 + flowUv.x * 3.1);
+        vec3 N = normalize(vec3(cos(flowUv.x * 37.0 - uTime * 2.4) * .05, 1.0, cos(flowUv.y * 22.0 + uTime) * .08));
+        vec3 V = normalize(cameraPosition - vWorld);
+        float fresnel = .03 + .65 * pow(1.0 - max(dot(N, V), 0.0), 4.0);
         vec3 col = mix(uDeep, uShallow, 0.32 + depthBand * 0.28);
-        col += uSun * glint * (0.22 + 0.28 * (1.0 - uNight));
+        col += bed * vec3(.035, .045, .025);
+        vec3 reflectedSky = mix(vec3(.55, .70, .74), vec3(.08, .13, .24), uNight);
+        float reflectedPosts = pow(max(0.0, sin(flowUv.x * 4.5 + sin(flowUv.y * 28.0 - uTime) * .16)), 16.0);
+        col = mix(col, reflectedSky * (1.0 - reflectedPosts * .42), fresnel);
+        col += uSun * glint * (0.16 + 0.24 * (1.0 - uNight));
+        col += vec3(.9, .4, .13) * reflectedPosts * uNight * .12;
         col = mix(col, vec3(0.085, 0.12, 0.22), uNight * 0.48);
         float ripple = band(fract(flowUv.x * 0.23 - uTime * 0.08) - 0.5, 0.035) * 0.08;
         col += vec3(0.72, 0.86, 0.84) * ripple;
         gl_FragColor = vec4(col, 0.88);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
         #include <fog_fragment>
       }`
   });
@@ -326,6 +339,7 @@ function makeMaterials() {
   M.ground = new THREE.MeshStandardMaterial({ color: 0x5a5448, roughness: 1 });
   M.dark = new THREE.MeshStandardMaterial({ color: 0x1e1915, roughness: 0.95 });
   M.goods = [0xc9643a, 0xe0b04a, 0x7a9a4a, 0xb8384a, 0xe8dcc2, 0x5a7aa0].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 }));
+  downtownMaterials(M, canvasTex);
   return M;
 }
 
@@ -1327,7 +1341,7 @@ B.yatai = (pc, ctx) => {
     g.add(box(0.09, pc.y - 0.22, 0.09, M.timber, x, (pc.y - 0.22) / 2, pc.d - 0.58));
   }
   g.add(box(w * 0.9, 0.12, 0.72, M.timberMed, 0, 0.86, pc.d + 0.42));
-  g.add(box(w * 0.86, 0.72, 0.08, M.noren[pc.look > 0.66 ? 'crimson' : pc.look > 0.33 ? 'indigo' : 'hemp'], 0, 1.42, pc.d + 0.76));
+  g.add(box(w * 0.86, 0.30, 0.04, M.noren[pc.look > 0.66 ? 'crimson' : pc.look > 0.33 ? 'indigo' : 'hemp'], 0, pc.y - 0.18, pc.d + 0.76));
   if (pc.fare === 'yakitori' || pc.fare === 'dango') {
     for (let x = -w * 0.32; x <= w * 0.32; x += 0.25) {
       const skewer = cyl(0.018, 0.78, M.bamboo, 'y', 5); skewer.position.set(x, 1.18, pc.d + 0.62); g.add(skewer);
@@ -1441,6 +1455,14 @@ B.boat = (pc, ctx) => {
     }
   }
 
+  // Loading planks across the lashed bales agree with the whole walkable
+  // platform, including its ends (no invisible floating cargo surface).
+  for (let x = -len / 2 + .12; x < len / 2; x += .26) {
+    g.add(box(.24, .065, .88, M.agedWood, x, pc.y - .0325, 0));
+  }
+  for (const z of [-.54, .54]) {
+    const rope = cyl(.025, len - .2, M.twine, 'x', 6); rope.position.set(0, .82, z); g.add(rope);
+  }
   // A small boatman in a woven kasa works the pole. He is intentionally a
   // simple painted silhouette so Michi remains the scene's visual focus.
   const boatman = new THREE.Group();
@@ -1476,7 +1498,13 @@ B.boat = (pc, ctx) => {
   wake.add(bowRing);
   g.add(wake);
 
-  ctx.dynamic.boat = { group: g, plat: pc.plat, d: pc.d, boatman, pole: polePivot, wake, bowRing, lastS: null, dir: 1 };
+  // Merge the working hull/cargo locally; moving boats keep a small draw budget.
+  const fixed = new THREE.Group();
+  for (const child of [...g.children]) if (child !== boatman && child !== wake) fixed.add(child);
+  g.add(mergeByMaterial(fixed));
+  const boat = { group: g, plat: pc.plat, d: pc.d, boatman, pole: polePivot, wake, bowRing, lastS: null, dir: 1 };
+  ctx.dynamic.boats.push(boat);
+  ctx.dynamic.boat ||= boat;
   ctx.addDyn(g);
 };
 
@@ -1819,8 +1847,8 @@ function buildDistantCity(level, M) {
   const samples = [];
   for (let s = 0; s <= level.length; s += 2) samples.push(rail.pointAt(s));
   const nearRail = (x, z, r) => samples.some((p) => (p.x - x) ** 2 + (p.z - z) ** 2 < r * r);
-  for (let x = -230; x <= 200; x += 7) {
-    for (let z = -260; z <= 150; z += 7) {
+  for (let x = (level.bounds?.x0 ?? -230) - 80; x <= (level.bounds?.x1 ?? 200) + 80; x += 7) {
+    for (let z = (level.bounds?.z0 ?? -260) - 80; z <= (level.bounds?.z1 ?? 150) + 80; z += 7) {
       const h = hash1(x * 0.37 + z * 1.71);
       const jx = x + (h - 0.5) * 3, jz = z + (hash1(x + z * 3.3) - 0.5) * 3;
       if (nearRail(jx, jz, 22)) continue;
@@ -1891,7 +1919,10 @@ function mergeByMaterial(group, castShadow = true) {
     if (!geo.attributes.normal) geo.computeVertexNormals();
     if (!geo.attributes.uv) geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array((geo.attributes.position.count) * 2), 2));
     for (const k of Object.keys(geo.attributes)) if (!['position', 'normal', 'uv'].includes(k)) geo.deleteAttribute(k);
-    const key = o.material.uuid;
+    geo.computeBoundingBox();
+    const center = geo.boundingBox.getCenter(new THREE.Vector3());
+    // Spatial material batches keep a kilometre of streets out of each draw.
+    const key = o.material.uuid + ':' + Math.floor(center.x / 32) + ':' + Math.floor(center.z / 32);
     if (!buckets.has(key)) buckets.set(key, { mat: o.material, geos: [] });
     buckets.get(key).geos.push(geo);
   });
@@ -1902,22 +1933,28 @@ function mergeByMaterial(group, castShadow = true) {
     const m = new THREE.Mesh(merged, mat);
     m.castShadow = castShadow && !mat.transparent;
     m.receiveShadow = true;
+    merged.computeBoundingSphere();
+    m.userData.spatialBatch = true;
     out.add(m);
+    for (const geo of geos) geo.dispose();
   }
   return out;
 }
 
+const downtown = installDowntown(B, { box, cyl, frameGroup, hiraRoof, ribbon, hash1 });
+
 export function buildWorld(level, opts = {}) {
   const M = makeMaterials();
+  const setView = makeCutaway(M);
   const rail = level.rail;
   const motionScale = opts.reduceMotion ? 0.22 : 1;
   const staticGroup = new THREE.Group();
   const glassGroup = new THREE.Group();
   const root = new THREE.Group();
   const lights = [];
-  const dynamic = { boat: null, float: null, shoki: [], treats: [] };
+  const dynamic = { boat: null, boats: [], people: [], float: null, shoki: [], treats: [] };
   const ctx = {
-    M, rail, dynamic,
+    M, rail, dynamic, platforms: level.platforms,
     add: (o) => staticGroup.add(o),
     addGlass: (m) => { m.userData.glass = true; glassGroup.add(m); },
     addDyn: (o) => root.add(o),
@@ -1925,7 +1962,10 @@ export function buildWorld(level, opts = {}) {
   };
   for (const pc of level.pieces) {
     const fn = B[pc.type];
-    if (fn) fn(pc, ctx);
+    if (!fn) throw new Error('No Roof Road renderer for ' + pc.type);
+    fn(pc, ctx);
+    if (pc.type === 'house') downtown.decorateHouse(pc, ctx);
+    if (pc.type === 'yatai') downtown.decorateStall(pc, ctx);
   }
   // Glass meshes were added inside frame groups: pull them out with their
   // world transforms so they merge into the transparent bucket.
@@ -1940,6 +1980,9 @@ export function buildWorld(level, opts = {}) {
   }
   root.add(mergeByMaterial(staticGroup));
   root.add(mergeByMaterial(glassGroup, false));
+
+  const batches = [];
+  root.traverse(o => { if (o.userData.spatialBatch) batches.push(o); });
 
   // Ground under everything, the distant roofscape and a pagoda on each side.
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), M.ground);
@@ -1966,11 +2009,17 @@ export function buildWorld(level, opts = {}) {
   }
 
   return {
-    root, dynamic, lights, M,
+    root, dynamic, lights, M, setView,
     /** Advance moving pieces; night ∈ [0,1] kindles lanterns and windows. */
-    update(t, night, platOffset, platforms) {
-      if (dynamic.boat) {
-        const boat = dynamic.boat;
+    update(t, night, platOffset, platforms, playerS = 0) {
+      downtown.updatePeople(dynamic.people, t, playerS, opts.lowPower, opts.reduceMotion);
+      const player = rail.pointAt(playerS);
+      for (const batch of batches) {
+        const b = batch.geometry.boundingSphere;
+        const range = (opts.lowPower ? 48 : 82) + b.radius;
+        batch.visible = (b.center.x - player.x) ** 2 + (b.center.z - player.z) ** 2 < range * range;
+      }
+      for (const boat of dynamic.boats) {
         const p = platforms[boat.plat];
         const off = platOffset(p, t);
         const s = (p.s0 + p.s1) / 2 + off;
@@ -1993,6 +2042,7 @@ export function buildWorld(level, opts = {}) {
       }
       if (dynamic.float) {
         const hoko = dynamic.float;
+        hoko.group.visible = Math.abs(playerS - level.mouths[6].s0) < 65;
         for (const tassel of hoko.tassels) {
           const u = t * motionScale + tassel.userData.phase;
           tassel.rotation.z = Math.sin(u * 1.35) * 0.055 * motionScale;
