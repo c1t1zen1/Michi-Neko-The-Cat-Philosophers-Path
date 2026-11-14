@@ -23,7 +23,6 @@
 // taken, so they cannot move it.
 import * as THREE from 'three';
 
-const TAG = '20261107a';
 const STEP = 1 / 60;
 const startedAt = performance.now();
 
@@ -368,9 +367,9 @@ function fakeAudio(log) {
 // ----------------------------------------------------------------- the digest
 
 async function buildDigest() {
-  const mod = await import(`../src/cat.js?v=${TAG}`);
-  const { NPC } = await import(`../src/npc.js?v=${TAG}`);
-  const { Player } = await import(`../src/player.js?v=${TAG}`);
+  const mod = await import('../src/cat.js?v=20261107a');
+  const { NPC } = await import('../src/npc.js?v=20261107a');
+  const { Player } = await import('../src/player.js?v=20261107a');
   const { Cat } = mod;
   const digest = { format: 'michi-neko-cat-golden', version: 1, three: THREE.REVISION };
 
@@ -587,8 +586,8 @@ function pretty(v, pad = '') {
 async function runChecks(mod) {
   let character, rig;
   try {
-    character = await import(`../src/characters/character.js?v=${TAG}`);
-    rig = await import(`../src/characters/rig.js?v=${TAG}`);
+    character = await import('../src/characters/character.js?v=20261107a');
+    rig = await import('../src/characters/rig.js?v=20261107a');
   } catch (e) {
     return { skipped: 'src/characters/character.js is not present: ' + String(e.message || e).split('\n')[0] };
   }
