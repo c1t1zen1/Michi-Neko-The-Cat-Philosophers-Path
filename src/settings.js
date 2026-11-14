@@ -17,7 +17,11 @@ const DEFAULTS = {
   highContrast: false,
   reduceMotion: null,   // null = follow the OS prefers-reduced-motion setting
   grain: true,
-  fringe: true
+  fringe: true,
+  // Asset set (BUILD_GUIDE_FABLE §3.1): 'classic' = the original builders,
+  // 'modular' = the kit, 'auto' = classic on quality 'low', modular otherwise.
+  // Stays 'classic' until Phase 9; `?assets=` overrides it for one session.
+  assetSet: 'classic'
 };
 
 export class SettingsManager {
