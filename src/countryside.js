@@ -2247,6 +2247,33 @@ export class Countryside {
 
   // --- 4. Interactive Bird Nest on Machiya Rooftop ---
   buildBirdNest(houseGroup, worldPos) {
+    const layout = setParent(this.layoutBirdNest(), houseGroup);
+    return this.placeAsset('nest', layout, () => this.meshBirdNestClassic(layout, houseGroup));
+  }
+
+  /**
+   * The rooftop nest, at its spot on the tea house's tree-side roof edge
+   * (house-local). The eggs and the Guardian's Feather are components; the
+   * eggs' tilt is three Math.random() draws (not the valley stream).
+   */
+  layoutBirdNest() {
+    const tilts = [0, 1, 2].map(() => (Math.random() - 0.5) * 0.4);
+    const eggs = { index: this.nextIndex('nest-eggs'), tilts, footprint: footprint() };
+    const feather = {
+      index: this.nextIndex('guardian-feather'), name: "Guardian's Feather", x: 0, y: 0.12, z: 0, rx: 0.3, rz: 0.4,
+      footprint: footprint(), bind: { nestFeatherMesh: '.' }
+    };
+    return {
+      index: this.nextIndex('nest'), name: "Rooftop Bird's Nest", x: 0.15, y: 4.9, z: 2.72,
+      footprint: footprint(), bind: { nestMesh: '.' },
+      components: [
+        component('nest-eggs', eggs, 'meshNestEggsClassic', 'parent'),
+        component('guardian-feather', feather, 'meshGuardianFeatherClassic', 'parent')
+      ]
+    };
+  }
+
+  meshBirdNestClassic(layout, houseGroup) {
     const nestGroup = new THREE.Group();
     nestGroup.name = "Rooftop Bird's Nest";
 
@@ -2259,17 +2286,31 @@ export class Countryside {
     nestBottom.position.y = -0.05;
     nestGroup.add(nestBottom);
 
-    // 3 Speckled blue bird eggs
+    this.placeComponent(layout.components[0], nestGroup);
+    this.placeComponent(layout.components[1], nestGroup);
+
+    // Tree-facing roof edge: visible from the wraparound ledge and reachable
+    // with one friendly jump from the eave onto the actual sloped tiles.
+    nestGroup.position.set(0.15, 4.9, 2.72);
+    houseGroup.add(nestGroup);
+    this.nestMesh = nestGroup;
+    return nestGroup;
+  }
+
+  /** 3 Speckled blue bird eggs (a component of 'nest'). */
+  meshNestEggsClassic(layout, nestGroup) {
     for (let i = 0; i < 3; i++) {
       const a = (i / 3) * Math.PI * 2;
       const egg = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), MAT.birdEgg);
       egg.scale.set(1, 1.35, 1);
       egg.position.set(Math.cos(a) * 0.14, 0.04, Math.sin(a) * 0.14);
-      egg.rotation.z = (Math.random() - 0.5) * 0.4;
+      egg.rotation.z = layout.tilts[i];
       nestGroup.add(egg);
     }
+  }
 
-    // Glowing Golden "Guardian's Feather" Trophy in the nest
+  /** Glowing Golden "Guardian's Feather" Trophy in the nest (a component of 'nest'). */
+  meshGuardianFeatherClassic(layout, nestGroup) {
     const feather = new THREE.Group();
     feather.name = "Guardian's Feather";
     const featherQuill = box(0.015, 0.35, 0.01, MAT.featherGold, 0, 0, 0);
@@ -2280,13 +2321,9 @@ export class Countryside {
     feather.position.set(0, 0.12, 0);
     nestGroup.add(feather);
     this.nestFeatherMesh = feather;
-
-    // Tree-facing roof edge: visible from the wraparound ledge and reachable
-    // with one friendly jump from the eave onto the actual sloped tiles.
-    nestGroup.position.set(0.15, 4.9, 2.72);
-    houseGroup.add(nestGroup);
-    this.nestMesh = nestGroup;
+    return feather;
   }
+
 
   // --- 5. Antique Golden Key Collectible ---
   buildSecretKey(x, y, z) {
