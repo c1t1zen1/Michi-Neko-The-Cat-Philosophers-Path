@@ -601,8 +601,8 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 
 ### Gates
 
-- [ ] **G-P0** Baseline recorded, decisions D1–D8 answered
-- [ ] **G-F** Foundation merged; classic output proven unchanged (→ may merge to `main`)
+- [x] **G-P0** Baseline recorded, decisions D1–D8 answered
+- [x] **G-F** Foundation merged; classic output proven unchanged (→ may merge to `main`)
 - [ ] **G-V1** Village wave 1 (props) merged
 - [ ] **G-V2** Village wave 2 (landmarks) merged
 - [ ] **G-V3** Village wave 3 (systems, life) merged (→ may merge to `main`)
@@ -618,10 +618,10 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 
 | Phase | Lane id | Scope | Needs | Status |
 |---|---|---|---|---|
-| 0 | `p0-baseline` | Measurements, captures, decisions file | — | [ ] |
-| 1 | `f1-runtime` | `src/kit/` runtime, contract, tools | G-P0 | [ ] |
-| 1 | `f2-countryside-split` | Layout/mesh split in `countryside.js` | f1 API frozen | [ ] |
-| 1 | `f3-systems-split` | Hooks in vegetation, interior, hidden places, ambient life, particles | f1 API frozen | [ ] |
+| 0 | `p0-baseline` | Measurements, captures, decisions file | — | [x] |
+| 1 | `f1-runtime` | `src/kit/` runtime, contract, tools (F1.6, the footprint golden, was split into lane `f1-golden`, also merged) | G-P0 | [x] |
+| 1 | `f2-countryside-split` | Layout/mesh split in `countryside.js` | f1 API frozen | [x] |
+| 1 | `f3-systems-split` | Hooks in vegetation, interior, hidden places, ambient life, particles | f1 API frozen | [x] |
 | 2.1 | `v-lanterns` | Lanterns (lab 11) | G-F | [ ] |
 | 2.1 | `v-fences` | Fences and corral (lab 12) | G-F | [ ] |
 | 2.1 | `v-rocks` | Rocks and boulders (lab 13) | G-F | [ ] |
@@ -642,7 +642,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 2.3 | `v-weather` | Petals, rain, snow, motes, komorebi (labs 20, 22) | G-V2 | [ ] |
 | 2.3 | `v-trees` | Sakura, maple, pine, rim trees (new lab) | G-V2 | [ ] |
 | 2.3 | `v-critters` | Koi, birds, butterflies, crows (lab 18) | G-V2 | [ ] |
-| 3 | `c1-rig-split` | `Cat` split into rig, parts, behaviour (serial) | G-F | [ ] |
+| 3 | `c1-rig-split` | `Cat` split into rig, parts, behaviour (serial) | G-F | [x] |
 | 3 | `c2-michi` | Player cat parts, collar, master bells | c1 | [ ] |
 | 3 | `c3-villagers` | Luna, Mochi, Kuro (lab 19) | c1 | [ ] |
 | 3 | `c4-creatures` | Larry the turtle, guardian crows | c1 | [ ] |
@@ -1417,7 +1417,8 @@ created in Phase 1 and marked *(new)*.
 | | `cd dawCAT && npm test` | Audio studio |
 | | `node tools/interiors_test.mjs`, `node tools/ranges_test.mjs` | Lab-specific suites |
 | **G4** full game | `/__boot.html` headless, on `?assets=classic` and `?assets=modular` | The only check that exercises `main.js` wiring. 15–20 minutes under SwiftShader |
-| | Review sheets: `tools/cat_preview.html`, `tree_`, `town_`, `hidden_`, `summit_`, `grass_preview.html` | Seeded, repeatable renders against the Phase 0 captures |
+| | Review sheets: `tools/cat_preview.html`, `tree_`, `town_`, `hidden_` | Seeded, repeatable renders against the Phase 0 captures (`node tools/capture_baseline.mjs --compare`; the cat sheets also have `node tools/cat_golden.mjs`) |
+| | `summit_`, `grass_preview.html` and the Roof Road sheets | **Not pixel-repeatable** (time-driven loops, unseeded `Math.random`; see `docs/fable/baseline/captures.md`). Their gates are the numeric goldens and tests: `node tools/summit_test.mjs`, `node tools/rooftop_test.mjs`, the footprint and systems goldens |
 | | Optional: `catalog/tests/browser-smoke.mjs`, `adapters-browser.mjs`, `cad-handoff-browser.mjs` | Catalog and cadJS in a real browser (needs external Playwright) |
 
 The 44-check browser smoke suite described in `AGENTS.md` lives outside the
