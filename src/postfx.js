@@ -481,7 +481,8 @@ export class AtmospherePass extends Pass {
    */
   syncKit(sky, environment) {
     const hook = sky && typeof sky.kitPostHook === 'function' ? sky.kitPostHook() : null;
-    const on = !!hook && !(sky.assets && sky.assets.quality === 'low') && !environment && !sky._interiorShadow;
+    // envPaused is the Sky's public "the cat is indoors" flag (main.js sets it each frame)
+    const on = !!hook && !(sky.assets && sky.assets.quality === 'low') && !environment && !sky.envPaused;
     if (on) {
       const u = this.material.uniforms;
       const occluded = hook.sunOcclusion || 0;
@@ -490,6 +491,10 @@ export class AtmospherePass extends Pass {
     }
     const material = on && hook.active ? this.kitMaterialFor(hook) : this.material;
     if (this.fsQuad.material !== material) this.fsQuad.material = material;
+    if (!hook && this.kitMaterial) {   // the kit sky went (quality low): free its copy of the shader
+      this.kitMaterial.dispose();
+      this.kitMaterial = this.kitHook = null;
+    }
   }
 
   /** One kit material per hook (rebuilt only if the sky's hook object changes). */

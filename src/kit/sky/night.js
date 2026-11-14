@@ -5,15 +5,23 @@
 //
 // Both keep the classic handles the Sky's own update drives every frame:
 // the star material carries `uniforms.uOpacity` / `uniforms.uTime` (the
-// classic nightness × weather-cover fade and twinkle clock), the moon disc
-// is a SpriteMaterial whose `opacity` the classic code sets, and both groups
-// are positioned by the classic code (stars at the cat, the moon 205 m along
-// the moon direction). They draw in the background band between the dome
-// (renderOrder -1000) and the kit cloud deck (-999), with depth test off,
-// so the deck covers them where it is thick and the valley covers them
-// everywhere — no per-star cloud test is needed.
+// classic nightness × weather-cover fade and twinkle clock), the moon's
+// material carries the `opacity` the classic code sets, and both groups are
+// positioned by the classic code (stars at the cat, the moon 205 m along the
+// moon direction). They draw in the background band between the dome
+// (renderOrder -1000) and the kit cloud deck (-999), depth test off, so the
+// valley covers them. The deck's alpha alone would leave a star a fifth of
+// its light through a thick cloud, so a star linked to a kit deck
+// (`linkClouds`) reads the same field, cover and drift in its vertex shader
+// and goes out behind cloud; the moon is dimmed by the deck's density in
+// front of it (`env.moonCover`). The moon is one draw: disc, glow and the 22°
+// ring in a single billboard (classic also painted its glow into the moon).
+//
+// The Sky Lab builds its night studies from this module (through
+// labs/shared/game.js), so the lab and the game share one copy of the code.
 import * as THREE from 'three';
 import { makeSkyState, readSky } from './state.js?v=20261113a';
+import { CLOUD_GLSL } from './field.js?v=20261113a';
 
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 
@@ -66,6 +74,10 @@ export function starField(rng, count, { warmth = 0, bandShare = 0.32 } = {}) {
 }
 
 export const STAR_VERT = /* glsl */`
+#ifdef KIT_STAR_CLOUDS
+${CLOUD_GLSL}
+uniform float uDeckAlpha;
+#endif
 uniform float uOpacity;
 uniform float uTime;
 attribute float aBright;
@@ -81,6 +93,12 @@ void main() {
   float tw = 1.0 + (0.16 + 0.42 * (1.0 - ext)) * sin(uTime * rate + aPhase);
   vAlpha = uOpacity * mix(0.22, 1.0, ext) * clamp(tw, 0.0, 1.6) * (0.42 + 0.9 * sqrt(aBright));
   vColor = mix(color * vec3(1.0, 0.8, 0.6), color, ext);
+#ifdef KIT_STAR_CLOUDS
+  // the deck in front of this star: same field, cover and drift as the clouds (lod 0 in a vertex shader)
+  float kt = kitDeckDistance(vec3(0.0, 2.0, 0.0), dir, uCloudBase);
+  float cover = kitCloudAt(kitCloudUV(uCloudCenter.xz + dir.xz * kt));
+  vAlpha *= 1.0 - clamp(cover * uDeckAlpha * 1.3, 0.0, 1.0);
+#endif
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   gl_PointSize = 2.0 + 6.5 * sqrt(aBright);
   gl_Position = projectionMatrix * mv;
@@ -96,6 +114,9 @@ void main() {
   float a = (exp(-r2 * 9.0) + exp(-r2 * 2.6) * 0.35) * vAlpha;
   if (a < 0.003) discard;
   gl_FragColor = vec4(vColor * a, a);
+  // no-ops in the game (it renders into the composer's linear target); tone map + encode when a lab draws to the screen
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
 }
 `;
 
@@ -164,6 +185,9 @@ void main() {
   float rift = 1.0 - 0.6 * exp(-pow((vUv.y - 0.12) / 0.16, 2.0)) * smoothstep(0.35, 0.75, bandNoise(p * 1.3 + 1.9));
   float a = across * (0.45 + 0.75 * cloud) * rift * smoothstep(0.0, 0.25, vAlt) * uOpacity * 0.075;
   gl_FragColor = vec4(vTint * a, a);
+  // no-ops in the game (it renders into the composer's linear target); tone map + encode when a lab draws to the screen
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
 }
 `;
 
@@ -231,48 +255,48 @@ export function moonTexture(phase, seed, size = 256) {
   return tex;
 }
 
-/** Soft radial glow (`ring` = a thin 22° halo instead). Cached, shared. */
-export function glowTexture(ring = false) {
-  const key = ring ? 'ring' : 'glow';
-  if (textureCache.has(key)) return textureCache.get(key);
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 128;
-  const ctx = canvas.getContext('2d');
-  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-  if (ring) {
-    g.addColorStop(0, 'rgba(255,255,255,0)');
-    g.addColorStop(0.8, 'rgba(255,255,255,0)');
-    g.addColorStop(0.9, 'rgba(255,246,236,0.75)');
-    g.addColorStop(0.94, 'rgba(236,242,255,0.4)');
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-  } else {
-    g.addColorStop(0, 'rgba(240,244,255,0.62)');
-    g.addColorStop(0.25, 'rgba(214,224,250,0.24)');
-    g.addColorStop(0.6, 'rgba(196,210,244,0.06)');
-    g.addColorStop(1, 'rgba(190,205,240,0)');
-  }
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 128, 128);
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.name = 'kit-sky:moon-' + key;
-  tex.userData.shared = true;
-  textureCache.set(key, tex);
-  return tex;
-}
+/** Disc radius in the painting's uv (moonTexture paints the disc at 0.4375 of the half-width). */
+const DISC_UV = 0.4375;
+/** World radius of the disc at the classic 205 m (≈ the classic crescent's 13.8 m disc). */
+const DISC_R = 7;
+/** The 22° ring's radius at 205 m, in disc radii. */
+const RING_R = 82.8 / DISC_R;
 
-/** The background-band sprite material (opaque list, so it draws before the deck and the valley). */
-export function backgroundSprite(T, map, { color = 0xffffff, opacity = 0, additive = false } = {}) {
-  const m = new T.SpriteMaterial({
-    map, color, opacity, fog: false, depthTest: false, depthWrite: false, transparent: false,
-    blending: T.CustomBlending,
-    blendSrc: T.SrcAlphaFactor,
-    blendDst: additive ? T.OneFactor : T.OneMinusSrcAlphaFactor,
-    blendSrcAlpha: T.ZeroFactor,
-    blendDstAlpha: T.OneFactor
-  });
-  return m;
+export const MOON_VERT = /* glsl */`
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  // a camera-facing quad, as THREE.Sprite does
+  vec4 mv = modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+  mv.xy += position.xy * vec2(length(modelMatrix[0].xyz), length(modelMatrix[1].xyz));
+  gl_Position = projectionMatrix * mv;
 }
+`;
+
+/** Disc (painted, normal blend), glow and ring (additive) in one premultiplied draw. */
+export const MOON_FRAG = /* glsl */`
+uniform sampler2D uMap;
+uniform vec3 uTint;
+uniform float uOpacity;
+uniform float uHalf;
+uniform float uGlow;
+uniform float uRing;
+varying vec2 vUv;
+void main() {
+  vec2 q = (vUv - 0.5) * 2.0 * uHalf;            // disc radii
+  float r = length(q);
+  vec4 disc = texture2D(uMap, clamp(0.5 + q * ${DISC_UV.toFixed(4)}, 0.0, 1.0));
+  float f = r / 4.15;
+  float glow = 0.62 * exp(-3.8 * f) * (1.0 - smoothstep(0.75, 1.0, f)) * uGlow;
+  float ring = exp(-pow((r - ${RING_R.toFixed(3)}) / 0.75, 2.0)) * 0.75 * uRing;
+  float a = disc.a * uOpacity;
+  vec3 add = (vec3(0.84, 0.88, 0.98) * glow * 0.55 + vec3(1.0, 0.97, 0.94) * ring) * uOpacity;
+  gl_FragColor = vec4(disc.rgb * uTint * a + add * (1.0 - a), a);
+  // no-ops in the game (it renders into the composer's linear target); tone map + encode when a lab draws to the screen
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}
+`;
 
 // --- builders ----------------------------------------------------------------
 
@@ -325,6 +349,17 @@ export function buildStars(ctx, layout, p) {
   return {
     group, parts, live, material, footprint: layout.footprint,
     attach(sky) { owner = sky || null; },
+    /**
+     * Read a kit cloud deck's field (its `shared` uniforms and deck opacity
+     * uniform): from then on a star behind thick cloud goes out. Call before
+     * the first render (the Sky links right after building).
+     */
+    linkClouds(shared, deckAlpha) {
+      if (!shared || !deckAlpha) return;
+      Object.assign(uniforms, shared, { uDeckAlpha: deckAlpha });
+      material.defines.KIT_STAR_CLOUDS = 1;
+      material.needsUpdate = true;
+    },
     /** Day costs nothing: below a whisper of opacity the stars and band stop drawing. */
     update(dt, t, env) {
       if (!env || (owner && !env.sky)) return;
@@ -337,74 +372,69 @@ export function buildStars(ctx, layout, p) {
   };
 }
 
-const TIER_MOON = { hero: 3, mid: 2, far: 1 };
+const TIER_MOON = { hero: 256, mid: 256, far: 128 };
 
 /**
- * Moon: `disc` (the painted phase), `halo` (mid, hero) and `ring` (hero: the
- * 22° tsukigasa that shows in thin high cloud). `material` is the disc's
- * SpriteMaterial: the Sky assigns it to `sky.moonMat`, so the classic
- * update keeps setting its opacity; the halo and ring follow it.
+ * Moon: one part, `disc` — a camera-facing quad that paints the phase disc,
+ * its glow and (hero) the 22° tsukigasa that shows in a thin veil. One draw
+ * at every tier. `material` is its ShaderMaterial: the Sky assigns it to
+ * `sky.moonMat`, so the classic update keeps setting its `opacity`.
  */
 export function buildMoon(ctx, layout, p) {
-  const T = ctx.THREE, tier = ctx.tier, n = TIER_MOON[tier] || 2;
+  const T = ctx.THREE, tier = ctx.tier;
   const seed = Math.floor(ctx.rng() * 0x7fffffff);
   // a fuller moon is a brighter moon (illuminated fraction ≈ (1 − cos 2πφ) / 2)
   const lit = (1 - Math.cos(p.phase * Math.PI * 2)) / 2;
   const bright = 0.8 + 0.2 * lit;
-  const material = backgroundSprite(T, moonTexture(p.phase, seed, tier === 'far' ? 128 : 256), { color: new T.Color(bright, bright, bright * 0.98) });
-  material.name = `kit-sky:moon-${tier}-${p.phase.toFixed(2)}`;   // one painted map per phase
-  const disc = new T.Sprite(material);
-  disc.scale.setScalar(16 * p.size);
+  const uniforms = {
+    uMap: { value: moonTexture(p.phase, seed, TIER_MOON[tier] || 256) },
+    uTint: { value: new T.Color(bright, bright, bright * 0.98) },
+    uOpacity: { value: 0 },
+    uHalf: { value: 4.2 },
+    uGlow: { value: tier === 'far' ? 0.6 * p.halo : p.halo },
+    uRing: { value: 0 }
+  };
+  const material = new T.ShaderMaterial({
+    name: `kit-sky:moon-${tier}-${p.phase.toFixed(2)}-${p.halo.toFixed(2)}`,   // one painted map per phase
+    uniforms, vertexShader: MOON_VERT, fragmentShader: MOON_FRAG,
+    depthTest: false, depthWrite: false, fog: false, transparent: false,
+    blending: T.CustomBlending, blendSrc: T.OneFactor, blendDst: T.OneMinusSrcAlphaFactor,
+    blendSrcAlpha: T.ZeroFactor, blendDstAlpha: T.OneFactor
+  });
+  material.opacity = 0;
+  const disc = new T.Mesh(new T.PlaneGeometry(1, 1), material);
   disc.renderOrder = -999.5;
   disc.frustumCulled = false;
+  disc.userData.noShadow = true;
+  const radius = DISC_R * p.size;
+  const sizeFor = (half) => disc.scale.set(2 * half * radius, 2 * half * radius, 1);
+  sizeFor(uniforms.uHalf.value);
   const group = new T.Group();
   group.add(disc);
-  const parts = { disc };
-  const mats = [material];
-  let haloMat = null, ringMat = null;
-  if (n >= 2) {
-    haloMat = backgroundSprite(T, glowTexture(false), { color: new T.Color(0.85, 0.9, 1).multiplyScalar(p.halo), additive: true });
-    haloMat.name = `kit-sky:moon-halo-${tier}`;
-    const halo = new T.Sprite(haloMat);
-    halo.scale.setScalar(58 * p.size);
-    halo.renderOrder = -999.55;
-    halo.frustumCulled = false;
-    group.add(halo);
-    parts.halo = halo;
-    mats.push(haloMat);
-  }
-  if (n >= 3) {
-    ringMat = backgroundSprite(T, glowTexture(true), { color: new T.Color(1, 0.97, 0.94).multiplyScalar(p.halo), additive: true });
-    ringMat.name = `kit-sky:tsukigasa-${tier}`;
-    const ring = new T.Sprite(ringMat);
-    ring.scale.setScalar(184);            // a 22° radius at the moon's 205 m
-    ring.renderOrder = -999.55;
-    ring.frustumCulled = false;
-    group.add(ring);
-    parts.ring = ring;
-    mats.push(ringMat);
-  }
   let owner = null;
   const state = makeSkyState();
   return {
-    group, parts, live: Object.values(parts), material, footprint: layout.footprint,
+    group, parts: { disc }, live: [disc], material, footprint: layout.footprint,
     attach(sky) { owner = sky || null; },
-    /** env.cloudCover / env.cloudVeil (from a kit cloud deck, when there is one) wake the halo ring. */
+    /** env.cloudCover / env.cloudVeil / env.moonCover come from a kit cloud deck when there is one. */
     update(dt, t, env) {
       if (!env || (owner && !env.sky)) return;
       if (!owner) { const s = readSky(env, state); material.opacity = s.night * 0.95 * (1 - s.rain * 0.6); }
-      const o = material.opacity;
+      const hidden = Number.isFinite(env.moonCover) ? env.moonCover : 0;
+      const o = material.opacity * (1 - 0.85 * clamp(hidden));
+      uniforms.uOpacity.value = o;
       disc.visible = o > 0.002;
-      if (parts.halo) { parts.halo.visible = o > 0.002; haloMat.opacity = o * 0.55; }
-      if (parts.ring) {
+      if (tier === 'hero') {
         const cover = Number.isFinite(env.cloudCover) ? env.cloudCover : 0;
         const veil = Number.isFinite(env.cloudVeil) ? env.cloudVeil : 0;
-        // only a thin veil (cloudy or misty weather over a half-covered sky) makes the ring; clear or overcast skies do not
-        const thin = clamp((cover - 0.32) / 0.12) * (1 - clamp((cover - 0.82) / 0.1)) * veil;
-        ringMat.opacity = o * thin * 0.12;
-        parts.ring.visible = ringMat.opacity > 0.002;
+        // only a thin veil (cloudy or misty weather over a half-covered sky) makes the ring
+        const ring = clamp((cover - 0.32) / 0.12) * (1 - clamp((cover - 0.82) / 0.1)) * veil * 0.12 * p.halo;
+        uniforms.uRing.value = ring;
+        // the quad grows to hold the ring only while there is one to draw
+        const half = ring > 0.002 ? RING_R + 1.6 : 4.2;
+        if (half !== uniforms.uHalf.value) { uniforms.uHalf.value = half; sizeFor(half); }
       }
     },
-    dispose() { for (const m of mats) m.dispose(); }
+    dispose() { material.dispose(); }
   };
 }

@@ -143,12 +143,13 @@ export function cloudField(seed) {
     raw(u, v, mix) {
       const fx = (u - Math.floor(u)) * N - 0.5, fy = (v - Math.floor(v)) * N - 0.5;
       const ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy;
+      const x0 = ((ix % N) + N) % N, x1 = (x0 + 1) % N, y0 = ((iy % N) + N) % N, y1 = (y0 + 1) % N;
+      const k00 = (y0 * N + x0) * 4, k10 = (y0 * N + x1) * 4, k01 = (y1 * N + x0) * 4, k11 = (y1 * N + x1) * 4;
       let out = 0;
       for (let c = 0; c < 4; c++) {
         if (!mix[c]) continue;
-        const at = (i, j) => data[((((iy + j) % N + N) % N) * N + ((ix + i) % N + N) % N) * 4 + c] / 255;
-        const a = at(0, 0), b = at(1, 0), d = at(0, 1), e = at(1, 1);
-        out += mix[c] * (a + (b - a) * tx + (d - a) * ty + (a - b - d + e) * tx * ty);
+        const a = data[k00 + c], b = data[k10 + c], d = data[k01 + c], e = data[k11 + c];
+        out += mix[c] * (a + (b - a) * tx + (d - a) * ty + (a - b - d + e) * tx * ty) / 255;
       }
       return out;
     }

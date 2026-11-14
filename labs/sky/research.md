@@ -140,23 +140,25 @@ family "After the lanterns go out." in the gallery.
   phase: a disc lit from the phase angle (0.5 full, 0.25 first quarter),
   limb darkening, ten soft seas placed after the maria the rabbit pounding
   mochi is read from, a small rayed crater, and earthshine on the dark limb;
-  a soft glow sprite and, only under a thin veil, a faint 22° ring
-  (tsukigasa, 月暈). Limit: the phase is a parameter, not a calendar; the ring
+  a soft glow and, only under a thin veil, a faint 22° ring (tsukigasa, 月暈),
+  all drawn by one camera-facing quad. Limit: the phase is a parameter, not a calendar; the ring
   is an artistic accent, not ice-crystal optics.
 
-The drawing code is promoted unchanged into the game kit
-(`src/kit/sky/night.js`). Only the draw order differs: here the lab's dome is
-a transparent pass, so the night objects draw as ordinary transparent
-objects; in the game they draw in the background band before the kit cloud
-deck, so drifting cloud covers them without a per-star test.
+The drawing code lives once, in the game kit (`src/kit/sky/night.js`); the
+lab builds its night from it through `labs/shared/game.js` (fix round 1,
+ruling R56). Only the draw order differs: here the lab's dome is a
+transparent pass, so the night objects join it; in the game they draw in the
+background band before the kit cloud deck, and a star linked to the deck
+reads the deck's field in its vertex shader and goes out behind thick cloud
+(the deck's alpha alone would let a fifth of its light through).
 
 ### What the game kit promotes from this lab (lane v-sky)
 
 | Inventory id | Specimen | In the game |
 | --- | --- | --- |
-| `clouds` | `cloud-field` (thickness painting) with the `cloud-painted` slab idea, and `shade-soft` | A curved deck 170 m above the cat, three height slices on hero (two on mid), one shared 256² four-genus field (cumulus puffs, cirrus, altocumulus, stratus) crossfaded by weather; the same field projected along the sun as cloud shade inside the atmosphere pass |
+| `clouds` | `cloud-field` (thickness painting) with the `cloud-painted` slab idea, and the projection of `shade-soft` | A curved deck 170 m above the cat, three height slices on hero (two on mid), one shared 256² four-genus field (cumulus puffs, cirrus, altocumulus, stratus) crossfaded by weather; the same field projected along the sun as cloud shade. The shade is promoted from `shade-soft`'s projection and five-tap penumbra, **not** its light model: the lab attenuates the directional light inside each receiving material, while the game composites the shade in its atmosphere pass (it cannot hook every material), darkening bright, i.e. mostly sunlit, pixels and sparing what already sits in shadow |
 | `stars` | `night-stars` | As studied, 1,600 / 960 / 420 stars by tier, band on hero and mid |
-| `moon` | `night-moon` | As studied; ring on hero only, woken by a cloudy or misty veil |
+| `moon` | `night-moon` | As studied, one draw (disc, glow, ring); ring on hero only, woken by a cloudy or misty veil; dimmed by the deck in front of it |
 
 ---
 

@@ -821,7 +821,7 @@ export class Sky {
     // The classic builder's Math.random() draws, burned so every later consumer of the
     // seeded capture stream (?shot=1: particles, wander, idles) sees the same numbers on both sets.
     for (let i = 0; i < SKY_CLASSIC_DRAWS[id]; i++) Math.random();
-    if (!this.kit) this.kit = { clouds: null, stars: null, moon: null, env: { hour: 12, wind: 1, wet: 0, snow: 0, lanternOn: false, sky: this, center: null, cloudCover: 0, cloudVeil: 0 } };
+    if (!this.kit) this.kit = { clouds: null, stars: null, moon: null, env: { hour: 12, wind: 1, wet: 0, snow: 0, lanternOn: false, sky: this, center: null, cloudCover: 0, cloudVeil: 0, moonCover: 0 } };
     this.kit[id] = out;
     if (typeof out.attach === 'function') out.attach(this);
     if (id === 'clouds') {
@@ -830,6 +830,8 @@ export class Sky {
     } else if (id === 'stars') {
       this.stars = out.group;
       this.starMat = out.material;      // the classic fade and twinkle clock drive its uniforms
+      // a kit deck (built just before) hides the stars behind its thick cloud
+      if (this.kit.clouds && typeof out.linkClouds === 'function') out.linkClouds(this.kit.clouds.shared, this.kit.clouds.deckAlpha);
       this.scene.add(out.group);
     } else if (id === 'moon') {
       this.moon = out.group;
@@ -851,6 +853,7 @@ export class Sky {
     if (clouds) clouds.update(dt, this.time, env);
     env.cloudCover = clouds ? clouds.cover : 0.46 + this.weatherAmount('cloudy') * 0.3;
     env.cloudVeil = clouds ? clouds.veil : Math.min(1, this.weatherAmount('cloudy') * 0.6 + this.weatherAmount('mist'));
+    env.moonCover = clouds ? clouds.moonCover : 0;
     if (this.kit.stars) this.kit.stars.update(dt, this.time, env);
     if (this.kit.moon) this.kit.moon.update(dt, this.time, env);
   }

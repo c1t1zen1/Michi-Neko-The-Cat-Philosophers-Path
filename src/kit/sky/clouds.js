@@ -154,6 +154,14 @@ ${CLOUD_GLSL}
 uniform float uCloudShade;
 uniform vec3 uCloudShadeTint;
 uniform float uCloudSkyAlpha;
+// Post-pass reads take mip 0 explicitly: they sit in per-pixel branches and a
+// loop with a break, where implicit derivatives are undefined (and would pick
+// the coarsest mip at depth edges). The 256² field is ~2.8 m a texel, coarser
+// than a pixel's footprint anywhere inside the 700 m far plane.
+float kitCloudAtLod(vec2 uv) {
+  float t = 1.0 - uCloudCover;
+  return smoothstep(t - uCloudSoft, t + uCloudSoft * 2.2, dot(texture2DLodEXT(uCloudField, uv, 0.0), uCloudMix));
+}
 #if KIT_CLOUD_RAYS
 // Sky visibility through the deck along one screen ray (shafts through gaps).
 float kitSkyClear(vec2 suv) {
@@ -161,7 +169,7 @@ float kitSkyClear(vec2 suv) {
   vec3 wd = normalize((uInvView * vec4(normalize(v.xyz / v.w), 0.0)).xyz);
   if (wd.y < 0.01) return 1.0;
   float t = kitDeckDistance(uCamPos - uCloudCenter, wd, uCloudBase);
-  return 1.0 - kitCloudAt(kitCloudUV(uCamPos.xz + wd.xz * t)) * uCloudSkyAlpha;
+  return 1.0 - kitCloudAtLod(kitCloudUV(uCamPos.xz + wd.xz * t)) * uCloudSkyAlpha;
 }
 #endif
 `;
@@ -169,27 +177,31 @@ float kitSkyClear(vec2 suv) {
 const SHADE_BEFORE_FOG = /* glsl */`
       // Cloud shade (modular set): the deck's field, projected along the sun.
       if (!sky && uCloudShade > 0.0) {
+        // uCloudCenter.y is a slowly smoothed reference height, so a jump or a roof climb does not slide the shade
         float kitLift = (uCloudCenter.y + uCloudBase) - W.y;
         vec2 kitUv = kitCloudUV(W.xz + uSunDir.xz * (kitLift / max(uSunDir.y, 0.12)));
-        float kitShade = kitCloudAt(kitUv);
+        float kitShade = kitCloudAtLod(kitUv);
 #if KIT_SHADE_TAPS > 1
         vec2 kitE = vec2(0.012, 0.0);
-        kitShade = (kitShade * 2.0 + kitCloudAt(kitUv + kitE) + kitCloudAt(kitUv - kitE)
-          + kitCloudAt(kitUv + kitE.yx) + kitCloudAt(kitUv - kitE.yx)) / 6.0;
+        kitShade = (kitShade * 2.0 + kitCloudAtLod(kitUv + kitE) + kitCloudAtLod(kitUv - kitE)
+          + kitCloudAtLod(kitUv + kitE.yx) + kitCloudAtLod(kitUv - kitE.yx)) / 6.0;
 #endif
-        // mostly the sunlit surfaces lose light; what already sits in shade keeps its colour
+        // A screen-space stand-in for removing direct sun (the lab's shade-soft attenuates the
+        // directional light per material; this pass cannot reach every material): the darkening
+        // is weighted to bright, i.e. sunlit, pixels, so what already sits in shadow keeps its colour.
         float kitLum = dot(col.rgb, vec3(0.2126, 0.7152, 0.0722));
-        float kitK = uCloudShade * kitShade * mix(0.4, 1.0, smoothstep(0.02, 0.3, kitLum));
+        float kitK = uCloudShade * kitShade * mix(0.15, 1.0, smoothstep(0.02, 0.3, kitLum));
         col.rgb *= mix(vec3(1.0), uCloudShadeTint, kitK);
       }
 `;
 
-const mixInto = (out, list) => {
-  for (let i = 0; i < 4; i++) out[i] = list.reduce((s, [w, v]) => s + w * v[i], 0);
-  const sum = out[0] + out[1] + out[2] + out[3] || 1;
-  for (let i = 0; i < 4; i++) out[i] /= sum;
+/** out = normalised weighted sum of the four genus vectors (no allocation: runs every frame). */
+function mixInto(out, wa, a, wb, b, wc, c, wd, d) {
+  let sum = 0;
+  for (let i = 0; i < 4; i++) { out[i] = wa * a[i] + wb * b[i] + wc * c[i] + wd * d[i]; sum += out[i]; }
+  for (let i = 0; i < 4; i++) out[i] /= sum || 1;
   return out;
-};
+}
 
 /**
  * Build the deck. `layout`: { index, band } (the Sky's layout; no footprint
@@ -271,7 +283,15 @@ export function buildClouds(ctx, layout, p) {
   const state = makeSkyState();
   const work = [0, 0, 0, 0];
   const rel = new T.Vector3(0, 2, 0);
-  let owner = null;
+  let owner = null, deckY = NaN;
+  // the deck's density in front of a direction seen from the cat (sun and moon dimming)
+  const coverAlong = (dir, cover) => {
+    if (dir.y < 0.02) return 0;
+    const td = deckDistance(rel, dir, shared.uCloudBase.value);
+    const u = (shared.uCloudCenter.value.x + dir.x * td) / CLOUD_SPAN + shared.uCloudOffset.value.x;
+    const v = (shared.uCloudCenter.value.z + dir.z * td) / CLOUD_SPAN + shared.uCloudOffset.value.y;
+    return densityFromRaw(field.raw(u, v, work), cover, shared.uCloudSoft.value) * uniforms.uOpacity.value;
+  };
   const instance = {
     group,
     parts: { deck },
@@ -284,6 +304,8 @@ export function buildClouds(ctx, layout, p) {
     cover: p.coverage,
     high: uniforms.uHigh.value,
     veil: 0,
+    moonCover: 0,                   // 0..1: the deck's density in front of the moon (dims it)
+    deckAlpha: uniforms.uOpacity,   // the deck's opacity uniform (linked stars read it)
     /** The Sky that drives this instance: once attached, the runtime's generic tick (no env.sky) is ignored. */
     attach(sky) { owner = sky || null; },
     update(dt, t, env) {
@@ -294,12 +316,14 @@ export function buildClouds(ctx, layout, p) {
       // coverage and genus follow the weather; a mist veils, rain closes the sky
       const cover = Math.min(0.97, q.coverage + s.cloudy * 0.3 + s.rain * 0.52 + s.snow * 0.4 + s.mist * 0.16);
       const fair = Math.max(0, 1 - s.cloudy - s.rain - s.snow - s.mist);
-      mixInto(work, [[fair, SHAPES[q.shape] || SHAPES.wata], [s.cloudy, STORM], [s.rain + s.snow, OVERCAST], [s.mist, VEIL]]);
+      mixInto(work, fair, SHAPES[q.shape] || SHAPES.wata, s.cloudy, STORM, s.rain + s.snow, OVERCAST, s.mist, VEIL);
       mixVec.fromArray(work);
       shared.uCloudCover.value = cover;
       shared.uCloudSoft.value = 0.045 + s.mist * 0.14 + s.snow * 0.07 + s.rain * 0.05;
       shared.uCloudBase.value = q.altitude * (1 - s.mist * 0.35 - s.rain * 0.2);
-      shared.uCloudCenter.value.copy(s.center);
+      // xz follow the cat; the height is a slow reference (snaps on a teleport, e.g. the summit)
+      deckY = Math.abs(s.center.y - deckY) < 20 ? deckY + (s.center.y - deckY) * Math.min(1, step * 0.3) : s.center.y;
+      shared.uCloudCenter.value.set(s.center.x, deckY, s.center.z);
       // drift with the wind: ~3 m/s on a fair day, faster in weather (classic sprites: 0.6–4 m/s)
       const wind = (2.6 + s.storm * 4.5) * q.drift;
       shared.uCloudOffset.value.x = (shared.uCloudOffset.value.x + step * wind / CLOUD_SPAN) % 1;
@@ -325,6 +349,7 @@ export function buildClouds(ctx, layout, p) {
       instance.cover = cover;
       instance.high = uniforms.uHigh.value;
       instance.veil = Math.min(1, s.cloudy * 0.6 + s.mist) * (1 - s.rain);   // a thin veil: the moon's 22° halo weather
+      instance.moonCover = s.night > 0 ? coverAlong(s.moon, cover) : 0;
 
       if (post) {
         const sunUp = s.sun.y;
@@ -333,14 +358,7 @@ export function buildClouds(ctx, layout, p) {
         post.uniforms.uCloudSkyAlpha.value = uniforms.uOpacity.value;
         post.active = shade > 0.001 || (post.shaftSky !== null && sunUp > 0.01);
         // How much of the sun the deck hides from the cat (dims the shafts and the sun's haze glow).
-        let occ = 0;
-        if (sunUp > 0.02) {
-          const td = deckDistance(rel, s.sun, shared.uCloudBase.value);
-          const u = (s.center.x + s.sun.x * td) / CLOUD_SPAN + shared.uCloudOffset.value.x;
-          const v = (s.center.z + s.sun.z * td) / CLOUD_SPAN + shared.uCloudOffset.value.y;
-          occ = densityFromRaw(field.raw(u, v, work), cover, shared.uCloudSoft.value) * uniforms.uOpacity.value;
-        }
-        post.sunOcclusion = occ;
+        post.sunOcclusion = coverAlong(s.sun, cover);
       }
     },
     dispose() { material.dispose(); }
