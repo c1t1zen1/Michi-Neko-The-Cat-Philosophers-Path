@@ -19,5 +19,11 @@ Model: Claude Sonnet 5.5 (resumed after a dead session). Base: fable/integration
 - Note: kit_test "kit_check passes on a clean fixture family" fails: its fixture inventory only lists torii/old-gate, so any real family besides shrine trips it. Not a rocks defect; test is outside my files.
 
 ## Judgement
-AAA-1: modular key rock reads as chiselled, mossed granite vs the classic smooth dark blob; same volume and silhouette. AAA-5: legible at cat height (0.35 m) and 2-3 m at 6/12/18/22 h; the key and its hiding anchor are untouched (layout position and name unchanged, no collider changed).
-Waivers: none (footprint is the layout's). Live meshes: 0. Merged materials: 0 new (km.rock variants only).
+Both assets now have valid L6 pairs (8 per asset, all differ, swap confirmed by the shot log `swaps={"path-boulders":"modular"}`).
+- key-rock AAA-1: chiselled, mossed granite vs the classic smooth blob; same volume. AAA-5: legible at 0.35 m and 2-3 m, 6/12/18/22 h; the key stays visible.
+- path-boulders (big stone s>0.5 at -4.8,17.7, beside the machiya fence) AAA-1: facets, moss and weathering read well at dawn/noon/dusk; at 22 h both are dark but the modular silhouette is still legible. Silhouette is slightly narrower and more peaked than the classic dodecahedron (fitted to the same half extents). AAA-5: legible at cat height.
+Key rock main now sits at y 0.58 like classic (was 0.64). Anchor proof: secretKeyPos (-23.5,0.55,-21.5) and all 25 anchors, all 518 colliders and rng (valley 49233) are byte-equal between the classic digest and the modular-swap digest (compared with `JSON.stringify` of the two `--out` digests).
+Waivers: none. Live meshes: 0. New merged materials: 0.
+
+## Fix round 1
+- kit_check: All kit checks OK (37 passed). kit_contract_test --family rocks: 2 assets, 6 builds, 218 checks, 0 failed. footprint_golden classic: EQUAL. Modular swap: DIFFERENT only by replaced objects (21 removed, 8 added); colliders, anchors, rng equal. verify: All checks passed (kit_test 36/36 after merging 4de4ae0).

@@ -31,6 +31,7 @@ function buildPathBoulders(ctx, layout, p) {
   (layout.rocks || []).forEach(({ s, mat, position, scale, rotation }, i) => {
     const pool = s > 0.5 ? bigV : smallV;
     const geo = pool[i % pool.length];
+    // rotation arrives as 0..PI Euler angles; fold to a +-0.16 rad lean so stones stay seated
     const tilt = [(rotation[0] % Math.PI - Math.PI / 2) * 0.1, rotation[1], (rotation[2] % Math.PI - Math.PI / 2) * 0.1];
     // half extents ~ the classic dodecahedron's, so the collider footprint fits
     const k = p.size, sc = [scale[0] * 0.95 * k, scale[1] * 1.0 * k, scale[2] * 0.95 * k];
@@ -55,7 +56,7 @@ function buildPathBoulders(ctx, layout, p) {
 
 // Classic: main dodecahedron r=0.78 (detail 1) scaled 1.35/1.0/0.9, centre y 0.58,
 // yaw 0.38; two low companions. Half extents below match their bounds.
-const MAIN = { half: [1.02, 0.78, 0.7], pos: [0, 0.64, 0], rot: [0.12, 0.38, -0.08] };
+const MAIN = { half: [1.02, 0.78, 0.7], pos: [0, 0.58, 0], rot: [0.12, 0.38, -0.08] };
 const COMPANIONS = [
   { half: [0.3, 0.22, 0.3], pos: [-0.68, 0.165, 0.28], key: 'stone_a', mat: 'stone' },
   { half: [0.24, 0.18, 0.24], pos: [0.55, 0.132, 0.35], key: 'stone_b', mat: 'stone' }
