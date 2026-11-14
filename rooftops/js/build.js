@@ -14,7 +14,21 @@ import { paintDowntown, installDowntown } from './downtown.js';
 import { makeCutaway } from './cutaway.js';
 import { makeMaterials } from './pieces/paint.js';
 import { UP, box, cyl, slope, frameGroup, ribbon, mergeByMaterial } from './pieces/common.js';
-import { ridgeCap, hiraRoof, tsumaRoof, facade, streetEaveDetails } from './pieces/machiya.js';
+import { ridgeCap, hiraRoof, tsumaRoof } from './pieces/machiya.js';
+import { street } from './pieces/street.js';
+import { steps } from './pieces/steps.js';
+import { bridge } from './pieces/bridge.js';
+import { kido } from './pieces/kido.js';
+import { house } from './pieces/house.js';
+import { kura } from './pieces/kura.js';
+import { corner } from './pieces/corner.js';
+import { komayose } from './pieces/komayose.js';
+import { inuyarai } from './pieces/inuyarai.js';
+import { roji } from './pieces/roji.js';
+import { tsuboniwa } from './pieces/tsuboniwa.js';
+import { deck } from './pieces/deck.js';
+import { balcony } from './pieces/balcony.js';
+import { post } from './pieces/post.js';
 
 /** Open, shallow hull for a historical Takase cargo boat. */
 function boatHullGeometry(len = 4.8, width = 1.55, depth = 0.48) {
@@ -48,34 +62,7 @@ function boatHullGeometry(len = 4.8, width = 1.55, depth = 0.48) {
 /* ------------------------------------------------------------------ */
 
 const B = {};
-
-B.street = (pc, ctx) => {
-  const { M, rail } = ctx;
-  const d = pc.d;
-  if (pc.surface === 'gravel') {
-    // The Roof Road opens over the Kamo. Its current runs across the route,
-    // unlike the longitudinal Takase and Pontochō water, so it gets a
-    // direction-aware copy of the painted water shader. Narrow foam seams
-    // make both banks readable beneath the timber bridge.
-    const river0 = pc.s0 + 2.2;
-    const river1 = pc.s1 - 2.0;
-    const waterY = pc.y + 0.055;
-    ctx.add(ribbon(rail, pc.s0, pc.s1, d - 30, d + 18, pc.y, M.gravel, 0.5));
-    ctx.addGlass(ribbon(rail, river0, river1, d - 30, d + 18, waterY, M.kamoWater, 0.2));
-    ctx.addGlass(ribbon(rail, river0 + 0.03, river0 + 0.18, d - 29.5, d + 17.5, waterY + 0.018, M.foam, 0.45));
-    ctx.addGlass(ribbon(rail, river1 - 0.18, river1 - 0.03, d - 29.5, d + 17.5, waterY + 0.018, M.foam, 0.45));
-  } else if (pc.surface === 'bank') {
-    ctx.add(ribbon(rail, pc.s0, pc.s1, d - 1.6, d + 1.8, pc.y, M.slab, 0.5));
-    ctx.add(ribbon(rail, pc.s0, pc.s1, d + 1.8, d + 3.2, -0.15, M.gravel, 0.5));
-    ctx.addGlass(ribbon(rail, pc.s0, pc.s1, d + 3.2, d + 30, -0.38, M.water, 0.2));
-    ctx.addGlass(ribbon(rail, pc.s0 + 0.15, pc.s1 - 0.15, d + 3.22, d + 3.42, -0.35, M.foam, 0.65));
-  } else if (pc.surface === 'market') {
-    ctx.add(ribbon(rail, pc.s0, pc.s1, d - 2.4, d + 2.4, pc.y, M.slab, 0.5));
-    ctx.add(ribbon(rail, pc.s0, pc.s1, d + 2.4, d + 9, pc.y - 0.02, M.cobble, 1));
-  } else {
-    ctx.add(ribbon(rail, pc.s0, pc.s1, d - 2.4, d + 7, pc.y, M.cobble, 1));
-  }
-};
+Object.assign(B, { street, steps, bridge, kido, house, kura, corner, komayose, inuyarai, roji, tsuboniwa, deck, balcony, post });
 
 B.water = (pc, ctx) => {
   const { M, rail } = ctx;
@@ -224,253 +211,6 @@ B.canalBridge = (pc, ctx) => {
   ctx.add(g);
 };
 
-B.house = (pc, ctx) => {
-  const { M, rail } = ctx;
-  const sm = (pc.s0 + pc.s1) / 2;
-  const g = frameGroup(rail, sm);
-  const x0 = pc.s0 - sm, x1 = pc.s1 - sm;
-  const zF = pc.dFront, zB = pc.dFront - pc.depth;
-  const look = pc.look;
-  const far = pc.row === 'far';
-  const wallMat = far && look > 0.55 ? M.bengara : (look > 0.7 ? M.plasterWarm : M.plaster);
-  // Body: the walls up to the eave.
-  g.add(box(x1 - x0, pc.eave, pc.depth, wallMat, 0, pc.eave / 2, (zF + zB) / 2));
-  g.add(box(x1 - x0 + 0.12, 0.12, pc.depth + 0.12, M.timber, 0, pc.eave - 0.06, (zF + zB) / 2));
-  facade(g, M, pc, x0, x1, zF, look);
-  if (pc.style === 'hira') hiraRoof(g, M, x0, x1, zF, zB, pc.eave, pc.ridge);
-  else tsumaRoof(g, M, x0, x1, zF, zB, pc.eave, pc.ridge);
-  streetEaveDetails(g, M, pc, x0, x1, zF, look);
-  if (pc.kaisho) {
-    // The kaisho's second-floor opening onto the plank, curtained in festival red.
-    g.add(box(1.4, 1.0, 0.06, M.tapestry, x1 - 0.9, 3.3, zF + 0.05));
-  }
-  if (pc.deck) {
-    const dk = pc.deck;
-    const zR = (zF + zB) / 2;
-    const zD = zR + 0.9;
-    const dx0 = dk.s0 - sm, dx1 = dk.s1 - sm, dxm = (dx0 + dx1) / 2;
-    g.add(box(dx1 - dx0, 0.1, 2.0, M.timberMed, dxm, dk.y - 0.05, zD));
-    for (const px of [dx0 + 0.1, dx1 - 0.1]) for (const pz of [zD - 0.9, zD + 0.9]) {
-      g.add(box(0.1, dk.y - pc.ridge + 0.85, 0.1, M.timber, px, (pc.ridge + dk.y + 0.85) / 2 - 0.05, pz));
-    }
-    g.add(box(dx1 - dx0, 0.06, 0.06, M.timber, dxm, dk.y + 0.8, zD + 0.95));
-    g.add(box(0.06, 0.06, 2.0, M.timber, dx0 + 0.1, dk.y + 0.8, zD));
-    g.add(box(0.06, 0.06, 2.0, M.timber, dx1 - 0.1, dk.y + 0.8, zD));
-    // A pole of washing over the deck.
-    const pole = cyl(0.03, dx1 - dx0, M.bamboo, 'x', 6);
-    pole.position.set(dxm, dk.y + 1.45, zD - 0.3);
-    g.add(pole);
-    for (let x = dx0 + 0.5, i = 0; x < dx1 - 0.4; x += 0.75, i++) {
-      const cl = box(0.55, 0.7 + hash1(x + sm) * 0.25, 0.015, M.cloth[(i + Math.floor(look * 5)) % M.cloth.length], x, dk.y + 1.05, zD - 0.3);
-      g.add(cl);
-    }
-    if (pc.futon) {
-      const fx0 = pc.futon.s0 - sm, fx1 = pc.futon.s1 - sm, fxm = (fx0 + fx1) / 2, fw = fx1 - fx0;
-      const zf = zR + 1.5;
-      g.add(box(fw, 0.16, 0.9, M.futon, fxm, pc.futon.y - 0.08, zf));
-      g.add(box(fw, 0.75, 0.12, M.futon, fxm, pc.futon.y - 0.45, zf + 0.42));
-      g.add(box(fw, 0.75, 0.12, M.futon, fxm, pc.futon.y - 0.45, zf - 0.42));
-    }
-  }
-  // Yoiyama: a pair of lanterns under the eave of the festival-street houses.
-  if (pc.lanterns) {
-    const ly = (pc.storeys === 2 ? pc.hisashi : pc.eave) - 0.38;
-    for (const lx of [x0 + (x1 - x0) * 0.22, x1 - (x1 - x0) * 0.22]) {
-      g.add(box(0.02, 0.2, 0.02, M.dark, lx, ly + 0.25, zF + 0.55));
-      const l = cyl(0.13, 0.32, look > 0.5 ? M.lanternRed : M.lanternWhite, 'y', 10);
-      l.position.set(lx, ly, zF + 0.55);
-      g.add(l);
-    }
-    ctx.light(rail, sm, ly, zF + 0.9);
-  }
-  // Lit shoji upstairs at night.
-  if (pc.storeys === 2 && !pc.covered) {
-    g.add(box(Math.min(1.2, (x1 - x0) * 0.3), 0.5, 0.03, M.shoji, x0 + 0.9, (pc.hisashi + pc.eave) / 2 + 0.2, zF + 0.035));
-  }
-  ctx.add(g);
-};
-
-B.kura = (pc, ctx) => {
-  const { M, rail } = ctx;
-  const sm = (pc.s0 + pc.s1) / 2;
-  const g = frameGroup(rail, sm);
-  const x0 = pc.s0 - sm, x1 = pc.s1 - sm, w = x1 - x0;
-  const zF = pc.dFront, zB = zF - pc.depth, zm = (zF + zB) / 2;
-  g.add(box(w, pc.foot, pc.depth, M.plaster, 0, pc.foot / 2, zm));
-  g.add(box(w + 0.05, 1.6, pc.depth + 0.05, M.namako, 0, 0.8, zm));
-  g.add(box(w + 0.16, 0.22, pc.depth + 0.16, M.timber, 0, pc.foot - 0.11, zm));
-  // A small barred window high on the gable side.
-  g.add(box(0.8, 0.7, 0.08, M.dark, 0, pc.foot - 1.0, zF + 0.03));
-  for (let i = -1; i <= 1; i++) g.add(box(0.05, 0.7, 0.1, M.plaster, i * 0.22, pc.foot - 1.0, zF + 0.05));
-  tsumaRoof(g, M, x0, x1, zF, zB, pc.foot, pc.ridge, 0.25);
-  ctx.add(g);
-};
-
-B.corner = (pc, ctx) => {
-  const { M } = ctx;
-  const g = new THREE.Group();
-  g.position.set(pc.cx, 0, pc.cz);
-  g.rotation.y = Math.atan2(-pc.tIn.z, pc.tIn.x);        // local x along the incoming leg
-  const h = pc.half, eave = pc.eave;
-  g.add(box(h * 2, eave, h * 2, M.plasterWarm, 0, eave / 2, 0));
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) g.add(box(0.16, eave, 0.16, M.timber, sx * (h - 0.08), eave / 2, sz * (h - 0.08)));
-  // Hip roof under the deck.
-  const roofGeo = new THREE.ConeGeometry((h + 0.45) * Math.SQRT2, 1.0, 4, 1);
-  roofGeo.rotateY(Math.PI / 4);
-  const roof = new THREE.Mesh(roofGeo, M.roof);
-  roof.position.y = eave + 0.5;
-  g.add(roof);
-  // The drying deck the run crosses, posts down to the roof.
-  const top = pc.h, dh = pc.deckHalf;
-  g.add(box(dh * 2, 0.12, dh * 2, M.timberMed, 0, top - 0.06, 0));
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) g.add(box(0.12, top - eave, 0.12, M.timber, sx * (dh - 0.1), (top + eave) / 2, sz * (dh - 0.1)));
-  g.add(box(dh * 2, 0.06, 0.06, M.timber, 0, top + 0.75, dh - 0.05));
-  g.add(box(0.06, 0.06, dh * 2, M.timber, dh - 0.05, top + 0.75, 0));
-  for (let i = -2; i <= 2; i++) {
-    g.add(box(0.05, 0.75, 0.05, M.timber, i * dh / 2.5, top + 0.37, dh - 0.05));
-    g.add(box(0.05, 0.75, 0.05, M.timber, dh - 0.05, top + 0.37, i * dh / 2.5));
-  }
-  // Façades on the two street sides.
-  for (const [rx, rz, ry] of [[0, h + 0.01, 0], [h + 0.01, 0, Math.PI / 2]]) {
-    const f = box(h * 1.4, 1.5, 0.05, M.koshi, rx, 1.0, rz);
-    f.rotation.y = ry;
-    g.add(f);
-  }
-  ctx.add(g);
-};
-
-B.bridge = (pc, ctx) => {
-  const { M, rail } = ctx;
-  const g = frameGroup(rail, 5.5);
-
-  // Kamo riverbed close-up: long dressed-stone banks, pale gravel shoals and
-  // a few water-worn rocks keep the opening vista from reading as one flat
-  // rectangle beneath the bridge. All of it is static-merged after framing.
-  for (const x of [-3.28, 2.08]) {
-    g.add(box(0.44, 0.72, 30, M.wetStone, x, -0.24, -3.8));
-    for (let z = -17.0, i = 0; z <= 9.5; z += 2.15, i++) {
-      const cap = box(0.62, 0.15, 1.88, i % 3 === 0 ? M.slab : M.stone, x, 0.185 + (i % 2) * 0.012, z);
-      cap.rotation.y = (i % 3 - 1) * 0.018;
-      g.add(cap);
-    }
-  }
-  for (const [x, z, sx, sz, turn] of [
-    [-2.72, -8.8, 0.42, 3.3, -0.12], [1.55, -2.5, 0.34, 2.5, 0.08],
-    [-2.62, 5.2, 0.28, 2.0, 0.16], [1.62, 8.0, 0.22, 1.5, -0.09]
-  ]) {
-    const shoal = new THREE.Mesh(new THREE.CircleGeometry(1, 18), M.sand);
-    shoal.rotation.x = -Math.PI / 2;
-    shoal.rotation.y = turn;
-    shoal.scale.set(sx, sz, 1);
-    shoal.position.set(x, -0.525, z);
-    g.add(shoal);
-  }
-  for (const [x, z, size, turn] of [
-    [-2.55, -7.4, 0.42, 0.2], [-2.76, -3.4, 0.31, -0.5], [1.47, -1.5, 0.38, 0.7],
-    [1.66, 3.8, 0.27, -0.2], [-2.63, 6.1, 0.34, 0.5], [1.55, 8.5, 0.24, -0.7]
-  ]) {
-    const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(size, 0), M.wetStone);
-    stone.scale.set(1.15, 0.38, 1.5);
-    stone.rotation.y = turn;
-    stone.position.set(x, -0.43, z);
-    g.add(stone);
-  }
-
-  // Heavy edge beams, visible cross-ties and individual plank seams give the
-  // starting deck real joinery while preserving its single forgiving plane.
-  g.add(box(11.0, 0.18, 2.7, M.timberMed, 0, pc.deckY - 0.09, 0));
-  g.add(box(11.0, 0.16, 2.5, M.timber, 0, pc.deckY - 0.26, 0));
-  for (const z of [-1.4, 1.4]) g.add(box(11.25, 0.3, 0.17, M.timber, 0, pc.deckY - 0.34, z));
-  for (let x = -5.18, i = 0; x <= 5.18; x += 0.54, i++) {
-    g.add(box(0.026, 0.022, 2.5, M.dark, x, pc.deckY + 0.011, 0));
-    if (i % 2 === 0) {
-      for (const z of [-1.04, 1.04]) {
-        const peg = cyl(0.024, 0.026, M.bronze, 'y', 7);
-        peg.position.set(x, pc.deckY + 0.025, z);
-        g.add(peg);
-      }
-    }
-  }
-  for (let x = -4.8; x <= 4.8; x += 1.2) g.add(box(0.18, 0.19, 3.05, M.timber, x, pc.deckY - 0.41, 0));
-
-  // Three masonry piers stand in the flow. Pointed upstream cutwaters split
-  // the current; lighter cap stones catch the morning sky beneath the deck.
-  const cutwaterGeo = new THREE.ConeGeometry(0.56, 1.45, 4);
-  cutwaterGeo.rotateY(Math.PI / 4);
-  cutwaterGeo.rotateX(-Math.PI / 2);
-  for (const x of [-2.8, 0, 2.0]) {
-    g.add(box(0.72, pc.deckY + 0.3, 1.8, M.stone, x, (pc.deckY - 0.6) / 2 - 0.15, 0));
-    g.add(box(1.02, 0.18, 2.12, M.slab, x, pc.deckY - 0.28, 0));
-    const cutwater = new THREE.Mesh(cutwaterGeo, M.wetStone);
-    cutwater.position.set(x, -0.03, -1.5);
-    g.add(cutwater);
-  }
-  const giboshi = new THREE.LatheGeometry([
-    new THREE.Vector2(0.0, 0.0), new THREE.Vector2(0.12, 0.0), new THREE.Vector2(0.13, 0.05),
-    new THREE.Vector2(0.1, 0.1), new THREE.Vector2(0.16, 0.2), new THREE.Vector2(0.15, 0.3),
-    new THREE.Vector2(0.08, 0.38), new THREE.Vector2(0.03, 0.46), new THREE.Vector2(0.0, 0.5)
-  ], 14);
-  for (const z of [-1.25, 1.25]) {
-    g.add(box(11.0, 0.08, 0.14, M.timber, 0, 1.62, z));
-    g.add(box(11.0, 0.06, 0.1, M.timber, 0, 1.3, z));
-    for (const s of [0.2, ...pc.caps, 10.8]) {
-      const x = s - 5.5;
-      g.add(box(0.2, 0.75, 0.2, M.timber, x, pc.deckY + 0.36, z));
-      const collar = cyl(0.13, 0.07, M.bronze, 'y', 10);
-      collar.position.set(x, pc.deckY + 0.13, z);
-      g.add(collar);
-      if (pc.caps.includes(s)) {
-        const gb = new THREE.Mesh(giboshi, M.bronze);
-        gb.position.set(x, pc.capY - 0.5, z);
-        g.add(gb);
-      }
-    }
-  }
-  // Ramp down into the city.
-  slope(g, M.timberMed, { x: 7.9, y: 0.05, z: 0 }, pc.deckY - 0.05, 2.4, 2.7, Math.PI / 2, 0.14);
-  ctx.add(g);
-};
-
-B.kido = (pc, ctx) => {
-  const { M, rail } = ctx;
-  const sm = (pc.s0 + pc.s1) / 2;
-  const g = frameGroup(rail, sm);
-  const hw = (pc.s1 - pc.s0) / 2;
-  for (const x of [-hw + 0.15, hw - 0.15]) g.add(box(0.18, 2.2, 0.18, M.timber, x, 1.1, pc.d));
-  g.add(box(hw * 2, 0.16, 0.2, M.timber, 0, 2.1, pc.d));
-  slope(g, M.roof, { x: 0, y: 2.15, z: pc.d + 0.55 }, 0.1, 0.55, hw * 2 + 0.3, 0);
-  slope(g, M.roof, { x: 0, y: 2.15, z: pc.d - 0.55 }, 0.1, 0.55, hw * 2 + 0.3, Math.PI);
-  ridgeCap(g, M, -hw - 0.15, hw + 0.15, pc.y - 0.25, pc.d);
-  // The gate leaves stand open.
-  for (const sx of [-1, 1]) {
-    const leaf = box(0.9, 1.8, 0.06, M.timberMed, sx * (hw - 0.2), 1.0, pc.d - 0.5);
-    leaf.rotation.y = sx * 1.2;
-    g.add(leaf);
-  }
-  ctx.add(g);
-  ctx.light(rail, sm, 1.9, pc.d + 0.5);
-};
-
-B.komayose = (pc, ctx) => {
-  const { M } = ctx;
-  const g = frameGroup(ctx.rail, (pc.s0 + pc.s1) / 2);
-  const w = pc.s1 - pc.s0;
-  g.add(box(w, 0.1, 0.16, M.timberMed, 0, pc.y - 0.05, pc.d));
-  for (let x = -w / 2 + 0.08; x <= w / 2 - 0.07; x += 0.22) g.add(box(0.08, pc.y - 0.1, 0.08, M.timberMed, x, (pc.y - 0.1) / 2, pc.d));
-  ctx.add(g);
-};
-
-B.inuyarai = (pc, ctx) => {
-  const g = frameGroup(ctx.rail, (pc.s0 + pc.s1) / 2);
-  const w = pc.s1 - pc.s0;
-  const geo = new THREE.CylinderGeometry(0.9, 0.9, w, 12, 1, true, 0, Math.PI / 2);
-  geo.rotateZ(Math.PI / 2);
-  const m = new THREE.Mesh(geo, ctx.M.inuyarai);
-  m.position.set(0, 0, pc.d - 0.4);              // top against the wall, foot out on the street
-  g.add(m);
-  ctx.add(g);
-};
-
 B.toro = (pc, ctx) => {
   const { M } = ctx;
   const sm = (pc.s0 + pc.s1) / 2;
@@ -484,113 +224,6 @@ B.toro = (pc, ctx) => {
   g.add(roof);
   ctx.add(g);
   ctx.light(ctx.rail, sm, 1.1, pc.d);
-};
-
-B.post = (pc, ctx) => {
-  const { M } = ctx;
-  const sm = (pc.s0 + pc.s1) / 2;
-  const g = frameGroup(ctx.rail, sm);
-  g.add(box(0.1, pc.y - 1.4, 0.1, M.timber, 0, 1.4 + (pc.y - 1.4) / 2, pc.d));
-  g.add(box(0.3, 0.05, 0.3, M.agedWood, 0, pc.y - 0.02, pc.d));
-  for(const y of [pc.y-.12,1.5]) {g.add(box(.13,.055,.13,M.steel,0,y,pc.d));}
-  for(const side of [-1,1]) {const brace=box(.035,.38,.04,M.agedWood,side*.1,pc.y-.18,pc.d);brace.rotation.z=side*-.48;g.add(brace);}
-
-  const l = cyl(0.16, 0.4, M.lanternRed, 'y', 10);
-  l.position.set(0, pc.y - 0.35, pc.d + 0.25);
-  g.add(l);
-  ctx.add(g);
-  ctx.light(ctx.rail, sm, pc.y - 0.35, pc.d + 0.3);
-};
-
-B.steps = (pc, ctx) => {
-  const g = frameGroup(ctx.rail, (pc.s0 + pc.s1) / 2);
-  g.add(box(pc.s1 - pc.s0, 0.3, 4.0, ctx.M.stone, 0, pc.y - 0.15, pc.d));
-  ctx.add(g);
-};
-
-B.roji = (pc, ctx) => {
-  const { M, rail } = ctx;
-  const sm = (pc.s0 + pc.s1) / 2;
-  const w = pc.s1 - pc.s0;
-  const g = frameGroup(rail, sm);
-  const zFar = pc.d - 5.0;
-
-  // A thumb-width side alley between the first machiya: wet stone, an open
-  // drain and deliberately uneven tobi-ishi draw the eye deep into the block.
-  g.add(box(w - 0.1, 0.08, 5.55, M.wetStone, 0, 0.04, pc.d - 2.25));
-  for (const x of [-w / 2 + 0.09, w / 2 - 0.09]) {
-    g.add(box(0.11, 0.055, 5.45, M.dark, x, 0.082, pc.d - 2.25));
-  }
-  for (let i = 0; i < 7; i++) {
-    const slab = box(0.56 + (i % 2) * 0.08, 0.075, 0.42 + (i % 3) * 0.055,
-      i % 3 === 0 ? M.slab : M.stone, (i % 3 - 1) * 0.075, 0.125, pc.d + 0.02 - i * 0.7);
-    slab.rotation.y = (i % 2 ? -1 : 1) * (0.035 + i * 0.006);
-    g.add(slab);
-  }
-
-  // Copper rain chain, clay nandina pot and a low tsukubai make the alley a
-  // tiny destination rather than a black gap between two façades.
-  const chain = cyl(0.018, 2.1, M.bronze, 'y', 6);
-  chain.position.set(-w * 0.34, 1.1, pc.d - 0.35);
-  g.add(chain);
-  const pot = cyl(0.19, 0.3, M.clay, 'y', 10);
-  pot.position.set(w * 0.27, 0.18, pc.d - 2.35);
-  g.add(pot);
-  for (let i = 0; i < 5; i++) {
-    const stem = cyl(0.018, 0.48 + i * 0.06, M.bark, 'y', 5);
-    stem.rotation.z = (i - 2) * 0.12;
-    stem.position.set(w * 0.27 + (i - 2) * 0.035, 0.52, pc.d - 2.35);
-    g.add(stem);
-    const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(0.12 + (i % 2) * 0.025, 1), i % 2 ? M.pine : M.foliage);
-    leaf.scale.set(0.8, 1.35, 0.65);
-    leaf.position.set(w * 0.27 + (i - 2) * 0.075, 0.74 + (i % 2) * 0.1, pc.d - 2.35 + (i % 3 - 1) * 0.08);
-    g.add(leaf);
-  }
-  const basin = cyl(0.29, 0.24, M.wetStone, 'y', 11);
-  basin.position.set(-w * 0.22, 0.18, pc.d - 3.35);
-  g.add(basin);
-  const basinWater = new THREE.Mesh(new THREE.CircleGeometry(0.21, 14), M.glass);
-  basinWater.rotation.x = -Math.PI / 2;
-  basinWater.position.set(-w * 0.22, 0.305, pc.d - 3.35);
-  g.add(basinWater);
-  const spout = cyl(0.028, 0.62, M.bamboo, 'x', 7);
-  spout.position.set(-w * 0.02, 0.63, pc.d - 3.35);
-  g.add(spout);
-  const spoutPost = cyl(0.035, 0.75, M.bamboo, 'y', 7);
-  spoutPost.position.set(w * 0.25, 0.42, pc.d - 3.35);
-  g.add(spoutPost);
-
-  // A softly lit service door closes the perspective, with a bamboo lintel
-  // and short noren that move in the same breeze as the street curtains.
-  g.add(box(w - 0.16, 1.72, 0.08, M.timber, 0, 0.86, zFar));
-  g.add(box(w - 0.34, 1.38, 0.035, M.shoji, 0, 0.86, zFar + 0.05));
-  for (const x of [-w * 0.36, w * 0.36]) g.add(box(0.07, 2.0, 0.07, M.bamboo, x, 1.0, zFar + 0.18));
-  const lintel = cyl(0.055, w - 0.12, M.bamboo, 'x', 8);
-  lintel.position.set(0, 1.95, zFar + 0.18);
-  g.add(lintel);
-  g.add(box(w - 0.34, 0.52, 0.018, M.noren.hemp, 0, 1.63, zFar + 0.22));
-  const cord = box(0.018, 0.34, 0.018, M.dark, w * 0.25, 1.74, zFar + 0.35);
-  g.add(cord);
-  const lamp = cyl(0.12, 0.29, M.lanternWhite, 'y', 10);
-  lamp.position.set(w * 0.25, 1.47, zFar + 0.35);
-  g.add(lamp);
-
-  ctx.add(g);
-  ctx.light(rail, sm, 1.47, zFar + 0.38);
-};
-
-B.tsuboniwa = (pc, ctx) => {
-  const { M } = ctx;
-  const sm = (pc.s0 + pc.s1) / 2;
-  const g = frameGroup(ctx.rail, sm);
-  const tr = cyl(0.07, 2.2, M.bark, 'y', 6); tr.position.set(0, 1.1, pc.d - 0.8); g.add(tr);
-  const k = hash1(sm);
-  for (let i = 0; i < 7; i++) {
-    const c = new THREE.Mesh(new THREE.IcosahedronGeometry(0.28 + 0.14 * hash1(sm + i), 1), k > 0.5 ? M.pine : M.foliage);
-    c.position.set((hash1(sm * 3 + i) - 0.5) * 1.1, 1.9 + i * 0.12, pc.d - 1.2 + (hash1(sm + i * 7) - 0.5) * 0.7);
-    g.add(c);
-  }
-  ctx.add(g);
 };
 
 B.rope = (pc, ctx) => {
@@ -633,72 +266,6 @@ B.rope = (pc, ctx) => {
       g.add(l);
     }
     ctx.light(ctx.rail, sm, pc.y - 0.3, pc.d);
-  }
-  ctx.add(g);
-};
-
-B.deck = (pc, ctx) => {
-  const { M } = ctx;
-  const sm = (pc.s0 + pc.s1) / 2, w = pc.s1 - pc.s0;
-  const g = frameGroup(ctx.rail, sm);
-  if (pc.style === 'plank') {
-    g.add(box(w, 0.08, 0.5, M.timberMed, 0, pc.y - 0.04, pc.d));
-    for (const z of [-0.26, 0.26]) g.add(box(w, 0.05, 0.05, M.lacquer, 0, pc.y + 0.55, pc.d + z));
-    ctx.add(g);
-    return;
-  }
-  // Yuka: a timber deck on stilts over the riverbank, lanterns and low tables.
-  g.add(box(w, 0.12, 2.6, M.timberMed, 0, pc.y - 0.06, pc.d));
-  for (let x = -w / 2 + 0.2; x <= w / 2 - 0.15; x += 1.6) {
-    for (const z of [pc.d - 1.2, pc.d + 1.2]) g.add(box(0.12, pc.y, 0.12, M.timber, x, pc.y / 2, z));
-  }
-  g.add(box(w, 0.06, 0.06, M.timber, 0, pc.y + 0.55, pc.d + 1.28));
-  for (let x = -w / 2 + 1.2; x < w / 2 - 0.8; x += 2.4) {
-    g.add(box(0.9, 0.3, 0.55, M.dark, x, pc.y + 0.15, pc.d - 0.2));
-    g.add(box(0.4, 0.06, 0.4, M.goods[3], x - 0.6, pc.y + 0.03, pc.d - 0.2));
-    g.add(box(0.4, 0.06, 0.4, M.goods[3], x + 0.6, pc.y + 0.03, pc.d - 0.2));
-  }
-  ctx.add(g);
-};
-
-B.balcony = (pc, ctx) => {
-  const { M } = ctx;
-  const sm = (pc.s0 + pc.s1) / 2, w = pc.s1 - pc.s0;
-  const g = frameGroup(ctx.rail, sm);
-  const near = pc.d > -1;
-  const outer = pc.d + (near ? 0.72 : -0.72);
-  const inner = pc.d - (near ? 0.38 : -0.38);
-  const deckMat = pc.style === 'awning' ? M.cloth[(Math.floor(pc.look * 7) + 1) % M.cloth.length] : M.timberMed;
-
-  g.add(box(w, pc.style === 'awning' ? 0.07 : 0.11, 1.45, deckMat, 0, pc.y - 0.055, pc.d));
-  g.add(box(w, 0.08, 0.1, M.timber, 0, pc.y - 0.13, outer));
-  for (let x = -w / 2 + 0.12; x < w / 2; x += 0.78) {
-    const brace = box(0.065, Math.max(0.6, pc.y - 0.25), 0.065, M.timber, x,
-      (pc.y - 0.25) / 2, inner);
-    g.add(brace);
-    if (pc.style !== 'awning') g.add(box(0.055, 0.46, 0.055, M.timber, x, pc.y + 0.23, outer));
-  }
-  if (pc.style !== 'awning') {
-    g.add(box(w, 0.055, 0.06, M.timber, 0, pc.y + 0.48, outer));
-  } else {
-    // A scalloped shop awning: the fringe moves with the same breeze shader as
-    // the laundry, while the timber braces explain why a cat can stand on it.
-    for (let x = -w / 2 + 0.18, i = 0; x < w / 2 - 0.05; x += 0.36, i++) {
-      g.add(box(0.28, 0.16 + (i % 2) * 0.05, 0.018, deckMat, x, pc.y - 0.13, outer + 0.04));
-    }
-  }
-  if (pc.style === 'bridge') {
-    for (const x of [-w / 2 + 0.12, w / 2 - 0.12]) {
-      const rope = cyl(0.018, 2.1, M.hemp, 'y', 5);
-      rope.position.set(x, pc.y + 0.98, outer);
-      g.add(rope);
-    }
-  }
-  if (pc.look > 0.46) {
-    const lantern = cyl(0.105, 0.28, pc.look > 0.72 ? M.lanternRed : M.lanternWhite, 'y', 9);
-    lantern.position.set((pc.look - 0.5) * w * 0.75, pc.y - 0.28, outer);
-    g.add(lantern);
-    ctx.light(ctx.rail, sm, pc.y - 0.25, outer);
   }
   ctx.add(g);
 };
