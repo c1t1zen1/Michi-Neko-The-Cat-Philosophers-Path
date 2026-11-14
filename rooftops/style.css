@@ -484,3 +484,8 @@ body.nohud .neighbourhood-map { display: none; }
 @media (orientation: portrait) and (max-width: 640px) { .tools { gap: 1px; } .neighbourhood-map { padding: 22px; } }
 
 body.at-finale .touch { display: none; pointer-events: none; }
+
+/* A single quiet cue at a selectable noren, above the thumb controls. */
+.alley-hint { position:fixed; left:50%; bottom:max(158px,calc(env(safe-area-inset-bottom) + 142px)); transform:translateX(-50%); max-width:88vw; margin:0; padding:8px 14px; border-radius:10px; background:var(--wash-strong); color:var(--paper); text-align:center; font:400 .83rem/1.4 var(--serif); pointer-events:none; }
+.alley-hint[hidden] { display:none; }
+.map-alley { fill:none; stroke:#7a875d; stroke-width:2.2; stroke-dasharray:2 2; stroke-linecap:round; }

@@ -29,6 +29,21 @@ check('guide traverses the entire real-physics run without losing the player', (
   assert.ok(feints > 20 && detours > 20, 'guide really reverses and chooses alternate surfaces');
   assert.ok(paces.has(0) && [...paces].some(v => v >= 7) && paces.has(2), 'wait, slow walk and sprint all occur');
 });
+check('desktop lead also completes the run without a stranded guide', () => {
+  const player=new Runner(level), guide=new Companion(level), auto=new Autopilot(level);
+  player.reset(1,1.1);guide.reset(player);let gap=0;
+  for(let i=0;i<48000;i++) { const t=i*dt;player.step(dt,auto.input(player,t,dt),t);guide.update(dt,player,t,false);gap=Math.max(gap,Math.abs(player.s-guide.runner.s)); }
+  assert.ok(gap<10, 'desktop separation '+gap.toFixed(2));assert.ok(guide.runner.s>level.mouths[6].s0-8);
+});
+check('curious guide returns through the same alley when Michi does not follow', () => {
+  for(const a of level.alleys) {
+    const player=new Runner(level), guide=new Companion(level);
+    player.reset(a.s0-.7,0);guide.reset(player);guide.runner.reset(a.s0+.8,0);
+    guide.modeIndex=6;guide.duration=5;let entered=false;
+    for(let i=0;i<1200;i++) { player.step(dt,{},i*dt);guide.update(dt,player,i*dt,true);if(guide.runner.alley===a.id)entered=true; }
+    assert.ok(entered,a.name+' invitation occurs');assert.equal(guide.runner.alley,null,a.name+' returns to Michi');
+  }
+});
 check('guide keeps up when cargo boats begin at different points in their cycles', () => {
   for (const phase of [4, 9, 13, 18]) {
     const player = new Runner(level), guide = new Companion(level), auto = new Autopilot(level);
@@ -62,7 +77,7 @@ check('guide follows stopping, dropping and backtracking from all seven lanterns
 check('solid tunnel ceilings stop upward jumps and keep both exits usable', () => {
   for (const c of level.ceilings) {
     const floor = { id: 0, s0: c.s0 - 3, s1: c.s1 + 3, y0: c.y - 0.8, y1: c.y - 0.8, d: (c.d0 + c.d1) / 2, kind: 'deck' };
-    const r = new Runner({ platforms: [floor], walls: [], ceilings: [c], length: level.length });
+    const r = new Runner({ platforms: [floor], walls: [], ceilings: [{ ...c, alley: undefined }], length: level.length });
     r.reset((c.s0 + c.s1) / 2, floor.y0); let peak = r.y;
     for (let i = 0; i < 150; i++) { r.step(dt, { jumpPressed: i === 0, jumpHeld: true }, i * dt); peak = Math.max(peak, r.y); }
     assert.ok(peak + 0.32 <= c.y + 1e-5, 'cat cannot pass through the tunnel soffit');

@@ -8,6 +8,10 @@
 //
 // Pure: no three.js. The page feeds it input and reads s / y / depth back.
 
+import { alleyDepth, alleyEntrance } from './alleys.js';
+
+export const platDepth = (p, s) => p?.depthPath ? alleyDepth(p.depthPath, s) : (p?.d ?? 0);
+
 export const PHYS = {
   run: 4.5,           // player.speed
   sprintMul: 1.7,     // player.sprintMultiplier
@@ -69,6 +73,7 @@ export class Runner {
   }
 
   reset(s, y) {
+    this.alley = null;
     this.s = s;
     this.y = y;
     this.vs = 0;
@@ -93,13 +98,25 @@ export class Runner {
   /** Depth the walls test against: whatever the cat last stood on. */
   get depth() {
     const g = this.ground || this.lastGround;
-    return g ? g.d : 0;
+    return g ? platDepth(g, this.s) : 0;
+  }
+
+  acceptsPlatform(p) { return (p.alley ?? null) === this.alley; }
+
+  enterAlley(a) {
+    if (!a || this.s < a.s0 || this.s > a.s1 || this.y > 1.9) return false;
+    this.alley = a.id;
+    this.ground = this.support(this.s, this.y + .3, 0, 4);
+    this.grounded = !!this.ground;
+    if (this.ground) { this.y = platTop(this.ground, this.s, this.time); this.lastGround = this.ground; }
+    return true;
   }
 
   /** Highest platform at s whose top lies in [y - down, y + up]. */
   support(s, y, up, down, time = this.time) {
     let best = null, bestTop = -Infinity;
     for (const p of this.level.platforms) {
+      if (!this.acceptsPlatform(p)) continue;
       if (p === this.dropIgnore && this.dropT > 0) continue;
       if (!platCovers(p, s, time, PHYS.foot)) continue;
       const top = platTop(p, s, time);
@@ -116,6 +133,7 @@ export class Runner {
     const d = this.depth;
     const lo = this.y + 0.03, hi = this.y + PHYS.body;
     for (const w of this.level.walls) {
+      if ((w.alley ?? null) !== this.alley) continue;
       if (w.dir !== dir) continue;
       if (d < w.d0 - 0.3 || d > w.d1 + 0.3) continue;
       if (hi <= w.y0 || lo >= w.y1) continue;
@@ -149,6 +167,10 @@ export class Runner {
     this.bufferT = input.jumpPressed ? P.buffer : Math.max(0, this.bufferT - dt);
     this.coyoteT = this.grounded ? P.coyote : Math.max(0, this.coyoteT - dt);
 
+    if (input.downPressed && this.alley === null && this.grounded) {
+      const entrance = alleyEntrance(L, this.s, this.y);
+      if (entrance && this.enterAlley(entrance)) this.events.push('alley-enter');
+    }
     const g = this.grounded ? this.ground : null;
     const kind = g ? g.kind : null;
     this.onRope = kind === 'rope';
@@ -240,6 +262,7 @@ export class Runner {
       // Ceilings: solid platforms (the canopy) and tunnel soffits stop a jump from below.
       if (this.vy > 0) {
         for (const p of L.platforms) {
+          if (!this.acceptsPlatform(p)) continue;
           if (!p.solid || !platCovers(p, this.s, time, -PHYS.halfLen * 0.5)) continue;
           const under = platTop(p, this.s, time) - 0.12;
           if (prevY + P.body <= under + 1e-6 && this.y + P.body > under) {
@@ -250,6 +273,7 @@ export class Runner {
         if (L.ceilings) {
           const d = this.depth;
           for (const c of L.ceilings) {
+            if ((c.alley ?? null) !== this.alley) continue;
             if (this.s < c.s0 + P.halfLen * 0.5 || this.s > c.s1 - P.halfLen * 0.5) continue;
             if (d < c.d0 - 0.3 || d > c.d1 + 0.3) continue;
             if (prevY + P.body <= c.y + 1e-6 && this.y + P.body > c.y) {
@@ -264,6 +288,7 @@ export class Runner {
       const dir = this.vs ? Math.sign(this.vs) : (move ? Math.sign(move) : 0);
       if (dir) {
         for (const p of L.platforms) {
+          if (!this.acceptsPlatform(p)) continue;
           if (p === this.dropIgnore && this.dropT > 0) continue;
           const off = p.move ? platOffset(p, time) : 0;
           const edge = dir > 0 ? p.s0 + off : p.s1 + off;
@@ -287,6 +312,7 @@ export class Runner {
       if (!this.grounded && this.vy <= 0) {
         let best = null, bestTop = -Infinity;
         for (const p of L.platforms) {
+          if (!this.acceptsPlatform(p)) continue;
           if (p === this.dropIgnore && this.dropT > 0) continue;
           if (!platCovers(p, this.s, time, P.foot)) continue;
           const top = platTop(p, this.s, time);
@@ -316,6 +342,14 @@ export class Runner {
       this.onRope = this.ground.kind === 'rope';
     }
 
+    if (this.alley !== null) {
+      const a = L.alleys[this.alley];
+      if (this.s <= a.s0 || this.s >= a.s1) {
+        this.alley = null; this.ground = null; this.grounded = false;
+        this.lastGround = null; this.vy = Math.min(0, this.vy);
+        this.events.push('alley-exit');
+      }
+    }
     // The rail ends are the world's ends.
     const lo = 0.3, hi = L.length - 0.3;
     if (this.s < lo || this.s > hi) { this.s = Math.min(hi, Math.max(lo, this.s)); this.vs = 0; }

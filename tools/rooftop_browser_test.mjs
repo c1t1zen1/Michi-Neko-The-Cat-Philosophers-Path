@@ -58,6 +58,36 @@ try {
       const padState = await page.locator('#pad').getAttribute('class');
       assert.ok(!padState.includes('active') && !padState.includes('sprint'), 'touch release clears movement');
     }
+    const buffered=await page.evaluate(()=>{
+      roofRoad.at(1,1.1);
+      dispatchEvent(new KeyboardEvent('keydown',{code:'Space',key:' '}));
+      const states=roofRoad.advanceFramesForReview([1,1,1,10]);
+      dispatchEvent(new KeyboardEvent('keyup',{code:'Space',key:' '}));return states;
+    });
+    assert.ok(buffered[0].grounded && buffered[2].grounded && buffered[3].vy>0,'jump survives render frames with no physics tick');
+    const dynamicVisibility=await page.evaluate(()=>{
+      const visibleBatches=group=>{const list=[];group.traverse(o=>{if(o.userData.spatialBatch)list.push(o.visible);});return list.length>0&&list.every(Boolean);};
+      const boats=roofRoad.world.dynamic.boats.map(b=>{const p=roofRoad.level.platforms[b.plat];roofRoad.at((p.s0+p.s1)/2,p.y0);roofRoad.advanceForReview(.1);return b.group.visible&&visibleBatches(b.group);});
+      const worker=roofRoad.world.dynamic.people.find(p=>p.role==='stallkeeper'&&p.s>800);
+      roofRoad.at(worker.s,0);roofRoad.advanceForReview(.1);
+      return {boats,worker:worker.group.visible&&visibleBatches(worker.body)};
+    });
+    assert.ok(dynamicVisibility.boats.every(Boolean)&&dynamicVisibility.worker,'local boat and resident batches stay visible far from the origin');
+    // Choose every actual alley through input, rather than only setting lane
+    // state. Walk both ways, including overlaps with low street props.
+    for (let id=0;id<6;id++) for(const dir of [1,-1]) {
+      const length=await page.evaluate(({id,dir})=>{const a=roofRoad.level.alleys[id];roofRoad.at(dir>0?a.s0+.8:a.s1-.8,0);roofRoad.advanceForReview(.05);return a.s1-a.s0;},{id,dir});
+      await page.keyboard.down('ArrowDown');await page.evaluate(()=>roofRoad.advanceForReview(.05));
+      assert.equal(await page.evaluate(()=>roofRoad.runner.alley),id,'drop chooses '+id+' direction '+dir+' '+JSON.stringify(await page.evaluate(()=>({s:roofRoad.runner.s,y:roofRoad.runner.y,ground:roofRoad.runner.ground?.label,paused:document.body.classList.contains('paused')}))));
+      const key=dir>0?'ArrowRight':'ArrowLeft';await page.keyboard.down(key);
+      const alleyRun=await page.evaluate(seconds=>roofRoad.advanceForReview(seconds),length/4.5+.9);
+      await page.keyboard.up(key);await page.keyboard.up('ArrowDown');
+      assert.equal(await page.evaluate(()=>roofRoad.runner.alley),null,'both alley exits work');
+      for(const sample of alleyRun.samples) for(const b of Object.values(sample.bounds)) {
+        assert.ok(b.left>=-.93 && b.right<=.93 && b.top<=.65 && b.bottom>=-.65, 'both cats fit throughout chosen alleys');
+        if(cfg.width<cfg.height) assert.ok(b.pixelsHigh>=20,'alley cats stay legible');
+      }
+    }
     await page.evaluate(() => { roofRoad.at(1, 1.1); roofRoad.setAuto(true); });
     const run = await page.evaluate(() => roofRoad.advanceForReview(400));
     assert.ok(run.catReady && run.finale, cfg.name + ' real game loop reaches finale');
@@ -71,7 +101,7 @@ try {
         minCatPixels = Math.min(minCatPixels, b.pixelsHigh);
       }
     }
-    if (cfg.width < cfg.height) assert.ok(minCatPixels >= 20, `portrait cats stay legible: ${minCatPixels.toFixed(1)}px`);
+    assert.ok(minCatPixels >= (cfg.width < cfg.height ? 20 : 12), `portrait cats stay legible: ${minCatPixels.toFixed(1)}px`);
     assert.ok(['saunter','dash','wait','prowl','feint','detour'].every(m => run.moods.includes(m)));
     await page.waitForTimeout(1600);
     const litPixels = await page.evaluate(() => {
