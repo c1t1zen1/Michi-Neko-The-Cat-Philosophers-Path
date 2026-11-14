@@ -1,3 +1,5 @@
+// Promoted from labs/pagoda/js/presets.js (keep in step). Kit change: the `valley`
+// preset's overhang is 0.42 (lab: 0.62) so the first roof spans ~6.5 m like the classic.
 // Real towers as numbers. `src` names where a number came from (see
 // research.md); anything in `est` was judged from photographs for the look and
 // is not a measurement. H is metres to the hōju; ratio is H ÷ first-storey
@@ -7,7 +9,7 @@
 export const PRESETS = [
   {
     key: 'valley', name: 'Michi’s valley', jp: '谷の塔', place: 'the game, r ≈ 57 m from the bridge', year: '2026', era: 'Game fit',
-    H: 19.4, ratio: 5.1, top: 0.58, overhang: 0.62, oTaper: 0.16, sorin: 0.27, curve: 0.034, start: 0.22, sori: 1.8, flare: 0.07,
+    H: 19.4, ratio: 5.1, top: 0.58, overhang: 0.42, oTaper: 0.16, sorin: 0.27, curve: 0.034, start: 0.22, sori: 1.8, flare: 0.07,
     pitch: 0.34, pitchUp: 0.2, paint: 'game', roof: 'tile', bark: false, mokoshi: false,
     src: 'Height from the shipped builder (15.7 units × 1.232); H/W₁ and teigen after Hōryū-ji; sori ×1.8 for a 57 m read.',
     est: ['top', 'overhang', 'sori'], blurb: 'The tower the valley needs: the shipped height and footprint, Hōryū-ji’s proportions, and a sori pushed a little past life so the corners still lift at 57 metres.'

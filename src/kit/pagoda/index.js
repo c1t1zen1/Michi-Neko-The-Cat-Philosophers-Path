@@ -27,7 +27,7 @@ export function buildTower(ctx, layout, p) {
   tower.scale.setScalar(1);
   const group = new T.Group();
   group.add(tower);
-  group.userData.pagoda = { preset: p.preset, height: H, storeys: dims.n, firstStoreyWidth: dims.W1 * 1 };
+  group.userData.pagoda = { preset: p.preset, height: H, storeys: dims.n, firstStoreyWidth: dims.W1 };
   return {
     group, parts, sockets: {}, live: [],
     dims,

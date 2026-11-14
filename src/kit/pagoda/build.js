@@ -389,7 +389,7 @@ export function buildPagoda(input, { detail = 'hero', material } = {}) {
     const L = Math.hypot(s.R - s.rIn, s.yR - s.yE);
     const rafterTop = (r) => s.yE + s.sr * (s.R - r) - 0.012 * W;
     const ySi = rafterTop(hw) - 2 * s.rd;
-    const tops = SB.view(roofCol), fasc = SB.view(low ? 0x2b3135 : 0x2b3135), soff = SB.view(o.rafters === 'soffit' ? 0x7a4a34 : soffitCol);
+    const tops = SB.view(roofCol), fasc = SB.view(0x2b3135), soff = SB.view(o.rafters === 'soffit' ? 0x7a4a34 : soffitCol);
     for (let k = 0; k < 4; k++) {
       const tk = TK[k], up = NK[k].clone().setY(1.4);
       const rt = grid(segU, segT, (a, b, out) => F.S(k, a * 2 - 1, b, out), (a, b, q) => [q.x * tk.x + q.z * tk.z, b * L], up);
@@ -397,7 +397,7 @@ export function buildPagoda(input, { detail = 'hero', material } = {}) {
       tops.add(rt, { keep: true });
       rt.dispose();
       fasc.add(grid(segU, 1, (a, b, out) => F.S(k, a * 2 - 1, 0, out).add(V3(0, -b * s.edgeH, 0)), null, NK[k]));
-      if (!low || true) {
+      {
         soff.add(grid(low ? 1 : segU, low || detail === 'mid' ? 1 : 2, (a, b, out) => {
           const u = a * 2 - 1;
           F.S(k, u, 0, out).add(V3(0, -s.edgeH, 0));

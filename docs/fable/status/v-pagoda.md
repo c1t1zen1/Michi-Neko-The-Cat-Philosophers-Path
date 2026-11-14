@@ -25,3 +25,9 @@ Model: Claude Sonnet 5.5. Base: fable/integration 39aa5c1. Family: src/kit/pagod
 - Draw/triangle delta: boot render calls 346 (classic) -> 286 (swap) in the valley view; triangles 3.999M -> 4.004M. Not a perf_spots measurement.
 - Impostor: NOT promoted (see handoff). The lab's 16-view impostor needs a WebGLRenderer to bake into a render target and a custom shader for camera-facing; ctx has no renderer, the frozen ctx cannot gain one in this lane, and a ShaderMaterial would escape _mergeStatics and the game's fog. The far tier is instead a mergeable low-poly silhouette (3 meshes, under 1000 triangles).
 - Waivers: none (footprint = classic empty footprint; budgets all met).
+
+## Fix round 1
+- Merged origin/fable/integration (src/kit/index.js regenerated: 7 families). kit valley preset overhang 0.62 -> 0.42 (first roof ~6.5 m, like classic); other presets untouched; drift note in presets.js. Valley 6/12/18/22 modular re-shot and Read: tower now sits narrower under the canopy, matching the classic footprint.
+- Minors: removed `|| true`, the duplicate colour ternary, `dims.W1 * 1`; PAINTS is used. Module-level CYL6/SPH/CONE are template geometries copied into the accumulators, never attached to a mesh, so dispose() frees all per-instance geometry.
+- perf_spots street, classic vs swap (1 boot, 2 rounds): medium frame 7.25 ms (swap); draw calls mean 599 -> 569, triangles mean 6,080,648 -> 6,075,762; high frame 14.30 ms (swap), draw calls 770 -> 700, triangles 8,149,174 -> 8,053,906. (classic frame-ms rows scrolled out of my tail; call/triangle deltas are real.)
+- kit_contract_test --family pagoda: 171 checks, 0 failed; footprint_golden classic EQUAL; swap: 518 colliders, 25 anchors, rng 49233 unchanged; verify: All checks passed; kit_check: 97 passed.
