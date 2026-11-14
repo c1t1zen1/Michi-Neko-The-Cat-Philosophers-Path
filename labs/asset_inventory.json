@@ -1418,6 +1418,27 @@
       "kind": "specimen",
       "file": "labs/summit/js/recipes.js",
       "anchor": "id: 'c-path'"
+    },
+    "sky/night-stars": {
+      "lab": "sky",
+      "selector": "night-stars",
+      "kind": "specimen",
+      "file": "labs/sky/js/data.js",
+      "anchor": "study('night-stars'"
+    },
+    "sky/night-moon": {
+      "lab": "sky",
+      "selector": "night-moon",
+      "kind": "specimen",
+      "file": "labs/sky/js/data.js",
+      "anchor": "study('night-moon'"
+    },
+    "sky/cloud-field": {
+      "lab": "sky",
+      "selector": "cloud-field",
+      "kind": "specimen",
+      "file": "labs/sky/js/data.js",
+      "anchor": "study('cloud-field'"
     }
   },
   "assets": [
@@ -4100,6 +4121,11 @@
         {
           "target": "sky/cloud-game",
           "level": "direct"
+        },
+        {
+          "target": "sky/cloud-field",
+          "level": "direct",
+          "note": "The kit deck promotes this thickness painting (slab slices, four-genus field) and the shade-soft projection."
         }
       ]
     },
@@ -4118,6 +4144,10 @@
         {
           "target": "sky/sky-night",
           "level": "embedded"
+        },
+        {
+          "target": "sky/night-stars",
+          "level": "direct"
         }
       ]
     },
@@ -4136,6 +4166,10 @@
         {
           "target": "sky/sky-night",
           "level": "embedded"
+        },
+        {
+          "target": "sky/night-moon",
+          "level": "direct"
         }
       ]
     },
