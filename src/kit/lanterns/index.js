@@ -16,13 +16,13 @@ export const assets = [
   }),
   defineAsset({
     id: 'street-lamps', family: 'lanterns', lab: 'lanterns/kasuga', label: 'Street lamp',
-    params: { girth, flame },
+    params: { girth },
     sample: { index: 0, x: 0, z: 0 },
-    build: (ctx, layout, p) => buildStoneLantern(ctx, layout, p, { kind: 'street', height: 1.9, kasaR: 0.4, halo: ctx.tier === 'far' ? null : { scale: 1.2 } })
+    build: (ctx, layout, p) => buildStoneLantern(ctx, layout, p, { kind: 'street', height: 1.9, kasaR: 0.4, halo: null })
   }),
   defineAsset({
     id: 'courtyard-toro', family: 'lanterns', lab: 'lanterns/courtyard-toro', label: 'Courtyard toro',
-    params: { girth, flame },
+    params: { girth },
     sample: { index: 0, x: 0, z: 0 },
     build: (ctx, layout, p) => buildStoneLantern(ctx, layout, p, { kind: 'kasuga', height: 1.04, kasaR: 0.275, halo: null, always: 0.9 })
   }),

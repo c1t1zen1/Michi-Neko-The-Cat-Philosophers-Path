@@ -56,3 +56,12 @@ None. Chochin/andon/courtyard/pool shots not captured (interior and hidden place
 - pool-toro halo kept: shot from the Moon Pool seat distance (about 4 m) at 22 h reads clearly lit with a warm bloom; no widening needed.
 - kit_contract_test --family lanterns: 6 assets, 18 asset×tier builds, 509 checks, 0 failed (gpu: ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version), 1705 ms)
 - verify: 
+
+## Fix round 1
+- Draw cost (R36): stone-lantern flame prisms now use the owner's shared merged glow (`ownerGlow`), only the halo sprite is live; the street-lamp halo (not in classic) is removed; `flame` param dropped from street-lamps and courtyard-toro (nothing left for it to tint). Andon is the one private lit material (+1 draw); chochin unchanged.
+- perf_spots (high, hour 22, 1 boot), classic vs all six swapped: street 711 -> 706 draws, 8,121,937 -> 8,142,071 tris; shrine 469 -> 456 draws, 7,066,446 -> 7,080,528 tris. Net draws go down, well inside +6.
+- kit_contract_test --family lanterns: 6 assets, 18 builds, 483 checks, 0 failed.
+- footprint_golden classic: EQUAL; modular swap: 518 colliders, 65 platforms, 5 water rects, 4 exclusions, 25 anchors (same as classic).
+- verify: All checks passed.
+- Re-shot toro 6/12/18/22, courtyard-toro and pool-toro 18/22, street-lamps 12/22 (modular) and Read toro/street-lamps/pool 22 h: still clearly lit; flame prism a little less glassy (classic glow material), pool halo bloom unchanged.
+- Minors: nightnessAt comment names `sky.sunDir` as source of truth; handoff kit_test note updated, draw table added; final verify line filled above.

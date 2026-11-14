@@ -11,7 +11,7 @@ const clamp01 = (x) => Math.min(1, Math.max(0, x));
 
 /**
  * How dark it is, 0 (sun well up) .. 1, from the hour of the day: the same
- * asymmetric sun path as Sky.updateDayNight() (daylight 6:00-19:12) pushed
+ * asymmetric sun path as Sky.updateDayNight() (the source of truth is `sky.sunDir`; keep this in step, it ignores weather) (daylight 6:00-19:12) pushed
  * through Countryside.update()'s `1 - sunUp * 5`.
  */
 export function nightnessAt(hour) {

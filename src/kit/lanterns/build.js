@@ -36,11 +36,12 @@ export function buildStoneLantern(ctx, layout, p, { kind, height, kasaR, halo = 
     const m = mesh(geo, name === 'kasa' || name === 'hoju' ? dark : stone, name);
     group.add(m); parts[name] = m;
   }
-  const priv = tier !== 'far';
-  const lit = priv ? litWashi(washiTexture(km, { ribs: 0 }), { color: paperTint(p.flame), glowColor: flameColor(p.flame).getHex(), glow: base + always }) : null;
-  const lamp = mesh(L.lamp.geometry, lit || ownerGlow(ctx), 'lamp', false);
+  // The flame prism is the owner's shared, merged glow material (as classic): no extra draw, and
+  // the valley's own dusk curve drives it. Only the halo sprite is live.
+  const lit = null;
+  const lamp = mesh(L.lamp.geometry, ownerGlow(ctx), 'lamp', false);
   lamp.position.y = L.lamp.y; group.add(lamp); parts.lamp = lamp;
-  const live = [lamp];
+  const live = [];
   let sprite = null;
   if (halo) {
     sprite = haloSprite(km, { y: L.lamp.y, scale: halo.scale, color: flameColor(p.flame).getHex() });

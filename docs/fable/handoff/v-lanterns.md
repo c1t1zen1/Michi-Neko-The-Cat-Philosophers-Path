@@ -17,6 +17,9 @@ No waivers. toro keeps the 1.31 m height and 0.38 m kasa the cap platform assume
 
 ## Hot-file asks
 - Nothing to patch in countryside.js / interior.js / hidden_places.js. Note: `hidden_places.js` update() writes `poolToroMat` / `poolToroHaloMat` only when classic built them; the kit pool toro animates itself from `update(dt, t, env)` (env.hour).
-- `tools/kit_test.mjs` test "kit_check passes on a clean fixture family" copies the real src/kit, so it fails once any real family (with ids missing from its fixture inventory) is in the tree. Not a lane file; the Integrator should make the fixture ignore real families.
+- (The kit_test fixture issue is fixed on fable/integration.)
 - Materials: one new merged material (`kitMaterials.stone()`); everything else is `ctx.MAT` (`stoneDark`, `timberDark`, `vermilion`, `lanternGlow`, `lanternPaper`). Private lit-washi materials are per lantern and live (hero/mid), shared owner glow on far.
 - Helpers to consider moving to `src/kit/materials.js`: `litWashi`, `washiTexture`, `haloTexture`, `nightnessAt` (all in `lanterns/light.js`).
+
+## Draw calls (R36)
+Stone lanterns (toro, street-lamps, courtyard, pool) use the owner's shared, merged glow material for the flame prism, so they add no unmerged draws; only the halo sprite is live (toro and pool; street-lamps get no halo, as classic). Andon adds 1 live draw (private lit washi). Chochin is unchanged vs classic. perf_spots high, hour 22, classic vs all six swapped: street 711 -> 706 draws, 8,121,937 -> 8,142,071 tris; shrine 469 -> 456 draws, 7,066,446 -> 7,080,528 tris. Note per-lantern lamp-onset is now the valley's dusk curve (as classic); toro halo and pool halo keep the per-lantern onset.
