@@ -6,7 +6,7 @@ Reviewed 2026-11-10. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **90 of 186 (48.4%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **94 of 186 (50.5%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -28,11 +28,11 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 90 | 48.4% |
+| Focused lab study | 94 | 50.5% |
 | Review sheet | 41 | 22.0% |
-| Embedded in a specimen | 26 | 14.0% |
-| Related evidence only | 19 | 10.2% |
-| No mapped evidence | 10 | 5.4% |
+| Embedded in a specimen | 25 | 13.4% |
+| Related evidence only | 18 | 9.7% |
+| No mapped evidence | 8 | 4.3% |
 
 ## Coverage by area
 
@@ -46,7 +46,7 @@ Each active row is counted once at its strongest evidence level, in the order ab
 | Building components | 10 | 6 | 0 | 4 | 0 | 0 |
 | Props | 12 | 12 | 0 | 0 | 0 | 0 |
 | Shrine | 7 | 6 | 0 | 1 | 0 | 0 |
-| Items | 8 | 4 | 0 | 1 | 1 | 2 |
+| Items | 8 | 8 | 0 | 0 | 0 | 0 |
 | Vegetation | 22 | 15 | 6 | 0 | 1 | 0 |
 | Effects | 2 | 1 | 0 | 0 | 1 | 0 |
 | Hidden places | 16 | 8 | 0 | 4 | 3 | 1 |
@@ -79,10 +79,6 @@ This list includes every active row without a focused study, including review-on
 | [Secret sliding door](#secret-door) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Antique brass padlock emblem](#lock-plate) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Saisen-bako offering box](#offering-box) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Golden Dango / River-Spirit Charm](#dango) | No mapped evidence | Water Lab studies water and bridges, but does not extract the charm as a specimen. |
-| [Jade Paw corral reward](#jade-paw) | Related evidence only | The original builder creates this reward with visible=false. The corral tile does not reveal it; construction is not visible coverage. |
-| [Secret-house grilled fish treat](#secret-fish) | Embedded in a specimen | Fish remains inside the furnished original secret-house reference. |
-| [Tea-house grilled sea-bream platter](#interior-fish) | No mapped evidence | The standalone Interiors Lab does not reproduce this food item. |
 | [Sakura trees](#sakura) | Review sheet | No individual focused specimen is mapped. |
 | [Maple trees](#maples) | Review sheet | No individual focused specimen is mapped. |
 | [Garden pines](#pines) | Review sheet | No individual focused specimen is mapped. |
@@ -277,10 +273,10 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="key"></a>`key` — Antique secret-house key | [src/countryside.js:buildSecretKey(](../src/countryside.js#L2780) | [keepsakes / game-key](../labs/keepsakes/js/recipes.js#L52) (direct) |  |
 | <a id="guardian-feather"></a>`guardian-feather` — Guardian’s Feather trophy | [src/countryside.js:feather.name = "Guardian's Feather"](../src/countryside.js#L2766) | [nest / feather](../labs/nest/js/recipes.js#L52) (direct) |  |
 | <a id="offering-bells"></a>`offering-bells` — Five collectible offering bells | [src/countryside.js:buildOfferingBells(](../src/countryside.js#L3759) | [shrine / game-bell](../labs/shrine/js/recipes.js#L433) (direct) |  |
-| <a id="dango"></a>`dango` — Golden Dango / River-Spirit Charm | [src/countryside.js:charm.name = 'River-Spirit Charm'](../src/countryside.js#L1576) | **No mapped evidence** | Water Lab studies water and bridges, but does not extract the charm as a specimen. |
-| <a id="jade-paw"></a>`jade-paw` — Jade Paw corral reward | [src/countryside.js:reward.name = 'Jade Paw Reward'](../src/countryside.js#L3428) | [fences / corral](../labs/fences/js/recipes.js#L71) (related) — The original builder creates this reward with visible=false. The corral tile does not reveal it; construction is not visible coverage. |  |
-| <a id="secret-fish"></a>`secret-fish` — Secret-house grilled fish treat | [src/countryside.js:fish.name = 'Grilled Fish Treat'](../src/countryside.js#L2619) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) — Fish remains inside the furnished original secret-house reference. |  |
-| <a id="interior-fish"></a>`interior-fish` — Tea-house grilled sea-bream platter | [src/interior.js:fish.name = 'Grilled Sea Bream'](../src/interior.js#L588) | **No mapped evidence** | The standalone Interiors Lab does not reproduce this food item. |
+| <a id="dango"></a>`dango` — Golden Dango / River-Spirit Charm | [src/countryside.js:charm.name = 'River-Spirit Charm'](../src/countryside.js#L1576) | [keepsakes / dango](../labs/keepsakes/js/treats.js#L10) (direct) |  |
+| <a id="jade-paw"></a>`jade-paw` — Jade Paw corral reward | [src/countryside.js:reward.name = 'Jade Paw Reward'](../src/countryside.js#L3428) | [keepsakes / jade-paw](../labs/keepsakes/js/treats.js#L14) (direct)<br>[fences / corral](../labs/fences/js/recipes.js#L71) (related) — The original builder creates this reward with visible=false. The corral tile does not reveal it; construction is not visible coverage. |  |
+| <a id="secret-fish"></a>`secret-fish` — Secret-house grilled fish treat | [src/countryside.js:fish.name = 'Grilled Fish Treat'](../src/countryside.js#L2619) | [keepsakes / secret-fish](../labs/keepsakes/js/treats.js#L18) (direct)<br>[machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) — Fish remains inside the furnished original secret-house reference. |  |
+| <a id="interior-fish"></a>`interior-fish` — Tea-house grilled sea-bream platter | [src/interior.js:fish.name = 'Grilled Sea Bream'](../src/interior.js#L588) | [keepsakes / interior-fish](../labs/keepsakes/js/treats.js#L22) (direct) |  |
 
 ### Vegetation
 
