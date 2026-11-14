@@ -89,3 +89,81 @@ export function butterfly(hue, seed) {
   g.add(L, R, body); g.userData.wings = [L, R];
   return g;
 }
+
+/* ---------------- guardian crow (study for lane c4-creatures) ---------------- */
+
+/**
+ * A nest guardian crow with a HINGED wing rig. Metres, nose +Z, up +Y, about
+ * 0.5 m long. Part names (what c4-creatures binds; the game's `guardianBirds`
+ * records drive `wing_l` / `wing_r` rotation.z today):
+ *   body, head, beak, tail, leg_l, leg_r          static meshes (merge candidates)
+ *   wing_l, wing_r                                shoulder hinges (Group; rotation.z flaps: + raises the left tip, - raises the right, which is mirrored by scale.x = -1)
+ *   wing_l_arm, wing_r_arm                        inner wing mesh (child of the hinge)
+ *   wing_l_hand, wing_r_hand                      wrist hinges (Group, child of the hinge; rotation.z folds the primaries)
+ *   wing_l_primaries, wing_r_primaries            outer feather fan (mesh, child of the wrist)
+ * crow.pose(t, mode): mode 'glide' | 'flap' | 'dive' sets every hinge.
+ */
+export function crow() {
+  const g = new THREE.Group(), parts = {};
+  const mat = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.55, ...o });
+  const dark = mat(0x1d1d28, { metalness: 0.15 }), sheen = mat(0x2a2a3a, { side: THREE.DoubleSide, metalness: 0.2 }), beakM = mat(0x2a2622, { roughness: 0.4 });
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 9).scale(0.85, 0.8, 1.9), dark); body.position.set(0, 0, -0.02); g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.052, 10, 8).scale(0.95, 0.95, 1.05), dark); head.position.set(0, 0.035, 0.15); g.add(head);
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.026, 0.12, 6).rotateX(Math.PI / 2).scale(0.75, 1.1, 1), beakM); beak.position.set(0, 0.026, 0.245); g.add(beak);
+  const tailS = new THREE.Shape(); tailS.moveTo(-0.03, 0); tailS.lineTo(-0.05, -0.2); tailS.lineTo(0.05, -0.2); tailS.lineTo(0.03, 0); tailS.closePath();
+  const tail = new THREE.Mesh(new THREE.ShapeGeometry(tailS).rotateX(-Math.PI / 2), sheen); tail.position.set(0, 0.005, -0.15); g.add(tail);
+  Object.assign(parts, { body, head, beak, tail });
+  for (const [k, side] of [['l', 1], ['r', -1]]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.005, 0.07, 5), beakM); leg.position.set(side * 0.03, -0.085, 0.0); g.add(leg); parts['leg_' + k] = leg;
+    const hinge = new THREE.Group(); hinge.position.set(side * 0.04, 0.025, 0.04); g.add(hinge);
+    const arm = new THREE.Shape(); arm.moveTo(0, 0.05); arm.lineTo(0.15, 0.06); arm.lineTo(0.17, -0.04); arm.lineTo(0, -0.07); arm.closePath();
+    const armM = new THREE.Mesh(new THREE.ShapeGeometry(arm).rotateX(Math.PI / 2), sheen); hinge.add(armM);
+    const hand = new THREE.Group(); hand.position.set(0.17, 0, 0); hinge.add(hand);
+    const fan = new THREE.Shape(); fan.moveTo(0, 0.06); fan.lineTo(0.2, 0.05); fan.lineTo(0.3, 0.0);
+    for (let i = 0; i < 5; i++) { fan.lineTo(0.27 - i * 0.035, -0.02 - i * 0.012); fan.lineTo(0.255 - i * 0.035, -0.07 - i * 0.004); }
+    fan.lineTo(0, -0.06); fan.closePath();
+    const fanM = new THREE.Mesh(new THREE.ShapeGeometry(fan).rotateX(Math.PI / 2), sheen); hand.add(fanM);
+    if (side < 0) { hinge.scale.x = -1; }
+    parts['wing_' + k] = hinge; parts['wing_' + k + '_arm'] = armM; parts['wing_' + k + '_hand'] = hand; parts['wing_' + k + '_primaries'] = fanM;
+  }
+  const pose = (t, mode = 'flap') => {
+    const sp = mode === 'dive' ? 22 : mode === 'flap' ? 11 : 0, f = sp ? Math.sin(t * sp) : 0;
+    const sh = mode === 'dive' ? -0.9 : 0.16 + f * 0.7, wr = mode === 'dive' ? -0.5 : -f * 0.35 - 0.05;
+    for (const [k, sg] of [['l', 1], ['r', -1]]) { parts['wing_' + k].rotation.z = sh * sg; parts['wing_' + k + '_hand'].rotation.z = wr * sg; } // the right hinge is mirrored by scale.x = -1, so it takes the OPPOSITE sign (as the game's guardianBirds update does)
+    g.rotation.x = mode === 'dive' ? 0.7 : 0;
+  };
+  pose(0);
+  return { group: g, parts, pose };
+}
+
+/* ---------------- Larry the turtle (study for lane c4-creatures) ---------------- */
+
+/**
+ * A guardian turtle with flipper pivots. Metres, nose +Z, shell top 0.57 m.
+ * Parts: shell, plastron, neck, head, tail, flipper_{fl,fr,bl,br} (pivot Groups, rotation.x swings).
+ * turtle.walk(t, speed) swings diagonal pairs and noses the head, as the game's gait does from the group's displacement.
+ */
+export function turtle() {
+  const g = new THREE.Group(), parts = {};
+  const mat = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.82, flatShading: true });
+  const shellM = mat(0x5f7e42), light = mat(0x8da85c), skin = mat(0x9aaa68), belly = mat(0xd8cfa0);
+  const shell = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 7, 0, TAU, 0, Math.PI * 0.58).scale(0.6, 0.27, 0.47), shellM); shell.position.y = 0.3; g.add(shell);
+  const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(0.38, 1).scale(1.15, 0.35, 0.86), light); crown.position.y = 0.5; shell.add(crown); crown.position.set(0, 0.17, 0);
+  const plastron = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 6).scale(0.5, 0.07, 0.4), belly); plastron.position.y = 0.2; g.add(plastron);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.3, 6).rotateX(Math.PI / 2 - 0.15), skin); neck.position.set(0, 0.27, 0.42); g.add(neck);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6).scale(0.95, 0.85, 1.15), skin); head.position.set(0, 0.27, 0.62); g.add(head);
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.2, 5).rotateX(-Math.PI / 2 - 0.3), skin); tail.position.set(0, 0.2, -0.52); g.add(tail);
+  Object.assign(parts, { shell, plastron, neck, head, tail });
+  for (const [k, x, z] of [['fl', 0.4, 0.33], ['fr', -0.4, 0.33], ['bl', 0.4, -0.35], ['br', -0.4, -0.35]]) {
+    const pivot = new THREE.Group(); pivot.position.set(x, 0.2, z); g.add(pivot);
+    const f = new THREE.Mesh(new THREE.SphereGeometry(0.13, 7, 5).scale(1.2, 1.1, k[0] === 'f' ? 1.1 : 0.85), skin); f.position.y = -0.06; pivot.add(f);
+    parts['flipper_' + k] = pivot;
+  }
+  const walk = (t, speed = 0.5) => {
+    const s = Math.sin(t * (1.5 + speed * 5)) * Math.min(1, speed * 1.6) * 0.55;
+    parts.flipper_fl.rotation.x = s; parts.flipper_br.rotation.x = s; parts.flipper_fr.rotation.x = -s; parts.flipper_bl.rotation.x = -s;
+    head.position.z = 0.62 + 0.02 * Math.sin(t * (1.5 + speed * 5)) * Math.min(1, speed * 2);
+  };
+  walk(0, 0);
+  return { group: g, parts, walk };
+}

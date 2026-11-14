@@ -35,3 +35,14 @@ For s3-vista and r4-festival (import with the current `?v=` tag):
   - `buildPagoda({ preset, H, ... }, { detail: 'hero'|'mid'|'far', material })`: use the kit's shared vertex-colour material, `ctx.kitMaterials.shared('matte')` (G-V1: was `bag({ rough: 0.78, brush: 0.05 })`; budgets.md section 4).
   - Presets (`src/kit/pagoda/presets.js`, verbatim copy of `labs/pagoda/js/presets.js`, keep in step): nine measured towers plus the game-fit `valley`; also `muroji`, `daigoji`, `yasaka`.
   - Detail meshes: hero 7, mid 7, far 3 (podium, tower, sorin). One material (`km.shared('matte')`), deterministic, mergeable.
+| v-shrine | torii, shrine-hall, shimenawa, shrine-bell, offering-box, mist-altar, offering-bells | src/kit/shrine/index.js assets |
+| v-machiya-a | kawara-roof, koushi, upper-windows, noren, timber-frame, namako, engawa, tea-bench, secret-door, lock-plate | src/kit/machiya/index.js assets (production: "machiya") |
+| v-hidden | all 15 hidden ids (moon-pool, lantern-glade, glade-lanterns, ...) | src/kit/hidden/index.js assets (production: "hidden") |
+| v-interiors-a | tea-interior, tatami, interior-frame, shoji-doors, tokonoma, scroll, bonsai, chabudai, teaware, zabuton, knockables | src/kit/interiors/index.js assets (production: "interiors/<id>") |
+| v-critters | sparrows, koi, butterflies | src/kit/critters/index.js assets (family critters; lab ids critters/flock, critters/sanke, critters/hinge) |
+| v-ranges | mountains, edge-forest, edge-undergrowth, foothill-forest, distant-village, mist-ring, dawn-mist | src/kit/ranges/index.js assets |
+| v-weather | falling-petals, river-petals, snow, fireflies, dust-motes, rain, rain-ripples, dappled-light | src/kit/weather/index.js assets (production: "weather/<id>") |
+| v-machiya-b | tea-house, residence, secret-house, street-house (village-street deferred, classic) | src/kit/machiya/index.js assets (production: "machiya") |
+| v-trees | sakura, maples, pines, rim-trees (tree-trunks, tree-canopies DEFERRED, classic) | src/kit/trees/index.js assets (production: "trees") |
+| c4-creatures | larry, guardian-crows | src/kit/creatures/index.js assets (production: "creatures") |
+| s4-summit-life | summitlife/summit-snow, summit-rain, summit-pollen, summit-petals, summit-butterflies, summit-birds, shrine-rays, summit-light | `src/kit/summitlife/index.js` `assets` |

@@ -3,16 +3,26 @@
 // AssetRuntime.preload() imports these only when the modular set can be
 // active, so the classic game never downloads the kit.
 export const KIT_TAG = '20261113a';
-export const FAMILY_NAMES = Object.freeze(['alley', 'fences', 'garden', 'greenery', 'keepsakes', 'lanterns', 'nest', 'pagoda', 'rocks', 'water']);
+export const FAMILY_NAMES = Object.freeze(['alley', 'creatures', 'critters', 'fences', 'garden', 'greenery', 'hidden', 'interiors', 'keepsakes', 'lanterns', 'machiya', 'nest', 'pagoda', 'ranges', 'rocks', 'shrine', 'summitlife', 'trees', 'water', 'weather']);
 export const FAMILIES = Object.freeze({
   'alley': () => import('./alley/index.js?v=20261113a'),
+  'creatures': () => import('./creatures/index.js?v=20261113a'),
+  'critters': () => import('./critters/index.js?v=20261113a'),
   'fences': () => import('./fences/index.js?v=20261113a'),
   'garden': () => import('./garden/index.js?v=20261113a'),
   'greenery': () => import('./greenery/index.js?v=20261113a'),
+  'hidden': () => import('./hidden/index.js?v=20261113a'),
+  'interiors': () => import('./interiors/index.js?v=20261113a'),
   'keepsakes': () => import('./keepsakes/index.js?v=20261113a'),
   'lanterns': () => import('./lanterns/index.js?v=20261113a'),
+  'machiya': () => import('./machiya/index.js?v=20261113a'),
   'nest': () => import('./nest/index.js?v=20261113a'),
   'pagoda': () => import('./pagoda/index.js?v=20261113a'),
+  'ranges': () => import('./ranges/index.js?v=20261113a'),
   'rocks': () => import('./rocks/index.js?v=20261113a'),
+  'shrine': () => import('./shrine/index.js?v=20261113a'),
+  'summitlife': () => import('./summitlife/index.js?v=20261113a'),
+  'trees': () => import('./trees/index.js?v=20261113a'),
   'water': () => import('./water/index.js?v=20261113a'),
+  'weather': () => import('./weather/index.js?v=20261113a'),
 });

@@ -216,6 +216,13 @@ class Game {
       search: location.search,
       quality: this.initialQuality
     });
+    // t3-audio: today's sounds for the moments the game already voices; the rest stay silent until a dawCAT pack is installed
+    this.assets.audio?.setSink((ev) => {
+      const a = this.audio; if (!a) return;
+      if (ev === 'shrine.bell.ring') a.playBell();
+      else if (ev === 'nest.settle') a.playPurr();
+      // keepsake.collect: main.js already calls playCollect on pickup; do not double-play
+    });
   }
 
   /** Preload the kit (nothing on the classic set), then build the valley. */
@@ -581,11 +588,13 @@ class Game {
 
   /** The world state kit instances respond to (§3.3 `update(dt, t, env)`), one reused object. */
   assetEnv() {
-    const env = this._assetEnv || (this._assetEnv = { hour: 12, wind: 1, wet: 0, snow: 0, lanternOn: false });
+    const env = this._assetEnv || (this._assetEnv = { hour: 12, wind: 1, wet: 0, mist: 0, snow: 0, lanternOn: false });
     env.hour = this.sky.dayTime;
     env.wet = this.sky.weatherAmount('rain');
+    env.mist = this.sky.weatherAmount('mist');
     env.snow = this.sky.weatherAmount('snow');
     env.lanternOn = !!this.city._lanternsLit;
+    env.audio = (this.assets && this.assets.audio) || null;   // kit sound hook (src/kit/audio.js); classic has none
     return env;
   }
 
@@ -1461,6 +1470,8 @@ class Game {
     // valley's lanterns. Every visible light is evaluated in every lit
     // fragment, so the half that cannot be seen is switched off outright.
     this.interior.setLightsActive(inside);
+    // kit room instances (shoji tint, lamps) keep running while the cat is inside
+    if (inside) this.interior.assets.update(dt, this.elapsed, this.assetEnv());
     if (inside) {
       this.city.suspendLanternLights();
     } else if (!this.summit.active) {

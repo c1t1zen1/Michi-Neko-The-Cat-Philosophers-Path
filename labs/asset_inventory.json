@@ -277,6 +277,20 @@
       "file": "labs/fences/js/recipes.js",
       "anchor": "id: 'corral-sign'"
     },
+    "critters/guardian-crow": {
+      "lab": "critters",
+      "selector": "guardian-crow",
+      "kind": "specimen",
+      "file": "labs/critters/js/recipes.js",
+      "anchor": "id: 'guardian-crow'"
+    },
+    "critters/larry": {
+      "lab": "critters",
+      "selector": "larry",
+      "kind": "specimen",
+      "file": "labs/critters/js/recipes.js",
+      "anchor": "id: 'larry'"
+    },
     "critters/game-bird": {
       "lab": "critters",
       "selector": "game-bird",
@@ -441,6 +455,41 @@
       "file": "labs/water/js/variants.js",
       "anchor": "id: 'ripple'"
     },
+    "weather/fireflies": {
+      "lab": "weather",
+      "selector": "fireflies",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'fireflies'"
+    },
+    "weather/dust-motes": {
+      "lab": "weather",
+      "selector": "dust-motes",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'dust-motes'"
+    },
+    "weather/scent": {
+      "lab": "weather",
+      "selector": "scent",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'scent'"
+    },
+    "weather/landing-dust": {
+      "lab": "weather",
+      "selector": "landing-dust",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'landing-dust'"
+    },
+    "weather/entry-splash": {
+      "lab": "weather",
+      "selector": "entry-splash",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'entry-splash'"
+    },
     "weather/splash": {
       "lab": "weather",
       "selector": "splash",
@@ -490,6 +539,27 @@
       "file": "labs/ranges/js/main.js",
       "anchor": "$('#airStage')"
     },
+    "ranges/foothill-stands": {
+      "lab": "ranges",
+      "selector": "foothill-stands",
+      "kind": "bench",
+      "file": "labs/ranges/js/main.js",
+      "anchor": "$('#footStage')"
+    },
+    "ranges/village": {
+      "lab": "ranges",
+      "selector": "village",
+      "kind": "bench",
+      "file": "labs/ranges/js/main.js",
+      "anchor": "$('#villageStage')"
+    },
+    "ranges/mists": {
+      "lab": "ranges",
+      "selector": "mists",
+      "kind": "bench",
+      "file": "labs/ranges/js/main.js",
+      "anchor": "$('#mistStage')"
+    },
     "machiya/original-tea": {
       "lab": "machiya",
       "selector": "original-tea",
@@ -517,6 +587,34 @@
       "kind": "specimen",
       "file": "labs/machiya/js/variants.js",
       "anchor": "baseline('roof',"
+    },
+    "machiya/namako-original": {
+      "lab": "machiya",
+      "selector": "namako-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('namako',"
+    },
+    "machiya/bench-original": {
+      "lab": "machiya",
+      "selector": "bench-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('bench',"
+    },
+    "machiya/door-original": {
+      "lab": "machiya",
+      "selector": "door-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('door',"
+    },
+    "machiya/lock-original": {
+      "lab": "machiya",
+      "selector": "lock-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('lock',"
     },
     "machiya/lattice-original": {
       "lab": "machiya",
@@ -678,6 +776,13 @@
       "kind": "specimen",
       "file": "labs/shrine/js/recipes.js",
       "anchor": "id: 'suzu'"
+    },
+    "shrine/saisen-bako": {
+      "lab": "shrine",
+      "selector": "saisen-bako",
+      "kind": "specimen",
+      "file": "labs/shrine/js/recipes.js",
+      "anchor": "id: 'saisen-bako'"
     },
     "shrine/game-altar": {
       "lab": "shrine",
@@ -942,6 +1047,55 @@
       "file": "labs/moonpool/js/recipes.js",
       "anchor": "id: 'game-lamp'"
     },
+    "moonpool/apron-moss": {
+      "lab": "moonpool",
+      "selector": "apron-moss",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/ground.js",
+      "anchor": "id: 'apron-moss'"
+    },
+    "moonpool/rim-chisel": {
+      "lab": "moonpool",
+      "selector": "rim-chisel",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/ground.js",
+      "anchor": "id: 'rim-chisel'"
+    },
+    "moonpool/seat-slab": {
+      "lab": "moonpool",
+      "selector": "seat-slab",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/ground.js",
+      "anchor": "id: 'seat-slab'"
+    },
+    "moonpool/glade-whole": {
+      "lab": "moonpool",
+      "selector": "glade-whole",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/ground.js",
+      "anchor": "id: 'glade-whole'"
+    },
+    "moonpool/glade-litter": {
+      "lab": "moonpool",
+      "selector": "glade-litter",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/ground.js",
+      "anchor": "id: 'glade-litter'"
+    },
+    "moonpool/bamboo-nodes": {
+      "lab": "moonpool",
+      "selector": "bamboo-nodes",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/ground.js",
+      "anchor": "id: 'bamboo-nodes'"
+    },
+    "moonpool/boulder-moss": {
+      "lab": "moonpool",
+      "selector": "boulder-moss",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/ground.js",
+      "anchor": "id: 'boulder-moss'"
+    },
     "rocks/moss-old": {
       "lab": "rocks",
       "selector": "moss-old",
@@ -969,6 +1123,55 @@
       "kind": "bench",
       "file": "labs/interiors/js/craft.js",
       "anchor": "  shoji:"
+    },
+    "interiors/frame": {
+      "lab": "interiors",
+      "selector": "frame",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens.js",
+      "anchor": "  frame: {"
+    },
+    "interiors/tokonoma": {
+      "lab": "interiors",
+      "selector": "tokonoma",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens.js",
+      "anchor": "  tokonoma: {"
+    },
+    "interiors/scroll": {
+      "lab": "interiors",
+      "selector": "scroll",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens.js",
+      "anchor": "  scroll: {"
+    },
+    "interiors/chabudai": {
+      "lab": "interiors",
+      "selector": "chabudai",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens.js",
+      "anchor": "  chabudai: {"
+    },
+    "interiors/zabuton": {
+      "lab": "interiors",
+      "selector": "zabuton",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens.js",
+      "anchor": "  zabuton: {"
+    },
+    "interiors/bonsai": {
+      "lab": "interiors",
+      "selector": "bonsai",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens.js",
+      "anchor": "  bonsai: {"
+    },
+    "interiors/knockables": {
+      "lab": "interiors",
+      "selector": "knockables",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens.js",
+      "anchor": "  knockables: {"
     },
     "interiors/pottery": {
       "lab": "interiors",
@@ -1124,6 +1327,62 @@
       "kind": "specimen",
       "file": "labs/keepsakes/js/treats.js",
       "anchor": "id: 'interior-fish'"
+    },
+    "summit/life-snow": {
+      "lab": "summit",
+      "selector": "life-snow",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-snow'"
+    },
+    "summit/life-rain": {
+      "lab": "summit",
+      "selector": "life-rain",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-rain'"
+    },
+    "summit/life-pollen": {
+      "lab": "summit",
+      "selector": "life-pollen",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-pollen'"
+    },
+    "summit/life-petals": {
+      "lab": "summit",
+      "selector": "life-petals",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-petals'"
+    },
+    "summit/life-butterflies": {
+      "lab": "summit",
+      "selector": "life-butterflies",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-butterflies'"
+    },
+    "summit/life-birds": {
+      "lab": "summit",
+      "selector": "life-birds",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-birds'"
+    },
+    "summit/life-rays": {
+      "lab": "summit",
+      "selector": "life-rays",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-rays'"
+    },
+    "summit/life-light": {
+      "lab": "summit",
+      "selector": "life-light",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-light'"
     }
   },
   "assets": [
@@ -1233,9 +1492,8 @@
       ],
       "coverage": [
         {
-          "target": "fences/corral",
-          "level": "embedded",
-          "note": "The complete original corral includes Larry; there is no isolated turtle or patrol study."
+          "target": "critters/larry",
+          "level": "direct"
         }
       ]
     },
@@ -1250,8 +1508,12 @@
           "anchor": "  buildGuardianBirds("
         }
       ],
-      "coverage": [],
-      "note": "Critters extracts a sparrow, not guardianBirds; constructing AmbientLife alone does not put the crows on a specimen."
+      "coverage": [
+        {
+          "target": "critters/guardian-crow",
+          "level": "direct"
+        }
+      ]
     },
     {
       "id": "sparrows",
@@ -1746,6 +2008,10 @@
       ],
       "coverage": [
         {
+          "target": "ranges/foothill-stands",
+          "level": "direct"
+        },
+        {
           "target": "ranges/foothills",
           "level": "embedded",
           "note": "The hero valley includes the foothill carpet; there is no separate shelf specimen."
@@ -1764,6 +2030,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "ranges/village",
+          "level": "direct"
+        },
         {
           "target": "machiya/original-village",
           "level": "related",
@@ -1784,6 +2054,10 @@
       ],
       "coverage": [
         {
+          "target": "ranges/mists",
+          "level": "direct"
+        },
+        {
           "target": "ranges/air",
           "level": "related",
           "note": "Aerial perspective bench; it does not extract the original mist-ring mesh."
@@ -1802,6 +2076,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "ranges/mists",
+          "level": "direct"
+        },
         {
           "target": "ranges/air",
           "level": "related",
@@ -2025,8 +2303,8 @@
       ],
       "coverage": [
         {
-          "target": "machiya/original-village",
-          "level": "embedded"
+          "target": "machiya/namako-original",
+          "level": "direct"
         }
       ]
     },
@@ -2043,8 +2321,8 @@
       ],
       "coverage": [
         {
-          "target": "machiya/original-tea",
-          "level": "embedded"
+          "target": "machiya/bench-original",
+          "level": "direct"
         }
       ]
     },
@@ -2061,8 +2339,8 @@
       ],
       "coverage": [
         {
-          "target": "machiya/original-secret",
-          "level": "embedded"
+          "target": "machiya/door-original",
+          "level": "direct"
         }
       ]
     },
@@ -2079,8 +2357,8 @@
       ],
       "coverage": [
         {
-          "target": "machiya/original-secret",
-          "level": "embedded"
+          "target": "machiya/lock-original",
+          "level": "direct"
         }
       ]
     },
@@ -2402,8 +2680,8 @@
       ],
       "coverage": [
         {
-          "target": "shrine/game-hall",
-          "level": "embedded"
+          "target": "shrine/saisen-bako",
+          "level": "direct"
         }
       ]
     },
@@ -3124,8 +3402,8 @@
       ],
       "coverage": [
         {
-          "target": "moonpool/game-water",
-          "level": "embedded"
+          "target": "moonpool/apron-moss",
+          "level": "direct"
         }
       ]
     },
@@ -3178,8 +3456,8 @@
       ],
       "coverage": [
         {
-          "target": "moonpool/game-water",
-          "level": "embedded"
+          "target": "moonpool/rim-chisel",
+          "level": "direct"
         }
       ]
     },
@@ -3232,8 +3510,8 @@
       ],
       "coverage": [
         {
-          "target": "moonpool/game-water",
-          "level": "embedded"
+          "target": "moonpool/seat-slab",
+          "level": "direct"
         }
       ]
     },
@@ -3286,6 +3564,10 @@
       ],
       "coverage": [
         {
+          "target": "moonpool/glade-whole",
+          "level": "direct"
+        },
+        {
           "target": "moonpool/game-lamp",
           "level": "related",
           "note": "The original tile extracts a lantern, not the complete clearing."
@@ -3303,8 +3585,12 @@
           "anchor": "// Leaf-litter floor"
         }
       ],
-      "coverage": [],
-      "note": "No specimen extracts this leaf-litter texture or clearing floor."
+      "coverage": [
+        {
+          "target": "moonpool/glade-litter",
+          "level": "direct"
+        }
+      ]
     },
     {
       "id": "glade-bamboo",
@@ -3318,6 +3604,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "moonpool/bamboo-nodes",
+          "level": "direct"
+        },
         {
           "target": "greenery/game-grove",
           "level": "related",
@@ -3355,6 +3645,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "moonpool/boulder-moss",
+          "level": "direct"
+        },
         {
           "target": "rocks/moss-old",
           "level": "related",
@@ -3430,8 +3724,8 @@
       ],
       "coverage": [
         {
-          "target": "interiors/garden",
-          "level": "embedded"
+          "target": "interiors/frame",
+          "level": "direct"
         }
       ]
     },
@@ -3466,8 +3760,8 @@
       ],
       "coverage": [
         {
-          "target": "interiors/garden",
-          "level": "embedded"
+          "target": "interiors/tokonoma",
+          "level": "direct"
         }
       ]
     },
@@ -3484,8 +3778,8 @@
       ],
       "coverage": [
         {
-          "target": "interiors/garden",
-          "level": "embedded"
+          "target": "interiors/scroll",
+          "level": "direct"
         }
       ]
     },
@@ -3500,8 +3794,12 @@
           "anchor": "// Mini Bonsai Pine"
         }
       ],
-      "coverage": [],
-      "note": "No original bonsai specimen; the lab alcove uses other decorations."
+      "coverage": [
+        {
+          "target": "interiors/bonsai",
+          "level": "direct"
+        }
+      ]
     },
     {
       "id": "chabudai",
@@ -3516,8 +3814,8 @@
       ],
       "coverage": [
         {
-          "target": "interiors/garden",
-          "level": "embedded"
+          "target": "interiors/chabudai",
+          "level": "direct"
         }
       ]
     },
@@ -3552,8 +3850,8 @@
       ],
       "coverage": [
         {
-          "target": "interiors/garden",
-          "level": "embedded"
+          "target": "interiors/zabuton",
+          "level": "direct"
         }
       ]
     },
@@ -3651,6 +3949,10 @@
           "target": "interiors/bat-cup",
           "level": "related",
           "note": "Lab physics supports batting lab vessels; original item geometry and physics differ."
+        },
+        {
+          "target": "interiors/knockables",
+          "level": "direct"
         }
       ]
     },
@@ -3911,6 +4213,10 @@
       ],
       "coverage": [
         {
+          "target": "weather/fireflies",
+          "level": "direct"
+        },
+        {
           "target": "moonpool/fireflies",
           "level": "related",
           "note": "Related firefly study; not Particles.buildFireflies()."
@@ -3929,6 +4235,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "weather/dust-motes",
+          "level": "direct"
+        },
         {
           "target": "moonpool/game-motes",
           "level": "related",
@@ -3965,8 +4275,12 @@
           "anchor": "  build() {"
         }
       ],
-      "coverage": [],
-      "note": "No scent-trail specimen or interaction study."
+      "coverage": [
+        {
+          "target": "weather/scent",
+          "level": "direct"
+        }
+      ]
     },
     {
       "id": "splash",
@@ -3980,6 +4294,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "weather/entry-splash",
+          "level": "direct"
+        },
         {
           "target": "weather/splash",
           "level": "related",
@@ -3998,8 +4316,12 @@
           "anchor": "  spawnLandDust("
         }
       ],
-      "coverage": [],
-      "note": "No specimen exercises this pooled landing effect."
+      "coverage": [
+        {
+          "target": "weather/landing-dust",
+          "level": "direct"
+        }
+      ]
     },
     {
       "id": "ao",
@@ -4360,9 +4682,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/life-snow",
+          "level": "direct"
         }
       ]
     },
@@ -4379,9 +4700,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/life-rain",
+          "level": "direct"
         }
       ]
     },
@@ -4398,9 +4718,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/life-pollen",
+          "level": "direct"
         }
       ]
     },
@@ -4417,9 +4736,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/life-petals",
+          "level": "direct"
         }
       ]
     },
@@ -4436,9 +4754,14 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/life-butterflies",
+          "level": "related",
+          "note": "Umbrella row: it builds nothing itself; the butterflies and birds are the specimens."
+        },
+        {
+          "target": "summit/life-birds",
+          "level": "related",
+          "note": "Umbrella row: it builds nothing itself; the butterflies and birds are the specimens."
         }
       ]
     },
@@ -4455,9 +4778,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/life-rays",
+          "level": "direct"
         }
       ]
     },
@@ -4474,8 +4796,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review"
+          "target": "summit/life-light",
+          "level": "direct"
         }
       ]
     },
@@ -4688,8 +5010,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review"
+          "target": "summit/life-butterflies",
+          "level": "direct"
         }
       ]
     },
@@ -4706,8 +5028,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review"
+          "target": "summit/life-birds",
+          "level": "direct"
         }
       ]
     }

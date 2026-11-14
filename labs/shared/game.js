@@ -22,3 +22,10 @@ export const loadInteriorModule = () => import('../../src/interior.js?v=20261113
 // Statues (komainu and friends) use the cat's signed-distance sculptor.
 export const loadSculptModule = () => import('../../src/cat_sdf.js?v=20261113a');
 export const loadSummitModule = () => import('../../src/mountaintop.js?v=20261113a');
+// Asset Library (lane t1-catalog): the modular kit registry, read-only. The
+// catalog builds the "production" variant through AssetRuntime from whatever
+// families src/kit/index.js registers, so families merged later need no change.
+export const loadKitIndexModule = () => import('../../src/kit/index.js?v=20261113a');
+export const loadKitRuntimeModule = () => import('../../src/kit/runtime.js?v=20261113a');
+export const loadKitContractModule = () => import('../../src/kit/contract.js?v=20261113a');
+export const loadKitMaterialsModule = () => import('../../src/kit/materials.js?v=20261113a');

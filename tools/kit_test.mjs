@@ -668,11 +668,11 @@ test('kit-overrides.json: a missing file (404 / network error / null) is normal 
   }
 });
 
-test('the committed root kit-overrides.json is valid, empty, and changes nothing', async () => {
+test('the committed root kit-overrides.json is valid and only pins edge-forest to classic (R49)', async () => {
   const doc = JSON.parse(readFileSync(join(ROOT, 'kit-overrides.json'), 'utf8'));
   assert.equal(doc.format, KIT_OVERRIDES_FORMAT);
-  assert.deepEqual(doc.assets, {});
-  assert.deepEqual(parseOverridesDoc(doc), { assets: {} });
+  assert.deepEqual(doc.assets, { 'edge-forest': { variant: 'classic' } });
+  assert.deepEqual(parseOverridesDoc(doc), { assets: { 'edge-forest': { variant: 'classic' } } });
   const log = quiet();
   const rt = new AssetRuntime({
     assetSet: 'modular', quality: 'high', logger: log, fetchOverrides: async () => doc,
@@ -680,9 +680,10 @@ test('the committed root kit-overrides.json is valid, empty, and changes nothing
     createMaterials: async () => ({ bind() {} })
   });
   await rt.preload();
-  assert.deepEqual(rt.overrides, { assets: {} });
+  assert.deepEqual(rt.overrides, { assets: { 'edge-forest': { variant: 'classic' } } });
   assert.deepEqual(log.warnings, []);
   assert.equal(rt.setFor('torii'), 'modular');       // falls through to the global set
+  assert.equal(rt.setFor('edge-forest'), 'classic'); // R49
   assert.equal(rt.overrideParams('torii'), null);
   const auto = new AssetRuntime({ assetSet: 'auto', quality: 'low', fetchOverrides: async () => doc, loadFamilies: async () => ({}), createMaterials: async () => ({}) });
   await auto.preload();

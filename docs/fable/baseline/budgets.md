@@ -200,8 +200,7 @@ picks, re-run `tools/perf_spots.mjs` in the same session as classic to prove
 
 ## 4. Kit materials (ruling R39, gate G-V1)
 
-The cap in section 3 is **at most 11 new merged materials for the whole
-kit**. A merged material is one draw for the whole valley (plus its shadow
+In place of the kit-wide "≤11 new merged materials" cap (section 3): **each new merged material is justified in its lane handoff with its draw cost, and at the four spots modular draw calls ≤ classic per tier (perf_gv1.md); ruling R52, operator may overturn**. A merged material is one draw for the whole valley (plus its shadow
 draw), whatever family built the meshes on it; a kit material that only ever
 sits on one static mesh costs the same draw, so it counts too. Kit materials
 that only sit on unmerged meshes (pickups the game holds by reference, `live`
@@ -290,3 +289,10 @@ calls derived from a worst case (68 live draws, every merged material in view
 and casting); the gate that matters is section 1, measured per spot in
 `perf_gv1.md`. If later lanes need more materials, re-derive the cap from
 measured draws rather than raising it by fiat.
+
+**Known per-asset overrun (G-V1).** The contract samples `bamboo-fence` on a
+3.4 m run; the valley's longest runs (about 11 m) build 12,660 triangles at
+`mid` against the 6,000 cap (hero 22,638 ≤ 25,000, far 568 ≤ 1,000). The
+scene budgets hold with it (`perf_gv1.md`); it needs a ruling: a
+`BUDGET_EXCEPTIONS` entry or a lighter mid culm, and a contract sample that is
+the longest run.
