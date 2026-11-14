@@ -8,6 +8,7 @@
 | v-garden | shishi, wind-chime | `src/kit/garden/index.js` `assets` |
 | v-alley | crates, sake-barrel | `src/kit/alley/index.js` `assets` |
 | v-nest | nest, nest-eggs, guardian-feather | `src/kit/nest/index.js` `assets` |
+| v-greenery | greenery (street-bushes, roadside-moss, bamboo-groves) | `src/kit/greenery/index.js` `assets` |
 
 ## Pending helper moves
 
@@ -16,3 +17,4 @@
 - garden: none requested.
 - alley: none requested.
 - nest: none requested.
+- greenery: none requested (bamboo.js `culmGeometry` etc. stay local; v-hidden may import them).

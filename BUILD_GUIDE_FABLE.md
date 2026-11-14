@@ -626,7 +626,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 2.1 | `v-fences` | Fences and corral (lab 12) | G-F | [x] |
 | 2.1 | `v-rocks` | Rocks and boulders (lab 13) | G-F | [x] |
 | 2.1 | `v-garden` | Shishi-odoshi, fūrin, bells (lab 14) | G-F | [x] |
-| 2.1 | `v-greenery` | Bushes, street greenery, bamboo (lab 15) | G-F | [ ] |
+| 2.1 | `v-greenery` | Bushes, street greenery, bamboo (lab 15) | G-F | [x] |
 | 2.1 | `v-alley` | Climb crates and street clutter (lab 16) | G-F | [x] |
 | 2.1 | `v-keepsakes` | Yarn, key, reward and food items (lab 17) | G-F | [ ] |
 | 2.1 | `v-nest` | The nest, eggs, feather (lab 10) | G-F | [x] |
