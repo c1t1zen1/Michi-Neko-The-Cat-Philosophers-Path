@@ -497,6 +497,27 @@
       "file": "labs/ranges/js/main.js",
       "anchor": "$('#airStage')"
     },
+    "ranges/foothill-stands": {
+      "lab": "ranges",
+      "selector": "foothill-stands",
+      "kind": "bench",
+      "file": "labs/ranges/js/main.js",
+      "anchor": "$('#footStage')"
+    },
+    "ranges/village": {
+      "lab": "ranges",
+      "selector": "village",
+      "kind": "bench",
+      "file": "labs/ranges/js/main.js",
+      "anchor": "$('#villageStage')"
+    },
+    "ranges/mists": {
+      "lab": "ranges",
+      "selector": "mists",
+      "kind": "bench",
+      "file": "labs/ranges/js/main.js",
+      "anchor": "$('#mistStage')"
+    },
     "machiya/original-tea": {
       "lab": "machiya",
       "selector": "original-tea",
@@ -1890,6 +1911,10 @@
       ],
       "coverage": [
         {
+          "target": "ranges/foothill-stands",
+          "level": "direct"
+        },
+        {
           "target": "ranges/foothills",
           "level": "embedded",
           "note": "The hero valley includes the foothill carpet; there is no separate shelf specimen."
@@ -1908,6 +1933,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "ranges/village",
+          "level": "direct"
+        },
         {
           "target": "machiya/original-village",
           "level": "related",
@@ -1928,6 +1957,10 @@
       ],
       "coverage": [
         {
+          "target": "ranges/mists",
+          "level": "direct"
+        },
+        {
           "target": "ranges/air",
           "level": "related",
           "note": "Aerial perspective bench; it does not extract the original mist-ring mesh."
@@ -1946,6 +1979,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "ranges/mists",
+          "level": "direct"
+        },
         {
           "target": "ranges/air",
           "level": "related",

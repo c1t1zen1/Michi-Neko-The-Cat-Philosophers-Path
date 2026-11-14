@@ -6,7 +6,7 @@ Reviewed 2026-11-10. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **114 of 186 (61.3%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **118 of 186 (63.4%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -28,10 +28,10 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 114 | 61.3% |
+| Focused lab study | 118 | 63.4% |
 | Review sheet | 41 | 22.0% |
-| Embedded in a specimen | 12 | 6.5% |
-| Related evidence only | 14 | 7.5% |
+| Embedded in a specimen | 11 | 5.9% |
+| Related evidence only | 11 | 5.9% |
 | No mapped evidence | 5 | 2.7% |
 
 ## Coverage by area
@@ -41,7 +41,7 @@ Each active row is counted once at its strongest evidence level, in the order ab
 | Characters | 9 | 7 | 1 | 1 | 0 | 0 |
 | Cat components | 5 | 0 | 3 | 1 | 0 | 1 |
 | Ground and water | 13 | 12 | 0 | 1 | 0 | 0 |
-| Landscape | 7 | 3 | 0 | 1 | 3 | 0 |
+| Landscape | 7 | 7 | 0 | 0 | 0 | 0 |
 | Buildings | 5 | 4 | 0 | 0 | 1 | 0 |
 | Building components | 10 | 10 | 0 | 0 | 0 | 0 |
 | Props | 12 | 12 | 0 | 0 | 0 | 0 |
@@ -68,10 +68,6 @@ This list includes every active row without a focused study, including review-on
 | [Master Cat gold and twin bells](#master-bells) | No mapped evidence | The ordinary collar is reviewed; no specimen explicitly enables setMasterCat(). |
 | [Cat contact-shadow blob](#cat-shadow) | Embedded in a specimen | Visible with the complete cat; no isolated shadow study. |
 | [Paddy beds and raised banks](#paddy-bunds) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Foothill cedars and broadleaf crowns](#foothill-forest) | Embedded in a specimen | The hero valley includes the foothill carpet; there is no separate shelf specimen. |
-| [Distant valley village houses and hearth windows](#distant-village) | Related evidence only | The street-house builder differs from buildVillage() distant silhouettes. |
-| [Valley mist ring](#mist-ring) | Related evidence only | Aerial perspective bench; it does not extract the original mist-ring mesh. |
-| [River dawn mist ribbons](#dawn-mist) | Related evidence only | General haze study; no dawn-river specimen or time envelope. |
 | [Village street assembly](#village-street) | Related evidence only | Individual house references, not a specimen of the complete original street layout. |
 | [Sakura trees](#sakura) | Review sheet | No individual focused specimen is mapped. |
 | [Maple trees](#maples) | Review sheet | No individual focused specimen is mapped. |
@@ -186,10 +182,10 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="mountains"></a>`mountains` — Valley mountain terrain and ridges | [src/countryside.js:buildMountains(](../src/countryside.js#L4043) | [ranges / stack](../labs/ranges/js/main.js#L144) (direct) |  |
 | <a id="edge-forest"></a>`edge-forest` — Edge-forest broadleaf tree wall | [src/countryside.js:buildEdgeForest(](../src/countryside.js#L4256) | [ranges / wall-mass](../labs/ranges/js/main.js#L157) (direct) |  |
 | <a id="edge-undergrowth"></a>`edge-undergrowth` — Edge shrubs and shrine corridor thicket | [src/countryside.js:buildEdgeUndergrowth(](../src/countryside.js#L4428) | [ranges / edge](../labs/ranges/js/main.js#L193) (direct) |  |
-| <a id="foothill-forest"></a>`foothill-forest` — Foothill cedars and broadleaf crowns | [src/countryside.js:buildFoothillForest(](../src/countryside.js#L4661) | [ranges / foothills](../labs/ranges/js/main.js#L31) (embedded) — The hero valley includes the foothill carpet; there is no separate shelf specimen. |  |
-| <a id="distant-village"></a>`distant-village` — Distant valley village houses and hearth windows | [src/countryside.js:buildVillage(](../src/countryside.js#L4576) | [machiya / original-village](../labs/machiya/js/variants.js#L63) (related) — The street-house builder differs from buildVillage() distant silhouettes. |  |
-| <a id="mist-ring"></a>`mist-ring` — Valley mist ring | [src/countryside.js:buildMistRing(](../src/countryside.js#L4757) | [ranges / air](../labs/ranges/js/main.js#L211) (related) — Aerial perspective bench; it does not extract the original mist-ring mesh. |  |
-| <a id="dawn-mist"></a>`dawn-mist` — River dawn mist ribbons | [src/countryside.js:buildDawnMist(](../src/countryside.js#L4800) | [ranges / air](../labs/ranges/js/main.js#L211) (related) — General haze study; no dawn-river specimen or time envelope. |  |
+| <a id="foothill-forest"></a>`foothill-forest` — Foothill cedars and broadleaf crowns | [src/countryside.js:buildFoothillForest(](../src/countryside.js#L4661) | [ranges / foothill-stands](../labs/ranges/js/main.js#L280) (direct)<br>[ranges / foothills](../labs/ranges/js/main.js#L31) (embedded) — The hero valley includes the foothill carpet; there is no separate shelf specimen. |  |
+| <a id="distant-village"></a>`distant-village` — Distant valley village houses and hearth windows | [src/countryside.js:buildVillage(](../src/countryside.js#L4576) | [ranges / village](../labs/ranges/js/main.js#L287) (direct)<br>[machiya / original-village](../labs/machiya/js/variants.js#L63) (related) — The street-house builder differs from buildVillage() distant silhouettes. |  |
+| <a id="mist-ring"></a>`mist-ring` — Valley mist ring | [src/countryside.js:buildMistRing(](../src/countryside.js#L4757) | [ranges / mists](../labs/ranges/js/main.js#L298) (direct)<br>[ranges / air](../labs/ranges/js/main.js#L211) (related) — Aerial perspective bench; it does not extract the original mist-ring mesh. |  |
+| <a id="dawn-mist"></a>`dawn-mist` — River dawn mist ribbons | [src/countryside.js:buildDawnMist(](../src/countryside.js#L4800) | [ranges / mists](../labs/ranges/js/main.js#L298) (direct)<br>[ranges / air](../labs/ranges/js/main.js#L211) (related) — General haze study; no dawn-river specimen or time envelope. |  |
 
 ### Buildings
 
