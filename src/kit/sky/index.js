@@ -50,7 +50,7 @@ export const assets = [
       size: { type: 'number', default: 1, min: 0.7, max: 1.4, step: 0.05, label: 'Apparent size' },
       halo: { type: 'number', default: 1, min: 0, max: 1.5, step: 0.05, label: 'Halo strength' }
     },
-    floating: ['disc', 'halo', 'ring'],
+    floating: ['disc'],
     sample: sample('Moon'),
     build: (ctx, layout, p) => buildMoon(ctx, layout, p)
   })

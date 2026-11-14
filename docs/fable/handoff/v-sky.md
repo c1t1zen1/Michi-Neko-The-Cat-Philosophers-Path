@@ -65,25 +65,30 @@ state from `env.hour` / `env.wet` / `env.snow`.
 - `stars`: `points`, `band` (hero, mid; the Amanogawa). `material` = the
   points' ShaderMaterial (`uniforms.uOpacity`, `uniforms.uTime`, as the
   classic `starMat`). Group name `Stars` (legacyName).
-- `moon`: `disc`, `halo` (mid, hero), `ring` (hero; the 22° tsukigasa).
-  `material` = the disc's SpriteMaterial (classic `moonMat` handle). Group
-  name `Moon` (legacyName).
+- `moon`: `disc` — one camera-facing quad that paints the disc, its glow and
+  (hero) the 22° tsukigasa (fix round 1 folded the former `halo` and `ring`
+  parts into it; they never shipped). `material` = its ShaderMaterial (classic
+  `moonMat` handle: the classic code sets `opacity`). Group name `Moon`
+  (legacyName).
+- `stars` also exposes `linkClouds(shared, deckAlpha)`; the Sky calls it right
+  after building the stars when a kit deck exists, so stars go out behind
+  thick cloud.
 
 ## 5. Materials, draws, budgets
 
 - New merged materials: **0** (R52). Every sky mesh is live and private
   (ShaderMaterials / SpriteMaterials outside MAT), none reaches `_mergeStatics`.
-- Live meshes: clouds 1, stars 2 (hero/mid) or 1, moon 3/2/1. They replace 26
+- Live meshes: clouds 1, stars 2 (hero/mid) or 1, moon 1. They replace 26
   cloud sprites + 1 star Points + 1 moon sprite; stars and moon stop drawing
   in daylight (`visible = false` below opacity 0.002).
 - Draw calls, deterministic (`?shot=1`, same frame, scene pass, 1200×750),
-  classic → swap: day (10.5) street 450 → 444, shrine 159 → 156, river
-  340 → 331, meadow 444 → 438 on high, the same deltas on medium; night (22)
-  street −2, shrine **+1**, river −5, meadow −2 (the shrine view frames few
-  classic sprites; the kit night adds band + halo). Full frame (shadow + post)
-  deltas are identical: the cloud shade is composited inside the existing
-  atmosphere pass, no new pass or render target.
-- Triangles: +748 day, +1,904 night (deck 760, band 1,152) per frame.
+  classic → swap (after fix round 1), high and medium alike: day (10.5)
+  street −6, shrine −3, river −9, meadow −6; night (22) street −3, shrine
+  **±0**, river −6, meadow −3 — in clear, cloudy and misty weather (the moon's
+  22° ring wakes in cloudy/mist and costs no draw: it is the same quad). Full
+  frame (shadow + post) deltas are identical: the cloud shade is composited
+  inside the existing atmosphere pass, no new pass or render target.
+- Triangles: +748 day, about +1,900 night (deck 760, band 1,152, moon quad 2) per frame.
 - Budgets: no exceptions requested (contract: 9 builds, max 1,152 tris,
   warm builds ≤ 0.6 ms).
 
@@ -118,5 +123,17 @@ studies. No new lab, no new specimen ids beyond `night-stars`, `night-moon`.)
 
 None to move. `src/kit/sky/state.js` (`sunFromHour`, `moonFromSun`, `readSky`)
 duplicates the classic sun path for pages without a Sky; keep it in step if
-Sky.updateDayNight's sun path ever changes. `labs/sky/js/night.js` and
-`src/kit/sky/night.js` share their drawing code verbatim (keep in step).
+Sky.updateDayNight's sun path ever changes.
+
+## 9. labs/shared/game.js (hot file) — DONE in-lane (fix round 1, ruling R56)
+
+One additive, cache-tagged re-export so the Sky Lab builds its night studies
+from the kit (the 258-line lab copy is deleted):
+
+```diff
+ export const loadSkyModule = () => import('../../src/sky.js?v=20261113a');
++// Sky Lab night studies build the kit's own stars and painted moon (lane v-sky, ruling R56).
++export const loadKitSkyNightModule = () => import('../../src/kit/sky/night.js?v=20261113a');
+```
+
+Bump its `?v=` with the others at the next tag bump.
