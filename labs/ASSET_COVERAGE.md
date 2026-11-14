@@ -6,7 +6,7 @@ Reviewed 2026-11-10. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **89 of 186 (47.8%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **90 of 186 (48.4%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -28,9 +28,9 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 89 | 47.8% |
+| Focused lab study | 90 | 48.4% |
 | Review sheet | 41 | 22.0% |
-| Embedded in a specimen | 27 | 14.5% |
+| Embedded in a specimen | 26 | 14.0% |
 | Related evidence only | 19 | 10.2% |
 | No mapped evidence | 10 | 5.4% |
 
@@ -44,7 +44,7 @@ Each active row is counted once at its strongest evidence level, in the order ab
 | Landscape | 7 | 3 | 0 | 1 | 3 | 0 |
 | Buildings | 5 | 4 | 0 | 0 | 1 | 0 |
 | Building components | 10 | 6 | 0 | 4 | 0 | 0 |
-| Props | 12 | 11 | 0 | 1 | 0 | 0 |
+| Props | 12 | 12 | 0 | 0 | 0 | 0 |
 | Shrine | 7 | 6 | 0 | 1 | 0 | 0 |
 | Items | 8 | 4 | 0 | 1 | 1 | 2 |
 | Vegetation | 22 | 15 | 6 | 0 | 1 | 0 |
@@ -78,7 +78,6 @@ This list includes every active row without a focused study, including review-on
 | [Tea-house bench and mosen cushion](#tea-bench) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Secret sliding door](#secret-door) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Antique brass padlock emblem](#lock-plate) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Corral warning sign](#corral-sign) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Saisen-bako offering box](#offering-box) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Golden Dango / River-Spirit Charm](#dango) | No mapped evidence | Water Lab studies water and bridges, but does not extract the charm as a specimen. |
 | [Jade Paw corral reward](#jade-paw) | Related evidence only | The original builder creates this reward with visible=false. The corral tile does not reveal it; construction is not visible coverage. |
@@ -170,7 +169,7 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="luna"></a>`luna` — Luna | [src/main.js:'Luna',](../src/main.js#L267)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / luna](../labs/villagers/js/recipes.js#L39) (direct) |  |
 | <a id="mochi"></a>`mochi` — Mochi | [src/main.js:'Mochi',](../src/main.js#L291)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / mochi](../labs/villagers/js/recipes.js#L43) (direct) |  |
 | <a id="kuro"></a>`kuro` — Kuro | [src/main.js:'Kuro',](../src/main.js#L306)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / kuro](../labs/villagers/js/recipes.js#L47) (direct) |  |
-| <a id="larry"></a>`larry` — Larry the turtle | [src/countryside.js:turtle.name = 'Turtle Guardian (Larry)'](../src/countryside.js#L3451) | [fences / corral](../labs/fences/js/recipes.js#L70) (embedded) — The complete original corral includes Larry; there is no isolated turtle or patrol study. |  |
+| <a id="larry"></a>`larry` — Larry the turtle | [src/countryside.js:turtle.name = 'Turtle Guardian (Larry)'](../src/countryside.js#L3451) | [fences / corral](../labs/fences/js/recipes.js#L71) (embedded) — The complete original corral includes Larry; there is no isolated turtle or patrol study. |  |
 | <a id="guardian-crows"></a>`guardian-crows` — Nest guardian crows | [src/ambient_life.js:buildGuardianBirds(](../src/ambient_life.js#L221) | **No mapped evidence** | Critters extracts a sparrow, not guardianBirds; constructing AmbientLife alone does not put the crows on a specimen. |
 | <a id="sparrows"></a>`sparrows` — Valley sparrows | [src/ambient_life.js:buildBirds(](../src/ambient_life.js#L160) | [critters / game-bird](../labs/critters/js/recipes.js#L42) (direct)<br>[critters / flock](../labs/critters/js/recipes.js#L46) (direct) |  |
 | <a id="koi"></a>`koi` — River koi (procedural coat variants) | [src/ambient_life.js:buildKoi(](../src/ambient_life.js#L636) | [critters / game-koi](../labs/critters/js/recipes.js#L32) (direct) | Repeated koi and randomized markings are instances of this type, not additional inventory rows. |
@@ -252,9 +251,9 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="toro"></a>`toro` — Stone toro lanterns and halos | [src/countryside.js:buildToroLantern(](../src/countryside.js#L3567) | [lanterns / game-toro](../labs/lanterns/js/recipes.js#L34) (direct) |  |
 | <a id="chochin"></a>`chochin` — Hanging chochin lanterns | [src/countryside.js:createChochinLantern(](../src/countryside.js#L2023) | [lanterns / game-chochin](../labs/lanterns/js/recipes.js#L63) (direct) |  |
 | <a id="street-lamps"></a>`street-lamps` — Street lamp posts | [src/countryside.js:buildLanterns(](../src/countryside.js#L3999) | [lanterns / game-street](../labs/lanterns/js/recipes.js#L88) (direct) |  |
-| <a id="bamboo-fence"></a>`bamboo-fence` — Bamboo fence runs | [src/countryside.js:buildBambooFence(](../src/countryside.js#L3243) | [fences / game-fence](../labs/fences/js/recipes.js#L32) (direct) |  |
-| <a id="corral"></a>`corral` — Bamboo corral assembly | [src/countryside.js:buildBambooCorral(](../src/countryside.js#L3324) | [fences / corral](../labs/fences/js/recipes.js#L70) (direct) |  |
-| <a id="corral-sign"></a>`corral-sign` — Corral warning sign | [src/countryside.js:marker.name = 'Corral Warning Sign'](../src/countryside.js#L3412) | [fences / corral](../labs/fences/js/recipes.js#L70) (embedded) |  |
+| <a id="bamboo-fence"></a>`bamboo-fence` — Bamboo fence runs | [src/countryside.js:buildBambooFence(](../src/countryside.js#L3243) | [fences / game-fence](../labs/fences/js/recipes.js#L33) (direct) |  |
+| <a id="corral"></a>`corral` — Bamboo corral assembly | [src/countryside.js:buildBambooCorral(](../src/countryside.js#L3324) | [fences / corral](../labs/fences/js/recipes.js#L71) (direct) |  |
+| <a id="corral-sign"></a>`corral-sign` — Corral warning sign | [src/countryside.js:marker.name = 'Corral Warning Sign'](../src/countryside.js#L3412) | [fences / corral-sign](../labs/fences/js/recipes.js#L75) (direct) |  |
 | <a id="shishi"></a>`shishi` — Shishi-odoshi feeder, rocker, pivot and basin | [src/countryside.js:buildShishiOdoshi(](../src/countryside.js#L2871) | [garden / game-shishi](../labs/garden/js/recipes.js#L31) (direct)<br>[garden / shishi](../labs/garden/js/recipes.js#L35) (direct) |  |
 | <a id="wind-chime"></a>`wind-chime` — Furin wind chime | [src/countryside.js:buildWindChime(](../src/countryside.js#L3709) | [garden / game-chime](../labs/garden/js/recipes.js#L44) (direct) |  |
 
@@ -279,7 +278,7 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="guardian-feather"></a>`guardian-feather` — Guardian’s Feather trophy | [src/countryside.js:feather.name = "Guardian's Feather"](../src/countryside.js#L2766) | [nest / feather](../labs/nest/js/recipes.js#L52) (direct) |  |
 | <a id="offering-bells"></a>`offering-bells` — Five collectible offering bells | [src/countryside.js:buildOfferingBells(](../src/countryside.js#L3759) | [shrine / game-bell](../labs/shrine/js/recipes.js#L433) (direct) |  |
 | <a id="dango"></a>`dango` — Golden Dango / River-Spirit Charm | [src/countryside.js:charm.name = 'River-Spirit Charm'](../src/countryside.js#L1576) | **No mapped evidence** | Water Lab studies water and bridges, but does not extract the charm as a specimen. |
-| <a id="jade-paw"></a>`jade-paw` — Jade Paw corral reward | [src/countryside.js:reward.name = 'Jade Paw Reward'](../src/countryside.js#L3428) | [fences / corral](../labs/fences/js/recipes.js#L70) (related) — The original builder creates this reward with visible=false. The corral tile does not reveal it; construction is not visible coverage. |  |
+| <a id="jade-paw"></a>`jade-paw` — Jade Paw corral reward | [src/countryside.js:reward.name = 'Jade Paw Reward'](../src/countryside.js#L3428) | [fences / corral](../labs/fences/js/recipes.js#L71) (related) — The original builder creates this reward with visible=false. The corral tile does not reveal it; construction is not visible coverage. |  |
 | <a id="secret-fish"></a>`secret-fish` — Secret-house grilled fish treat | [src/countryside.js:fish.name = 'Grilled Fish Treat'](../src/countryside.js#L2619) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) — Fish remains inside the furnished original secret-house reference. |  |
 | <a id="interior-fish"></a>`interior-fish` — Tea-house grilled sea-bream platter | [src/interior.js:fish.name = 'Grilled Sea Bream'](../src/interior.js#L588) | **No mapped evidence** | The standalone Interiors Lab does not reproduce this food item. |
 

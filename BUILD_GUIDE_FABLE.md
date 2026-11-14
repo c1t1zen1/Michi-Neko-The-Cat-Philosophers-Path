@@ -623,7 +623,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 1 | `f2-countryside-split` | Layout/mesh split in `countryside.js` | f1 API frozen | [x] |
 | 1 | `f3-systems-split` | Hooks in vegetation, interior, hidden places, ambient life, particles | f1 API frozen | [x] |
 | 2.1 | `v-lanterns` | Lanterns (lab 11) | G-F | [x] |
-| 2.1 | `v-fences` | Fences and corral (lab 12) | G-F | [ ] |
+| 2.1 | `v-fences` | Fences and corral (lab 12) | G-F | [x] |
 | 2.1 | `v-rocks` | Rocks and boulders (lab 13) | G-F | [x] |
 | 2.1 | `v-garden` | Shishi-odoshi, fūrin, bells (lab 14) | G-F | [ ] |
 | 2.1 | `v-greenery` | Bushes, street greenery, bamboo (lab 15) | G-F | [ ] |
