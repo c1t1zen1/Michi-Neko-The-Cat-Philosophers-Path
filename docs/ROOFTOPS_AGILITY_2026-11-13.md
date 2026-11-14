@@ -160,3 +160,8 @@ No valley or summit implementation was edited.
 - [Reference dive — 4503b36](https://github.com/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path/commit/4503b36)
 - [Chosen alley routes — fe70ce9](https://github.com/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path/commit/fe70ce9)
 - [Contextual chase and framing — 5461e9a](https://github.com/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path/commit/5461e9a)
+- [Street craft, mobile input and moving scenery — ffcc084](https://github.com/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path/commit/ffcc084)
+
+All passes were committed and pushed from the isolated
+`../michi-wt/rooftops-agility` worktree on `feat/rooftops-agility` before the
+final merge into `main`.
