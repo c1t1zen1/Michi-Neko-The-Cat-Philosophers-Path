@@ -179,3 +179,12 @@ None.
   → meadow thins (255 → 0) where the cat wore it, the lawn stays (g 255), and it heals back to the baked mask exactly.
 - Also: check_syntax `All 148 modules OK`; verify `kit_test 36/36`, `All checks passed`; kit_check `361 passed`;
   labs_check `All labs checks OK`; `node --test tools/labs_coverage_test.mjs` → `pass 11, fail 0`; `git diff --check` clean.
+- Re-merged `origin/fable/integration` (ce8e332, v-sky; `src/main.js` auto-merged, `src/kit/index.js` regenerated,
+  22 families) and re-ran: kit_check `373 passed`, check_syntax `All 153 modules OK`, verify `All checks passed`,
+  labs_check OK, goldens classic / `--systems` EQUAL, swap golden the same 3 replaced objects, `--systems` swap EQUAL,
+  boots `?assets=classic` `{"kit":0,"problems":[],"ground":0}` and `?assets=modular` `{"kit":238,"problems":[],"ground":1}`
+  with `warnings: []`, the main.js wear test identical to the line above.
+- Contract under sibling load (load average 7-9): valley-ground hero warm build read 7.1 ms once and path-slabs hero
+  6.1-6.7 ms twice. Fixes: the valley-ground exception's warm allowance is now hero 10 / mid 8 / far 6 ms (2-3 ms quiet;
+  the warm build copies a 262k-texel field), and the slabs cache their superellipse outlines per segment count (no
+  exception). Then three runs of `--family ground` → `433 checks, 0 failed` each.

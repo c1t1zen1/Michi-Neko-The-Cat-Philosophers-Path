@@ -16,6 +16,21 @@ export const SLAB_DETAIL = { hero: { seg: 12, rings: 2, cols: 2, skirt: false },
 // classic MAT index (layoutWalkwaySlabs: stone, stoneDark, slabWarm) -> shared kit material and part
 export const SLAB_MATS = [['stone', 'stones_light'], ['basinStone', 'stones_dark'], ['rock', 'stones_warm']];
 
+// superellipse (n 3.2) outlines, squarish with rounded corners like a dressed stone worn soft; one per segment count
+const _unit = new Map();
+function unitOutline(seg) {
+  if (!_unit.has(seg)) {
+    const out = [];
+    for (let i = 0; i < seg; i++) {
+      const a = (i / seg) * Math.PI * 2 + Math.PI / seg, c = Math.cos(a), s = Math.sin(a);
+      const k = Math.pow(Math.pow(Math.abs(c), 3.2) + Math.pow(Math.abs(s), 3.2), -1 / 3.2);
+      out.push([c * k, s * k]);
+    }
+    _unit.set(seg, out);
+  }
+  return _unit.get(seg);
+}
+
 /** Flat arrays for one material's stones (position, uv, index), turned into one indexed geometry. */
 class StoneBag {
   constructor() { this.P = []; this.UV = []; this.I = []; }
@@ -40,14 +55,8 @@ class StoneBag {
 function addStone(bag, px, pz, ry, hw, hd, top, { seg, rings, skirt }, bevel, wob, dome) {
   const { P, UV, I } = bag;
   const cr = Math.cos(ry), sr = Math.sin(ry);
-  const outline = [];
-  for (let i = 0; i < seg; i++) {
-    const a = (i / seg) * Math.PI * 2 + Math.PI / seg;
-    const c = Math.cos(a), s = Math.sin(a);
-    // superellipse (n 3.2): squarish with rounded corners, like a dressed stone worn soft
-    const k = Math.pow(Math.pow(Math.abs(c), 3.2) + Math.pow(Math.abs(s), 3.2), -1 / 3.2) * (1 + wob[i]);
-    outline.push([c * hw * k, s * hd * k]);
-  }
+  const unit = unitOutline(seg), outline = [];
+  for (let i = 0; i < seg; i++) outline.push([unit[i][0] * hw * (1 + wob[i]), unit[i][1] * hd * (1 + wob[i])]);
   // tops take world-planar UVs; the sides an arc-length u round the outline and v up the stone
   // (a planar map smears the sides into streaks), with a duplicated seam vertex
   const vert = (x, y, z, u = null, v = null) => {
