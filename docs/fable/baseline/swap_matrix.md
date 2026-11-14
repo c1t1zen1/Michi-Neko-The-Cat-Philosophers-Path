@@ -194,7 +194,7 @@ Phase 2 wave 2.1, props the cat walks past · kit family `src/kit/garden/` · la
 | Inventory id | Area | Lane | Basis | Best lab target | Coverage | Lab adapter | Original adapter |
 |---|---|---|---|---|---|---|---|
 | `shishi` | Props | v-garden | ruling | `garden/game-shishi (+1)` | direct | yes | yes |
-| `wind-chime` | Props | v-garden | ruling | `garden/game-chime` | direct | yes | yes |
+| `wind-chime` | Props | v-garden | ruling | `garden/game-chime (+1)` | direct | yes | yes |
 
 ### v-greenery
 

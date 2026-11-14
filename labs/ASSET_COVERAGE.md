@@ -255,7 +255,7 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="corral"></a>`corral` — Bamboo corral assembly | [src/countryside.js:buildBambooCorral(](../src/countryside.js#L3324) | [fences / corral](../labs/fences/js/recipes.js#L71) (direct) |  |
 | <a id="corral-sign"></a>`corral-sign` — Corral warning sign | [src/countryside.js:marker.name = 'Corral Warning Sign'](../src/countryside.js#L3412) | [fences / corral-sign](../labs/fences/js/recipes.js#L75) (direct) |  |
 | <a id="shishi"></a>`shishi` — Shishi-odoshi feeder, rocker, pivot and basin | [src/countryside.js:buildShishiOdoshi(](../src/countryside.js#L2871) | [garden / game-shishi](../labs/garden/js/recipes.js#L31) (direct)<br>[garden / shishi](../labs/garden/js/recipes.js#L35) (direct) |  |
-| <a id="wind-chime"></a>`wind-chime` — Furin wind chime | [src/countryside.js:buildWindChime(](../src/countryside.js#L3709) | [garden / game-chime](../labs/garden/js/recipes.js#L44) (direct) |  |
+| <a id="wind-chime"></a>`wind-chime` — Furin wind chime | [src/countryside.js:buildWindChime(](../src/countryside.js#L3709) | [garden / game-chime](../labs/garden/js/recipes.js#L44) (direct)<br>[garden / glass](../labs/garden/js/recipes.js#L48) (direct) |  |
 
 ### Shrine
 
