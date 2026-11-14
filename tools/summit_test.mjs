@@ -1,14 +1,16 @@
 // Headless logic test for the 天上 summit state machine.
 //
 // The summit scene is pure WebGL and cannot run without a GPU. This harness
-// loads the REAL src/mountaintop.js source and rewrites only its three import
-// statements to local stubs, so the actual shipped logic — unlock counting,
-// enter/exit transitions, containment, the meditation timer and the sleep
-// beat — is what gets exercised.
+// loads the REAL src/mountaintop.js source (the SummitManager facade) and the
+// REAL src/summit/*.js modules it imports, and rewrites only their import
+// statements: three, its addons, textures, foliage and grass become local
+// stubs, while every other import is the real module. So the actual shipped
+// logic — unlock counting, enter/exit transitions, containment, the
+// meditation timer and the sleep beat — is what gets exercised.
 //
 //   node tools/summit_test.mjs
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 import vm from 'node:vm';
 
@@ -44,6 +46,15 @@ const node3 = () => ({
   userData: {}, children: [], name: '', visible: true, frustumCulled: true, renderOrder: 0,
   add(c) { this.children.push(c); return this; },
   remove() {}, traverse() {}, lookAt() {},
+  // placeAsset() finds a kit instance's parent by name (classic never asks).
+  getObjectByName(n) {
+    if (this.name === n) return this;
+    for (const c of this.children) {
+      const found = c && typeof c.getObjectByName === 'function' ? c.getObjectByName(n) : undefined;
+      if (found) return found;
+    }
+    return undefined;
+  },
   updateMatrix() {}, updateMatrixWorld() {}, matrix: {}, matrixWorld: {},
 });
 const geo3 = () => ({
@@ -153,18 +164,83 @@ const foliageStub = {
   lumpyTuftGeometry: () => ({}), lumpyConeGeometry: () => ({}), bushGeometry: () => ({}),
   leafMassTexture: () => ({}),
 };
-/* ---------------- load the real module source ---------------- */
-let src = readFileSync(join(ROOT, 'src', 'mountaintop.js'), 'utf8');
-// Strip imports (some are multi-line, so match `from '...'` through the `;`).
-src = src.replace(/^import[\s\S]*?from\s+['"][^'"]+['"]\s*;?/gm, '');
-// `import.meta.url` keeps module-relative assets working from both the game
-// and `/tools/` preview. The VM runs classic script text, so give it the URL
-// the real module has before evaluation.
-src = src.replace(/import\.meta\.url/g, "'http://localhost/src/mountaintop.js'");
-if (/^\s*import\s/m.test(src)) {
-  console.error('import strip failed');
-  process.exit(1);
+/* ---------------- load the real module sources ---------------- */
+// Each real module runs in the VM as one function scope (its own module
+// scope). Its import statements become reads from a small registry: the
+// imports below in STUBBED resolve to the stubs declared in `pre`, every
+// other import is the real module, loaded the same way on first use.
+const STUBBED = new Set([
+  'three', 'three/addons/utils/BufferGeometryUtils.js', 'three/addons/loaders/GLTFLoader.js',
+  'src/textures.js', 'src/foliage.js', 'src/grass.js',
+]);
+
+/** A specifier as a registry key: bare names as they are, relative paths repo-relative, `?v=` dropped. */
+function moduleKey(spec, fromKey) {
+  const bare = spec.replace(/[?#].*$/, '');
+  if (!bare.startsWith('.')) return bare;
+  const parts = fromKey.split('/').slice(0, -1);
+  for (const part of bare.split('/')) {
+    if (part === '..') parts.pop();
+    else if (part !== '.') parts.push(part);
+  }
+  return parts.join('/');
 }
+
+/** The module at `key` as classic script text that registers it, plus the keys it imports. */
+function moduleSource(key) {
+  let src = readFileSync(join(ROOT, key), 'utf8').replace(/^﻿/, '');
+  const deps = [], names = [];
+  // Imports (some are multi-line, so match `from '...'` through the `;`).
+  src = src.replace(/^import\s+([\s\S]*?)\s+from\s+['"]([^'"]+)['"]\s*;?/gm, (m, what, spec) => {
+    const dep = moduleKey(spec, key);
+    deps.push(dep);
+    what = what.trim();
+    if (what.startsWith('* as ')) return `const ${what.slice(5).trim()} = __require(${JSON.stringify(dep)});`;
+    if (what.startsWith('{')) return `const ${what.replace(/\s+as\s+/g, ': ')} = __require(${JSON.stringify(dep)});`;
+    return `const ${what} = __require(${JSON.stringify(dep)}).default;`;
+  });
+  if (/^\s*import\s/m.test(src)) {
+    console.error('import strip failed: ' + key);
+    process.exit(1);
+  }
+  src = src.replace(/^export\s+(class|function|const|let)\s+([A-Za-z_$][\w$]*)/gm, (m, kind, name) => {
+    names.push(name);
+    return `${kind} ${name}`;
+  });
+  if (/^\s*export\s/m.test(src)) {
+    console.error('export strip failed: ' + key);
+    process.exit(1);
+  }
+  // `import.meta.url` keeps module-relative assets working from both the game
+  // and `/tools/` preview. The VM runs classic script text, so give it the URL
+  // the real module has before evaluation.
+  src = src.replace(/import\.meta\.url/g, JSON.stringify('http://localhost/' + key));
+  return {
+    deps,
+    text: `__define(${JSON.stringify(key)}, function (__require) {\n${src}\nreturn { ${names.join(', ')} };\n});\n`,
+  };
+}
+
+// The asset runtime is pure and loads under Node (its own tests do), so the
+// real module is imported natively and handed to the VM as it is.
+const NATIVE = new Set(['src/kit/runtime.js']);
+const native = {};
+for (const key of NATIVE) native[key] = await import(pathToFileURL(join(ROOT, key)).href);
+
+/** src/mountaintop.js and every real module it reaches, as one script. */
+function realModules(entry) {
+  const seen = new Set(), out = [];
+  const visit = (key) => {
+    if (seen.has(key) || STUBBED.has(key) || NATIVE.has(key)) return;
+    seen.add(key);
+    const mod = moduleSource(key);
+    out.push(mod.text);
+    for (const dep of mod.deps) visit(dep);
+  };
+  visit(entry);
+  return { keys: [...seen], text: out.join('') };
+}
+const real = realModules('src/mountaintop.js');
 
 const canvasStub = () => ({
   width: 1024, height: 512,
@@ -222,10 +298,10 @@ sandbox.globalThis = sandbox;
 sandbox.self = sandbox;
 vm.createContext(sandbox);
 
-// Re-declare ONLY the names that came from the stripped imports. Everything
+// Re-declare ONLY the names that came from the stubbed imports. Everything
 // else (ORIGIN, MEDITATE_SECONDS, mulberry32, clamp01, box, …) stays the real
-// module-scope definition from src/mountaintop.js, so the constants under test
-// are the shipped ones.
+// module-scope definition from src/mountaintop.js and src/summit/*.js, so the
+// constants under test are the shipped ones.
 const pre = `
   const dirtTextures = () => ({}), groundTextures = () => ({}), stoneTextures = () => ({}), woodTextures = () => ({}),
         metalTextures = () => ({}), barkTextures = () => ({}),
@@ -244,8 +320,32 @@ const pre = `
     setDensity() {} update() {}
   };
 `;
-vm.runInContext(pre + src.replace('export class SummitManager', 'class SummitManager') +
-  '\nthis.SummitManager = SummitManager;', sandbox);
+// The registry: stubbed imports resolve to the names declared in `pre`; real
+// modules register a factory and run once, on first import, like ES modules.
+const registry = `
+  const __modules = new Map(), __factories = new Map();
+  function __define(key, factory) { __factories.set(key, factory); }
+  function __require(key) {
+    if (__modules.has(key)) return __modules.get(key);
+    const factory = __factories.get(key);
+    if (!factory) throw new Error('summit_test: no module for import ' + key);
+    const exported = factory(__require);
+    __modules.set(key, exported);
+    return exported;
+  }
+  __modules.set('three', THREE);
+  __modules.set('three/addons/utils/BufferGeometryUtils.js', { mergeGeometries });
+  __modules.set('three/addons/loaders/GLTFLoader.js', { GLTFLoader });
+  __modules.set('src/textures.js', { dirtTextures, groundTextures, stoneTextures, woodTextures, metalTextures,
+    barkTextures, texturedMaterial, worldNoise, glowTexture });
+  __modules.set('src/foliage.js', { createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture,
+    leafCardGeometry, buildCanopy, updateFoliage, lumpyTuftGeometry, lumpyConeGeometry, bushGeometry, leafMassTexture });
+  __modules.set('src/grass.js', { GrassSystem, BiomeMask });
+  for (const key of Object.keys(__native)) __modules.set(key, __native[key]);
+`;
+sandbox.__native = native;
+vm.runInContext(pre + registry + real.text +
+  `\nthis.SummitManager = __require('src/mountaintop.js').SummitManager;`, sandbox);
 
 const toasts = [];
 const audioCalls = [];
@@ -579,6 +679,169 @@ ok('movement exits scenic view and restores controls',
 for (let i = 0; i < 400; i++) { g.player.moveInput.lengthSq = () => 0; park(); S.update(0.5, true); }
 ok('the cat can fall asleep a second time', S.sleeping === true,
   `t=${S.meditateT.toFixed(1)}`);
+
+// --- kit stand-ins that leave the handles out --------------------------------
+// Every summit inventory id is built from a kit stand-in through the real
+// asset runtime, three times: with no bound parts at all (each layout.bind
+// resolves to nothing and no classic step sets its fields), with only the
+// first part each layout binds (a fūrin bell without its sail and clapper,
+// a sky fill without the warm fill, …), and with every bound part a bare
+// Object3D that carries only a colour (no geometry, material or ground
+// colour). The unlock, the valley beacon and portal, every per-frame path in
+// every weather and light, the perch, setQuality() and leaving must not
+// throw, and each unresolved bind is reported once, through the runtime.
+console.log('\n--- kit stand-ins without the classic handles ---\n');
+const { AssetRuntime } = native['src/kit/runtime.js'];
+const { defineAsset } = await import(pathToFileURL(join(ROOT, 'src', 'kit', 'contract.js')).href);
+const summitIds = JSON.parse(readFileSync(join(ROOT, 'labs', 'asset_inventory.json'), 'utf8'))
+  .assets.filter((a) => a.group === 'Summit').map((a) => a.id);
+const kitObject = () => Object.assign(new THREE.Object3D(), { isObject3D: true });
+// parts: 'none' | 'first' (the first part each layout binds) | 'all'
+const standIn = (id, parts) => defineAsset({
+  id, family: 'summit-standin', tiers: ['hero', 'mid', 'far'],
+  build(ctx, layout) {
+    const group = kitObject();
+    const out = { body: kitObject() };
+    const bound = Object.values(layout.bind || {});
+    for (const part of parts === 'all' ? bound : parts === 'first' ? bound.slice(0, 1) : []) {
+      out[part] = Object.assign(kitObject(), { color: new THREE.Color() });
+    }
+    for (const part of Object.values(out)) group.add(part);
+    return { group, parts: out, sockets: {}, live: [], footprint: layout.footprint };
+  },
+});
+const kitRuntime = ({ parts = 'none', assetSet = 'modular', search = '', ids = summitIds } = {}, warnings = []) => {
+  const rt = new AssetRuntime({
+    THREE, assetSet, search, quality: 'high', logger: { warn: (m) => warnings.push(m) },
+    loadFamilies: async () => ({}), createMaterials: async () => null, fetchOverrides: async () => null,
+  });
+  for (const id of ids) rt.register(standIn(id, parts), 'summit-standin');
+  return rt;
+};
+const fullPalette = Object.fromEntries(['top', 'mid', 'horizon', 'warm', 'sun', 'hemiSky', 'hemiGround', 'fog', 'cloud']
+  .map((k) => [k, new THREE.Color()]));
+const boxes = (list) => JSON.stringify(list.map((b) => [b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z]));
+const classicBoxes = (() => { const C = new SummitManager(makeGame()); return { c: boxes(C.colliders), p: boxes(C.platforms) }; })();
+
+function driveKitSummit(parts) {
+  const warnings = [], failures = [];
+  const game = makeGame();
+  game.assets = kitRuntime({ parts }, warnings);
+  const run = (label, fn) => { try { fn(); } catch (e) { failures.push(`${label}: ${e && e.message || e}`); } };
+  let K = null;
+  run('build', () => { K = new SummitManager(game); });
+  if (!K) return { K, game, warnings, failures, portal: false };
+  const sky = game.sky;
+  sky.resolvePalette = () => fullPalette; // the whole re-lighting path, not only the fills
+  run('setQuality', () => { for (const q of ['low', 'medium', 'high']) K.setQuality(q); });
+  run('unlock', () => K.setUnlocked(true));
+  run('valley beacon', () => { game.player.mesh.position.set(0, 0, -20); for (let i = 0; i < 4; i++) K.update(0.25, true); });
+  run('portal', () => { game.player.mesh.position.set(0, 0, -40); K.update(0.016, true); });
+  const portal = K.transitioning === true;
+  // Skip the veil's timers: arrive directly, controls back.
+  K.transitioning = false;
+  game.player.actionLocked = false;
+  game.controls.enabled = true;
+  run('enter', () => K.enterImmediate());
+  const spots = [[0, 9.5], [4.55, 5.1], [K.perchLocal.x, K.perchLocal.z]];
+  for (const weather of ['clear', 'cloudy', 'mist', 'rain', 'snow']) {
+    sky.weather = sky.targetWeather = weather;
+    sky.weatherBlend = 1;
+    for (const sunY of [1, 0.1, -0.4]) {
+      sky.sunDir.set(0.3, sunY, 0.2);
+      run(`update (${weather}, sun ${sunY})`, () => {
+        K._birdFlybyTimer = 0;
+        K._butterflyVisitTimer = 0;
+        for (const [x, z] of spots) {
+          game.player.mesh.position.set(K.origin.x + x, K.origin.y + 0.08, K.origin.z + z);
+          K.update(0.5, true);
+        }
+      });
+    }
+  }
+  run('perch', () => {
+    game.player.cat.idleAction = 'sit';
+    for (let i = 0; i < 12; i++) {
+      game.player.mesh.position.set(K.origin.x + K.perchLocal.x, K.origin.y + K.perchLocal.y, K.origin.z + K.perchLocal.z);
+      K.update(0.5, true);
+    }
+  });
+  run('direct calls', () => {
+    K.startBirdFlyby(); K.reseedSnow(); K.reseedRain(); K.resetAmbientWildlife();
+    K.updateAmbientWildlife(0.1, 1, sky); K.updateSakuraPetals(0.1, 1, sky);
+    K.updateVistaEnvironment(0.1, 1, sky); K.updateMeditationAtmosphere(0.1, 1, true, sky);
+  });
+  run('leave', () => { K.setActive(false); K.update(0.016, true); });
+  return { K, game, warnings, failures, portal };
+}
+
+const bare = driveKitSummit('none');
+const B = bare.K;
+ok('bare stand-ins: every summit id is built from its kit stand-in',
+  !!B && new Set(B.assets.instances.map((i) => i.id)).size === summitIds.length &&
+  B.assets.instances.length === 34,
+  B ? `${B.assets.instances.length} instances` : 'no summit');
+ok('bare stand-ins: colliders and platforms come from the layouts, as on classic',
+  !!B && boxes(B.colliders) === classicBoxes.c && boxes(B.platforms) === classicBoxes.p);
+ok('bare stand-ins: unlock, beacon, portal, every weather and light, the perch, setQuality() and leaving never throw',
+  bare.failures.length === 0, bare.failures.slice(0, 3).join(' | '));
+ok('bare stand-ins: the portal behind the shrine opens with no beacon handle',
+  bare.portal && !!B && B.raysGroup === null && B._rays === undefined);
+const bindWarnings = bare.warnings.filter((w) => /has no part '.*' that layout\.bind\./.test(w));
+const boundFields = !B ? [] : B.assets.instances.flatMap((i) => Object.keys((i.layout && i.layout.bind) || {}).map((f) => `${i.id}:${f}`));
+ok('bare stand-ins: each missing bound part is warned once, through the runtime',
+  bindWarnings.length > 0 && bindWarnings.length === new Set(boundFields).size &&
+  new Set(bindWarnings).size === bindWarnings.length &&
+  bindWarnings.every((w) => B.assets.problems.includes(w.replace(/^\[kit\] /, ''))),
+  `${bindWarnings.length} warnings for ${new Set(boundFields).size} bound fields`);
+let rebound = false;
+if (B) {
+  const furinInstance = B.assets.instances.find((i) => i.id === 'summit-furin');
+  const before = bare.warnings.length;
+  B.placeAsset('summit-furin', furinInstance.layout, () => null);
+  B.placeAsset('summit-enso', { index: 0, x: 0, y: 0, z: 0, parent: 'No Such Summit Object', footprint: { colliders: [], platforms: [], anchors: {} } }, () => null);
+  B.placeAsset('summit-enso', { index: 0, x: 0, y: 0, z: 0, parent: 'No Such Summit Object', footprint: { colliders: [], platforms: [], anchors: {} } }, () => null);
+  const added = bare.warnings.slice(before);
+  rebound = added.length === 1 && /layout parent 'No Such Summit Object' is not in the summit/.test(added[0]);
+}
+ok('a repeated unresolved bind is not warned again; an unknown parent is warned once', rebound);
+
+const first = driveKitSummit('first');
+const F = first.K;
+ok('first-part stand-ins: a bell without its sail and clapper, a sky fill without the warm fill, … never throw',
+  first.failures.length === 0 && !!F && !!F.furin && F.furinSail === null && F.furinClapper === null &&
+  !!F.summitSkyFill && F.summitWarmFill === null && !!F.meditationPool && F.meditationMotes === null,
+  first.failures.slice(0, 3).join(' | '));
+ok('first-part stand-ins: the kit fūrin bell still sways in the breeze', !!F && F.furin.rotation.z !== 0);
+
+const plain = driveKitSummit('all');
+const P = plain.K;
+ok('plain-part stand-ins: every bound handle is the kit part',
+  !!P && P.raysGroup && P.raysGroup.isObject3D && P.furin && P.furin.isObject3D && P.snow && P.snow.isObject3D &&
+  P.butterflies && P.butterflies.isObject3D && P.vista && P.vista.isObject3D && plain.warnings.length === 0,
+  plain.warnings.slice(0, 2).join(' | '));
+ok('plain-part stand-ins: parts without geometry, material or ground colour never throw anywhere',
+  plain.failures.length === 0, plain.failures.slice(0, 3).join(' | '));
+ok('plain-part stand-ins: the kit fūrin still sways in the breeze',
+  !!P && P.furin.rotation.z !== 0 && P.furinSail.rotation.y !== 0);
+
+// One kit vista without a 'layers' part, everything else classic; and a
+// ?swap for an id that has no kit asset registered.
+const mixedWarnings = [];
+let M = null, mixedError = '';
+try {
+  const mg = makeGame();
+  mg.assets = kitRuntime({ assetSet: 'classic', search: '?swap=summit-vista:modular,summit-furin:modular', ids: ['summit-vista'] }, mixedWarnings);
+  M = new SummitManager(mg);
+} catch (e) { mixedError = e && e.message || String(e); }
+const kitVista = M && M.assets.instances.find((i) => i.id === 'summit-vista');
+ok('a kit vista without a layers part still holds the classic layers',
+  !!kitVista && M.vista === kitVista.group && M.vista.children.length > 5 &&
+  M.assets.instances.every((i) => i.id === 'summit-vista') && !!M.furin,
+  mixedError || (M ? `${M.vista && M.vista.children.length} children` : ''));
+ok('a ?swap for an id with no kit registered is warned once and builds classic',
+  mixedWarnings.filter((w) => /summit-furin: \?swap asks for the kit, but no kit asset is registered/.test(w)).length === 1,
+  mixedWarnings.join(' | '));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
