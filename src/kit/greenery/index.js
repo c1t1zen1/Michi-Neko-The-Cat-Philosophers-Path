@@ -49,6 +49,6 @@ export const assets = [
       height: { type: 'number', default: 1, min: 0.7, max: 1.3, step: 0.05, label: 'Height' },
       leaf_width: { type: 'number', default: 1, min: 0.6, max: 1.5, step: 0.05, label: 'Leaf width' }
     },
-    tiers: ['hero', 'mid', 'far'], sample: () => sampleGrove(2), build: bambooGrove
+    tiers: ['hero', 'mid', 'far'], sample: () => sampleGrove(7), build: bambooGrove
   })
 ];

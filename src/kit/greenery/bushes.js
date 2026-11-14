@@ -43,7 +43,7 @@ export function buildStreetBushes(ctx, layout, p) {
     parts[key] = mesh;
   });
   // live: the foliage sway/rustle shader is driven by Countryside.update() through bushMat
-  return { group, parts, sockets: {}, live: [parts.bushes, parts.karikomi], dispose() { mat.dispose(); } };
+  return { group, parts, sockets: {}, live: [parts.bushes, parts.karikomi], dispose() { mat.dispose(); } /* bushGeometry() is cached and shared: its geometries stay */ };
 }
 
 /* ------------------------------------------------------------ roadside moss --- */

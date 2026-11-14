@@ -8,9 +8,9 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 /** Tier knobs: lathe sides, node count along the 7 m unit culm, rings per node, leaves kept of 72, blade rows. */
 export const BAMBOO_TIER = Object.freeze({
-  hero: { radial: 7, nodes: 12, ring: 4, keep: 1, rows: 4 },
-  mid: { radial: 5, nodes: 6, ring: 3, keep: 2 / 3, rows: 3 },
-  far: { radial: 5, nodes: 0, ring: 1, keep: 1 / 3, rows: 2 }
+  hero: { radial: 6, nodes: 6, ring: 3, keep: 1, rows: 3 },
+  mid: { radial: 4, nodes: 0, ring: 1, keep: 1 / 3, rows: 2 },
+  far: { radial: 3, nodes: 0, ring: 1, keep: 1 / 8, rows: 2 }
 });
 
 const bell = (x, w) => Math.exp(-(x / w) * (x / w));
@@ -214,7 +214,7 @@ export function bambooGrove(ctx, L, p) {
   const plantArr = new Float32Array(Math.max(1, planted) * 4), yawArr = new Float32Array(Math.max(1, planted));
   const leafPlant = new Float32Array(Math.max(1, planted * kept.length) * 4);
   const leafA = new Float32Array(leafPlant.length), leafB = new Float32Array(leafPlant.length);
-  const lower = new T.InstancedMesh(lowerGeo, km.bamboo({ vcol: true, color: 0x7fa84f }), Math.max(1, planted));
+  const lower = new T.InstancedMesh(lowerGeo, km.bamboo({ color: 0xa9c06a, vcol: true, rough: 0.5 }) /* the fences family's args: one shared material */, Math.max(1, planted));
   const dummy = new T.Object3D(), col = new T.Color();
   plants.forEach(({ x, z, height, yaw, phase }, k) => {
     const lx = x - ox, lz = z - oz, h = height * p.height;
@@ -227,7 +227,7 @@ export function bambooGrove(ctx, L, p) {
     dummy.updateMatrix();
     lower.setMatrixAt(k, dummy.matrix);
     const g = 0.88 + 0.24 * (((phase * 7.31) % 1 + 1) % 1);
-    lower.setColorAt(k, col.setRGB(g, g, g));
+    lower.setColorAt(k, col.setRGB(0.76 * g, 0.88 * g, 0.74 * g));   // pulls the fences' pale green toward the grove's
     kept.forEach((j, n) => {
       const li = k * leavesPerStalk + j, o = (k * kept.length + n) * 4;
       leafPlant.set([lx, lz, h, phase], o);
@@ -264,6 +264,6 @@ export function bambooGrove(ctx, L, p) {
     group, parts: upper ? { lower_culms: lower, upper_culms: upper, leaves } : { lower_culms: lower, leaves }, sockets: {},
     live: upper ? [upper, leaves] : [leaves],
     update(dt, t) { time.value = t; },
-    dispose() { for (const m of mats) m.dispose(); lowerGeo.dispose(); upperGeo.dispose(); leafGeo.dispose(); }
+    dispose() { lower.dispose(); for (const m of mats) m.dispose(); lowerGeo.dispose(); upperGeo.dispose(); leafGeo.dispose(); }
   };
 }

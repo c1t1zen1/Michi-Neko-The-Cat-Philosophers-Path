@@ -31,3 +31,11 @@ Classic 760 calls / 8.05M tris / 11.5 ms. All three swapped: 769 calls (+9) / 8.
 - bamboo-groves AAA-1: culms show nodes and bands up close, subtle at distance; leaf cards match classic. AAA-5 fine, grove still readable at cat height.
 - roadside-moss AAA-1 is weak: the meadow grass hides almost all of the patches, so the pair differ only as a darker lumpy pillow under grass. Honest: low visibility asset, difference small. AAA-5 n/a.
 Waivers: none. Compare framing for moss shows mostly grass for that reason.
+
+## Fix round 1
+- Merged origin/fable/integration (src/kit/index.js regenerated: alley, fences, garden, greenery, lanterns, rocks).
+- Bamboo detail cut (hero 6-sided, 6 nodes x 3 rings, leaf cards 3 rows; mid 4-sided plain culms, 24 leaf cards of 2 rows; far one static culm + 9 cards); sample is now the real 78-culm grove (sampleGrove(7)). The contract test passes but cannot count instanceCount, so triangles were counted by hand: modular r7 hero 89.8k / mid 12.5k / far 4.7k vs classic 82.4k; BUDGET_EXCEPTIONS entry requested in the handoff (exact text there).
+- Draw cause: grove main-pass calls identical (16 vs 16, 600 vs 600 hidden); classic baseline varies by boot (759-770). Medium measured: classic high 770 vs modular medium 773 shadow-refresh / 591 mean calls, 6.96M vs 8.11M tris: rule holds.
+- Materials: lower culms reuse the fences' km.bamboo args (zero new); km.moss is the one merged material. Handoff corrected.
+- Minors: bush geometries are cached by bushGeometry and stay; lower culms now disposed. Bamboo pairs re-shot (24 JPGs, all differ, all <= 150 KB).
+- Checks: kit_contract_test --family greenery 264 checks 0 failed; footprint_golden classic and --systems EQUAL; verify All checks passed; check_syntax OK; diff --check clean.
