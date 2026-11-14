@@ -60,11 +60,14 @@ const GOLDEN_URL = params.get('golden') || 'golden/valley_classic.json';
 const MAX_SHOWN = Math.max(1, Number(params.get('max')) || 40);
 const MAX_STORED = 2000; // change items kept in the result; counts are always complete
 
-// The Countryside build options. Flags this page does not know are ignored
-// today; f1-runtime wires the asset runtime in here (Integrator ruling R11:
-// `options.assets`, resolved from ?assets= / ?swap=).
+// The Countryside build options (Integrator ruling R11): the kit runtime,
+// resolved from ?assets= / ?swap= exactly as src/main.js does, so the golden
+// can be run on the modular set (`--query "?assets=modular&swap=torii:modular"`).
+// `assets` is constructed and preloaded in main(), after the shims and the
+// game imports; with no flag the set is classic and nothing is downloaded.
+let assets = null;
 function countrysideOptions(/* params */) {
-  return {};
+  return assets ? { assets } : {};
 }
 
 // ---------------------------------------------------------------- shims ---
@@ -664,7 +667,7 @@ function buildOnce(spec) {
     scene = new THREE.Scene();
     city = new Countryside(scene, countrysideOptions(params));
     // Hidden places register their clearings before Vegetation would read them (main.js)
-    hidden = new HiddenPlaces(scene, city);
+    hidden = new HiddenPlaces(scene, city, countrysideOptions(params));
     // The rest spots: ContextActionManager's own, then the two hidden ones
     ca = new ContextActionManager({ scene: new THREE.Scene() }, city, null, null, null);
     hidden.attach({ audio: null, contextActions: ca, ui: null, progression: null, discover: () => false });
@@ -1137,6 +1140,11 @@ async function main() {
   ({ Countryside } = await import('../src/countryside.js?v=20261107a'));
   ({ HiddenPlaces } = await import('../src/hidden_places.js?v=20261107a'));
   ({ ContextActionManager } = await import('../src/context_actions.js?v=20261107a'));
+  // The kit runtime (src/main.js constructs it the same way); families and
+  // kit-overrides.json load only when ?assets= / ?swap= ask for the kit.
+  const { AssetRuntime } = await import('../src/kit/runtime.js?v=20261107a');
+  assets = new AssetRuntime({ THREE, assetSet: 'classic', search: location.search, quality: 'high' });
+  await assets.preload();
   const tImport = realNow();
   instrument();
   // The UUID stream must stay apart from the game's Math.random() stream.
@@ -1185,6 +1193,7 @@ async function main() {
     anchors: Object.keys(digest.anchors).length,
     volatile: { leaves: digest.volatile.leaves, members: digest.volatile.members },
     ambient: { draws: digest.rng.ambient.draws, uuidSeparated },
+    kit: assets ? assets.summary() : null,   // which asset set the valley was built on (not part of the digest)
     golden, equal: !!(diff && diff.equal), diff, warnings,
     digestBytes: new TextEncoder().encode(text).length,
     timing: {
