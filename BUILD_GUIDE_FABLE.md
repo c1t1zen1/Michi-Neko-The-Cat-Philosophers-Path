@@ -341,8 +341,8 @@ Rules:
 7. Budgets (AAA-7) are `src/kit/budgets.js` per tier (`budgetFor(id, tier)`;
    per-asset exceptions cite why). Triangles count every instance of an
    instanced draw (InstancedMesh and InstancedBufferGeometry alike, G-V1).
-8. Kit materials (gate G-V1, ruling R39; budgets.md section 4). The whole
-   kit may add at most 11 merged materials, and after wave 2.1 it has 11.
+8. Kit materials (gate G-V1, ruling R39; budgets.md section 4). The kit-wide
+   11-material cap is replaced by: each new merged material is justified in its lane handoff with its draw cost, and at the four spots modular draw calls ≤ classic per tier (perf_gv1.md); ruling R52, operator may overturn. After wave 2.1 it has 11.
    They are named in `src/kit/materials.js` `KIT_SHARED`
    (`ctx.kitMaterials.shared('bamboo' | 'matte' | 'crate' | 'cord' |
    'darkWood' | 'stone' | 'basinStone' | 'rock' | 'rockDark' | 'moss')`);

@@ -200,8 +200,7 @@ picks, re-run `tools/perf_spots.mjs` in the same session as classic to prove
 
 ## 4. Kit materials (ruling R39, gate G-V1)
 
-The cap in section 3 is **at most 11 new merged materials for the whole
-kit**. A merged material is one draw for the whole valley (plus its shadow
+In place of the kit-wide "≤11 new merged materials" cap (section 3): **each new merged material is justified in its lane handoff with its draw cost, and at the four spots modular draw calls ≤ classic per tier (perf_gv1.md); ruling R52, operator may overturn**. A merged material is one draw for the whole valley (plus its shadow
 draw), whatever family built the meshes on it; a kit material that only ever
 sits on one static mesh costs the same draw, so it counts too. Kit materials
 that only sit on unmerged meshes (pickups the game holds by reference, `live`
