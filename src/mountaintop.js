@@ -2,22 +2,22 @@ import * as THREE from 'three';
 import {
   dirtTextures, groundTextures, stoneTextures, woodTextures, metalTextures, barkTextures,
   texturedMaterial
-} from './textures.js?v=20261107a';
+} from './textures.js?v=20261113a';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture, updateFoliage
-} from './foliage.js?v=20261107a';
+} from './foliage.js?v=20261113a';
 import {
   mulberry32, smoothstep, ORIGIN, MEADOW_R, MEADOW_Y, CORRIDOR_W, CORRIDOR_Z0, CORRIDOR_Z1, GATE_Z,
   ENTRY_Y, PERCH_CAM, approachTopAt, MEDITATE_SECONDS, summitWeatherAmount
-} from './summit/common.js?v=20261107a';
-import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261107a';
-import { lightMethods } from './summit/light.js?v=20261107a';
-import { terrainMethods } from './summit/terrain.js?v=20261107a';
-import { clearingMethods } from './summit/clearing.js?v=20261107a';
-import { plantingMethods } from './summit/planting.js?v=20261107a';
-import { vistaMethods } from './summit/vista.js?v=20261107a';
-import { weatherMethods } from './summit/weather.js?v=20261107a';
-import { wildlifeMethods } from './summit/wildlife.js?v=20261107a';
+} from './summit/common.js?v=20261113a';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261113a';
+import { lightMethods } from './summit/light.js?v=20261113a';
+import { terrainMethods } from './summit/terrain.js?v=20261113a';
+import { clearingMethods } from './summit/clearing.js?v=20261113a';
+import { plantingMethods } from './summit/planting.js?v=20261113a';
+import { vistaMethods } from './summit/vista.js?v=20261113a';
+import { weatherMethods } from './summit/weather.js?v=20261113a';
+import { wildlifeMethods } from './summit/wildlife.js?v=20261113a';
 
 // Optional cinematic for the ascent. Drop an mp4 at this path and it plays
 // full-screen; when the file is absent (or undecodable) the CSS light-burst

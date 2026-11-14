@@ -49,7 +49,7 @@ Every module import carries `?v=<tag>`. Keep all tags in sync when editing:
 find src -name '*.js' -exec sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDD<letter>/g" {} + && sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDD<letter>/g" index.html
 ```
 
-Current tag: `20261107a` (the `tools/*_preview.*` sheets and
+Current tag: `20261113a` (the `tools/*_preview.*` sheets and
 `tools/kit_contract_test.html/.js` carry it too). A tag bump touches every
 module's import lines, including `mountaintop.js` — change only the `?v=`
 strings there. The kit (`src/kit/**`, every family folder) imports with the

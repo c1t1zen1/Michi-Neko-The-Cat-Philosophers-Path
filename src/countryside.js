@@ -4,11 +4,11 @@ import {
   plasterTextures, woodTextures, kawaraTextures, shojiTextures, tatamiTextures,
   cobbleTextures, stoneTextures, groundTextures, dirtTextures, strawTextures,
   metalTextures, namakoTextures, lacquerTextures, texturedMaterial, worldScaleBoxUVs, worldNoise
-} from './textures.js?v=20261107a';
+} from './textures.js?v=20261113a';
 import {
   createFoliageMaterial, lumpyTuftGeometry, lumpyConeGeometry, leafMassTexture, bushGeometry, buildCanopy
-} from './foliage.js?v=20261107a';
-import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261107a';
+} from './foliage.js?v=20261113a';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261113a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -257,6 +257,16 @@ function koushiBoxes(frame, w, h, count) {
   return out;
 }
 
+// A kit instance without a part its layout binds leaves that handle null
+// (and update() or gameplay may then fail on it): say so once per id and part.
+const _missingParts = new Set();
+function warnMissingPart(id, name) {
+  const key = (id || '?') + '/' + name;
+  if (_missingParts.has(key)) return;
+  _missingParts.add(key);
+  console.warn(`[kit] ${id || 'asset'}: the instance has no part '${name}' that its layout binds; that handle stays null`);
+}
+
 /** Attach a non-enumerable parent link, so layouts stay plain, serialisable data. */
 function setParent(layout, parent) {
   Object.defineProperty(layout, 'parent', { value: parent, writable: true, configurable: true, enumerable: false });
@@ -365,9 +375,9 @@ export class Countryside {
     g.userData.placedAsset = id;
     const parent = layout.parent === undefined ? this.scene : layout.parent;
     if (parent) parent.add(g);
-    this.registerFootprint(inst.footprint || layout.footprint, g, inst);
+    this.registerFootprint(inst.footprint || layout.footprint, g, inst, id);
     for (const [field, name] of Object.entries(layout.bind || {})) {
-      this[field] = this.resolvePart(typeof name === 'string' ? { $part: name } : name, inst);
+      this[field] = this.resolvePart(typeof name === 'string' ? { $part: name } : name, inst, id);
     }
     if (!this.assetInstances) this.assetInstances = [];
     this.assetInstances.push(inst);
@@ -385,15 +395,18 @@ export class Countryside {
     const L = c.layout;
     if (c.attach === 'scene') return this.placeAsset(c.id, L, () => this[c.mesh](L));
     if (c.attach === 'parent') return this.placeAsset(c.id, setParent(L, group), () => this[c.mesh](L, group));
-    const obj = this.placeAsset(c.id, setParent(L, null), () => this[c.mesh](L));
+    // 'caller': the classic method returns the object for us to place. A kit
+    // instance is attached and positioned by placeInstance (parent = group)
+    // before its footprint registers; the lines below then change nothing.
+    const obj = this.placeAsset(c.id, setParent(L, group), () => this[c.mesh](L));
     obj.position.set(L.x || 0, L.y || 0, L.z || 0);
     if (L.ry) obj.rotation.y = L.ry;
-    group.add(obj);
+    if (obj.parent !== group) group.add(obj);
     return obj;
   }
 
   /** Register a footprint the way the classic builders do: the same helpers, in the same order. */
-  registerFootprint(fp, group, inst) {
+  registerFootprint(fp, group, inst, id) {
     if (!fp) return;
     for (const box of fp.colliders || []) this.colliders.push(box);
     for (const p of fp.platforms || []) {
@@ -404,7 +417,7 @@ export class Countryside {
     for (const rect of fp.exclusions || []) this.vegetationExclusions.push(rect);
     for (const rect of fp.waterRects || []) this.waterRects.push(rect);
     for (const [field, value] of Object.entries(fp.anchors || {})) {
-      const v = this.resolvePart(value, inst);
+      const v = this.resolvePart(value, inst, id);
       if (this[field] && this[field].isVector3 && v && v.isVector3) this[field].copy(v);
       else this[field] = v && v.isVector3 ? v.clone() : v;
     }
@@ -414,25 +427,33 @@ export class Countryside {
       for (const k of keys.slice(0, -1)) owner = owner[k] || (owner[k] = {});
       const last = keys[keys.length - 1];
       const list = owner[last] || (owner[last] = []);
-      for (const entry of entries) list.push(this.resolvePart(entry, inst));
+      for (const entry of entries) list.push(this.resolvePart(entry, inst, id));
     }
   }
 
-  /** Resolve { $part } placeholders (see footprint()) against a kit instance. */
-  resolvePart(v, inst) {
-    if (Array.isArray(v)) return v.map((x) => this.resolvePart(x, inst));
+  /**
+   * Resolve { $part } placeholders (see footprint()) against a kit instance.
+   * A part (or part property) the instance lacks resolves to null and is
+   * reported once per asset id and part (warnMissingPart).
+   */
+  resolvePart(v, inst, id = inst && inst.id) {
+    if (Array.isArray(v)) return v.map((x) => this.resolvePart(x, inst, id));
     if (!v || typeof v !== 'object' || Object.getPrototypeOf(v) !== Object.prototype) return v;
     if (typeof v.$part === 'string') {
       const s = v.$part;
       const base = s[0] === '.' ? '.' : s.split('.')[0];
       const prop = s.slice(base === '.' ? 1 : base.length + 1);
       const o = base === '.' ? inst.group : (inst.parts[base] || (inst.sockets && inst.sockets[base]) || null);
-      if (o && v.userData) Object.assign(o.userData, v.userData);
-      if (o && v.visible === false) o.visible = false;
-      return o && prop ? o[prop] : o;
+      if (!o || (prop && (o[prop] === undefined || o[prop] === null))) {
+        warnMissingPart(id, s);
+        return null;
+      }
+      if (v.userData) Object.assign(o.userData, v.userData);
+      if (v.visible === false) o.visible = false;
+      return prop ? o[prop] : o;
     }
     const out = {};
-    for (const k of Object.keys(v)) out[k] = this.resolvePart(v[k], inst);
+    for (const k of Object.keys(v)) out[k] = this.resolvePart(v[k], inst, id);
     return out;
   }
 

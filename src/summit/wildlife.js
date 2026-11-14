@@ -4,7 +4,7 @@
 // `this` = the manager, so the code reads exactly as it did in the class.
 
 import * as THREE from 'three';
-import { summitWeatherAmount, summitFootprint } from './common.js?v=20261107a';
+import { summitWeatherAmount, summitFootprint } from './common.js?v=20261113a';
 
 function summitBirdWingGeometry() {
   const geo = new THREE.BufferGeometry();

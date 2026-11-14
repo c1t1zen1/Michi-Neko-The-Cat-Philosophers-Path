@@ -43,7 +43,7 @@ function showError(error) {
 }
 
 function loadEngineModule() {
-  if (!engineModule) engineModule = import('./main.js?v=20261107a');
+  if (!engineModule) engineModule = import('./main.js?v=20261113a');
   return engineModule;
 }
 

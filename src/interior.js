@@ -3,9 +3,9 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   plasterTextures, woodTextures, shojiTextures, tatamiTextures, stoneTextures,
   strawTextures, metalTextures, texturedMaterial, worldScaleBoxUVs
-} from './textures.js?v=20261107a';
-import { lumpyTuftGeometry } from './foliage.js?v=20261107a';
-import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261107a';
+} from './textures.js?v=20261113a';
+import { lumpyTuftGeometry } from './foliage.js?v=20261113a';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261113a';
 
 const panel = (m) => { m.userData.uvPanel = true; return m; };
 const MAT = {

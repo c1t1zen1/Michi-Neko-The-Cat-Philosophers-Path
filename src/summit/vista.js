@@ -11,15 +11,15 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { worldNoise, glowTexture } from '../textures.js?v=20261107a';
+import { worldNoise, glowTexture } from '../textures.js?v=20261113a';
 import {
   createFoliageMaterial, lumpyTuftGeometry, leafMassTexture
-} from '../foliage.js?v=20261107a';
-import { mulberry32, box, clamp01, smoothstep, summitWeatherAmount, summitFootprint } from './common.js?v=20261107a';
+} from '../foliage.js?v=20261113a';
+import { mulberry32, box, clamp01, smoothstep, summitWeatherAmount, summitFootprint } from './common.js?v=20261113a';
 
 // Resolve from this module rather than the current document: the main game is
 // served from `/`, while the art-review page lives under `/tools/`.
-const SUMMIT_LANDMARKS_SRC = new URL('../../assets/models/summit_kyoto_landmarks.glb?v=20261107a', import.meta.url).href;
+const SUMMIT_LANDMARKS_SRC = new URL('../../assets/models/summit_kyoto_landmarks.glb?v=20261113a', import.meta.url).href;
 
 export const vistaMethods = {
   // Each build*() is the §3.4 split: a layout step (every this.rng() draw, in

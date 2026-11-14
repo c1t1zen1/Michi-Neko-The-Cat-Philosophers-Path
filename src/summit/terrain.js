@@ -7,12 +7,12 @@
 // `this` = the manager, so the code reads exactly as it did in the class.
 
 import * as THREE from 'three';
-import { worldNoise } from '../textures.js?v=20261107a';
+import { worldNoise } from '../textures.js?v=20261113a';
 import {
   mulberry32, clamp01, smoothstep, MEADOW_Y, CORRIDOR_W, CORRIDOR_Z0, ENTRY_Y, LANDING_Z0,
   LANDING_Z1, LOWER_STEP_RUN, LOWER_STEP_RISE, LOWER_PATH_Z1, LAND_OUTER_R, PERCH_CAM,
   approachTopAt, summitFootprint
-} from './common.js?v=20261107a';
+} from './common.js?v=20261113a';
 
 export const terrainMethods = {
   // Each build*() is the §3.4 split: a layout step (every this.rng() draw, in

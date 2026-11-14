@@ -1,5 +1,5 @@
 ﻿import * as THREE from 'three';
-import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261107a';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261113a';
 
 // Asset routing (BUILD_GUIDE_FABLE §3.4, Integrator rulings R12 / R18): each
 // system runs a layout step (its Math.random() spawn draws, in the original
