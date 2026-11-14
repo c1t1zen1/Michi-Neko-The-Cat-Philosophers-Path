@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { validateWorkspace, createRecords, summarize } from '../catalog/js/model.mjs';
 import { getAssetCapabilities } from '../catalog/js/asset-loader.mjs';
-import { resolveTargetLink } from '../catalog/js/links.mjs';
+import { resolveTargetLink, registerKnownTargets } from '../catalog/js/links.mjs';
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const read = (file) => readFileSync(resolve(ROOT, file));
 const inventory = JSON.parse(read('labs/asset_inventory.json'));
@@ -21,6 +21,7 @@ for (const file of modules) {
   check(!/(?:from\s*|import\s*\(\s*)['"](?:(?:\.\.\/)+|\/)src\//.test(readFileSync(file, 'utf8')), 'Game module imports must use labs/shared/game.js: ' + file);
 }
 validateWorkspace(JSON.parse(read('catalog/metadata.json')), [...ids]);
+registerKnownTargets(inventory.targets);
 for (const target of Object.values(inventory.targets)) {
   try { const link = resolveTargetLink(target); const local = resolve(ROOT, 'catalog', link.split(/[?#]/)[0]); check(statSync(local).isFile() || statSync(local).isDirectory(), 'Missing evidence page: ' + link); }
   catch (error) { problems.push('Evidence link: ' + error.message); }
