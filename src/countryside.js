@@ -4010,6 +4010,32 @@ export class Countryside {
   }
 
   buildMountains() {
+    const layout = this.layoutMountains();
+    return this.placeAsset('mountains', layout, () => this.meshMountainsClassic(layout));
+  }
+
+  /**
+   * The far ranges (one height-field mesh whose material the sky tints) and,
+   * as components in the classic order: the edge forest, the distant pagoda,
+   * the hillside village, the mist ring and the dawn river mist.
+   */
+  layoutMountains() {
+    const components = [
+      component('edge-forest', this.layoutEdgeForest(), 'meshEdgeForestClassic'),
+      component('distant-pagoda', this.layoutDistantPagoda(12, 56), 'meshDistantPagodaClassic'),
+      component('distant-village', this.layoutVillage(), 'meshVillageClassic'),
+      component('mist-ring', this.layoutMistRing(), 'meshMistRingClassic')
+    ];
+    const dawn = this.layoutDawnMist();
+    if (dawn) components.push(component('dawn-mist', dawn, 'meshDawnMistClassic'));
+    return {
+      index: this.nextIndex('mountains'), band: 'far', footprint: footprint(),
+      bind: { matHazeFar: 'far.material', matHazeMid: 'far.material' },
+      components
+    };
+  }
+
+  meshMountainsClassic(layout) {
     // Far ring: noise-ridged mountain walls carrying the valley's height
     // field out to the horizon. Forested green at the foot, drifting to
     // dusty blue-violet with altitude and distance; the material colour is
@@ -4055,11 +4081,8 @@ export class Countryside {
     far.receiveShadow = false;
     this.scene.add(far);
 
-    this.buildEdgeForest();
-    this.buildDistantPagoda(12, 56);
-    this.buildVillage();
-    this.buildMistRing();
-    this.buildDawnMist();
+    // The edge forest, distant pagoda, village, mist ring and dawn mist
+    for (const c of layout.components) this.placeComponent(c, this.scene);
   }
 
   /**
