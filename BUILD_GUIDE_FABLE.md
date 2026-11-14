@@ -625,7 +625,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 - [ ] **G-C** Characters merged
 - [ ] **G-S** Hilltop merged
 - [ ] **G-R** Roof Road merged and wired (→ may merge to `main`)
-- [ ] **G-T** Tooling merged
+- [x] **G-T** Tooling merged; cadJS param edit (key-rock size 1.5, Push to game) changed the ?assets=modular shot (maxDelta 166), restoring kit-overrides.json reverted it (maxDelta 0); catalog 49/49, cadJS 16/16 pass
 - [ ] **G-A** Area polish accepted for all three areas
 - [ ] **G-H** Hero images and README merged
 - [ ] **G-FINAL** Fable review passed; operator approves the default flip
@@ -663,7 +663,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 3 | `c3-villagers` | Luna, Mochi, Kuro (lab 19) | c1 | [ ] |
 | 3 | `c4-creatures` | Larry the turtle, guardian crows | c1 | [x] |
 | 4 | `s1-summit-split` | `mountaintop.js` split behind the facade (serial) | G-F, D2 | [x] |
-| 4 | `s2-clearing` | Meadow, stone, ensō, fūrin, torii, path, trees | s1, G-V2 | [ ] |
+| 4 | `s2-clearing` | Meadow, stone, ensō, fūrin, torii, path, trees | s1, G-V2 | [x] |
 | 4 | `s3-vista` | City, pagoda, bay, harbour, ranges, clouds | s1, `v-pagoda`, `v-ranges` | [ ] |
 | 4 | `s4-summit-life` | Summit weather, pollen, petals, butterflies, birds | s1, `v-weather` | [x] |
 | 5 | `r1-roof-split` | `build.js` split into pieces + inventory (serial) | G-F | [ ] |
@@ -673,7 +673,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 5 | `r5-roof-cast` | Chidori, Shōki, boatman, hayashi musicians | r1, c1 | [ ] |
 | 5 | `r6-game-wiring` | `RooftopManager`, unlock, save, music (serial) | r2–r5, D3 | [ ] |
 | 6 | `t1-catalog` | `production` variant, swap board, thumbnails | G-V1 | [x] |
-| 6 | `t2-cadjs` | Param panel, AI action, package schema 2 | G-V1 | [ ] |
+| 6 | `t2-cadjs` | Param panel, AI action, package schema 2 | G-V1 | [x] |
 | 6 | `t3-audio` | dawCAT sound hooks for new assets | G-V2 | [x] |
 | 7 | `a1-village` | Village area pass | G-V3, G-C | [ ] |
 | 7 | `a2-hilltop` | Hilltop area pass | G-S | [ ] |
@@ -1441,6 +1441,7 @@ created in Phase 1 and marked *(new)*.
 | | `tools/labs_geometry_test.html` | Lab construction checks (32 today) |
 | | `node tools/rooftop_test.mjs` | Roof Road: 38 checks, autopilot completes |
 | | `node tools/summit_test.mjs` | Summit state machine |
+| | `node tools/summit_kit_parity.mjs` (`tools/summit_kit_parity.html`) | Summit kit vs classic: colliders, platforms, rng draw, binds, torii position (EQUAL) |
 | **G3** catalog and tools | `node tools/catalog_check.mjs` | Catalog integrity |
 | | `node tools/labs_coverage.mjs` and `node --test tools/labs_coverage_test.mjs` | Inventory and coverage totals |
 | | `node --test catalog/tests/*.test.mjs` | Catalog units and API |

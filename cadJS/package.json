@@ -6,7 +6,7 @@
   "description": "Standalone, non-destructive Three.js CAD editor for Michi-Neko.",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node tests/catalog.test.mjs",
-    "check": "node --input-type=module -e \"process.env.CADJS_VALIDATE='1'; await Promise.all([import('./server.mjs'),import('./src/catalog.mjs'),import('./src/agent-protocol.mjs'),import('./src/asset-package.mjs')]); console.log('server/catalog/agent/asset modules: ok')\" && node tests/catalog.test.mjs"
+    "test": "node tests/catalog.test.mjs && node tests/kit.test.mjs",
+    "check": "node --input-type=module -e \"process.env.CADJS_VALIDATE='1'; await Promise.all([import('./server.mjs'),import('./src/catalog.mjs'),import('./src/agent-protocol.mjs'),import('./src/asset-package.mjs'),import('./src/kit-params.mjs')]); console.log('server/catalog/agent/asset modules: ok')\" && npm test"
   }
 }

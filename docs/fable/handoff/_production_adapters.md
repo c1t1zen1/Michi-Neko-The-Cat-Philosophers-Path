@@ -46,3 +46,4 @@ For s3-vista and r4-festival (import with the current `?v=` tag):
 | v-trees | sakura, maples, pines, rim-trees (tree-trunks, tree-canopies DEFERRED, classic) | src/kit/trees/index.js assets (production: "trees") |
 | c4-creatures | larry, guardian-crows | src/kit/creatures/index.js assets (production: "creatures") |
 | s4-summit-life | summitlife/summit-snow, summit-rain, summit-pollen, summit-petals, summit-butterflies, summit-birds, shrine-rays, summit-light | `src/kit/summitlife/index.js` `assets` |
+| s2-clearing | meditation-stone, summit-enso, summit-furin, summit-entry, summit-path | `src/kit/clearing/index.js` `assets` (production: "clearing") |
