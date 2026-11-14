@@ -80,3 +80,20 @@ reverses halfway, confirms companion exits and checks lane isolation. Initial
 390×844 captures exposed a street prop at two entrances; the entrance cue now
 also accepts low crates, so drop still chooses the lane there. Portrait camera
 and scenery refinement continue in the following passes.
+
+## Pass 2 — Chidori and framing
+
+Chidori now makes reproducible, place-dependent decisions with varied action
+lengths: ropes encourage prowling, nearby small routes invite detours, and
+Michi pausing invites a visit. A low-street detour can briefly peek through a
+noren and return through the same entrance when ignored. Watching, stretching
+and grooming vary the idle pose. The alley view raises its angle and opens a
+larger joined architectural cutaway around the cats.
+
+The first full browser run passed portrait but exposed an inadequate desktop
+check: it allowed the camera to shrink cats to 3px around a stranded guide.
+The guide was aiming just inside a portal while trying to leave it. Portal
+exit steering now aims through the boundary, and curiosity only triggers when
+Michi is actually nearby at street height. A dedicated desktop physics run
+and an ignored-invitation regression were added; the browser suite now tests
+all alley entrances in both directions and enforces desktop legibility too.

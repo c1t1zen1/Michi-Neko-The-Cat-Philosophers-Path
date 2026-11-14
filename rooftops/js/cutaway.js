@@ -5,7 +5,8 @@ export function makeCutaway(M) {
   const uniforms = {
     uRoofPlayer: { value: new THREE.Vector3() },
     uRoofGuide: { value: new THREE.Vector3() },
-    uRoofCamera: { value: new THREE.Vector3() }
+    uRoofCamera: { value: new THREE.Vector3() },
+    uRoofAlley: { value: 0 }
   };
   const materials = [M.plaster, M.plasterWarm, M.bengara, M.namako, M.koshi, M.roof,
     M.ridge, M.stone, M.slab, M.wetStone, M.timber, M.timberMed, M.agedWood, M.shoji, M.mushiko, M.sujibei,
@@ -27,6 +28,7 @@ export function makeCutaway(M) {
       shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>
         varying vec3 vRoofCutWorld;
         uniform vec3 uRoofPlayer, uRoofGuide, uRoofCamera;
+        uniform float uRoofAlley;
         float roofOpening(vec3 subject, float radius) {
           vec3 ray = subject - uRoofCamera;
           vec3 pos = vRoofCutWorld - uRoofCamera;
@@ -44,13 +46,14 @@ export function makeCutaway(M) {
         vec3 cutQ = normalize(vRoofCutWorld - uRoofCamera);
         vec3 cutAB = cutB - cutA;
         float cutU = clamp(dot(cutQ - cutA, cutAB) / max(.00001, dot(cutAB, cutAB)), 0.0, 1.0);
-        float opening = roofOpening(mix(uRoofPlayer, uRoofGuide, cutU), mix(.80, .74, cutU));
+        float opening = roofOpening(mix(uRoofPlayer, uRoofGuide, cutU), mix(.80, .74, cutU) + uRoofAlley * 1.65);
         float screenDoor = fract(gl_FragCoord.x * 0.75487766 + gl_FragCoord.y * 0.56984029);
         if (opening < screenDoor) discard;`);
     };
-    mat.customProgramCacheKey = () => key + ':roof-cutaway-v1';
+    mat.customProgramCacheKey = () => key + ':roof-cutaway-v2';
   }
-  return (camera, player, guide) => {
+  return (camera, player, guide, alley = 0) => {
+    uniforms.uRoofAlley.value = alley;
     uniforms.uRoofCamera.value.copy(camera.position);
     uniforms.uRoofPlayer.value.copy(player.position); uniforms.uRoofPlayer.value.y += 0.34;
     uniforms.uRoofGuide.value.copy(guide.position); uniforms.uRoofGuide.value.y += 0.3;

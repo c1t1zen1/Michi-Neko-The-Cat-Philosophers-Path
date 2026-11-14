@@ -1,7 +1,8 @@
 // Chidori uses the same feet, walls, boat offsets and jump physics as Michi.
 // Intent changes independently of the player; distance is a leash, not a clock.
-import { Runner, PHYS, platTop, platOffset, platCovers } from './physics.js';
+import { Runner, PHYS, platTop, platOffset, platDepth } from './physics.js';
 import { buildGraph } from './reach.js';
+import { hash1 } from './level.js';
 import { alleyEntrance } from './alleys.js';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const FLOOR = new Set(['street', 'water']);
@@ -21,6 +22,8 @@ export class Companion {
     this.graph = buildGraph(level);
     this.modeIndex = 0; this.modeTime = 0; this.replan = 0; this.target = null;
     this.jumpT = 0; this.stuckT = 0; this.steps = 0;
+    this.decisions = 0; this.duration = 2.8; this.leadBias = 1;
+    this.stillT = 0; this.curiosityCooldown = 0; this.lure = null;
   }
   get mood() { return MOODS[this.modeIndex].name; }
   reset(player, time = 0) {
@@ -32,7 +35,21 @@ export class Companion {
     this.runner.reset(at, support ? platTop(support, at, time) : player.y);
     if (player.alley != null) this.runner.enterAlley(this.level.alleys[player.alley]);
     this.modeIndex = 0; this.modeTime = 0; this.target = null; this.replan = 0;
-    this.stuckT = 0; this.jumpT = 0;
+    this.stuckT = 0; this.jumpT = 0; this.stillT = 0;
+    this.decisions = 0; this.duration = 2.8; this.leadBias = 1;
+    this.curiosityCooldown = 0; this.lure = null;
+  }
+  chooseMood(player) {
+    // Seeded by place and decision, so this is varied but reproducible in QA.
+    // Ropes invite a prowl, busy stalls a detour, and a resting Michi a visit.
+    const seed = Math.floor(player.s / 5) * 17 + ++this.decisions * 31;
+    const nearby = this.level.perches.some(p => p.detour && Math.abs(p.s-player.s)<5);
+    const choices = this.stillT > 1.4 ? [2,4,0,3,2] : this.runner.onRope ? [3,0,3,2,1] : nearby ? [6,4,1,0,6,3,2] : [0,1,2,3,4,5,6];
+    let pick = Math.floor(hash1(seed) * choices.length);
+    if (choices[pick] === this.modeIndex) pick = (pick + 1) % choices.length;
+    this.modeIndex = choices[pick]; this.modeTime = 0; this.replan = 0;
+    this.duration = MOODS[this.modeIndex].duration * (.72 + hash1(seed + 9) * .88);
+    this.leadBias = .84 + hash1(seed + 53) * .3;
   }
   pickSupport(s, y, d, time, detour = false) {
     let best = null, score = Infinity;
@@ -45,7 +62,7 @@ export class Companion {
       // Stay in the player's vertical neighbourhood so a phone never has to
       // zoom out to frame a rooftop guide and a player five storeys below.
       if (dy > 1.35 || dy < -1.65) continue;
-      let n = horizontal * 1.4 + Math.abs(dy) * 2 + Math.abs(p.d - d) * 0.17;
+      let n = horizontal * 1.4 + Math.abs(dy) * 2 + Math.abs(platDepth(p,s) - d) * 0.17;
       if (detour && !FLOOR.has(p.kind)) n -= 0.45;
       if (n < score) { score = n; best = p; }
     }
@@ -77,16 +94,33 @@ export class Companion {
       const a = this.level.alleys[player.alley];
       if (r.enterAlley(a)) { this.target = null; this.replan = 0; }
     }
+    this.stillT = Math.abs(player.vs) < .2 ? this.stillT + dt : 0;
+    this.curiosityCooldown = Math.max(0, this.curiosityCooldown - dt);
     this.modeTime += dt;
-    if (this.modeTime >= MOODS[this.modeIndex].duration) {
-      this.modeTime = 0; this.modeIndex = (this.modeIndex + 1) % MOODS.length;
-      this.replan = 0;
-    }
+    if (this.modeTime >= this.duration) this.chooseMood(player);
     const mode = MOODS[this.modeIndex], maxLead = portrait ? 3.5 : 5.4;
     const facing = player.facing || 1;
-    let lead = mode.lead * (portrait ? 0.86 : 1.2);
+    let lead = mode.lead * this.leadBias * (portrait ? 0.86 : 1.2);
     if (Math.abs(player.vs) > 5 && mode.name !== 'feint') lead = maxLead - 0.5;
-    const wanted = clamp(player.s + facing * lead, 0.4, this.level.length - 0.4);
+    let wanted = clamp(player.s + facing * lead, 0.4, this.level.length - 0.4);
+    // A short invitation into a wrong alley is safe to ignore. Chidori peeks
+    // only while Michi is strolling, then doubles back through the same noren.
+    if (!this.lure && !this.curiosityCooldown && mode.name === 'detour' && player.alley === null && r.alley === null && player.y < 1.25 && Math.abs(player.s-r.s) < 3 && Math.abs(player.vs) < 2.6) {
+      const a = alleyEntrance(this.level, r.s, r.y);
+      if (a && r.enterAlley(a)) {
+        const entry = r.s < (a.s0+a.s1)/2 ? a.s0 : a.s1;
+        this.lure = { id:a.id, entry, dir:entry===a.s0?1:-1, time:0 };
+        this.curiosityCooldown = 14; this.target = null; this.replan = 0;
+      }
+    }
+    if (this.lure) {
+      const lure=this.lure; lure.time+=dt;
+      if (player.alley===lure.id || r.alley===null) this.lure=null;
+      else {
+        const returnNow=lure.time>1.1 || Math.abs(player.vs)>2.6 || Math.abs(player.s-lure.entry)>3;
+        wanted=lure.entry+lure.dir*(returnNow?-.4:1.6);
+      }
+    }
     this.replan -= dt;
     if (this.replan <= 0 || !this.target) {
       this.replan = 0.3;
@@ -102,11 +136,14 @@ export class Companion {
     const separation = (r.s - player.s) * facing;
     let pace = mode.pace;
     if (separation < 0.7 || Math.abs(player.vs) > 5.5) pace = 1;
-    if (separation > maxLead || (mode.name === 'wait' && separation > 1.4)) pace = 0;
+    if (!this.lure && (separation > maxLead || (mode.name === 'wait' && separation > 1.4))) pace = 0;
+    if (this.lure) pace = 1;
+    if (this.stillT > 2 && !this.lure && separation > 1.1 && mode.name !== 'feint') pace *= .45;
     const B = this.target;
     if (B && pace > 0) {
       const off = platOffset(B, time), b0 = B.s0 + off, b1 = B.s1 + off;
-      const targetS = B === this.destination ? clamp(wanted, b0 + 0.08, b1 - 0.08) : (b0 + b1) / 2;
+      const leavingLane = B.portal && r.alley !== null && (wanted < this.level.alleys[r.alley].s0 || wanted > this.level.alleys[r.alley].s1);
+      const targetS = leavingLane ? wanted : B === this.destination ? clamp(wanted, b0 + 0.08, b1 - 0.08) : (b0 + b1) / 2;
       const dir = Math.sign(targetS - r.s);
       inp.move = Math.abs(targetS - r.s) > 0.18 ? dir * pace : 0;
       inp.sprint = mode.name === 'dash' || separation < 0.7 || Math.abs(player.vs) > 5;

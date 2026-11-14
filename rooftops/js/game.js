@@ -549,7 +549,7 @@ function updateChidori(dt) {
     if (events.has('jump') || events.has('bounce')) guide.onJump();
     if (events.has('land')) guide.onLand();
     if (!watch && guide.idleAction) guide.endIdleAction();
-    if (watch && companion.modeTime > 0.65 && !guide.idleAction) guide.startIdleAction('sit', 2);
+    if (watch && companion.modeTime > 0.65 && !guide.idleAction) guide.startIdleAction(companion.mood === 'prowl' ? 'groom' : companion.mood === 'feint' ? 'stretch' : 'sit', 2);
     guide.setProwling(companion.mood === 'prowl');
     guide.update(dt, Math.abs(r.vs), r.grounded, r.sprinting, false, r.inWater, null);
     guide.setLookTarget(watch ? catRoot.position : null);
@@ -890,7 +890,7 @@ function updateCamera(dt) {
     const finaleFov = camera.aspect < .85 ? 96 : 50;
     camera.fov = damp(camera.fov, finaleFov, 1.5, dt);
     camera.updateProjectionMatrix();
-    world.setView(camera, catRoot, guideRoot);
+    world.setView(camera, catRoot, guideRoot, runner.alley !== null || companion.runner.alley !== null ? 1 : 0);
     return;
   }
 
@@ -913,7 +913,7 @@ function updateCamera(dt) {
   const minDist = portrait ? 10.2 : 9.8 + vertical * 1.8;
   let distance = Math.max(minDist, damp(cam.dist, minDist, 3, dt));
   const placeCamera = () => {
-    camera.position.set(cam.center.x + nrm.x * distance, cam.center.y + distance * (runner.inWater ? 0.32 : portrait ? 0.22 : 0.17), cam.center.z + nrm.z * distance);
+    camera.position.set(cam.center.x + nrm.x * distance, cam.center.y + distance * (runner.alley !== null ? 0.48 : runner.inWater ? 0.32 : portrait ? 0.22 : 0.17), cam.center.z + nrm.z * distance);
     camera.lookAt(cam.center); camera.updateMatrixWorld(true);
   };
   // Fit a volume around each cat, including ears, paws and its turning body.
@@ -930,7 +930,7 @@ function updateCamera(dt) {
     distance *= Math.min(1.8, overflow * 1.025);
   }
   cam.dist = distance; placeCamera();
-  world.setView(camera, catRoot, guideRoot);
+  world.setView(camera, catRoot, guideRoot, runner.alley !== null || companion.runner.alley !== null ? 1 : 0);
 }
 
 /* ---------------- start ---------------- */
