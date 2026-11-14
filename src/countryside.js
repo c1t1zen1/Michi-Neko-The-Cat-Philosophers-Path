@@ -2712,16 +2712,61 @@ export class Countryside {
       { x: -6.0, z: -14, r: Math.PI / 2 + 0.1 },
       { x: 5.8, z: -19, r: -Math.PI / 2 + 0.14 }
     ];
-    for (const s of spots) this.buildVillageHouse(s.x, s.z, s.r, s.x < 0 ? 'left' : 'right');
+    const layout = this.layoutVillageStreet(spots);
+    return this.placeAsset('village-street', layout, () => this.meshVillageStreetClassic(layout));
+  }
+
+  /** The street's eight townhouses, laid out in order (each draws its own choices). */
+  layoutVillageStreet(spots) {
+    return {
+      index: this.nextIndex('village-street'), footprint: footprint(),
+      components: spots.map((s) => component('street-house', this.layoutVillageHouse(s.x, s.z, s.r, s.x < 0 ? 'left' : 'right'), 'meshVillageHouseClassic'))
+    };
+  }
+
+  meshVillageStreetClassic(layout) {
+    for (const house of layout.components) this.placeComponent(house, this.scene);
   }
 
   buildVillageHouse(x, z, rot, side = null) {
+    const layout = this.layoutVillageHouse(x, z, rot, side);
+    return this.placeAsset('street-house', layout, () => this.meshVillageHouseClassic(layout));
+  }
+
+  /** A street townhouse; draws: wall plaster, width, depth, noren, lantern (and its phase). */
+  layoutVillageHouse(x, z, rot, side = null) {
     this._villageHouseCount = (this._villageHouseCount || 0) + 1;
-    const house = new THREE.Group();
-    house.name = `Machiya House ${side === 'left' ? 'W' : 'E'}${this._villageHouseCount}`;
-    const wallMat = this.random() > 0.5 ? MAT.plasterWarm : MAT.plaster;
+    const name = `Machiya House ${side === 'left' ? 'W' : 'E'}${this._villageHouseCount}`;
+    const wallMat = this.random() > 0.5 ? 'plasterWarm' : 'plaster';
     const w = 4.4 + this.random() * 1.2;   // width along street
     const d = 3.2 + this.random() * 0.6;   // depth
+    const H = frameOf(null, x, 0, z, 0, rot, 0);
+    const kit = (id, layout, mesh, attach, at) => component(id, Object.assign(layout, at), mesh, attach);
+    const components = [
+      component('namako', { index: this.nextIndex('namako'), w, d, footprint: footprint() }, 'meshNamakoClassic', 'parent'),
+      kit('koushi', this.layoutKoushi(1.7, 1.7, 8), 'meshKoushiClassic', 'caller', { x: 0, y: 1.1, z: d / 2 + 0.07 })
+    ];
+    const norenMats = [MAT.norenIndigo, MAT.norenCrimson, MAT.norenHemp];
+    components.push(component('noren', this.layoutNoren(1.6, 0.45, 0.04, norenMats[(this.random() * norenMats.length) | 0], 0, 1.85, d / 2 + 0.09), 'meshNorenClassic', 'parent'));
+    components.push(kit('kawara-roof', this.layoutKawaraRoof(w + 0.6, d + 0.4, 0.95, 0.5), 'meshKawaraRoofClassic', 'caller', { y: 2.1 }));
+    // Warm chochin lantern beside the door (not every house)
+    if (this.random() > 0.4) components.push(component('chochin', this.layoutChochinLantern(w * 0.32, 2.0, d / 2 + 0.3), 'meshChochinLanternClassic', 'parent'));
+    const walls = buildingWallBoxes(H, w, d, 2.1, 0);
+    const lists = {};
+    if (side === 'left' || side === 'right') lists['villageHouseColliders.' + side] = [walls.aggregate];
+    return {
+      index: this.nextIndex('street-house'), name, x, z, ry: rot, side, wallMat, w, d,
+      footprint: footprint({ colliders: walls.boxes, lists, platforms: [{ sloped: [2.1, w + 0.6, d + 0.4, 0.95, 0.5] }] }),
+      components
+    };
+  }
+
+  meshVillageHouseClassic(layout) {
+    const { x, z, ry: rot, side, w, d } = layout;
+    const [namako, lattice, noren, roof, lantern] = layout.components;
+    const house = new THREE.Group();
+    house.name = layout.name;
+    const wallMat = matOf(layout.wallMat);
 
     // Base volume + dark sill
     const base = box(w, 2.1, d, wallMat, 0, 1.05, 0);
@@ -2735,16 +2780,7 @@ export class Countryside {
       }
     }
 
-    // Namako-kabe skirt (slate tiles in white joints) up the lower wall — on
-    // the sides and back in full, and either side of the door on the facade.
-    const skirtH = 0.92, skirtY = 0.26 + skirtH / 2;
-    const skirtOut = 0.022;
-    house.add(box(w - 0.5, skirtH, 0.04, MAT.namako, 0, skirtY, -(d / 2 + skirtOut)));
-    for (const sx of [-1, 1]) {
-      house.add(box(0.04, skirtH, d - 0.5, MAT.namako, sx * (w / 2 + skirtOut), skirtY, 0));
-      const fw = (w - 0.5) / 2 - 0.85;
-      if (fw > 0.2) house.add(box(fw, skirtH, 0.04, MAT.namako, sx * (0.85 + fw / 2), skirtY, d / 2 + skirtOut));
-    }
+    this.placeComponent(namako, house);
     // Eave beam and a pair of wall studs break up the flat plaster above it
     house.add(box(w + 0.12, 0.1, d + 0.12, MAT.timberDark, 0, 2.03, 0));
     house.add(box(w + 0.1, 0.07, 0.06, MAT.timberDark, 0, 1.2, d / 2 + 0.025));
@@ -2754,23 +2790,17 @@ export class Countryside {
 
     // Street-facing facade: shoji panel + koushi lattice + tiny noren
     house.add(box(1.5, 1.6, 0.07, MAT.shojiOff, 0, 1.05, d / 2 + 0.03));
-    const lattice = this.createKoushi(1.7, 1.7, 8);
-    lattice.position.set(0, 1.1, d / 2 + 0.07);
-    house.add(lattice);
-    const norenMats = [MAT.norenIndigo, MAT.norenCrimson, MAT.norenHemp];
-    const noren = box(1.6, 0.45, 0.04, norenMats[(this.random() * norenMats.length) | 0], 0, 1.85, d / 2 + 0.09);
-    house.add(noren);
+    this.placeComponent(lattice, house);
+    this.placeComponent(noren, house);
 
     // Low front engawa step
     house.add(box(w * 0.8, 0.16, 0.7, MAT.timberEngawa, 0, 0.08, d / 2 + 0.35));
 
     // Tiled roof with gentle ridge
-    const roof = this.createKawaraRoof(w + 0.6, d + 0.4, 0.95, 0.5);
-    roof.position.y = 2.1;
-    house.add(roof);
+    this.placeComponent(roof, house);
 
     // Warm chochin lantern beside the door
-    if (this.random() > 0.4) this.createChochinLantern(w * 0.32, 2.0, d / 2 + 0.3, house);
+    if (lantern) this.placeComponent(lantern, house);
 
     house.position.set(x, 0, z);
     house.rotation.y = rot;
@@ -2783,6 +2813,22 @@ export class Countryside {
     // across from another rooftop — real cat exploration routes.
     this.addSlopedRoofPlatforms(house, 2.1, w + 0.6, d + 0.4, 0.95, 0.5);
   }
+
+  /** Namako-kabe skirt walls of a w × d townhouse (a component of 'street-house'). */
+  meshNamakoClassic(layout, house) {
+    const { w, d } = layout;
+    // Namako-kabe skirt (slate tiles in white joints) up the lower wall — on
+    // the sides and back in full, and either side of the door on the facade.
+    const skirtH = 0.92, skirtY = 0.26 + skirtH / 2;
+    const skirtOut = 0.022;
+    house.add(box(w - 0.5, skirtH, 0.04, MAT.namako, 0, skirtY, -(d / 2 + skirtOut)));
+    for (const sx of [-1, 1]) {
+      house.add(box(0.04, skirtH, d - 0.5, MAT.namako, sx * (w / 2 + skirtOut), skirtY, 0));
+      const fw = (w - 0.5) / 2 - 0.85;
+      if (fw > 0.2) house.add(box(fw, skirtH, 0.04, MAT.namako, sx * (0.85 + fw / 2), skirtY, d / 2 + skirtOut));
+    }
+  }
+
 
   /**
    * Street shrubs: thick multi-domed bushes painted with small leaves whose
