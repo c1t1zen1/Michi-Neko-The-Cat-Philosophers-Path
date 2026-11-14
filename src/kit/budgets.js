@@ -111,6 +111,25 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
     hero: { meshes: 11, materials: 11 }, mid: { meshes: 11, materials: 11 }, far: { meshes: 11, materials: 11 },
     why: 'nine shafts, a bloom and a ground pool: the facade pulses each one through its own material.opacity (as classic), so 11 materials, each a single additive draw'
   },
+  // s3-vista: the summit vista is whole districts seen from 0.5-5 km. Classic (game quality): city 920 houses
+  // (walls 12 + roof 8 + eave 12 tris) + 360 garden blobs = ~58k tris, pagoda 992, bay 5.4k + 7 boats (2 meshes each),
+  // harbour 864 + islands 4 x 320, horizon 3 x 1,760. Modular numbers are in each `why` (kit_contract_test --family vista).
+  'kyoto-city': {
+    hero: { triangles: 58000, buildMs: 20 }, mid: { triangles: 18500, buildMs: 10 }, far: { triangles: 12000, materials: 4, buildMs: 5 },
+    why: '920 instanced houses with eaves and 360 garden blobs (classic ~58k hero tris, modular 56,400); mid 700 houses (17,800), far 460 houses (11,480); far keeps walls, roofs, gardens and the lights as four materials'
+  },
+  'summit-pagoda': {
+    hero: { buildMs: 12 }, mid: { buildMs: 6 }, far: { meshes: 4, buildMs: 3 },
+    why: 'the pagoda family measured Yasaka tower (hero build 9 ms warm; far 4 meshes: tower, sorin, podium and the lanterns)'
+  },
+  'summit-bay': {
+    hero: { buildMs: 8 }, mid: { meshes: 9, buildMs: 5 }, far: { triangles: 1400, meshes: 9, materials: 3, buildMs: 3 },
+    why: 'water, glints and seven boats the summit sails by group (one mesh each; classic is 2 meshes a boat); classic water 5.4k tris, modular 5.8k / 3.1k / 1,276'
+  },
+  'horizon': {
+    hero: { triangles: 7000, buildMs: 10 }, mid: { triangles: 3800, buildMs: 5 }, far: { triangles: 1800, materials: 3, buildMs: 3 },
+    why: 'three range rings (one material each, the summit hazes them by layer), each only the arc the seat looks over; classic 3 x 1,760 = 5.3k tris, modular 6,600 / 3,504 / ~1.6k (hero/mid/far)'
+  },
 });
 
 /** The budget row for one asset and tier, with exceptions applied. */
