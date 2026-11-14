@@ -14,7 +14,7 @@ and `src/npc.js` / `src/player.js` are untouched.
 | `src/characters/rig.js` | sculpt lookup per body type (+ `sculptStats`), skeleton, leg IK wiring, `applyPose`, `layTailOnGround` |
 | `src/characters/parts/{coat,face,collar,shadow}.js` | palette + fur + skinned coat/tail/head; face frame, nose, whiskers, eye markers, ears; collar/bell parts `kumihimo`, `suzu`, `suzu-master`; contact shadow |
 | `src/characters/behaviour/{locomotion,poses,mood}.js` | gait/air/landing/prowl; rest + action poses, look-at, idle verbs; moods, sounds, face animation |
-| `tools/cat_golden.html/.js/.mjs`, `tools/golden/cat_classic.json` | numeric golden of the Cat + 34 contract checks (`node tools/cat_golden.mjs`) |
+| `tools/cat_golden.html/.js/.mjs`, `tools/golden/cat_classic.json` | numeric golden of the Cat + 35 contract checks (`node tools/cat_golden.mjs`) |
 | `labs/ASSET_COVERAGE.md` | regenerated (`labs_coverage.mjs --write`): only the `src/cat.js#L…` line links moved; every anchor string is verbatim |
 
 ## 2. Hot-file patches (Integrator)

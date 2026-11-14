@@ -795,6 +795,12 @@ async function runChecks(mod) {
     return ok(h1 && again === h1 && h2 !== h1 && recolored && packOn && !cat.slots.head && !cat.slots.back && cat.testHat === undefined &&
       stats.sculpts === before.sculpts && stats.requests === before.requests);
   });
+  check('a bell with no collar to hang on is refused before anything is made', () => {
+    const cat = new Cat({});
+    cat.setAccessory('collar', null);
+    const d0 = draws;
+    return ok(throwsContract(() => cat.setAccessory('bell', 'suzu')) && !cat.slots.bell && cat.matBellBrass === undefined && draws === d0);
+  });
   check('setAccessory rejects an unknown slot, an unknown part and a part for another slot', () => {
     const cat = new Cat({});
     return ok(throwsContract(() => cat.setAccessory('tail', 'suzu')) && throwsContract(() => cat.setAccessory('head', 'velvet')) &&

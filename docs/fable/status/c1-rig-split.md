@@ -61,7 +61,7 @@ Added (allowed, listed by the golden): methods `setAccessory`, `setTier`; fields
 `CHARACTER_SLOTS`, `CHARACTER_TIERS`, `characterTierFor`; constructor options `def`, `tier`, `quality`.
 
 ## Checks run (command → real result)
-- `node tools/cat_golden.mjs` → `cat golden: EQUAL`, `checks 34 passed, 0 failed` (11 cats · 29 poses · 280 samples · 141 geometries · 147 materials · 40 textures · 13 skeletons · 5 sculpts · Math.random 3334971)
+- `node tools/cat_golden.mjs` → `cat golden: EQUAL`, `checks 35 passed, 0 failed` (11 cats · 29 poses · 280 samples · 141 geometries · 147 materials · 40 textures · 13 skeletons · 5 sculpts · Math.random 3334971)
 - `node tools/cat_golden.mjs --root <scratch copy of src @ 5dc924a + final page>` → `EQUAL ... byte-identical to this build` (the final page reproduces the golden from the unsplit code)
 - golden after each module move (rig, coat, face, collar, shadow, locomotion, poses, mood, character + facade) → `EQUAL` every time
 - perturbations of the unsplit code in a scratch copy (whisker opacity 0.7→0.71; an extra `Object3D` in buildFace; trot rate 4→4.01; sleepy blinkBase 1.8→1.81) → `DIFFERENT`, exit 1 each; a Luna def with ribbon 0x2b3d63→0x2b3d64 → the def-equivalence check FAILs

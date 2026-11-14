@@ -450,6 +450,9 @@ export function setAccessory(host, slot, next) {
   const part = PARTS.get(entry.part);
   if (!part) throw new CharacterContractError(`unknown accessory part "${entry.part}"`);
   if (part.slot !== slot) throw new CharacterContractError(`part "${part.id}" fits slot "${part.slot}", not "${slot}"`);
+  if (!mountFor(host, part)) {
+    throw new CharacterContractError(`nothing to hang "${part.id}" on (${part.mount || SLOT_MOUNT[slot]}); the bell needs a collar`);
+  }
   const cur = host.slots[slot];
   if (cur) {
     if (cur.part === part && sameEntry(cur.entry, entry)) return cur;
