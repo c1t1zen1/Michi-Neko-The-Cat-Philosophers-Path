@@ -7,16 +7,14 @@
 // andon and courtyard-toro belong to the lanterns family; interior-fish and the
 // gravel/wall are the room parent's. Static parts are plain merged geometry on
 // the interior's own MAT entries and km.bag, so the room merges to a handful of draws.
-import * as THREE from 'three';
 import { defineAsset } from '../contract.js?v=20261113a';
-import { solo, partsOf } from './common.js?v=20261113a';
+import { solo } from './common.js?v=20261113a';
 import { buildTatami, buildFrame, buildDoor, buildTokonoma, buildScroll, buildChabudai, EARTHS } from './room.js?v=20261113a';
 import { buildZabuton, buildBonsai, buildTeaware, buildKnickKnacks, CUSHIONS, FOLIAGE, GLAZES } from './small.js?v=20261113a';
 import { buildTeaInterior } from './tea.js?v=20261113a';
 import { paperMat, shojiLight } from './common.js?v=20261113a';
 
 const enumOf = (obj, def, label) => ({ type: 'enum', default: def, options: Object.keys(obj), label });
-const S = { index: 0, x: 0, y: 0, z: 0, footprint: {} };
 
 // The classic room's layout (layoutInterior()), as the contract sample: the real, largest layout.
 const WALL_H = 3.6;
@@ -39,7 +37,7 @@ const ROOM = {
   door: { index: 0, x: 0, y: 0, z: 3.6, footprint: {} }
 };
 
-const standalone = (build, name) => (ctx, layout, p) => {
+const standalone = (build) => (ctx, layout, p) => {
   const g = build(ctx, layout, ctx.tier, p);
   return solo(g);
 };
@@ -54,19 +52,18 @@ const doorBuild = (ctx, layout, p) => {
 
 // knockables: positions in the room group (the classic path adds the origin twice and hangs them 100 m up)
 export const KNICK = [
-  { part: 'cup', name: 'Table Knick-knack 1', x: -0.55, z: -0.45, h: 0.09 },
+  { part: 'cup', name: 'Table Knick-knack 1', x: -0.7, z: -0.1, h: 0.09 },
   { part: 'bowl', name: 'Table Knick-knack 2', x: 0.45, z: -0.55, h: 0.07 },
   { part: 'ball', name: 'Table Knick-knack 3', x: 0.6, z: 0.15, h: 0.11 }
 ];
 const TABLE_TOP = 0.49, FLOOR_Y = 0.08;
 const knockBuild = (ctx, layout) => {
   const src = (layout && layout.items && layout.items.length) ? layout.items : KNICK;
-  const items = src.map((d, i) => { const k = KNICK[i] || KNICK[0]; return { part: d.part || k.part, name: d.name || k.name, at: [d.x ?? k.x, TABLE_TOP + (k.h ?? 0.09) / 2, d.z ?? k.z] }; });
+  const items = src.map((d, i) => { const k = KNICK[i] || KNICK[0]; return { part: d.part || k.part, name: d.name || k.name, at: [k.x, TABLE_TOP + (k.h ?? 0.09) / 2, k.z] }; });
   const { group, parts } = buildKnickKnacks(ctx, items, ctx.tier);
-  const group2 = group;
   // gameplay footprint: the same three records in room-group space, resting on the tatami (0.08)
   const footprint = { colliders: [], exclusions: [], anchors: {}, knockables: items.map((d) => ({ part: d.part, rest: d.at, floorY: FLOOR_Y })) };
-  return { group: group2, parts, sockets: {}, live: [], footprint };
+  return { group, parts, sockets: {}, live: [], footprint };
 };
 
 export const assets = [
@@ -107,4 +104,3 @@ export const assets = [
     footprintWaiver: 'the knick-knacks rest and settle in room-group space (table top 0.49, floor 0.08) instead of the classic origin-doubled numbers that hang them 100 m up (f3 handoff §3)'
   })
 ];
-void S; void partsOf; void THREE;

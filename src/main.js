@@ -1461,6 +1461,8 @@ class Game {
     // valley's lanterns. Every visible light is evaluated in every lit
     // fragment, so the half that cannot be seen is switched off outright.
     this.interior.setLightsActive(inside);
+    // kit room instances (shoji tint, lamps) keep running while the cat is inside
+    if (inside) this.interior.assets.update(dt, this.elapsed, this.assetEnv());
     if (inside) {
       this.city.suspendLanternLights();
     } else if (!this.summit.active) {

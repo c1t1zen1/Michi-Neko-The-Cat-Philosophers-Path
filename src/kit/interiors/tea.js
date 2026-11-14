@@ -35,7 +35,7 @@ export function buildCourtyard(ctx, tier = 'hero') {
 }
 
 export function buildTeaInterior(ctx, layout, p) {
-  const { tier } = ctx, { far } = tierFlags(tier), km = ctx.kitMaterials;
+  const { tier } = ctx;
   const L = layout || {};
   const root = new THREE.Group();
   const parts = {}, live = [], updates = [], disposers = [];
@@ -76,22 +76,17 @@ export function buildTeaInterior(ctx, layout, p) {
   const lights = [lamp, fill];
   const paper = paperMat(ctx);
   shojiLight(paper, 12);
-  let lit = null, hooked = false;
-  const setLightsActive = (on) => { if (lit === on) return; lit = on; for (const l of lights) l.visible = on; };
-
-  void km; void far;
+  let called = false;
+  const setLightsActive = (on) => { called = true; for (const l of lights) l.visible = on; };
+  const ROOM_ENV = { hour: 22, wind: 0, wet: 0, snow: 0, lanternOn: true };   // the indoor lamps are lit at any hour, as in the classic room
+  let warned = 0;
   return {
     group: root, parts, sockets: {}, live,
     setLightsActive,
     update(dt, t, env) {
       shojiLight(paper, env && env.hour);
-      for (const u of updates) u(dt, t, env);
-      // The owner switches roomLights with the cat's presence (setLightsActive each frame). A kit room
-      // hands it its two lights the first frame it runs (it only runs outside, before any visit).
-      if (!hooked) {
-        const gi = typeof window !== 'undefined' && window.game && window.game.interior;
-        if (gi && root.parent && root.parent === gi.group) { gi.roomLights = lights; hooked = true; }
-      }
+      for (const u of updates) u(dt, t, ROOM_ENV);
+      if (!called && ++warned === 600 && typeof console !== 'undefined') console.warn('[kit] tea-interior: setLightsActive() was never called, the room lights stay off (InteriorManager must forward it)');
     },
     dispose() { for (const d of disposers) d(); }
   };

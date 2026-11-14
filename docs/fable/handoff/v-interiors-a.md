@@ -60,3 +60,6 @@ Helpers worth moving into src/kit/craft.js: `TexBag` (textured boxes with world-
 
 ## 8. Enter the room for a shot
 The valley needs the antique key to open the door. For captures: boot `index.html?shot=1&nohud=1&hour=<h>&cam=0,100.4,2,0,100.5,-1&swap=<ids>` with `session catwalk_autostart=new`, then after frame >= 40 run `game.contextActions._doorLatch = true; game.interior.transitionToInterior()` and wait for `game.interior.isInside && !game.interior.isTransitioning` (the latch stops the exit trigger at the entrance), move the cat to (-2, 100, 0.6), and set `game.capture.cam = { pos, target, fov }` per shot. Cat height is y 100.35-100.4.
+
+## Fix round 1
+R47 patches applied in-lane: budgets.js entry (buildMs 9/6), interior.js setLightsActive forwards to kit instances, main.js runs interior.assets.update while inside. The kit no longer reaches window.game. The classic knick-knack patch (section 3) stays unapplied (R45).

@@ -48,6 +48,7 @@ export const KIT_LIMITS = Object.freeze({
  * fields it names and must cite why. Added by the owning lane in its PR.
  */
 export const BUDGET_EXCEPTIONS = Object.freeze({
+  'tea-interior': { hero: { meshes: 34, materials: 12, buildMs: 9 }, mid: { triangles: 9500, meshes: 34, materials: 12, buildMs: 6 }, far: { triangles: 3000, meshes: 24, materials: 11, buildMs: 5 }, why: 'the whole room as one asset (every classic sub-part plus courtyard, andon and toro); far is not a real LOD, the room is only seen from inside' },
   // 'tea-house': { hero: { triangles: 40000, meshes: 40 }, why: 'a whole building with interior-facing walls' }
   // classic grove 82.3k hero tris; modular 89.9k/12.5k/4.7k; ruling R40, v-greenery handoff
   'bamboo-groves': {

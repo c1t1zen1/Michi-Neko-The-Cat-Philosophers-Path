@@ -276,7 +276,7 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="dango"></a>`dango` — Golden Dango / River-Spirit Charm | [src/countryside.js:charm.name = 'River-Spirit Charm'](../src/countryside.js#L1576) | [keepsakes / dango](../labs/keepsakes/js/treats.js#L10) (direct) |  |
 | <a id="jade-paw"></a>`jade-paw` — Jade Paw corral reward | [src/countryside.js:reward.name = 'Jade Paw Reward'](../src/countryside.js#L3428) | [keepsakes / jade-paw](../labs/keepsakes/js/treats.js#L14) (direct)<br>[fences / corral](../labs/fences/js/recipes.js#L71) (related) — The original builder creates this reward with visible=false. The corral tile does not reveal it; construction is not visible coverage. |  |
 | <a id="secret-fish"></a>`secret-fish` — Secret-house grilled fish treat | [src/countryside.js:fish.name = 'Grilled Fish Treat'](../src/countryside.js#L2619) | [keepsakes / secret-fish](../labs/keepsakes/js/treats.js#L18) (direct)<br>[machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) — Fish remains inside the furnished original secret-house reference. |  |
-| <a id="interior-fish"></a>`interior-fish` — Tea-house grilled sea-bream platter | [src/interior.js:fish.name = 'Grilled Sea Bream'](../src/interior.js#L588) | [keepsakes / interior-fish](../labs/keepsakes/js/treats.js#L22) (direct) |  |
+| <a id="interior-fish"></a>`interior-fish` — Tea-house grilled sea-bream platter | [src/interior.js:fish.name = 'Grilled Sea Bream'](../src/interior.js#L589) | [keepsakes / interior-fish](../labs/keepsakes/js/treats.js#L22) (direct) |  |
 
 ### Vegetation
 
@@ -337,20 +337,20 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="tea-interior"></a>`tea-interior` — Tea-house interior assembly | [src/interior.js:buildInterior(](../src/interior.js#L320) | [interiors / garden](../labs/interiors/js/data.js#L24) (direct) — A redesigned room study, not the original InteriorManager builder. |  |
-| <a id="tatami"></a>`tatami` — Eight-mat tatami floor and borders | [src/interior.js:floor.name = 'Tatami Floor'](../src/interior.js#L473) | [interiors / tatami](../labs/interiors/js/craft.js#L5) (direct) |  |
-| <a id="interior-frame"></a>`interior-frame` — Interior walls, timber posts and ceiling beams | [src/interior.js:// Ceiling beams & panel](../src/interior.js#L502) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
-| <a id="shoji-doors"></a>`shoji-doors` — Entrance and exit shoji doors | [src/interior.js:exitDoor.name = 'Exit Door'](../src/interior.js#L660) | [interiors / shoji](../labs/interiors/js/craft.js#L6) (direct) |  |
-| <a id="tokonoma"></a>`tokonoma` — Tokonoma alcove | [src/interior.js:toko.name = 'Tokonoma Alcove'](../src/interior.js#L410) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
-| <a id="scroll"></a>`scroll` — Kakejiku hanging scroll | [src/interior.js:// Hanging Scroll](../src/interior.js#L518) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
-| <a id="bonsai"></a>`bonsai` — Tokonoma bonsai pine | [src/interior.js:// Mini Bonsai Pine](../src/interior.js#L526) | **No mapped evidence** | No original bonsai specimen; the lab alcove uses other decorations. |
-| <a id="chabudai"></a>`chabudai` — Chabudai low table | [src/interior.js:table.name = 'Chabudai Table'](../src/interior.js#L421) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
-| <a id="teaware"></a>`teaware` — Ceramic teapot and yunomi cups | [src/interior.js:// Ceramic Teapot & Yunomi Cups](../src/interior.js#L570) | [interiors / pottery](../labs/interiors/js/craft.js#L7) (direct) |  |
-| <a id="zabuton"></a>`zabuton` — Zabuton nap bed and embroidered tassels | [src/interior.js:bed.name = 'Zabuton Nap Bed'](../src/interior.js#L604) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
-| <a id="andon"></a>`andon` — Andon paper floor lantern | [src/interior.js:andon.name = 'Andon Lantern'](../src/interior.js#L620) | [lanterns / andon](../labs/lanterns/js/recipes.js#L92) (direct) |  |
-| <a id="courtyard-gravel"></a>`courtyard-gravel` — Courtyard rock-garden gravel | [src/interior.js:// Courtyard rock garden gravel](../src/interior.js#L630) | [rocks / rake](../labs/rocks/js/recipes.js#L71) (direct) |  |
-| <a id="courtyard-toro"></a>`courtyard-toro` — Courtyard stone lantern | [src/interior.js:toro.name = 'Courtyard Toro Lantern'](../src/interior.js#L639) | [lanterns / game-toro](../labs/lanterns/js/recipes.js#L34) (related) — Different source builder; no courtyard lantern extraction. |  |
-| <a id="courtyard-wall"></a>`courtyard-wall` — Courtyard boundary timber wall | [src/interior.js:// Courtyard outer timber wall](../src/interior.js#L650) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
+| <a id="tea-interior"></a>`tea-interior` — Tea-house interior assembly | [src/interior.js:buildInterior(](../src/interior.js#L321) | [interiors / garden](../labs/interiors/js/data.js#L24) (direct) — A redesigned room study, not the original InteriorManager builder. |  |
+| <a id="tatami"></a>`tatami` — Eight-mat tatami floor and borders | [src/interior.js:floor.name = 'Tatami Floor'](../src/interior.js#L474) | [interiors / tatami](../labs/interiors/js/craft.js#L5) (direct) |  |
+| <a id="interior-frame"></a>`interior-frame` — Interior walls, timber posts and ceiling beams | [src/interior.js:// Ceiling beams & panel](../src/interior.js#L503) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
+| <a id="shoji-doors"></a>`shoji-doors` — Entrance and exit shoji doors | [src/interior.js:exitDoor.name = 'Exit Door'](../src/interior.js#L661) | [interiors / shoji](../labs/interiors/js/craft.js#L6) (direct) |  |
+| <a id="tokonoma"></a>`tokonoma` — Tokonoma alcove | [src/interior.js:toko.name = 'Tokonoma Alcove'](../src/interior.js#L411) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
+| <a id="scroll"></a>`scroll` — Kakejiku hanging scroll | [src/interior.js:// Hanging Scroll](../src/interior.js#L519) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
+| <a id="bonsai"></a>`bonsai` — Tokonoma bonsai pine | [src/interior.js:// Mini Bonsai Pine](../src/interior.js#L527) | **No mapped evidence** | No original bonsai specimen; the lab alcove uses other decorations. |
+| <a id="chabudai"></a>`chabudai` — Chabudai low table | [src/interior.js:table.name = 'Chabudai Table'](../src/interior.js#L422) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
+| <a id="teaware"></a>`teaware` — Ceramic teapot and yunomi cups | [src/interior.js:// Ceramic Teapot & Yunomi Cups](../src/interior.js#L571) | [interiors / pottery](../labs/interiors/js/craft.js#L7) (direct) |  |
+| <a id="zabuton"></a>`zabuton` — Zabuton nap bed and embroidered tassels | [src/interior.js:bed.name = 'Zabuton Nap Bed'](../src/interior.js#L605) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
+| <a id="andon"></a>`andon` — Andon paper floor lantern | [src/interior.js:andon.name = 'Andon Lantern'](../src/interior.js#L621) | [lanterns / andon](../labs/lanterns/js/recipes.js#L92) (direct) |  |
+| <a id="courtyard-gravel"></a>`courtyard-gravel` — Courtyard rock-garden gravel | [src/interior.js:// Courtyard rock garden gravel](../src/interior.js#L631) | [rocks / rake](../labs/rocks/js/recipes.js#L71) (direct) |  |
+| <a id="courtyard-toro"></a>`courtyard-toro` — Courtyard stone lantern | [src/interior.js:toro.name = 'Courtyard Toro Lantern'](../src/interior.js#L640) | [lanterns / game-toro](../labs/lanterns/js/recipes.js#L34) (related) — Different source builder; no courtyard lantern extraction. |  |
+| <a id="courtyard-wall"></a>`courtyard-wall` — Courtyard boundary timber wall | [src/interior.js:// Courtyard outer timber wall](../src/interior.js#L651) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
 | <a id="knockables"></a>`knockables` — Three tabletop knockables (white cup, blue bowl, white sphere) | [src/interior.js:buildKnockables(](../src/interior.js#L219) | [interiors / pottery](../labs/interiors/js/craft.js#L7) (related) — Vessel geometry is studied; these three original items are not specimens.<br>[interiors / bat-cup](../labs/interiors/js/cat.js#L53) (related) — Lab physics supports batting lab vessels; original item geometry and physics differ. |  |
 | <a id="secret-tatami"></a>`secret-tatami` — Secret-house tatami | [src/countryside.js:tatamiFloor.name = 'Tatami Floor'](../src/countryside.js#L2568) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
 | <a id="secret-table"></a>`secret-table` — Secret-house table and teaware | [src/countryside.js:table.name = 'Chabudai Table'](../src/countryside.js#L2589) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
@@ -479,7 +479,7 @@ Every current `src/*.js` module is classified. Every class method declared with 
 | [src/cat.js:buildMaterials(](../src/cat.js#L80) | Material setup for the inventoried cat; not another object. |
 | [src/countryside.js:createRiverUniforms(](../src/countryside.js#L1590) | Shader parameter state for the inventoried river/paddies, not another visible asset. |
 | [src/npc.js:createNameTag(](../src/npc.js#L212) | DOM character label; interface is outside the visible world-asset inventory. |
-| [src/main.js:buildJournalUI(](../src/main.js#L1698) | DOM journal interface; journal text rewards are not physical inventory objects. |
+| [src/main.js:buildJournalUI(](../src/main.js#L1700) | DOM journal interface; journal text rewards are not physical inventory objects. |
 | [src/menus.js:buildSettings(](../src/menus.js#L140) | DOM settings interface, outside the world-asset scope. |
 | [src/postfx.js:buildKernel(](../src/postfx.js#L176) | AO sampling-kernel data, not a second visual asset. |
 
@@ -494,9 +494,9 @@ Narrative-only characters and journal/progression rewards are recorded separatel
 
 | Nonvisual entry | Source | Reason |
 |---|---|---|
-| Bokuchi, the forest spirit | [src/main.js](../src/main.js#L1847) | Named in Kuro’s dialogue; no separate Bokuchi actor or mesh is constructed. |
+| Bokuchi, the forest spirit | [src/main.js](../src/main.js#L1849) | Named in Kuro’s dialogue; no separate Bokuchi actor or mesh is constructed. |
 | Mist Charm | [src/context_actions.js](../src/context_actions.js#L690) | Journal/progression reward from touching the altar; no collectible mesh. |
-| Bokuchi’s Blessing | [src/main.js](../src/main.js#L1918) | Journal/progression reward for the offering-bell quest; no separate item mesh. |
+| Bokuchi’s Blessing | [src/main.js](../src/main.js#L1920) | Journal/progression reward for the offering-bell quest; no separate item mesh. |
 | The valley became home | [src/context_actions.js](../src/context_actions.js#L762) | Journal memory from a quiet moment; no physical item. |
 
 Optional media and dormant code are recorded without claiming that a download succeeded or an unused builder is part of the current playable scene. The Roof Road retains its own prototype review and reachability checks.

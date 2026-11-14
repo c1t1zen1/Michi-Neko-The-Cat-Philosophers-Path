@@ -269,6 +269,7 @@ export class InteriorManager {
     if (this._lightsActive === on) return;
     this._lightsActive = on;
     for (const l of this.roomLights || []) l.visible = on;
+    for (const inst of this.assetInstances || []) if (inst.setLightsActive) inst.setLightsActive(on);
   }
 
   update(dt) {

@@ -4,6 +4,7 @@
 // sparse sample still builds) and returns a Group of named meshes, local to
 // the frame the classic builders used (see each header).
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Bag } from '../craft.js?v=20261113a';
 import { TexBag, roomMats, bagMesh, groupOf, tierFlags, paperMat, paintingTexture } from './common.js?v=20261113a';
 
@@ -83,25 +84,9 @@ export function buildDoor(ctx, L = {}, tier = 'hero') {
   };
   leaf(-lw / 2, 0.035);
   leaf(lw / 2, -0.035);
-  const paper = new THREE.Mesh(mergePanes(panes), paperMat(ctx));
+  const paper = new THREE.Mesh(mergeGeometries(panes), paperMat(ctx));
   paper.name = 'paper'; paper.receiveShadow = true;
   return groupOf('Exit Door', bagMesh(wood, m.bag, 'frame'), paper);
-}
-
-function mergePanes(list) {
-  const g = new THREE.BufferGeometry();
-  const pos = [], uv = [], nor = [], idx = [];
-  for (const p of list) {
-    const base = pos.length / 3;
-    pos.push(...p.attributes.position.array); uv.push(...p.attributes.uv.array); nor.push(...p.attributes.normal.array);
-    for (const i of p.index.array) idx.push(base + i);
-    p.dispose();
-  }
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  g.setIndex(idx);
-  return g;
 }
 
 /** The alcove: raised floor board, earthen back wall, tokobashira, otoshigake. Room frame (the recess is at z -3). */

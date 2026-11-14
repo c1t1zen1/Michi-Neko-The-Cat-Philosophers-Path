@@ -97,7 +97,7 @@ export function buildFishPlatter(ctx, tier = 'hero') {
   const fish = new Bag();
   ell(fish, 0.21, 0.056, 0.081, { y: 0.04, color: 0xcc7438 }, hi);
   ell(fish, 0.17, 0.022, 0.06, { x: 0.01, y: 0.08, color: 0x8f4a22 }, hi);                // the darker, grilled back
-  fish.add(new THREE.ConeGeometry(0.075, 0.12, 4), { x: -0.27, y: 0.04, rz: -Math.PI / 2, sz: 0.3, color: 0xb25f2c });   // a tail fan: wide at the end, narrowing into the body
+  fish.add(new THREE.ConeGeometry(0.06, 0.11, 4), { x: -0.235, y: 0.04, rz: -Math.PI / 2, sz: 0.3, color: 0xb25f2c });   // a tail fan: wide at the end, narrowing into the body
   if (!far) {
     fish.add(new THREE.ConeGeometry(0.05, 0.09, 3), { x: -0.02, y: 0.12, rz: 0, sz: 0.25, color: 0x8f4a22 });   // dorsal fin
     fish.sphere(0.014, { x: 0.19, y: 0.06, z: 0.06, color: 0x1c130c });
@@ -111,7 +111,7 @@ export function buildFishPlatter(ctx, tier = 'hero') {
 
 /** The three knick-knacks, each its own mesh centred on its own middle (the game spins and bounces them). */
 export function buildKnickKnacks(ctx, items, tier = 'hero') {
-  const { far } = tierFlags(tier), km = ctx.kitMaterials, seg = SEG[tier] || 16, mat = km.bag({ rough: 0.4 });
+  const seg = SEG[tier] || 16, mat = roomMats(ctx).bag;
   const make = (part) => {
     const g = new Bag();
     if (part === 'cup') g.add(lathe([[0.001, 0], [0.04, 0], [0.046, 0.01], [0.056, 0.07], [0.058, 0.09], [0.053, 0.092], [0.05, 0.07], [0.038, 0.016], [0.001, 0.014]], seg).translate(0, -0.045, 0), { color: 0xf3ede2 });
@@ -133,6 +133,5 @@ export function buildKnickKnacks(ctx, items, tier = 'hero') {
     m.position.set(...d.at);
     group.add(m); parts[d.part] = m;
   }
-  void far;
   return { group, parts };
 }
