@@ -1,0 +1,11 @@
+# v-greenery handoff
+- Integrator: `node tools/kit_index.mjs` regenerates `src/kit/index.js` (family `greenery`; already regenerated in this PR, not hand-edited).
+- Inventory: `street-bushes`, `roadside-moss`, `bamboo-groves` exist; no new rows. Catalog `production` adapter: `"production": "greenery"` for all three if the catalog uses family names. Add to each row's `lab` the specimen: street-bushes / roadside-moss -> `greenery/karikomi`, bamboo-groves -> `greenery/nodes`.
+- Part names: street-bushes `bushes`, `karikomi` (bind `bushMat: 'bushes.material'`, both share one foliage material); roadside-moss `moss`; bamboo-groves `lower_culms`, `upper_culms`, `leaves` (far tier has no `upper_culms`: the whole culm is static in `lower_culms`).
+- Footprint waivers: none (footprint = layout.footprint; colliders, bushColliderSpots list, rng draws unchanged).
+- Bamboo layout is in the group's local frame (Vegetation.placeAsset moves the group to layout x/z).
+- Reuse by v-hidden `glade-bamboo`: `import { culmGeometry, bladeGeometry, bambooSwayMaterial, bambooGrove } from '../greenery/bamboo.js'` is possible but `glade-bamboo` has its own ring layout; `culmGeometry(T, { rBot, rTop, radial, nodes, ring, bulge, length })` is the parametric culm builder.
+- New merged materials: 1 (`km.bamboo({vcol})` for lower culms, instanced) + `km.moss` (merged baked patches) = 2 kit materials (R26 allows one without asking; `km.moss` is an existing material factory already in the kit, `km.bamboo` likewise; the kit has not used either before, so they count as 2 new merged-table entries — please confirm). Unmerged live: bush foliage material (1, rustle driven by Countryside.update via bushMat), bamboo sway materials (stalk, leaf + 2 depth) per grove.
+- Draw cost: street-bushes 2 instanced draws (was 1) + shadows; bamboo-groves 3 draws per grove (lower, upper, leaves; far: 2), same as classic; roadside-moss 1 merged draw shared via MAT (classic: 1 instanced, unmerged). See status file for perf_spots.
+- Helpers to move: none (bushes.js, bamboo.js local to the family).
+- Hot-file wiring: none.
