@@ -663,7 +663,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 3 | `c3-villagers` | Luna, Mochi, Kuro (lab 19) | c1 | [ ] |
 | 3 | `c4-creatures` | Larry the turtle, guardian crows | c1 | [x] |
 | 4 | `s1-summit-split` | `mountaintop.js` split behind the facade (serial) | G-F, D2 | [x] |
-| 4 | `s2-clearing` | Meadow, stone, ensō, fūrin, torii, path, trees | s1, G-V2 | [ ] |
+| 4 | `s2-clearing` | Meadow, stone, ensō, fūrin, torii, path, trees | s1, G-V2 | [x] |
 | 4 | `s3-vista` | City, pagoda, bay, harbour, ranges, clouds | s1, `v-pagoda`, `v-ranges` | [ ] |
 | 4 | `s4-summit-life` | Summit weather, pollen, petals, butterflies, birds | s1, `v-weather` | [x] |
 | 5 | `r1-roof-split` | `build.js` split into pieces + inventory (serial) | G-F | [ ] |
@@ -1441,6 +1441,7 @@ created in Phase 1 and marked *(new)*.
 | | `tools/labs_geometry_test.html` | Lab construction checks (32 today) |
 | | `node tools/rooftop_test.mjs` | Roof Road: 38 checks, autopilot completes |
 | | `node tools/summit_test.mjs` | Summit state machine |
+| | `node tools/summit_kit_parity.mjs` (`tools/summit_kit_parity.html`) | Summit kit vs classic: colliders, platforms, rng draw, binds, torii position (EQUAL) |
 | **G3** catalog and tools | `node tools/catalog_check.mjs` | Catalog integrity |
 | | `node tools/labs_coverage.mjs` and `node --test tools/labs_coverage_test.mjs` | Inventory and coverage totals |
 | | `node --test catalog/tests/*.test.mjs` | Catalog units and API |
