@@ -2853,6 +2853,19 @@ export class Countryside {
 
   /** Furin wind chime hanging from the tea house eave. */
   buildWindChime(x, y, z) {
+    const layout = this.layoutWindChime(x, y, z);
+    return this.placeAsset('wind-chime', layout, () => this.meshWindChimeClassic(layout));
+  }
+
+  layoutWindChime(x, y, z) {
+    return {
+      index: this.nextIndex('wind-chime'), name: 'Wind Chime', x, y, z,
+      footprint: footprint({ anchors: { chimePos: new THREE.Vector3(x, y - 0.6, z), chimeSway: 0 } }),
+      bind: { windChime: '.', chimeClapperMat: 'clapper.material' }
+    };
+  }
+
+  meshWindChimeClassic({ x, y, z }) {
     const chime = new THREE.Group();
     chime.name = 'Wind Chime';
 
