@@ -83,3 +83,21 @@ export function summitWeatherAmount(sky, type) {
   const to = (sky.targetWeather == null ? sky.weather : sky.targetWeather) === type ? 1 : 0;
   return from * (1 - blend) + to * blend;
 }
+
+/**
+ * A layout footprint in the summit's classic registration format (Integrator
+ * rulings R12, R18): `colliders` are addColliderBox(minX, minY, minZ, maxX,
+ * maxY, maxZ) argument lists and `platforms` addPlatformBox(minX, topY, minZ,
+ * maxX, bottomY, maxZ) argument lists, summit-local, in registration order.
+ * The summit has no vegetation exclusions (its grass mask is painted from the
+ * colliders) and no water rects.
+ */
+export function summitFootprint(colliders = [], platforms = []) {
+  return { colliders, platforms, exclusions: [], anchors: {} };
+}
+
+/** Register a footprint through the classic helpers, in order. `this` = the manager. */
+export function registerFootprint(footprint) {
+  for (const box of footprint.colliders) this.addColliderBox(...box);
+  for (const box of footprint.platforms) this.addPlatformBox(...box);
+}

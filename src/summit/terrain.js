@@ -11,10 +11,14 @@ import { worldNoise } from '../textures.js?v=20261107a';
 import {
   mulberry32, clamp01, smoothstep, MEADOW_Y, CORRIDOR_W, CORRIDOR_Z0, ENTRY_Y, LANDING_Z0,
   LANDING_Z1, LOWER_STEP_RUN, LOWER_STEP_RISE, LOWER_PATH_Z1, LAND_OUTER_R, PERCH_CAM,
-  approachTopAt
+  approachTopAt, summitFootprint
 } from './common.js?v=20261107a';
 
 export const terrainMethods = {
+  // Each build*() is the §3.4 split: a layout step (every this.rng() draw, in
+  // the classic order, and the footprint), then placeAsset() with the classic
+  // mesh step, mesh*Classic(layout), which builds exactly what it always did.
+
   /** Decorative earth immediately beneath the stone approach. */
   approachSupportAt(x, z) {
     let fan = 0;
@@ -101,6 +105,14 @@ export const terrainMethods = {
   },
 
   buildApproachShoulder() {
+    const layout = {
+      index: 0, name: 'Torii Approach Earthen Shoulder', x: 0, y: 0, z: 0,
+      footprint: summitFootprint(), bind: { approachShoulder: 'shoulder' }
+    };
+    return this.placeAsset('summit-shoulder', layout, () => terrainMethods.meshApproachShoulderClassic.call(this, layout));
+  },
+
+  meshApproachShoulderClassic(layout) {
     const zMin = CORRIDOR_Z0 - 0.75;
     const zMax = LOWER_PATH_Z1 + 3;
     const geo = new THREE.PlaneGeometry(2, 1, 32, 96);
@@ -198,6 +210,14 @@ export const terrainMethods = {
    * where the shape is read up close, and spread out toward the haze.
    */
   buildSummitTerrain() {
+    const layout = {
+      index: 0, name: 'Summit Terrain', x: 0, y: 0, z: 0,
+      footprint: summitFootprint(), bind: { summitTerrain: 'terrain' }
+    };
+    return this.placeAsset('summit-terrain', layout, () => terrainMethods.meshSummitTerrainClassic.call(this, layout));
+  },
+
+  meshSummitTerrainClassic(layout) {
     const inner = CORRIDOR_Z0 - 0.75;
     const rings = 150;
     const around = 288;

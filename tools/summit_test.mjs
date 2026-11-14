@@ -10,7 +10,7 @@
 //
 //   node tools/summit_test.mjs
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 import vm from 'node:vm';
 
@@ -212,11 +212,17 @@ function moduleSource(key) {
   };
 }
 
+// The asset runtime is pure and loads under Node (its own tests do), so the
+// real module is imported natively and handed to the VM as it is.
+const NATIVE = new Set(['src/kit/runtime.js']);
+const native = {};
+for (const key of NATIVE) native[key] = await import(pathToFileURL(join(ROOT, key)).href);
+
 /** src/mountaintop.js and every real module it reaches, as one script. */
 function realModules(entry) {
   const seen = new Set(), out = [];
   const visit = (key) => {
-    if (seen.has(key) || STUBBED.has(key)) return;
+    if (seen.has(key) || STUBBED.has(key) || NATIVE.has(key)) return;
     seen.add(key);
     const mod = moduleSource(key);
     out.push(mod.text);
@@ -326,7 +332,9 @@ const registry = `
   __modules.set('src/foliage.js', { createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture,
     leafCardGeometry, buildCanopy, updateFoliage, lumpyTuftGeometry, lumpyConeGeometry, bushGeometry, leafMassTexture });
   __modules.set('src/grass.js', { GrassSystem, BiomeMask });
+  for (const key of Object.keys(__native)) __modules.set(key, __native[key]);
 `;
+sandbox.__native = native;
 vm.runInContext(pre + registry + real.text +
   `\nthis.SummitManager = __require('src/mountaintop.js').SummitManager;`, sandbox);
 

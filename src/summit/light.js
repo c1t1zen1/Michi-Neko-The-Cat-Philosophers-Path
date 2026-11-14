@@ -6,9 +6,22 @@
 
 import * as THREE from 'three';
 import { glowTexture } from '../textures.js?v=20261107a';
+import { summitFootprint } from './common.js?v=20261107a';
 
 export const lightMethods = {
+  // Each build*() is the §3.4 split: a layout step (every this.rng() draw, in
+  // the classic order, and the footprint), then placeAsset() with the classic
+  // mesh step, mesh*Classic(layout), which builds exactly what it always did.
+
   buildSummitLight() {
+    const layout = {
+      index: 0, x: 0, y: 0, z: 0, footprint: summitFootprint(),
+      bind: { summitSkyFill: 'skyFill', summitWarmFill: 'warmFill' }
+    };
+    return this.placeAsset('summit-light', layout, () => lightMethods.meshSummitLightClassic.call(this, layout));
+  },
+
+  meshSummitLightClassic(layout) {
     // A high mountain bounce keeps the meadow readable even when the valley
     // clock is near dawn or dusk.  These do not cast another shadow map; the
     // live sky sun still supplies the moving key and all long shadows.
@@ -32,6 +45,24 @@ export const lightMethods = {
    * not in the summit group, so it stays anchored to the shrine.
    */
   buildShrineRays() {
+    // The beacon's stream draws, in the classic order: per shaft its width,
+    // height, pulse phase and base opacity.
+    const rays = [];
+    for (let i = 0; i < 9; i++) {
+      const w = 1.6 + this.rng() * 2.6;
+      const h = 17 + this.rng() * 7;
+      const phase = this.rng() * Math.PI * 2;
+      const baseOpacity = 0.55 + this.rng() * 0.35;
+      rays.push({ w, h, phase, baseOpacity });
+    }
+    const layout = {
+      index: 0, name: 'Shrine Summit Rays', space: 'valley', x: 0, y: 0, z: 0, rays,
+      footprint: summitFootprint(), bind: { raysGroup: 'beacon' }
+    };
+    return this.placeAsset('shrine-rays', layout, () => lightMethods.meshShrineRaysClassic.call(this, layout));
+  },
+
+  meshShrineRaysClassic(layout) {
     const g = new THREE.Group();
     g.name = 'Shrine Summit Rays';
     const rayTex = this.makeRayTexture();
@@ -39,9 +70,9 @@ export const lightMethods = {
     // Fan of leaning shafts rising from behind the shrine roof — kept inside
     // the parted thicket's gap so the light reads through it.
     for (let i = 0; i < 9; i++) {
-      const w = 1.6 + this.rng() * 2.6;
+      const { w, h, phase, baseOpacity } = layout.rays[i];
       const ray = new THREE.Mesh(
-        new THREE.PlaneGeometry(w, 17 + this.rng() * 7),
+        new THREE.PlaneGeometry(w, h),
         new THREE.MeshBasicMaterial({
           map: rayTex, transparent: true, opacity: 0.0,
           blending: THREE.AdditiveBlending, depthWrite: false,
@@ -52,8 +83,8 @@ export const lightMethods = {
       ray.position.set(Math.sin(a) * 6.8, baseY + 8.5, -39.4 - Math.abs(a) * 2);
       ray.rotation.z = a * 0.55;
       ray.rotation.y = a * 0.4;
-      ray.userData.phase = this.rng() * Math.PI * 2;
-      ray.userData.baseOpacity = 0.55 + this.rng() * 0.35;
+      ray.userData.phase = phase;
+      ray.userData.baseOpacity = baseOpacity;
       g.add(ray);
       this._rays = this._rays || [];
       this._rays.push(ray);

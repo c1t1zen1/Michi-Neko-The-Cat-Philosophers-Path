@@ -10,6 +10,7 @@ import {
   mulberry32, smoothstep, ORIGIN, MEADOW_R, MEADOW_Y, CORRIDOR_W, CORRIDOR_Z0, CORRIDOR_Z1, GATE_Z,
   ENTRY_Y, PERCH_CAM, approachTopAt, MEDITATE_SECONDS, summitWeatherAmount
 } from './summit/common.js?v=20261107a';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261107a';
 import { lightMethods } from './summit/light.js?v=20261107a';
 import { terrainMethods } from './summit/terrain.js?v=20261107a';
 import { clearingMethods } from './summit/clearing.js?v=20261107a';
@@ -121,6 +122,11 @@ export class SummitManager {
       vertexColors: true, roughness: 1, metalness: 0,
       map: landWash, bumpMap: landWash, bumpScale: 0.6
     });
+    // The asset runtime (BUILD_GUIDE_FABLE §3.3, §3.4): the summit's own scoped
+    // view, so kit builders get the summit's material table and textures. Every
+    // builder routes through placeAsset(); with no summit kit registered (or no
+    // runtime at all) each one builds its classic asset.
+    this.assets = scopeAssets(game.assets, { MAT: this.MAT, textures: TEX });
 
     // Foliage materials for summit trees — the same painterly shader the
     // valley uses; the shared foliageUniforms clock keeps them swaying.
@@ -272,6 +278,51 @@ export class SummitManager {
       new THREE.Vector3(this.origin.x + minX, this.origin.y + bottomY, this.origin.z + minZ),
       new THREE.Vector3(this.origin.x + maxX, this.origin.y + topY, this.origin.z + maxZ)
     ));
+  }
+
+  /**
+   * §3.4 routing for one summit asset (Integrator rulings R12, R18). The
+   * builder has already run its layout step (every this.rng() draw, in the
+   * original order, plus `layout.footprint` in summit-local addColliderBox /
+   * addPlatformBox argument lists), so the stream advances the same in both
+   * sets. Classic: `classicFn()` builds and registers exactly as before. Kit:
+   * the instance's group goes under `layout.parent` (a summit object name;
+   * `layout.space === 'valley'` means the scene root, like the shrine rays),
+   * placed at the layout's x, y, z and ry; its footprint registers through the
+   * same helpers in the same order; its anchors are set on the manager
+   * (`this[name] = value`) and `layout.bind` parts too. Nothing on the summit
+   * is merged, so `instance.live` needs no special case; animated instances
+   * are updated by update() below.
+   */
+  placeAsset(id, layout, classicFn) {
+    const assets = this.assets || CLASSIC_ASSETS; // the Summit Lab runs builders on a bare prototype
+    const out = assets.build(id, layout, classicFn);
+    if (!isAssetInstance(out)) return out;
+    const root = layout.space === 'valley' ? this.scene : this.group;
+    const parent = (layout.parent && root.getObjectByName(layout.parent)) || root;
+    out.group.position.set(layout.x || 0, layout.y || 0, layout.z || 0);
+    out.group.rotation.y = layout.ry || 0;
+    parent.add(out.group);
+    const f = out.footprint;
+    for (const box of f.colliders || []) this.addColliderBox(...box);
+    for (const box of f.platforms || []) this.addPlatformBox(...box);
+    for (const [name, value] of Object.entries(f.anchors || {})) this[name] = value;
+    for (const [field, part] of Object.entries(layout.bind || {})) {
+      this[field] = out.parts[part] || (out.sockets && out.sockets[part]) || null;
+    }
+    return out;
+  }
+
+  /** The world state summit kit instances respond to (§3.3 `update(dt, t, env)`), one reused object. */
+  assetEnv(sky) {
+    const env = this._assetEnv || (this._assetEnv = { hour: 12, wind: 1, wet: 0, snow: 0, lanternOn: false });
+    const sunY = sky && sky.sunDir ? sky.sunDir.y : 1;
+    env.hour = sky && Number.isFinite(sky.dayTime) ? sky.dayTime : env.hour;
+    env.wet = summitWeatherAmount(sky, 'rain');
+    env.snow = summitWeatherAmount(sky, 'snow');
+    // The summit's lanterns glow with the same nightness updateVistaEnvironment() uses.
+    env.lanternOn = 1 - Math.max(0, sunY) * 5 > 0.5;
+    return env;
   }
 
   /** Quality-tier density without rebuilding any summit geometry. */
@@ -782,6 +833,11 @@ export class SummitManager {
     this.updateMeditationAtmosphere(dt, t, playing, sky);
     this.updateSakuraPetals(dt, t, sky);
     this.updateVistaEnvironment(dt, t, sky);
+    // Summit kit instances that animate (main.js updates the valley's, but
+    // not while the summit is active). Classic: no instances, nothing runs.
+    if (this.assets && this.assets.instances && this.assets.instances.length) {
+      this.assets.update(dt, t, this.assetEnv(sky));
+    }
 
     // Shared foliage clock + a stronger wind base than the valley.
     updateFoliage(t, sky, p);

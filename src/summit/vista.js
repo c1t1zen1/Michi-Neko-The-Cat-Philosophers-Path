@@ -15,13 +15,17 @@ import { worldNoise, glowTexture } from '../textures.js?v=20261107a';
 import {
   createFoliageMaterial, lumpyTuftGeometry, leafMassTexture
 } from '../foliage.js?v=20261107a';
-import { mulberry32, box, clamp01, smoothstep, summitWeatherAmount } from './common.js?v=20261107a';
+import { mulberry32, box, clamp01, smoothstep, summitWeatherAmount, summitFootprint } from './common.js?v=20261107a';
 
 // Resolve from this module rather than the current document: the main game is
 // served from `/`, while the art-review page lives under `/tools/`.
 const SUMMIT_LANDMARKS_SRC = new URL('../../assets/models/summit_kyoto_landmarks.glb?v=20261107a', import.meta.url).href;
 
 export const vistaMethods = {
+  // Each build*() is the §3.4 split: a layout step (every this.rng() draw, in
+  // the classic order, and the footprint), then placeAsset() with the classic
+  // mesh step, mesh*Classic(layout), which builds exactly what it always did.
+
   buildSkirtAndVista() {
     this.buildSummitTerrain();
     this.buildApproachShoulder();
@@ -54,6 +58,14 @@ export const vistaMethods = {
    * part of buildSummitTerrain(), so the city has no sheet edge to show.
    */
   buildVistaTerrain() {
+    const layout = {
+      index: 0, parent: 'Layered Kyoto Bay Vista', x: 0, y: 0, z: 0,
+      footprint: summitFootprint()
+    };
+    return this.placeAsset('vista-terrain', layout, () => vistaMethods.meshVistaTerrainClassic.call(this, layout));
+  },
+
+  meshVistaTerrainClassic(layout) {
     // The Yodo/Katsura water ribbon winds through several real city blocks.
     const riverGeo = new THREE.PlaneGeometry(12, 132, 5, 44);
     riverGeo.rotateX(-Math.PI / 2);
@@ -119,6 +131,18 @@ export const vistaMethods = {
 
   /** Hundreds of separately placed buildings and gardens in the basin. */
   buildKyotoCity() {
+    const layout = {
+      index: 0, parent: 'Layered Kyoto Bay Vista', x: 0, y: 0, z: 0,
+      footprint: summitFootprint()
+    };
+    const city = this.placeAsset('kyoto-city', layout, () => vistaMethods.meshKyotoCityClassic.call(this, layout));
+    // The pagoda is its own asset (summit-pagoda), built right after the city
+    // as before; its evening lanterns share the city's window-light material.
+    this.buildKyotoPagoda();
+    return city;
+  },
+
+  meshKyotoCityClassic(layout) {
     const rnd = mulberry32(202610221);
     const count = this.previewQuality ? 430 : 920;
     const wallGeo = new THREE.BoxGeometry(1, 1, 1);
@@ -256,12 +280,19 @@ export const vistaMethods = {
     this.cityGardens = gardens;
     this.cityGardenMax = treeCount;
     this.cityGardenMat = gardenMat;
-
-    this.buildKyotoPagoda();
   },
 
   /** A readable five-storey landmark assembled from real roof volumes. */
   buildKyotoPagoda() {
+    const layout = {
+      index: 0, name: 'Higashiyama Five Storey Pagoda', parent: 'Layered Kyoto Bay Vista',
+      x: -27, y: this.terrainHeightAt(-27, 86) + 0.04, z: 86, ry: -0.08,
+      footprint: summitFootprint(), bind: { kyotoPagoda: 'pagoda' }
+    };
+    return this.placeAsset('summit-pagoda', layout, () => vistaMethods.meshKyotoPagodaClassic.call(this, layout));
+  },
+
+  meshKyotoPagodaClassic(layout) {
     const walls = [];
     const timber = [];
     const roofs = [];
@@ -375,6 +406,14 @@ export const vistaMethods = {
 
   /** Actual open water, reflective glints and small moving boats. */
   buildSummitBay() {
+    const layout = {
+      index: 0, name: 'Kyoto Bay Water', parent: 'Layered Kyoto Bay Vista', x: 0, y: 0, z: 0,
+      footprint: summitFootprint(), bind: { bay: 'water' }
+    };
+    return this.placeAsset('summit-bay', layout, () => vistaMethods.meshSummitBayClassic.call(this, layout));
+  },
+
+  meshSummitBayClassic(layout) {
     const tex = this.makeBayWaterTexture();
     const geo = new THREE.PlaneGeometry(720, 320, 80, 34);
     geo.rotateX(-Math.PI / 2);
@@ -565,6 +604,14 @@ export const vistaMethods = {
 
   /** Three thick terrain ranges close the bay without a horizon card. */
   buildHorizonRanges() {
+    const layout = {
+      index: 0, parent: 'Layered Kyoto Bay Vista', x: 0, y: 0, z: 0,
+      footprint: summitFootprint()
+    };
+    return this.placeAsset('horizon', layout, () => vistaMethods.meshHorizonRangesClassic.call(this, layout));
+  },
+
+  meshHorizonRangesClassic(layout) {
     const defs = [
       { x: -58, z: 370, width: 540, depth: 76, base: -14.2, peak: 43, color: 0x4a8195, seed: 41 },
       { x: 66, z: 475, width: 720, depth: 90, base: -15.1, peak: 37, color: 0x6497aa, seed: 57 },
@@ -1059,6 +1106,14 @@ export const vistaMethods = {
   },
 
   loadVistaLandmarks() {
+    const layout = {
+      index: 0, name: 'Blender Kyoto Roofscape', parent: 'Layered Kyoto Bay Vista', x: 8, y: -5.6, z: 68, ry: Math.PI,
+      footprint: summitFootprint(), bind: { vistaLandmarks: 'roofscape' }
+    };
+    return this.placeAsset('blender-roofscape', layout, () => vistaMethods.meshLoadVistaLandmarksClassic.call(this, layout));
+  },
+
+  meshLoadVistaLandmarksClassic(layout) {
     // Authored in Blender, merged to one mesh with six material primitives.
     // It is a hero middle-distance district; the procedural city around it
     // remains complete if the optional asset is unavailable.

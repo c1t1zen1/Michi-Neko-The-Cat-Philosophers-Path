@@ -13,11 +13,20 @@ import { lumpyTuftGeometry } from '../foliage.js?v=20261107a';
 import {
   mulberry32, box, clamp01, smoothstep, MEADOW_Y, CORRIDOR_W, CORRIDOR_Z0, CORRIDOR_Z1, GATE_Z,
   ENTRY_Y, STEP_COUNT, STEP_RUN, STEP_RISE, LANDING_Z0, LANDING_Z1, LOWER_STEP_COUNT,
-  LOWER_STEP_RUN, approachTopAt, lowerStepTopAt, MEDITATE_SECONDS, summitWeatherAmount
+  LOWER_STEP_RUN, approachTopAt, lowerStepTopAt, MEDITATE_SECONDS, summitWeatherAmount, summitFootprint
 } from './common.js?v=20261107a';
 
 export const clearingMethods = {
+  // Each build*() is the §3.4 split: a layout step (every this.rng() draw, in
+  // the classic order, and the footprint), then placeAsset() with the classic
+  // mesh step, mesh*Classic(layout), which builds exactly what it always did.
+
   buildMeadow() {
+    const layout = { index: 0, name: 'Summit Meadow', x: 0, y: 0, z: 0, footprint: summitFootprint() };
+    return this.placeAsset('summit-meadow', layout, () => clearingMethods.meshMeadowClassic.call(this, layout));
+  },
+
+  meshMeadowClassic(layout) {
     // A compact, level patch beneath the old tree. Keeping the rendered
     // surface and groundAt() on the same MEADOW_Y plane prevents the cat's
     // legs and paws disappearing into a decorative terrain crown.
@@ -513,6 +522,14 @@ export const clearingMethods = {
    * constrain() holds the cat at the landing.
    */
   buildLowerPath() {
+    const layout = {
+      index: 0, name: 'Lower Stone Path', x: 0, y: 0, z: 0,
+      footprint: summitFootprint(), bind: { lowerPath: 'path' }
+    };
+    return this.placeAsset('summit-path', layout, () => clearingMethods.meshLowerPathClassic.call(this, layout));
+  },
+
+  meshLowerPathClassic(layout) {
     const rnd = mulberry32(4406);
     const path = new THREE.Group();
     path.name = 'Lower Stone Path';

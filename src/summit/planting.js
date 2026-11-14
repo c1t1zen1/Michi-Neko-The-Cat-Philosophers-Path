@@ -14,10 +14,14 @@ import {
 } from '../foliage.js?v=20261107a';
 import { GrassSystem, BiomeMask } from '../grass.js?v=20261107a';
 import {
-  mulberry32, MEADOW_Y, CORRIDOR_W, CORRIDOR_Z0, LOWER_PATH_Z1
+  mulberry32, MEADOW_Y, CORRIDOR_W, CORRIDOR_Z0, LOWER_PATH_Z1, summitFootprint
 } from './common.js?v=20261107a';
 
 export const plantingMethods = {
+  // Each build*() is the §3.4 split: a layout step (every this.rng() draw, in
+  // the classic order, and the footprint), then placeAsset() with the classic
+  // mesh step, mesh*Classic(layout), which builds exactly what it always did.
+
   _tree(x, z, scale, kind, opts) {
     const tree = new THREE.Group();
     tree.name = `Summit ${kind} Tree`;
@@ -191,6 +195,11 @@ export const plantingMethods = {
    * here draws from this.rng.
    */
   buildGrassField() {
+    const layout = { index: 0, x: 0, y: 0, z: 0, footprint: summitFootprint() };
+    return this.placeAsset('summit-grass', layout, () => plantingMethods.meshGrassFieldClassic.call(this, layout));
+  },
+
+  meshGrassFieldClassic(layout) {
     const ox = this.origin.x, oz = this.origin.z;
     const mask = new BiomeMask(-13, -13, 26, 128);
     for (const c of this.colliders) {
@@ -243,6 +252,11 @@ export const plantingMethods = {
    * so the clearing sits inside a forest, never on a plinth in the sky.
    */
   buildSlopeForest() {
+    const layout = { index: 0, x: 0, y: 0, z: 0, footprint: summitFootprint() };
+    return this.placeAsset('slope-forest', layout, () => plantingMethods.meshSlopeForestClassic.call(this, layout));
+  },
+
+  meshSlopeForestClassic(layout) {
     const rnd = mulberry32(20261106);
     const dummy = new THREE.Object3D();
     const tint = new THREE.Color();
