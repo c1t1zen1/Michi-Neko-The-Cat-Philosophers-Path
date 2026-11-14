@@ -37,8 +37,8 @@ Integrator grant (first commit): no system module (everything routes through `Co
   summer / autumn puddles / winter ice) on paddies and rice; a snowfall (`env.snow`) ices the sheets in any season.
 - **Rice**: hills on the transplanting grid (rows 0.48 m, hills 0.32 m at hero), blades per season, honami sway.
   The rice layout carries stalks, not plots: plots are recovered by clustering the stalks (`plotsFromStalks`).
-- **Ripples**: a crest + echo ring sprite; the kit river and paddies read every visible ring (kit or classic) back
-  into their normals.
+- **Ripples**: a crest + echo ring sprite; the kit pool registers its rings and the kit river and paddies bend
+  their normals under every visible ring (classic rings are not looked up).
 
 ## Steps
 - [x] L1 Claim
@@ -120,7 +120,7 @@ classic sine shader (an estimate on a loaded machine).
 | AAA-2 bearing | ✓ contract | ✓ piers into the bed, kōran on deck, caps on posts | ✓ | ✓ | ✓ | n/a (declared floating on the water) |
 | AAA-3 parts | ✓ | ✓ + Roof Road sockets | ✓ bound | ✓ | ✓ | ✓ bound |
 | AAA-4 tiers | ✓ chosen at build (TIER_POLICY); mid looked at on medium (bridge, rice) | ✓ | ✓ | ✓ | ✓ | shared (R9) |
-| AAA-5 world | ✓ sun/sky from the Sky dome every frame: dawn mist, gold dusk glitter, moon at night; rain rings (env.wet) | MAT timber (lit, fog, shadows) | ✓ warm dusk mirror; snow → ice | snow on crests (kit P_SNOW) | Lambert lit/fog/shadow; honami wind | rings unlit like the classic |
+| AAA-5 world | ✓ sun/sky from the kit env (Sky public API) every frame: dawn mist, gold dusk glitter, moon at night; rain rings (env.wet) | MAT timber (lit, fog, shadows) | ✓ warm dusk mirror; snow → ice | snow on crests (kit P_SNOW) | Lambert lit/fog/shadow; honami wind | rings unlit like the classic |
 | AAA-6 footprint | ✓ layout's; probe hash equal | ✓ platforms/clearances equal; walkable surfaces exact | ✓ | ✓ (empty) | ✓ (empty) | ✓ |
 | AAA-7 budget | ✓ | ✓ (also within the structure class 12k/3k/600) | ✓ via exception (bound sheets) | ✓ | ✓ | ✓ via exception (bound materials) |
 | AAA-8 deterministic | ✓ | ✓ ctx.rng | ✓ | ✓ ctx.rng | ✓ ctx.rng | ✓ |
@@ -149,5 +149,33 @@ None (every asset's footprint is `layout.footprint`; the contract's R12 checks p
 ## Notes for the Integrator
 - See `docs/fable/handoff/v-water.md`: inventory coverage rows (paddy-bunds → `water/p-aze` direct), production adapter,
   part names and Roof Road sockets, the two BUDGET_EXCEPTIONS, an optional `assetEnv()` patch (sun + palette in env).
-- The kit water finds the Sky through its dome uniforms; if v-sky renames them, the water falls back to an hour-based palette.
+- The kit water reads the sun and sky colours from env (`Game.assetEnv()`, Sky public API; pre-review change below); the hour-based palette is only the fallback.
 - Size: 2,043 added lines in src/ and labs/ (17 files; the kit family is ~1,800 of them) plus 52 JPGs, above the ~1,500-line guide; kept as one PR because the six assets share the water state (sky, rings, field) and split badly.
+
+## Pre-review: env colours
+Integrator ruling (R47 pattern): `src/main.js` granted in-lane. Merged `origin/fable/integration` first (51d597b;
+conflicts: `src/kit/budgets.js` kept both sides' exception rows, `src/kit/index.js` regenerated, 20 families).
+
+- `Game.assetEnv()` now sets `env.sunDir` (Vector3 copy of `sky.sunDir`) and `env.palette` = { sun, horizon, top, warm }
+  (Color copies of `sky.resolvePalette()`): the Sky's public API, the values Countryside.update() gives the classic river.
+- `src/kit/water/sky.js`: the Sky-dome uniform lookup and the scene walk are removed. The water reads env only; the
+  hour-based palette is the fallback when env lacks them. The ripple rings and the bridge's pier posts are now
+  registered by the kit `water-ripples` and `bridge` instances on the family's shared state (`registerRings`,
+  `registerObstacles`, removed on dispose) instead of being found by name in the scene.
+- `src/kit/runtime.js` untouched (its default env is only for calls without one; the fallback covers it).
+- `labs/ASSET_COVERAGE.md` regenerated (`node tools/labs_coverage.mjs --write`: three `src/main.js` line links moved).
+
+Checks (real output):
+- `node tools/footprint_golden.mjs` → footprint golden: EQUAL; `--systems` → footprint golden: EQUAL
+- `node tools/kit_contract_test.mjs --family water` → 6 assets, 18 asset×tier builds, 562 checks, 0 failed; PASS: kit contract
+- `node tools/kit_check.mjs` → All kit checks OK (345 passed); `node tools/verify.mjs` → All checks passed;
+  `node --test tools/kit_test.mjs` → pass 36, fail 0; `node tools/labs_check.mjs` → All labs checks OK;
+  `node tools/check_syntax.mjs` → All 145 modules OK
+- Boots (`/index.html` + autostart): classic → set classic, 0 instances, errors only the pre-existing `/cad-overrides.json`
+  404, no warnings, env keys hour…audio, sunDir, palette; six-id swap → 9 instances, 0 problems, river field obstacles 4,
+  river `uSky` [1, 0.672, 0.352] = `sky.resolvePalette().horizon` [1, 0.672, 0.352]; `?assets=modular` → 235 instances,
+  0 problems, obstacles 4. Ring feedback: after `spawnRipple(2.2, 31.2, 1.4)` the river's `uRip` holds [2.2, 31.2, 1.64, 0.64].
+- Look unchanged: re-shot `river` pairs at 6/12/18/22 (classic and modular, same cameras) are byte-identical (`cmp`) to the
+  committed L6 pairs (8/8 "same"): classic is neutral and the env values equal the ones the dome gave. Read the four
+  modular frames: dawn mist, noon teal with koi, dusk gold glitter under the bridge, night blue: as before.
+

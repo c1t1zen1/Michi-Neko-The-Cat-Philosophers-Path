@@ -21,13 +21,14 @@
 // Sockets for the Roof Road (r6): post_e_1…7 / post_w_1…7 on the top rail
 // over each post (east = +x), and `shoki` on the south (+z) end of the east
 // railing, its +z turned to look north along the rail.
-// The pier posts are left on the group as `userData.waterObstacles` (group
-// space) so a kit river can lay wakes behind them.
+// The pier posts are published on the family's shared state (sky.js
+// registerObstacles, group space) so a kit river can lay wakes behind them.
 //
 // Materials: the valley's own MAT set (timberEngawa planks as the classic
 // deck, timberDark / timberMedium wood, stoneDark stone, spiritualBellBronze
 // caps), so every mesh merges with the classic statics: no new material.
 import { Parts } from './parts.js?v=20261113a';
+import { waterSky } from './sky.js?v=20261113a';
 
 export const BRIDGE = Object.freeze({
   top: 1.08, halfL: 4.2, halfW: 1.3, railX: 1.24, railTop: 1.66, railHalf: 0.21, ramp: 2.6,
@@ -239,7 +240,9 @@ export function buildBridge(ctx, layout, p) {
   group.add(shoki);
   sockets.shoki = shoki;
 
-  // the pier posts as flow obstacles for the river field (group space)
-  group.userData.waterObstacles = det ? BRIDGE.bents.flatMap((z) => [-1, 1].map((sx) => ({ x: sx * BRIDGE.pierX, z, r: BRIDGE.pierR * 1.1 }))) : [];
-  return { group, parts, sockets, live: [] };
+  // the pier posts as flow obstacles for a kit river's field (group space), on the family's shared state
+  const obstacles = det ? BRIDGE.bents.flatMap((z) => [-1, 1].map((sx) => ({ x: sx * BRIDGE.pierX, z, r: BRIDGE.pierR * 1.1 }))) : [];
+  const shared = waterSky(ctx.kitMaterials);
+  if (obstacles.length) shared.registerObstacles(group, obstacles);
+  return { group, parts, sockets, live: [], dispose() { shared.unregisterObstacles(group); } };
 }

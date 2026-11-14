@@ -37,7 +37,7 @@ Append the row to `docs/fable/handoff/_production_adapters.md`.
 | Asset | Parts | Sockets / extras |
 |---|---|---|
 | `river` | `water` (bound: `riverMat` ← `water.material`) | `group.userData.riverField` (RiverField: `flowAt(x, z)`, `locate(x, z)`) |
-| `bridge` | `deck`, `frame`, `koran_e`, `koran_w`, `giboshi`, `abutment_n`, `abutment_s` (a part with one mesh is that mesh; at `far` the timber/bronze parts are empty groups) | `post_e_1…7`, `post_w_1…7` (top of the walkable rail, y 1.66, over each of the seven posts at z = −4 + i·8/6; east = +x), `shoki` (south end of the east rail, its +z looking north along the rail); `group.userData.waterObstacles` (pier posts, group space) |
+| `bridge` | `deck`, `frame`, `koran_e`, `koran_w`, `giboshi`, `abutment_n`, `abutment_s` (a part with one mesh is that mesh; at `far` the timber/bronze parts are empty groups) | `post_e_1…7`, `post_w_1…7` (top of the walkable rail, y 1.66, over each of the seven posts at z = −4 + i·8/6; east = +x), `shoki` (south end of the east rail, its +z looking north along the rail); the pier posts are published to the family's shared state (`sky.js` `registerObstacles`) for the river field |
 | `paddies` | `water_1…water_4` (bound: `paddyWaterMaterials[k].material`) | — |
 | `paddy-bunds` | `bed`, `ridges`, `weir` (the seki-ita board, or an empty marker) | — |
 | `rice` | `stalks` (one InstancedMesh) | — |
@@ -54,27 +54,20 @@ The river did not need one: hero 1,920 / mid 480 / far 120 triangles, one mesh, 
 
 ## 5. Hot-file patches
 
-None required. One optional improvement (Integrator's choice):
+None outstanding. Pre-review (Integrator ruling, R47 pattern) granted `src/main.js` in-lane and the
+change is applied on this branch: `Game.assetEnv()` now carries the sun and the sky colours, read
+through the Sky's public API (`sky.sunDir`, `sky.resolvePalette()`, the values Countryside.update()
+gives the classic river) and copied into env-owned objects:
 
-- **Sky in the kit env (optional).** The water reads the Sky's dome uniforms
-  (mesh 'Sky Dome': `sunDir`, `sunColor`, `horizonColor`, `topColor`,
-  `warmColor`), found once by walking up from the instance to the scene, with
-  an `env.hour` fallback (`src/kit/water/sky.js`). If the v-sky lane renames
-  the dome or its uniforms, the water falls back to the hour-based palette
-  (no weather tint). To make the source explicit, `src/main.js` `assetEnv()`
-  can pass the sun and palette; `WaterSky.sync()` already prefers them:
+```js
+env.sunDir   // THREE.Vector3, a copy of sky.sunDir
+env.palette  // { sun, horizon, top, warm }: THREE.Color copies of resolvePalette()
+```
 
-  ```diff
-  --- a/src/main.js
-  +++ b/src/main.js
-  @@ assetEnv()
-       env.lanternOn = !!this.city._lanternsLit;
-  +    env.sunDir = this.sky.sunDir;              // read-only, shared Vector3
-  +    env.palette = this.sky.resolvePalette();   // read-only, the per-frame shared buffer
-       return env;
-  ```
-  (`contract.js` `ENV_KEYS` would then list `sunDir`, `palette`; kit code must
-  not write into either.)
+The water reads only these (`src/kit/water/sky.js`); the lookup of the Sky dome's uniforms is gone,
+and the hour-based palette is the fallback when env lacks them (contract test, labs). `contract.js`
+`ENV_KEYS` (not this lane's file) could list `sunDir` and `palette`; kit code must treat both as
+read-only. `labs/ASSET_COVERAGE.md` was regenerated for the shifted `src/main.js` line links.
 
 ## 6. Helpers that could move to shared kit code (optional)
 
@@ -103,8 +96,10 @@ None required. One optional improvement (Integrator's choice):
   also draws procedural rain rings from `env.wet`. River petals can ride the
   same current: `scene.getObjectByName('River').userData.riverField.flowAt(x, z)`.
 - **v-critters:** koi ripples still go through `Countryside.spawnRipple()`; the
-  kit river and paddies read every visible ring of the pool (classic or kit)
-  and bend their surface under it.
+  kit ripple pool registers its rings with the family (`sky.js` `registerRings`)
+  and the kit river and paddies bend their surface under every visible ring.
+  On the classic ripple set the rings draw as before and the water does not
+  bend (the classic pool's meshes are not looked up by name any more).
 - **Draw calls:** the kit adds no merged material. Static meshes use MAT
   (`timberEngawa`, `timberDark`, `timberMedium`, `stoneDark`,
   `spiritualBellBronze`, `paddyMud`) and `KIT_SHARED.matte` (aze banks); the

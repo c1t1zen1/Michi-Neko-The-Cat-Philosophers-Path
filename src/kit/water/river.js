@@ -19,7 +19,7 @@
 // shadows (neither does the classic one).
 import { HASH, NOISE } from '../materials.js?v=20261113a';
 import { RiverField, riverFrames, WATER_Y } from './field.js?v=20261113a';
-import { waterSky, rootOf, WATER_GLSL, FOG_PREMULT } from './sky.js?v=20261113a';
+import { waterSky, WATER_GLSL, FOG_PREMULT } from './sky.js?v=20261113a';
 import { rippleNormals, foamTexture } from './textures.js?v=20261113a';
 
 export const HALF_W = 3.4;
@@ -246,7 +246,11 @@ export function buildRiver(ctx, layout, p) {
   // the field is exposed so floating things (petals, lanterns) can ride the same current
   group.userData.riverField = field;
 
-  let piersFound = 0, piersTries = 0, nextLook = 0;
+  // the kit bridge (a component placed after the river) publishes its pier posts
+  // on the family's shared state; once one is placed in the world, its posts
+  // become obstacles in the field (wakes, eddies, pillows)
+  let piersFound = 0;
+  const v = new T.Vector3();
   return {
     group,
     parts: { water },
@@ -254,26 +258,19 @@ export function buildRiver(ctx, layout, p) {
     live: [water],
     field,
     update(dt, t, env) {
-      const root = rootOf(group);
-      sky.sync(t, env, root);
-      // the bridge (a component placed after the river) leaves its piers on its
-      // group as `userData.waterObstacles`; read them once it is in the scene
-      if (root && !piersFound && piersTries < 4 && t >= nextLook) {
-        piersTries++; nextLook = t + 1.5;
-        const posts = [];
-        const v = new T.Vector3();
-        for (const o of root.children) {
-          const list = o.userData && o.userData.waterObstacles;
-          if (!Array.isArray(list)) continue;
-          o.updateMatrixWorld(true);
-          for (const ob of list) {
-            v.set(ob.x, 0, ob.z).applyMatrix4(o.matrixWorld);
-            const at = field.locate(v.x, v.z);
-            if (at) posts.push({ s: at.s, u: at.u, r: ob.r });
-          }
+      sky.sync(t, env);
+      if (piersFound || !sky.obstacles.size) return;
+      const posts = [];
+      for (const [g, list] of sky.obstacles) {
+        if (!g.parent) continue;                       // built but not placed (yet)
+        g.updateMatrixWorld(true);
+        for (const ob of list) {
+          v.set(ob.x, 0, ob.z).applyMatrix4(g.matrixWorld);
+          const at = field.locate(v.x, v.z);
+          if (at) posts.push({ s: at.s, u: at.u, r: ob.r });
         }
-        if (posts.length) { piersFound = posts.length; field.setObstacles(posts); }
       }
+      if (posts.length) { piersFound = posts.length; field.setObstacles(posts); }
     },
     dispose() { material.dispose(); field.dispose(); }
   };

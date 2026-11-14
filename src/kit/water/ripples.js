@@ -1,15 +1,16 @@
 // The cat's and the koi's ripple rings (Countryside.spawnRipple recycles them),
 // promoted from Lab 02's ripple studies (`ripple`, effects.js rings): each
 // ring is a soft travelling wave train (a crisp crest, an echo inside it and
-// a faint dimple) instead of a flat white annulus, and the kit river and
-// paddies read the visible rings back (sky.js `uRip`), so the water's own
-// surface bends under every ring.
+// a faint dimple) instead of a flat white annulus, and the pool registers its
+// rings on the family's shared state (sky.js `registerRings` → `uRip`), so the
+// kit river's and paddies' own surface bends under every ring.
 //
 // The pool contract is the classic's, unchanged: `count` rings, parts
 // ring_1…ring_N, each its own material (update() writes each ring's opacity),
 // laid flat at y = 0.045 in world space (the group stays at the origin),
 // hidden until spawned, outer radius 1 × scale, render order 2.
 import { ringTexture } from './textures.js?v=20261113a';
+import { waterSky } from './sky.js?v=20261113a';
 
 export function buildRipples(ctx, layout, p) {
   const { THREE: T, kitMaterials: km } = ctx;
@@ -34,8 +35,12 @@ export function buildRipples(ctx, layout, p) {
     parts[`ring_${i + 1}`] = ring;
     materials.push(material);
   }
+  // the kit river and paddies bend their surface under every visible ring
+  const rings = Object.values(parts);
+  const shared = waterSky(km);
+  shared.registerRings(rings);
   return {
-    group, parts, sockets: {}, live: Object.values(parts),
-    dispose() { for (const m of materials) m.dispose(); }
+    group, parts, sockets: {}, live: rings,
+    dispose() { shared.unregisterRings(rings); for (const m of materials) m.dispose(); }
   };
 }

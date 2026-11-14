@@ -20,7 +20,7 @@
 import { HASH, NOISE } from '../materials.js?v=20261113a';
 import { noise3 } from '../craft.js?v=20261113a';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { waterSky, rootOf, WATER_GLSL, FOG_PREMULT } from './sky.js?v=20261113a';
+import { waterSky, WATER_GLSL, FOG_PREMULT } from './sky.js?v=20261113a';
 import { rippleNormals } from './textures.js?v=20261113a';
 import { WATER_Y } from './field.js?v=20261113a';
 
@@ -142,7 +142,7 @@ export function buildPaddies(ctx, layout, p) {
   });
   return {
     group, parts, sockets: {}, live,
-    update(dt, t, env) { sky.sync(t, env, rootOf(group)); },
+    update(dt, t, env) { sky.sync(t, env); },
     dispose() { for (const m of materials) m.dispose(); }
   };
 }
@@ -433,7 +433,7 @@ export function buildRice(ctx, layout, p) {
   group.add(rice);
   return {
     group, parts: { stalks: rice }, sockets: {}, live: [rice],
-    update(dt, t, env) { sky.sync(t, env, rootOf(group)); },
+    update(dt, t, env) { sky.sync(t, env); },
     dispose() { material.dispose(); }
   };
 }

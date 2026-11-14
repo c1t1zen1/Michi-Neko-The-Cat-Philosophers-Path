@@ -3,26 +3,21 @@
 // paddies share the river's `riverUniforms`), synced once per frame by
 // whichever instance updates first.
 //
-// Where the light comes from. The classic river is driven by
-// Countryside.update() from the Sky (`sunDir`, `resolvePalette()`); a kit
-// instance only receives env = { hour, wind, wet, snow, lanternOn }. So sync()
-// reads the Sky's own dome uniforms (the mesh named 'Sky Dome': sunDir,
-// sunColor, horizonColor, topColor, warmColor; the values the classic river
-// copies from the same palette every frame), found once by walking up from the
-// instance to the scene. Without a dome (the contract test, a lab page) it
-// falls back to the Sky's sun path and base palettes from `env.hour`.
-// Integrator option (handoff): pass the Sky's sunDir and palette in env and
-// sync() prefers them.
+// Where the light comes from: the kit env. Game.assetEnv() carries the sun
+// (`env.sunDir`) and the sky colours (`env.palette` = { sun, horizon, top,
+// warm }) read through the Sky's public API, the same values Countryside.update()
+// gives the classic river every frame. Without them (the contract test, a lab
+// page, an older env) sync() falls back to the Sky's sun path and base
+// palettes from `env.hour`. Nothing here looks inside another system.
 //
-// Ripple rings: the cat's and the koi's rings are meshes of the
-// `water-ripples` pool (kit parts `asset:water-ripples/ring_N`, or the
-// classic 'Ripple Ring N'), found in the same walk. Each frame the visible
-// ones are copied into `uRip`, so the water itself carries the wave train
-// under each ring (normals, a crest highlight), on either ripple set.
+// Ripple rings: the kit `water-ripples` pool registers its rings here
+// (registerRings); each frame the visible ones are copied into `uRip`, so the
+// water itself carries the wave train under each ring (normals, a crest
+// highlight). The classic pool's rings are not looked up: on the classic
+// ripple set the rings are drawn as before and the water does not bend.
 import * as THREE from 'three';
 
 export const MAX_RINGS = 16;
-const RING_NAME = /^(?:Ripple Ring \d+|asset:water-ripples\/ring_\d+)$/;
 
 // Sky.buildPalettes() base colours (day / sunset / night), for the fallback only.
 const PAL = {
@@ -80,45 +75,30 @@ export class WaterSky {
       uRip: { value: Array.from({ length: MAX_RINGS }, () => new THREE.Vector4()) }
     };
     this.stamp = NaN;
-    this.root = null;
-    this.dome = null;
-    this.rings = [];
-    this.searchedAt = -Infinity;
+    this.rings = new Set();
+    this.obstacles = new Map();
   }
 
-  /** Find the Sky's dome uniforms and the ripple rings under `root` (one walk, repeated only while the dome is missing). */
-  discover(root, t) {
-    if (root !== this.root) { this.root = root; this.dome = null; this.rings = []; this.searchedAt = -Infinity; }
-    if (!root || this.dome || t - this.searchedAt < 2) return;
-    this.searchedAt = t;
-    const rings = [];
-    root.traverse((o) => {
-      if (!this.dome && o.isMesh && o.material && o.material.uniforms) {
-        const u = o.material.uniforms;
-        if (u.horizonColor && u.topColor && u.sunDir && u.sunColor && (o.name === 'Sky Dome' || u.warmColor)) this.dome = u;
-      }
-      if (o.isMesh && RING_NAME.test(o.name)) rings.push(o);
-    });
-    this.rings = rings;
-  }
+  /** The kit ripple pool's ring meshes (removed again on its dispose). */
+  registerRings(list) { for (const m of list) this.rings.add(m); }
+  unregisterRings(list) { for (const m of list) this.rings.delete(m); }
+
+  /** Posts standing in the water ({ x, z, r } in `group` space), published by the kit bridge for the river field. */
+  registerObstacles(group, list) { this.obstacles.set(group, list); }
+  unregisterObstacles(group) { this.obstacles.delete(group); }
 
   /** Once per frame (t is the game clock): light, weather and rings for every water surface. */
-  sync(t, env = {}, root = null) {
-    if (t === this.stamp && root === this.root) return;
+  sync(t, env = {}) {
+    if (t === this.stamp) return;
     this.stamp = t;
     const u = this.u;
     u.uTime.value = t;
-    this.discover(root, t);
     const sun = u.uSunDir.value;
-    if (env.sunDir && env.palette) {
+    const pal = env.palette;
+    if (env.sunDir && pal && pal.sun && pal.horizon && pal.top) {
       sun.copy(env.sunDir);
-      u.uSunColor.value.copy(env.palette.sun); u.uSky.value.copy(env.palette.horizon);
-      u.uTop.value.copy(env.palette.top); u.uWarm.value.copy(env.palette.warm);
-    } else if (this.dome) {
-      const d = this.dome;
-      sun.copy(d.sunDir.value);
-      u.uSunColor.value.copy(d.sunColor.value); u.uSky.value.copy(d.horizonColor.value);
-      u.uTop.value.copy(d.topColor.value); if (d.warmColor) u.uWarm.value.copy(d.warmColor.value);
+      u.uSunColor.value.copy(pal.sun); u.uSky.value.copy(pal.horizon);
+      u.uTop.value.copy(pal.top); if (pal.warm) u.uWarm.value.copy(pal.warm);
     } else {
       const hour = typeof env.hour === 'number' ? env.hour : 12;
       sunDirAt(hour, sun);
@@ -154,14 +134,6 @@ export function waterSky(km) {
   if (!km || typeof km !== 'object') return new WaterSky();
   if (!skies.has(km)) skies.set(km, new WaterSky());
   return skies.get(km);
-}
-
-/** The scene an instance's group sits in (its top-most ancestor), or null before it is placed. */
-export function rootOf(group) {
-  let o = group && group.parent;
-  if (!o) return null;
-  while (o.parent) o = o.parent;
-  return o;
 }
 
 /** Uniform and helper GLSL every water shader of the family shares (after the kit's HASH and NOISE). */
