@@ -14,7 +14,7 @@ and `src/npc.js` / `src/player.js` are untouched.
 | `src/characters/rig.js` | sculpt lookup per body type (+ `sculptStats`), skeleton, leg IK wiring, `applyPose`, `layTailOnGround` |
 | `src/characters/parts/{coat,face,collar,shadow}.js` | palette + fur + skinned coat/tail/head; face frame, nose, whiskers, eye markers, ears; collar/bell parts `kumihimo`, `suzu`, `suzu-master`; contact shadow |
 | `src/characters/behaviour/{locomotion,poses,mood}.js` | gait/air/landing/prowl; rest + action poses, look-at, idle verbs; moods, sounds, face animation |
-| `tools/cat_golden.html/.js/.mjs`, `tools/golden/cat_classic.json` | numeric golden of the Cat + 35 contract checks (`node tools/cat_golden.mjs`) |
+| `tools/cat_golden.html/.js/.mjs`, `tools/golden/cat_classic.json` | numeric golden of the Cat + 40 contract checks (`node tools/cat_golden.mjs`) |
 | `labs/ASSET_COVERAGE.md` | regenerated (`labs_coverage.mjs --write`): only the `src/cat.js#L…` line links moved; every anchor string is verbatim |
 
 ## 2. Hot-file patches (Integrator)
@@ -99,16 +99,24 @@ from a `CharacterDef`; `new Cat({ fur, … })` still works and goes through
 - **c2-michi** (player parts): register new parts with
   `registerCharacterPart({ id, slot, materials?, build(host, entry, mount), swapTo?, setTier?, master? })`
   in `src/characters/parts/`; a bell part must name its Master Cat
-  counterpart in `master` (that is all `setMasterCat()` reads). A modular
+  counterpart in `master` (that is all `setMasterCat()` reads; once a cat
+  is a Master Cat, any bell part put on it is replaced by its `master`). A
+  collar part that carries a bell must create `host.bellMount`: when the
+  collar is swapped, the bell is hung again on the new mount (a same-part
+  recolour of `kumihimo` repaints in place). A modular
   Michi is a second def beside `MICHI`; pick it per asset set in the place
   that builds the player (`src/player.js`, hot file → handoff), e.g.
   `game.assets.setFor('michi') === 'modular'`. Tier wiring (main loop):
   `cat.setTier(characterTierFor({ quality, set, distance }))` —
-  `characterTierFor` returns `hero` on quality `low` and on the classic set,
-  so classic players never see a tier change. `mid` today hides the outline
-  hulls (`host.outlines`) and the whiskers; `far` does the same until an
-  `onCharacterTier(fn)` hook builds the single merged mesh.
-  `TIER_DISTANCE = { mid: 12, far: 32 }` is provisional.
+  `characterTierFor` is the kit's `TIER_POLICY` (src/kit/contract.js,
+  imported, Integrator ruling): quality × band, with the camera distance cut
+  at `BAND_RADII` (near < 39 m, rim < 80 m); it returns `hero` on quality
+  `low` and on the classic set, so classic players never see a tier change.
+  Note the policy puts `medium` at `mid` even near the camera. `mid` today
+  hides the outline hulls (`host.outlines`) and the whiskers; `far` does the
+  same until an `onCharacterTier(fn)` hook builds the single merged mesh.
+  `new Cat({ quality: 'low' })` locks the tier at `hero`; it never picks the
+  def (a modular def is built as given), so choose the classic def on low.
 - **c3-villagers**: Luna / Mochi / Kuro as defs (personality can carry the
   whole `PERSONALITIES` entry: `greeting`, `startle`, `notice` are read by
   `npc.js`, `idle` by the Cat). `tools/cat_golden.js` already proves a Luna
@@ -141,6 +149,10 @@ changes create objects lazily, never during the classic construction.
   branch instead has two merge commits of `origin/fable/integration`
   (4bac869, 619aab7). The untracked `tools/headless.mjs` was deleted first;
   the tracked one from Phase 0 is used.
+- Review fix round 1 (Integrator rulings): unknown `build` names fail
+  `validateCharacterDef` (legacy constructor options stay lenient and fall
+  back to Michi, as always); entries compare key-order-independently;
+  removed slot fields are set to `undefined`, not deleted.
 - The golden is taken on Metal. Under `--gpu swiftshader` the 38 canvas
   texture hashes differ (2D canvas rasterisation differs by backend);
   everything else is equal.

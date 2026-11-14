@@ -119,7 +119,7 @@ export function brassBell(host) {
   if (twin) {
     twin.removeFromParent();
     twin.geometry.dispose();
-    delete host.collarBellTwin;
+    host.collarBellTwin = undefined;
   }
 }
 
@@ -138,6 +138,16 @@ export const KUMIHIMO = Object.freeze({
   params: Object.freeze({ color: DEFAULT_RIBBON }),
   materials(host, entry) {
     collarMaterials(host, entry.color ?? DEFAULT_RIBBON);
+  },
+  /** Same cord, new colour: repaint the ribbon texture in place (the bell stays on). */
+  swapTo(host, handle, next, entry) {
+    if (next.id !== 'kumihimo') return false;
+    const old = host.matRibbon.map;
+    host.matRibbon.map = makeCollarTexture(entry.color ?? DEFAULT_RIBBON);
+    host.matRibbon.needsUpdate = true;
+    if (old) old.dispose();
+    handle.owned.textures = [host.matRibbon.map];
+    return true;
   },
   build(host) {
     const { knot, loops } = buildCollarCord(host);

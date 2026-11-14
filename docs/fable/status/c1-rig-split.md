@@ -61,7 +61,7 @@ Added (allowed, listed by the golden): methods `setAccessory`, `setTier`; fields
 `CHARACTER_SLOTS`, `CHARACTER_TIERS`, `characterTierFor`; constructor options `def`, `tier`, `quality`.
 
 ## Checks run (command → real result)
-- `node tools/cat_golden.mjs` → `cat golden: EQUAL`, `checks 35 passed, 0 failed` (11 cats · 29 poses · 280 samples · 141 geometries · 147 materials · 40 textures · 13 skeletons · 5 sculpts · Math.random 3334971)
+- `node tools/cat_golden.mjs` → `cat golden: EQUAL`, `checks 40 passed, 0 failed` (11 cats · 29 poses · 280 samples · 141 geometries · 147 materials · 40 textures · 13 skeletons · 5 sculpts · Math.random 3334971)
 - `node tools/cat_golden.mjs --root <scratch copy of src @ 5dc924a + final page>` → `EQUAL ... byte-identical to this build` (the final page reproduces the golden from the unsplit code)
 - golden after each module move (rig, coat, face, collar, shadow, locomotion, poses, mood, character + facade) → `EQUAL` every time
 - perturbations of the unsplit code in a scratch copy (whisker opacity 0.7→0.71; an extra `Object3D` in buildFace; trot rate 4→4.01; sleepy blinkBase 1.8→1.81) → `DIFFERENT`, exit 1 each; a Luna def with ribbon 0x2b3d63→0x2b3d64 → the def-equivalence check FAILs
@@ -77,6 +77,12 @@ Added (allowed, listed by the golden): methods `setAccessory`, `setTier`; fields
 - `/__boot.html` (Metal) → boots and plays in ~10 s; only console line the optional `cad-overrides.json` 404 (same as Phase 0); player cat `tier hero`, slots `collar, bell`; in-game `setMasterCat()` → `suzu-master` + twin
 - labs smoke (grass, villagers, water, pagoda, machiya, ground village) and `summit_preview.html?view=meditation`, `kyoto-rooftops.html?mouth=3` / `?auto=1` → ok, 0 errors
 - `git diff --check origin/fable/integration...HEAD` → clean
+
+## Review fix round 1
+- Collar changes keep the bell: `kumihimo` recolours in place (`swapTo`); any other collar swap hangs the removed bell (and anything else hung on the collar) again on the new part's mount; on a Master Cat any bell put on is its `master` part. Checks added: recolour on a Master Cat (same bell mesh, gold, twin, old ribbon texture disposed), a different collar part and back (bell re-hung, still gold + twin), bell added after a bare-neck spell is the master bell, same entry in another key order = no rebuild and no `Math.random` draw.
+- `sameEntry` compares sorted keys; `validateCharacterDef` rejects unknown `build` names (legacy options stay lenient); `characterTierFor` imports the kit's `TIER_POLICY` / `BAND_RADII` (src/kit/contract.js); `delete host[f]` → `host[f] = undefined` (character.js, collar.js); `src/cat.js` doc says exactly what `quality: 'low'` does.
+- `node tools/cat_golden.mjs` → `EQUAL`, `checks 40 passed, 0 failed`; 18 cat sheets `0 / 0 / 0` vs the Phase 0 masters; `rooftop_test` 38/38; `check_syntax` 44 OK (+ 9 characters modules by hand); `verify` all passed; `labs_coverage --write` (cat.js line links +4) then `labs_check` OK; `kit_check` 27 OK; `git diff --check` clean.
+- **The cat golden is Metal-only for canvas textures:** under `--gpu swiftshader` the 38 canvas-texture hashes (collar, bell, ear, toon ramp, blob) differ by 2D rasterisation; everything else is equal. Gate G-C runs it on Metal (the default on macOS).
 
 ## Deferred assets and why
 None (structural lane).

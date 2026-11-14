@@ -1,5 +1,7 @@
 import * as THREE from 'three';
+import { BUILDS } from '../cat_anatomy.js?v=20261107a';
 import { makePose, copyPose, lerpPose, dampPose, smoothstep } from '../cat_motion.js?v=20261107a';
+import { TIER_POLICY, BAND_RADII } from '../kit/contract.js?v=20261107a';
 import { anatomyFor, buildSkeleton } from './rig.js?v=20261107a';
 import { coatPalette, coatMaterials, buildCoat } from './parts/coat.js?v=20261107a';
 import { faceFrame, faceMaterials, buildFace } from './parts/face.js?v=20261107a';
@@ -54,15 +56,18 @@ import { buildShadowBlob } from './parts/shadow.js?v=20261107a';
  * drops the outline pass and simplifies the face (whiskers off); `far` is
  * the same as `mid` until a tier hook (`onCharacterTier`) supplies the
  * single merged mesh (lanes c2/c3). A character made with
- * `{ quality: 'low' }` keeps the classic character and ignores tier
- * changes. Nothing in the game changes tier yet; `characterTierFor()` is the
- * policy c2/c3 wire through the Integrator.
+ * `{ quality: 'low' }` is locked at `hero`: `setTier()` is ignored. The
+ * lock does not choose the def; picking the classic def on quality `low`
+ * is the caller's job. `characterTierFor()` is the kit's own tier policy
+ * (src/kit/contract.js TIER_POLICY, same quality steps and distance bands);
+ * nothing in the game changes tier yet, c2/c3 wire it through the
+ * Integrator.
  */
 
 export const CHARACTER_SLOTS = Object.freeze(['collar', 'bell', 'head', 'back']);
 export const CHARACTER_TIERS = Object.freeze(['hero', 'mid', 'far']);
-/** Camera distance (m) at which a modular character steps down a tier. Provisional: c2/c3 tune. */
-export const TIER_DISTANCE = Object.freeze({ mid: 12, far: 32 });
+/** The cat body types a def may name in `build` (src/cat_anatomy.js BUILDS). */
+export const BODY_TYPES = Object.freeze(Object.keys(BUILDS));
 
 const ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const DEF_KEYS = ['id', 'build', 'palette', 'face', 'accessories', 'scale', 'personality'];
@@ -140,6 +145,9 @@ export function validateCharacterDef(def) {
   if (typeof def.id !== 'string' || !ID_RE.test(def.id)) err('id must be kebab-case');
   if (def.build !== undefined && typeof def.build !== 'string' && !isPlainObject(def.build)) {
     err('build is a body type name or a proportions object');
+  }
+  if (typeof def.build === 'string' && !Object.prototype.hasOwnProperty.call(BUILDS, def.build)) {
+    err(`build: unknown body type "${def.build}" (one of ${BODY_TYPES.join(', ')}, or a proportions object)`);
   }
   if (isPlainObject(def.build)) {
     for (const [k, v] of Object.entries(def.build)) {
@@ -414,7 +422,23 @@ function mountAccessory(host, entry, part) {
 }
 
 const within = (o, roots) => { for (let p = o; p; p = p.parent) if (roots.includes(p)) return true; return false; };
-const sameEntry = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+/** Entries are flat { slot, part, ...params }: compare them whatever the key order. */
+const canonEntry = (e) => JSON.stringify(Object.keys(e).sort().map((k) => [k, e[k]]));
+const sameEntry = (a, b) => canonEntry(a) === canonEntry(b);
+
+/** The slots whose parts hang on this slot's part (the bell on the collar), nearest first. */
+function dependents(host, slot) {
+  const h = host.slots && host.slots[slot];
+  if (!h) return [];
+  const out = [];
+  for (const other of CHARACTER_SLOTS) {
+    const o = host.slots[other];
+    if (o && o !== h && o.objects.some((obj) => obj.parent && within(obj.parent, h.objects))) {
+      out.push(other, ...dependents(host, other));
+    }
+  }
+  return [...new Set(out)];
+}
 
 /** Take the part out of a slot (and anything hung on it, like the bell on the collar), freeing what it owned. */
 export function removeAccessory(host, slot) {
@@ -433,7 +457,7 @@ export function removeAccessory(host, slot) {
   for (const g of h.owned.geometries) g.dispose();
   for (const m of h.owned.materials) m.dispose();
   for (const t of h.owned.textures) if (t) t.dispose();
-  for (const f of h.fields) delete host[f];
+  for (const f of h.fields) host[f] = undefined;
   host.slots[slot] = null;
   return true;
 }
@@ -441,19 +465,26 @@ export function removeAccessory(host, slot) {
 /**
  * Put a part in a slot on a live character: `next` is a part id, an entry
  * `{ part, ...params }`, or null to empty the slot. Never re-sculpts.
- * → the slot's handle (or null).
+ * Parts hung on the one replaced (the bell on the collar) are hung again on
+ * the new one when it offers their mount. On a Master Cat a bell part is
+ * replaced by its `master` part. → the slot's handle (or null).
  */
 export function setAccessory(host, slot, next) {
   if (!CHARACTER_SLOTS.includes(slot)) throw new CharacterContractError(`unknown accessory slot "${slot}"`);
   if (next == null) { removeAccessory(host, slot); return null; }
-  const entry = Object.freeze(typeof next === 'string' ? { slot, part: next } : { ...next, slot });
-  const part = PARTS.get(entry.part);
+  let entry = Object.freeze(typeof next === 'string' ? { slot, part: next } : { ...next, slot });
+  let part = PARTS.get(entry.part);
   if (!part) throw new CharacterContractError(`unknown accessory part "${entry.part}"`);
   if (part.slot !== slot) throw new CharacterContractError(`part "${part.id}" fits slot "${part.slot}", not "${slot}"`);
+  if (host._masterCat && part.master && part.master !== part.id && PARTS.has(part.master)) {
+    part = PARTS.get(part.master);
+    entry = Object.freeze({ ...entry, part: part.id });
+  }
   if (!mountFor(host, part)) {
     throw new CharacterContractError(`nothing to hang "${part.id}" on (${part.mount || SLOT_MOUNT[slot]}); the bell needs a collar`);
   }
   const cur = host.slots[slot];
+  let carried = [];
   if (cur) {
     if (cur.part === part && sameEntry(cur.entry, entry)) return cur;
     if (cur.part.swapTo && cur.part.swapTo(host, cur, part, entry)) {
@@ -461,12 +492,18 @@ export function setAccessory(host, slot, next) {
       cur.entry = entry;
       return cur;
     }
+    carried = dependents(host, slot).map((s) => host.slots[s].entry);
     removeAccessory(host, slot);
   }
   if (part.materials) part.materials(host, entry);
   const handle = mountAccessory(host, entry, part);
   if (handle && handle.part.setTier && host.tier && host.tier !== 'hero') handle.part.setTier(host, handle, host.tier, 'hero');
   if (host.tier && host.tier !== 'hero') for (const o of host.outlines || []) o.visible = false;
+  for (const e of carried) {
+    const p = PARTS.get(e.part);
+    if (p && mountFor(host, p)) setAccessory(host, e.slot, e);
+    else console.warn(`character ${host.def ? host.def.id : '?'}: "${part.id}" has no ${p ? p.mount || SLOT_MOUNT[p.slot] : 'mount'} for the ${e.slot} part "${e.part}"; left off`);
+  }
   return handle;
 }
 
@@ -495,14 +532,16 @@ export function onCharacterTier(fn) {
 }
 
 /**
- * The tier for a character: `hero` on quality `low` and on the classic
- * asset set (today's character, unchanged); by camera distance otherwise.
+ * The tier for a character, by the kit's own policy (src/kit/contract.js
+ * TIER_POLICY: quality × distance band, bands at BAND_RADII from here
+ * measured as camera distance). Quality `low` and the classic asset set
+ * stay `hero`: today's character, unchanged (the classic lock).
  */
 export function characterTierFor({ quality = 'medium', set = 'classic', distance = 0 } = {}) {
   if (quality === 'low' || set !== 'modular') return 'hero';
-  if (distance >= TIER_DISTANCE.far) return 'far';
-  if (distance >= TIER_DISTANCE.mid) return 'mid';
-  return 'hero';
+  const band = distance < BAND_RADII.near ? 'near' : distance < BAND_RADII.rim ? 'rim' : 'far';
+  const row = TIER_POLICY[quality] || TIER_POLICY.medium;
+  return row[band];
 }
 
 /** Switch a live character's tier. → the tier it is at now. */

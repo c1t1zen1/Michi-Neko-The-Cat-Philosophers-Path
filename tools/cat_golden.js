@@ -675,7 +675,8 @@ async function runChecks(mod) {
     'stripes out of range': { id: 'x', palette: { stripes: 2 } },
     'scale out of range': { id: 'x', scale: 0 },
     'bad idle interval': { id: 'x', personality: { idle: { interval: [9] } } },
-    'bad proportions': { id: 'x', build: { girth: 3 } }
+    'bad proportions': { id: 'x', build: { girth: 3 } },
+    'unknown body type': { id: 'x', build: 'larry' }
   };
   for (const [name, def] of Object.entries(bad)) {
     check(`rejects a def with ${name}`, () => ok(!C.validateCharacterDef(def).ok && throwsContract(() => C.defineCharacter(def)),
@@ -801,6 +802,59 @@ async function runChecks(mod) {
     const d0 = draws;
     return ok(throwsContract(() => cat.setAccessory('bell', 'suzu')) && !cat.slots.bell && cat.matBellBrass === undefined && draws === d0);
   });
+  // ---- review fix round 1: the bell rides along with collar changes; Master Cat sticks
+  const testCollar = C.registerCharacterPart({
+    id: 'golden-test-collar', slot: 'collar', label: 'test part (tools/cat_golden.js)',
+    build(host, entry, mount) {
+      const band = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.006, 6, 24), new THREE.MeshBasicMaterial({ color: 0x224466 }));
+      band.position.set(0, -0.01, 0.02);
+      band.rotation.x = Math.PI / 2;
+      mount.add(band);
+      host.collar = band;
+      host.bellMount = new THREE.Group();
+      host.bellMount.position.set(0, -0.05, 0);
+      band.add(host.bellMount);
+      return { objects: [band], fields: ['collar', 'bellMount'], owned: { geometries: [band.geometry], materials: [band.material] } };
+    }
+  });
+  const masterBellOk = (cat) => cat.slots.bell && cat.slots.bell.part.id === 'suzu-master' && cat.collarBell &&
+    cat.collarBell.material === cat.matGoldBell && cat.collarBellTwin && cat.collarBellTwin.parent === cat.bellMount &&
+    cat.collarBell.parent === cat.bellMount && cat.bellMount.parent === cat.collar;
+  check('recolouring the collar on a Master Cat keeps the gold bell and its twin (in place)', () => {
+    const cat = new Cat({});
+    cat.setMasterCat();
+    const bell = cat.collarBell, collar = cat.collar, oldMap = cat.matRibbon.map;
+    let freed = false;
+    oldMap.addEventListener('dispose', () => { freed = true; });
+    const h = cat.setAccessory('collar', { part: 'kumihimo', color: 0x2b3d63 });
+    return ok(masterBellOk(cat) && cat.collarBell === bell && cat.collar === collar && cat.matRibbon.map !== oldMap && freed &&
+      h.entry.color === 0x2b3d63 && h.owned.textures[0] === cat.matRibbon.map);
+  });
+  check('a different collar part on a Master Cat: the bell is hung again, still gold with its twin', () => {
+    const cat = new Cat({ build: 'mochi' });
+    cat.setMasterCat();
+    cat.setAccessory('collar', 'golden-test-collar');
+    const onTest = masterBellOk(cat) && cat.collar.parent === cat.neck && cat.slots.collar.part === testCollar;
+    cat.setAccessory('collar', { part: 'kumihimo', color: 0x315d80 });
+    const back = masterBellOk(cat) && cat.collar.name === 'Collar' && cat.slots.collar.entry.color === 0x315d80;
+    return ok(onTest && back, `on the test collar ${onTest}, back on kumihimo ${back}`);
+  });
+  check('emptying the collar slot drops the bell; a bell added later to a Master Cat is the master bell', () => {
+    const cat = new Cat({});
+    cat.setMasterCat();
+    cat.setAccessory('collar', null);
+    cat.setAccessory('collar', 'kumihimo');
+    const bare = !cat.slots.bell;
+    cat.setAccessory('bell', 'suzu');
+    return ok(bare && masterBellOk(cat), `bell after re-adding the collar alone: ${bare ? 'none' : cat.slots.bell.part.id}`);
+  });
+  check('the same entry with its keys in another order is the same entry (no rebuild, nothing made)', () => {
+    const cat = new Cat({});
+    const h = cat.slots.collar, map = cat.matRibbon.map;
+    const d0 = draws;
+    const again = cat.setAccessory('collar', { color: 0xd63228, part: 'kumihimo' });
+    return ok(again === h && cat.matRibbon.map === map && draws === d0);
+  });
   check('setAccessory rejects an unknown slot, an unknown part and a part for another slot', () => {
     const cat = new Cat({});
     return ok(throwsContract(() => cat.setAccessory('tail', 'suzu')) && throwsContract(() => cat.setAccessory('head', 'velvet')) &&
@@ -850,15 +904,22 @@ async function runChecks(mod) {
     return ok(cat.tier === 'mid' && cat.outlines.every((o) => !o.visible));
   });
   check('setTier rejects an unknown tier', () => ok(throwsContract(() => new Cat({}).setTier('ultra'))));
-  check('characterTierFor: low and classic stay hero; modular steps down with distance', () => ok(
-    C.characterTierFor({ quality: 'low', set: 'modular', distance: 100 }) === 'hero' &&
-    C.characterTierFor({ quality: 'high', set: 'classic', distance: 100 }) === 'hero' &&
-    C.characterTierFor({ quality: 'high', set: 'modular', distance: 2 }) === 'hero' &&
-    C.characterTierFor({ quality: 'medium', set: 'modular', distance: C.TIER_DISTANCE.mid }) === 'mid' &&
-    C.characterTierFor({ quality: 'medium', set: 'modular', distance: C.TIER_DISTANCE.far + 1 }) === 'far'));
+  check('characterTierFor follows the kit TIER_POLICY (quality × band); low and classic stay hero', () => {
+    const want = { high: ['hero', 'mid', 'far'], medium: ['mid', 'far', 'far'] };
+    const at = [2, 50, 120];   // near (< 39 m), rim (< 80 m), far
+    let pass = C.characterTierFor({ quality: 'low', set: 'modular', distance: 2 }) === 'hero' &&
+      C.characterTierFor({ quality: 'high', set: 'classic', distance: 120 }) === 'hero';
+    const got = [];
+    for (const q of ['high', 'medium']) at.forEach((d, i) => {
+      const t = C.characterTierFor({ quality: q, set: 'modular', distance: d });
+      got.push(q + '@' + d + '=' + t);
+      if (t !== want[q][i]) pass = false;
+    });
+    return ok(pass, got.join(' '));
+  });
   check('src/cat.js re-exports the def helpers', () => ok(mod.MICHI === C.MICHI && mod.defineCharacter === C.defineCharacter &&
     mod.CHARACTER_SLOTS === C.CHARACTER_SLOTS && mod.CHARACTER_TIERS === C.CHARACTER_TIERS));
-  void hat; void pack;
+  void hat; void pack; void testCollar;
   return { results, passed: results.filter((r) => r[1]).length, failed: results.filter((r) => !r[1]).length, sculptStats: { ...stats } };
 }
 

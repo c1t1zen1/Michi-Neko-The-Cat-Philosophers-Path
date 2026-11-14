@@ -56,7 +56,11 @@ export {
  *   new Cat({ fur, belly, accent, eyeColor, ribbonColor, noseColor,
  *             stripeAmount, build, idleProfile, audio })   // as always
  *   new Cat({ def: MICHI, audio })                        // from a CharacterDef
- *   options.tier ('hero' | 'mid' | 'far'), options.quality ('low' keeps the classic character)
+ *   options.tier: 'hero' (default) | 'mid' | 'far'
+ *   options.quality: 'low' locks the tier at 'hero' (options.tier and setTier()
+ *     are then ignored). It does not change the def: a modular def passed
+ *     with quality 'low' is built exactly as given, just never stepped down;
+ *     choosing the classic def on quality 'low' is the caller's job.
  *   cat.setAccessory('head', 'some-part')   cat.setTier('mid')
  */
 export class Cat {
