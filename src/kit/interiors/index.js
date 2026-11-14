@@ -13,7 +13,7 @@ import { buildTatami, buildFrame, buildDoor, buildTokonoma, buildScroll, buildCh
 import { buildZabuton, buildBonsai, buildTeaware, buildKnickKnacks, CUSHIONS, FOLIAGE, GLAZES } from './small.js?v=20261113a';
 import { buildTeaInterior } from './tea.js?v=20261113a';
 import { buildGravel, buildCourtWall } from './court.js?v=20261113a';
-import { buildSecretTatami, buildSecretTable, buildSecretBed, buildSecretAndon } from './secret.js?v=20261113a';
+import { buildSecretTatami, buildSecretTable, buildSecretBed, buildSecretAndon, FUTONS } from './secret.js?v=20261113a';
 import { paperMat, shojiLight } from './common.js?v=20261113a';
 
 const enumOf = (obj, def, label) => ({ type: 'enum', default: def, options: Object.keys(obj), label });
@@ -127,8 +127,8 @@ export const assets = [
   defineAsset({ id: 'secret-tatami', family: 'interiors', lab: 'interiors/secret-tatami', label: 'Secret-house tatami', legacyName: 'Tatami Floor', params: {}, sample: SECRET.tatami, build: standaloneL(buildSecretTatami) }),
   defineAsset({ id: 'secret-table', family: 'interiors', lab: 'interiors/secret-table', label: 'Secret-house chabudai', legacyName: 'Chabudai Table', params: {}, sample: SECRET.table, build: standaloneL(buildSecretTable) }),
   defineAsset({
-    id: 'secret-bed', family: 'interiors', lab: 'interiors/secret-bed', label: 'Secret-house nap cushion', legacyName: 'Nap Cushion',
-    params: { cushion: enumOf(CUSHIONS, 'crimson', 'Cushion') }, sample: SECRET.bed, build: standaloneL(buildSecretBed)
+    id: 'secret-bed', family: 'interiors', lab: 'interiors/secret-bed', label: 'Secret-house futon', legacyName: 'Nap Cushion',
+    params: { cloth: enumOf(FUTONS, 'indigo', 'Futon cloth') }, sample: SECRET.bed, build: standaloneL(buildSecretBed)
   }),
   defineAsset({ id: 'secret-andon', family: 'interiors', lab: 'interiors/secret-andon', label: 'Secret-house andon', legacyName: 'Andon Lantern', params: { flame }, sample: SECRET.andon, build: (ctx, layout, p) => buildSecretAndon(ctx, layout, p) })
 ];

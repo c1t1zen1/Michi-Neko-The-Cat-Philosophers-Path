@@ -4,11 +4,12 @@
 // classic numbers of meshSecret*Classic in src/countryside.js). Reuses part a's
 // builders (tatami, teaware, platter, zabuton) and the lanterns family's andon.
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { Bag } from '../craft.js?v=20261113a';
 import { buildAndon } from '../lanterns/build.js?v=20261113a';
 import { TexBag, roomMats, bagMesh, groupOf, tierFlags } from './common.js?v=20261113a';
 import { buildTatami } from './room.js?v=20261113a';
-import { buildTeaware, buildFishPlatter, buildZabuton } from './small.js?v=20261113a';
+import { buildTeaware, buildFishPlatter } from './small.js?v=20261113a';
 
 const SECRET_MATS = [[-1.15, 0.04, -1.15, false], [1.15, 0.04, -1.15, false], [-1.15, 0.04, 1.15, false], [1.15, 0.04, 1.15, false], [-2.3, 0.04, 0, true], [2.3, 0.04, 0, true]];
 
@@ -56,14 +57,30 @@ function addSet(t, ctx, tier) {
   return t;
 }
 
-/** The nap cushion, origin at its middle (y 0.07 in the house): the tea room's zabuton scaled to 0.75 m. */
+/** Futon colourways: [shikibuton, kakebuton trim, makura band]. Muted, never cushion red. */
+export const FUTONS = { indigo: [0x3d4c6b, 0x2f3b55, 0x4a5d82], moss: [0x55663f, 0x44532f, 0x687a4e], plum: [0x5d4558, 0x4a3646, 0x745a6c] };
+const CREAM = 0xe9dfc6;
+/**
+ * The nap spot as a futon: a thick rounded shikibuton, a folded kakebuton
+ * quilt across the far half and a small pillow (makura) at the head. Origin at
+ * the middle of the old cushion (the house places it at y 0.07, the tatami top
+ * is 0.08, so local y 0.01 is the mat surface); the nap anchor is unchanged.
+ */
 export function buildSecretBed(ctx, L = {}, tier = 'hero', o = {}) {
-  const z = buildZabuton(ctx, {}, tier, o);
-  const cushion = z.children[0], k = 0.75 / 0.9;
-  cushion.scale.setScalar(k);
-  cushion.position.y = -0.07;
+  const { hi, far } = tierFlags(tier), m = roomMats(ctx), bag = new Bag();
+  const [c1, c2, c3] = FUTONS[o.cloth] || FUTONS.indigo;
+  const seg = far ? 1 : hi ? 4 : 2, y0 = 0.01;
+  const rb = (w, h, d, r) => new RoundedBoxGeometry(w, h, d, seg, r);
+  bag.add(rb(0.78, 0.13, 0.96, 0.05), { y: y0 + 0.065, color: c1 });                         // shikibuton
+  bag.add(rb(0.7, 0.085, 0.4, 0.035), { y: y0 + 0.13 + 0.04, z: -0.22, color: CREAM });        // the folded kakebuton
+  if (!far) {
+    bag.add(rb(0.7, 0.03, 0.12, 0.012), { y: y0 + 0.13 + 0.07, z: -0.34, color: c2 });          // its dyed fold edge
+    bag.add(rb(0.34, 0.075, 0.2, 0.035), { y: y0 + 0.13 + 0.035, z: 0.3, color: 0xf1ebdc });     // the makura
+    bag.box(0.345, 0.078, 0.05, { y: y0 + 0.13 + 0.035, z: 0.3, color: c3 });                    // its band
+    bag.box(0.8, 0.012, 0.02, { y: y0 + 0.07, z: 0.0, color: c2 });                              // a stitched seam across the mattress
+  }
   const g = new THREE.Group();
-  g.add(cushion);
+  g.add(bagMesh(bag, m.bag, 'cushion'));
   return g;
 }
 

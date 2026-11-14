@@ -2,8 +2,8 @@
 
 Ids (all `family: 'interiors'`): courtyard-gravel, courtyard-wall, secret-tatami, secret-table, secret-bed, secret-andon. New files: src/kit/interiors/court.js, secret.js; index.js only appends (part a untouched). src/kit/index.js regenerated (unchanged: the family already exported).
 
-## 1. Budgets (src/kit/budgets.js, committed in-lane)
-No new exception for the six. tea-interior's warm-build allowance was too tight for a loaded machine (10.8-12.1 ms hero / 6.2-7.3 ms mid measured with sibling lanes running; part a measured 6.4 / 4.1 idle): `buildMs` 9/6 became 14/9, `why` updated.
+## 1. Budgets
+No change to src/kit/budgets.js. None of the six needed an exception.
 
 ## 2. Inventory / catalog (hot: labs/asset_inventory.json)
 Lab evidence targets (`kind: "bench"`, `file: "labs/interiors/js/specimens_b.js"`), add next to `interiors/knockables`:
@@ -17,7 +17,7 @@ Lab evidence targets (`kind: "bench"`, `file: "labs/interiors/js/specimens_b.js"
 Coverage rows: courtyard-wall -> interiors/courtyard-wall (direct, replacing the `interiors/garden` embedded entry); secret-tatami / secret-table / secret-bed / secret-andon -> their `interiors/<id>` (direct; keep `machiya/original-secret` as a second, embedded entry if wanted). courtyard-gravel already has `rocks/rake` (direct). Then `node tools/labs_coverage.mjs --write`. Production adapter ids `interiors/<id>` for the six. (specimens.js got its three lines appended at the end so no line anchor moved: labs_check stays green.)
 
 ## 3. Part names (public)
-courtyard-gravel {gravel, rake, stones}; courtyard-wall {wall, trim, cap}; secret-tatami {mats, heri}; secret-table {top, legs, set, dish; far: top, set, dish}; secret-bed {cushion}; secret-andon {frame, paper}. No `layout.bind` parts on any of the six (the table's `fishMesh` bind belongs to its secret-fish component).
+courtyard-gravel {gravel, rake, stones}; courtyard-wall {wall, trim, cap}; secret-tatami {mats, heri}; secret-table {top, legs, set, dish; far: top, set, dish}; secret-bed {cushion} (a futon: rounded shikibuton, folded kakebuton, makura; param `cloth` indigo/moss/plum); secret-andon {frame, paper}. No `layout.bind` parts on any of the six (the table's `fishMesh` bind belongs to its secret-fish component).
 
 ## 4. Footprint / gameplay
 No waivers. The six carry the classic empty `footprint`; the house's table box, platform and door stay layout data. Nap anchors (tea room zabuton) are part a's and unchanged; the secret bed has no anchor in classic either. The kit andon is scaled 0.82 (frame 0.44 m becomes 0.36 vs classic 0.40, height 0.72).
