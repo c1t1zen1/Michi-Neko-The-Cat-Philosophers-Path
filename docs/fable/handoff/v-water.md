@@ -1,0 +1,113 @@
+# Handoff: v-water (wave 2.3, family `water`, Lab 02)
+
+Nothing in a hot file is required for the classic set or for the swap to work:
+every asset routes through `Countryside.placeAsset` with the layouts f2 split
+(`layoutRiverAndBridge`, `layoutPaddies`, `layoutRipplePool`), and every
+footprint is the layout's own. `src/kit/index.js` was regenerated with
+`node tools/kit_index.mjs` (10 families). `src/kit/budgets.js` was edited
+in-lane (granted): two BUDGET_EXCEPTIONS rows, below.
+
+## 1. Inventory rows (`labs/asset_inventory.json`)
+
+No new ids. Add these coverage entries (the existing ones stay):
+
+```json
+{ "id": "river",         "coverage+": [{ "target": "water/kyoto", "level": "direct", "note": "Promoted as the kit river (src/kit/water/river.js): the CPU water field + the kyoto shader, analytic sky instead of the planar mirror." }] }
+{ "id": "bridge",        "coverage+": [{ "target": "water/b-sanjo", "level": "direct", "note": "Promoted as the kit bridge on the classic platforms (src/kit/water/bridge.js)." }] }
+{ "id": "paddies",       "coverage+": [{ "target": "water/p-taue", "level": "direct" }, { "target": "water/p-summer", "level": "direct" }, { "target": "water/p-autumn", "level": "direct" }, { "target": "water/p-winter", "level": "direct" }] }
+{ "id": "paddy-bunds",   "coverage": [{ "target": "water/p-aze", "level": "direct" }, { "target": "water/p-game", "level": "embedded" }] }
+{ "id": "rice",          "coverage+": [{ "target": "water/p-taue", "level": "direct" }] }
+```
+
+`paddy-bunds` moves from *embedded* to *direct* through the new specimen
+`water/p-aze` (Lab 02, `labs/water/js/bunds.js`, variant index 27, card
+"Aze banks 畦"). Then regenerate: `node tools/labs_coverage.mjs --write`
+(ASSET_COVERAGE.md) and `node tools/fable_swap_matrix.mjs --write`.
+
+## 2. Catalog `production` adapter
+
+| lane | id | kit export |
+|------|----|------------|
+| v-water | water (river, bridge, paddies, paddy-bunds, rice, water-ripples) | `src/kit/water/index.js` `assets` |
+
+Append the row to `docs/fable/handoff/_production_adapters.md`.
+
+## 3. Part names (public interface)
+
+| Asset | Parts | Sockets / extras |
+|---|---|---|
+| `river` | `water` (bound: `riverMat` ← `water.material`) | `group.userData.riverField` (RiverField: `flowAt(x, z)`, `locate(x, z)`) |
+| `bridge` | `deck`, `frame`, `koran_e`, `koran_w`, `giboshi`, `abutment_n`, `abutment_s` (a part with one mesh is that mesh; at `far` the timber/bronze parts are empty groups) | `post_e_1…7`, `post_w_1…7` (top of the walkable rail, y 1.66, over each of the seven posts at z = −4 + i·8/6; east = +x), `shoki` (south end of the east rail, its +z looking north along the rail); `group.userData.waterObstacles` (pier posts, group space) |
+| `paddies` | `water_1…water_4` (bound: `paddyWaterMaterials[k].material`) | — |
+| `paddy-bunds` | `bed`, `ridges`, `weir` (the seki-ita board, or an empty marker) | — |
+| `rice` | `stalks` (one InstancedMesh) | — |
+| `water-ripples` | `ring_1…ring_24` (bound through the `ripples` list) | — |
+
+## 4. Budget exceptions (in `src/kit/budgets.js`, granted in-lane)
+
+| id | rows | why (measured) |
+|---|---|---|
+| `paddies` | far: meshes 4, materials 4 | the four plot sheets are bound one-to-one to `paddyWaterMaterials` (a material each). Classic 4 meshes / 4 materials / 8 tris; modular 4 / 4 / 8 at every tier |
+| `water-ripples` | hero, mid, far: materials 24 | `Countryside.update()` writes each ring's own material opacity. Classic 24 meshes / 24 materials; modular the same (hidden until spawned: 0 visible meshes, 0 tris at build) |
+
+The river did not need one: hero 1,920 / mid 480 / far 120 triangles, one mesh, one material.
+
+## 5. Hot-file patches
+
+None required. One optional improvement (Integrator's choice):
+
+- **Sky in the kit env (optional).** The water reads the Sky's dome uniforms
+  (mesh 'Sky Dome': `sunDir`, `sunColor`, `horizonColor`, `topColor`,
+  `warmColor`), found once by walking up from the instance to the scene, with
+  an `env.hour` fallback (`src/kit/water/sky.js`). If the v-sky lane renames
+  the dome or its uniforms, the water falls back to the hour-based palette
+  (no weather tint). To make the source explicit, `src/main.js` `assetEnv()`
+  can pass the sun and palette; `WaterSky.sync()` already prefers them:
+
+  ```diff
+  --- a/src/main.js
+  +++ b/src/main.js
+  @@ assetEnv()
+       env.lanternOn = !!this.city._lanternsLit;
+  +    env.sunDir = this.sky.sunDir;              // read-only, shared Vector3
+  +    env.palette = this.sky.resolvePalette();   // read-only, the per-frame shared buffer
+       return env;
+  ```
+  (`contract.js` `ENV_KEYS` would then list `sunDir`, `palette`; kit code must
+  not write into either.)
+
+## 6. Helpers that could move to shared kit code (optional)
+
+- `src/kit/water/parts.js` `Parts`: a per-material accumulator for MAT-merged
+  timber and stone (boxes, posts, beams between points, lathes, extruded
+  sections, outward-oriented convex solids, world-metre UVs, no colour
+  attribute). Useful to v-machiya / r2 (Sanjō bridge in the Roof Road). Not
+  moved; import it from the family or ask for the move.
+- `src/kit/water/bridge.js` exports `BRIDGE` (the gameplay dimensions) and
+  `rampHeight(o)`; r2-roofs-streets may reuse `buildBridge` for the Roof Road's
+  Sanjō bridge (its parts are in the bridge's local frame, deck at 1.08).
+
+## 7. Notes for other lanes
+
+- **r6-game-wiring (Seven Posts):** caps go on the `post_e_*` / `post_w_*`
+  sockets (rail top, y 1.66), the Shōki on `shoki`. On the kit bridge the
+  seven posts are real kōran posts under the top rail; the four end posts
+  (oyabashira) already wear bronze giboshi as part of the merged statics and
+  stand outside the walkable rail band (z ±4.36). The east railing platform is
+  unchanged (x = −1 + 1.24 ± 0.21, top 1.66).
+- **v-ground:** the river's depth model is the classic carve
+  (`riverBedDepth()`: 0.85 m mid-stream, out to 3.8 m; `src/kit/water/field.js`
+  `BED_DEEP`, `BED_OUT`, `BED_IN`). If the ground lane changes the carve, keep
+  these in step.
+- **v-weather:** `rain-ripples` stays yours (not swapped here). The kit water
+  also draws procedural rain rings from `env.wet`. River petals can ride the
+  same current: `scene.getObjectByName('River').userData.riverField.flowAt(x, z)`.
+- **v-critters:** koi ripples still go through `Countryside.spawnRipple()`; the
+  kit river and paddies read every visible ring of the pool (classic or kit)
+  and bend their surface under it.
+- **Draw calls:** the kit adds no merged material. Static meshes use MAT
+  (`timberEngawa`, `timberDark`, `timberMedium`, `stoneDark`,
+  `spiritualBellBronze`, `paddyMud`) and `KIT_SHARED.matte` (aze banks); the
+  classic `MAT.ridge` bake disappears when `paddy-bunds` is modular. The water
+  surfaces stay separate draws one-for-one with the classic (river 1, paddy
+  sheets 4, rice 1, ripple rings only while visible).
