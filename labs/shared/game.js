@@ -9,6 +9,8 @@ export const loadCountrysideModule = () => import('../../src/countryside.js?v=20
 export const loadFoliageModule = () => import('../../src/foliage.js?v=20261113a');
 // Sky Lab reads the real dome, sprite, moon and lighting builders as its baseline.
 export const loadSkyModule = () => import('../../src/sky.js?v=20261113a');
+// Sky Lab night studies build the kit's own stars and painted moon (lane v-sky, ruling R56).
+export const loadKitSkyNightModule = () => import('../../src/kit/sky/night.js?v=20261113a');
 // Ground Lab grows the valley's own grass (GrassSystem + BiomeMask) on its stage.
 export const loadGrassModule = () => import('../../src/grass.js?v=20261113a');
 // The original specimens in the Tier 2-4 labs: real builders, read-only.
