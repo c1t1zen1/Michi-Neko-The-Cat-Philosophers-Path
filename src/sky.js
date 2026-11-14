@@ -17,18 +17,19 @@ function paletteBuffer() {
 }
 
 export class Sky {
-  constructor(scene) {
+  constructor(scene, options = {}) {
     this.scene = scene;
     this.time = 0;
+    this.assets = skyAssets(options.assets);   // the kit runtime; classic without one (see placeSkyAsset)
 
     this.dayTime = 9.5;          // 0..24 hour cycle (bright Ghibli morning)
     this.cycleSpeed = 24 / 3600; // 1 full day in 60 minutes (3600s)
     this.sunDir = new THREE.Vector3(-0.55, 0.28, -0.79).normalize();
 
     this.buildDome();
-    this.buildClouds();
-    this.buildStars();
-    this.buildMoon();
+    this.placeSkyAsset('clouds', () => this.buildClouds());
+    this.placeSkyAsset('stars', () => this.buildStars());
+    this.placeSkyAsset('moon', () => this.buildMoon());
     this.buildLights();
 
     this.weather = 'clear';
@@ -798,5 +799,103 @@ export class Sky {
     this._palFrame++;
     this.updateWeather(dt);
     this.updateDayNight(dt, playerPos);
+    if (this.kit) this.updateKit(dt, playerPos);
   }
+
+  /* ---------------- Modular set (src/kit/sky, BUILD_GUIDE_FABLE §3) ----------------
+   * The classic builders above run unchanged whenever an id resolves classic:
+   * on the classic set, on quality low (always, whatever the flags say), and
+   * when the kit is not loaded. A kit cloud deck, star field or moon replaces
+   * its classic object through the runtime (`assets.setFor(id)`), keeps the
+   * classic handles the code above drives (`starMat.uniforms`, `moonMat.opacity`,
+   * `stars` / `moon` positions) and gets its own per-frame drive in updateKit().
+   */
+
+  /** Classic `classicFn()`, or the kit instance for `id` when the runtime resolves it modular. */
+  placeSkyAsset(id, classicFn) {
+    const assets = this.assets;
+    if (!assets || assets.quality === 'low' || assets.setFor(id) !== 'modular' || !assets.has(id)) return classicFn();
+    const layout = { index: 0, name: SKY_KIT_NAMES[id], band: 'near', x: 0, y: 0, z: 0, footprint: { colliders: [], exclusions: [], anchors: {} } };
+    const out = assets.build(id, layout, classicFn);
+    if (!out || !out.group || !out.parts) return out;   // the runtime fell back to the classic builder
+    // The classic builder's Math.random() draws, burned so every later consumer of the
+    // seeded capture stream (?shot=1: particles, wander, idles) sees the same numbers on both sets.
+    for (let i = 0; i < SKY_CLASSIC_DRAWS[id]; i++) Math.random();
+    if (!this.kit) this.kit = { clouds: null, stars: null, moon: null, env: { hour: 12, wind: 1, wet: 0, snow: 0, lanternOn: false, sky: this, center: null, cloudCover: 0, cloudVeil: 0, moonCover: 0 } };
+    this.kit[id] = out;
+    if (typeof out.attach === 'function') out.attach(this);
+    if (id === 'clouds') {
+      this.clouds = [];                 // no classic sprites to drift
+      this.dome.add(out.group);         // follows the cat with the dome, and stays a summit sky keeper
+    } else if (id === 'stars') {
+      this.stars = out.group;
+      this.starMat = out.material;      // the classic fade and twinkle clock drive its uniforms
+      // a kit deck (built just before) hides the stars behind its thick cloud
+      if (this.kit.clouds && typeof out.linkClouds === 'function') out.linkClouds(this.kit.clouds.shared, this.kit.clouds.deckAlpha);
+      this.scene.add(out.group);
+    } else if (id === 'moon') {
+      this.moon = out.group;
+      this.moonMat = out.material;      // the classic night fade sets its opacity
+      this.scene.add(out.group);
+    }
+    return out;
+  }
+
+  /** Per frame, after the classic update: the kit instances' own drive (weather genera, drift, the moon halo). */
+  updateKit(dt, playerPos) {
+    if (this.assets && this.assets.quality === 'low') { this.dropKit(); return; }
+    const env = this.kit.env;
+    env.hour = this.dayTime;
+    env.wet = this.weatherAmount('rain');
+    env.snow = this.weatherAmount('snow');
+    env.center = playerPos || this.dome.position;
+    const clouds = this.kit.clouds;
+    if (clouds) clouds.update(dt, this.time, env);
+    env.cloudCover = clouds ? clouds.cover : 0.46 + this.weatherAmount('cloudy') * 0.3;
+    env.cloudVeil = clouds ? clouds.veil : Math.min(1, this.weatherAmount('cloudy') * 0.6 + this.weatherAmount('mist'));
+    env.moonCover = clouds ? clouds.moonCover : 0;
+    if (this.kit.stars) this.kit.stars.update(dt, this.time, env);
+    if (this.kit.moon) this.kit.moon.update(dt, this.time, env);
+  }
+
+  /** The atmosphere pass's hook for the deck's projected shade (src/postfx.js AtmospherePass.syncKit), or null. */
+  kitPostHook() {
+    const clouds = this.kit && this.kit.clouds;
+    return clouds && clouds.post ? clouds.post : null;
+  }
+
+  /**
+   * Quality dropped to low mid-session: the low tier always runs today's
+   * code path, so the kit objects go and the classic builders run now.
+   * (The way back up to the kit is the next boot, like merged statics.)
+   */
+  dropKit() {
+    const kit = this.kit;
+    if (!kit) return;
+    this.kit = null;
+    const keep = !!this.dome.userData.skyKeep;   // the summit already marked the sky (markSkyKeepers)
+    for (const id of ['clouds', 'stars', 'moon']) {
+      const inst = kit[id];
+      if (!inst) continue;
+      inst.dispose();
+      if (id === 'clouds') this.buildClouds();
+      else if (id === 'stars') this.buildStars();
+      else this.buildMoon();
+      if (keep) for (const o of id === 'clouds' ? this.clouds : [id === 'stars' ? this.stars : this.moon]) o.userData.skyKeep = true;
+    }
+  }
+}
+
+/** Group names of the kit replacements (the classic names where one object stood). */
+const SKY_KIT_NAMES = { clouds: 'asset:clouds', stars: 'Stars', moon: 'Moon' };
+/** Math.random() draws each classic builder makes: 26 cloud opacities; 420 stars × 5. */
+const SKY_CLASSIC_DRAWS = { clouds: 26, stars: 420 * 5, moon: 0 };
+
+/**
+ * The kit runtime the Sky builds through: the one main.js hands in as
+ * `{ assets }`. Without one (the labs and review sheets construct
+ * `new Sky(scene)`), or with CLASSIC_ASSETS, every builder is classic.
+ */
+function skyAssets(assets) {
+  return assets && !assets.isClassic && typeof assets.build === 'function' && typeof assets.setFor === 'function' ? assets : null;
 }

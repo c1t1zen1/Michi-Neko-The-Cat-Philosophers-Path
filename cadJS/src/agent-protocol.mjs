@@ -1,11 +1,16 @@
+import { checkKitActionShape, foldKitActions, KIT_ACTIONS } from './kit-params.mjs';
+
 export const AGENT_PROTOCOL_VERSION = 2;
+const KIT_ACTION_TYPES = new Set(KIT_ACTIONS);
 
 export const SUPPORTED_AGENT_ACTIONS = new Set([
   'select', 'setTransform', 'setMaterial', 'addPrimitive', 'duplicate', 'delete',
   'distort', 'rename', 'setVisibility', 'applyTexture', 'focus',
   'addProceduralAsset', 'generateProceduralTexture', 'arrayClone', 'mirrorObject',
   'alignObject', 'groupObjects', 'applyPalette', 'poseCharacter', 'scatterObjects',
-  'subdivideGeometry'
+  'subdivideGeometry',
+  // Kit (production) assets: validated against the open asset's params schema.
+  'set_asset_params', 'swap_asset_variant'
 ]);
 
 export const PROVIDER_CATALOG = {
@@ -168,6 +173,9 @@ Supported actions and params:
 - setVisibility { visible:boolean }
 - applyTexture { source:"reference", referenceIndex:0, scope:"selected|descendants", repeat?:[x,y], offset?:[x,y], rotation?:degrees, wrap?:"repeat|clamp|mirror" }
 - focus {}
+- set_asset_params { asset:"kit asset id of the open production asset", values:{ "<param>": value } }  Only parameter names and ranges listed in CAD CONTEXT kitAsset.params are accepted; an out-of-range value rejects the whole plan.
+- swap_asset_variant { asset:"kit asset id", variant:"classic|modular" }  classic is the original game builder, modular the kit version.
+Kit actions cannot be mixed with other edits in one plan.
 
 Design rules:
 1. Michi-Neko uses a serene painterly Kyoto aesthetic (warm wood, mossy granite, vermilion lacquer, soft sakura pinks, golden lantern glow, 256px procedural textures).
@@ -238,17 +246,28 @@ export function extractJson(text) {
   throw new Error('The model did not return a JSON plan');
 }
 
-export function validateAgentPlan(input) {
+export function validateAgentPlan(input, options = {}) {
   if (!input || typeof input !== 'object' || !Array.isArray(input.actions)) throw new Error('Agent plan must contain an actions array');
   if (input.actions.length > 64) throw new Error('Agent plan exceeds the 64 action safety limit');
   const actions = input.actions.map((item, index) => {
     if (!item || !SUPPORTED_AGENT_ACTIONS.has(item.type)) throw new Error(`Unsupported agent action at ${index}: ${item?.type || 'missing'}`);
+    if (KIT_ACTION_TYPES.has(item.type)) {
+      try { checkKitActionShape(item); } catch (error) { throw new Error(`Action ${index} (${item.type}): ${error.message}`); }
+    }
     return {
       type: item.type,
       target: String(item.target || 'selection'),
       params: item.params && typeof item.params === 'object' ? item.params : {}
     };
   });
+  const kitActions = actions.filter((a) => KIT_ACTION_TYPES.has(a.type));
+  if (kitActions.length && actions.some((a) => !KIT_ACTION_TYPES.has(a.type) && !['select', 'focus'].includes(a.type))) {
+    throw new Error('Kit asset actions cannot be mixed with free-form edits in one plan');
+  }
+  // With a schema lookup (the browser has the loaded asset's params) validate fully now.
+  if (kitActions.length && typeof options.kitLookup === 'function') {
+    foldKitActions({ id: kitActions[0].params.asset, variant: 'modular', params: {} }, kitActions, options.kitLookup);
+  }
   return {
     protocol: AGENT_PROTOCOL_VERSION,
     summary: String(input.summary || 'CAD agent plan'),

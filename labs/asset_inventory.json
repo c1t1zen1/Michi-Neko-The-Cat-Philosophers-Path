@@ -1173,6 +1173,41 @@
       "file": "labs/interiors/js/specimens.js",
       "anchor": "  knockables: {"
     },
+    "interiors/courtyard-wall": {
+      "lab": "interiors",
+      "selector": "courtyard-wall",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens_b.js",
+      "anchor": "  'courtyard-wall': {"
+    },
+    "interiors/secret-tatami": {
+      "lab": "interiors",
+      "selector": "secret-tatami",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens_b.js",
+      "anchor": "  'secret-tatami': {"
+    },
+    "interiors/secret-table": {
+      "lab": "interiors",
+      "selector": "secret-table",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens_b.js",
+      "anchor": "  'secret-table': {"
+    },
+    "interiors/secret-bed": {
+      "lab": "interiors",
+      "selector": "secret-bed",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens_b.js",
+      "anchor": "  'secret-bed': {"
+    },
+    "interiors/secret-andon": {
+      "lab": "interiors",
+      "selector": "secret-andon",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens_b.js",
+      "anchor": "  'secret-andon': {"
+    },
     "interiors/pottery": {
       "lab": "interiors",
       "selector": "pottery",
@@ -1418,6 +1453,27 @@
       "kind": "specimen",
       "file": "labs/summit/js/recipes.js",
       "anchor": "id: 'c-path'"
+    },
+    "sky/night-stars": {
+      "lab": "sky",
+      "selector": "night-stars",
+      "kind": "specimen",
+      "file": "labs/sky/js/data.js",
+      "anchor": "study('night-stars'"
+    },
+    "sky/night-moon": {
+      "lab": "sky",
+      "selector": "night-moon",
+      "kind": "specimen",
+      "file": "labs/sky/js/data.js",
+      "anchor": "study('night-moon'"
+    },
+    "sky/cloud-field": {
+      "lab": "sky",
+      "selector": "cloud-field",
+      "kind": "specimen",
+      "file": "labs/sky/js/data.js",
+      "anchor": "study('cloud-field'"
     }
   },
   "assets": [
@@ -3958,8 +4014,8 @@
       ],
       "coverage": [
         {
-          "target": "interiors/garden",
-          "level": "embedded"
+          "target": "interiors/courtyard-wall",
+          "level": "direct"
         }
       ]
     },
@@ -4004,6 +4060,10 @@
       ],
       "coverage": [
         {
+          "target": "interiors/secret-tatami",
+          "level": "direct"
+        },
+        {
           "target": "machiya/original-secret",
           "level": "embedded"
         }
@@ -4021,6 +4081,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "interiors/secret-table",
+          "level": "direct"
+        },
         {
           "target": "machiya/original-secret",
           "level": "embedded"
@@ -4040,6 +4104,10 @@
       ],
       "coverage": [
         {
+          "target": "interiors/secret-bed",
+          "level": "direct"
+        },
+        {
           "target": "machiya/original-secret",
           "level": "embedded"
         }
@@ -4057,6 +4125,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "interiors/secret-andon",
+          "level": "direct"
+        },
         {
           "target": "machiya/original-secret",
           "level": "embedded"
@@ -4100,6 +4172,11 @@
         {
           "target": "sky/cloud-game",
           "level": "direct"
+        },
+        {
+          "target": "sky/cloud-field",
+          "level": "direct",
+          "note": "The kit deck promotes this thickness painting (slab slices, four-genus field) and the shade-soft projection."
         }
       ]
     },
@@ -4118,6 +4195,10 @@
         {
           "target": "sky/sky-night",
           "level": "embedded"
+        },
+        {
+          "target": "sky/night-stars",
+          "level": "direct"
         }
       ]
     },
@@ -4136,6 +4217,10 @@
         {
           "target": "sky/sky-night",
           "level": "embedded"
+        },
+        {
+          "target": "sky/night-moon",
+          "level": "direct"
         }
       ]
     },

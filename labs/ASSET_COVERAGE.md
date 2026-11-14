@@ -6,7 +6,7 @@ Reviewed 2026-11-10. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **137 of 186 (73.7%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **144 of 186 (77.4%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -28,9 +28,9 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 137 | 73.7% |
+| Focused lab study | 144 | 77.4% |
 | Review sheet | 27 | 14.5% |
-| Embedded in a specimen | 10 | 5.4% |
+| Embedded in a specimen | 3 | 1.6% |
 | Related evidence only | 9 | 4.8% |
 | No mapped evidence | 3 | 1.6% |
 
@@ -50,8 +50,8 @@ Each active row is counted once at its strongest evidence level, in the order ab
 | Vegetation | 22 | 15 | 6 | 0 | 1 | 0 |
 | Effects | 2 | 1 | 0 | 0 | 1 | 0 |
 | Hidden places | 16 | 15 | 0 | 1 | 0 | 0 |
-| Interiors | 19 | 13 | 0 | 5 | 1 | 0 |
-| Sky and effects | 19 | 11 | 0 | 2 | 4 | 2 |
+| Interiors | 19 | 18 | 0 | 0 | 1 | 0 |
+| Sky and effects | 19 | 13 | 0 | 0 | 4 | 2 |
 | Summit | 32 | 14 | 17 | 0 | 1 | 0 |
 
 ## Gaps requiring focused specimens
@@ -78,13 +78,6 @@ This list includes every active row without a focused study, including review-on
 | [River-bank grass fireflies](#grass-fireflies) | Related evidence only | Related hotaru study; not the GrassSystem particle shader. |
 | [Moon Pool stone toro](#pool-toro) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Courtyard stone lantern](#courtyard-toro) | Related evidence only | Different source builder; no courtyard lantern extraction. |
-| [Courtyard boundary timber wall](#courtyard-wall) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Secret-house tatami](#secret-tatami) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Secret-house table and teaware](#secret-table) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Secret-house nap cushion](#secret-bed) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Secret-house andon](#secret-andon) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Twinkling stars](#stars) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Crescent moon](#moon) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Sun, hemisphere, fill and bounce lighting](#sky-light) | Related evidence only | The baseline adapter hides the original lights; labs use their own rig. |
 | [Valley god-ray cards](#god-rays) | Related evidence only | Sky-space rays are a different implementation from the game’s ground cards. |
 | [Screen-space ambient occlusion](#ao) | No mapped evidence | Sky’s air-game baseline explicitly excludes the full game post-processing pipeline. |
@@ -307,22 +300,22 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="andon"></a>`andon` — Andon paper floor lantern | [src/interior.js:andon.name = 'Andon Lantern'](../src/interior.js#L621) | [lanterns / andon](../labs/lanterns/js/recipes.js#L92) (direct) |  |
 | <a id="courtyard-gravel"></a>`courtyard-gravel` — Courtyard rock-garden gravel | [src/interior.js:// Courtyard rock garden gravel](../src/interior.js#L631) | [rocks / rake](../labs/rocks/js/recipes.js#L71) (direct) |  |
 | <a id="courtyard-toro"></a>`courtyard-toro` — Courtyard stone lantern | [src/interior.js:toro.name = 'Courtyard Toro Lantern'](../src/interior.js#L640) | [lanterns / game-toro](../labs/lanterns/js/recipes.js#L34) (related) — Different source builder; no courtyard lantern extraction. |  |
-| <a id="courtyard-wall"></a>`courtyard-wall` — Courtyard boundary timber wall | [src/interior.js:// Courtyard outer timber wall](../src/interior.js#L651) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
+| <a id="courtyard-wall"></a>`courtyard-wall` — Courtyard boundary timber wall | [src/interior.js:// Courtyard outer timber wall](../src/interior.js#L651) | [interiors / courtyard-wall](../labs/interiors/js/specimens_b.js#L11) (direct) |  |
 | <a id="knockables"></a>`knockables` — Three tabletop knockables (white cup, blue bowl, white sphere) | [src/interior.js:buildKnockables(](../src/interior.js#L219) | [interiors / pottery](../labs/interiors/js/craft.js#L7) (related) — Vessel geometry is studied; these three original items are not specimens.<br>[interiors / bat-cup](../labs/interiors/js/cat.js#L53) (related) — Lab physics supports batting lab vessels; original item geometry and physics differ.<br>[interiors / knockables](../labs/interiors/js/specimens.js#L112) (direct) |  |
-| <a id="secret-tatami"></a>`secret-tatami` — Secret-house tatami | [src/countryside.js:tatamiFloor.name = 'Tatami Floor'](../src/countryside.js#L2568) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
-| <a id="secret-table"></a>`secret-table` — Secret-house table and teaware | [src/countryside.js:table.name = 'Chabudai Table'](../src/countryside.js#L2589) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
-| <a id="secret-bed"></a>`secret-bed` — Secret-house nap cushion | [src/countryside.js:// Gold embroidery tassels](../src/countryside.js#L2638) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
-| <a id="secret-andon"></a>`secret-andon` — Secret-house andon | [src/countryside.js:andon.name = 'Andon Lantern'](../src/countryside.js#L2650) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
+| <a id="secret-tatami"></a>`secret-tatami` — Secret-house tatami | [src/countryside.js:tatamiFloor.name = 'Tatami Floor'](../src/countryside.js#L2568) | [interiors / secret-tatami](../labs/interiors/js/specimens_b.js#L27) (direct)<br>[machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
+| <a id="secret-table"></a>`secret-table` — Secret-house table and teaware | [src/countryside.js:table.name = 'Chabudai Table'](../src/countryside.js#L2589) | [interiors / secret-table](../labs/interiors/js/specimens_b.js#L45) (direct)<br>[machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
+| <a id="secret-bed"></a>`secret-bed` — Secret-house nap cushion | [src/countryside.js:// Gold embroidery tassels](../src/countryside.js#L2638) | [interiors / secret-bed](../labs/interiors/js/specimens_b.js#L62) (direct)<br>[machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
+| <a id="secret-andon"></a>`secret-andon` — Secret-house andon | [src/countryside.js:andon.name = 'Andon Lantern'](../src/countryside.js#L2650) | [interiors / secret-andon](../labs/interiors/js/specimens_b.js#L78) (direct)<br>[machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
 
 ### Sky and effects
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="sky-dome"></a>`sky-dome` — Sky dome and day/night palette | [src/sky.js:buildDome(](../src/sky.js#L221) | [sky / sky-game](../labs/sky/js/data.js#L33) (direct) |  |
-| <a id="clouds"></a>`clouds` — Painted cloud sprites | [src/sky.js:buildClouds(](../src/sky.js#L272)<br>[src/sky.js:buildCloudTexture(](../src/sky.js#L232) | [sky / cloud-game](../labs/sky/js/data.js#L40) (direct) |  |
-| <a id="stars"></a>`stars` — Twinkling stars | [src/sky.js:buildStars(](../src/sky.js#L314) | [sky / sky-night](../labs/sky/js/data.js#L37) (embedded) |  |
-| <a id="moon"></a>`moon` — Crescent moon | [src/sky.js:buildMoon(](../src/sky.js#L373) | [sky / sky-night](../labs/sky/js/data.js#L37) (embedded) |  |
-| <a id="sky-light"></a>`sky-light` — Sun, hemisphere, fill and bounce lighting | [src/sky.js:buildLights(](../src/sky.js#L402)<br>[src/sky.js:buildPalettes(](../src/sky.js#L444) | [sky / sky-game](../labs/sky/js/data.js#L33) (related) — The baseline adapter hides the original lights; labs use their own rig. |  |
+| <a id="sky-dome"></a>`sky-dome` — Sky dome and day/night palette | [src/sky.js:buildDome(](../src/sky.js#L222) | [sky / sky-game](../labs/sky/js/data.js#L33) (direct) |  |
+| <a id="clouds"></a>`clouds` — Painted cloud sprites | [src/sky.js:buildClouds(](../src/sky.js#L273)<br>[src/sky.js:buildCloudTexture(](../src/sky.js#L233) | [sky / cloud-game](../labs/sky/js/data.js#L40) (direct)<br>[sky / cloud-field](../labs/sky/js/data.js#L41) (direct) — The kit deck promotes this thickness painting (slab slices, four-genus field) and the shade-soft projection. |  |
+| <a id="stars"></a>`stars` — Twinkling stars | [src/sky.js:buildStars(](../src/sky.js#L315) | [sky / sky-night](../labs/sky/js/data.js#L37) (embedded)<br>[sky / night-stars](../labs/sky/js/data.js#L65) (direct) |  |
+| <a id="moon"></a>`moon` — Crescent moon | [src/sky.js:buildMoon(](../src/sky.js#L374) | [sky / sky-night](../labs/sky/js/data.js#L37) (embedded)<br>[sky / night-moon](../labs/sky/js/data.js#L66) (direct) |  |
+| <a id="sky-light"></a>`sky-light` — Sun, hemisphere, fill and bounce lighting | [src/sky.js:buildLights(](../src/sky.js#L403)<br>[src/sky.js:buildPalettes(](../src/sky.js#L445) | [sky / sky-game](../labs/sky/js/data.js#L33) (related) — The baseline adapter hides the original lights; labs use their own rig. |  |
 | <a id="god-rays"></a>`god-rays` — Valley god-ray cards | [src/particles.js:buildGodRays(](../src/particles.js#L127) | [sky / air-rays](../labs/sky/js/data.js#L60) (related) — Sky-space rays are a different implementation from the game’s ground cards. |  |
 | <a id="rain"></a>`rain` — Valley rain streaks | [src/particles.js:buildRain(](../src/particles.js#L215) | [weather / game-rain](../labs/weather/js/recipes.js#L56) (direct) |  |
 | <a id="river-petals"></a>`river-petals` — River petal rafts | [src/particles.js:buildRiverPetals(](../src/particles.js#L302) | [water / hanaikada](../labs/water/js/variants.js#L198) (direct) |  |
@@ -335,7 +328,7 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="landing-dust"></a>`landing-dust` — Landing dust puffs | [src/context_actions.js:spawnLandDust(](../src/context_actions.js#L832) | [weather / landing-dust](../labs/weather/js/recipes.js#L102) (direct) |  |
 | <a id="ao"></a>`ao` — Screen-space ambient occlusion | [src/postfx.js:export class AOPass](../src/postfx.js#L142) | **No mapped evidence** | Sky’s air-game baseline explicitly excludes the full game post-processing pipeline. |
 | <a id="atmosphere"></a>`atmosphere` — Screen-space distance and height atmosphere | [src/postfx.js:export class AtmospherePass](../src/postfx.js#L377) | [summit / haze](../labs/summit/js/recipes.js#L114) (related) — Layered haze cards are not the game’s depth-buffer atmosphere pass. |  |
-| <a id="grade"></a>`grade` — Painterly colour grading, vignette, grain and fringe | [src/postfx.js:export const GradeShader](../src/postfx.js#L479)<br>[src/postfx.js:export const GradeOutputShader](../src/postfx.js#L560) | [ground / kuwahara](../labs/ground/js/variants.js#L252) (related) — Related finish study; Kuwahara is not the game grade/grain/fringe pipeline. |  |
+| <a id="grade"></a>`grade` — Painterly colour grading, vignette, grain and fringe | [src/postfx.js:export const GradeShader](../src/postfx.js#L551)<br>[src/postfx.js:export const GradeOutputShader](../src/postfx.js#L632) | [ground / kuwahara](../labs/ground/js/variants.js#L252) (related) — Related finish study; Kuwahara is not the game grade/grain/fringe pipeline. |  |
 | <a id="summit-transition"></a>`summit-transition` — Optional summit transition video | [src/mountaintop.js:const SUMMIT_VIDEO_SRC =](../src/mountaintop.js#L26) | **No mapped evidence** | Optional runtime transition media, outside the lab specimen set; availability is not checked. |
 
 ### Summit

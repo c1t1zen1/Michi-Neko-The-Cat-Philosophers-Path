@@ -625,7 +625,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 - [ ] **G-C** Characters merged
 - [ ] **G-S** Hilltop merged
 - [ ] **G-R** Roof Road merged and wired (→ may merge to `main`)
-- [ ] **G-T** Tooling merged
+- [x] **G-T** Tooling merged; cadJS param edit (key-rock size 1.5, Push to game) changed the ?assets=modular shot (maxDelta 166), restoring kit-overrides.json reverted it (maxDelta 0); catalog 49/49, cadJS 16/16 pass
 - [ ] **G-A** Area polish accepted for all three areas
 - [ ] **G-H** Hero images and README merged
 - [ ] **G-FINAL** Fable review passed; operator approves the default flip
@@ -650,11 +650,11 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 2.2 | `v-machiya` | Machiya, components, street (lab 04) | G-V1 | [x] |
 | 2.2 | `v-pagoda` | Distant pagoda (lab 08) | G-V1 | [x] |
 | 2.2 | `v-hidden` | Moon Pool and Lantern Glade (lab 07) | G-V1 | [x] |
-| 2.2 | `v-interiors` | Tea house and secret house interiors (lab 21) | G-V1 | [ ] |
+| 2.2 | `v-interiors` | Tea house and secret house interiors (lab 21) | G-V1 | [x] |
 | 2.3 | `v-ground` | Ground, path, shoulders (lab 01) | G-V2 | [ ] |
 | 2.3 | `v-water` | River, bridge, paddies (lab 02) | G-V2 | [ ] |
 | 2.3 | `v-ranges` | Forest wall, mountains, mist (lab 03) | G-V2 | [x] |
-| 2.3 | `v-sky` | Sky, clouds, cloud shadows, post (lab 05) | G-V2 | [ ] |
+| 2.3 | `v-sky` | Sky, clouds, cloud shadows, post (lab 05) | G-V2 | [x] |
 | 2.3 | `v-weather` | Petals, rain, snow, motes, komorebi (labs 20, 22) | G-V2 | [x] |
 | 2.3 | `v-trees` | Sakura, maple, pine, rim trees (new lab) | G-V2 | [x] |
 | 2.3 | `v-critters` | Koi, birds, butterflies, crows (lab 18) | G-V2 | [x] |
@@ -673,7 +673,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 5 | `r5-roof-cast` | Chidori, Shōki, boatman, hayashi musicians | r1, c1 | [ ] |
 | 5 | `r6-game-wiring` | `RooftopManager`, unlock, save, music (serial) | r2–r5, D3 | [ ] |
 | 6 | `t1-catalog` | `production` variant, swap board, thumbnails | G-V1 | [x] |
-| 6 | `t2-cadjs` | Param panel, AI action, package schema 2 | G-V1 | [ ] |
+| 6 | `t2-cadjs` | Param panel, AI action, package schema 2 | G-V1 | [x] |
 | 6 | `t3-audio` | dawCAT sound hooks for new assets | G-V2 | [x] |
 | 7 | `a1-village` | Village area pass | G-V3, G-C | [ ] |
 | 7 | `a2-hilltop` | Hilltop area pass | G-S | [ ] |

@@ -145,16 +145,17 @@ after the G-V1 material reconciliation: budgets.md section 4.
 valley builds runs of up to about 11 m. Measured through the kit runtime
 (`countScene`, the fence's own builder, real lengths 7.3 / 9.9 / 10.9 / 11.0 m):
 
-| Tier | 3.4 m sample | 11.0 m (longest real run) | Cap |
+| Tier | 3.4 m (old sample) | 11.0 m (longest real run) | Cap |
 |---|---:|---:|---:|
 | hero | 7,504 | 22,638 | 25,000 |
 | mid | 4,200 | **12,660** | 6,000 |
 | far | 192 | 568 | 1,000 |
 
-The mid tier of the longest runs is about 2.1 × its per-asset cap (mid is what
-every valley fence builds at on quality medium). The scene budgets above hold
-with it, so the gate's binding budget is met; the per-asset cap needs an
-Integrator ruling: a `BUDGET_EXCEPTIONS` entry for `bamboo-fence` (as R40 did
-for the groves) or fewer mid rings in the fence culm (a1-village tuning, as
-the v-fences review deferred). The contract sample should become the longest
-run either way (guide §9 L5).
+**Outcome (ruling R51, G-V2 chores):** the contract sample is now the real
+11.0 m run (`src/kit/fences/fence.js`, `sample` `len = 11.0`), so the
+exception is exercised: measured through `kit_contract_test --asset
+bamboo-fence` (hero / mid / far) 22,638 / 12,660 / 568 triangles against
+25,000 / 13,000 (`BUDGET_EXCEPTIONS`) / 1,000. At 11 m the warm build is 8 to
+11 ms on a loaded machine (71 culms, 138 knots), over the 6 / 3 ms allowance,
+so the same exception carries `buildMs: 14` for hero and mid (first build
+only; the valley builds each run once).
