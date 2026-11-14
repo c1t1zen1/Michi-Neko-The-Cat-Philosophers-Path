@@ -4549,7 +4549,7 @@
       "sources": [
         {
           "file": "src/mountaintop.js",
-          "anchor": "enso.name = 'Weathered Enso'"
+          "anchor": "  buildMeditationStone("
         }
       ],
       "coverage": [
@@ -4567,7 +4567,7 @@
       "sources": [
         {
           "file": "src/mountaintop.js",
-          "anchor": "furin.name = 'Summit Furin'"
+          "anchor": "  buildMeditationAtmosphere("
         }
       ],
       "coverage": [
@@ -4585,7 +4585,7 @@
       "sources": [
         {
           "file": "src/mountaintop.js",
-          "anchor": "bridge.name = 'Bay Bridge'"
+          "anchor": "  buildHarbourAndIslands("
         }
       ],
       "coverage": [
@@ -4603,7 +4603,7 @@
       "sources": [
         {
           "file": "src/mountaintop.js",
-          "anchor": "wheel.name = 'Harbour Ferris Wheel'"
+          "anchor": "  buildHarbourAndIslands("
         }
       ],
       "coverage": [
@@ -4621,7 +4621,7 @@
       "sources": [
         {
           "file": "src/mountaintop.js",
-          "anchor": "this.butterflies.name = 'Summit Butterfly Visitors'"
+          "anchor": "  buildAmbientWildlife("
         }
       ],
       "coverage": [
@@ -4639,7 +4639,7 @@
       "sources": [
         {
           "file": "src/mountaintop.js",
-          "anchor": "bird.name = `Summit Fly-by Bird"
+          "anchor": "  buildAmbientWildlife("
         }
       ],
       "coverage": [
