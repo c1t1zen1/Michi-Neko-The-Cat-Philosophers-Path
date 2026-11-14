@@ -15,6 +15,7 @@ import { faceFrame, faceMaterials, buildFace } from './characters/parts/face.js?
 import {
   collarMaterials, buildCollarCord, bellMaterials, buildBell, goldBell
 } from './characters/parts/collar.js?v=20261107a';
+import { buildShadowBlob, updateShadow } from './characters/parts/shadow.js?v=20261107a';
 
 export { catRimUniforms };
 
@@ -60,7 +61,6 @@ const _qWorld = new THREE.Quaternion();
 const _qLocal = new THREE.Quaternion();
 const _dir = new THREE.Vector3();
 
-let _blobTex = null;
 
 export class Cat {
   constructor(options = {}) {
@@ -180,36 +180,11 @@ export class Cat {
   }
 
   buildShadowBlob() {
-    if (!_blobTex) {
-      const blobCanvas = document.createElement('canvas');
-      blobCanvas.width = 64;
-      blobCanvas.height = 64;
-      const bctx = blobCanvas.getContext('2d');
-      const bgrad = bctx.createRadialGradient(32, 32, 4, 32, 32, 31);
-      bgrad.addColorStop(0, 'rgba(20, 12, 6, 0.42)');
-      bgrad.addColorStop(0.6, 'rgba(20, 12, 6, 0.18)');
-      bgrad.addColorStop(1, 'rgba(20, 12, 6, 0)');
-      bctx.fillStyle = bgrad;
-      bctx.fillRect(0, 0, 64, 64);
-      _blobTex = new THREE.CanvasTexture(blobCanvas);
-    }
-    this.blob = new THREE.Mesh(
-      new THREE.CircleGeometry(0.42, 24),
-      new THREE.MeshBasicMaterial({ map: _blobTex, transparent: true, depthWrite: false })
-    );
-    this.blob.rotation.x = -Math.PI / 2;
-    this.blob.position.y = 0.025;
-    this.blob.scale.set(0.85, 1.25, 1);
-    this.blob.renderOrder = 1;
-    this.group.add(this.blob);
+    return buildShadowBlob(this);
   }
 
   updateShadow(heightAboveGround) {
-    if (!this.blob) return;
-    this.blob.position.y = 0.025 - heightAboveGround;
-    const k = THREE.MathUtils.clamp(1 - heightAboveGround * 0.45, 0.35, 1);
-    this.blob.scale.set(0.85 * k, 1.25 * k, 1);
-    this.blob.material.opacity = k;
+    return updateShadow(this, heightAboveGround);
   }
 
   /** Standing at rest: paws under the girdles, tail up in a soft hook. */
