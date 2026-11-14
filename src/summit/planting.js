@@ -23,12 +23,32 @@ export const plantingMethods = {
   // mesh step, mesh*Classic(layout), which builds exactly what it always did.
 
   _tree(x, z, scale, kind, opts) {
+    return plantingMethods.meshTreeClassic.call(this, plantingMethods.layoutTree.call(this, x, z, scale, kind, opts));
+  },
+
+  /**
+   * One rim tree's layout: its stream draws in the classic order (turn, lean,
+   * the canopy, which buildCanopy grows from this.rng, then sway frequency and
+   * phase) and its trunk collider.
+   */
+  layoutTree(x, z, scale, kind, opts) {
+    const ry = this.rng() * Math.PI * 2;
+    // Wind-flagged: mountain trees lean away from the prevailing gusts.
+    const rz = -0.06 - this.rng() * 0.08;
+    const t = opts.trunk;
+    const canopy = buildCanopy(this.rng, Object.assign({ scale, colors: opts.colors, trunkH: t.h, trunkR: t.rTop * 1.15 }, opts.canopy));
+    const sway = { amp: opts.sway || 0.035, freq: 0.8 + this.rng() * 0.6, phase: this.rng() * 6 };
+    const r = (opts.collider || 0.34) * scale;
+    return { x, z, scale, kind, opts, ry, rz, canopy, sway, collider: [x - r, 0, z - r, x + r, 5, z + r] };
+  },
+
+  meshTreeClassic(layout) {
+    const { x, z, scale, kind, opts } = layout;
     const tree = new THREE.Group();
     tree.name = `Summit ${kind} Tree`;
     tree.position.set(x, MEADOW_Y, z);
-    tree.rotation.y = this.rng() * Math.PI * 2;
-    // Wind-flagged: mountain trees lean away from the prevailing gusts.
-    tree.rotation.z = -0.06 - this.rng() * 0.08;
+    tree.rotation.y = layout.ry;
+    tree.rotation.z = layout.rz;
 
     const t = opts.trunk;
     const trunkGeo = new THREE.CylinderGeometry(t.rTop * scale, t.rBot * scale, t.h * scale, 9, 4);
@@ -47,7 +67,7 @@ export const plantingMethods = {
     trunk.castShadow = trunk.receiveShadow = true;
     tree.add(trunk);
 
-    const built = buildCanopy(this.rng, Object.assign({ scale, colors: opts.colors, trunkH: t.h, trunkR: t.rTop * 1.15 }, opts.canopy));
+    const built = layout.canopy;
     const branches = new THREE.Mesh(built.branches, this.MAT.bark);
     branches.castShadow = true;
     tree.add(branches);
@@ -65,62 +85,98 @@ export const plantingMethods = {
     cards.receiveShadow = true;
     crown.add(cards);
     tree.add(crown);
-    this.swayables.push({ node: crown, amp: opts.sway || 0.035, freq: 0.8 + this.rng() * 0.6, phase: this.rng() * 6 });
+    this.swayables.push({ node: crown, amp: layout.sway.amp, freq: layout.sway.freq, phase: layout.sway.phase });
 
     this.group.add(tree);
-    const r = (opts.collider || 0.34) * scale;
-    this.addColliderBox(x - r, 0, z - r, x + r, 5, z + r);
+    this.addColliderBox(...layout.collider);
     return tree;
   },
 
   buildRocksAndTrees() {
+    // Layout: the planting's stream draws in the classic order (each rim
+    // tree's turn, lean, canopy and sway; the back brush, where a gap skips a
+    // bush's remaining draws, as before; each boulder's depth and turn) and
+    // the footprint by the classic arithmetic (trunks, boulders, brow
+    // stones). The brow stones keep their own seed in the mesh step; their
+    // places stay on the manager, where the grass's moss pillows read them.
+    const trees = [];
     // Wind-shaped pines hugging the rim, one lone sakura, two maples —
     // the concept art's big framing tree sits east of the clearing.
-    this._tree(-8.8, -6.4, 1.05, 'needle', {
+    trees.push(plantingMethods.layoutTree.call(this, -8.8, -6.4, 1.05, 'needle', {
       colors: this.colPine, tuftMat: this.matNeedle,
       trunk: { rTop: 0.09, rBot: 0.17, h: 1.9, lean: 0.22 },
       canopy: { primaries: 4, tilt: 1.05, tiltVar: 0.28, droop: 0.12, bend: 0.06, branchLen: 1.45, secondaries: 2, twigs: false, crownFill: 2, clumpR: 0.55, tuftsPerClump: [4, 3, 2], cardsPerClump: [12, 10, 6], cardSize: 0.72, tuftFlat: 0.38, pad: true, lump: 0.3, seed: 37 },
       sway: 0.05
-    });
-    this._tree(8.8, -6.0, 1.0, 'needle', {
+    }));
+    trees.push(plantingMethods.layoutTree.call(this, 8.8, -6.0, 1.0, 'needle', {
       colors: this.colPine, tuftMat: this.matNeedle,
       trunk: { rTop: 0.09, rBot: 0.17, h: 1.9, lean: 0.24 },
       canopy: { primaries: 4, tilt: 1.05, tiltVar: 0.28, droop: 0.12, bend: 0.06, branchLen: 1.45, secondaries: 2, twigs: false, crownFill: 2, clumpR: 0.55, tuftsPerClump: [4, 3, 2], cardsPerClump: [12, 10, 6], cardSize: 0.72, tuftFlat: 0.38, pad: true, lump: 0.3, seed: 37 },
       sway: 0.05
-    });
-    this._tree(-10.1, -1.2, 0.9, 'needle', {
+    }));
+    trees.push(plantingMethods.layoutTree.call(this, -10.1, -1.2, 0.9, 'needle', {
       colors: this.colPine, tuftMat: this.matNeedle,
       trunk: { rTop: 0.09, rBot: 0.17, h: 1.9, lean: 0.2 },
       canopy: { primaries: 4, tilt: 1.05, tiltVar: 0.28, droop: 0.12, bend: 0.06, branchLen: 1.45, secondaries: 2, twigs: false, crownFill: 2, clumpR: 0.55, tuftsPerClump: [4, 3, 2], cardsPerClump: [12, 10, 6], cardSize: 0.72, tuftFlat: 0.38, pad: true, lump: 0.3, seed: 37 },
       sway: 0.05
-    });
+    }));
     // The shade tree over the sitting spot — the reference art's broad
     // green crown, open over the meditation stone and the vista.
-    this._tree(5.35, 6.15, 1.92, 'broadleaf', {
+    trees.push(plantingMethods.layoutTree.call(this, 5.35, 6.15, 1.92, 'broadleaf', {
       colors: this.colLeaf, tuftMat: this.matFoliage,
       trunk: { rTop: 0.2, rBot: 0.38, h: 2.9, lean: -0.13 },
       canopy: { primaries: 8, tilt: 0.78, tiltVar: 0.22, droop: -0.05, bend: 0.15, branchLen: 2.05, secondaries: 3, twigs: true, crownFill: 4, clumpR: 0.58, tuftsPerClump: [4, 3, 2], cardsPerClump: [14, 11, 8], cardSize: 0.78, tuftFlat: 0.64, lump: 0.34, seed: 63 },
       sway: 0.045, collider: 0.48, softShadow: true
-    });
+    }));
     // The leaning sakura on the eastern brow — the framing tree of the vista.
-    this._tree(-8.9, 3.8, 0.95, 'sakura', {
+    trees.push(plantingMethods.layoutTree.call(this, -8.9, 3.8, 0.95, 'sakura', {
       colors: this.colSakura, tuftMat: this.matBlossom,
       trunk: { rTop: 0.13, rBot: 0.22, h: 2.3, lean: 0.16 },
       canopy: { primaries: 6, tilt: 0.9, tiltVar: 0.2, droop: -0.08, bend: 0.14, branchLen: 1.5, secondaries: 2, twigs: true, crownFill: 3, clumpR: 0.4, tuftsPerClump: [3, 3, 2], cardsPerClump: [11, 10, 7], cardSize: 0.6, tuftFlat: 0.72, lump: 0.34, seed: 11 },
       sway: 0.06, collider: 0.4
-    });
-    this._tree(-7.6, -7.8, 0.85, 'maple', {
+    }));
+    trees.push(plantingMethods.layoutTree.call(this, -7.6, -7.8, 0.85, 'maple', {
       colors: this.colMaple, tuftMat: this.matFoliage,
       trunk: { rTop: 0.11, rBot: 0.2, h: 2.0, lean: 0.12 },
       canopy: { primaries: 5, tilt: 1.02, tiltVar: 0.18, droop: 0.05, bend: 0.1, branchLen: 1.3, secondaries: 2, twigs: true, crownFill: 2, clumpR: 0.36, tuftsPerClump: [3, 2, 2], cardsPerClump: [10, 9, 6], cardSize: 0.58, tuftFlat: 0.5, lump: 0.3, seed: 23 },
       sway: 0.055
-    });
-    this._tree(7.5, -7.6, 0.82, 'maple', {
+    }));
+    trees.push(plantingMethods.layoutTree.call(this, 7.5, -7.6, 0.82, 'maple', {
       colors: this.colMaple, tuftMat: this.matFoliage,
       trunk: { rTop: 0.11, rBot: 0.2, h: 2.0, lean: 0.12 },
       canopy: { primaries: 5, tilt: 1.02, tiltVar: 0.18, droop: 0.05, bend: 0.1, branchLen: 1.3, secondaries: 2, twigs: true, crownFill: 2, clumpR: 0.36, tuftsPerClump: [3, 2, 2], cardsPerClump: [10, 9, 6], cardSize: 0.58, tuftFlat: 0.5, lump: 0.3, seed: 23 },
       sway: 0.055
-    });
+    }));
+
+    const brush = [];
+    for (let i = 0; i < 36 && brush.length < 30; i++) {
+      const x = -10.4 + i * 0.62 + (this.rng() - 0.5) * 0.45;
+      if (Math.abs(x + 1.2) < 0.75 || Math.abs(x - 4.2) < 0.65) continue;
+      const z = -8.1 - Math.abs(x) * 0.13 + (this.rng() - 0.5) * 0.7;
+      const s = 0.55 + this.rng() * 0.65;
+      const scale = [s * (0.85 + this.rng() * 0.35), s * (0.65 + this.rng() * 0.45), s];
+      brush.push({ x, z, s, scale, ry: this.rng() * Math.PI * 2 });
+    }
+    const rockDefs = [
+      [8.8, 5.8, 1.0, 0.45], [-8.7, 6.2, 0.85, 0.42],
+      [-9.4, -3.6, 0.9, 0.48], [9.1, -2.8, 0.8, 0.42],
+      [-5.8, -8.4, 0.72, 0.38], [5.4, -8.6, 0.75, 0.36],
+      [5.7, 1.9, 0.55, 0.3], [-4.6, 3.2, 0.5, 0.28]
+    ];
+    const rocks = rockDefs.map(([x, z, s, h]) => ({ x, z, s, h, sz: s * (0.8 + this.rng() * 0.4), ry: this.rng() * Math.PI * 2 }));
+    this.browStones = [[7.8, 9.0, 1.05], [-8.6, 8.1, 0.9], [-10.9, 3.4, 1.15],
+      [11.0, 1.4, 0.95], [-6.4, -9.9, 1.1], [3.6, -11.3, 0.85], [-11.6, -3.0, 0.8]];
+    const colliders = [
+      ...trees.map((t) => t.collider),
+      ...rocks.map(({ x, z, s, h }) => { const cr = s * 0.85; return [x - cr, 0, z - cr, x + cr, s * h, z + cr]; }),
+      ...this.browStones.map(([x, z, s]) => { const cr = s * 0.9; return [x - cr, 0, z - cr, x + cr, s * 0.5, z + cr]; })
+    ];
+    const layout = { index: 0, x: 0, y: 0, z: 0, trees, brush, rocks, footprint: summitFootprint(colliders), bind: { backBrush: 'brush' } };
+    return this.placeAsset('summit-trees', layout, () => plantingMethods.meshRocksAndTreesClassic.call(this, layout));
+  },
+
+  meshRocksAndTreesClassic(layout) {
+    for (const tree of layout.trees) plantingMethods.meshTreeClassic.call(this, tree);
 
     // Low brush closes the rear of the clearing without becoming a wall:
     // irregular gaps between the crowns keep strips of open sky visible.
@@ -129,14 +185,10 @@ export const plantingMethods = {
     const brush = new THREE.InstancedMesh(brushGeo, brushMat, 30);
     const brushDummy = new THREE.Object3D();
     let brushCount = 0;
-    for (let i = 0; i < 36 && brushCount < 30; i++) {
-      const x = -10.4 + i * 0.62 + (this.rng() - 0.5) * 0.45;
-      if (Math.abs(x + 1.2) < 0.75 || Math.abs(x - 4.2) < 0.65) continue;
-      const z = -8.1 - Math.abs(x) * 0.13 + (this.rng() - 0.5) * 0.7;
-      const s = 0.55 + this.rng() * 0.65;
+    for (const { x, z, s, scale, ry } of layout.brush) {
       brushDummy.position.set(x, MEADOW_Y + s * 0.42, z);
-      brushDummy.scale.set(s * (0.85 + this.rng() * 0.35), s * (0.65 + this.rng() * 0.45), s);
-      brushDummy.rotation.set(0, this.rng() * Math.PI * 2, 0);
+      brushDummy.scale.set(scale[0], scale[1], scale[2]);
+      brushDummy.rotation.set(0, ry, 0);
       brushDummy.updateMatrix();
       brush.setMatrixAt(brushCount++, brushDummy.matrix);
     }
@@ -149,17 +201,11 @@ export const plantingMethods = {
     // Boulders: a few sitting stones in the meadow, a broken ledge line
     // along the vista rim, clusters guarding the stair mouth.
     const rockGeo = lumpyTuftGeometry(1, 71, 0.42);
-    const rockDefs = [
-      [8.8, 5.8, 1.0, 0.45], [-8.7, 6.2, 0.85, 0.42],
-      [-9.4, -3.6, 0.9, 0.48], [9.1, -2.8, 0.8, 0.42],
-      [-5.8, -8.4, 0.72, 0.38], [5.4, -8.6, 0.75, 0.36],
-      [5.7, 1.9, 0.55, 0.3], [-4.6, 3.2, 0.5, 0.28]
-    ];
-    for (const [x, z, s, h] of rockDefs) {
+    for (const { x, z, s, h, sz, ry } of layout.rocks) {
       const rock = new THREE.Mesh(rockGeo, this.MAT.stone);
-      rock.scale.set(s, s * h, s * (0.8 + this.rng() * 0.4));
+      rock.scale.set(s, s * h, sz);
       rock.position.set(x, MEADOW_Y + s * h * 0.32, z);
-      rock.rotation.y = this.rng() * Math.PI * 2;
+      rock.rotation.y = ry;
       rock.castShadow = rock.receiveShadow = true;
       this.group.add(rock);
       const cr = s * 0.85;
@@ -170,8 +216,6 @@ export const plantingMethods = {
     // kept out of the perch's view window so none of them sits on the city.
     // Their own seed leaves this.rng, and everything drawn after, untouched.
     const browRnd = mulberry32(7719);
-    this.browStones = [[7.8, 9.0, 1.05], [-8.6, 8.1, 0.9], [-10.9, 3.4, 1.15],
-      [11.0, 1.4, 0.95], [-6.4, -9.9, 1.1], [3.6, -11.3, 0.85], [-11.6, -3.0, 0.8]];
     for (const [x, z, s] of this.browStones) {
       const rock = new THREE.Mesh(rockGeo, this.MAT.stone);
       rock.scale.set(s * 1.2, s * (0.42 + browRnd() * 0.16), s * (0.85 + browRnd() * 0.3));

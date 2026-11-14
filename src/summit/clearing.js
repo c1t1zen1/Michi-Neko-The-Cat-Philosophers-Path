@@ -72,6 +72,28 @@ export const clearingMethods = {
   },
 
   buildStepsAndGate() {
+    // Layout: no stream draws. The footprint is the classic registration, by
+    // the same arithmetic: seven tread platforms, the landing, the two pillars.
+    const platforms = [];
+    for (let i = 0; i < STEP_COUNT; i++) {
+      const z0 = CORRIDOR_Z0 + i * STEP_RUN;
+      const top = approachTopAt(z0);
+      const width = 5.7 - i * 0.09;
+      platforms.push([-width * 0.5, top, z0, width * 0.5, top - 0.5, z0 + STEP_RUN]);
+    }
+    platforms.push([-2.62, ENTRY_Y, LANDING_Z0, 2.62, ENTRY_Y - 0.65, CORRIDOR_Z1 + 0.35]);
+    const colliders = [-1, 1].map((side) => {
+      const pillarX = side * 1.8 * 0.56;
+      return [pillarX - 0.27, ENTRY_Y, GATE_Z - 0.27, pillarX + 0.27, ENTRY_Y + 3.86, GATE_Z + 0.27];
+    });
+    const layout = {
+      index: 0, name: 'Playable Ocean Torii Approach', x: 0, y: 0, z: 0,
+      footprint: summitFootprint(colliders, platforms), bind: { vistaApproach: 'approach', torii: 'torii' }
+    };
+    return this.placeAsset('summit-entry', layout, () => clearingMethods.meshStepsAndGateClassic.call(this, layout));
+  },
+
+  meshStepsAndGateClassic(layout) {
     const approach = new THREE.Group();
     approach.name = 'Playable Ocean Torii Approach';
 
@@ -338,10 +360,35 @@ export const clearingMethods = {
   },
 
   buildMeditationStone() {
+    // Layout: no stream draws. Three routed parts in the classic order: the
+    // perch stone, the ensō, the path stones (meditation-stone covers the two
+    // stone parts). The path's clearances stay on the manager, where the
+    // grass mask reads them in both sets; the stones share one geometry.
+    const pathDefs = [
+      [0.15, 7.72, 0.48, 0.36, -0.15],
+      [0.62, 6.78, 0.43, 0.33, 0.22],
+      [1.22, 5.88, 0.46, 0.34, -0.28],
+      [1.94, 5.02, 0.42, 0.32, 0.34],
+      [2.64, 4.2, 0.4, 0.3, -0.08]
+    ];
+    this.meditationPath = pathDefs.map(([x, z, sx, sz]) => ({ x, z, clearance: Math.max(sx, sz) * 1.12 }));
+    const shared = { geo: null };
+    const stone = {
+      index: 0, name: 'Perch-side Warm Stone', x: 5.25, y: MEADOW_Y + 0.065, z: 3.95, ry: 0.48,
+      footprint: summitFootprint(), bind: { perchStone: 'stone' }
+    };
+    this.placeAsset('meditation-stone', stone, () => clearingMethods.meshMeditationStoneClassic.call(this, stone, shared));
+    const enso = { index: 0, name: 'Weathered Enso', x: 5.25, y: MEADOW_Y + 0.15, z: 3.95, footprint: summitFootprint() };
+    this.placeAsset('summit-enso', enso, () => clearingMethods.meshEnsoClassic.call(this, enso));
+    const path = { index: 1, x: 0, y: 0, z: 0, stones: pathDefs, footprint: summitFootprint() };
+    return this.placeAsset('meditation-stone', path, () => clearingMethods.meshMeditationPathClassic.call(this, path, shared));
+  },
+
+  meshMeditationStoneClassic(layout, shared) {
     // A low warm stone beside the grassy sitting place. It sits off the main
     // view axis so it frames the cat instead of becoming a dark centre-screen
     // blob in the scenic camera.
-    const geo = lumpyTuftGeometry(2, 91, 0.22);
+    const geo = shared.geo = shared.geo || lumpyTuftGeometry(2, 91, 0.22);
     const stone = new THREE.Mesh(geo, this.MAT.stoneWarm);
     stone.scale.set(0.52, 0.14, 0.46);
     stone.position.set(5.25, MEADOW_Y + 0.065, 3.95);
@@ -350,7 +397,10 @@ export const clearingMethods = {
     stone.name = 'Perch-side Warm Stone';
     this.group.add(stone);
     this.perchStone = stone;
+    return stone;
+  },
 
+  meshEnsoClassic(layout) {
     // A weather-softened ensō makes the stone feel placed with intention. It
     // stays decorative, as do the path stones below, so physics remains on the
     // shared grass plane and the cat never bumps over invisible ledges.
@@ -365,17 +415,14 @@ export const clearingMethods = {
     enso.position.set(5.25, MEADOW_Y + 0.15, 3.95);
     enso.name = 'Weathered Enso';
     this.group.add(enso);
+    return enso;
+  },
 
+  meshMeditationPathClassic(layout, shared) {
     // Five half-buried stones curve naturally from the top tread to the
     // sitting place. This is guidance made from landscape rather than UI.
-    const defs = [
-      [0.15, 7.72, 0.48, 0.36, -0.15],
-      [0.62, 6.78, 0.43, 0.33, 0.22],
-      [1.22, 5.88, 0.46, 0.34, -0.28],
-      [1.94, 5.02, 0.42, 0.32, 0.34],
-      [2.64, 4.2, 0.4, 0.3, -0.08]
-    ];
-    this.meditationPath = [];
+    const geo = shared.geo = shared.geo || lumpyTuftGeometry(2, 91, 0.22);
+    const defs = layout.stones;
     for (let i = 0; i < defs.length; i++) {
       const [x, z, sx, sz, rot] = defs[i];
       const step = new THREE.Mesh(geo, this.MAT.stoneWarm);
@@ -385,7 +432,6 @@ export const clearingMethods = {
       step.receiveShadow = true;
       step.name = `Meditation Path Stone ${i + 1}`;
       this.group.add(step);
-      this.meditationPath.push({ x, z, clearance: Math.max(sx, sz) * 1.12 });
     }
   },
 
@@ -431,22 +477,11 @@ export const clearingMethods = {
    * or prompt over the view.
    */
   buildMeditationAtmosphere() {
-    const poolMat = new THREE.MeshBasicMaterial({
-      map: glowTexture(255, 226, 154, 64), color: 0xffdfa0,
-      transparent: true, opacity: 0.035, depthWrite: false,
-      blending: THREE.AdditiveBlending, side: THREE.DoubleSide
-    });
-    const pool = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 5.2), poolMat);
-    pool.rotation.x = -Math.PI / 2;
-    pool.position.set(this.perchLocal.x, MEADOW_Y + 0.024, this.perchLocal.z);
-    pool.renderOrder = 2;
-    pool.name = 'Meditation Sun Pool';
-    this.group.add(pool);
-    this.meditationPool = pool;
-    this.meditationPoolMat = poolMat;
-
+    // Layout: the motes' stream draws in the classic order (anchor, then
+    // phase, speed and range per mote); anchors and seeds stay on the
+    // manager, where update() reads them in both sets. Two routed parts in
+    // the classic order: the sun pool with the motes, then the fūrin.
     const count = this.previewQuality ? 22 : 54;
-    const geo = new THREE.BufferGeometry();
     const positions = new Float32Array(count * 3);
     this._meditationMoteAnchors = new Float32Array(count * 3);
     this._meditationMoteSeeds = new Float32Array(count * 3);
@@ -463,6 +498,36 @@ export const clearingMethods = {
       this._meditationMoteSeeds[i * 3 + 1] = 0.3 + this.rng() * 0.65;
       this._meditationMoteSeeds[i * 3 + 2] = 0.14 + this.rng() * 0.34;
     }
+    const atmosphere = {
+      index: 0, name: 'Meditation Sun Pool', x: this.perchLocal.x, y: MEADOW_Y + 0.024, z: this.perchLocal.z,
+      positions, footprint: summitFootprint(), bind: { meditationPool: 'pool', meditationMotes: 'motes' }
+    };
+    this.placeAsset('meditation-atmosphere', atmosphere,
+      () => clearingMethods.meshMeditationAtmosphereClassic.call(this, atmosphere));
+    const furin = {
+      index: 0, name: 'Summit Furin', x: 4.55, y: 3.75, z: 5.1, footprint: summitFootprint(),
+      bind: { furin: 'bell', furinSail: 'sail', furinClapper: 'clapper' }
+    };
+    return this.placeAsset('summit-furin', furin, () => clearingMethods.meshFurinClassic.call(this, furin));
+  },
+
+  meshMeditationAtmosphereClassic(layout) {
+    const poolMat = new THREE.MeshBasicMaterial({
+      map: glowTexture(255, 226, 154, 64), color: 0xffdfa0,
+      transparent: true, opacity: 0.035, depthWrite: false,
+      blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+    });
+    const pool = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 5.2), poolMat);
+    pool.rotation.x = -Math.PI / 2;
+    pool.position.set(this.perchLocal.x, MEADOW_Y + 0.024, this.perchLocal.z);
+    pool.renderOrder = 2;
+    pool.name = 'Meditation Sun Pool';
+    this.group.add(pool);
+    this.meditationPool = pool;
+    this.meditationPoolMat = poolMat;
+
+    const geo = new THREE.BufferGeometry();
+    const positions = layout.positions;
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     this.meditationMoteMat = new THREE.PointsMaterial({
       map: glowTexture(255, 239, 181, 40), color: 0xffe9b2,
@@ -474,7 +539,9 @@ export const clearingMethods = {
     this.meditationMotes.name = 'Meditation Light Motes';
     this.meditationMotes.visible = false;
     this.group.add(this.meditationMotes);
+  },
 
+  meshFurinClassic(layout) {
     // A small Edo-style glass wind bell hangs from the old shade tree. Its
     // paper strip makes even a light gust readable from the seated camera.
     const furin = new THREE.Group();
