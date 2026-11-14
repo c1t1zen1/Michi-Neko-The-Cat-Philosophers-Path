@@ -290,3 +290,43 @@ export function buildDrawScene() {
     }
   };
 }
+
+/* ============ 06 · time of day (aerial perspective shift) ============ */
+
+export function buildTimeOfDayBench() {
+  const scene = new THREE.Scene();
+  const rig = miniRig(scene, 16);
+  const field = new CloudField();
+  const air = new Air(field);
+  const cam = new THREE.PerspectiveCamera(40, 1.6, 0.1, 1200);
+  cam.position.set(0, 6, 60);
+  const look = new THREE.Vector3(0, 18, -200);
+  floor(scene, 0x5d8442, -0.4);
+  const rows = [];
+  const specs = [
+    { z: -46, h: 16, w: 190, mist: 0.04, c: [0x33502c, 0x53793f] },
+    { z: -110, h: 34, w: 300, mist: 0.1, c: [0x2f4c32, 0x4f7143] },
+    { z: -200, h: 56, w: 420, mist: 0.16, c: [0x34495a, 0x54667e] },
+    { z: -330, h: 82, w: 560, mist: 0.22, c: [0x3c4e68, 0x5f718c] }
+  ];
+  for (const s of specs) {
+    const geo = friezeGeometry((u) => profileHeight('valley-mid', u), { width: s.w, height: s.h, depth: 14, jitter: 0.05, seed: s.z });
+    const mat = air.rangeMaterial({ dist: Math.abs(s.z), foot: s.c[0], crown: s.c[1], rock: 0x6a6a70, footMist: s.mist });
+    const m = new THREE.Mesh(geo, mat);
+    m.position.z = s.z;
+    scene.add(m); rows.push(m);
+  }
+  let veil = 1;
+  return {
+    scene, camera: cam, air, rig, rows,
+    setHour(h) { rig.setHour(h); },
+    setVeil(k) {
+      veil = k;
+      for (const m of rows) m.material.uniforms.uFogT.value = Math.min(0.97, m.material.userData.fogT0 * k);
+    },
+    update(dt, t) {
+      field.update(dt); air.update(rig);
+      cam.lookAt(look);
+    }
+  };
+}
