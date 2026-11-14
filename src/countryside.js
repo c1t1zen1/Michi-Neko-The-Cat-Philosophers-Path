@@ -837,6 +837,18 @@ export class Countryside {
   }
 
   buildRipplePool() {
+    const layout = this.layoutRipplePool();
+    return this.placeAsset('water-ripples', layout, () => this.meshRipplePoolClassic(layout));
+  }
+
+  /** 24 shared ripple rings (parts ring_1 … ring_24) that spawnRipple() recycles. */
+  layoutRipplePool() {
+    const ripples = [];
+    for (let i = 0; i < 24; i++) ripples.push({ mesh: part(`ring_${i + 1}`), age: 0, life: 0, strength: 1 });
+    return { index: this.nextIndex('water-ripples'), count: 24, footprint: footprint({ lists: { ripples } }) };
+  }
+
+  meshRipplePoolClassic(layout) {
     const mat = new THREE.MeshBasicMaterial({
       color: 0xf2fbf7,
       transparent: true,
@@ -845,7 +857,7 @@ export class Countryside {
       side: THREE.DoubleSide
     });
     const geo = new THREE.RingGeometry(0.68, 1, 28);
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < layout.count; i++) {
       const ring = new THREE.Mesh(geo, mat.clone());
       ring.name = `Ripple Ring ${i + 1}`;
       ring.rotation.x = -Math.PI / 2;
