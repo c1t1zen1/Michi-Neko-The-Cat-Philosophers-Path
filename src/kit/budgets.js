@@ -55,6 +55,15 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
     why: '11 m valley runs build 12,660 mid tris (contract sample 3.4 m); ruling R51; a1-village lightens the mid tier and removes this'
   },
   'tea-interior': { hero: { meshes: 34, materials: 12, buildMs: 9 }, mid: { triangles: 9500, meshes: 34, materials: 12, buildMs: 6 }, far: { triangles: 3000, meshes: 24, materials: 11, buildMs: 5 }, why: 'the whole room as one asset (every classic sub-part plus courtyard, andon and toro); far is not a real LOD, the room is only seen from inside' },
+  // whole buildings (ruling R52); measured with kit_contract_test --family machiya
+  'tea-house': {
+    hero: { materials: 8, buildMs: 12 }, mid: { materials: 5 },
+    why: 'a whole building: plaster x2, roof tile, shoji, namako skirt, kit bag, reused bamboo-fence (8 hero / 5 mid); classic is 5 box materials in ~40 meshes'
+  },
+  'residence': {
+    hero: { materials: 8, buildMs: 12 }, mid: { materials: 5 },
+    why: 'a whole building: plaster x2, roof tile, shoji, namako skirt, kit bag, reused bamboo-fence (8 hero / 5 mid); classic is 5 box materials'
+  },
   // 'tea-house': { hero: { triangles: 40000, meshes: 40 }, why: 'a whole building with interior-facing walls' }
   // v-hidden: the two wholes are whole clearings (see docs/fable/handoff/v-hidden.md for measured numbers)
   'moon-pool': {
