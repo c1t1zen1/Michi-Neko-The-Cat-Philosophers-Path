@@ -2064,37 +2064,60 @@ export class Countryside {
 
   // --- 2. Kyoto Craftsman Machiya with Engawa & Shishi-odoshi ---
   buildMachiyaResidence(x, z, rotY) {
+    const layout = this.layoutMachiyaResidence(x, z, rotY);
+    return this.placeAsset('residence', layout, () => this.meshMachiyaResidenceClassic(layout));
+  }
+
+  layoutMachiyaResidence(x, z, rotY) {
+    const H = frameOf(null, x, 0, z, 0, rotY, 0);
+    const kit = (id, layout, mesh, attach, at) => component(id, Object.assign(layout, at), mesh, attach);
+    return {
+      index: this.nextIndex('residence'), name: 'Machiya Residence', x, z, ry: rotY,
+      footprint: footprint({
+        platforms: [
+          // the engawa deck (world box), the lower eave ring, the roof slopes
+          new THREE.Box3(new THREE.Vector3(x - 4.4, 0, z + 2.2), new THREE.Vector3(x + 4.4, 0.55, z + 4.0)),
+          { oriented: [{ minX: -4.5, maxX: 4.5, minZ: -3.1, maxZ: 3.3 }, 2.53] },
+          { sloped: [4.2, 7.6, 4.8, 1.4, 0.7] }
+        ],
+        colliders: [...buildingWallBoxes(H, 8.0, 5.0, 2.4, 0).boxes, ...buildingWallBoxes(H, 7.0, 4.2, 1.8, 2.4).boxes]
+      }),
+      // in the order the house places them
+      components: [
+        component('timber-frame', this.layoutTimberFrame(8.2, 5.2, 0.28, [-3.8, 0, 3.8], [-2.4, 2.4]), 'meshTimberFrameClassic', 'parent'),
+        kit('koushi', this.layoutKoushi(2.4, 1.8, 11), 'meshKoushiClassic', 'caller', { x: -1.8, y: 1.2, z: 2.54 }),
+        kit('koushi', this.layoutKoushi(2.4, 1.8, 11), 'meshKoushiClassic', 'caller', { x: 1.8, y: 1.2, z: 2.54 }),
+        kit('engawa', this.layoutEngawa(8.2, 1.4, 0.42), 'meshEngawaClassic', 'caller', { z: 3.1 }),
+        kit('upper-windows', this.layoutKoushi(4.0, 1.0, 16, MAT.timberDark, 'upper-windows'), 'meshKoushiClassic', 'caller', { y: 3.4, z: 2.12 }),
+        kit('kawara-roof', this.layoutKawaraRoof(7.6, 4.8, 1.4, 0.7), 'meshKawaraRoofClassic', 'caller', { y: 4.2 }),
+        component('chochin', this.layoutChochinLantern(0, 2.3, 2.9), 'meshChochinLanternClassic', 'parent'),
+        component('shishi', this.layoutShishiOdoshi(2.8, 0, 4.4), 'meshShishiOdoshiClassic', 'parent'),
+        component('crates', this.layoutClimbCrates(-5.6, 0, 0, Math.PI / 2, H), 'meshClimbCratesClassic', 'parent')
+      ]
+    };
+  }
+
+  meshMachiyaResidenceClassic(layout) {
+    const { x, z, ry: rotY } = layout;
+    const [frame, koushiL, koushiR, engawa, upperLattice, roof, lantern, shishi, crates] = layout.components;
     const house = new THREE.Group();
     house.name = 'Machiya Residence';
 
     // Ground Floor: 8.0m wide, 5.0m deep
     const groundFloor = box(8.0, 2.4, 5.0, MAT.plasterWarm, 0, 1.2, 0);
     house.add(groundFloor);
-    house.add(box(8.2, 0.3, 5.2, MAT.timberDark, 0, 0.15, 0));
-    house.add(box(8.2, 0.2, 5.2, MAT.timberDark, 0, 2.4, 0));
-
-    // Corner and mid Hashira posts
-    for (const sx of [-1, 0, 1]) {
-      for (const sz of [-1, 1]) {
-        house.add(box(0.28, 2.5, 0.28, MAT.timberDark, sx * 3.8, 1.25, sz * 2.4));
-      }
-    }
+    // Sill, eave beam, corner and mid Hashira posts
+    this.placeComponent(frame, house);
 
     // Front Sliding Shoji Lattice Doors
     house.add(box(2.4, 1.8, 0.08, MAT.shoji, -1.8, 1.2, 2.52));
-    const koushiL = this.createKoushi(2.4, 1.8, 11);
-    koushiL.position.set(-1.8, 1.2, 2.54);
-    house.add(koushiL);
+    this.placeComponent(koushiL, house);
 
     house.add(box(2.4, 1.8, 0.08, MAT.shoji, 1.8, 1.2, 2.52));
-    const koushiR = this.createKoushi(2.4, 1.8, 11);
-    koushiR.position.set(1.8, 1.2, 2.54);
-    house.add(koushiR);
+    this.placeComponent(koushiR, house);
 
     // Front Engawa Veranda wrapping the garden side
-    const frontEngawa = this.createEngawa(8.2, 1.4, 0.42);
-    frontEngawa.position.set(0, 0, 3.1);
-    house.add(frontEngawa);
+    this.placeComponent(engawa, house);
     this.addPlatform(new THREE.Box3(
       new THREE.Vector3(x - 4.4, 0, z + 2.2),
       new THREE.Vector3(x + 4.4, 0.55, z + 4.0)
@@ -2103,23 +2126,19 @@ export class Countryside {
     // Upper Floor
     const upperFloor = box(7.0, 1.8, 4.2, MAT.plaster, 0, 3.3, 0);
     house.add(upperFloor);
-    const upperLattice = this.createKoushi(4.0, 1.0, 16);
-    upperLattice.position.set(0, 3.4, 2.12);
-    house.add(upperLattice);
+    this.placeComponent(upperLattice, house);
 
     // Lower eave & Main Roof
     const lowerRoof = box(9.0, 0.16, 6.2, MAT.roofTile, 0, 2.45, 0.2);
     house.add(lowerRoof);
 
-    const mainRoof = this.createKawaraRoof(7.6, 4.8, 1.4, 0.7);
-    mainRoof.position.y = 4.2;
-    house.add(mainRoof);
+    this.placeComponent(roof, house);
 
     // Chochin lantern
-    this.createChochinLantern(0, 2.3, 2.9, house);
+    this.placeComponent(lantern, house);
 
     // Interactive Shishi-odoshi (Bamboo clacker water fountain) in front garden
-    this.buildShishiOdoshi(2.8, 0, 4.4, house);
+    this.placeComponent(shishi, house);
 
     house.position.set(x, 0, z);
     house.rotation.y = rotY;
@@ -2128,7 +2147,7 @@ export class Countryside {
     this.addSlopedRoofPlatforms(house, 4.2, 7.6, 4.8, 1.4, 0.7);
     // Side climbing crates — placed AFTER scene attach so platform boxes
     // resolve in world space (rotated parent house group).
-    this.createClimbCrates(-5.6, 0, 0, house, Math.PI / 2);
+    this.placeComponent(crates, house);
     this.addBuildingWallColliders(house, 8.0, 5.0, 2.4, 0);
     this.addBuildingWallColliders(house, 7.0, 4.2, 1.8, 2.4);
   }
