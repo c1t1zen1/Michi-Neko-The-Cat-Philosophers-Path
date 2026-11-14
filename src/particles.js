@@ -1,9 +1,21 @@
 ﻿import * as THREE from 'three';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261107a';
+
+// Asset routing (BUILD_GUIDE_FABLE §3.4, Integrator rulings R12 / R18): each
+// system runs a layout step (its Math.random() spawn draws, in the original
+// order — runtime effects keep their classic randomness exactly) and routes
+// its classic mesh step through placeAsset(). The spawn arrays are layout
+// data the classic update() drives; a kit system binds its `points` (or
+// `lines`) part to the same handle, so the same simulation moves it.
 
 export class Particles {
   constructor(scene, options = {}) {
     this.scene = scene;
+    // The kit runtime (main.js hands it in); without one the classic builders
+    // run. Particles build with their own materials: no table to scope with.
+    this.assets = scopeAssets(options.assets, {});
     this.time = 0;
+    this.godRays = [];
     this.buildPetals();
     this.buildFireflies();
     this.buildMotes();
@@ -12,6 +24,32 @@ export class Particles {
     this.buildRain();
     this.buildGodRays();
     this.setBudget(1);
+  }
+
+  /**
+   * Classic: `classicFn()` builds the system. Kit: the instance's group goes
+   * into the scene at the layout's place, its footprint (by default the
+   * layout's) is registered through registerFootprint(), and the handles
+   * named in `layout.bind` come from its parts.
+   */
+  placeAsset(id, layout, classicFn, parent = this.scene) {
+    const out = (this.assets || CLASSIC_ASSETS).build(id, layout, classicFn);
+    if (!isAssetInstance(out)) return out;
+    const g = out.group;
+    if (layout.x !== undefined) g.position.set(layout.x, layout.y || 0, layout.z || 0);
+    if (layout.ry) g.rotation.y = layout.ry;
+    parent.add(g);
+    this.registerFootprint(out.footprint || layout.footprint, g);
+    for (const [field, part] of Object.entries(layout.bind || {})) {
+      this[field] = (out.parts && out.parts[part]) || (out.sockets && out.sockets[part]) || null;
+    }
+    return out;
+  }
+
+  /** `godRays` entries become the records updateGodRays() drives (`mesh` is the card). */
+  registerFootprint(fp, mesh) {
+    if (!fp) return;
+    for (const r of fp.godRays || []) this.godRays.push({ mesh, baseX: r.baseX, phase: r.phase, w: r.w });
   }
 
   /**
@@ -72,6 +110,31 @@ export class Particles {
    * the canopy rather than sitting flat on it.
    */
   buildGodRays() {
+    const layout = this.layoutGodRays();
+    const tex = this.godRayTexture();
+    this.godRays = [];
+    for (const ray of layout.rays) this.placeAsset('god-rays', ray, () => this.meshGodRayClassic(ray, tex));
+    return layout;
+  }
+
+  /** Twelve shafts: [x, z, height, width] and each card's starting turn and breathing phase. */
+  layoutGodRays() {
+    // [x, z, height, width] around groves, torii approach, and river willows
+    const spots = [
+      [2.2, -19.5, 12, 3.2], [-9.5, -25, 11, 2.6], [8.5, -28, 12, 3.0],
+      [-11.5, -3.5, 9, 2.2], [6, 11, 9, 2.4], [-7, 9, 8, 2.0],
+      [29, -19, 13, 3.6], [31, -22, 11, 2.8], [-31, -13, 12, 3.2],
+      [24, 13.5, 9, 2.2], [-7, 31, 8, 2.6], [15, 31.5, 9, 2.4]
+    ];
+    const rays = spots.map(([x, z, h, w], i) => {
+      const ry = Math.random() * Math.PI;
+      const phase = Math.random() * 6.28;
+      return { index: i, name: `God Ray ${i + 1}`, x, y: h * 0.5, z, ry, height: h, width: w, footprint: { godRays: [{ baseX: x, phase, w }] } };
+    });
+    return { rays };
+  }
+
+  godRayTexture() {
     const c = document.createElement('canvas');
     c.width = 32;
     c.height = 128;
@@ -93,34 +156,27 @@ export class Particles {
     ctx.fillRect(0, 0, 32, 128);
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
 
-    // [x, z, height, width] around groves, torii approach, and river willows
-    const spots = [
-      [2.2, -19.5, 12, 3.2], [-9.5, -25, 11, 2.6], [8.5, -28, 12, 3.0],
-      [-11.5, -3.5, 9, 2.2], [6, 11, 9, 2.4], [-7, 9, 8, 2.0],
-      [29, -19, 13, 3.6], [31, -22, 11, 2.8], [-31, -13, 12, 3.2],
-      [24, 13.5, 9, 2.2], [-7, 31, 8, 2.6], [15, 31.5, 9, 2.4]
-    ];
-    this.godRays = [];
-    let rayIdx = 0;
-    for (const [x, z, h, w] of spots) {
-      const mat = new THREE.MeshBasicMaterial({
-        map: tex,
-        transparent: true,
-        opacity: 0,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-        fog: false
-      });
-      const card = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
-      card.name = `God Ray ${++rayIdx}`;
-      card.position.set(x, h * 0.5, z);
-      card.rotation.y = Math.random() * Math.PI;
-      card.renderOrder = 3;
-      this.scene.add(card);
-      this.godRays.push({ mesh: card, baseX: x, phase: Math.random() * 6.28, w });
-    }
+  meshGodRayClassic(L, tex) {
+    const mat = new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      fog: false
+    });
+    const card = new THREE.Mesh(new THREE.PlaneGeometry(L.width, L.height), mat);
+    card.name = L.name;
+    card.position.set(L.x, L.y, L.z);
+    card.rotation.y = L.ry;
+    card.renderOrder = 3;
+    this.scene.add(card);
+    this.registerFootprint(L.footprint, card);
+    return card;
   }
 
   updateGodRays(dt, sky, playerPos) {
@@ -142,22 +198,35 @@ export class Particles {
 
   /** Rain streaks: vertical line segments that follow the player. */
   buildRain() {
+    const layout = this.layoutRain();
+    this.rainCount = layout.count;
+    this.rainSeeds = layout.seeds;
+    const out = this.placeAsset('rain', layout, () => this.meshRainClassic(layout));
+    if (isAssetInstance(out) && this.rain) this.rainMat = this.rain.material;
+    return out;
+  }
+
+  /** Each streak: seed, fall speed, length scale, then where it starts (two vertices, 0.4 m apart). */
+  layoutRain() {
     const count = 1100;
-    this.rainCount = count;
-    const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 2 * 3);
-    this.rainSeeds = new Float32Array(count * 3);
+    const seeds = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      this.rainSeeds[i * 3] = Math.random() * 100;
-      this.rainSeeds[i * 3 + 1] = 17 + Math.random() * 9;      // fall speed m/s
-      this.rainSeeds[i * 3 + 2] = 0.55 + Math.random() * 0.45; // streak length scale
+      seeds[i * 3] = Math.random() * 100;
+      seeds[i * 3 + 1] = 17 + Math.random() * 9;      // fall speed m/s
+      seeds[i * 3 + 2] = 0.55 + Math.random() * 0.45; // streak length scale
       const x = (Math.random() - 0.5) * 44;
       const y = Math.random() * 16;
       const z = (Math.random() - 0.5) * 44;
       pos[i * 6] = x; pos[i * 6 + 1] = y; pos[i * 6 + 2] = z;
       pos[i * 6 + 3] = x; pos[i * 6 + 4] = y + 0.4; pos[i * 6 + 5] = z;
     }
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    return { index: 0, x: 0, y: 0, z: 0, count, positions: pos, seeds, bind: { rain: 'lines' }, footprint: {} };
+  }
+
+  meshRainClassic(L) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(L.positions, 3));
     this.rainMat = new THREE.LineBasicMaterial({
       color: 0xaac8e8,
       transparent: true,
@@ -169,9 +238,11 @@ export class Particles {
     this.rain.frustumCulled = false;
     this.rain.visible = false;
     this.scene.add(this.rain);
+    return this.rain;
   }
 
   updateRain(dt, playerPos, sky) {
+    if (!this.rain || !this.rainMat) return;
     // Rain amount blends between outgoing/incoming weather states
     let rainAmt = 0;
     if (sky) {
@@ -214,18 +285,29 @@ export class Particles {
   }
 
   buildRiverPetals() {
+    const layout = this.layoutRiverPetals();
+    this.riverSeeds = layout.seeds;
+    return this.placeAsset('river-petals', layout, () => this.meshRiverPetalsClassic(layout));
+  }
+
+  /** Petal rafts strung along the river: x, lane offset, then seed and drift speed. */
+  layoutRiverPetals() {
     const count = 90;
-    const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
-    this.riverSeeds = new Float32Array(count * 2);
+    const seeds = new Float32Array(count * 2);
     for (let i = 0; i < count; i++) {
       pos[i * 3] = -55 + Math.random() * 120;
       pos[i * 3 + 1] = 0.05;
       pos[i * 3 + 2] = 29.5 + (Math.random() - 0.5) * 5.5;
-      this.riverSeeds[i * 2] = Math.random() * 100;
-      this.riverSeeds[i * 2 + 1] = 0.6 + Math.random() * 0.8;
+      seeds[i * 2] = Math.random() * 100;
+      seeds[i * 2 + 1] = 0.6 + Math.random() * 0.8;
     }
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    return { index: 0, x: 0, y: 0, z: 0, count, positions: pos, seeds, bind: { riverPetals: 'points' }, footprint: {} };
+  }
+
+  meshRiverPetalsClassic(L) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(L.positions, 3));
     const mat = new THREE.PointsMaterial({
       map: this.petalTexture(),
       size: 0.14,
@@ -238,6 +320,7 @@ export class Particles {
     this.riverPetals.name = 'River Petals';
     this.riverPetals.frustumCulled = false;
     this.scene.add(this.riverPetals);
+    return this.riverPetals;
   }
 
   petalTexture() {
@@ -271,19 +354,30 @@ export class Particles {
   }
 
   buildPetals() {
+    const layout = this.layoutPetals();
+    this.petalSeeds = layout.seeds;
+    return this.placeAsset('falling-petals', layout, () => this.meshPetalsClassic(layout));
+  }
+
+  /** Falling petals over the valley: start position, then sway seed, fall speed and phase. */
+  layoutPetals() {
     const count = 350;
-    const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
-    this.petalSeeds = new Float32Array(count * 3);
+    const seeds = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       pos[i * 3] = (Math.random() - 0.5) * 70;
       pos[i * 3 + 1] = Math.random() * 12;
       pos[i * 3 + 2] = (Math.random() - 0.5) * 70;
-      this.petalSeeds[i * 3] = Math.random() * 100;
-      this.petalSeeds[i * 3 + 1] = 0.4 + Math.random() * 0.7;
-      this.petalSeeds[i * 3 + 2] = Math.random() * Math.PI * 2;
+      seeds[i * 3] = Math.random() * 100;
+      seeds[i * 3 + 1] = 0.4 + Math.random() * 0.7;
+      seeds[i * 3 + 2] = Math.random() * Math.PI * 2;
     }
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    return { index: 0, x: 0, y: 0, z: 0, count, positions: pos, seeds, bind: { petals: 'points' }, footprint: {} };
+  }
+
+  meshPetalsClassic(L) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(L.positions, 3));
     const mat = new THREE.PointsMaterial({
       map: this.petalTexture(),
       size: 0.16,
@@ -296,24 +390,38 @@ export class Particles {
     this.petals.name = 'Falling Petals';
     this.petals.frustumCulled = false;
     this.scene.add(this.petals);
+    return this.petals;
   }
 
   buildFireflies() {
+    const layout = this.layoutFireflies();
+    this.fireflySeeds = layout.seeds;
+    const out = this.placeAsset('fireflies', layout, () => this.meshFirefliesClassic(layout));
+    if (isAssetInstance(out) && this.fireflies) this.fireflyMat = this.fireflies.material;
+    return out;
+  }
+
+  /** Fireflies over five meadow zones: start position, then seed, speed and their resting height. */
+  layoutFireflies() {
     const count = 70;
-    const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
-    this.fireflySeeds = new Float32Array(count * 3);
+    const seeds = new Float32Array(count * 3);
     const zones = [[-24, 14], [10, 26], [0, 31], [26, 4], [0, -26]];
     for (let i = 0; i < count; i++) {
       const [zx, zz] = zones[i % zones.length];
       pos[i * 3] = zx + (Math.random() - 0.5) * 12;
       pos[i * 3 + 1] = 0.4 + Math.random() * 1.6;
       pos[i * 3 + 2] = zz + (Math.random() - 0.5) * 12;
-      this.fireflySeeds[i * 3] = Math.random() * 100;
-      this.fireflySeeds[i * 3 + 1] = 0.5 + Math.random();
-      this.fireflySeeds[i * 3 + 2] = pos[i * 3 + 1];
+      seeds[i * 3] = Math.random() * 100;
+      seeds[i * 3 + 1] = 0.5 + Math.random();
+      seeds[i * 3 + 2] = pos[i * 3 + 1];
     }
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    return { index: 0, x: 0, y: 0, z: 0, count, zones, positions: pos, seeds, bind: { fireflies: 'points' }, footprint: {} };
+  }
+
+  meshFirefliesClassic(L) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(L.positions, 3));
     this.fireflyMat = new THREE.PointsMaterial({
       map: this.glowTexture('255, 230, 140'),
       size: 0.28,
@@ -326,21 +434,33 @@ export class Particles {
     this.fireflies.name = 'Fireflies';
     this.fireflies.frustumCulled = false;
     this.scene.add(this.fireflies);
+    return this.fireflies;
   }
 
   buildMotes() {
+    const layout = this.layoutMotes();
+    this.moteSeeds = layout.seeds;
+    return this.placeAsset('dust-motes', layout, () => this.meshMotesClassic(layout));
+  }
+
+  /** Dust motes in the light: start position, then seed and drift speed. */
+  layoutMotes() {
     const count = 140;
-    const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
-    this.moteSeeds = new Float32Array(count * 2);
+    const seeds = new Float32Array(count * 2);
     for (let i = 0; i < count; i++) {
       pos[i * 3] = (Math.random() - 0.5) * 50;
       pos[i * 3 + 1] = 0.3 + Math.random() * 5;
       pos[i * 3 + 2] = (Math.random() - 0.5) * 50;
-      this.moteSeeds[i * 2] = Math.random() * 100;
-      this.moteSeeds[i * 2 + 1] = 0.2 + Math.random() * 0.5;
+      seeds[i * 2] = Math.random() * 100;
+      seeds[i * 2 + 1] = 0.2 + Math.random() * 0.5;
     }
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    return { index: 0, x: 0, y: 0, z: 0, count, positions: pos, seeds, bind: { motes: 'points' }, footprint: {} };
+  }
+
+  meshMotesClassic(L) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(L.positions, 3));
     const mat = new THREE.PointsMaterial({
       map: this.glowTexture('255, 240, 210'),
       size: 0.09,
@@ -354,6 +474,7 @@ export class Particles {
     this.motes.name = 'Dust Motes';
     this.motes.frustumCulled = false;
     this.scene.add(this.motes);
+    return this.motes;
   }
 
   snowTexture() {
@@ -372,19 +493,32 @@ export class Particles {
   }
 
   buildSnow() {
+    const layout = this.layoutSnow();
+    this.snowSeeds = layout.seeds;
+    const out = this.placeAsset('snow', layout, () => this.meshSnowClassic(layout));
+    if (isAssetInstance(out) && this.snow) this.snowMat = this.snow.material;
+    return out;
+  }
+
+  /** Snowflakes: start position, then seed, fall speed and flutter. */
+  layoutSnow() {
     const count = 900;
-    const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
-    this.snowSeeds = new Float32Array(count * 3);
+    const seeds = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       pos[i * 3] = (Math.random() - 0.5) * 80;
       pos[i * 3 + 1] = Math.random() * 22;
       pos[i * 3 + 2] = (Math.random() - 0.5) * 80;
-      this.snowSeeds[i * 3] = Math.random() * 100;
-      this.snowSeeds[i * 3 + 1] = 0.65 + Math.random() * 0.75; // Soft gentle fall speed (0.65 - 1.4 m/s)
-      this.snowSeeds[i * 3 + 2] = 0.6 + Math.random() * 0.8;  // Flutter amp
+      seeds[i * 3] = Math.random() * 100;
+      seeds[i * 3 + 1] = 0.65 + Math.random() * 0.75; // Soft gentle fall speed (0.65 - 1.4 m/s)
+      seeds[i * 3 + 2] = 0.6 + Math.random() * 0.8;  // Flutter amp
     }
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    return { index: 0, x: 0, y: 0, z: 0, count, positions: pos, seeds, bind: { snow: 'points' }, footprint: {} };
+  }
+
+  meshSnowClassic(L) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(L.positions, 3));
     this.snowMat = new THREE.PointsMaterial({
       map: this.snowTexture(),
       color: 0xffffff,
@@ -399,9 +533,11 @@ export class Particles {
     this.snow.name = 'Snowfall';
     this.snow.frustumCulled = false;
     this.scene.add(this.snow);
+    return this.snow;
   }
 
   updateSnow(dt, playerPos, sky) {
+    if (!this.snow || !this.snowMat) return;
     const snowing = sky && (sky.weather === 'snow' || (sky.weather === 'cloudy' && sky.weatherBlend > 0.6));
     const target = snowing ? 0.85 : 0;
     this.snowMat.opacity += (target - this.snowMat.opacity) * dt * 1.5;
@@ -467,8 +603,9 @@ export class Particles {
     const sunUp = sky ? Math.max(0, sky.sunDir.y) : 1;
     const raining = sky && sky.weather === 'rain';
 
-    const pp = this.petals.geometry.attributes.position;
-    for (let i = 0; i < this.petalActive; i++) {
+    // (each system's handle is missing only when a kit replaced it without its `points` part)
+    const pp = this.petals ? this.petals.geometry.attributes.position : null;
+    for (let i = 0; pp && i < this.petalActive; i++) {
       const seed = this.petalSeeds[i * 3];
       const fall = this.petalSeeds[i * 3 + 1];
       const ph = this.petalSeeds[i * 3 + 2];
@@ -482,15 +619,17 @@ export class Particles {
       }
       pp.setXYZ(i, x, y, z);
     }
-    this.uploadRange(pp, this.petalActive);
+    if (pp) this.uploadRange(pp, this.petalActive);
 
     // Fireflies only exist after dusk. Fading them out but still drifting
     // them (and re-uploading the buffer) burned the daylight hours for a
     // system nobody can see.
     const nightness = sky ? Math.max(0, 1 - Math.max(0, sky.sunDir.y) * 6) : 0.5;
-    this.fireflyMat.opacity = (0.65 + Math.sin(t * 2.4) * 0.3) * nightness * (raining ? 0.2 : 1);
-    this.fireflies.visible = this.fireflyMat.opacity > 0.01;
-    if (this.fireflies.visible) {
+    if (this.fireflies && this.fireflyMat) {
+      this.fireflyMat.opacity = (0.65 + Math.sin(t * 2.4) * 0.3) * nightness * (raining ? 0.2 : 1);
+      this.fireflies.visible = this.fireflyMat.opacity > 0.01;
+    }
+    if (this.fireflies && this.fireflies.visible) {
       const fp = this.fireflies.geometry.attributes.position;
       for (let i = 0; i < this.fireflyActive; i++) {
         const seed = this.fireflySeeds[i * 3];
@@ -503,8 +642,8 @@ export class Particles {
       this.uploadRange(fp, this.fireflyActive);
     }
 
-    const rp = this.riverPetals.geometry.attributes.position;
-    for (let i = 0; i < this.riverActive; i++) {
+    const rp = this.riverPetals ? this.riverPetals.geometry.attributes.position : null;
+    for (let i = 0; rp && i < this.riverActive; i++) {
       const seed = this.riverSeeds[i * 2];
       const speed = this.riverSeeds[i * 2 + 1];
       let x = rp.getX(i) + dt * speed * 1.2;
@@ -513,16 +652,16 @@ export class Particles {
       rp.setZ(i, rp.getZ(i) + Math.sin(t * 1.8 + seed) * dt * 0.3);
       rp.setY(i, 0.05 + Math.sin(t * 2.2 + seed) * 0.015);
     }
-    this.uploadRange(rp, this.riverActive);
+    if (rp) this.uploadRange(rp, this.riverActive);
 
-    const mp = this.motes.geometry.attributes.position;
-    for (let i = 0; i < this.moteActive; i++) {
+    const mp = this.motes ? this.motes.geometry.attributes.position : null;
+    for (let i = 0; mp && i < this.moteActive; i++) {
       const seed = this.moteSeeds[i * 2];
       const speed = this.moteSeeds[i * 2 + 1];
       mp.setX(i, mp.getX(i) + Math.sin(t * speed + seed) * dt * 0.25 + dt * 0.12);
       mp.setY(i, mp.getY(i) + Math.cos(t * speed * 0.7 + seed) * dt * 0.12);
       if (playerPos && mp.getX(i) - playerPos.x > 30) mp.setX(i, playerPos.x - 28);
     }
-    this.uploadRange(mp, this.moteActive);
+    if (mp) this.uploadRange(mp, this.moteActive);
   }
 }
