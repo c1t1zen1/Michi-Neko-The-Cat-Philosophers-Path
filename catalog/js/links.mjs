@@ -40,12 +40,12 @@ export function resolveTargetLink(target, { rootUrl } = {}) {
   const id = selector(target.selector);
   let path;
   if (target.lab === 'ranges') {
-    const anchors = { stack: 'stack', 'wall-mass': 'wall', edge: 'edge', foothills: 'stage', air: 'air' };
+    const anchors = { stack: 'stack', 'wall-mass': 'wall', edge: 'edge', foothills: 'stage', air: 'air', 'foothill-stands': 'life', village: 'life', mists: 'life' };
     if (!anchors[id]) throw new Error('Unknown ranges bench: ' + id);
     path = `labs/ranges/${id === 'wall-mass' ? '?wall4=mass' : ''}#${anchors[id]}`;
   } else if (target.lab === 'interiors') {
     if (target.kind === 'bench') {
-      if (!['tatami', 'shoji', 'pottery'].includes(id)) throw new Error('Unknown interiors craft: ' + id);
+      if (!['tatami', 'shoji', 'pottery', 'frame', 'tokonoma', 'scroll', 'chabudai', 'zabuton', 'bonsai', 'knockables'].includes(id)) throw new Error('Unknown interiors craft: ' + id);
       path = `labs/interiors/?craft=${id}#craft`;
     } else if (target.kind === 'interaction') {
       if (id !== 'bat-cup') throw new Error('Unknown interiors interaction: ' + id);

@@ -3737,5 +3737,203 @@
       "summit-butterflies",
       "summit-birds"
     ]
+  },
+  "production": {
+    "toro": {
+      "src": "thumbnails/production-toro.webp",
+      "kind": "production",
+      "label": "Stone toro lanterns and halos · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "chochin": {
+      "src": "thumbnails/production-chochin.webp",
+      "kind": "production",
+      "label": "Hanging chochin lanterns · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "street-lamps": {
+      "src": "thumbnails/production-street-lamps.webp",
+      "kind": "production",
+      "label": "Street lamp posts · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "andon": {
+      "src": "thumbnails/production-andon.webp",
+      "kind": "production",
+      "label": "Andon paper floor lantern · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "courtyard-toro": {
+      "src": "thumbnails/production-courtyard-toro.webp",
+      "kind": "production",
+      "label": "Courtyard stone lantern · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "pool-toro": {
+      "src": "thumbnails/production-pool-toro.webp",
+      "kind": "production",
+      "label": "Moon Pool stone toro · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "bamboo-fence": {
+      "src": "thumbnails/production-bamboo-fence.webp",
+      "kind": "production",
+      "label": "Bamboo fence runs · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "corral": {
+      "src": "thumbnails/production-corral.webp",
+      "kind": "production",
+      "label": "Bamboo corral assembly · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "corral-sign": {
+      "src": "thumbnails/production-corral-sign.webp",
+      "kind": "production",
+      "label": "Corral warning sign · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "shishi": {
+      "src": "thumbnails/production-shishi.webp",
+      "kind": "production",
+      "label": "Shishi-odoshi feeder, rocker, pivot and basin · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "wind-chime": {
+      "src": "thumbnails/production-wind-chime.webp",
+      "kind": "production",
+      "label": "Furin wind chime · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "crates": {
+      "src": "thumbnails/production-crates.webp",
+      "kind": "production",
+      "label": "Climbable crate stacks · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "sake-barrel": {
+      "src": "thumbnails/production-sake-barrel.webp",
+      "kind": "production",
+      "label": "Climb-route sake barrel · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "nest": {
+      "src": "thumbnails/production-nest.webp",
+      "kind": "production",
+      "label": "Rooftop bird nest · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "nest-eggs": {
+      "src": "thumbnails/production-nest-eggs.webp",
+      "kind": "production",
+      "label": "Three speckled nest eggs · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "guardian-feather": {
+      "src": "thumbnails/production-guardian-feather.webp",
+      "kind": "production",
+      "label": "Guardian’s Feather trophy · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "street-bushes": {
+      "src": "thumbnails/production-street-bushes.webp",
+      "kind": "production",
+      "label": "Street bushes · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "roadside-moss": {
+      "src": "thumbnails/production-roadside-moss.webp",
+      "kind": "production",
+      "label": "Roadside moss patches · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "bamboo-groves": {
+      "src": "thumbnails/production-bamboo-groves.webp",
+      "kind": "production",
+      "label": "Bamboo groves, culms and leaves · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "yarn": {
+      "src": "thumbnails/production-yarn.webp",
+      "kind": "production",
+      "label": "Yarn balls · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "key": {
+      "src": "thumbnails/production-key.webp",
+      "kind": "production",
+      "label": "Antique secret-house key · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "dango": {
+      "src": "thumbnails/production-dango.webp",
+      "kind": "production",
+      "label": "Golden Dango / River-Spirit Charm · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "jade-paw": {
+      "src": "thumbnails/production-jade-paw.webp",
+      "kind": "production",
+      "label": "Jade Paw corral reward · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "secret-fish": {
+      "src": "thumbnails/production-secret-fish.webp",
+      "kind": "production",
+      "label": "Secret-house grilled fish treat · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "interior-fish": {
+      "src": "thumbnails/production-interior-fish.webp",
+      "kind": "production",
+      "label": "Tea-house grilled sea-bream platter · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "distant-pagoda": {
+      "src": "thumbnails/production-distant-pagoda.webp",
+      "kind": "production",
+      "label": "Valley distant pagoda · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "path-boulders": {
+      "src": "thumbnails/production-path-boulders.webp",
+      "kind": "production",
+      "label": "Path boulders · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    },
+    "key-rock": {
+      "src": "thumbnails/production-key-rock.webp",
+      "kind": "production",
+      "label": "Key-hiding rock and companion stones · hero tier, default parameters",
+      "capturedAt": "2026-11-13",
+      "source": "catalog/preview.html?variant=production&tier=hero"
+    }
   }
 }

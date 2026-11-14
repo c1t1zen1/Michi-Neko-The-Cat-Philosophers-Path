@@ -334,9 +334,24 @@ Rules:
    that returns something that is not an AssetInstance).
 6. Geometry meant to merge is indexed with position, normal and uv (and
    colour for `craft.Bag` meshes) and uses `ctx.kitMaterials` or `ctx.MAT`
-   materials; anything animated or glowing goes in `live`.
+   materials; anything animated or glowing goes in `live`. Static props are
+   plain merge-able geometry (ruling R36): `_mergeStatics` skips
+   InstancedMesh, so instancing a static prop costs its own draw per
+   instance set; use it only for large counts, with the draw delta measured.
 7. Budgets (AAA-7) are `src/kit/budgets.js` per tier (`budgetFor(id, tier)`;
-   per-asset exceptions cite why).
+   per-asset exceptions cite why). Triangles count every instance of an
+   instanced draw (InstancedMesh and InstancedBufferGeometry alike, G-V1).
+8. Kit materials (gate G-V1, ruling R39; budgets.md section 4). The kit-wide
+   11-material cap is replaced by: each new merged material is justified in its lane handoff with its draw cost, and at the four spots modular draw calls ≤ classic per tier (perf_gv1.md); ruling R52, operator may overturn. After wave 2.1 it has 11.
+   They are named in `src/kit/materials.js` `KIT_SHARED`
+   (`ctx.kitMaterials.shared('bamboo' | 'matte' | 'crate' | 'cord' |
+   'darkWood' | 'stone' | 'basinStone' | 'rock' | 'rockDark' | 'moss')`);
+   carry an asset's own colour in vertex or instance colour
+   (`tintToward(hex, KIT_SHARED[name].base)`, `tintGeometry`), or use a
+   classic `ctx.MAT` material. A new merged material needs an Integrator
+   ruling backed by a same-session `perf_spots` run (shrine spot, high), or
+   it retires one. Materials only on pickups, `live` or instanced meshes do
+   not merge and are budgeted as live draws.
 
 ### 3.4 Layout / mesh split in the classic builders
 
@@ -560,10 +575,11 @@ The Integrator merges one lane at a time:
 3. Run `node tools/kit_index.mjs`, then gate **G1** (Appendix C).
 4. Merge, tick the master board, push `fable/integration`.
 
-The cache tag is bumped **once per gate**, by the Integrator, on
-`fable/integration`. Workers never bump tags: a bump touches every module and
-would conflict with every other lane. New files written in a worktree import
-with the tag currently on `fable/integration`.
+The cache tag is bumped **only at a gate that merges to `main`** (G-F, G-V3,
+G-R and the final merge; ruling R44: only `main` reaches players), by the
+Integrator, on `fable/integration`. Workers never bump tags: a bump touches
+every module and would conflict with every other lane. New files written in a
+worktree import with the tag currently on `fable/integration`.
 
 ---
 
@@ -603,13 +619,13 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 
 - [x] **G-P0** Baseline recorded, decisions D1–D8 answered
 - [x] **G-F** Foundation merged; classic output proven unchanged (→ may merge to `main`)
-- [ ] **G-V1** Village wave 1 (props) merged
+- [x] **G-V1** Village wave 1 (props) merged; G1–G3 green, budgets hold on modular (`docs/fable/baseline/perf_gv1.md`), kit materials at the cap (budgets.md section 4)
 - [ ] **G-V2** Village wave 2 (landmarks) merged
 - [ ] **G-V3** Village wave 3 (systems, life) merged (→ may merge to `main`)
 - [ ] **G-C** Characters merged
 - [ ] **G-S** Hilltop merged
 - [ ] **G-R** Roof Road merged and wired (→ may merge to `main`)
-- [ ] **G-T** Tooling merged
+- [x] **G-T** Tooling merged; cadJS param edit (key-rock size 1.5, Push to game) changed the ?assets=modular shot (maxDelta 166), restoring kit-overrides.json reverted it (maxDelta 0); catalog 49/49, cadJS 16/16 pass
 - [ ] **G-A** Area polish accepted for all three areas
 - [ ] **G-H** Hero images and README merged
 - [ ] **G-FINAL** Fable review passed; operator approves the default flip
@@ -630,35 +646,35 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 2.1 | `v-alley` | Climb crates and street clutter (lab 16) | G-F | [x] |
 | 2.1 | `v-keepsakes` | Yarn, key, reward and food items (lab 17) | G-F | [x] |
 | 2.1 | `v-nest` | The nest, eggs, feather (lab 10) | G-F | [x] |
-| 2.2 | `v-shrine` | Torii, sandō, shrine, altar (lab 06) | G-V1 | [ ] |
-| 2.2 | `v-machiya` | Machiya, components, street (lab 04) | G-V1 | [ ] |
+| 2.2 | `v-shrine` | Torii, sandō, shrine, altar (lab 06) | G-V1 | [x] |
+| 2.2 | `v-machiya` | Machiya, components, street (lab 04) | G-V1 | [x] |
 | 2.2 | `v-pagoda` | Distant pagoda (lab 08) | G-V1 | [x] |
-| 2.2 | `v-hidden` | Moon Pool and Lantern Glade (lab 07) | G-V1 | [ ] |
+| 2.2 | `v-hidden` | Moon Pool and Lantern Glade (lab 07) | G-V1 | [x] |
 | 2.2 | `v-interiors` | Tea house and secret house interiors (lab 21) | G-V1 | [ ] |
 | 2.3 | `v-ground` | Ground, path, shoulders (lab 01) | G-V2 | [ ] |
 | 2.3 | `v-water` | River, bridge, paddies (lab 02) | G-V2 | [ ] |
-| 2.3 | `v-ranges` | Forest wall, mountains, mist (lab 03) | G-V2 | [ ] |
+| 2.3 | `v-ranges` | Forest wall, mountains, mist (lab 03) | G-V2 | [x] |
 | 2.3 | `v-sky` | Sky, clouds, cloud shadows, post (lab 05) | G-V2 | [ ] |
-| 2.3 | `v-weather` | Petals, rain, snow, motes, komorebi (labs 20, 22) | G-V2 | [ ] |
-| 2.3 | `v-trees` | Sakura, maple, pine, rim trees (new lab) | G-V2 | [ ] |
-| 2.3 | `v-critters` | Koi, birds, butterflies, crows (lab 18) | G-V2 | [ ] |
+| 2.3 | `v-weather` | Petals, rain, snow, motes, komorebi (labs 20, 22) | G-V2 | [x] |
+| 2.3 | `v-trees` | Sakura, maple, pine, rim trees (new lab) | G-V2 | [x] |
+| 2.3 | `v-critters` | Koi, birds, butterflies, crows (lab 18) | G-V2 | [x] |
 | 3 | `c1-rig-split` | `Cat` split into rig, parts, behaviour (serial) | G-F | [x] |
 | 3 | `c2-michi` | Player cat parts, collar, master bells | c1 | [ ] |
 | 3 | `c3-villagers` | Luna, Mochi, Kuro (lab 19) | c1 | [ ] |
-| 3 | `c4-creatures` | Larry the turtle, guardian crows | c1 | [ ] |
+| 3 | `c4-creatures` | Larry the turtle, guardian crows | c1 | [x] |
 | 4 | `s1-summit-split` | `mountaintop.js` split behind the facade (serial) | G-F, D2 | [x] |
-| 4 | `s2-clearing` | Meadow, stone, ensō, fūrin, torii, path, trees | s1, G-V2 | [ ] |
+| 4 | `s2-clearing` | Meadow, stone, ensō, fūrin, torii, path, trees | s1, G-V2 | [x] |
 | 4 | `s3-vista` | City, pagoda, bay, harbour, ranges, clouds | s1, `v-pagoda`, `v-ranges` | [ ] |
-| 4 | `s4-summit-life` | Summit weather, pollen, petals, butterflies, birds | s1, `v-weather` | [ ] |
+| 4 | `s4-summit-life` | Summit weather, pollen, petals, butterflies, birds | s1, `v-weather` | [x] |
 | 5 | `r1-roof-split` | `build.js` split into pieces + inventory (serial) | G-F | [ ] |
 | 5 | `r2-roofs-streets` | Mouths 1–2: bridge gate, machiya roofs, Pontochō | r1, `v-machiya` | [ ] |
 | 5 | `r3-canal-market` | Mouths 3–5: Takase canal, boat, Nishiki canopy, laundry sky | r1 | [ ] |
 | 5 | `r4-festival` | Mouths 6–7: yatai, hoko float, temple gate, Okuribi | r1 | [ ] |
 | 5 | `r5-roof-cast` | Chidori, Shōki, boatman, hayashi musicians | r1, c1 | [ ] |
 | 5 | `r6-game-wiring` | `RooftopManager`, unlock, save, music (serial) | r2–r5, D3 | [ ] |
-| 6 | `t1-catalog` | `production` variant, swap board, thumbnails | G-V1 | [ ] |
-| 6 | `t2-cadjs` | Param panel, AI action, package schema 2 | G-V1 | [ ] |
-| 6 | `t3-audio` | dawCAT sound hooks for new assets | G-V2 | [ ] |
+| 6 | `t1-catalog` | `production` variant, swap board, thumbnails | G-V1 | [x] |
+| 6 | `t2-cadjs` | Param panel, AI action, package schema 2 | G-V1 | [x] |
+| 6 | `t3-audio` | dawCAT sound hooks for new assets | G-V2 | [x] |
 | 7 | `a1-village` | Village area pass | G-V3, G-C | [ ] |
 | 7 | `a2-hilltop` | Hilltop area pass | G-S | [ ] |
 | 7 | `a3-rooftops` | Roof Road area pass | G-R | [ ] |
@@ -863,13 +879,28 @@ specifics.
 - [ ] L5 **Promote** into `src/kit/<family>/`: one `defineAsset` per id,
       split into named parts, three tiers, params with ranges, `footprint`
       copied from the classic layout, lab materials replaced by
-      `KitMaterials`.
+      `KitMaterials`. Wave 2.1 rules: static props are plain merge-able
+      geometry, no InstancedMesh for a static prop unless the count is large
+      and the draw delta is measured and recorded (R36); reuse a kit
+      material before adding one: `ctx.kitMaterials.shared(name)` with your
+      colour in vertex or instance colour, or a `ctx.MAT` material (§3.3
+      rule 8; the kit has no material left to add without a ruling); the
+      asset's contract `sample` is the LARGEST real layout the game builds
+      (the longest fence, the biggest grove), so AAA-7 is tested on what
+      players see; a real layout over the cap needs a `BUDGET_EXCEPTIONS`
+      request in the handoff with measured modular and classic counts.
 - [ ] L6 **Compare** in the game: `?assets=classic` against
       `?swap=<id>:modular` from the same camera at dawn, noon, dusk and
       night. Save the pairs under `docs/fable/status/<lane>/` (small JPGs).
+      One pair per promoted id, framed on that asset (from cat height and
+      2–3 m); the two images of a pair must not be byte-identical (`cmp`),
+      and read several before judging AAA-1 and AAA-5.
 - [ ] L7 **Check**: `node tools/kit_check.mjs`, the contract test page for
       the family, the footprint golden (must still be empty for classic,
-      and within waivers for modular), `node tools/labs_check.mjs`.
+      and within waivers for modular), `node tools/labs_check.mjs`. Then
+      `node tools/perf_spots.mjs` classic high against your swap at modular
+      HIGH and MEDIUM, in one session (the rule: modular medium ≤ classic
+      high; modular high ≤ 1.2 × calls); explain every draw-call change.
 - [ ] L8 **Self-review** against AAA-1…AAA-10. Tick each in the status file
       or write why it is not met.
 - [ ] L9 **Handoff**: write `docs/fable/handoff/<lane>.md`: inventory rows
@@ -1410,6 +1441,7 @@ created in Phase 1 and marked *(new)*.
 | | `tools/labs_geometry_test.html` | Lab construction checks (32 today) |
 | | `node tools/rooftop_test.mjs` | Roof Road: 38 checks, autopilot completes |
 | | `node tools/summit_test.mjs` | Summit state machine |
+| | `node tools/summit_kit_parity.mjs` (`tools/summit_kit_parity.html`) | Summit kit vs classic: colliders, platforms, rng draw, binds, torii position (EQUAL) |
 | **G3** catalog and tools | `node tools/catalog_check.mjs` | Catalog integrity |
 | | `node tools/labs_coverage.mjs` and `node --test tools/labs_coverage_test.mjs` | Inventory and coverage totals |
 | | `node --test catalog/tests/*.test.mjs` | Catalog units and API |

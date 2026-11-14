@@ -4,8 +4,27 @@ import { loadSummitModule } from '../../shared/game.js';
 import { V3, TAU, rng, instances, canvas2d, canvasTexture, Bag } from '../../shared/craft.js';
 import { M } from '../../shared/painted.js';
 
-let SM = null;
-export const loadDeps = async () => { ({ SummitManager: SM } = await loadSummitModule()); };
+import { loadKitIndexModule, loadKitRuntimeModule } from '../../shared/game.js';
+
+let SM = null, KIT = null;
+export const loadDeps = async () => {
+  ({ SummitManager: SM } = await loadSummitModule());
+  // The clearing kit (src/kit/clearing), built through the real AssetRuntime: the specimens below ARE the game's modular assets.
+  const [{ FAMILIES }, { AssetRuntime }] = await Promise.all([loadKitIndexModule(), loadKitRuntimeModule()]);
+  KIT = new AssetRuntime({ THREE, quality: 'high', search: '?assets=modular', loadFamilies: async () => ({ clearing: FAMILIES.clearing }), fetchOverrides: async () => null, logger: { warn() {}, log() {}, error() {} } });
+  await KIT.preload();
+};
+
+/** Build one clearing kit asset at its contract sample layout; `fit` moves/scales it onto the plinth. */
+function kitSpecimen(id, { tier = 'hero', fit = {}, layout = {} } = {}) {
+  const def = KIT.defs.get(id), sample = typeof def.sample === 'function' ? def.sample() : { ...def.sample };
+  const inst = KIT.build(id, { x: 0, y: 0, z: 0, ...sample, ...layout, tier }, () => { throw new Error(`${id}: the kit asset did not build`); });
+  const wrap = new THREE.Group(), g = inst.group;
+  g.position.set(0, 0, 0); g.rotation.y = 0;
+  wrap.add(g);
+  wrap.position.set(...(fit.at || [0, 0, 0])); wrap.scale.setScalar(fit.s || 1);
+  return { group: wrap, update: (t, dt) => inst.update && inst.update(dt, t, { hour: 12, wind: 0.6, wet: 0, snow: 0, lanternOn: false }) };
+}
 
 /** Run a summit builder with only the state it writes to. Nothing in the game module changes. */
 function summitKit() {
@@ -26,6 +45,7 @@ export const SOURCES = {
 export const FAMILIES = [
   { key: 'city', title: 'A city, <em>from far enough away</em>', sub: 'The game’s Kyoto, then how little you can draw and still get a city. At this distance, every house is about four pixels.' },
   { key: 'night', title: 'When the windows <em>come on</em>', sub: 'Every lit window is a single point.' },
+  { key: 'clearing', title: 'The clearing, <em>kit by kit</em>', sub: 'The meditation hilltop’s stones, fūrin and stairs, built the way the game now builds them. The meadow, the old tree, the sun pool and the grass stay with the classic builders.' },
   { key: 'haze', title: 'Layers <em>of air</em>', sub: 'Painters separate distance by value. So can we.' }
 ];
 
@@ -53,6 +73,7 @@ export function windowPoints(k, { count = 500, spread = 3.4, y = 0.09, size = 0.
   return new k.THREE.Points(g, new k.THREE.PointsMaterial({ color, size, map: k.canvasTexture(c), transparent: true, depthWrite: false, blending: k.THREE.AdditiveBlending }));
 }
 
+const clearingBlurb = (name) => `${name}: a modular kit asset (src/kit/clearing), built through the real AssetRuntime at hero tier.`;
 export const SPECIMENS = [
   { id: 'game-city', family: 'city', original: true, name: 'The city, today', jp: '今の京都', tag: 'buildKyotoCity(), preview quality', plinth: 'none', hour: 16, zoom: 0.72, game: () => SM.prototype.buildKyotoCity, plinthW: 7,
     blurb: 'The real city builder run in its 430-house preview mode. Instanced walls, roofs, eaves and a sprinkle of garden trees.',
@@ -70,6 +91,26 @@ export const SPECIMENS = [
     blurb: 'Each lit window is a soft additive point. At this distance a window is a point.',
     how: ['One Points object with an additive falloff.'], use: 'The night view from the perch.', sources: ['neon', 'light'], also: [windowPoints],
     build(k) { const g = roofInstances(k); g.add(windowPoints(k)); return g; } },
+  { id: 'c-stone', family: 'clearing', name: 'Seat stone and path', jp: '座る石', tag: 'meditation-stone: six chisel-cut rocks', plinth: 'stone', hour: 11, zoom: 0.9,
+    blurb: clearingBlurb('Meditation stone') + ' One flat warm lump beside the sitting place, and five half-buried path stones that lead up to it.',
+    how: ['The rocks family’s chisel (an icosphere cut by planes, then displaced), fitted to the classic stone’s box.', 'The path stones are one merged mesh, sunk a hand deep.'], use: 'Beside the sitting place; the cat’s path from the top tread.', sources: ['notes'],
+    build() { const g = new THREE.Group(); g.add(kitSpecimen('meditation-stone', { fit: { s: 0.5, at: [-1.6, -0.1, -2.2] } }).group); g.add(kitSpecimen('meditation-stone', { layout: { stones: undefined, index: 0 }, fit: { s: 1, at: [1.2, 0.2, 0] } }).group); return g; } },
+  { id: 'c-enso', family: 'clearing', name: 'Weathered ensō', jp: '円相', tag: 'summit-enso: one brush stroke', plinth: 'stone', hour: 11, zoom: 0.7,
+    blurb: clearingBlurb('Ensō') + ' A single ink stroke that swells where the brush lands and runs dry where it lifts.',
+    how: ['A flat ribbon whose width and alpha are vertex data, drawn unlit and see-through over the stone.'], use: 'Painted on the seat stone.', sources: ['notes'],
+    build() { return kitSpecimen('summit-enso', { fit: { s: 2.2, at: [0, 0.06, 0] } }); } },
+  { id: 'c-furin', family: 'clearing', name: 'The summit fūrin', jp: '風鈴', tag: 'summit-furin: the garden chime, reused', plinth: 'none', hour: 11, zoom: 0.7,
+    blurb: clearingBlurb('Fūrin') + ' The garden family’s glass chime hung on its own thread; the summit swings it on the hook and rings it once per visit.',
+    how: ['Reuses the garden kit’s chime; only the scale, the thread and the pivot are the summit’s.'], use: 'Under the shade tree, over the sitting place.', sources: ['notes'],
+    build() { return kitSpecimen('summit-furin', { fit: { s: 0.5, at: [0, 0.2, 0] } }); } },
+  { id: 'c-entry', family: 'clearing', name: 'The torii approach', jp: '鳥居の石段', tag: 'summit-entry: steps, rails, torii, toro', plinth: 'none', hour: 11, zoom: 1.4,
+    blurb: clearingBlurb('Approach') + ' Seven treads and a landing, rope rails, the shrine kit’s torii at 0.56 scale and two kit toro.',
+    how: ['The torii and the toro are the shrine and lanterns kits, unchanged.', 'The treads are slabs with hand-cut tops, merged per material.'], use: 'The way up from the bay, in front of the meditation seat.', sources: ['notes'],
+    build() { return kitSpecimen('summit-entry', { fit: { s: 0.3, at: [0, 0.4, -4.4] } }); } },
+  { id: 'c-path', family: 'clearing', name: 'The lower stone path', jp: '参道', tag: 'summit-path: fifteen fitted treads', plinth: 'none', hour: 11, zoom: 1.4,
+    blurb: clearingBlurb('Path') + ' Fifteen treads of two or three fitted stones, rope posts and two toro on buried footings.',
+    how: ['Two merged stone meshes (warm and grey), moss in the joints, posts and rope as single meshes.'], use: 'Below the torii, down through the trees toward the city.', sources: ['notes'],
+    build() { return kitSpecimen('summit-path', { fit: { s: 0.16, at: [0, 0.5, -5.2] } }); } },
   { id: 'haze', family: 'haze', name: 'Layered haze', jp: '霞', tag: 'Fog is not enough', plinth: 'stone', hour: 15, animatedShadow: false,
     blurb: 'A row of soft cards between the near and far city. Each pale layer hides a little more of what is behind, which is how painters do it.',
     how: ['A few wide transparent planes, drawn back to front.'], use: 'The view from the perch.', sources: ['tokyo'],

@@ -273,11 +273,14 @@ export class AgentPanel {
       });
       const data = await response.json(); if (!response.ok) throw new Error(data.error || `Agent HTTP ${response.status}`);
       this.plan = data.plan;
+      // Kit asset actions are checked against the open asset's params schema before the plan is offered.
+      this.review = []; this.rejected = null;
+      try { this.review = this.callbacks.reviewPlan?.(this.plan) || []; } catch (error) { this.rejected = error.message; }
       this.history.push({ role: 'user', content: instruction }, { role: 'assistant', content: this.plan.summary });
       this.updateMemoryButton();
       this.renderPlan();
       const via = data.fallback ? 'Instant Copilot Fallback' : `${data.provider}/${data.model}`;
-      this.state(`Plan ready (${via}): ${this.plan.actions.length} validated action(s).`);
+      this.state(this.rejected ? `Plan rejected: ${this.rejected}` : `Plan ready (${via}): ${this.plan.actions.length} validated action(s).`, this.rejected ? 'error' : '');
       this.log(`${via}: ${this.plan.summary}`);
       if (settings.autonomy === 'auto') await this.run();
     } catch (error) {
@@ -294,7 +297,7 @@ export class AgentPanel {
   renderPlan() {
     const host = $('#agent-plan');
     const rBox = $('#agent-reasoning-box');
-    $('#agent-run').disabled = !this.plan?.actions?.length || this.settings().autonomy === 'plan';
+    $('#agent-run').disabled = !this.plan?.actions?.length || this.settings().autonomy === 'plan' || !!this.rejected;
     if (rBox) {
       if (this.plan?.reasoning) {
         rBox.classList.remove('hidden');
@@ -305,7 +308,7 @@ export class AgentPanel {
       }
     }
     if (!this.plan) { host.innerHTML = '<span>No plan generated.</span>'; return; }
-    host.innerHTML = `<div class="plan-summary">${escapeHtml(this.plan.summary)}</div>${this.plan.actions.map((action, index) => `<div class="plan-action"><div><b>${index + 1}. ${escapeHtml(action.type)}</b> → ${escapeHtml(action.target)}<br>${escapeHtml(JSON.stringify(action.params))}</div><button type="button" data-run-step="${index}" title="Execute this single step">▶ STEP</button></div>`).join('')}${this.plan.notes.map((note) => `<div>NOTE: ${escapeHtml(note)}</div>`).join('')}`;
+    host.innerHTML = `<div class="plan-summary">${escapeHtml(this.plan.summary)}</div>${this.plan.actions.map((action, index) => `<div class="plan-action"><div><b>${index + 1}. ${escapeHtml(action.type)}</b> → ${escapeHtml(action.target)}<br>${escapeHtml(JSON.stringify(action.params))}</div><button type="button" data-run-step="${index}" title="Execute this single step">▶ STEP</button></div>`).join('')}${this.rejected ? `<div class="plan-rejected">REJECTED: ${escapeHtml(this.rejected)}</div>` : ''}${(this.review || []).map((line) => `<div>REVIEW: ${escapeHtml(line)}</div>`).join('')}${this.plan.notes.map((note) => `<div>NOTE: ${escapeHtml(note)}</div>`).join('')}`;
     $$('[data-run-step]', host).forEach((btn) => {
       btn.addEventListener('click', async () => {
         const idx = Number(btn.dataset.runStep);

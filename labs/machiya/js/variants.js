@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { LightRig } from '../../shared/light.js';
 import { buildMachiya, countScene } from './machiya.js?rev=20261107-staves';
-import { originalHouse, originalPart } from './original.js';
+import { originalHouse, originalPart } from './original.js'; import { GAP_BUILDERS } from './gaps.js';
 export const SOURCES = {
   instancing: ['Three.js r160 · instancing example', 'https://github.com/mrdoob/three.js/blob/r160/examples/webgl_instancing_dynamic.html'],
   buffer: ['Three.js · BufferGeometry', 'https://threejs.org/docs/pages/BufferGeometry.html'],
@@ -31,7 +31,7 @@ export const FAMILIES = [
   { key: 'bamboo', title: 'The bend <em>of split bamboo</em>', sub: 'The game has no inuyarai on these houses. Compare that bare frontage with straight staves and a curved, instanced screen.' },
   { key: 'cloth', title: 'A curtain <em>in the breeze</em>', sub: 'One original slab becomes three pinned cloth panels, with folds and a simple undyed crest. Motion is restrained.' },
   { key: 'lantern', title: 'When the shop <em>stays open</em>', sub: 'The original cylinder, then a lathed paper profile with real ribs. At dusk, a local light reaches the wall and pavement.' },
-  { key: 'style', title: 'Real light, <em>painted surfaces</em>', sub: 'Same geometry, three treatments. The animated-film mood here is our art direction, not a claim to reproduce a studio’s production shader.' }
+  { key: 'namako', title: 'The slate <em>skirt</em>', sub: 'The lower wall of a street house: the game’s textured panel against slate pillows set in lime joints, with a kick board and a capping rail.' }, { key: 'bench', title: 'A red felt <em>mosen bench</em>', sub: 'The tea house’s front bench: the game’s two boxes against a legged frame, a rounded felt cushion and piped seams.' }, { key: 'door', title: 'The hidden <em>sliding door</em>', sub: 'Hisomu-an’s door leaf: one lit shoji box against a framed leaf with a floor rail, a shoji grid and a pull recess.' }, { key: 'lock', title: 'A brass <em>padlock plate</em>', sub: 'The plate the cat unlocks: a flat box and a half-torus against a bevelled plate, posts, screws and a keyhole.' }, { key: 'style', title: 'Real light, <em>painted surfaces</em>', sub: 'Same geometry, three treatments. The animated-film mood here is our art direction, not a claim to reproduce a studio’s production shader.' }
 ];
 const compact = { w: 4.8, d: 3.4, gh: 2.2, upper: { w: 4.2, d: 2.9, h: 1.4 }, roof: { eaveY: 3.6, ridgeH: 1.1, overhang: .5 }, engawaOpts: { front: true, back: false, h: .42, depth: 1.1 } };
 const partKeys = { roof: ['roof'], frame: ['foundation', 'frame'], wall: ['wall'], lattice: ['lattice'], window: ['window'], deck: ['deck'], bamboo: ['bamboo'], cloth: ['cloth'], lantern: ['lantern'] };
@@ -48,7 +48,7 @@ function presentation(root, hour, built, update = () => {}) {
   return { scene, camera, spin, rig, counts: countScene(root), built, update };
 }
 function buildSpecimen(part, options, original, hour) {
-  const t = performance.now();
+  const t = performance.now(); if (GAP_BUILDERS[part]) return presentation(GAP_BUILDERS[part](original), hour, performance.now() - t);
   let root, update;
   if (original) root = part === 'style' ? originalHouse('tea').group : originalPart(part === 'bamboo' ? 'wall' : part);
   else {
@@ -104,3 +104,12 @@ baseline('style', 'The game’s materials', 'The original tea house under this l
 recipe('style', 'style-pbr', 'Physical daylight', '02 / MeshStandardMaterial', 'Painted albedo, normal maps and roughness, with ACES tone mapping and a shared environment.', { style: 'standard' }, ['The normal map changes light response, not silhouette.', 'Colour textures are sRGB; normal data stays linear.'], 'texturedMaterial(maps, { roughness: .85, normalScale: .45 });', ['pbr', 'color']);
 recipe('style', 'style-paint', 'An afternoon in paint', '03 / painterly PBR · recommended', 'Physical light on warm lime, blue-grey clay and brushlike albedo variation. Shadows keep the joinery legible.', { style: 'hybrid' }, ['A small onBeforeCompile albedo modulation preserves standard lighting.', 'No screen-space filter or downloaded bitmap is needed.', 'This is the lab’s interpretation of an animated-film background.'], 'material.onBeforeCompile = shader => {\n  // subtle object-space brush modulation after map_fragment\n};', ['shader', 'pbr', 'color']);
 recipe('style', 'style-toon', 'Three-band colour study', '04 / MeshToonMaterial', 'A useful stylisation boundary: three explicit light bands. Compare what happens to plaster relief and the roof silhouette.', { style: 'toon' }, ['A three-texel RedFormat DataTexture supplies three valid bands.', 'NearestFilter preserves the discrete ramp.'], 'new THREE.DataTexture(new Uint8Array([80,158,240]), 3, 1, THREE.RedFormat);', ['toon']);
+
+baseline('namako', 'The textured panel', 'The game’s namako skirt: one flat box per wall face carrying the slate-and-lime texture.', 'originalKit().meshNamakoClassic({ w: 5.4, d: 3.6 }, group);');
+recipe('namako', 'namako-pillows', 'Slate pillows in lime', '02 / instanced rounded tiles', 'Real bulging slate tiles over a lime backing, a dark kick board at the foot and a lime rail on top. Matches src/kit/machiya (hero tier).', {}, ['One InstancedMesh of RoundedBoxGeometry tiles with per-tile value variation.', 'The kit keeps the game texture at mid and far, where the relief cannot be seen.'], 'new RoundedBoxGeometry(cw - .03, ch - .03, .03, 2, .012);', ['instancing', 'bevel']);
+baseline('bench', 'Two boxes', 'The game’s bench: a scarlet box on a dark plinth, 2.2 m long.', 'originalKit().meshTeaBenchClassic({}, group);');
+recipe('bench', 'bench-felt', 'A legged bench with felt', '02 / RoundedBoxGeometry', 'A frame on four feet, a rounded scarlet cushion and light piping along the seams. Same 2.2 x 0.9 outline.', {}, ['Outer size matches the classic box so the doorway reads the same.', 'The kit adds felt colours and an optional tea tray.'], 'new RoundedBoxGeometry(2.2, .27, .9, 3, .07);', ['bevel']);
+baseline('door', 'One shoji box', 'The real sliding door leaf, taken from the secret house the game builds.', 'const k = originalKit(); k.buildSecretMachiya(0, 0, 0); k.secretDoorMesh;');
+recipe('door', 'door-shoji', 'A framed shoji leaf', '02 / frame + kumiko', 'Stiles, a floor rail and top rail around the lit paper, a fine grid and a pull recess. The koushi lattice stays its own part.', {}, ['Gameplay slides the leaf group; the study keeps the same 2.35 x 2.05 x 0.08 body.'], 'new THREE.BoxGeometry(.016, 1.85, .012); // kumiko bars', ['buffer']);
+baseline('lock', 'Plate and shackle', 'The real brass lock from the secret house door: a box and a half-torus.', 'k.lockPlate;');
+recipe('lock', 'lock-bevel', 'A bevelled plate', '02 / RoundedBoxGeometry', 'Soft plate edges, shackle posts, four screws and a keyhole in the same 0.24 x 0.3 outline.', {}, ['The shackle arch is the classic half torus; the kit hides the whole plate when the lock opens.'], 'new THREE.TorusGeometry(.09, .025, 8, 20, Math.PI);', ['bevel']);

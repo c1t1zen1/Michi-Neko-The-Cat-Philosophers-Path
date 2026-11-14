@@ -58,7 +58,7 @@ cadJS is the standalone, non-destructive Three.js CAD workspace for **Michi-Neko
 - The production cat uses articulated `THREE.Group` pivots and separate meshes, not `THREE.Skeleton`/`SkinnedMesh` animation.
 - A dedicated rig inspector and animation timeline are planned but are not in the current UI.
 - Active game animation may overwrite live runtime transforms on animated parts.
-- Asset package schema 1 patches existing semantic objects only. Structural additions, removals, and reparenting are blocked.
+- Asset packages are schema 2: explicit create/remove/reparent of named parts plus per-part patches; schema 1 packages still import (migrated on open).
 - FBX, PLY, DAE, and 3DS can be catalogued, but the current preview loader supports GLB/glTF, OBJ, and STL.
 - Browser project Save writes `localStorage`; use exported project JSON as the portable backup.
 
@@ -630,13 +630,30 @@ cadJS rejects packages with unknown format, unsupported schema/contract, invalid
 
 Use **CAPTURE NEW BASELINE** only when intentionally beginning a new compatibility line. Old-baseline packages then become incompatible by design. Export the full project and retain previous packages before rebasing.
 
-### Structural limitation
+### Package schema 2 and structure
 
-Schema 1 patches existing semantic objects only. Added/removed parts change the semantic object set and block package export. Preserve structural work in `.cadjs.json` until a future schema supports explicit create/remove/reparent operations and migrations.
+`.cadasset.json` is now schema 2. Next to the per-part `changes.objects` it carries `structure.ops`, an ordered list of explicit operations on named parts: `create { id, parent, kind: Group|Mesh, state? }`, `remove { id }` (the part's children go with it) and `reparent { id, parent }`. Ids are semantic ids inside the asset (`catalog.<asset>.<part>`); the asset root cannot be created, removed or moved. **Export** derives the operations by diffing the current tree against the captured baseline, so adding, deleting and dragging parts in the workspace is now package-safe. **Open** dry-runs the operations on the baseline hierarchy (duplicate id, missing parent, a move into the part's own subtree and similar are refused before anything changes), then applies structure and states as one Undo step.
+
+Schema 1 packages keep importing: they are checksum-verified, migrated in memory to schema 2 with an empty `structure.ops` and `metadata.migratedFrom: 1` (new checksum), and applied. A schema 1 file that carries `structure`, or any schema other than 1 or 2, is rejected. A package is still tied to a baseline: capturing a new baseline (or editing a production asset's parameters, which rebuilds it) makes older packages incompatible.
+
+Remaining limit: `create` makes Group and Mesh parts only (geometry travels as serialized buffers, material as a plain standard material plus the recorded state); lights, cameras and instanced meshes are refused at export.
+
+### Production assets
+
+`/cadJS/?asset=<id>&variant=production` (also `&tier=hero|mid|far`, `&params={json}`) loads the modular kit version of a catalog asset, read-only through the catalog's loader and `labs/shared/game.js`. Its parts are named `asset:<id>/<part>` and are selectable in the tree and viewport; their semantic ids are `catalog.<id>.<part>`.
+
+**Kit parameters** (inspector) is generated from the asset's `params` schema: a slider per number, a select per enum, a checkbox per boolean, a colour input per colour, plus a classic/modular variant switch and Reset. Moving a slider rebuilds the asset live; releasing it records one Undo step. Values outside the schema's range are rejected (the game's runtime would clamp them, cadJS does not), also in a `?params=` handoff.
+
+**AI actions**: `set_asset_params { asset, values: { param: value } }` and `swap_asset_variant { asset, variant: classic|modular }`. The agent context carries the open asset's schema. The plan is checked against that schema when it arrives (a bad value rejects the whole plan, shown as REJECTED), is listed for review, and applies as one Undo step. Kit actions cannot be mixed with free-form edits in one plan. The model still returns data only; nothing here executes code or writes files.
 
 ### Game boundary
 
-The game does not yet permanently load `.cadasset.json`. Packages establish the validated format for a future game-side adapter and currently support compatible cadJS project exchange and revision auditing.
+Two files, two writers:
+
+- **Parameter edits and variant** go to `kit-overrides.json` (format `michi-neko-kit-overrides`). **Push to game** on a production asset validates the values against the schema, then uses the catalog server's atomic, revision-checked write (`GET/POST /api/asset-library/kit-overrides`, temp file + rename, 409 if the file changed). Entries equal to the defaults are dropped. The game reads this file when the modular asset set is active (`?assets=modular`; its runtime clamps or ignores anything unusable).
+- **Free-form edits** to objects cloned from the running game still go to `cad-overrides.json` as before. Free-form edits to a kit asset (moving or recolouring a part) have no runtime object to patch, so they are not pushed; the status line says how many were left out. Export a schema 2 package to keep them.
+
+The game does not load `.cadasset.json` packages; they remain the validated exchange and audit format.
 
 ---
 
