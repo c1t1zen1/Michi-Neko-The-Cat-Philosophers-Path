@@ -1,10 +1,12 @@
 // Headless logic test for the 天上 summit state machine.
 //
 // The summit scene is pure WebGL and cannot run without a GPU. This harness
-// loads the REAL src/mountaintop.js source and rewrites only its three import
-// statements to local stubs, so the actual shipped logic — unlock counting,
-// enter/exit transitions, containment, the meditation timer and the sleep
-// beat — is what gets exercised.
+// loads the REAL src/mountaintop.js source (the SummitManager facade) and the
+// REAL src/summit/*.js modules it imports, and rewrites only their import
+// statements: three, its addons, textures, foliage and grass become local
+// stubs, while every other import is the real module. So the actual shipped
+// logic — unlock counting, enter/exit transitions, containment, the
+// meditation timer and the sleep beat — is what gets exercised.
 //
 //   node tools/summit_test.mjs
 import { readFileSync } from 'node:fs';
@@ -153,18 +155,77 @@ const foliageStub = {
   lumpyTuftGeometry: () => ({}), lumpyConeGeometry: () => ({}), bushGeometry: () => ({}),
   leafMassTexture: () => ({}),
 };
-/* ---------------- load the real module source ---------------- */
-let src = readFileSync(join(ROOT, 'src', 'mountaintop.js'), 'utf8');
-// Strip imports (some are multi-line, so match `from '...'` through the `;`).
-src = src.replace(/^import[\s\S]*?from\s+['"][^'"]+['"]\s*;?/gm, '');
-// `import.meta.url` keeps module-relative assets working from both the game
-// and `/tools/` preview. The VM runs classic script text, so give it the URL
-// the real module has before evaluation.
-src = src.replace(/import\.meta\.url/g, "'http://localhost/src/mountaintop.js'");
-if (/^\s*import\s/m.test(src)) {
-  console.error('import strip failed');
-  process.exit(1);
+/* ---------------- load the real module sources ---------------- */
+// Each real module runs in the VM as one function scope (its own module
+// scope). Its import statements become reads from a small registry: the
+// imports below in STUBBED resolve to the stubs declared in `pre`, every
+// other import is the real module, loaded the same way on first use.
+const STUBBED = new Set([
+  'three', 'three/addons/utils/BufferGeometryUtils.js', 'three/addons/loaders/GLTFLoader.js',
+  'src/textures.js', 'src/foliage.js', 'src/grass.js',
+]);
+
+/** A specifier as a registry key: bare names as they are, relative paths repo-relative, `?v=` dropped. */
+function moduleKey(spec, fromKey) {
+  const bare = spec.replace(/[?#].*$/, '');
+  if (!bare.startsWith('.')) return bare;
+  const parts = fromKey.split('/').slice(0, -1);
+  for (const part of bare.split('/')) {
+    if (part === '..') parts.pop();
+    else if (part !== '.') parts.push(part);
+  }
+  return parts.join('/');
 }
+
+/** The module at `key` as classic script text that registers it, plus the keys it imports. */
+function moduleSource(key) {
+  let src = readFileSync(join(ROOT, key), 'utf8').replace(/^﻿/, '');
+  const deps = [], names = [];
+  // Imports (some are multi-line, so match `from '...'` through the `;`).
+  src = src.replace(/^import\s+([\s\S]*?)\s+from\s+['"]([^'"]+)['"]\s*;?/gm, (m, what, spec) => {
+    const dep = moduleKey(spec, key);
+    deps.push(dep);
+    what = what.trim();
+    if (what.startsWith('* as ')) return `const ${what.slice(5).trim()} = __require(${JSON.stringify(dep)});`;
+    if (what.startsWith('{')) return `const ${what.replace(/\s+as\s+/g, ': ')} = __require(${JSON.stringify(dep)});`;
+    return `const ${what} = __require(${JSON.stringify(dep)}).default;`;
+  });
+  if (/^\s*import\s/m.test(src)) {
+    console.error('import strip failed: ' + key);
+    process.exit(1);
+  }
+  src = src.replace(/^export\s+(class|function|const|let)\s+([A-Za-z_$][\w$]*)/gm, (m, kind, name) => {
+    names.push(name);
+    return `${kind} ${name}`;
+  });
+  if (/^\s*export\s/m.test(src)) {
+    console.error('export strip failed: ' + key);
+    process.exit(1);
+  }
+  // `import.meta.url` keeps module-relative assets working from both the game
+  // and `/tools/` preview. The VM runs classic script text, so give it the URL
+  // the real module has before evaluation.
+  src = src.replace(/import\.meta\.url/g, JSON.stringify('http://localhost/' + key));
+  return {
+    deps,
+    text: `__define(${JSON.stringify(key)}, function (__require) {\n${src}\nreturn { ${names.join(', ')} };\n});\n`,
+  };
+}
+
+/** src/mountaintop.js and every real module it reaches, as one script. */
+function realModules(entry) {
+  const seen = new Set(), out = [];
+  const visit = (key) => {
+    if (seen.has(key) || STUBBED.has(key)) return;
+    seen.add(key);
+    const mod = moduleSource(key);
+    out.push(mod.text);
+    for (const dep of mod.deps) visit(dep);
+  };
+  visit(entry);
+  return { keys: [...seen], text: out.join('') };
+}
+const real = realModules('src/mountaintop.js');
 
 const canvasStub = () => ({
   width: 1024, height: 512,
@@ -222,10 +283,10 @@ sandbox.globalThis = sandbox;
 sandbox.self = sandbox;
 vm.createContext(sandbox);
 
-// Re-declare ONLY the names that came from the stripped imports. Everything
+// Re-declare ONLY the names that came from the stubbed imports. Everything
 // else (ORIGIN, MEDITATE_SECONDS, mulberry32, clamp01, box, …) stays the real
-// module-scope definition from src/mountaintop.js, so the constants under test
-// are the shipped ones.
+// module-scope definition from src/mountaintop.js and src/summit/*.js, so the
+// constants under test are the shipped ones.
 const pre = `
   const dirtTextures = () => ({}), groundTextures = () => ({}), stoneTextures = () => ({}), woodTextures = () => ({}),
         metalTextures = () => ({}), barkTextures = () => ({}),
@@ -244,8 +305,30 @@ const pre = `
     setDensity() {} update() {}
   };
 `;
-vm.runInContext(pre + src.replace('export class SummitManager', 'class SummitManager') +
-  '\nthis.SummitManager = SummitManager;', sandbox);
+// The registry: stubbed imports resolve to the names declared in `pre`; real
+// modules register a factory and run once, on first import, like ES modules.
+const registry = `
+  const __modules = new Map(), __factories = new Map();
+  function __define(key, factory) { __factories.set(key, factory); }
+  function __require(key) {
+    if (__modules.has(key)) return __modules.get(key);
+    const factory = __factories.get(key);
+    if (!factory) throw new Error('summit_test: no module for import ' + key);
+    const exported = factory(__require);
+    __modules.set(key, exported);
+    return exported;
+  }
+  __modules.set('three', THREE);
+  __modules.set('three/addons/utils/BufferGeometryUtils.js', { mergeGeometries });
+  __modules.set('three/addons/loaders/GLTFLoader.js', { GLTFLoader });
+  __modules.set('src/textures.js', { dirtTextures, groundTextures, stoneTextures, woodTextures, metalTextures,
+    barkTextures, texturedMaterial, worldNoise, glowTexture });
+  __modules.set('src/foliage.js', { createFoliageMaterial, createFoliageDepthMaterial, leafCardTexture,
+    leafCardGeometry, buildCanopy, updateFoliage, lumpyTuftGeometry, lumpyConeGeometry, bushGeometry, leafMassTexture });
+  __modules.set('src/grass.js', { GrassSystem, BiomeMask });
+`;
+vm.runInContext(pre + registry + real.text +
+  `\nthis.SummitManager = __require('src/mountaintop.js').SummitManager;`, sandbox);
 
 const toasts = [];
 const audioCalls = [];
