@@ -884,7 +884,8 @@ specifics.
       and the draw delta is measured and recorded (R36); reuse a kit
       material before adding one: `ctx.kitMaterials.shared(name)` with your
       colour in vertex or instance colour, or a `ctx.MAT` material (§3.3
-      rule 8; the kit has no material left to add without a ruling); the
+      rule 8; R52: no fixed cap, a new merged material is justified in the handoff with its draw
+      cost, and modular draw calls stay ≤ classic per spot and tier); the
       asset's contract `sample` is the LARGEST real layout the game builds
       (the longest fence, the biggest grove), so AAA-7 is tested on what
       players see; a real layout over the cap needs a `BUDGET_EXCEPTIONS`
@@ -1448,6 +1449,7 @@ created in Phase 1 and marked *(new)*.
 | | `cd cadJS && npm run check` | cadJS server modules and tests |
 | | `cd dawCAT && npm test` | Audio studio |
 | | `node tools/interiors_test.mjs`, `node tools/ranges_test.mjs` | Lab-specific suites |
+| | Optional: `node tools/kit_material_census.mjs [--tier high] [--out f.json]` | Boots the modular game on an instrumented copy and lists every kit material: creating family, reusers, draws (baked / instanced / plain), triangles. Use it to report "+N merged materials" in a handoff (R52) without a perf run |
 | **G4** full game | `/__boot.html` headless, on `?assets=classic` and `?assets=modular` | The only check that exercises `main.js` wiring. 15–20 minutes under SwiftShader |
 | | Review sheets: `tools/cat_preview.html`, `tree_`, `town_`, `hidden_` | Seeded, repeatable renders against the Phase 0 captures (`node tools/capture_baseline.mjs --compare`; the cat sheets also have `node tools/cat_golden.mjs`) |
 | | `summit_`, `grass_preview.html` and the Roof Road sheets | **Not pixel-repeatable** (time-driven loops, unseeded `Math.random`; see `docs/fable/baseline/captures.md`). Their gates are the numeric goldens and tests: `node tools/summit_test.mjs`, `node tools/rooftop_test.mjs`, the footprint and systems goldens |

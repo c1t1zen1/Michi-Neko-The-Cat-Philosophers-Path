@@ -151,8 +151,12 @@ instance, as built at that tier:
   headroom.
 - **Materials per asset** (as built, before the valley merge): ≤ **6 / 4 / 2**
   distinct materials, all from `MAT` / `KitMaterials` so `_mergeStatics()`
-  merges them. **New merged materials:** at most **11** beyond the classic
-  `MAT` set, for the whole kit, shared by all families (derivation below).
+  merges them. **New merged materials:** no fixed cap (ruling R52 replaced the
+  old "at most 11"). Reuse a `KIT_SHARED` or `ctx.MAT` material first; each
+  new merged material is justified in the lane handoff with its draw cost
+  (`node tools/kit_material_census.mjs` reports it), and at the four spots
+  modular draw calls stay ≤ classic per tier (`perf_gv1.md`). The derivation
+  below is the old cap's worst case, kept as history.
 - **Live meshes** (kept out of the merge: animated or glowing): ≤ **2** per
   hero instance, **0** per mid or far instance (animate those through the
   family's shared instanced or merged mesh: ≤ **2** shared live draw calls
@@ -175,7 +179,8 @@ instance, as built at that tier:
   neither casting shadows: 68. New merged materials M, each one merged mesh
   valley-wide that casts shadows:
   - medium: 68 + 1.5 M ≤ 104 (river) → M ≤ 24;
-  - high: 68 + 2 M ≤ 90 (shrine) → **M ≤ 11**, the binding limit.
+  - high: 68 + 2 M ≤ 90 (shrine) → M ≤ 11, the binding limit of the
+    withdrawn cap (R52 replaced it with the measured per-spot draw rule).
 - **Build time.** The medium budget allows +25 % of world build: 224 ms.
   Worst case, 40 distinct variants first-built at hero (8 buildings × 6 ms +
   6 trees × 5 + 12 structures × 3 + 14 props × 1.5 = 135 ms) plus 600 repeat
@@ -278,17 +283,17 @@ shadows every second frame, so its amortised cost is main + shadow / 2:
 Whole-scene draw calls and triangles, classic against modular at the four
 spots on all three tiers, are in `perf_gv1.md`.
 
-**Headroom and the rule for wave 2.2 on.** After wave 2.1 and the pagoda
-the kit is **at the cap: 11 of 11**. A lane reuses a `KIT_SHARED` material
-(colour in vertex or instance colour) or a `ctx.MAT` material; it may not add
-a merged material on its own (this replaces ruling R26's "one per family
-without asking"). A new one needs an Integrator ruling backed by a same-session
-`perf_spots` run at the shrine spot on high (the binding spot), or it must
-retire one. Recommendation for the operator: the cap is a proxy for draw
-calls derived from a worst case (68 live draws, every merged material in view
-and casting); the gate that matters is section 1, measured per spot in
-`perf_gv1.md`. If later lanes need more materials, re-derive the cap from
-measured draws rather than raising it by fiat.
+**The material rule for wave 2.2 on (ruling R52).** After wave 2.1 and the
+pagoda the kit held 11 merged materials. The old cap of 11 was a worst-case
+proxy for draw calls (68 live draws, every merged material in view and
+casting) and is withdrawn, as is R26's "one per family without asking". A lane
+reuses a `KIT_SHARED` material (colour in vertex or instance colour) or a
+`ctx.MAT` material first. A new merged material is allowed when the lane
+handoff justifies it with its draw cost (`tools/kit_material_census.mjs`
+prints the count and the draws per material), and the gate is measured:
+at the four spots modular draw calls are ≤ classic per tier
+(`perf_gv1.md`, `tools/perf_spots.mjs`). `KIT_LIMITS.mergedMaterialsBaseline`
+(11) is informational only.
 
 **Known per-asset overrun (G-V1), resolved by R51.** The valley's longest
 `bamboo-fence` runs (about 11 m) build 22,638 / 12,660 / 568 triangles

@@ -165,12 +165,13 @@ if (status === 'accepted') ok('budgets: accepted (D1)');
 else if (existsSync(join(ROOT, 'docs', 'fable', 'baseline', 'budgets.md'))) note(`budgets.js is ${status || 'unmarked'} but docs/fable/baseline/budgets.md exists — copy the accepted numbers in and set status: 'accepted'`);
 else note(`budgets.js is ${status || 'unmarked'}; docs/fable/baseline/budgets.md has not landed yet`);
 if (status === 'accepted' && existsSync(join(KIT, 'budgets.js'))) {
-  // The numbers of budgets.md section 3 (decision D1): triangles 25k/6k/1k, materials 6/4/2, <= 11 new merged materials.
+  // The numbers of budgets.md section 3 (decision D1): triangles 25k/6k/1k, materials 6/4/2. The old kit-wide merged-material cap (11) was replaced by ruling R52: the
+  // mechanical part is tools/kit_material_census.mjs ("+N merged materials"), the gate is perf_spots draw calls; no cap is asserted here.
   const b = await import(new URL('file://' + join(KIT, 'budgets.js')).href + '?t=' + Date.now());
   const t = ['hero', 'mid', 'far'].map((k) => b.BUDGETS[k] && b.BUDGETS[k].triangles).join('/');
   const m = ['hero', 'mid', 'far'].map((k) => b.BUDGETS[k] && b.BUDGETS[k].materials).join('/');
-  if (t === '25000/6000/1000' && m === '6/4/2' && b.KIT_LIMITS && b.KIT_LIMITS.newMergedMaterials === 11) ok('budgets numbers match budgets.md section 3 (25k/6k/1k triangles, 6/4/2 materials, <= 11 new merged materials)');
-  else bad(`budgets numbers differ from budgets.md section 3: triangles ${t}, materials ${m}, newMergedMaterials ${b.KIT_LIMITS && b.KIT_LIMITS.newMergedMaterials}`);
+  if (t === '25000/6000/1000' && m === '6/4/2' && b.KIT_LIMITS && b.KIT_LIMITS.newMergedMaterials === undefined) ok('budgets numbers match budgets.md section 3 (25k/6k/1k triangles, 6/4/2 materials; no merged-material cap, R52)');
+  else bad(`budgets numbers differ from budgets.md section 3: triangles ${t}, materials ${m}, a retired newMergedMaterials cap is still present: ${b.KIT_LIMITS && b.KIT_LIMITS.newMergedMaterials}`);
 }
 
 // --- root kit-overrides.json (optional; a missing file is normal) -----------------
