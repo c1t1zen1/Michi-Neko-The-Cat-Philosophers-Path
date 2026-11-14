@@ -151,8 +151,10 @@ float bandNoise(vec2 p) {
   return mix(mix(bandHash(i), bandHash(i + vec2(1.0, 0.0)), f.x), mix(bandHash(i + vec2(0.0, 1.0)), bandHash(i + vec2(1.0, 1.0)), f.x), f.y);
 }
 void main() {
-  vec2 p = vec2(vUv.x * 64.0, vUv.y * 5.0);
-  float cloud = bandNoise(p) * 0.5 + bandNoise(p * 2.1 + 3.7) * 0.3 + bandNoise(p * 4.3 + 9.1) * 0.2;
+  // cells about as long as they are wide (64 round the circle, 9 across), so the band is a glow of
+  // star clouds, never a comb of streaks
+  vec2 p = vec2(vUv.x * 64.0, vUv.y * 9.0);
+  float cloud = bandNoise(p) * 0.45 + bandNoise(p * 2.1 + vec2(3.7, 1.3)) * 0.3 + bandNoise(p * 4.3 + vec2(9.1, 5.2)) * 0.25;
   float across = exp(-vUv.y * vUv.y * 3.2);
   // the Great Rift: a dark dust lane just off the centre line
   float rift = 1.0 - 0.6 * exp(-pow((vUv.y - 0.12) / 0.16, 2.0)) * smoothstep(0.35, 0.75, bandNoise(p * 1.3 + 1.9));

@@ -320,7 +320,8 @@ export function buildClouds(ctx, layout, p) {
       uniforms.uDay.value = s.day;
       uniforms.uGolden.value = s.golden;
       uniforms.uMoonLight.value = s.night * 0.55 * (1 - s.storm * 0.6);
-      uniforms.uHigh.value = tier === 'hero' ? 0.4 * (1 - s.storm * 0.7) : 0;
+      // the cirrus veil is a daylight layer: at night its fibres would read as searchlight beams
+      uniforms.uHigh.value = tier === 'hero' ? 0.4 * (1 - s.storm * 0.7) * (0.12 + 0.88 * s.day) : 0;
       instance.cover = cover;
       instance.high = uniforms.uHigh.value;
       instance.veil = Math.min(1, s.cloudy * 0.6 + s.mist) * (1 - s.rain);   // a thin veil: the moon's 22° halo weather
