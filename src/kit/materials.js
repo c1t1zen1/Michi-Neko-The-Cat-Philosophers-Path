@@ -24,6 +24,7 @@ import {
   stoneTextures, woodTextures, lacquerTextures, strawTextures, metalTextures, plasterTextures,
   kawaraTextures, barkTextures, texturedMaterial
 } from '../textures.js?v=20261113a';
+import { rng, canvas2d, canvasTexture } from './craft.js?v=20261113a';
 
 /* ---------------------------------------------------------- GLSL chunks --- */
 
@@ -325,6 +326,17 @@ export class KitMaterials {
       paintify(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 }), this._paint({ moss: 1.2, mossA: a, mossB: b, brush: 0.1, ...p })));
   }
 
+  /**
+   * A shared named kit material (KIT_SHARED below, ruling R39): the same
+   * memoised material any family gets from the same factory and args. Carry
+   * your own colour in vertex (or instance) colours with tintToward().
+   */
+  shared(name) {
+    const entry = KIT_SHARED[name];
+    if (!entry) throw new Error(`KitMaterials.shared: no shared kit material '${name}' (have: ${Object.keys(KIT_SHARED).join(', ')})`);
+    return entry.make(this);
+  }
+
   /** Dispose every created material (tests and teardown; the game never calls this). */
   dispose() {
     for (const m of this.created) m.dispose();
@@ -332,4 +344,146 @@ export class KitMaterials {
     this.created = [];
     this.memo.clear();
   }
+}
+
+/* ------------------------------------------------- shared kit materials --- */
+
+/**
+ * The kit's merged materials, by name (ruling R39, gate G-V1; budgets.md
+ * "Kit materials"). Every static kit mesh on one of these joins ONE valley-wide
+ * draw per material (plus its shadow draw) through Countryside._mergeStatics(),
+ * whatever family built it; the whole kit may add at most 11 (KIT_LIMITS).
+ * Before adding a material, use one of these (`km.shared(name)`) and carry the
+ * colour in vertex colours (`tintGeometry(geo, tintToward(hex, entry.base))`)
+ * or instance colours. Each `make` is the exact factory call (same args, so the
+ * same memoised material) the family that introduced it makes; a family may
+ * keep calling its factory directly with these args. `base` is the material
+ * colour a tint is measured against (white for vertex-coloured materials).
+ */
+export const KIT_SHARED = Object.freeze({
+  bamboo: Object.freeze({ base: 0xd2b87c, from: 'fences (straw finish)', use: 'every static bamboo: fences, corral posts, corral-sign post, shishi stake and feed', make: (km) => km.bamboo({ color: 0xd2b87c, vcol: true, rough: 0.5 }) }),
+  matte: Object.freeze({ base: 0xffffff, from: 'nest', use: 'vertex-coloured matte geometry: nest, eggs, feather, the distant pagoda', make: (km) => km.bag({ rough: 0.9, brush: 0.1 }) }),
+  crate: Object.freeze({ base: 0xffffff, from: 'alley', use: 'vertex-coloured timber near the ground (grime at the foot): crates, barrels', make: (km) => km.bag({ rough: 0.85, grime: 0.4, grimeH: 0.3 }) }),
+  cord: Object.freeze({ base: 0x2a2017, from: 'fences', use: 'cord lashings', make: (km) => km.plain(0x2a2017, { rough: 1 }) }),
+  darkWood: Object.freeze({ base: 0xffffff, from: 'fences (corral sign)', use: 'dark timber (wood texture): the sign cap; the far sign', make: (km) => km.wood({ base: 0x4a3320, dark: 0x2a1a10 }) }),
+  stone: Object.freeze({ base: 0xffffff, from: 'lanterns', use: 'dressed stone (stone texture, default tint)', make: (km) => km.stone() }),
+  basinStone: Object.freeze({ base: 0xffffff, from: 'garden', use: 'darker dressed stone: tsukubai basin, anvil, pebbles', make: (km) => km.stone({ tint: 0x77736a }) }),
+  rock: Object.freeze({ base: 0xffffff, from: 'rocks', use: 'procedural rock, light (path boulders, key rock)', make: (km) => km.rock({ moss: 0.4, lichen: 0.22 }) }),
+  rockDark: Object.freeze({ base: 0xffffff, from: 'rocks', use: 'procedural rock, dark', make: (km) => km.rock({ a: 0x45433e, b: 0x7d786d, moss: 0.4, lichen: 0.15 }) }),
+  moss: Object.freeze({ base: 0xffffff, from: 'greenery', use: 'moss pillows', make: (km) => km.moss() })
+});
+
+const _tintA = new THREE.Color(), _tintB = new THREE.Color();
+/**
+ * The linear-space per-channel factor that turns a material of colour `baseHex`
+ * into colour `hex` when multiplied in as a vertex or instance colour (three
+ * multiplies material colour × vertex colour × instance colour in linear space,
+ * so the result is the same colour, to float precision).
+ */
+export function tintToward(hex, baseHex) {
+  _tintA.set(hex); _tintB.set(baseHex);
+  return [_tintA.r / _tintB.r, _tintA.g / _tintB.g, _tintA.b / _tintB.b];
+}
+
+/** Multiply a geometry's vertex colours by `rgb` (adds a white colour attribute first when it has none). */
+export function tintGeometry(geo, [r, g, b]) {
+  let c = geo.attributes.color;
+  if (!c) { c = new THREE.BufferAttribute(new Float32Array(geo.attributes.position.count * 3).fill(1), 3); geo.setAttribute('color', c); }
+  for (let i = 0; i < c.count; i++) c.setXYZ(i, c.getX(i) * r, c.getY(i) * g, c.getZ(i) * b);
+  c.needsUpdate = true;
+  return geo;
+}
+
+/* ------------------------------------------------- lantern light helpers --- */
+
+// Promoted from src/kit/lanterns/light.js at gate G-V1 (v-lanterns handoff):
+// the dusk curve, the washi and halo textures and the lit-washi material are
+// shared by every family that lights paper (lanterns, shrine, hidden places,
+// interiors). lanterns/light.js re-exports them unchanged. Nothing here reads
+// Math.random or Date.now.
+
+/**
+ * How dark it is, 0 (sun well up) .. 1, from the hour of the day: the same
+ * asymmetric sun path as Sky.updateDayNight() (the source of truth is `sky.sunDir`; keep this in step, it ignores weather) (daylight 6:00-19:12) pushed
+ * through Countryside.update()'s `1 - sunUp * 5`.
+ */
+export function nightnessAt(hour) {
+  const h = ((hour % 24) + 24) % 24;
+  const dayStart = 6.0, dayEnd = 19.2;
+  let angle;
+  if (h >= dayStart && h <= dayEnd) angle = ((h - dayStart) / (dayEnd - dayStart)) * Math.PI;
+  else {
+    const nightT = h < dayStart ? h + 24 - dayEnd : h - dayEnd;
+    angle = Math.PI + (nightT / (24 - (dayEnd - dayStart))) * Math.PI;
+  }
+  const sunY = Math.sin(angle) / Math.sqrt(1.25); // sunDir = (cos, sin, 0.5) normalised
+  return Math.max(0, 1 - Math.max(0, sunY) * 5);
+}
+
+// One texture per KitMaterials set (the set is the kit's shared state): built
+// lazily, shared by every lantern, never disposed by an instance.
+const cache = new WeakMap();
+function shared(km, key, make) {
+  const owner = km && typeof km === 'object' ? km : cache;
+  let bag = cache.get(owner);
+  if (!bag) { bag = new Map(); cache.set(owner, bag); }
+  if (!bag.has(key)) { const t = make(); t.userData.kit = true; bag.set(key, t); }
+  return bag.get(key);
+}
+
+/** A washi sheet: long fibres and the shadow of the bamboo ribs (labs/shared/paperlantern.js). */
+export function washiTexture(km, { ribs = 0, seed = 7 } = {}) {
+  return shared(km, `washi:${ribs}:${seed}`, () => {
+    const [c, x] = canvas2d(128, 128);
+    const r = rng(seed);
+    x.fillStyle = '#fff4e2'; x.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 220; i++) {
+      x.strokeStyle = `rgba(150,110,70,${0.04 + r() * 0.08})`; x.lineWidth = 0.4 + r() * 0.6;
+      x.beginPath(); const px = r() * 128, py = r() * 128; x.moveTo(px, py);
+      x.quadraticCurveTo(px + (r() - 0.5) * 25, py + (r() - 0.5) * 15, px + (r() - 0.5) * 35, py + (r() - 0.5) * 15); x.stroke();
+    }
+    for (let i = 0; i < ribs; i++) {
+      const y = (i + 0.5) / ribs * 128;
+      x.fillStyle = 'rgba(120,80,40,.34)'; x.fillRect(0, y - 0.6, 128, 1.2);
+      x.fillStyle = 'rgba(255,255,255,.25)'; x.fillRect(0, y + 0.6, 128, 0.5);
+    }
+    return canvasTexture(c, { repeat: true });
+  });
+}
+
+/** The soft warm bloom behind a flame (the game's makeGlowBallTexture, redrawn). */
+export function haloTexture(km) {
+  return shared(km, 'halo', () => {
+    const [c, x] = canvas2d(64, 64);
+    const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,240,200,1)'); g.addColorStop(0.25, 'rgba(255,200,120,0.55)');
+    g.addColorStop(0.6, 'rgba(255,160,70,0.14)'); g.addColorStop(1, 'rgba(255,140,50,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+    return canvasTexture(c);
+  });
+}
+
+/**
+ * Lit washi: a warm emissive with a fibre map, hottest where the flame is
+ * (the object-space height of the mesh, so build the mesh centred on its
+ * flame and place it with `mesh.position`). `uGlow` is the dial update() turns.
+ * One private material per lantern (each kindles on its own); the compiled
+ * program is shared.
+ */
+export function litWashi(tex, { color = 0xfff0dc, glowColor = 0xff9a3e, fall = 0.2, glow = 0.15, side = THREE.DoubleSide } = {}) {
+  const u = { uGlow: { value: glow }, uFall: { value: fall }, uGlowCol: { value: new THREE.Color(glowColor) } };
+  const m = new THREE.MeshStandardMaterial({ color, map: tex, roughness: 0.9, side });
+  m.onBeforeCompile = (s) => {
+    Object.assign(s.uniforms, u);
+    s.vertexShader = s.vertexShader.replace('#include <common>', '#include <common>\nvarying float vH;').replace('#include <project_vertex>', '#include <project_vertex>\nvH = position.y;');
+    s.fragmentShader = s.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vH; uniform float uGlow, uFall; uniform vec3 uGlowCol;')
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        float bl = exp(-pow(abs(vH) * uFall / 0.28, 2.0));
+        vec3 glowC = uGlowCol * (0.5 + 1.6 * bl) * texture2D(map, vMapUv).rgb;
+        totalEmissiveRadiance += glowC * uGlow;`);
+  };
+  m.userData.u = u;
+  m.customProgramCacheKey = () => 'kit-washi';
+  return m;
 }

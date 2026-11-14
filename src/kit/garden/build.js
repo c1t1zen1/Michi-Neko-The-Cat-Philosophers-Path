@@ -5,6 +5,7 @@
 // feeder and anvil are static and merge by material.
 import * as THREE from 'three';
 import { merge, indexed, shadows, V3 } from '../craft.js?v=20261113a';
+import { KIT_SHARED, tintToward, tintGeometry } from '../materials.js?v=20261113a';
 
 const mesh = (geo, mat, name, cast = true) => { const m = new THREE.Mesh(geo, mat); m.name = name; m.castShadow = cast; m.receiveShadow = true; return m; };
 const seg = (tier, hero, mid, far) => (tier === 'hero' ? hero : tier === 'mid' ? mid : far);
@@ -38,7 +39,11 @@ export function buildShishi(ctx, layout, p) {
   const stone = km.stone({ tint: 0x77736a });
   const age = p.culm_age;
   const bamboo = km.bamboo({ color: new THREE.Color(0x7fa84f).lerp(new THREE.Color(0xc2b36a), age).getHex(), side: THREE.DoubleSide });
-  const stem = km.bamboo({ color: new THREE.Color(0x6c8d44).lerp(new THREE.Color(0xa89a5a), age).getHex() });
+  // stake and feed: the kit's one static bamboo (KIT_SHARED.bamboo, ruling R39), the shishi's own green
+  // carried in vertex colour, so they merge into the fences' bamboo draw (was its own km.bamboo)
+  const stem = km.shared('bamboo');
+  const stemTint = tintToward(new THREE.Color(0x6c8d44).lerp(new THREE.Color(0xa89a5a), age).getHex(), KIT_SHARED.bamboo.base);
+  const tinted = (geo) => tintGeometry(geo, stemTint);
   const timber = matOr(ctx, 'timberDark', () => km.wood());
   const n = seg(tier, 24, 12, 8);
 
@@ -53,8 +58,8 @@ export function buildShishi(ctx, layout, p) {
   const pipe = new THREE.CylinderGeometry(0.032, 0.034, L, seg(tier, 12, 8, 6)).rotateZ(-Math.atan2(d.x, d.y) * 0 + 0);
   pipe.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(V3(0, 1, 0), d.clone().normalize()));
   pipe.translate((a.x + b.x) / 2, (a.y + b.y) / 2, 0);
-  add('feed', merge([pipe, new THREE.CylinderGeometry(0.03, 0.03, 0.04, 8).translate(a.x, a.y, 0)]), stem);
-  add('stake', new THREE.CylinderGeometry(0.026, 0.03, 1.05, seg(tier, 10, 6, 5)).translate(-0.6, 0.525, 0), stem);
+  add('feed', tinted(merge([pipe, new THREE.CylinderGeometry(0.03, 0.03, 0.04, 8).translate(a.x, a.y, 0)])), stem);
+  add('stake', tinted(new THREE.CylinderGeometry(0.026, 0.03, 1.05, seg(tier, 10, 6, 5)).translate(-0.6, 0.525, 0)), stem);
 
   // posts, axle and the stone the tail strikes
   const post = (z) => new THREE.CylinderGeometry(0.026, 0.032, PIVOT.y + 0.1, 7).translate(PIVOT.x, (PIVOT.y + 0.1) / 2, z);
@@ -74,7 +79,9 @@ export function buildShishi(ctx, layout, p) {
   if (tier !== 'hero') { // two static draws: stone and bamboo (water, pebbles dropped)
     const fold = (names, mat, name) => {
       const geos = names.map((k) => { const m = parts[k]; g.remove(m); delete parts[k]; return m.geometry; });
-      const m = mesh(indexed(merge(geos)), mat, name); g.add(m); parts[name] = m;
+      const geo = merge(geos);
+      if (mat === stem) { geo.deleteAttribute('color'); tinted(geo); }   // the timber posts and axle fold in at the stem colour, as before
+      const m = mesh(indexed(geo), mat, name); g.add(m); parts[name] = m;
     };
     fold(['basin', 'anvil'], stone, 'basin');
     fold(['feed', 'stake', 'post_l', 'post_r', 'axle'], stem, 'frame');
@@ -84,7 +91,7 @@ export function buildShishi(ctx, layout, p) {
   // the rocker: the game sets rotation.z = π/2 + tilt on this group
   const rocker = new THREE.Group();
   rocker.position.copy(PIVOT); rocker.rotation.z = Math.PI / 2 + REST_TILT;
-  const tube = mesh(sozuGeometry(tier), tier !== 'hero' ? stem : bamboo, 'tube'); rocker.add(tube);
+  const tube = mesh(tier !== 'hero' ? tinted(sozuGeometry(tier)) : sozuGeometry(tier), tier !== 'hero' ? stem : bamboo, 'tube'); rocker.add(tube);
   g.add(rocker); parts.rocker = rocker;
 
   const live = [tube];
