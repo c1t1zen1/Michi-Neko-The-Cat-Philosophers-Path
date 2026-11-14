@@ -552,7 +552,7 @@ test('budgets are per tier, exceptions apply, source is cited', () => {
 
 /* ------------------------------------------------------ kit_check fixtures --- */
 
-import { mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
@@ -561,7 +561,13 @@ function fixtureRoot() {
   const root = mkdtempSync(join(tmpdir(), 'kit-check-'));
   mkdirSync(join(root, 'src'), { recursive: true });
   mkdirSync(join(root, 'labs'), { recursive: true });
-  cpSync(join(ROOT, 'src', 'kit'), join(root, 'src', 'kit'), { recursive: true });
+  // Core kit files only: real family folders (any directory directly under src/kit) would bring
+  // ids the fixture inventory does not list, so a merged family would fail this test.
+  const kitDir = join(ROOT, 'src', 'kit');
+  cpSync(kitDir, join(root, 'src', 'kit'), {
+    recursive: true,
+    filter: (src) => src === kitDir || !(statSync(src).isDirectory() && dirname(src) === kitDir)
+  });
   writeFileSync(join(root, 'src', 'main.js'), `import { x } from './kit/runtime.js?v=${TAG}';\n`);
   writeFileSync(join(root, 'labs', 'asset_inventory.json'), JSON.stringify({ assets: [{ id: 'torii', lifecycle: 'active' }, { id: 'old-gate', lifecycle: 'inactive' }] }));
   return root;
