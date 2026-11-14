@@ -106,3 +106,14 @@ Replaced the continuous glowing belt with stone walls cut around real apertures 
 [Kasuga Taisha stone lanterns, Japan Tourism Agency](https://www.mlit.go.jp/tagengo-db/H30-00885.html) (text read), [Kenrokuen official photograph](https://www.hot-ishikawa.jp/photo/detail_1.html) (photograph inspected).
 
 See the [complete lab review and before/after gallery](../REVIEW_2026-11-10.md).
+
+## Promoted to the game kit (2026-11-13, lane v-lanterns)
+
+`src/kit/lanterns/` carries tōrō, chōchin, street lamps, andon and the
+courtyard and pool tōrō. Two specimens were added first so every promoted id
+has a focused study: `courtyard-toro` (the interior's 1.04 m courtyard lantern)
+and `pool-toro` (the Moon Pool's 1.14 m lantern), both the Kasuga builder at the
+game's size. The kit keeps the game's contract: the perch platform, the light
+spots and the per-lantern kindle onset stay as the classic builders register
+them; only the picture changes (hollow firebox with real higuchi, lit washi
+behind it, kasa with a swept skirt).
