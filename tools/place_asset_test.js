@@ -14,6 +14,8 @@
 //   registrations must equal the classic valley's, and the seeded stream must
 //   stop at the same draw. ?per=1 repeats Part B one id at a time, so classic
 //   parents hold kit children and kit parents hold classic children.
+// Part C, missing parts: an instance without the parts its layout binds
+//   warns once per id and part (console.warn), however often it is built.
 // No real kit asset is registered; the page changes no game file.
 
 const params = new URLSearchParams(location.search);
@@ -264,8 +266,12 @@ function fakeInstance(layout) {
   });
   return { group, parts, sockets: {}, footprint: layout.footprint, live: [], dispose() {} };
 }
-function fakeRuntime(want) {
-  return { build: (id, layout, classicFn) => (want(id) ? fakeInstance(layout) : classicFn()), update() {}, instances: [] };
+function fakeRuntime(want, make = fakeInstance) {
+  return { build: (id, layout, classicFn) => (want(id) ? make(layout) : classicFn()), update() {}, instances: [] };
+}
+/** A kit instance with no parts at all: every handle its layout binds is missing. */
+function partlessInstance(layout) {
+  return { group: new THREE.Group(), parts: {}, sockets: {}, footprint: layout.footprint, live: [], dispose() {} };
 }
 
 function digest(city) {
@@ -321,7 +327,23 @@ async function main() {
     }
   }
 
-  const ok = !A.problems.length && !B.all.length && !Object.keys(B.per).length;
+  // Part C: an instance that lacks the parts its layout binds warns once per
+  // id and part (and only for kit instances), built twice to prove "once".
+  const warned = [];
+  const realWarn = console.warn;
+  console.warn = (...args) => { warned.push(String(args[0])); };
+  try {
+    for (let k = 0; k < 2; k++) build({ assets: fakeRuntime((id) => id === 'shishi' || id === 'edge-forest', partlessInstance) });
+  } finally { console.warn = realWarn; }
+  const C = { warnings: warned.length, problems: [] };
+  for (const want of ["shishi: the instance has no part 'rocker'", "edge-forest: the instance has no part 'trunks'",
+    "edge-forest: the instance has no part 'thicket_crown_1'"]) {
+    const n = warned.filter((w) => w.includes(want)).length;
+    if (n !== 1) C.problems.push(`expected one warning "${want}…", got ${n}`);
+  }
+  if (new Set(warned).size !== warned.length) C.problems.push('a warning repeated');
+
+  const ok = !A.problems.length && !B.all.length && !Object.keys(B.per).length && !C.problems.length;
   const lines = [
     `placeAsset test: ${ok ? 'PASS' : 'FAIL'}`,
     `A  ${A.placements} placements of ${A.ids.length} ids; ${A.problems.length} footprint problems; colliders ${A.exactColliders}/${A.colliders} bit-exact`,
@@ -334,6 +356,7 @@ async function main() {
     lines.push(`B  one id at a time: ${A.ids.length - bad.length}/${A.ids.length} equal`);
     for (const id of bad) lines.push(`   ${id}: ${B.per[id].slice(0, 3).join(' | ')}`);
   }
+  lines.push(`C  part-less kit instances (shishi, edge-forest), built twice: ${C.warnings} warnings, ${C.problems.length ? C.problems.join('; ') : 'one per id and part'}`);
   lines.push(`time ${Math.round(performance.now() - t0)} ms`);
   window.__placeTest = { done: true, ok, ids: A.ids, problems: A.problems, modular: B, lines };
   document.getElementById('status').textContent = ok ? 'PASS' : 'FAIL';
