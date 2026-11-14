@@ -1914,37 +1914,65 @@ export class Countryside {
 
   // --- 1. Merchant Tea House (Chaya) with Rooftop Bird Nest ---
   buildMachiyaTeaHouse(x, z, rotY) {
+    const layout = this.layoutMachiyaTeaHouse(x, z, rotY);
+    return this.placeAsset('tea-house', layout, () => this.meshMachiyaTeaHouseClassic(layout));
+  }
+
+  layoutMachiyaTeaHouse(x, z, rotY) {
+    const H = frameOf(null, x, 0, z, 0, rotY, 0);
+    const kit = (id, layout, mesh, attach, at) => component(id, Object.assign(layout, at), mesh, attach);
+    return {
+      index: this.nextIndex('tea-house'), name: 'Machiya Tea House (Chaya)', x, z, ry: rotY,
+      footprint: footprint({
+        platforms: [
+          { oriented: [{ minX: -3.5, maxX: -0.9, minZ: 2.8, maxZ: 4.2 }, 0.5] },      // tea bench
+          { oriented: [{ minX: -4.35, maxX: 4.35, minZ: 2.55, maxZ: 3.55 }, 2.65] },  // wraparound ledge
+          { oriented: [{ minX: -4.35, maxX: 4.35, minZ: -3.55, maxZ: -2.55 }, 2.65] },
+          { oriented: [{ minX: -4.35, maxX: -3.35, minZ: -2.65, maxZ: 2.65 }, 2.65] },
+          { oriented: [{ minX: 3.35, maxX: 4.35, minZ: -2.65, maxZ: 2.65 }, 2.65] },
+          { oriented: [{ minX: 0.35, maxX: 3.45, minZ: 2.2, maxZ: 3.25 }, 3.58] },     // tutorial roof lip
+          { sloped: [4.4, 7.4, 5.2, 1.5, 0.7] }
+        ],
+        colliders: [...buildingWallBoxes(H, 7.6, 5.4, 2.4, 0).boxes, ...buildingWallBoxes(H, 6.8, 4.6, 1.9, 2.55).boxes],
+        anchors: { nestPos: new THREE.Vector3().setFromMatrixPosition(frameOf(H, 0.15, 4.9, 2.72)) }
+      }),
+      // in the order the house places them
+      components: [
+        component('timber-frame', this.layoutTimberFrame(7.8, 5.6, 0.32, [-3.7, 3.7], [-2.6, 2.6]), 'meshTimberFrameClassic', 'parent'),
+        kit('koushi', this.layoutKoushi(2.0, 1.7, 9), 'meshKoushiClassic', 'caller', { x: -2.2, y: 1.3, z: 2.72 }),
+        kit('koushi', this.layoutKoushi(2.0, 1.7, 9), 'meshKoushiClassic', 'caller', { x: 2.2, y: 1.3, z: 2.72 }),
+        component('noren', this.layoutNoren(1.9, 0.75, 0.04, MAT.norenIndigo, 0, 2.0, 2.78), 'meshNorenClassic', 'parent'),
+        component('tea-bench', { index: this.nextIndex('tea-bench'), x: -2.2, z: 3.6, footprint: footprint() }, 'meshTeaBenchClassic', 'parent'),
+        kit('upper-windows', this.layoutKoushi(3.2, 1.1, 14, MAT.timberDark, 'upper-windows'), 'meshKoushiClassic', 'caller', { x: 0, y: 3.6, z: 2.32 }),
+        kit('kawara-roof', this.layoutKawaraRoof(7.4, 5.2, 1.5, 0.7), 'meshKawaraRoofClassic', 'caller', { y: 4.4 }),
+        component('chochin', this.layoutChochinLantern(-2.5, 2.4, 3.1), 'meshChochinLanternClassic', 'parent'),
+        component('chochin', this.layoutChochinLantern(2.5, 2.4, 3.1), 'meshChochinLanternClassic', 'parent'),
+        component('nest', this.layoutBirdNest(), 'meshBirdNestClassic', 'parent'),
+        component('crates', this.layoutClimbCrates(4.65, 0, 1.45, -Math.PI / 2, H), 'meshClimbCratesClassic', 'parent')
+      ]
+    };
+  }
+
+  meshMachiyaTeaHouseClassic(layout) {
+    const { x, z, ry: rotY } = layout;
+    const [frame, latticeL, latticeR, noren, bench, upperWindows, roof, lanternL, lanternR, nest, crates] = layout.components;
     const house = new THREE.Group();
     house.name = 'Machiya Tea House (Chaya)';
 
     // Ground Floor: 7.6m wide, 5.4m deep, 2.5m high
     const groundFloor = box(7.6, 2.4, 5.4, MAT.plasterWarm, 0, 1.2, 0);
     house.add(groundFloor);
-    // Dark timber foundation sill & corner pillars (Hashira)
-    house.add(box(7.8, 0.3, 5.6, MAT.timberDark, 0, 0.15, 0));
-    house.add(box(7.8, 0.2, 5.6, MAT.timberDark, 0, 2.4, 0));
-    for (const sx of [-1, 1]) {
-      for (const sz of [-1, 1]) {
-        house.add(box(0.32, 2.5, 0.32, MAT.timberDark, sx * 3.7, 1.25, sz * 2.6));
-      }
-    }
+    this.placeComponent(frame, house);
 
     // Front Facade: Lattice sliding panels (Koushi) & Indigo Noren
-    const frontLatticeL = this.createKoushi(2.0, 1.7, 9);
-    frontLatticeL.position.set(-2.2, 1.3, 2.72);
-    const frontLatticeR = this.createKoushi(2.0, 1.7, 9);
-    frontLatticeR.position.set(2.2, 1.3, 2.72);
-    house.add(frontLatticeL, frontLatticeR);
+    this.placeComponent(latticeL, house);
+    this.placeComponent(latticeR, house);
 
     // Traditional Tea House Doorway with warm Shoji backing
     house.add(box(1.8, 2.1, 0.08, MAT.shoji, 0, 1.15, 2.71));
-    const noren = box(1.9, 0.75, 0.04, MAT.norenIndigo, 0, 2.0, 2.78);
-    house.add(noren);
+    this.placeComponent(noren, house);
 
-    // Front Chamise Tea Bench with scarlet red felt cushion (Mosen)
-    const bench = box(2.2, 0.42, 0.9, MAT.cushionRed, -2.2, 0.21, 3.6);
-    house.add(bench);
-    house.add(box(2.25, 0.06, 0.95, MAT.timberDark, -2.2, 0.03, 3.6));
+    this.placeComponent(bench, house);
 
     // Mid-level Overhanging Eaves (Hisashi) between floors
     const lowerRoof = box(8.6, 0.16, 6.6, MAT.roofTile, 0, 2.55, 0.2);
@@ -1969,14 +1997,10 @@ export class Countryside {
       }
     }
     // Upper fine vertical lattice windows (Mushiko-mado)
-    const upperLatticeF = this.createKoushi(3.2, 1.1, 14, MAT.timberDark);
-    upperLatticeF.position.set(0, 3.6, 2.32);
-    house.add(upperLatticeF);
+    this.placeComponent(upperWindows, house);
 
     // Main Gable/Kawara Upper Roof (Climbable top)
-    const mainRoof = this.createKawaraRoof(7.4, 5.2, 1.5, 0.7);
-    mainRoof.position.y = 4.4;
-    house.add(mainRoof);
+    this.placeComponent(roof, house);
 
     // Tree-side lower kawara lip: visually part of the roof, but low and broad
     // enough for the tutorial jump from the wraparound ledge. From here the cat
@@ -1986,11 +2010,11 @@ export class Countryside {
     house.add(tutorialRoofLip);
 
     // Suspended Kyoto paper lanterns under front eaves
-    this.createChochinLantern(-2.5, 2.4, 3.1, house);
-    this.createChochinLantern(2.5, 2.4, 3.1, house);
+    this.placeComponent(lanternL, house);
+    this.placeComponent(lanternR, house);
 
     // Perched Bird's Nest on roof lower eave / gable corner
-    this.buildBirdNest(house, new THREE.Vector3(x, 0, z));
+    this.placeComponent(nest, house);
 
     house.position.set(x, 0, z);
     house.rotation.y = rotY;
@@ -2004,13 +2028,38 @@ export class Countryside {
     this.addSlopedRoofPlatforms(house, 4.4, 7.4, 5.2, 1.5, 0.7);
     // Side climbable crates allowing cat to climb to roof.
     // Must run AFTER the house is placed so platform boxes resolve in world space.
-    this.createClimbCrates(4.65, 0, 1.45, house, -Math.PI / 2);
+    this.placeComponent(crates, house);
     // Visible walls are the barriers: no extra collision padding outside them.
     this.addBuildingWallColliders(house, 7.6, 5.4, 2.4, 0);
     this.addBuildingWallColliders(house, 6.8, 4.6, 1.9, 2.55);
 
     this.nestMesh.updateWorldMatrix(true, true);
     this.nestMesh.getWorldPosition(this.nestPos);
+  }
+
+  /** A machiya's sill, eave beam and hashira posts (w × d plan; posts at every postX × postZ). */
+  layoutTimberFrame(w, d, post, postX, postZ) {
+    return { index: this.nextIndex('timber-frame'), w, d, post, postX, postZ, footprint: footprint() };
+  }
+
+  meshTimberFrameClassic(layout, house) {
+    const { w, d, post } = layout;
+    // Dark timber foundation sill & corner pillars (Hashira)
+    house.add(box(w, 0.3, d, MAT.timberDark, 0, 0.15, 0));
+    house.add(box(w, 0.2, d, MAT.timberDark, 0, 2.4, 0));
+    for (const px of layout.postX) {
+      for (const pz of layout.postZ) {
+        house.add(box(post, 2.5, post, MAT.timberDark, px, 1.25, pz));
+      }
+    }
+  }
+
+  meshTeaBenchClassic(layout, house) {
+    // Front Chamise Tea Bench with scarlet red felt cushion (Mosen)
+    const bench = box(2.2, 0.42, 0.9, MAT.cushionRed, -2.2, 0.21, 3.6);
+    house.add(bench);
+    house.add(box(2.25, 0.06, 0.95, MAT.timberDark, -2.2, 0.03, 3.6));
+    return bench;
   }
 
   // --- 2. Kyoto Craftsman Machiya with Engawa & Shishi-odoshi ---
@@ -2617,7 +2666,6 @@ export class Countryside {
 
     shishi.position.set(x, y, z);
     parentGroup.add(shishi);
-    return shishi;
   }
 
   unlockSecretHouse() {
