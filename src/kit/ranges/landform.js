@@ -138,7 +138,7 @@ export function valleyRangeColors({ forest = 1, strata = 0.5, haze = 1 } = {}) {
     c.lerp(broad, (1 - sstep(20, 70, h)) * stand * 0.55);
     c.lerp(cedar, sstep(25, 90, h) * (1 - stand) * 0.5);
     // bare rock: steep or high, thinned where the forest knob is up
-    const steep = sstep(0.18, 0.5, 1 - ny);
+    const steep = sstep(0.32, 0.7, 1 - ny) * 0.75;
     const rocky = Math.max(sstep(70, 130, h) * 0.8, steep) * (0.4 + n * 0.6) * (1.25 - 0.55 * forest);
     const band = Math.sin(h * 0.42 + worldNoise(x, z, 0.02, 2, 5) * 9) * 0.5 + 0.5;
     c.lerp(rock, Math.min(1, rocky) * 0.7).lerp(rockWarm, strata * band * Math.min(1, rocky) * 0.35);

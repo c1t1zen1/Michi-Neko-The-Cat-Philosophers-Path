@@ -18,11 +18,12 @@ import { rng as seeded, noise3 } from '../craft.js?v=20261113a';
 export const FOREST_GREENS = [0x2e5a24, 0x3b6e2e, 0x4e873c, 0x67a24a];
 const VARIANTS = 4;
 
-// the crown skeleton per tier: hero is the classic recipe, mid/far spend fewer tufts
+// The crown skeleton per tier. hero and mid (the game's high quality, band rim) are the classic recipe: the wall
+// must stay full. far (medium quality) spends two tufts a clump, in slightly larger clumps to keep the coverage.
 export const CROWN_TIER = Object.freeze({
-  hero: { primaries: 5, crownFill: 3, tufts: [3, 3, 2], secondaries: 2 },
-  mid: { primaries: 5, crownFill: 2, tufts: [3, 2, 2], secondaries: 1 },
-  far: { primaries: 4, crownFill: 2, tufts: [2, 2, 1], secondaries: 1 }
+  hero: { primaries: 5, crownFill: 3, tufts: [3, 3, 2], secondaries: 2, grow: 1 },
+  mid: { primaries: 5, crownFill: 3, tufts: [3, 3, 2], secondaries: 2, grow: 1 },
+  far: { primaries: 5, crownFill: 3, tufts: [2, 2, 2], secondaries: 1, grow: 1.12 }
 });
 
 const canopyCache = new Map();
@@ -38,7 +39,7 @@ export function canopySet(tier, { fill = 1, warmth = 0 } = {}) {
     set.push(buildCanopy(seeded(9000 + v * 31), {
       style: 'masses', scale: 1, trunkH: 1.15, trunkR: 0.14, primaries: t.primaries, tilt: 0.76 + v * 0.06, tiltVar: 0.22,
       droop: -0.02, bend: 0.12, branchLen: 0.78, secondaries: t.secondaries, twigs: false, crownFill: t.crownFill,
-      colors, clumpR: 0.36 * fill, tuftsPerClump: t.tufts, tuftFlat: 0.74, lump: 0.4, seed: 50 + v * 7
+      colors, clumpR: 0.36 * fill * t.grow, tuftsPerClump: t.tufts, tuftFlat: 0.74, lump: 0.4, seed: 50 + v * 7
     }));
   }
   canopyCache.set(key, set);

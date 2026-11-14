@@ -33,22 +33,20 @@ function gableRoof(w, d, h, over) {
   return ng;
 }
 
-const PYRAMID = new THREE.ConeGeometry(1, 1, 4);
-
 export function buildDistantVillage(ctx, layout, p) {
   const T = ctx.THREE, tier = ctx.tier;
   const houses = layout.houses || [];
   const bag = new Bag(), win = new Bag();
   const winGeo = new THREE.PlaneGeometry(0.34, 0.42);
   const c = new THREE.Color();
-  const detailed = tier !== 'far';
   const gable = gableRoof(1, 1, 1, 0); // unit; scaled per house
   for (const h of houses) {
     const s = h.s, ry = h.ry, pos = { x: h.x, y: h.y, z: h.z };
     const rot = (lx, ly, lz) => { const co = Math.cos(ry), si = Math.sin(ry); return { x: pos.x + lx * co + lz * si, y: pos.y + ly, z: pos.z - lx * si + lz * co }; };
     const wall = c.setHex(WALLS[h.wall]).offsetHSL(p.warmth * 0.03, 0, 0).getHex();
     const roof = ROOFS[h.roof];
-    if (detailed) {
+    {
+      // the game builds this at tier far (band far), so every tier carries the gabled roof (~30 triangles a house)
       // stone plinth, walls, a gabled roof with eaves; hero adds an engawa strip and a chimney
       let q = rot(0, 0.09 * s, 0);
       bag.box(2.72 * s, 0.18 * s, 2.12 * s, { ...q, ry, color: 0x8a8478 });
@@ -62,11 +60,6 @@ export function buildDistantVillage(ctx, layout, p) {
         q = rot(-0.8 * s, 1.68 * s + 0.75 * s * p.pitch, 0);
         bag.box(0.26 * s, 0.7 * s, 0.26 * s, { ...q, ry, color: 0x6e665c });
       }
-    } else {
-      let q = rot(0, 0.8 * s, 0);
-      bag.box(2.6 * s, 1.6 * s, 2.0 * s, { ...q, ry, color: wall });
-      q = rot(0, 1.6 * s + 0.55 * s, 0);
-      bag.add(PYRAMID, { ...q, ry: ry + Math.PI / 4, sx: 2.0 * s, sy: 1.1 * s, sz: 2.0 * s, color: roof });
     }
     for (const [side, wx, wy] of h.windows) {
       const q = rot(wx, wy, side * 1.004 * s);
