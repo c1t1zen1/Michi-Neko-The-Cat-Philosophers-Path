@@ -29,6 +29,22 @@ step(1, 'ES module syntax', () => {
   const bad = lines.filter((l) => l.startsWith('FAIL'));
   if (bad.length) { failures++; console.log(bad.join('\n')); }
   console.log('  ' + lines[lines.length - 1]);
+  // The summit's modules (src/summit/, behind the SummitManager facade) are
+  // checked here too: tools/check_syntax.mjs reads src/*.js and src/kit/ only.
+  const summitFiles = readdirSync(join(ROOT, 'src', 'summit')).filter((f) => f.endsWith('.js')).sort();
+  const summitBad = [];
+  for (const f of summitFiles) {
+    const raw = readFileSync(join(ROOT, 'src', 'summit', f), 'utf8');
+    try {
+      execFileSync(process.execPath, ['--input-type=module', '--check'], {
+        input: raw.replace(/^\uFEFF/, ''), stdio: ['pipe', 'pipe', 'pipe'],
+      });
+    } catch (e) {
+      summitBad.push(`FAIL src/summit/${f}\n${String(e.stderr || e.message)}`);
+    }
+  }
+  if (summitBad.length) { failures++; console.log(summitBad.join('\n')); }
+  console.log(`  ${summitBad.length ? summitBad.length + ' of ' : 'All '}${summitFiles.length} summit modules ${summitBad.length ? 'failed' : 'OK'} (src/summit/)`);
 });
 
 // 2. wiring -----------------------------------------------------------------
@@ -78,6 +94,17 @@ step(2, 'main.js wiring', () => {
     ['card set keyed by kind (not opts.kind)', /this\.cardSets\[kind\]/.test(planting)],
     ['summit landmark asset is module-relative',
       /SUMMIT_LANDMARKS_SRC\s*=\s*new URL\([^\n]+import\.meta\.url\)/.test(vista)],
+    // The summit split (BUILD_GUIDE_FABLE S1.2/S1.3)
+    ['summit receives the runtime as its own scoped view',
+      /this\.assets = scopeAssets\(game\.assets, \{ MAT: this\.MAT, textures: TEX \}\)/.test(s)],
+    ['summit builders route through placeAsset()',
+      /placeAsset\(id, layout, classicFn\) \{/.test(s) && /this\.placeAsset\('summit-meadow'/.test(summitAll)],
+    ['summit modules import with the main.js cache tag',
+      (() => {
+        const tag = (m.match(/\?v=([0-9a-z]+)/) || [])[1];
+        const tags = summitAll.match(/\?v=[0-9a-z]+/g) || [];
+        return !!tag && tags.length > 0 && tags.every((t) => t === '?v=' + tag);
+      })()],
     // Kit runtime wiring (BUILD_GUIDE_FABLE F1.8 / F1.12)
     ['kit runtime imported', /import \{ AssetRuntime \} from '\.\/kit\/runtime\.js\?v=/.test(m)],
     ['kit runtime constructed on the Game', /this\.assets = new AssetRuntime\(/.test(m)],
