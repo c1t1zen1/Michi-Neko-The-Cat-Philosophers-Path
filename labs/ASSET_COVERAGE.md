@@ -6,7 +6,7 @@ Reviewed 2026-11-10. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **114 of 186 (61.3%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **124 of 186 (66.7%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -28,20 +28,20 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 114 | 61.3% |
+| Focused lab study | 124 | 66.7% |
 | Review sheet | 41 | 22.0% |
-| Embedded in a specimen | 12 | 6.5% |
-| Related evidence only | 14 | 7.5% |
-| No mapped evidence | 5 | 2.7% |
+| Embedded in a specimen | 10 | 5.4% |
+| Related evidence only | 8 | 4.3% |
+| No mapped evidence | 3 | 1.6% |
 
 ## Coverage by area
 
 | Area | Active rows | Focused | Review | Embedded | Related | Missing |
 |---|---:|---:|---:|---:|---:|---:|
-| Characters | 9 | 7 | 1 | 1 | 0 | 0 |
+| Characters | 9 | 8 | 1 | 0 | 0 | 0 |
 | Cat components | 5 | 0 | 3 | 1 | 0 | 1 |
 | Ground and water | 13 | 12 | 0 | 1 | 0 | 0 |
-| Landscape | 7 | 3 | 0 | 1 | 3 | 0 |
+| Landscape | 7 | 7 | 0 | 0 | 0 | 0 |
 | Buildings | 5 | 4 | 0 | 0 | 1 | 0 |
 | Building components | 10 | 10 | 0 | 0 | 0 | 0 |
 | Props | 12 | 12 | 0 | 0 | 0 | 0 |
@@ -51,7 +51,7 @@ Each active row is counted once at its strongest evidence level, in the order ab
 | Effects | 2 | 1 | 0 | 0 | 1 | 0 |
 | Hidden places | 16 | 15 | 0 | 1 | 0 | 0 |
 | Interiors | 19 | 13 | 0 | 5 | 1 | 0 |
-| Sky and effects | 19 | 6 | 0 | 2 | 7 | 4 |
+| Sky and effects | 19 | 11 | 0 | 2 | 4 | 2 |
 | Summit | 32 | 1 | 31 | 0 | 0 | 0 |
 
 ## Gaps requiring focused specimens
@@ -61,17 +61,12 @@ This list includes every active row without a focused study, including review-on
 | Asset | Current evidence | Limitation |
 |---|---|---|
 | [Michi (player cat)](#michi) | Review sheet | The sleep specimen uses Michi’s coat/build; it is a pose study rather than a dedicated player-model lab. |
-| [Larry the turtle](#larry) | Embedded in a specimen | The complete original corral includes Larry; there is no isolated turtle or patrol study. |
 | [Cat body, fur and tabby coats](#cat-coat) | Review sheet | No individual focused specimen is mapped. |
 | [Cat nose, muzzle, whiskers, ears and painted eyes](#cat-face) | Review sheet | No individual focused specimen is mapped. |
 | [Braided collar, bow and brass bell](#cat-collar) | Review sheet | No individual focused specimen is mapped. |
 | [Master Cat gold and twin bells](#master-bells) | No mapped evidence | The ordinary collar is reviewed; no specimen explicitly enables setMasterCat(). |
 | [Cat contact-shadow blob](#cat-shadow) | Embedded in a specimen | Visible with the complete cat; no isolated shadow study. |
 | [Paddy beds and raised banks](#paddy-bunds) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Foothill cedars and broadleaf crowns](#foothill-forest) | Embedded in a specimen | The hero valley includes the foothill carpet; there is no separate shelf specimen. |
-| [Distant valley village houses and hearth windows](#distant-village) | Related evidence only | The street-house builder differs from buildVillage() distant silhouettes. |
-| [Valley mist ring](#mist-ring) | Related evidence only | Aerial perspective bench; it does not extract the original mist-ring mesh. |
-| [River dawn mist ribbons](#dawn-mist) | Related evidence only | General haze study; no dawn-river specimen or time envelope. |
 | [Village street assembly](#village-street) | Related evidence only | Individual house references, not a specimen of the complete original street layout. |
 | [Sakura trees](#sakura) | Review sheet | No individual focused specimen is mapped. |
 | [Maple trees](#maples) | Review sheet | No individual focused specimen is mapped. |
@@ -92,11 +87,6 @@ This list includes every active row without a focused study, including review-on
 | [Crescent moon](#moon) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Sun, hemisphere, fill and bounce lighting](#sky-light) | Related evidence only | The baseline adapter hides the original lights; labs use their own rig. |
 | [Valley god-ray cards](#god-rays) | Related evidence only | Sky-space rays are a different implementation from the game’s ground cards. |
-| [Ambient valley fireflies](#fireflies) | Related evidence only | Related firefly study; not Particles.buildFireflies(). |
-| [Ambient dust motes](#dust-motes) | Related evidence only | Moon Pool motes are a separate system. |
-| [Scent-trail glowing particles](#scent) | No mapped evidence | No scent-trail specimen or interaction study. |
-| [Player water-entry splash droplets](#splash) | Related evidence only | Rain impacts do not exercise the player water-entry splash. |
-| [Landing dust puffs](#landing-dust) | No mapped evidence | No specimen exercises this pooled landing effect. |
 | [Screen-space ambient occlusion](#ao) | No mapped evidence | Sky’s air-game baseline explicitly excludes the full game post-processing pipeline. |
 | [Screen-space distance and height atmosphere](#atmosphere) | Related evidence only | Layered haze cards are not the game’s depth-buffer atmosphere pass. |
 | [Painterly colour grading, vignette, grain and fringe](#grade) | Related evidence only | Related finish study; Kuwahara is not the game grade/grain/fringe pipeline. |
@@ -142,14 +132,14 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
 | <a id="michi"></a>`michi` — Michi (player cat) | [src/player.js:this.mesh.name = 'Player Character (Michi)'](../src/player.js#L32)<br>[src/cat.js:buildCoat(](../src/cat.js#L88) | [cat / anatomy](../tools/cat_preview.js#L128) (review)<br>[villagers / sleep](../labs/villagers/js/recipes.js#L60) (embedded) — The sleep specimen uses Michi’s coat/build; it is a pose study rather than a dedicated player-model lab. |  |
-| <a id="luna"></a>`luna` — Luna | [src/main.js:'Luna',](../src/main.js#L267)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / luna](../labs/villagers/js/recipes.js#L39) (direct) |  |
-| <a id="mochi"></a>`mochi` — Mochi | [src/main.js:'Mochi',](../src/main.js#L291)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / mochi](../labs/villagers/js/recipes.js#L43) (direct) |  |
-| <a id="kuro"></a>`kuro` — Kuro | [src/main.js:'Kuro',](../src/main.js#L306)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / kuro](../labs/villagers/js/recipes.js#L47) (direct) |  |
-| <a id="larry"></a>`larry` — Larry the turtle | [src/countryside.js:turtle.name = 'Turtle Guardian (Larry)'](../src/countryside.js#L3451) | [fences / corral](../labs/fences/js/recipes.js#L71) (embedded) — The complete original corral includes Larry; there is no isolated turtle or patrol study. |  |
-| <a id="guardian-crows"></a>`guardian-crows` — Nest guardian crows | [src/ambient_life.js:buildGuardianBirds(](../src/ambient_life.js#L221) | [critters / guardian-crow](../labs/critters/js/recipes.js#L50) (direct) |  |
-| <a id="sparrows"></a>`sparrows` — Valley sparrows | [src/ambient_life.js:buildBirds(](../src/ambient_life.js#L160) | [critters / game-bird](../labs/critters/js/recipes.js#L42) (direct)<br>[critters / flock](../labs/critters/js/recipes.js#L46) (direct) |  |
-| <a id="koi"></a>`koi` — River koi (procedural coat variants) | [src/ambient_life.js:buildKoi(](../src/ambient_life.js#L637) | [critters / game-koi](../labs/critters/js/recipes.js#L32) (direct) | Repeated koi and randomized markings are instances of this type, not additional inventory rows. |
-| <a id="butterflies"></a>`butterflies` — Valley butterflies | [src/ambient_life.js:buildButterflies(](../src/ambient_life.js#L415) | [critters / game-flutter](../labs/critters/js/recipes.js#L54) (direct)<br>[critters / hinge](../labs/critters/js/recipes.js#L58) (direct) |  |
+| <a id="luna"></a>`luna` — Luna | [src/main.js:'Luna',](../src/main.js#L274)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / luna](../labs/villagers/js/recipes.js#L39) (direct) |  |
+| <a id="mochi"></a>`mochi` — Mochi | [src/main.js:'Mochi',](../src/main.js#L298)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / mochi](../labs/villagers/js/recipes.js#L43) (direct) |  |
+| <a id="kuro"></a>`kuro` — Kuro | [src/main.js:'Kuro',](../src/main.js#L313)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / kuro](../labs/villagers/js/recipes.js#L47) (direct) |  |
+| <a id="larry"></a>`larry` — Larry the turtle | [src/countryside.js:turtle.name = 'Turtle Guardian (Larry)'](../src/countryside.js#L3451) | [critters / larry](../labs/critters/js/recipes.js#L55) (direct) |  |
+| <a id="guardian-crows"></a>`guardian-crows` — Nest guardian crows | [src/ambient_life.js:buildGuardianBirds(](../src/ambient_life.js#L221) | [critters / guardian-crow](../labs/critters/js/recipes.js#L51) (direct) |  |
+| <a id="sparrows"></a>`sparrows` — Valley sparrows | [src/ambient_life.js:buildBirds(](../src/ambient_life.js#L160) | [critters / game-bird](../labs/critters/js/recipes.js#L43) (direct)<br>[critters / flock](../labs/critters/js/recipes.js#L47) (direct) |  |
+| <a id="koi"></a>`koi` — River koi (procedural coat variants) | [src/ambient_life.js:buildKoi(](../src/ambient_life.js#L637) | [critters / game-koi](../labs/critters/js/recipes.js#L33) (direct) | Repeated koi and randomized markings are instances of this type, not additional inventory rows. |
+| <a id="butterflies"></a>`butterflies` — Valley butterflies | [src/ambient_life.js:buildButterflies(](../src/ambient_life.js#L415) | [critters / game-flutter](../labs/critters/js/recipes.js#L59) (direct)<br>[critters / hinge](../labs/critters/js/recipes.js#L63) (direct) |  |
 
 ### Cat components
 
@@ -177,7 +167,7 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="paddy-bunds"></a>`paddy-bunds` — Paddy beds and raised banks | [src/countryside.js:Paddy Ridge](../src/countryside.js#L1149) | [water / p-game](../labs/water/js/variants.js#L312) (embedded) |  |
 | <a id="rice"></a>`rice` — Rice stalks | [src/countryside.js:rice.name = 'Rice Stalks'](../src/countryside.js#L1173) | [water / p-summer](../labs/water/js/variants.js#L340) (direct)<br>[water / p-autumn](../labs/water/js/variants.js#L350) (direct) |  |
 | <a id="water-ripples"></a>`water-ripples` — Cat and koi ripple rings | [src/countryside.js:buildRipplePool(](../src/countryside.js#L893) | [water / ripple](../labs/water/js/variants.js#L120) (direct) — Technique study; not a replay of the game ripple-pool logic. |  |
-| <a id="rain-ripples"></a>`rain-ripples` — Separate raindrop ripple pool | [src/countryside.js:buildRainRipplePool(](../src/countryside.js#L930) | [weather / splash](../labs/weather/js/recipes.js#L41) (direct) — Rain impact study; original pool eviction behavior is not tested. |  |
+| <a id="rain-ripples"></a>`rain-ripples` — Separate raindrop ripple pool | [src/countryside.js:buildRainRipplePool(](../src/countryside.js#L930) | [weather / splash](../labs/weather/js/recipes.js#L64) (direct) — Rain impact study; original pool eviction behavior is not tested. |  |
 
 ### Landscape
 
@@ -186,10 +176,10 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="mountains"></a>`mountains` — Valley mountain terrain and ridges | [src/countryside.js:buildMountains(](../src/countryside.js#L4043) | [ranges / stack](../labs/ranges/js/main.js#L144) (direct) |  |
 | <a id="edge-forest"></a>`edge-forest` — Edge-forest broadleaf tree wall | [src/countryside.js:buildEdgeForest(](../src/countryside.js#L4256) | [ranges / wall-mass](../labs/ranges/js/main.js#L157) (direct) |  |
 | <a id="edge-undergrowth"></a>`edge-undergrowth` — Edge shrubs and shrine corridor thicket | [src/countryside.js:buildEdgeUndergrowth(](../src/countryside.js#L4428) | [ranges / edge](../labs/ranges/js/main.js#L193) (direct) |  |
-| <a id="foothill-forest"></a>`foothill-forest` — Foothill cedars and broadleaf crowns | [src/countryside.js:buildFoothillForest(](../src/countryside.js#L4661) | [ranges / foothills](../labs/ranges/js/main.js#L31) (embedded) — The hero valley includes the foothill carpet; there is no separate shelf specimen. |  |
-| <a id="distant-village"></a>`distant-village` — Distant valley village houses and hearth windows | [src/countryside.js:buildVillage(](../src/countryside.js#L4576) | [machiya / original-village](../labs/machiya/js/variants.js#L63) (related) — The street-house builder differs from buildVillage() distant silhouettes. |  |
-| <a id="mist-ring"></a>`mist-ring` — Valley mist ring | [src/countryside.js:buildMistRing(](../src/countryside.js#L4757) | [ranges / air](../labs/ranges/js/main.js#L211) (related) — Aerial perspective bench; it does not extract the original mist-ring mesh. |  |
-| <a id="dawn-mist"></a>`dawn-mist` — River dawn mist ribbons | [src/countryside.js:buildDawnMist(](../src/countryside.js#L4800) | [ranges / air](../labs/ranges/js/main.js#L211) (related) — General haze study; no dawn-river specimen or time envelope. |  |
+| <a id="foothill-forest"></a>`foothill-forest` — Foothill cedars and broadleaf crowns | [src/countryside.js:buildFoothillForest(](../src/countryside.js#L4661) | [ranges / foothill-stands](../labs/ranges/js/main.js#L280) (direct)<br>[ranges / foothills](../labs/ranges/js/main.js#L31) (embedded) — The hero valley includes the foothill carpet; there is no separate shelf specimen. |  |
+| <a id="distant-village"></a>`distant-village` — Distant valley village houses and hearth windows | [src/countryside.js:buildVillage(](../src/countryside.js#L4576) | [ranges / village](../labs/ranges/js/main.js#L287) (direct)<br>[machiya / original-village](../labs/machiya/js/variants.js#L63) (related) — The street-house builder differs from buildVillage() distant silhouettes. |  |
+| <a id="mist-ring"></a>`mist-ring` — Valley mist ring | [src/countryside.js:buildMistRing(](../src/countryside.js#L4757) | [ranges / mists](../labs/ranges/js/main.js#L298) (direct)<br>[ranges / air](../labs/ranges/js/main.js#L211) (related) — Aerial perspective bench; it does not extract the original mist-ring mesh. |  |
+| <a id="dawn-mist"></a>`dawn-mist` — River dawn mist ribbons | [src/countryside.js:buildDawnMist(](../src/countryside.js#L4800) | [ranges / mists](../labs/ranges/js/main.js#L298) (direct)<br>[ranges / air](../labs/ranges/js/main.js#L211) (related) — General haze study; no dawn-river specimen or time envelope. |  |
 
 ### Buildings
 
@@ -262,16 +252,16 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="sakura"></a>`sakura` — Sakura trees | [src/vegetation.js:sakuraTree(](../src/vegetation.js#L348) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
-| <a id="maples"></a>`maples` — Maple trees | [src/vegetation.js:mapleTree(](../src/vegetation.js#L699)<br>[src/vegetation.js:buildMaplesAndPines(](../src/vegetation.js#L728) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
-| <a id="pines"></a>`pines` — Garden pines | [src/vegetation.js:pineTree(](../src/vegetation.js#L713) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
+| <a id="sakura"></a>`sakura` — Sakura trees | [src/vegetation.js:sakuraTree(](../src/vegetation.js#L357) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
+| <a id="maples"></a>`maples` — Maple trees | [src/vegetation.js:mapleTree(](../src/vegetation.js#L708)<br>[src/vegetation.js:buildMaplesAndPines(](../src/vegetation.js#L737) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
+| <a id="pines"></a>`pines` — Garden pines | [src/vegetation.js:pineTree(](../src/vegetation.js#L722) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
 | <a id="rim-trees"></a>`rim-trees` — Rim sakura, maple and pine leaf masses | [src/vegetation.js:treeStyle(](../src/vegetation.js#L184)<br>[src/vegetation.js:canopyTree(](../src/vegetation.js#L211) | [tree / rim](../tools/tree_preview.js#L104) (review) |  |
-| <a id="tree-trunks"></a>`tree-trunks` — Tree trunks and limbs | [src/vegetation.js:trunkMesh(](../src/vegetation.js#L325) | [tree / detail](../tools/tree_preview.js#L128) (review) |  |
+| <a id="tree-trunks"></a>`tree-trunks` — Tree trunks and limbs | [src/vegetation.js:trunkMesh(](../src/vegetation.js#L334) | [tree / detail](../tools/tree_preview.js#L128) (review) |  |
 | <a id="tree-canopies"></a>`tree-canopies` — Leaf sprays and clumped/mass canopy families | [src/foliage.js:export function buildCanopy](../src/foliage.js#L1172) | [tree / compare](../tools/tree_preview.js#L118) (review) |  |
-| <a id="bamboo-groves"></a>`bamboo-groves` — Bamboo groves, culms and leaves | [src/vegetation.js:buildBambooGrove(](../src/vegetation.js#L458) | [greenery / game-grove](../labs/greenery/js/recipes.js#L54) (direct)<br>[greenery / nodes](../labs/greenery/js/recipes.js#L33) (direct)<br>[greenery / leaves](../labs/greenery/js/recipes.js#L58) (direct) |  |
+| <a id="bamboo-groves"></a>`bamboo-groves` — Bamboo groves, culms and leaves | [src/vegetation.js:buildBambooGrove(](../src/vegetation.js#L467) | [greenery / game-grove](../labs/greenery/js/recipes.js#L54) (direct)<br>[greenery / nodes](../labs/greenery/js/recipes.js#L33) (direct)<br>[greenery / leaves](../labs/greenery/js/recipes.js#L58) (direct) |  |
 | <a id="street-bushes"></a>`street-bushes` — Street bushes | [src/countryside.js:buildStreetBushes(](../src/countryside.js#L3070) | [greenery / game-bush](../labs/greenery/js/recipes.js#L75) (direct) |  |
 | <a id="roadside-moss"></a>`roadside-moss` — Roadside moss patches | [src/countryside.js:buildStreetGreenery(](../src/countryside.js#L3153) | [grass / moss](../labs/grass/js/types_wild.js#L375) (related) — The grass moss pillow differs from the roadside instanced tufts. |  |
-| <a id="meadow-system"></a>`meadow-system` — Valley biome layout and grass LOD rings | [src/vegetation.js:buildMeadow(](../src/vegetation.js#L749)<br>[src/grass.js:addRing(](../src/grass.js#L1523)<br>[src/grass.js:addZone(](../src/grass.js#L1532) | [grass / ring-lod](../labs/grass/js/types_field.js#L273) (direct) | The meadow’s collider-derived biome layout has no isolated original specimen; Ring LOD studies the shared layout technique. |
+| <a id="meadow-system"></a>`meadow-system` — Valley biome layout and grass LOD rings | [src/vegetation.js:buildMeadow(](../src/vegetation.js#L758)<br>[src/grass.js:addRing(](../src/grass.js#L1523)<br>[src/grass.js:addZone(](../src/grass.js#L1532) | [grass / ring-lod](../labs/grass/js/types_field.js#L273) (direct) | The meadow’s collider-derived biome layout has no isolated original specimen; Ring LOD studies the shared layout technique. |
 | <a id="grass-near"></a>`grass-near` — Near meadow blades and tufts | [src/grass.js:near: {](../src/grass.js#L881) | [grass / bezier](../labs/grass/js/types_field.js#L25) (direct) |  |
 | <a id="grass-mid"></a>`grass-mid` — Mid-distance tri-quad clumps | [src/grass.js:mid: {](../src/grass.js#L898) | [grass / triquad](../labs/grass/js/types_field.js#L59) (direct) |  |
 | <a id="grass-far"></a>`grass-far` — Far painted tuft cards | [src/grass.js:far: {](../src/grass.js#L914) | [grass / meadow-painted](../labs/grass/js/types_ours.js#L245) (direct) |  |
@@ -290,7 +280,7 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
 | <a id="grass-fireflies"></a>`grass-fireflies` — River-bank grass fireflies | [src/grass.js:addFireflies(](../src/grass.js#L1607) | [moonpool / fireflies](../labs/moonpool/js/recipes.js#L267) (related) — Related hotaru study; not the GrassSystem particle shader. |  |
-| <a id="dappled-light"></a>`dappled-light` — Projected dappled light pools | [src/vegetation.js:buildDappledLight(](../src/vegetation.js#L373) | [komorebi / game-dapple](../labs/komorebi/js/recipes.js#L35) (direct) |  |
+| <a id="dappled-light"></a>`dappled-light` — Projected dappled light pools | [src/vegetation.js:buildDappledLight(](../src/vegetation.js#L382) | [komorebi / game-dapple](../labs/komorebi/js/recipes.js#L35) (direct) |  |
 
 ### Hidden places
 
@@ -346,16 +336,16 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="stars"></a>`stars` — Twinkling stars | [src/sky.js:buildStars(](../src/sky.js#L315) | [sky / sky-night](../labs/sky/js/data.js#L37) (embedded) |  |
 | <a id="moon"></a>`moon` — Crescent moon | [src/sky.js:buildMoon(](../src/sky.js#L374) | [sky / sky-night](../labs/sky/js/data.js#L37) (embedded) |  |
 | <a id="sky-light"></a>`sky-light` — Sun, hemisphere, fill and bounce lighting | [src/sky.js:buildLights(](../src/sky.js#L403)<br>[src/sky.js:buildPalettes(](../src/sky.js#L445) | [sky / sky-game](../labs/sky/js/data.js#L33) (related) — The baseline adapter hides the original lights; labs use their own rig. |  |
-| <a id="god-rays"></a>`god-rays` — Valley god-ray cards | [src/particles.js:buildGodRays(](../src/particles.js#L113) | [sky / air-rays](../labs/sky/js/data.js#L60) (related) — Sky-space rays are a different implementation from the game’s ground cards. |  |
-| <a id="rain"></a>`rain` — Valley rain streaks | [src/particles.js:buildRain(](../src/particles.js#L201) | [weather / game-rain](../labs/weather/js/recipes.js#L33) (direct) |  |
-| <a id="river-petals"></a>`river-petals` — River petal rafts | [src/particles.js:buildRiverPetals(](../src/particles.js#L288) | [water / hanaikada](../labs/water/js/variants.js#L198) (direct) |  |
-| <a id="falling-petals"></a>`falling-petals` — Falling sakura petals | [src/particles.js:buildPetals(](../src/particles.js#L357) | [weather / game-petal](../labs/weather/js/recipes.js#L59) (direct) |  |
-| <a id="fireflies"></a>`fireflies` — Ambient valley fireflies | [src/particles.js:buildFireflies(](../src/particles.js#L397) | [moonpool / fireflies](../labs/moonpool/js/recipes.js#L267) (related) — Related firefly study; not Particles.buildFireflies(). |  |
-| <a id="dust-motes"></a>`dust-motes` — Ambient dust motes | [src/particles.js:buildMotes(](../src/particles.js#L441) | [moonpool / game-motes](../labs/moonpool/js/recipes.js#L263) (related) — Moon Pool motes are a separate system. |  |
-| <a id="snow"></a>`snow` — Valley snowfall | [src/particles.js:buildSnow(](../src/particles.js#L496) | [weather / game-snow](../labs/weather/js/recipes.js#L50) (direct) |  |
-| <a id="scent"></a>`scent` — Scent-trail glowing particles | [src/scent.js:build() {](../src/scent.js#L33) | **No mapped evidence** | No scent-trail specimen or interaction study. |
-| <a id="splash"></a>`splash` — Player water-entry splash droplets | [src/player.js:// Water-splash droplet pool](../src/player.js#L97) | [weather / splash](../labs/weather/js/recipes.js#L41) (related) — Rain impacts do not exercise the player water-entry splash. |  |
-| <a id="landing-dust"></a>`landing-dust` — Landing dust puffs | [src/context_actions.js:spawnLandDust(](../src/context_actions.js#L832) | **No mapped evidence** | No specimen exercises this pooled landing effect. |
+| <a id="god-rays"></a>`god-rays` — Valley god-ray cards | [src/particles.js:buildGodRays(](../src/particles.js#L127) | [sky / air-rays](../labs/sky/js/data.js#L60) (related) — Sky-space rays are a different implementation from the game’s ground cards. |  |
+| <a id="rain"></a>`rain` — Valley rain streaks | [src/particles.js:buildRain(](../src/particles.js#L215) | [weather / game-rain](../labs/weather/js/recipes.js#L56) (direct) |  |
+| <a id="river-petals"></a>`river-petals` — River petal rafts | [src/particles.js:buildRiverPetals(](../src/particles.js#L302) | [water / hanaikada](../labs/water/js/variants.js#L198) (direct) |  |
+| <a id="falling-petals"></a>`falling-petals` — Falling sakura petals | [src/particles.js:buildPetals(](../src/particles.js#L371) | [weather / game-petal](../labs/weather/js/recipes.js#L82) (direct) |  |
+| <a id="fireflies"></a>`fireflies` — Ambient valley fireflies | [src/particles.js:buildFireflies(](../src/particles.js#L411) | [weather / fireflies](../labs/weather/js/recipes.js#L90) (direct)<br>[moonpool / fireflies](../labs/moonpool/js/recipes.js#L267) (related) — Related firefly study; not Particles.buildFireflies(). |  |
+| <a id="dust-motes"></a>`dust-motes` — Ambient dust motes | [src/particles.js:buildMotes(](../src/particles.js#L455) | [weather / dust-motes](../labs/weather/js/recipes.js#L94) (direct)<br>[moonpool / game-motes](../labs/moonpool/js/recipes.js#L263) (related) — Moon Pool motes are a separate system. |  |
+| <a id="snow"></a>`snow` — Valley snowfall | [src/particles.js:buildSnow(](../src/particles.js#L510) | [weather / game-snow](../labs/weather/js/recipes.js#L73) (direct) |  |
+| <a id="scent"></a>`scent` — Scent-trail glowing particles | [src/scent.js:build() {](../src/scent.js#L33) | [weather / scent](../labs/weather/js/recipes.js#L98) (direct) |  |
+| <a id="splash"></a>`splash` — Player water-entry splash droplets | [src/player.js:// Water-splash droplet pool](../src/player.js#L97) | [weather / entry-splash](../labs/weather/js/recipes.js#L106) (direct)<br>[weather / splash](../labs/weather/js/recipes.js#L64) (related) — Rain impacts do not exercise the player water-entry splash. |  |
+| <a id="landing-dust"></a>`landing-dust` — Landing dust puffs | [src/context_actions.js:spawnLandDust(](../src/context_actions.js#L832) | [weather / landing-dust](../labs/weather/js/recipes.js#L102) (direct) |  |
 | <a id="ao"></a>`ao` — Screen-space ambient occlusion | [src/postfx.js:export class AOPass](../src/postfx.js#L142) | **No mapped evidence** | Sky’s air-game baseline explicitly excludes the full game post-processing pipeline. |
 | <a id="atmosphere"></a>`atmosphere` — Screen-space distance and height atmosphere | [src/postfx.js:export class AtmospherePass](../src/postfx.js#L377) | [summit / haze](../labs/summit/js/recipes.js#L73) (related) — Layered haze cards are not the game’s depth-buffer atmosphere pass. |  |
 | <a id="grade"></a>`grade` — Painterly colour grading, vignette, grain and fringe | [src/postfx.js:export const GradeShader](../src/postfx.js#L546)<br>[src/postfx.js:export const GradeOutputShader](../src/postfx.js#L627) | [ground / kuwahara](../labs/ground/js/variants.js#L252) (related) — Related finish study; Kuwahara is not the game grade/grain/fringe pipeline. |  |
@@ -402,8 +392,8 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="old-petal-drifts"></a>`old-petal-drifts` — Removed static petal-drift discs | [src/vegetation.js:buildPetalDrifts(](../src/vegetation.js#L438) | [komorebi / game-drift](../labs/komorebi/js/recipes.js#L60) (direct) | **Inactive.** Method is a no-op. Its original lab tile is an empty baseline, not a shipped visible asset. |
-| <a id="old-sakura-grove"></a>`old-sakura-grove` — Unused empty sakura-grove method | [src/vegetation.js:buildSakuraGrove(](../src/vegetation.js#L366) | **No mapped evidence** | **Inactive.** Empty legacy entry point; active sakura are built by sakuraTree(). |
+| <a id="old-petal-drifts"></a>`old-petal-drifts` — Removed static petal-drift discs | [src/vegetation.js:buildPetalDrifts(](../src/vegetation.js#L447) | [komorebi / game-drift](../labs/komorebi/js/recipes.js#L60) (direct) | **Inactive.** Method is a no-op. Its original lab tile is an empty baseline, not a shipped visible asset. |
+| <a id="old-sakura-grove"></a>`old-sakura-grove` — Unused empty sakura-grove method | [src/vegetation.js:buildSakuraGrove(](../src/vegetation.js#L375) | **No mapped evidence** | **Inactive.** Empty legacy entry point; active sakura are built by sakuraTree(). |
 | <a id="legacy-summit-gate"></a>`legacy-summit-gate` — Legacy rear summit gate, stairs, toro and gorinto | [src/mountaintop.js:buildLegacyRearGate(](../src/mountaintop.js#L446) | **No mapped evidence** | **Inactive.** Defined but not called by the current summit constructor. |
 | <a id="legacy-vista-approach"></a>`legacy-vista-approach` — Unused vista descent and torii | [src/mountaintop.js:buildVistaApproach(](../src/mountaintop.js#L447) | **No mapped evidence** | **Inactive.** Defined but not called by the current summit constructor. |
 
@@ -459,7 +449,7 @@ Every current `src/*.js` module is classified. Every class method declared with 
 | [src/cat.js:buildMaterials(](../src/cat.js#L80) | Material setup for the inventoried cat; not another object. |
 | [src/countryside.js:createRiverUniforms(](../src/countryside.js#L1590) | Shader parameter state for the inventoried river/paddies, not another visible asset. |
 | [src/npc.js:createNameTag(](../src/npc.js#L212) | DOM character label; interface is outside the visible world-asset inventory. |
-| [src/main.js:buildJournalUI(](../src/main.js#L1701) | DOM journal interface; journal text rewards are not physical inventory objects. |
+| [src/main.js:buildJournalUI(](../src/main.js#L1709) | DOM journal interface; journal text rewards are not physical inventory objects. |
 | [src/menus.js:buildSettings(](../src/menus.js#L140) | DOM settings interface, outside the world-asset scope. |
 | [src/postfx.js:buildKernel(](../src/postfx.js#L176) | AO sampling-kernel data, not a second visual asset. |
 
@@ -474,9 +464,9 @@ Narrative-only characters and journal/progression rewards are recorded separatel
 
 | Nonvisual entry | Source | Reason |
 |---|---|---|
-| Bokuchi, the forest spirit | [src/main.js](../src/main.js#L1850) | Named in Kuro’s dialogue; no separate Bokuchi actor or mesh is constructed. |
+| Bokuchi, the forest spirit | [src/main.js](../src/main.js#L1858) | Named in Kuro’s dialogue; no separate Bokuchi actor or mesh is constructed. |
 | Mist Charm | [src/context_actions.js](../src/context_actions.js#L690) | Journal/progression reward from touching the altar; no collectible mesh. |
-| Bokuchi’s Blessing | [src/main.js](../src/main.js#L1921) | Journal/progression reward for the offering-bell quest; no separate item mesh. |
+| Bokuchi’s Blessing | [src/main.js](../src/main.js#L1929) | Journal/progression reward for the offering-bell quest; no separate item mesh. |
 | The valley became home | [src/context_actions.js](../src/context_actions.js#L762) | Journal memory from a quiet moment; no physical item. |
 
 Optional media and dormant code are recorded without claiming that a download succeeded or an unused builder is part of the current playable scene. The Roof Road retains its own prototype review and reachability checks.

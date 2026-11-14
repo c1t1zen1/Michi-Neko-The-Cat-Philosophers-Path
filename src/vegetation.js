@@ -213,6 +213,15 @@ export class Vegetation {
     const id = layout.rim ? 'rim-trees' : (TREE_IDS[layout.kind] || layout.kind);
     const out = this.placeAsset(id, layout, () => this.meshTreeClassic(layout));
     if (!isAssetInstance(out)) return out;
+    if (layout.bake && out.bake && out.bake.length) {
+      out.group.updateMatrixWorld(true);
+      for (const key of out.bake) {
+        const m = out.parts[key];
+        if (!m || !m.geometry) continue;
+        this._bakeStatic(m.geometry.clone(), m.matrixWorld, m.material, m.customDepthMaterial || null, key === 'leaves' ? 'Canopy Leaves' : layout.rim ? 'Trunks & Canopy' : 'Canopy Limbs');
+        m.parent.remove(m);
+      }
+    }
     // A kit tree never uses the classic canopy built in the layout step (only
     // its draws had to happen): free it here, once, rather than in every kit
     // tree, and drop it from the layout the runtime keeps on the instance.

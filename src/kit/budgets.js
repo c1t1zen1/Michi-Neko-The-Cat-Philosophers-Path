@@ -55,6 +55,15 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
     why: '11 m valley runs build 12,660 mid tris (contract sample 3.4 m); ruling R51; a1-village lightens the mid tier and removes this'
   },
   'tea-interior': { hero: { meshes: 34, materials: 12, buildMs: 9 }, mid: { triangles: 9500, meshes: 34, materials: 12, buildMs: 6 }, far: { triangles: 3000, meshes: 24, materials: 11, buildMs: 5 }, why: 'the whole room as one asset (every classic sub-part plus courtyard, andon and toro); far is not a real LOD, the room is only seen from inside' },
+  // whole buildings (ruling R52); measured with kit_contract_test --family machiya
+  'tea-house': {
+    hero: { materials: 8, buildMs: 12 }, mid: { materials: 5 },
+    why: 'a whole building: plaster x2, roof tile, shoji, namako skirt, kit bag, reused bamboo-fence (8 hero / 5 mid); classic is 5 box materials in ~40 meshes'
+  },
+  'residence': {
+    hero: { materials: 8, buildMs: 12 }, mid: { materials: 5 },
+    why: 'a whole building: plaster x2, roof tile, shoji, namako skirt, kit bag, reused bamboo-fence (8 hero / 5 mid); classic is 5 box materials'
+  },
   // 'tea-house': { hero: { triangles: 40000, meshes: 40 }, why: 'a whole building with interior-facing walls' }
   // v-hidden: the two wholes are whole clearings (see docs/fable/handoff/v-hidden.md for measured numbers)
   'moon-pool': {
@@ -67,9 +76,23 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
   },
   'glade-lanterns': { far: { materials: 3 }, why: 'frame, lit paper and halo are three materials even at far (the halo is the night read)' },
   // classic grove 82.3k hero tris; modular 89.9k/12.5k/4.7k; ruling R40, v-greenery handoff
+  // v-ranges (see docs/fable/handoff/v-ranges.md): landscape rings are instanced by the hundred; classic counts are
+  // mountains 57.8k, edge-forest 1.70M, edge-undergrowth 89.6k, foothill-forest 189k, distant-village 1.1k
+  'mountains': { hero: { triangles: 70000, buildMs: 30 }, mid: { triangles: 44000, buildMs: 30 }, far: { triangles: 31000, buildMs: 30 }, why: 'one polar height-field ring to r = 600 m; classic 170x170 square 57,800 tris, modular 69,120 / 43,008 / 30,720 (hero/mid/far); build is the cold height-field bake' },
+  'edge-forest': { hero: { triangles: 1720000, meshes: 17 }, mid: { triangles: 1720000, meshes: 17 }, far: { triangles: 950000, meshes: 17 }, why: '260 instanced trees; classic 1,696,240 tris, modular 1,713,400 hero/mid 1,705,080 / far 946,400' },
+  'edge-undergrowth': { hero: { triangles: 90000, meshes: 4 }, mid: { triangles: 70000, meshes: 4 }, far: { triangles: 17000, meshes: 4 }, why: '160 instanced shrubs; classic 89,600 tris, modular 89,600 hero / mid lobes-2 / 16,000 far' },
+  'foothill-forest': { hero: { triangles: 430000 }, mid: { triangles: 206000 }, far: { triangles: 168000 }, why: 'up to 3800 instanced cedars and crowns; classic 189,120 tris, modular 428,940 hero / 205,800 mid / 167,820 far' },
+  'distant-village': { far: { triangles: 1700 }, why: '48 houses; classic 1,140 tris as boxes and pyramids, modular 1,620 far (gabled roofs, plinths)' },
+  'mist-ring': { hero: { meshes: 14 }, mid: { meshes: 14 }, far: { meshes: 14 }, why: '14 sprites, each with its own material: Countryside.update() fades them one by one' },
+  'dawn-mist': { hero: { meshes: 12 }, mid: { meshes: 12 }, far: { meshes: 12 }, why: '12 sprites with their own materials (per-time-of-day fade)' },
   'bamboo-groves': {
     hero: { triangles: 92000 }, mid: { triangles: 13000 }, far: { triangles: 5000 },
     why: 'a grove is 40-78 culms with 72 leaf cards each; classic is 82k (r=7); modular hero ~90k, mid/far far below classic'
+  },
+  // Countryside.updateRainRipples() sets opacity per ring, so each of the 28 rings owns a material (as classic does); the texture is shared
+  'rain-ripples': {
+    hero: { materials: 28 }, mid: { materials: 28 }, far: { materials: 28 },
+    why: 'the game animates each ring through its own material (f2 handoff): 28 rings, 28 materials, as classic'
   },
 });
 

@@ -284,6 +284,13 @@
       "file": "labs/critters/js/recipes.js",
       "anchor": "id: 'guardian-crow'"
     },
+    "critters/larry": {
+      "lab": "critters",
+      "selector": "larry",
+      "kind": "specimen",
+      "file": "labs/critters/js/recipes.js",
+      "anchor": "id: 'larry'"
+    },
     "critters/game-bird": {
       "lab": "critters",
       "selector": "game-bird",
@@ -448,6 +455,41 @@
       "file": "labs/water/js/variants.js",
       "anchor": "id: 'ripple'"
     },
+    "weather/fireflies": {
+      "lab": "weather",
+      "selector": "fireflies",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'fireflies'"
+    },
+    "weather/dust-motes": {
+      "lab": "weather",
+      "selector": "dust-motes",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'dust-motes'"
+    },
+    "weather/scent": {
+      "lab": "weather",
+      "selector": "scent",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'scent'"
+    },
+    "weather/landing-dust": {
+      "lab": "weather",
+      "selector": "landing-dust",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'landing-dust'"
+    },
+    "weather/entry-splash": {
+      "lab": "weather",
+      "selector": "entry-splash",
+      "kind": "specimen",
+      "file": "labs/weather/js/recipes.js",
+      "anchor": "id: 'entry-splash'"
+    },
     "weather/splash": {
       "lab": "weather",
       "selector": "splash",
@@ -496,6 +538,27 @@
       "kind": "bench",
       "file": "labs/ranges/js/main.js",
       "anchor": "$('#airStage')"
+    },
+    "ranges/foothill-stands": {
+      "lab": "ranges",
+      "selector": "foothill-stands",
+      "kind": "bench",
+      "file": "labs/ranges/js/main.js",
+      "anchor": "$('#footStage')"
+    },
+    "ranges/village": {
+      "lab": "ranges",
+      "selector": "village",
+      "kind": "bench",
+      "file": "labs/ranges/js/main.js",
+      "anchor": "$('#villageStage')"
+    },
+    "ranges/mists": {
+      "lab": "ranges",
+      "selector": "mists",
+      "kind": "bench",
+      "file": "labs/ranges/js/main.js",
+      "anchor": "$('#mistStage')"
     },
     "machiya/original-tea": {
       "lab": "machiya",
@@ -1373,9 +1436,8 @@
       ],
       "coverage": [
         {
-          "target": "fences/corral",
-          "level": "embedded",
-          "note": "The complete original corral includes Larry; there is no isolated turtle or patrol study."
+          "target": "critters/larry",
+          "level": "direct"
         }
       ]
     },
@@ -1890,6 +1952,10 @@
       ],
       "coverage": [
         {
+          "target": "ranges/foothill-stands",
+          "level": "direct"
+        },
+        {
           "target": "ranges/foothills",
           "level": "embedded",
           "note": "The hero valley includes the foothill carpet; there is no separate shelf specimen."
@@ -1908,6 +1974,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "ranges/village",
+          "level": "direct"
+        },
         {
           "target": "machiya/original-village",
           "level": "related",
@@ -1928,6 +1998,10 @@
       ],
       "coverage": [
         {
+          "target": "ranges/mists",
+          "level": "direct"
+        },
+        {
           "target": "ranges/air",
           "level": "related",
           "note": "Aerial perspective bench; it does not extract the original mist-ring mesh."
@@ -1946,6 +2020,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "ranges/mists",
+          "level": "direct"
+        },
         {
           "target": "ranges/air",
           "level": "related",
@@ -4079,6 +4157,10 @@
       ],
       "coverage": [
         {
+          "target": "weather/fireflies",
+          "level": "direct"
+        },
+        {
           "target": "moonpool/fireflies",
           "level": "related",
           "note": "Related firefly study; not Particles.buildFireflies()."
@@ -4097,6 +4179,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "weather/dust-motes",
+          "level": "direct"
+        },
         {
           "target": "moonpool/game-motes",
           "level": "related",
@@ -4133,8 +4219,12 @@
           "anchor": "  build() {"
         }
       ],
-      "coverage": [],
-      "note": "No scent-trail specimen or interaction study."
+      "coverage": [
+        {
+          "target": "weather/scent",
+          "level": "direct"
+        }
+      ]
     },
     {
       "id": "splash",
@@ -4148,6 +4238,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "weather/entry-splash",
+          "level": "direct"
+        },
         {
           "target": "weather/splash",
           "level": "related",
@@ -4166,8 +4260,12 @@
           "anchor": "  spawnLandDust("
         }
       ],
-      "coverage": [],
-      "note": "No specimen exercises this pooled landing effect."
+      "coverage": [
+        {
+          "target": "weather/landing-dust",
+          "level": "direct"
+        }
+      ]
     },
     {
       "id": "ao",

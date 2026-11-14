@@ -647,21 +647,21 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 2.1 | `v-keepsakes` | Yarn, key, reward and food items (lab 17) | G-F | [x] |
 | 2.1 | `v-nest` | The nest, eggs, feather (lab 10) | G-F | [x] |
 | 2.2 | `v-shrine` | Torii, sandō, shrine, altar (lab 06) | G-V1 | [x] |
-| 2.2 | `v-machiya` | Machiya, components, street (lab 04) | G-V1 | [ ] |
+| 2.2 | `v-machiya` | Machiya, components, street (lab 04) | G-V1 | [x] |
 | 2.2 | `v-pagoda` | Distant pagoda (lab 08) | G-V1 | [x] |
 | 2.2 | `v-hidden` | Moon Pool and Lantern Glade (lab 07) | G-V1 | [x] |
 | 2.2 | `v-interiors` | Tea house and secret house interiors (lab 21) | G-V1 | [ ] |
 | 2.3 | `v-ground` | Ground, path, shoulders (lab 01) | G-V2 | [ ] |
 | 2.3 | `v-water` | River, bridge, paddies (lab 02) | G-V2 | [ ] |
-| 2.3 | `v-ranges` | Forest wall, mountains, mist (lab 03) | G-V2 | [ ] |
+| 2.3 | `v-ranges` | Forest wall, mountains, mist (lab 03) | G-V2 | [x] |
 | 2.3 | `v-sky` | Sky, clouds, cloud shadows, post (lab 05) | G-V2 | [ ] |
-| 2.3 | `v-weather` | Petals, rain, snow, motes, komorebi (labs 20, 22) | G-V2 | [ ] |
-| 2.3 | `v-trees` | Sakura, maple, pine, rim trees (new lab) | G-V2 | [ ] |
+| 2.3 | `v-weather` | Petals, rain, snow, motes, komorebi (labs 20, 22) | G-V2 | [x] |
+| 2.3 | `v-trees` | Sakura, maple, pine, rim trees (new lab) | G-V2 | [x] |
 | 2.3 | `v-critters` | Koi, birds, butterflies, crows (lab 18) | G-V2 | [x] |
 | 3 | `c1-rig-split` | `Cat` split into rig, parts, behaviour (serial) | G-F | [x] |
 | 3 | `c2-michi` | Player cat parts, collar, master bells | c1 | [ ] |
 | 3 | `c3-villagers` | Luna, Mochi, Kuro (lab 19) | c1 | [ ] |
-| 3 | `c4-creatures` | Larry the turtle, guardian crows | c1 | [ ] |
+| 3 | `c4-creatures` | Larry the turtle, guardian crows | c1 | [x] |
 | 4 | `s1-summit-split` | `mountaintop.js` split behind the facade (serial) | G-F, D2 | [x] |
 | 4 | `s2-clearing` | Meadow, stone, ensō, fūrin, torii, path, trees | s1, G-V2 | [ ] |
 | 4 | `s3-vista` | City, pagoda, bay, harbour, ranges, clouds | s1, `v-pagoda`, `v-ranges` | [ ] |
@@ -672,9 +672,9 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 5 | `r4-festival` | Mouths 6–7: yatai, hoko float, temple gate, Okuribi | r1 | [ ] |
 | 5 | `r5-roof-cast` | Chidori, Shōki, boatman, hayashi musicians | r1, c1 | [ ] |
 | 5 | `r6-game-wiring` | `RooftopManager`, unlock, save, music (serial) | r2–r5, D3 | [ ] |
-| 6 | `t1-catalog` | `production` variant, swap board, thumbnails | G-V1 | [ ] |
+| 6 | `t1-catalog` | `production` variant, swap board, thumbnails | G-V1 | [x] |
 | 6 | `t2-cadjs` | Param panel, AI action, package schema 2 | G-V1 | [ ] |
-| 6 | `t3-audio` | dawCAT sound hooks for new assets | G-V2 | [ ] |
+| 6 | `t3-audio` | dawCAT sound hooks for new assets | G-V2 | [x] |
 | 7 | `a1-village` | Village area pass | G-V3, G-C | [ ] |
 | 7 | `a2-hilltop` | Hilltop area pass | G-S | [ ] |
 | 7 | `a3-rooftops` | Roof Road area pass | G-R | [ ] |

@@ -57,3 +57,16 @@ at 360 × 300, update `capturedAt`, and keep a contextual label when the image
 shows an assembly or only a related technique. Verify that every manifest
 path exists and every asset ID is still present in
 `labs/asset_inventory.json`.
+
+## Production kit renders
+
+`thumbnails.json` has a separate `production` map (asset id → record) for the
+modular kit versions. Their `kind` is `production` and they are never mixed with
+the `original`, `study` or `context` images above: the inspector shows them
+only under the Production variant, labeled "PRODUCTION KIT". Each is a live
+render of `catalog/preview.html?asset=<id>&variant=production&tier=hero` at the
+default parameters, 360 × 300, captured headlessly (Chromium, Metal) on
+2026-11-13 and written as WebP (about 5 KB each, 252 KB for 28 assets). The
+record carries `source` and `capturedAt`. An asset with no kit version has no
+production record and shows "classic only". `tools/catalog_check.mjs` rejects an
+unknown asset id, a wrong `kind`, a missing file or a non-WebP.
