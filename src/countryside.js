@@ -1739,6 +1739,16 @@ export class Countryside {
   }
 
   createEngawa(w, d, h = 0.38) {
+    const layout = this.layoutEngawa(w, d, h);
+    return this.placeAsset('engawa', layout, () => this.meshEngawaClassic(layout));
+  }
+
+  /** Engawa veranda: returned to the caller, who places it (parent null). */
+  layoutEngawa(w, d, h = 0.38) {
+    return setParent({ index: this.nextIndex('engawa'), w, d, h, footprint: footprint() }, null);
+  }
+
+  meshEngawaClassic({ w, d, h }) {
     const engawa = new THREE.Group();
     engawa.name = 'Engawa Veranda';
     // Raised wooden deck
