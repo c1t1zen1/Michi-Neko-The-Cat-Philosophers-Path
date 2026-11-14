@@ -8,7 +8,7 @@
 //   3. the headless summit state-machine suite (tools/summit_test.mjs)
 //   4. an HTML/CSS sanity pass over index.html
 //   5. the kit: tools/kit_check.mjs and the node --test suite tools/kit_test.mjs
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -39,6 +39,10 @@ step(2, 'main.js wiring', () => {
   // facade (BUILD_GUIDE_FABLE S1.5): a check reads the file its code moved to.
   const summit = (name) => readFileSync(join(ROOT, 'src', 'summit', name), 'utf8');
   const planting = summit('planting.js');
+  const vista = summit('vista.js');
+  // The facade and every summit module, for checks that must hold anywhere.
+  const summitAll = [s, ...readdirSync(join(ROOT, 'src', 'summit'))
+    .filter((f) => f.endsWith('.js')).sort().map(summit)].join('\n');
   const checks = [
     ['summit.update() is called every frame', /this\.summit\.update\(dt, playing\)/.test(m)],
     ['summit imported', /import \{ SummitManager \} from '\.\/mountaintop\.js/.test(m)],
@@ -65,15 +69,15 @@ step(2, 'main.js wiring', () => {
     ['summit snow system built', /this\.buildSummitSnow\(\)/.test(s)],
     ['summit rain system built', /this\.buildSummitRain\(\)/.test(s)],
     ['summit vista uses spatial geometry, not the painted cyclorama',
-      /Layered Kyoto Bay Vista/.test(s) && !/const tex = this\.makeVistaTexture\(\)/.test(s)],
+      /Layered Kyoto Bay Vista/.test(vista) && !/const tex = this\.makeVistaTexture\(\)/.test(summitAll)],
     ['summit vista has city, bay and horizon depth bands',
-      /this\.buildKyotoCity\(\)/.test(s) && /this\.buildSummitBay\(\)/.test(s) &&
-      /this\.buildHorizonRanges\(\)/.test(s)],
+      /this\.buildKyotoCity\(\)/.test(vista) && /this\.buildSummitBay\(\)/.test(vista) &&
+      /this\.buildHorizonRanges\(\)/.test(vista)],
     ['summit weather includes rain and mist',
       /SUMMIT_WEATHER_POOL[\s\S]{0,220}'mist'[\s\S]{0,80}'rain'/.test(s)],
     ['card set keyed by kind (not opts.kind)', /this\.cardSets\[kind\]/.test(planting)],
     ['summit landmark asset is module-relative',
-      /SUMMIT_LANDMARKS_SRC\s*=\s*new URL\([^\n]+import\.meta\.url\)/.test(s)],
+      /SUMMIT_LANDMARKS_SRC\s*=\s*new URL\([^\n]+import\.meta\.url\)/.test(vista)],
     // Kit runtime wiring (BUILD_GUIDE_FABLE F1.8 / F1.12)
     ['kit runtime imported', /import \{ AssetRuntime \} from '\.\/kit\/runtime\.js\?v=/.test(m)],
     ['kit runtime constructed on the Game', /this\.assets = new AssetRuntime\(/.test(m)],
