@@ -9,7 +9,7 @@ import { mountLabChrome } from '../../shared/nav.js';
 import { loadFoliageModule } from '../../shared/game.js';
 import { terrainHeight } from './profiles.js';
 import { Valley } from './hero.js';
-import { buildStack, buildWallBench, buildEdgeScene, buildAirBench, buildDrawScene } from './tiles.js';
+import { buildStack, buildWallBench, buildEdgeScene, buildAirBench, buildDrawScene, buildTimeOfDayBench } from './tiles.js';
 import { WALL_METHODS, RIDGE_MODES, KASUMI_STYLES, STACK_PROFILES, STEPS, SOURCES } from './data.js';
 
 const $ = (s) => document.querySelector(s);
@@ -254,6 +254,26 @@ pad.addEventListener('pointermove', (e) => {
 for (const ev of ['pointerup', 'pointercancel']) pad.addEventListener(ev, () => { stroke = null; });
 $('#strokeClear').addEventListener('click', () => { stroke = null; padDraw(); drawBench?.setStroke(null); });
 $('#drawKasumi').addEventListener('change', (e) => drawBench?.setKasumi(e.target.checked));
+
+// 06 · time of day
+let todBench = null;
+views.add($('#todStage'), {
+  margin: 400,
+  build() { todBench = buildTimeOfDayBench(); return { scene: todBench.scene, camera: todBench.camera }; },
+  update(dt, t) { todBench?.update(dt * mo(), t * mo()); }
+});
+$('#todHour').addEventListener('input', (e) => {
+  if (todBench) {
+    todBench.rig.setHour(+e.target.value);
+    $('#todHourOut').textContent = `${String(Math.floor(+e.target.value)).padStart(2, '0')}:${String(Math.floor((+e.target.value % 1) * 60)).padStart(2, '0')}`;
+  }
+});
+$('#todVeil').addEventListener('input', (e) => {
+  if (todBench) {
+    todBench.setVeil(+e.target.value);
+    $('#todVeilOut').textContent = `${Math.round(+e.target.value * 100)}%`;
+  }
+});
 
 /* ---------------- learn by building ---------------- */
 

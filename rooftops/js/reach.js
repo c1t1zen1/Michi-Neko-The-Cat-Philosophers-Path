@@ -77,6 +77,16 @@ export function link(A, B, opts = {}) {
     let limit = apex(vy0) + 0.05;
     if (!strict && edgeInside) limit = apex(vy0) + PHYS.mantle;
     if (B.solid && !edgeInside) return { ok: false, how: 'climb', gap: 0, rise };
+    if (opts.ceilings) {
+      const yA = topAtEdge(A, sm), yB = topAtEdge(B, sm);
+      for (const c of opts.ceilings) {
+        const coversAll = c.s0 <= ovl0 + 0.2 && c.s1 >= ovl1 - 0.2;
+        const inDepth = A.d >= c.d0 - 0.3 && A.d <= c.d1 + 0.3 && B.d >= c.d0 - 0.3 && B.d <= c.d1 + 0.3;
+        if (coversAll && inDepth && c.y > yA + PHYS.body - 0.05 && c.y < yB + 0.05) {
+          return { ok: false, how: 'climb', gap: 0, rise };
+        }
+      }
+    }
     return { ok: rise <= limit + 1e-6, how: 'climb', gap: 0, rise };
   }
 
@@ -103,7 +113,7 @@ export function buildGraph(level, maxSpan = 14) {
       if (i === j) continue;
       const [b0, b1] = sweep(P[j]);
       if (b0 > a1 + maxSpan || b1 < a0 - maxSpan) continue;
-      if (link(P[i], P[j]).ok) out[i].push(j);
+      if (link(P[i], P[j], { ceilings: level.ceilings }).ok) out[i].push(j);
     }
   }
   return out;

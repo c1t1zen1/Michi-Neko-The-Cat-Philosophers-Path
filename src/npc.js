@@ -1,12 +1,18 @@
 import * as THREE from 'three';
 import { Cat } from './cat.js?v=20261113a';
+import { VILLAGER_DEFS } from './characters/defs/index.js?v=20261113a';
+import { duskEyeShine } from './characters/behaviour/dusk.js?v=20261113a';
+import { GroomingBehaviour } from './characters/behaviour/grooming.js?v=20261113a';
+
+/** Metres within which a modular villager runs its eye shine and grooming. */
+const NEAR_LIFE = 60;
 
 const _lookAt = new THREE.Vector3();
 
 /**
- * Villager temperaments. Each cat gets its own idle repertoire, pace, size
- * and manner of greeting so the three read as individuals standing next to
- * the player cat rather than recolours of it.
+ * Villager temperaments live on the CharacterDefs (src/characters/defs/*),
+ * the one source for coat, scale and manner; this view keeps the shape
+ * the rest of this file has always read.
  *   idle      reweights the idle verbs and the pause between them
  *   scale     overall body size (silhouette variety on top of the build)
  *   stripes   how much of the tabby pattern shows (0 = solid coat)
@@ -14,26 +20,10 @@ const _lookAt = new THREE.Vector3();
  *   greeting  what it does when the player comes close
  *   startle   how it reacts to a sprinting player nearby
  */
-const PERSONALITIES = {
-  // Dignified and tidy: grooms and sits, greets with a slow blink.
-  luna: {
-    scale: 1.0, stripes: 0.3, notice: 8,
-    idle: { weights: { groom: 0.42, sit: 0.4, stretch: 0.1, yawn: 0.08 }, interval: [9, 16] },
-    greeting: 'slowblink', startle: 'alert'
-  },
-  // Round and bouncy: stretches, yawns, bounds up to say hello.
-  mochi: {
-    scale: 0.96, stripes: 1.0, notice: 11,
-    idle: { weights: { stretch: 0.4, yawn: 0.3, groom: 0.15, sit: 0.15 }, interval: [8, 15] },
-    greeting: 'playful', startle: 'startled'
-  },
-  // Aloof and long-limbed: sits and watches, warms up slowly.
-  kuro: {
-    scale: 1.05, stripes: 0.0, notice: 7,
-    idle: { weights: { sit: 0.65, groom: 0.15, stretch: 0.1, yawn: 0.1 }, interval: [14, 24] },
-    greeting: 'wary', startle: 'cautious'
-  }
-};
+const PERSONALITIES = Object.fromEntries(Object.entries(VILLAGER_DEFS).map(([k, d]) => [k, {
+  scale: d.scale, stripes: d.palette.stripes, notice: d.personality.notice,
+  idle: d.personality.idle, greeting: d.personality.greeting, startle: d.personality.startle
+}]));
 
 export class NPC {
   constructor(scene, name, color, position, dialogueLines, options = {}) {
@@ -62,7 +52,19 @@ export class NPC {
     // slender, Mochi round, Kuro long-limbed; anyone else shares Michi's.
     const persona = PERSONALITIES[name.toLowerCase()] || null;
     this.persona = persona;
-    this.cat = new Cat({
+    // Modular villagers (kit id luna / mochi / kuro resolves to 'modular',
+    // never on quality low) are built from their CharacterDef; everyone else,
+    // and every classic run, takes the options path below, unchanged.
+    const key = name.toLowerCase();
+    const assets = options.assets || null;
+    const def = VILLAGER_DEFS[key] || null;
+    this.modular = !!(def && assets && assets.quality !== 'low' && assets.setFor(key) === 'modular');
+    if (this.modular) {
+      this.cat = new Cat({ def, audio: options.audio || null });
+      this.grooming = new GroomingBehaviour(def.personality);
+    } else {
+      this.grooming = null;
+      this.cat = new Cat({
       stripeAmount: options.stripeAmount ?? (persona ? persona.stripes : undefined),
       idleProfile: options.idleProfile ?? (persona ? persona.idle : undefined),
       fur: furColor,
@@ -72,9 +74,10 @@ export class NPC {
       ribbonColor: ribbonColor,
       build: options.build ?? name.toLowerCase(),
       audio: options.audio || null
-    });
+      });
+    }
 
-    if (persona && persona.scale !== 1) this.cat.group.scale.setScalar(persona.scale);
+    if (!this.modular && persona && persona.scale !== 1) this.cat.group.scale.setScalar(persona.scale);
     this.mesh.add(this.cat.group);
     this.mesh.position.copy(position);
     this.mesh.position.y = this.baseY;
@@ -330,6 +333,14 @@ export class NPC {
     }
     if (Math.abs(this.mesh.position.y - targetY) > 0.01) {
       this.mesh.position.y += (targetY - this.mesh.position.y) * Math.min(1, dt * 2);
+    }
+
+    // Modular villagers only, and only near the camera (the eye-shine part is
+    // hero tier; far cats and far timers are not worth a frame).
+    if (this.modular && playerDist < NEAR_LIFE) {
+      if (this.cat.setEyeShine) this.cat.setEyeShine(duskEyeShine(sky ? sky.dayTime : null));
+      // Grooming only at the cat's own home, awake, still, with the player out of the way (never on a schedule override)
+      if (this.grooming) this.grooming.update(dt, this.cat, !this.sleeping && this.effHome === this.home && this.moveSpeed === 0 && !this.wanderTarget && dist >= 5.0);
     }
 
     // Follow the player with the head while they're close
