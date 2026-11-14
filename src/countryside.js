@@ -136,11 +136,125 @@ function smoothstep(edge0, edge1, x) {
   return t * t * (3 - 2 * t);
 }
 
+// --- Asset routing (BUILD_GUIDE_FABLE.md §3.4, Integrator rulings R12/R18) ---
+//
+// Every builder below is split into layoutX() — every seeded draw, in its
+// original order, plus the footprint — and meshXClassic(layout), the original
+// meshes with no draws, joined by placeAsset(id, layout, classicFn). The asset
+// runtime arrives as `options.assets` (lane f1-runtime). src/kit/runtime.js is
+// not on this lane's base, so these three local stand-ins keep its contract;
+// at merge the Integrator swaps in
+//   import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=<tag>';
+const CLASSIC_ASSETS = { build: (id, layout, classicFn) => classicFn(), update() {}, instances: [] };
+function isAssetInstance(x) {
+  return !!(x && x.group && x.parts && typeof x.dispose === 'function');
+}
+const scopeAssets = (a) => a || CLASSIC_ASSETS;
+
+/**
+ * A layout's footprint (R12, R18): everything the classic builder registers,
+ * as data in the classic formats, computed in the layout step with the same
+ * arithmetic the classic code uses.
+ *   colliders   Box3s for this.colliders
+ *   platforms   Box3s and platform objects for addPlatform, or descriptors
+ *               { oriented: [bounds, topY, options] } and
+ *               { sloped: [roofY, w, d, ridgeH, overhang, options] } replayed
+ *               through addOrientedPlatform / addSlopedRoofPlatforms on the
+ *               placed group (its world transform is the classic one)
+ *   exclusions  { x, z, width, depth } for this.vegetationExclusions
+ *   waterRects  [x, z, w, d] for this.waterRects
+ *   anchors     fields assigned on the Countryside (a Vector3 already there is
+ *               copied into, so held references stay live)
+ *   lists       entries appended to Countryside lists ('a.b' is this.a.b)
+ * A value may name one of the asset's own objects as { $part: 'name' } — '.'
+ * is the asset's group, 'name.prop' a property of the part — resolved from
+ * instance.parts / sockets when a kit instance is placed; `userData` and
+ * `visible: false` on the placeholder are applied to that object.
+ */
+function footprint(f) {
+  return Object.assign({ colliders: [], platforms: [], exclusions: [], waterRects: [], anchors: {}, lists: {} }, f);
+}
+const part = (name, extra) => Object.assign({ $part: name }, extra);
+
+/**
+ * A nested component (F2.4) inside a layout: its inventory id, its layout
+ * (computed in the parent's layout step, at the point the classic parent
+ * called it), the classic mesh method and how it attaches — 'scene', 'parent'
+ * (the method takes the parent group) or 'caller' (the method returns the
+ * object; it is placed at layout x/y/z/ry inside the parent).
+ */
+const component = (id, layout, mesh, attach = 'scene') => ({ id, layout, mesh, attach });
+
+// Footprint arithmetic for meshes that do not exist yet: the same compose and
+// multiply Object3D.updateMatrixWorld does (parent × T·R(XYZ)·S), and the same
+// per-geometry bounding box Box3.setFromObject reads (built once per shape).
+const _fq = new THREE.Quaternion(), _fe = new THREE.Euler(), _fv = new THREE.Vector3(), _fs = new THREE.Vector3();
+function frameOf(parent, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) {
+  const local = new THREE.Matrix4().compose(_fv.set(x, y, z), _fq.setFromEuler(_fe.set(rx, ry, rz)), _fs.set(sx, sy, sz));
+  return parent ? new THREE.Matrix4().multiplyMatrices(parent, local) : local;
+}
+const _shapeBoxes = new Map();
+/** World box of one `new THREE[kind](...args)` mesh under `matrix`. */
+function shapeBox(matrix, kind, ...args) {
+  const key = kind + ':' + args.join(',');
+  let local = _shapeBoxes.get(key);
+  if (!local) {
+    const geo = new THREE[kind](...args);
+    geo.computeBoundingBox();
+    local = geo.boundingBox.clone();
+    geo.dispose();
+    _shapeBoxes.set(key, local);
+  }
+  return local.clone().applyMatrix4(matrix);
+}
+const unionOf = (boxes) => boxes.reduce((u, b) => u.union(b), new THREE.Box3());
+
+/** addBuildingWallColliders' arithmetic: four wall boxes of a w × d plan under `matrix`, and their union. */
+function buildingWallBoxes(matrix, w, d, height, baseY = 0, thickness = 0.18) {
+  const definitions = [
+    { x: 0, z: d / 2, w, d: thickness },
+    { x: 0, z: -d / 2, w, d: thickness },
+    { x: w / 2, z: 0, w: thickness, d },
+    { x: -w / 2, z: 0, w: thickness, d }
+  ];
+  const boxes = [];
+  const aggregate = new THREE.Box3();
+  for (const wall of definitions) {
+    const local = new THREE.Box3(
+      new THREE.Vector3(wall.x - wall.w / 2, baseY, wall.z - wall.d / 2),
+      new THREE.Vector3(wall.x + wall.w / 2, baseY + height, wall.z + wall.d / 2)
+    );
+    const points = [];
+    for (const px of [local.min.x, local.max.x]) {
+      for (const py of [local.min.y, local.max.y]) {
+        for (const pz of [local.min.z, local.max.z]) {
+          points.push(new THREE.Vector3(px, py, pz).applyMatrix4(matrix));
+        }
+      }
+    }
+    const collider = new THREE.Box3().setFromPoints(points);
+    boxes.push(collider);
+    aggregate.union(collider);
+  }
+  return { boxes, aggregate };
+}
+
+/** Attach a non-enumerable parent link, so layouts stay plain, serialisable data. */
+function setParent(layout, parent) {
+  Object.defineProperty(layout, 'parent', { value: parent, writable: true, configurable: true, enumerable: false });
+  return layout;
+}
+
 export class Countryside {
   constructor(scene, options = {}) {
     this.scene = scene;
     this.seed = options.seed || 20260729;
     this.rng = mulberry32(this.seed);
+    // The asset runtime (lane f1-runtime), scoped to this module's MAT and
+    // textures; a classic pass-through when none is given (review sheets,
+    // labs, the footprint golden).
+    this.assets = scopeAssets(options.assets, { MAT, textures: TEX });
+    this.assetInstances = []; // kit instances placed here (F2.5, _mergeStatics)
     this.colliders = [];
     this.lanternLightCount = 4; // quality-tier lever; sizes the light pool
     this.bambooFences = [];
@@ -210,6 +324,115 @@ export class Countryside {
   random() { return this.rng(); }
 
   /**
+   * Route one asset (BUILD_GUIDE_FABLE §3.4, rulings R12/R18). Classic:
+   * classicFn() builds and registers exactly as before. Modular (the runtime
+   * returned an AssetInstance): the instance group is placed from the layout,
+   * its footprint registered through the classic helpers in the classic
+   * order, its parts bound to the handles gameplay holds, and the layout's
+   * nested components placed into it.
+   */
+  placeAsset(id, layout, classicFn) {
+    const out = (this.assets || CLASSIC_ASSETS).build(id, layout, classicFn);
+    if (!isAssetInstance(out)) return out;
+    return this.placeInstance(id, layout, out);
+  }
+
+  /** The modular half of placeAsset. Returns the instance group. */
+  placeInstance(id, layout, inst) {
+    const g = inst.group;
+    g.position.set(layout.x || 0, layout.y || 0, layout.z || 0);
+    g.rotation.set(layout.rx || 0, layout.ry || 0, layout.rz || 0);
+    if (layout.scale) g.scale.setScalar(layout.scale);
+    if (layout.name && !g.name) g.name = layout.name;
+    g.userData.placedAsset = id;
+    const parent = layout.parent === undefined ? this.scene : layout.parent;
+    if (parent) parent.add(g);
+    this.registerFootprint(inst.footprint || layout.footprint, g, inst);
+    for (const [field, name] of Object.entries(layout.bind || {})) this[field] = this.resolvePart({ $part: name }, inst);
+    if (!this.assetInstances) this.assetInstances = [];
+    this.assetInstances.push(inst);
+    for (const c of layout.components || []) this.placeComponent(c, g);
+    return g;
+  }
+
+  /**
+   * Place a nested component (F2.4) whose layout the parent's layout step
+   * computed. The classic parents call this at the point they used to call
+   * the nested builder; a kit parent calls it for every component after its
+   * own footprint, which is the classic registration order (parent first).
+   */
+  placeComponent(c, group) {
+    const L = c.layout;
+    if (c.attach === 'scene') return this.placeAsset(c.id, L, () => this[c.mesh](L));
+    if (c.attach === 'parent') return this.placeAsset(c.id, setParent(L, group), () => this[c.mesh](L, group));
+    const obj = this.placeAsset(c.id, setParent(L, null), () => this[c.mesh](L));
+    obj.position.set(L.x || 0, L.y || 0, L.z || 0);
+    if (L.ry) obj.rotation.y = L.ry;
+    group.add(obj);
+    return obj;
+  }
+
+  /** Register a footprint the way the classic builders do: the same helpers, in the same order. */
+  registerFootprint(fp, group, inst) {
+    if (!fp) return;
+    for (const box of fp.colliders || []) this.colliders.push(box);
+    for (const p of fp.platforms || []) {
+      if (p.oriented) this.addOrientedPlatform(group, ...p.oriented);
+      else if (p.sloped) this.addSlopedRoofPlatforms(group, ...p.sloped);
+      else this.addPlatform(p);
+    }
+    for (const rect of fp.exclusions || []) this.vegetationExclusions.push(rect);
+    for (const rect of fp.waterRects || []) this.waterRects.push(rect);
+    for (const [field, value] of Object.entries(fp.anchors || {})) {
+      const v = this.resolvePart(value, inst);
+      if (this[field] && this[field].isVector3 && v && v.isVector3) this[field].copy(v);
+      else this[field] = v && v.isVector3 ? v.clone() : v;
+    }
+    for (const [path, entries] of Object.entries(fp.lists || {})) {
+      const keys = path.split('.');
+      let owner = this;
+      for (const k of keys.slice(0, -1)) owner = owner[k] || (owner[k] = {});
+      const last = keys[keys.length - 1];
+      const list = owner[last] || (owner[last] = []);
+      for (const entry of entries) list.push(this.resolvePart(entry, inst));
+    }
+  }
+
+  /** Resolve { $part } placeholders (see footprint()) against a kit instance. */
+  resolvePart(v, inst) {
+    if (Array.isArray(v)) return v.map((x) => this.resolvePart(x, inst));
+    if (!v || typeof v !== 'object' || Object.getPrototypeOf(v) !== Object.prototype) return v;
+    if (typeof v.$part === 'string') {
+      const s = v.$part;
+      const base = s[0] === '.' ? '.' : s.split('.')[0];
+      const prop = s.slice(base === '.' ? 1 : base.length + 1);
+      const o = base === '.' ? inst.group : (inst.parts[base] || (inst.sockets && inst.sockets[base]) || null);
+      if (o && v.userData) Object.assign(o.userData, v.userData);
+      if (o && v.visible === false) o.visible = false;
+      return o && prop ? o[prop] : o;
+    }
+    const out = {};
+    for (const k of Object.keys(v)) out[k] = this.resolvePart(v[k], inst);
+    return out;
+  }
+
+  /** The next instance number of a layout kind in this valley (layout.index, seeds a kit's ctx.rng). */
+  nextIndex(kind) {
+    const counts = this._layoutCounts || (this._layoutCounts = {});
+    counts[kind] = (counts[kind] || 0) + 1;
+    return counts[kind] - 1;
+  }
+
+  /** addCollider for a routed component: its classic mesh, or its layout box when the kit built it. */
+  addComponentCollider(obj, pad, box) {
+    if (obj && obj.userData && obj.userData.placedAsset) {
+      this.colliders.push(box);
+      return box;
+    }
+    return this.addCollider(obj, pad);
+  }
+
+  /**
    * Draw-call reduction: merge the valley's static architecture into one
    * mesh per material (grouped also by shadow flags and attribute layout).
    * Runtime-referenced objects — lanterns, collectibles, the sliding door,
@@ -231,9 +454,13 @@ export class Countryside {
     if (this.mistAltar) protectedRoots.add(this.mistAltar);
     if (this.windChime) protectedRoots.add(this.windChime);
     if (this.corralGuardian && this.corralGuardian.mesh) protectedRoots.add(this.corralGuardian.mesh);
+    // Kit instances (F2.5) merge like classic geometry, except what each lists
+    // as live: those keep their own meshes, children included.
+    const liveRoots = new Set();
+    for (const inst of this.assetInstances || []) for (const o of inst.live || []) if (o) liveRoots.add(o);
 
     const inProtected = (o) => {
-      for (let p = o; p; p = p.parent) if (protectedRoots.has(p)) return true;
+      for (let p = o; p; p = p.parent) if (protectedRoots.has(p) || liveRoots.has(p)) return true;
       return false;
     };
 
@@ -261,7 +488,7 @@ export class Countryside {
       const inner = [];
       const walk = (parent) => {
         for (const child of parent.children) {
-          if (protectedRoots.has(child)) continue; // individually referenced
+          if (protectedRoots.has(child) || liveRoots.has(child)) continue; // individually referenced
           if (child.isMesh) {
             const mat = child.material;
             if (matSet.has(mat) && !mat.transparent && child.geometry.index &&
@@ -328,30 +555,8 @@ export class Countryside {
 
   addBuildingWallColliders(parent, w, d, height, baseY = 0, thickness = 0.18) {
     parent.updateWorldMatrix(true, true);
-    const definitions = [
-      { x: 0, z: d / 2, w, d: thickness },
-      { x: 0, z: -d / 2, w, d: thickness },
-      { x: w / 2, z: 0, w: thickness, d },
-      { x: -w / 2, z: 0, w: thickness, d }
-    ];
-    const aggregate = new THREE.Box3();
-    for (const wall of definitions) {
-      const local = new THREE.Box3(
-        new THREE.Vector3(wall.x - wall.w / 2, baseY, wall.z - wall.d / 2),
-        new THREE.Vector3(wall.x + wall.w / 2, baseY + height, wall.z + wall.d / 2)
-      );
-      const points = [];
-      for (const px of [local.min.x, local.max.x]) {
-        for (const py of [local.min.y, local.max.y]) {
-          for (const pz of [local.min.z, local.max.z]) {
-            points.push(new THREE.Vector3(px, py, pz).applyMatrix4(parent.matrixWorld));
-          }
-        }
-      }
-      const collider = new THREE.Box3().setFromPoints(points);
-      this.colliders.push(collider);
-      aggregate.union(collider);
-    }
+    const { boxes, aggregate } = buildingWallBoxes(parent.matrixWorld, w, d, height, baseY, thickness);
+    for (const collider of boxes) this.colliders.push(collider);
     return aggregate;
   }
 
