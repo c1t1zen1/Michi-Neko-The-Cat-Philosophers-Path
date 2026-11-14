@@ -2,31 +2,44 @@
 // holds every kit asset to. Machine-readable twin of
 // docs/fable/baseline/budgets.md (Phase 0, step P0.5; operator decision D1).
 //
-// STATUS: PROVISIONAL. docs/fable/baseline/budgets.md had not merged when
-// this file was written (2026-11-13); these numbers are the Phase 1 working
-// limits, sized from the classic valley (a classic machiya is ~4k triangles,
-// a toro ~600, the pagoda impostor far tier ~2 triangles). When budgets.md
-// lands, copy its accepted numbers here, set `source.status` to 'accepted'
-// and cite the section. tools/kit_check.mjs reports the status.
+// STATUS: ACCEPTED provisionally under operator decision D1 (docs/fable/decisions.md,
+// D1; the operator may overturn). Numbers are copied from
+// docs/fable/baseline/budgets.md section 3 ("Triangles, draw calls and build time
+// per asset") and section 1. Frame-ms rows of budgets.md stay provisional (they
+// are judged by tools/perf_spots.mjs in the same session, not by this file).
+// tools/kit_check.mjs reports the status.
 //
 // Pure data: no imports, loads under Node.
 
 export const BUDGET_SOURCE = Object.freeze({
   file: 'docs/fable/baseline/budgets.md',
-  status: 'provisional',
-  note: 'Phase 1 working limits; replace with the D1-accepted numbers from budgets.md'
+  status: 'accepted',
+  decision: 'D1',
+  note: 'budgets.md section 3 (per-asset caps, Building/Tree class), accepted provisionally under D1; frame-ms rows stay provisional'
 });
 
 /**
- * One row per tier. `triangles` and `meshes` are per instance (an
+ * One row per tier, the largest class of budgets.md section 3 (Building /
+ * Tree: 25,000 / 6,000 / 1,000 triangles; first-build 6 / 3 / 1.5 ms).
+ * Smaller classes (prop, structure, character) may be held tighter through
+ * BUDGET_EXCEPTIONS. `triangles` and `meshes` are per instance (an
  * InstancedMesh counts its instances in triangles and once in meshes);
- * `buildMs` is the median of two builds on the dev machine's real GPU
- * backend, generous enough for a cold shader-free build.
+ * `buildMs` is the warm-build allowance; `materials` is the per-asset
+ * distinct-material cap (6 / 4 / 2, all from MAT / KitMaterials).
+ * Handover distances: hero < 12 m, mid 12-45 m, far >= 45 m.
  */
 export const BUDGETS = Object.freeze({
-  hero: Object.freeze({ triangles: 12000, meshes: 16, buildMs: 40 }),
-  mid: Object.freeze({ triangles: 4000, meshes: 8, buildMs: 20 }),
-  far: Object.freeze({ triangles: 800, meshes: 3, buildMs: 10 })
+  hero: Object.freeze({ triangles: 25000, meshes: 16, buildMs: 6, materials: 6 }),
+  mid: Object.freeze({ triangles: 6000, meshes: 8, buildMs: 3, materials: 4 }),
+  far: Object.freeze({ triangles: 1000, meshes: 3, buildMs: 1.5, materials: 2 })
+});
+
+/** Kit-wide limits from budgets.md section 3 (binding: high tier, shrine spot). */
+export const KIT_LIMITS = Object.freeze({
+  newMergedMaterials: 11,
+  repeatBuildMs: 0.1,
+  liveMeshes: Object.freeze({ hero: 2, mid: 0, far: 0 }),
+  handover: Object.freeze({ heroBelow: 12, farFrom: 45 })
 });
 
 /**
