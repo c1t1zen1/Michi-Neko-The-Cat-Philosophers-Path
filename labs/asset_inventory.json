@@ -1096,6 +1096,34 @@
       "kind": "specimen",
       "file": "labs/villagers/js/recipes.js",
       "anchor": "id: 'sleep'"
+    },
+    "keepsakes/dango": {
+      "lab": "keepsakes",
+      "selector": "dango",
+      "kind": "specimen",
+      "file": "labs/keepsakes/js/treats.js",
+      "anchor": "id: 'dango'"
+    },
+    "keepsakes/jade-paw": {
+      "lab": "keepsakes",
+      "selector": "jade-paw",
+      "kind": "specimen",
+      "file": "labs/keepsakes/js/treats.js",
+      "anchor": "id: 'jade-paw'"
+    },
+    "keepsakes/secret-fish": {
+      "lab": "keepsakes",
+      "selector": "secret-fish",
+      "kind": "specimen",
+      "file": "labs/keepsakes/js/treats.js",
+      "anchor": "id: 'secret-fish'"
+    },
+    "keepsakes/interior-fish": {
+      "lab": "keepsakes",
+      "selector": "interior-fish",
+      "kind": "specimen",
+      "file": "labs/keepsakes/js/treats.js",
+      "anchor": "id: 'interior-fish'"
     }
   },
   "assets": [
@@ -2502,8 +2530,12 @@
           "anchor": "charm.name = 'River-Spirit Charm'"
         }
       ],
-      "coverage": [],
-      "note": "Water Lab studies water and bridges, but does not extract the charm as a specimen."
+      "coverage": [
+        {
+          "target": "keepsakes/dango",
+          "level": "direct"
+        }
+      ]
     },
     {
       "id": "jade-paw",
@@ -2517,6 +2549,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "keepsakes/jade-paw",
+          "level": "direct"
+        },
         {
           "target": "fences/corral",
           "level": "related",
@@ -2537,6 +2573,10 @@
       ],
       "coverage": [
         {
+          "target": "keepsakes/secret-fish",
+          "level": "direct"
+        },
+        {
           "target": "machiya/original-secret",
           "level": "embedded",
           "note": "Fish remains inside the furnished original secret-house reference."
@@ -2554,8 +2594,12 @@
           "anchor": "fish.name = 'Grilled Sea Bream'"
         }
       ],
-      "coverage": [],
-      "note": "The standalone Interiors Lab does not reproduce this food item."
+      "coverage": [
+        {
+          "target": "keepsakes/interior-fish",
+          "level": "direct"
+        }
+      ]
     },
     {
       "id": "sakura",
@@ -4567,7 +4611,7 @@
       "sources": [
         {
           "file": "src/mountaintop.js",
-          "anchor": "enso.name = 'Weathered Enso'"
+          "anchor": "  buildMeditationStone("
         }
       ],
       "coverage": [
@@ -4585,7 +4629,7 @@
       "sources": [
         {
           "file": "src/mountaintop.js",
-          "anchor": "furin.name = 'Summit Furin'"
+          "anchor": "  buildMeditationAtmosphere("
         }
       ],
       "coverage": [
@@ -4603,7 +4647,7 @@
       "sources": [
         {
           "file": "src/mountaintop.js",
-          "anchor": "bridge.name = 'Bay Bridge'"
+          "anchor": "  buildHarbourAndIslands("
         }
       ],
       "coverage": [
@@ -4621,7 +4665,7 @@
       "sources": [
         {
           "file": "src/mountaintop.js",
-          "anchor": "wheel.name = 'Harbour Ferris Wheel'"
+          "anchor": "  buildHarbourAndIslands("
         }
       ],
       "coverage": [
@@ -4639,7 +4683,7 @@
       "sources": [
         {
           "file": "src/mountaintop.js",
-          "anchor": "this.butterflies.name = 'Summit Butterfly Visitors'"
+          "anchor": "  buildAmbientWildlife("
         }
       ],
       "coverage": [
@@ -4657,7 +4701,7 @@
       "sources": [
         {
           "file": "src/mountaintop.js",
-          "anchor": "bird.name = `Summit Fly-by Bird"
+          "anchor": "  buildAmbientWildlife("
         }
       ],
       "coverage": [

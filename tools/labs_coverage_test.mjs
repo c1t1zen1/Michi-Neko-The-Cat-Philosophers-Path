@@ -66,7 +66,7 @@ test('a review page cannot be promoted to focused lab coverage', () => {
 
 test('related evidence and missing coverage need explicit limitations', () => {
   const data = inventory();
-  delete data.assets.find((a) => a.id === 'jade-paw').coverage[0].note;
+  delete data.assets.find((a) => a.id === 'jade-paw').coverage.find((c) => c.level === 'related').note;
   delete data.assets.find((a) => a.id === 'guardian-crows').note;
   hasError(data, /related evidence needs a limitation: jade-paw/);
   hasError(data, /unmapped\/inactive asset needs an explanation: guardian-crows/);
@@ -74,7 +74,7 @@ test('related evidence and missing coverage need explicit limitations', () => {
 
 test('hidden rewards, guardian crows and inactive builders retain honest classifications', () => {
   const assets = inventory().assets;
-  assert.deepEqual(assets.find((a) => a.id === 'jade-paw').coverage.map((c) => c.level), ['related']);
+  assert.deepEqual(assets.find((a) => a.id === 'jade-paw').coverage.map((c) => c.level), ['direct', 'related']);
   assert.equal(assets.find((a) => a.id === 'guardian-crows').coverage.length, 0);
   assert.equal(assets.find((a) => a.id === 'old-petal-drifts').lifecycle, 'inactive');
   assert.equal(assets.find((a) => a.id === 'legacy-summit-gate').lifecycle, 'inactive');

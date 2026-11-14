@@ -336,3 +336,129 @@ export function canvasTexture(c, { repeat = false, srgb = true, aniso = 4 } = {}
   t.anisotropy = aniso;
   return t;
 }
+
+/* ---------------- CBag: flat-array Bag ---------------- */
+
+// Promoted from src/kit/pagoda/build.js (v-pagoda handoff, G-V1 chores). Same
+// output layout as Bag (position, normal, uv, colour; indexed) but writes
+// straight into flat arrays instead of cloning and merging one geometry per
+// primitive: 3-4x faster for builders with thousands of primitives. Bag itself
+// is unchanged (its index type and missing-normal handling differ, so swapping
+// its internals would change every Bag family's geometry).
+const CYL6 = new THREE.CylinderGeometry(1, 1, 1, 6, 1);
+const _n3 = new THREE.Matrix3(), _v = new THREE.Vector3();
+
+/** A fast geometry accumulator: transformed, coloured primitives written straight into flat arrays. */
+export class CBag {
+  constructor(color, sink = null) {
+    this.col = color;
+    this.s = sink || { pos: [], nor: [], uv: [], col: [], idx: [], n: 0 };
+  }
+  /** Another bag with a different default colour writing into the same buffers. */
+  view(color) { return new CBag(color, this.s); }
+  add(geo, { x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1, color, order = 'XYZ', keep = false } = {}) {
+    const S = this.s, pa = geo.attributes.position, na = geo.attributes.normal, ua = geo.attributes.uv, ca = keep ? geo.attributes.color : null;
+    _m.compose(_p.set(x, y, z), _q.setFromEuler(_e.set(rx, ry, rz, order)), _s.set(sx, sy, sz));
+    _n3.getNormalMatrix(_m);
+    _c.set(color === undefined ? this.col : color);
+    const cnt = pa.count, base = S.n;
+    for (let i = 0; i < cnt; i++) {
+      _v.fromBufferAttribute(pa, i).applyMatrix4(_m);
+      S.pos.push(_v.x, _v.y, _v.z);
+      if (na) { _v.fromBufferAttribute(na, i).applyMatrix3(_n3).normalize(); S.nor.push(_v.x, _v.y, _v.z); } else S.nor.push(0, 1, 0);
+      if (ua) S.uv.push(ua.getX(i), ua.getY(i)); else S.uv.push(0, 0);
+      if (ca) S.col.push(ca.getX(i), ca.getY(i), ca.getZ(i)); else S.col.push(_c.r, _c.g, _c.b);
+    }
+    const ix = geo.index;
+    if (ix) for (let i = 0; i < ix.count; i++) S.idx.push(base + ix.getX(i));
+    else for (let i = 0; i < cnt; i++) S.idx.push(base + i);
+    S.n += cnt;
+    return this;
+  }
+  box(w, h, d, o = {}) { return this.add(UNIT.box, { ...o, sx: w, sy: h, sz: d }); }
+  cyl(r, h, o = {}) { return this.add(UNIT.cyl, { ...o, sx: r, sy: h, sz: r }); }
+  cyl6(r, h, o = {}) { return this.add(CYL6, { ...o, sx: r, sy: h, sz: r }); }
+  beam(a, b, w, h, o = {}) {
+    const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z, len = Math.hypot(dx, dy, dz);
+    const ry = Math.atan2(dx, dz), rx = -Math.atan2(dy, Math.hypot(dx, dz));
+    return this.add(UNIT.box, { ...o, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: (a.z + b.z) / 2, ry, rx, order: 'YXZ', sx: w, sy: h, sz: len });
+  }
+  get empty() { return this.s.n === 0; }
+  geometry() {
+    const S = this.s;
+    if (!S.n) return null;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(S.pos, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(S.nor, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(S.uv, 2));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(S.col, 3));
+    g.setIndex(S.n > 65535 ? new THREE.Uint32BufferAttribute(S.idx, 1) : new THREE.Uint16BufferAttribute(S.idx, 1));
+    this.s = { pos: [], nor: [], uv: [], col: [], idx: [], n: 0 };
+    return g;
+  }
+}
+
+/* ---------------- bamboo culm: one unit culm per tier ---------------- */
+
+// Promoted from src/kit/fences/culm.js (v-fences handoff, G-V1 chores); the
+// fences family re-exports both, so `../fences/culm.js` imports keep working.
+// One culm geometry per tier, shared by every fence, corral post and sign in
+// the valley (mark meshes that use it `userData.sharedGeometry`, so an
+// instance's dispose() never frees it). Unit height, unit radius: an instance
+// matrix scales it to length and thickness. Nodes swell and darken (vertex
+// colour), the same profile as labs/shared/bamboo.js `culmGeometry` with the
+// ring count cut by tier. (src/kit/greenery/bamboo.js has its own parametric
+// `culmGeometry(T, { rBot, rTop, … })` for groves; it is a different builder.)
+const TIER_CULM = {
+  hero: { nodes: 5, radial: 7, rows: 3 },
+  mid: { nodes: 4, radial: 5, rows: 3 },
+  far: { nodes: 0, radial: 4, rows: 1 }
+};
+
+const culmCache = new Map();   // `${THREE.REVISION}:${tier}` → BufferGeometry
+const knotCache = new Map();
+
+/** The unit culm of a tier (cached for the life of the page). */
+export function culmGeometry(THREE, tier) {
+  const key = THREE.REVISION + ':' + tier;
+  if (culmCache.has(key)) return culmCache.get(key);
+  const spec = TIER_CULM[tier] || TIER_CULM.mid;
+  const taper = 0.72;
+  const prof = [], dark = [];
+  if (!spec.nodes) {
+    prof.push(new THREE.Vector2(1, 0), new THREE.Vector2(taper, 1)); dark.push(1, 1);
+  } else {
+    const per = spec.rows;
+    for (let k = 0; k < spec.nodes; k++) {
+      for (let r = 0; r < per; r++) {
+        // rows crowd toward the node at the end of each internode
+        const f = r / per, t = (k + f) / spec.nodes;
+        const d = 1 - f;                                  // distance to the next node, 0..1
+        const bulge = Math.exp(-Math.pow(Math.min(f, d) / 0.12, 2)) * 0.075;
+        prof.push(new THREE.Vector2(lerp(1, taper, t) * (1 + bulge), t));
+        dark.push(1 - Math.exp(-Math.pow(Math.min(f, d) / 0.04, 2)) * 0.32);
+      }
+    }
+    prof.push(new THREE.Vector2(taper, 1)); dark.push(1);
+  }
+  const g = new THREE.LatheGeometry(prof, spec.radial);
+  const per = g.attributes.position.count / prof.length;
+  const cols = new Float32Array(g.attributes.position.count * 3);
+  for (let r = 0; r < prof.length; r++) for (let c = 0; c < per; c++) {
+    const i = (r * per + c) * 3; cols[i] = cols[i + 1] = cols[i + 2] = dark[r];
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+  g.userData.shared = true;
+  culmCache.set(key, g);
+  return g;
+}
+
+/** The cord lashing: a small torus of unit radius, lying with its hole along +y after rotation by the caller. */
+export function knotGeometry(THREE, tier) {
+  const key = THREE.REVISION + ':' + tier;
+  if (knotCache.has(key)) return knotCache.get(key);
+  const g = tier === 'hero' ? new THREE.TorusGeometry(1, 0.32, 4, 7) : new THREE.TorusGeometry(1, 0.34, 3, 5);
+  g.userData.shared = true;
+  knotCache.set(key, g);
+  return g;
+}
