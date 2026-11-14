@@ -57,7 +57,9 @@ async function start() {
     // module evaluation begins. The full world is intentionally demand-loaded.
     await new Promise((resolve) => requestAnimationFrame(resolve));
     const { startGame } = await loadEngineModule();
-    const game = startGame();
+    // startGame() resolves once the kit runtime has preloaded (nothing on the
+    // classic set) and the valley is built.
+    const game = await startGame();
     window.game = game;
 
     // Game has already surfaced the WebGL2 explanation behind the entry
