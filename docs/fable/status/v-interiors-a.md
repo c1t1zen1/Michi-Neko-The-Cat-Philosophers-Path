@@ -40,6 +40,6 @@ Shot inside the tea house at cat height (y 100.2-100.5) at 6/12/18/22 h, `?asset
 - knockables: rest/floorY in room-group space (table 0.49, tatami 0.08) instead of origin-doubled 100.05 (f3 handoff 3, the card's required fix).
 
 ## Notes for the Integrator
-- Size: about 1,260 changed lines of source (kit ~830, lab specimens ~120, kit index/docs/text) plus 88 images; under ~1500.
+- Size: 884 changed lines (git diff --numstat, images excluded) plus 88 compare JPGs; under the ~1500 guide.
 - Required: BUDGET_EXCEPTIONS entry (handoff 1). Recommended: handoff 2 (lights hook), 3 (classic knockables), 4 (inside update).
 - Draw calls: 0 live meshes of its own; 1 new merged material for shoji paper plus 1 for the scroll painting.
