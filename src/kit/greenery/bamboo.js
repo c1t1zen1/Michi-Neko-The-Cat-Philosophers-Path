@@ -5,6 +5,7 @@
 // reuse it. Bend and flutter stay in the vertex shader (zero per-frame JS but
 // one uniform), exactly the classic maths, so layouts and sway match.
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { KIT_SHARED, tintToward } from '../materials.js?v=20261113a';
 
 /** Tier knobs: lathe sides, node count along the 7 m unit culm, rings per node, leaves kept of 72, blade rows. */
 export const BAMBOO_TIER = Object.freeze({
@@ -214,7 +215,10 @@ export function bambooGrove(ctx, L, p) {
   const plantArr = new Float32Array(Math.max(1, planted) * 4), yawArr = new Float32Array(Math.max(1, planted));
   const leafPlant = new Float32Array(Math.max(1, planted * kept.length) * 4);
   const leafA = new Float32Array(leafPlant.length), leafB = new Float32Array(leafPlant.length);
-  const lower = new T.InstancedMesh(lowerGeo, km.bamboo({ color: 0xa9c06a, vcol: true, rough: 0.5 }) /* the fences family's args: one shared material */, Math.max(1, planted));
+  // The kit's one bamboo (KIT_SHARED.bamboo = the fences' straw finish; ruling R38/R39): the grove's pale
+  // green (was its own km.bamboo({ color: 0xa9c06a })) rides in the instance colour, so no new material.
+  const lower = new T.InstancedMesh(lowerGeo, km.shared('bamboo'), Math.max(1, planted));
+  const [tr, tg, tb] = tintToward(0xa9c06a, KIT_SHARED.bamboo.base);
   const dummy = new T.Object3D(), col = new T.Color();
   plants.forEach(({ x, z, height, yaw, phase }, k) => {
     const lx = x - ox, lz = z - oz, h = height * p.height;
@@ -227,7 +231,7 @@ export function bambooGrove(ctx, L, p) {
     dummy.updateMatrix();
     lower.setMatrixAt(k, dummy.matrix);
     const g = 0.88 + 0.24 * (((phase * 7.31) % 1 + 1) % 1);
-    lower.setColorAt(k, col.setRGB(0.76 * g, 0.88 * g, 0.74 * g));   // pulls the fences' pale green toward the grove's
+    lower.setColorAt(k, col.setRGB(0.76 * g * tr, 0.88 * g * tg, 0.74 * g * tb));   // the grove's green over the shared bamboo
     kept.forEach((j, n) => {
       const li = k * leavesPerStalk + j, o = (k * kept.length + n) * 4;
       leafPlant.set([lx, lz, h, phase], o);

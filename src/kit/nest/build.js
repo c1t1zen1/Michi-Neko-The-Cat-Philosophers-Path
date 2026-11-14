@@ -51,7 +51,7 @@ function lathe(prof, seg, color, jitter, r) {
 export function buildNestBowl(ctx, layout, p) {
   const { tier, kitMaterials: km } = ctx;
   const r = ctx.rng, T = TWIG_TIER[tier] || TWIG_TIER.mid;
-  const mat = km.bag({ rough: 0.9, brush: 0.1 });
+  const mat = km.shared('matte');   // = km.bag({ rough: 0.9, brush: 0.1 }) (KIT_SHARED.matte)
   const group = new THREE.Group(), parts = {};
   const bag = new Bag();
   if (T.n) {
@@ -90,7 +90,7 @@ export function buildNestBowl(ctx, layout, p) {
 export function buildEggs(ctx, layout, p) {
   const { tier, kitMaterials: km } = ctx;
   const r = ctx.rng;
-  const mat = km.bag({ rough: 0.9, brush: 0.1 });
+  const mat = km.shared('matte');   // = km.bag({ rough: 0.9, brush: 0.1 }) (KIT_SHARED.matte)
   const [ws, hs] = tier === 'hero' ? [14, 10] : tier === 'mid' ? [9, 6] : [6, 4];
   const bag = new Bag();
   const tilts = layout.tilts || [0, 0.1, -0.1];

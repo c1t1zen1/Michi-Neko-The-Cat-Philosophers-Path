@@ -5,6 +5,9 @@
 import { defineAsset } from '../contract.js?v=20261113a';
 import { culmGeometry, knotGeometry, bake } from './culm.js?v=20261113a';
 import { canvas2d, canvasTexture } from '../craft.js?v=20261113a';
+import { KIT_SHARED, tintToward } from '../materials.js?v=20261113a';
+
+const matOr = (ctx, name, make) => (ctx.MAT && ctx.MAT[name]) || make();
 
 let faceMap = null;   // one canvas texture for the page (shared: never disposed by an instance)
 function faceTexture(THREE) {
@@ -34,12 +37,21 @@ export const corralSign = defineAsset({
     const { THREE, kitMaterials: km, tier } = ctx;
     const group = new THREE.Group();
     const H = params.height, boardY = H - 0.4;
-    const darkWood = km.wood({ base: 0x4a3320, dark: 0x2a1a10 });
-    const boardWood = tier === 'far' ? darkWood : km.wood({ base: 0x9b7a4e, dark: 0x5b4228 });
+    // Materials (ruling R39, G-V1): the board is the classic sign's own MAT.timberLight (the kit wood only
+    // where there is no MAT, e.g. a lab; its base 0x9b7a4e was within 1 % of timberLight's 0x9a744c); the post is
+    // the kit's one static bamboo (KIT_SHARED.bamboo) with its darker brown carried in vertex colour.
+    const darkWood = km.shared('darkWood');   // = km.wood({ base: 0x4a3320, dark: 0x2a1a10 })
+    const boardWood = tier === 'far' ? darkWood : matOr(ctx, 'timberLight', () => km.wood({ base: 0x9b7a4e, dark: 0x5b4228 }));
 
-    const post = new THREE.Mesh(culmGeometry(THREE, tier), (tier === 'far' ? darkWood : km.bamboo({ color: 0x8a7242, vcol: true, rough: 0.5 })));
-    post.scale.set(0.065, H, 0.065);
-    post.userData.sharedGeometry = true;
+    let post;
+    if (tier === 'far') {
+      post = new THREE.Mesh(culmGeometry(THREE, tier), darkWood);
+      post.scale.set(0.065, H, 0.065);
+      post.userData.sharedGeometry = true;
+    } else {
+      const o = new THREE.Object3D(); o.scale.set(0.065, H, 0.065); o.updateMatrix();
+      post = new THREE.Mesh(bake(THREE, culmGeometry(THREE, tier), [o], [tintToward(0x8a7242, KIT_SHARED.bamboo.base)]), km.shared('bamboo'));
+    }
     const board = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.4, 0.1), boardWood);
     board.position.y = boardY;
     const face = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.34), km.paper({ color: 0xffffff, map: faceTexture(THREE), side: THREE.FrontSide }));
