@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Kit contract checks</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,">
+<style>
+  body{font:15px/1.5 system-ui;max-width:72rem;margin:2rem auto;padding:0 1rem;color:#222}
+  h1{font-size:1.4rem} h2{font-size:1.1rem;margin:1.6rem 0 .4rem} li{margin:.15rem 0}
+  .pass{color:#285a32} .fail{color:#a52920;font-weight:600} .note{color:#555}
+  #summary{font-weight:600} canvas{position:fixed;right:8px;bottom:8px;width:128px;height:128px;border:1px solid #ccc}
+  table{border-collapse:collapse;font-size:13px} td,th{border:1px solid #ddd;padding:2px 8px;text-align:left}
+</style>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<h1>Kit contract checks (AAA-2, 3, 7, 8, 9 + footprint)</h1>
+<p class="note">Flags: <code>?family=&lt;name&gt;</code> <code>?asset=&lt;id&gt;</code> <code>?selftest=0</code> <code>?merge=0</code>. Results in <code>window.__contractResults</code>.</p>
+<p id="summary">Running…</p>
+<h2>Assets</h2><ol id="assets"></ol>
+<h2>Materials: draw-call merge through Countryside._mergeInto</h2><ol id="merge"></ol>
+<h2>Fixture self-test (every check can fail)</h2><table id="selftest"><thead><tr><th>knob</th><th>expected failing check</th><th>result</th></tr></thead><tbody></tbody></table>
+<canvas id="gl" width="256" height="256"></canvas>
+<script type="module" src="kit_contract_test.js?v=20261107a"></script>
+</html>
