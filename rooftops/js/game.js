@@ -16,6 +16,7 @@ import { RooftopAtmosphere } from './atmosphere.js';
 import { alleyEntrance } from './alleys.js';
 import { Companion } from './companion.js';
 import { neighbourhoodMap } from './neighbourhood-map.js';
+import { AssetRuntime } from '../../src/kit/runtime.js?v=20261113a';
 
 const Q = new URLSearchParams(location.search);
 const flag = (k, d = null) => (Q.has(k) ? Q.get(k) : d);
@@ -48,7 +49,13 @@ const level = buildLevel();
 const rail = level.rail;
 const runner = new Runner(level);
 const sky = new Sky(scene, renderer, { shadows, reduceMotion, lowPower, center: new THREE.Vector3(level.center.x, 0, level.center.z) });
-const world = buildWorld(level, { reduceMotion, lowPower });
+// The asset set switch (BUILD_GUIDE_FABLE §3.1), built as src/main.js builds
+// the game's: classic by default, ?assets=classic|modular|auto and ?swap= honoured,
+// the kit imported only when some id can resolve modular. Every piece is built
+// through it (build.js); with no Roof Road kit asset every piece stays classic.
+const assets = new AssetRuntime({ THREE, assetSet: 'classic', search: location.search, quality: lowPower ? 'low' : 'high' });
+await assets.preload();
+const world = buildWorld(level, { reduceMotion, lowPower, assets });
 scene.add(world.root);
 const atmosphere = new RooftopAtmosphere(scene, level, { reduceMotion, lowPower });
 

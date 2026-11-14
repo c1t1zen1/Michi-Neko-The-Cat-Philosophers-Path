@@ -11,7 +11,11 @@
 // pieces/, the material set in pieces/paint.js, the shared geometry in
 // pieces/common.js and pieces/machiya.js), then merges, adds the ground, the
 // distant city, the skyline pagodas, the Shōki and the treats, and returns the
-// per-frame update.
+// per-frame update. Every piece goes through the asset contract
+// (BUILD_GUIDE_FABLE.md §3.3–§3.4, R1.3): assets.build(PIECES[type].id,
+// layout, classic) runs the classic builder unless that id resolves to a
+// registered kit builder (opts.assets is the page's AssetRuntime; without one,
+// or with no Roof Road kit asset, every piece is classic).
 //
 // Returns { root, dynamic: {...}, lights: [Vector3], update(t, night) }.
 
@@ -23,6 +27,7 @@ import { mergeByMaterial } from './pieces/common.js';
 import { PIECES, downtown } from './pieces/index.js';
 import { makeShoki, makeTreat } from './pieces/pickups.js';
 import { buildDistantCity, buildPagoda } from './pieces/skyline.js';
+import { scopeAssets, isAssetInstance } from '../../src/kit/runtime.js?v=20261113a';
 
 /* ------------------------------------------------------------------ */
 /*  Assembly                                                            */
@@ -30,6 +35,56 @@ import { buildDistantCity, buildPagoda } from './pieces/skyline.js';
 
 export { makeShoki } from './pieces/pickups.js';
 export { PIECES } from './pieces/index.js';
+
+/**
+ * The layout a piece is built from (§3.4): plain data, no meshes. The frame is
+ * the rail frame at the piece's middle — the frame most classic builders use
+ * (frameGroup): local x along the rail, y up, z toward the camera (depth d) —
+ * and a kit builder builds in it with the ground at y = 0. `piece` is the
+ * level record itself (read-only: its heights, depths and platform ids are
+ * gameplay, level.js). The facade registers no collision: every surface, wall
+ * and ceiling belongs to level.js, so the footprint is empty and a kit piece
+ * must draw the surfaces its `piece` names.
+ */
+export function pieceLayout(pc, index, rail) {
+  const s = pc.s ?? (pc.s0 !== undefined ? (pc.s0 + (pc.s1 ?? pc.s0)) / 2 : 0);
+  const p = rail.pointAt(s), t = rail.tangentAt(s);
+  return {
+    index, type: pc.type, piece: pc, s,
+    x: p.x, y: 0, z: p.z, ry: Math.atan2(-t.z, t.x),
+    band: 'near',
+    footprint: { colliders: [], exclusions: [], anchors: {} }
+  };
+}
+
+/**
+ * Place a kit piece (an AssetInstance) where the classic one would stand:
+ * its group in the layout's rail frame, merged with the static batches unless
+ * the group itself is `live`; other `live` objects move to the root with their
+ * world transforms (unmerged); sockets named `light…` become lantern lights;
+ * `dynamic` entries join the world's moving pieces (arrays append, empty slots
+ * fill), so a kit boat, float or villager is animated like the classic one.
+ */
+function placePiece(out, layout, { ctx, root, lights }) {
+  const g = out.group;
+  g.position.set(layout.x, layout.y, layout.z);
+  g.rotation.set(0, layout.ry, 0);
+  if (out.live.includes(g)) ctx.addDyn(g);
+  else {
+    ctx.add(g);
+    g.updateMatrixWorld(true);
+    for (const o of out.live) root.attach(o);
+  }
+  for (const [key, socket] of Object.entries(out.sockets)) {
+    if (!key.startsWith('light')) continue;
+    socket.updateWorldMatrix(true, false);
+    lights.push(socket.getWorldPosition(new THREE.Vector3()));
+  }
+  for (const [key, value] of Object.entries(out.dynamic || {})) {
+    if (Array.isArray(ctx.dynamic[key])) ctx.dynamic[key].push(...[].concat(value));
+    else if (ctx.dynamic[key] == null) ctx.dynamic[key] = value;
+  }
+}
 
 export function buildWorld(level, opts = {}) {
   const M = makeMaterials();
@@ -41,6 +96,8 @@ export function buildWorld(level, opts = {}) {
   const glassGroup = new THREE.Group();
   const root = new THREE.Group();
   const lights = [];
+  // The page's AssetRuntime, scoped to this world's material set (§3.3).
+  const assets = scopeAssets(opts.assets, { MAT: M });
   const dynamic = { boat: null, boats: [], people: [], float: null, shoki: [], treats: [] };
   const ctx = {
     M, rail, dynamic, platforms: level.platforms, alleys: level.alleys,
@@ -49,11 +106,17 @@ export function buildWorld(level, opts = {}) {
     addDyn: (o) => root.add(o),
     light: (r, s, y, d) => { const p = r.place(s, d); lights.push(new THREE.Vector3(p.x, y, p.z)); }
   };
+  const counts = {};
   for (const pc of level.pieces) {
     const piece = PIECES[pc.type];
     if (!piece) throw new Error('No Roof Road renderer for ' + pc.type);
-    piece.build(pc, ctx);
-    if (piece.decorate) piece.decorate(pc, ctx);
+    counts[pc.type] = (counts[pc.type] ?? -1) + 1;
+    const layout = pieceLayout(pc, counts[pc.type], rail);
+    const out = assets.build(piece.id, layout, () => {
+      piece.build(pc, ctx);
+      if (piece.decorate) piece.decorate(pc, ctx);
+    });
+    if (isAssetInstance(out)) placePiece(out, layout, { ctx, root, lights });
   }
   // Glass meshes were added inside frame groups: pull them out with their
   // world transforms so they merge into the transparent bucket.
@@ -101,10 +164,19 @@ export function buildWorld(level, opts = {}) {
     (k.kind === 'shoki' ? dynamic.shoki : dynamic.treats).push(obj);
   }
 
+  // Kit instances that animate get the asset contract's update(dt, t, env).
+  // The run's sky follows progress, not a clock: night 0 → 1 reads as 15:00 → 21:00.
+  const assetEnv = { hour: 15, wind: 1, wet: 0, snow: 0, lanternOn: false };
+  let lastT = null;
+
   return {
     root, dynamic, lights, M, setView,
     /** Advance moving pieces; night ∈ [0,1] kindles lanterns and windows. */
     update(t, night, platOffset, platforms, playerS = 0) {
+      assetEnv.hour = 15 + 6 * night;
+      assetEnv.lanternOn = night > 0.5;
+      assets.update(lastT === null ? 0 : Math.max(0, t - lastT), t, assetEnv);
+      lastT = t;
       downtown.updatePeople(dynamic.people, t, playerS, opts.lowPower, opts.reduceMotion);
       const player = rail.pointAt(playerS);
       for (const batch of batches) {

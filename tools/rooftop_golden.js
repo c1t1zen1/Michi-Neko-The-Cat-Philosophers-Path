@@ -30,6 +30,17 @@
 //   update      world.update(t, night, platOffset, platforms, s) at five fixed
 //               samples: boats, float, people, culled batches, lantern glow
 //
+// Routing self-test (R1.3, not part of the digest): the world is built a
+// third time with stand-in kit assets registered for two piece ids
+// (roof-kido on an x leg, roof-lantern-racks on x, −z and +z legs; both
+// swapped modular) and an unregistered swap (roof-bridge). It checks that
+// every kido and rack piece came from a stand-in, at the hero tier, placed in
+// the classic piece's rail frame (its post stands where the frame puts it, its
+// `light…` socket lands on the classic lantern light), that each `live` part
+// was kept out of the merge, and that every other piece, the lights and the
+// level are identical to the classic build. Exit 1 when it fails, 2 when it
+// did not run.
+//
 // Numbers are rounded to 1e-4; one entry per line so git diffs stay readable.
 // Math.random is seeded before any module loads (three.js draws it for UUIDs
 // only; nothing in the Roof Road's geometry may). The world is built twice and
@@ -234,12 +245,12 @@ async function loadModules() {
 }
 
 /** One instrumented buildWorld(), exactly as rooftops/js/game.js calls it. */
-async function instrumentedBuild(mods) {
+async function instrumentedBuild(mods, runtime = null) {
   const { THREE } = mods;
   const level = mods.level.buildLevel();
   // The Roof Road page: classic by default, ?assets= / ?swap= honoured, high
   // quality on a desktop (game.js resolves the same 'high' when lowPower is off).
-  const assets = new mods.runtime.AssetRuntime({ THREE, assetSet: 'classic', search: location.search, quality: 'high' });
+  const assets = runtime || new mods.runtime.AssetRuntime({ THREE, assetSet: 'classic', search: location.search, quality: 'high' });
   await assets.preload();
   const per = [];
   const mark = { current: -1, start: Infinity };
@@ -359,6 +370,83 @@ function digestBuild(mods, b) {
   return d;
 }
 
+// ----------------------------------------------------------------- routing ---
+async function routingTest(mods, classic) {
+  const { THREE } = mods;
+  const out = { ran: false, ok: false, checks: [], problems: [] };
+  const check = (name, ok, detail = '') => { out.checks.push([name, !!ok, detail]); if (!ok) out.problems.push(name + (detail ? ': ' + detail : '')); };
+  const { defineAsset } = await import('../src/kit/contract.js?v=20261113a');
+  const warnings = [];
+  const runtime = new mods.runtime.AssetRuntime({
+    THREE, assetSet: 'classic', search: '?swap=roof-kido:modular,roof-lantern-racks:modular,roof-bridge:modular', quality: 'high',
+    loadFamilies: async () => ({}), fetchOverrides: async () => null,
+    createMaterials: async () => ({ bind() { return this; }, setEnv() {}, list: () => [] }),
+    logger: { warn: (m) => warnings.push(m) }
+  });
+  // The classic kido lights its lantern at (sMid, 1.9, d + 0.5), the rack at (sMid, 1.6, d + 0.3).
+  const STANDINS = [{ id: 'roof-kido', type: 'kido', light: [1.9, 0.5] }, { id: 'roof-lantern-racks', type: 'rack', light: [1.6, 0.3] }];
+  const built = [];
+  for (const sd of STANDINS) {
+    runtime.register(defineAsset({
+      id: sd.id, family: 'roof-routing-test', tiers: ['hero', 'mid'],
+      build(ctx, layout) {
+        const d = layout.piece.d;
+        const g = new ctx.THREE.Group();
+        const post = new ctx.THREE.Mesh(new ctx.THREE.BoxGeometry(0.2, 2.2, 0.2), ctx.MAT.timber);
+        post.position.set(0, 1.1, d);
+        const lamp = new ctx.THREE.Object3D();
+        lamp.position.set(0, sd.light[0], d + sd.light[1]);
+        const flag = new ctx.THREE.Mesh(new ctx.THREE.PlaneGeometry(0.4, 0.3), ctx.MAT.noren.indigo);
+        flag.position.set(0, 2.0, d + 0.3);
+        g.add(post, lamp, flag);
+        built.push({ sd, layout, tier: ctx.tier, post, flag, mat: ctx.MAT });
+        return { group: g, parts: { post, flag }, sockets: { light_lamp: lamp }, live: [flag], footprint: layout.footprint };
+      }
+    }));
+  }
+  const B = await instrumentedBuild(mods, runtime);
+  out.ran = true;
+  const d = digestBuild(mods, B);
+  const routed = B.level.pieces.map((pc, i) => [pc, i]).filter(([pc]) => STANDINS.some((sd) => sd.type === pc.type));
+  const legs = new Set();
+  check('every kido and rack piece came from a stand-in kit asset', built.length === routed.length && routed.length > 0 &&
+    runtime.instances.length === routed.length, `${built.length} built, ${runtime.instances.length} instances, ${routed.length} kido and rack pieces`);
+  check('the stand-ins got the Roof Road material set and the hero tier', built.every((b) => b.mat === B.world.M && b.tier === 'hero'),
+    [...new Set(built.map((b) => b.tier))].join(','));
+  const seen = {};
+  for (const [k, { sd, layout, post, flag }] of built.entries()) {
+    const [pc] = routed[k];
+    const index = seen[pc.type] = (seen[pc.type] ?? -1) + 1;
+    const sm = (pc.s0 + pc.s1) / 2, p = B.level.rail.place(sm, pc.d), t = B.level.rail.tangentAt(sm);
+    legs.add(Math.abs(t.z) > 0.9 ? (t.z > 0 ? '+z' : '-z') : Math.abs(t.x) > 0.9 ? (t.x > 0 ? '+x' : '-x') : 'turn');
+    post.updateWorldMatrix(true, false);
+    const w = post.getWorldPosition(new THREE.Vector3());
+    check(`${pc.type} ${index}: ${sd.id} layout ${layout.index}, post stands in the classic frame`, pc.type === sd.type && layout.index === index &&
+      Math.abs(w.x - p.x) < 1e-6 && Math.abs(w.y - 1.1) < 1e-6 && Math.abs(w.z - p.z) < 1e-6,
+      `post ${w.toArray().map(r4)}, frame ${[p.x, 1.1, p.z].map(r4)}`);
+    check(`${pc.type} ${index}: the live part is a root child, out of the merge`, flag.parent === B.world.root && !flag.userData.spatialBatch);
+  }
+  check('the stand-ins were placed on three or more leg directions', legs.size >= 3, [...legs].join(' '));
+  check('the light sockets land on the classic lantern lights (lights identical)', JSON.stringify(d.lights) === JSON.stringify(classic.lights),
+    `${d.lights.length} vs ${classic.lights.length}`);
+  const routedIdx = new Set(routed.map(([, i]) => i));
+  const others = d.pieces.filter((row) => !routedIdx.has(row[0]));
+  const othersClassic = classic.pieces.filter((row) => !routedIdx.has(row[0]));
+  const differ = others.filter((row, i) => JSON.stringify(row) !== JSON.stringify(othersClassic[i])).map((row) => `#${row[0]} ${row[1]}`);
+  check('every other piece is identical to the classic build', differ.length === 0, differ.slice(0, 5).join(', '));
+  check('the routed pieces did change', routed.every(([, i]) => JSON.stringify(d.pieces[i]) !== JSON.stringify(classic.pieces[i])));
+  for (const sec of ['platforms', 'walls', 'ceilings', 'pickups', 'materials']) {
+    check(`${sec} identical to the classic build`, JSON.stringify(d[sec]) === JSON.stringify(classic[sec]));
+  }
+  check('an unregistered ?swap id builds classic (roof-bridge)', runtime.setFor('roof-bridge') === 'modular' && !runtime.has('roof-bridge') &&
+    routed.length === runtime.instances.length && !built.some((b) => b.layout.type === 'bridge'));
+  check('no kit warning while routing', warnings.length === 0, warnings.join('; '));
+  out.ok = out.problems.length === 0;
+  out.routed = routed.length;
+  out.legs = [...legs];
+  return out;
+}
+
 // ------------------------------------------------------------- text + diff ---
 function digestText(d) {
   const out = ['{'];
@@ -454,6 +542,8 @@ async function main() {
     vertices: dA.batches.reduce((n, b) => n + b[3], 0)
   };
   result.assets = A.assets.summary();
+  try { result.routing = await routingTest(mods, dA); }
+  catch (error) { result.routing = { ran: false, ok: false, checks: [], problems: ['routing test threw: ' + String(error && error.stack || error).split('\n').slice(0, 3).join(' | ')] }; }
   result.ambient = { draws: ambient.draws };
   result.timing = { buildMs: [A.buildMs, B.buildMs], totalMs: 0 };
 
@@ -493,6 +583,7 @@ function render(r) {
     `level     ${c.platforms} platforms · ${c.walls} walls · ${c.ceilings} ceilings`,
     `world     ${c.root} root children · ${c.batches} merged batches (${c.vertices} vertices) · ${c.lights} lights · ${c.materials} materials`,
     `assets    set ${r.assets.set} (chosen ${r.assets.chosen}${r.assets.explicit ? ', from ?assets=' : ''}) · swaps ${JSON.stringify(r.assets.swaps)} · kit instances ${r.assets.instances}`,
+    `routing   ${r.routing.ran ? (r.routing.ok ? 'ok' : 'FAILED') + ` · ${r.routing.checks.filter((c) => c[1]).length}/${r.routing.checks.length} checks` : 'not run'}${r.routing.problems.length ? ' · ' + r.routing.problems.join('; ') : ''}`,
     `time      build ${r.timing.buildMs.join(' + ')} ms · page ${r.timing.totalMs} ms`,
     ...r.warnings.map((w) => `warning   ${w}`)
   ].join('\n');

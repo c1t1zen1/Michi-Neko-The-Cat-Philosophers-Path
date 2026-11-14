@@ -14,6 +14,11 @@
 // names another file), both builds identical, every piece attributed, and no
 // page warning or console error.
 //
+// The page also runs the routing self-test (R1.3): stand-in kit assets for
+// roof-kido and roof-lantern-racks must replace exactly the kido and rack
+// pieces, in the classic rail frame on every leg direction, with everything
+// else unchanged. It is part of the verdict: failed → exit 1, not run → exit 2.
+//
 // Needs Playwright outside the repo (PLAYWRIGHT_MODULE, see tools/headless.mjs)
 // and network for three.js from unpkg. No GPU work: the page never renders.
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -112,6 +117,9 @@ function verdict(r, run, write) {
   }
   if (!r.diff) return { state: 'COULD NOT COMPARE', code: 2, reasons: ['the page returned no diff'] };
   const reasons = (r.warnings || []).map((w) => `page warning: ${w}`);
+  const g = r.routing || { ran: false, problems: ['the page reported no routing result'] };
+  if (!g.ran) return { state: (r.equal ? 'EQUAL' : 'DIFFERENT') + ', ROUTING NOT RUN', code: 2, reasons: [...reasons, ...g.problems] };
+  if (!g.ok) return { state: (r.equal ? 'EQUAL' : 'DIFFERENT') + ', ROUTING FAILED', code: 1, reasons: [...reasons, ...g.problems.map((p) => 'routing: ' + p)] };
   if (r.equal && reasons.length) return { state: 'EQUAL, WITH WARNINGS', code: 1, reasons };
   return { state: r.equal ? 'EQUAL' : 'DIFFERENT', code: r.equal ? 0 : 1, reasons };
 }
@@ -131,6 +139,10 @@ function printSummary(r, run, v, { out, goldenFile, max }) {
     `${c.lights} lights · ${c.root} root children · ${c.batches} batches (${c.vertices} vertices) · ${c.materials} materials`);
   lines.push(`  assets   set ${a.set} (chosen ${a.chosen}${a.explicit ? ', from ?assets=' : ''}, quality ${a.quality}) · swaps ${JSON.stringify(a.swaps)} · ` +
     `kit ${a.loaded ? 'loaded' : 'not loaded'}, ${a.assets.length} kit ids, ${a.instances} instances${a.problems.length ? ' · problems: ' + a.problems.join('; ') : ''}`);
+  const g = r.routing;
+  if (g && g.ran) lines.push(`  routing  ${g.ok ? 'ok' : 'FAILED'}: stand-ins for roof-kido and roof-lantern-racks on ${g.routed} pieces (legs ${g.legs.join(' ')}); ` +
+    `${g.checks.filter((c) => c[1]).length}/${g.checks.length} checks (frame, light sockets, live parts, other pieces, lights, level, unregistered swap)`);
+  else lines.push(`  routing  not run${g ? ': ' + g.problems.join('; ') : ''}`);
   lines.push(`  random   ${r.ambient.draws} Math.random draws (three.js UUIDs; seeded)`);
   lines.push(`  time     build ${r.timing.buildMs.join(' + ')} ms · page ${secs(r.timing.totalMs)} · run ${secs(run.ms)}`);
   if (!writing) for (const e of run.errors || []) lines.push(`  console  ${e}`);
