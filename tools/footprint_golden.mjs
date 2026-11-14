@@ -9,6 +9,10 @@
 //   node tools/footprint_golden.mjs --query "?assets=modular&swap=torii:modular"
 //   node tools/footprint_golden.mjs --out /tmp/valley.json    also save the fresh digest
 //
+// --write only writes a golden from a run it can trust: no --query (unless
+// --golden names another file), the rng probe ok, three.js UUID draws kept
+// apart from Math.random(), and no page warning or console error.
+//
 // Needs Playwright outside the repo (PLAYWRIGHT_MODULE, see tools/headless.mjs)
 // and network for three.js from unpkg. No GPU work: the page never renders.
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -24,25 +28,31 @@ const USAGE = `Usage: node tools/footprint_golden.mjs [options]
 Builds the classic valley headlessly (tools/footprint_golden.html) and compares
 its digest with tools/golden/valley_classic.json.
 
-  --write             regenerate the golden from this checkout (exit 0)
+  --write             regenerate the golden from this checkout. Refused (exit 2) when
+                      --query is set without --golden, or when the run is not
+                      trustworthy: rng probe failed, three.js UUID draws not kept
+                      apart from Math.random(), any page warning or console error
   --query "<flags>"   page flags, passed through (e.g. "?assets=modular&swap=torii:modular");
                       flags the page does not know are ignored
   --out <file>        also write the fresh digest to <file>
   --golden <file>     compare with (or --write) another golden inside the repo
   --max <n>           changes to list, default 25
-  --json              print the page's whole result (diff included) as JSON
+  --json              print the page's whole result (diff and verdict included) as JSON
   --gpu metal|swiftshader   browser backend (default: metal on macOS)
   --timeout <s>       whole-run budget, default 180
   --console           stream the page's console to stderr
+  -h, --help          this text
 
-Exit: 0 equal (or written), 1 different, 2 could not run (no golden, page error,
-Playwright missing), 64 bad arguments.
+Exit: 0 equal (or written); 1 different; 2 could not run or compare (no or
+unusable golden, page error, Playwright missing), rng probe failed (even when
+the digest is equal), or --write refused; 64 bad arguments.
 
 Examples:
   node tools/footprint_golden.mjs
   node tools/footprint_golden.mjs --max 60
   node tools/footprint_golden.mjs --write
   node tools/footprint_golden.mjs --query "?assets=modular" --out /tmp/modular.json
+  node tools/footprint_golden.mjs --query "?assets=modular" --golden tools/golden/valley_modular.json --write
 `;
 
 class UsageError extends Error {}
@@ -53,6 +63,7 @@ function parseArgs(argv) {
   const flags = new Set(['write', 'json', 'console', 'help']);
   for (let i = 0; i < argv.length; i++) {
     let name = argv[i], value;
+    if (name === '-h') { opts.help = true; continue; }
     if (!name.startsWith('--')) throw new UsageError(`unexpected argument ${name}`);
     name = name.slice(2);
     const eq = name.indexOf('=');
@@ -80,9 +91,12 @@ function parseArgs(argv) {
   return opts;
 }
 
+/** --query without its leading ? or &, or '' when there is none. */
+const normalizeQuery = (query) => String(query || '').trim().replace(/^[?&]+/, '');
+
 /** The page path with --query passed through verbatim, plus golden= when another golden is used. */
 function pagePath(query, goldenFile) {
-  let qs = String(query || '').trim().replace(/^[?&]+/, '');
+  let qs = normalizeQuery(query);
   if (goldenFile !== DEFAULT_GOLDEN) {
     const rel = path.relative(ROOT, goldenFile);
     if (rel.startsWith('..') || path.isAbsolute(rel)) throw new UsageError(`--golden must be inside ${ROOT} (the page fetches it)`);
@@ -91,39 +105,60 @@ function pagePath(query, goldenFile) {
   return PAGE + (qs ? '?' + qs : '');
 }
 
-const kb = (n) => `${Number(n).toLocaleString('en-US')} bytes`;
+const kb = (n) => `${(Number(n) / 1000).toFixed(1)} kB`;
 const secs = (ms) => `${(ms / 1000).toFixed(1)} s`;
 
-function printSummary(r, run, { write, out, goldenFile, max }) {
+/** What a finished run means: { state, code, reasons }. */
+function verdict(r, run, write) {
+  if (write) {
+    // A golden is only written from a run that can be trusted.
+    const reasons = [];
+    if (!r.probe) reasons.push('the rng probe failed: the counted valley draws do not match the stream position');
+    if (!r.ambient || r.ambient.uuidSeparated !== true) reasons.push('three.js UUID draws were not kept apart from Math.random()');
+    for (const w of r.warnings || []) reasons.push(`page warning: ${w}`);
+    for (const e of run.errors || []) reasons.push(`page console error: ${e}`);
+    return reasons.length ? { state: 'WRITE REFUSED', code: 2, reasons } : { state: 'WROTE', code: 0, reasons };
+  }
+  if (!r.golden.found) {
+    return { state: 'NO GOLDEN', code: 2, reasons: [r.golden.status === 404 ? 'the golden file is missing (write it with --write)' : `the golden is unusable: ${r.golden.error}`] };
+  }
+  if (!r.diff) return { state: 'COULD NOT COMPARE', code: 2, reasons: [`the comparison failed: ${r.golden.error || 'the page returned no diff'}`] };
+  if (!r.probe) {
+    return { state: 'PROBE FAILED', code: 2, reasons: [`the rng probe failed: the counted valley draws do not match the stream position (the digest is ${r.equal ? 'equal' : 'different'})`] };
+  }
+  return { state: r.equal ? 'EQUAL' : 'DIFFERENT', code: r.equal ? 0 : 1, reasons: [] };
+}
+
+function printSummary(r, run, v, { out, goldenFile, max }) {
   const rel = (f) => path.relative(process.cwd(), f) || f;
   const c = r.counts;
   const d = r.diff;
-  let state;
-  if (write) state = 'WROTE';
-  else if (!r.golden.found) state = 'NO GOLDEN';
-  else state = r.equal ? 'EQUAL' : 'DIFFERENT';
+  const wrote = v.state === 'WROTE';
+  const writing = wrote || v.state === 'WRITE REFUSED';
   const lines = [];
-  lines.push(`footprint golden: ${state}${d && !write && !r.equal ? ` (${d.counts.changed} changed, ${d.counts.added} added, ${d.counts.removed} removed)` : ''}`);
+  lines.push(`footprint golden: ${v.state}${d && !writing && !d.equal ? ` (${d.counts.changed} changed, ${d.counts.added} added, ${d.counts.removed} removed)` : ''}`);
+  for (const reason of v.reasons) lines.push(`  reason   ${reason}`);
   lines.push(`  page     ${run.url}${run.gpu ? '   [' + run.gpu.replace(/^ANGLE \((.*)\)$/, '$1') + ']' : ''}`);
   if (r.golden.found) {
     lines.push(`  golden   ${rel(goldenFile)}  ${kb(r.golden.bytes)}${r.golden.textEqual ? ', byte-identical to this build' : ''}`);
   } else {
-    const why = r.golden.status === 404 ? 'missing' : `unusable: ${r.golden.error}`;
-    lines.push(`  golden   ${rel(goldenFile)}  ${why}${write ? '' : ' (write it with --write)'}`);
+    lines.push(`  golden   ${rel(goldenFile)}  ${r.golden.status === 404 ? 'missing' : 'unusable'}`);
   }
-  lines.push(`  digest   ${kb(r.digestBytes)}${out ? ' → ' + rel(out) : ''}${write ? ' → ' + rel(goldenFile) : ''}`);
+  lines.push(`  digest   ${kb(r.digestBytes)}${out ? ' → ' + rel(out) : ''}${wrote ? ' → ' + rel(goldenFile) : ''}`);
   lines.push(`  counts   ${c.objects} objects · ${c.aggregates} aggregates (${c.members} members) · ${c.baked} baked · ` +
     `${c.colliders} colliders · ${c.platforms} platforms · ${c.waterRects} water rects · ${c.exclusions} exclusions · ${r.anchors} anchors`);
   lines.push(`  rng      valley ${c.draws} draws (probe ${r.probe ? 'ok' : 'FAILED'}) · hidden ${r.hiddenDraws} · Math.random ${r.ambient.draws}` +
     ` · volatile ${r.volatile.leaves} leaves, ${r.volatile.members} members`);
   lines.push(`  time     build ${r.timing.buildMs.join(' + ')} ms · page ${secs(r.timing.totalMs)} · run ${secs(run.ms)}`);
-  for (const w of r.warnings || []) lines.push(`  warning  ${w}`);
-  for (const e of run.errors || []) lines.push(`  console  ${e}`);
-  if (d && d.equal && d.advisory.count && !write) {
+  if (!v.state.startsWith('WRITE')) {
+    for (const w of r.warnings || []) lines.push(`  warning  ${w}`);
+    for (const e of run.errors || []) lines.push(`  console  ${e}`);
+  }
+  if (d && d.equal && d.advisory.count && !writing) {
     lines.push(`  note     builder attribution differs in ${d.advisory.count} ${d.advisory.count === 1 ? 'entry' : 'entries'}; not part of the verdict (--write refreshes it)`);
     for (const w of d.where || []) lines.push(`           ${w}`);
   }
-  if (d && !d.equal && !write) {
+  if (d && !d.equal && !writing) {
     lines.push('');
     for (const w of d.where || []) lines.push(`  ${w}`);
     if ((d.where || []).length) lines.push('');
@@ -164,6 +199,16 @@ async function main(argv) {
     return 64;
   }
 
+  // A run with page flags (?assets=modular …) never overwrites the classic golden.
+  const query = normalizeQuery(opts.query);
+  if (opts.write && query && !opts.golden) {
+    const reason = `--query is set ("${query}"): a run with page flags does not overwrite the classic golden;` +
+      ' pass --golden <file> to write its digest to another file';
+    if (opts.json) process.stdout.write(JSON.stringify({ verdict: { state: 'WRITE REFUSED', code: 2, reasons: [reason] } }, null, 1) + '\n');
+    else process.stdout.write(`footprint golden: WRITE REFUSED\n  reason   ${reason}\n`);
+    return 2;
+  }
+
   let runPage;
   try { ({ runPage } = await import('./headless.mjs')); } catch (error) {
     process.stderr.write(`footprint_golden: tools/headless.mjs did not load (${error.message.split('\n')[0]}).\n` +
@@ -192,23 +237,22 @@ async function main(argv) {
     return 2;
   }
 
+  const v = verdict(r, run, !!opts.write);
   if (out) {
     await mkdir(path.dirname(out), { recursive: true });
     await writeFile(out, r.digestText);
   }
-  if (opts.write) {
+  if (v.state === 'WROTE') {
     await mkdir(path.dirname(goldenFile), { recursive: true });
     await writeFile(goldenFile, r.digestText);
   }
   if (opts.json) {
     const { digestText, ...rest } = r;
-    process.stdout.write(JSON.stringify({ ...rest, run: { url: run.url, ms: run.ms, gpu: run.gpu, errors: run.errors } }, null, 1) + '\n');
+    process.stdout.write(JSON.stringify({ ...rest, verdict: v, run: { url: run.url, ms: run.ms, gpu: run.gpu, errors: run.errors } }, null, 1) + '\n');
   } else {
-    printSummary(r, run, { write: !!opts.write, out, goldenFile, max: opts.max });
+    printSummary(r, run, v, { out, goldenFile, max: opts.max });
   }
-  if (opts.write) return 0;
-  if (!r.golden.found) return 2;
-  return r.equal ? 0 : 1;
+  return v.code;
 }
 
 main(process.argv.slice(2)).then((code) => {
