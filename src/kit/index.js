@@ -3,7 +3,7 @@
 // AssetRuntime.preload() imports these only when the modular set can be
 // active, so the classic game never downloads the kit.
 export const KIT_TAG = '20261113a';
-export const FAMILY_NAMES = Object.freeze(['alley', 'clearing', 'creatures', 'critters', 'fences', 'garden', 'greenery', 'hidden', 'interiors', 'keepsakes', 'lanterns', 'machiya', 'nest', 'pagoda', 'ranges', 'rocks', 'shrine', 'summitlife', 'trees', 'weather']);
+export const FAMILY_NAMES = Object.freeze(['alley', 'clearing', 'creatures', 'critters', 'fences', 'garden', 'greenery', 'ground', 'hidden', 'interiors', 'keepsakes', 'lanterns', 'machiya', 'nest', 'pagoda', 'ranges', 'rocks', 'shrine', 'summitlife', 'trees', 'weather']);
 export const FAMILIES = Object.freeze({
   'alley': () => import('./alley/index.js?v=20261113a'),
   'clearing': () => import('./clearing/index.js?v=20261113a'),
@@ -12,6 +12,7 @@ export const FAMILIES = Object.freeze({
   'fences': () => import('./fences/index.js?v=20261113a'),
   'garden': () => import('./garden/index.js?v=20261113a'),
   'greenery': () => import('./greenery/index.js?v=20261113a'),
+  'ground': () => import('./ground/index.js?v=20261113a'),
   'hidden': () => import('./hidden/index.js?v=20261113a'),
   'interiors': () => import('./interiors/index.js?v=20261113a'),
   'keepsakes': () => import('./keepsakes/index.js?v=20261113a'),

@@ -111,6 +111,11 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
     hero: { meshes: 11, materials: 11 }, mid: { meshes: 11, materials: 11 }, far: { meshes: 11, materials: 11 },
     why: 'nine shafts, a bloom and a ground pool: the facade pulses each one through its own material.opacity (as classic), so 11 materials, each a single additive draw'
   },
+  // lane v-ground (in-lane grant): the whole 260 m valley height field, one mesh
+  'valley-ground': {
+    hero: { triangles: 45000 }, mid: { triangles: 45000, buildMs: 5 }, far: { triangles: 5000, buildMs: 4 },
+    why: 'the whole valley height field, not a prop: classic is 45,000 tris (150 x 150 plane, one mesh, ~35-43 ms to build); modular keeps every classic vertex at hero/mid (45,000) and every third at far (5,000). Warm builds copy the cached heights and field (2-3 ms); the first build in the game is ~390 ms under sibling load, ~200 ms on a quiet page (layers ~115, heights ~50, field ~30; the classic ground also pays its groundTextures(6)) and replaces the classic ground, road and shoulders (3 draws -> 1)'
+  },
 });
 
 /** The budget row for one asset and tier, with exceptions applied. */
