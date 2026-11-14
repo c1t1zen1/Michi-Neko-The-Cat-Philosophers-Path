@@ -37,7 +37,7 @@ export const BUDGETS = Object.freeze({
 
 /** Kit-wide limits from budgets.md section 3 (binding: high tier, shrine spot). */
 export const KIT_LIMITS = Object.freeze({
-  newMergedMaterials: 11,
+  mergedMaterialsBaseline: 11, // informational: merged materials after wave 2.1 + pagoda; the cap was replaced by ruling R52
   repeatBuildMs: 0.1,
   liveMeshes: Object.freeze({ hero: 2, mid: 0, far: 0 }),
   handover: Object.freeze({ heroBelow: 12, farFrom: 45 })
