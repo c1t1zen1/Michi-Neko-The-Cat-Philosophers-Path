@@ -334,9 +334,24 @@ Rules:
    that returns something that is not an AssetInstance).
 6. Geometry meant to merge is indexed with position, normal and uv (and
    colour for `craft.Bag` meshes) and uses `ctx.kitMaterials` or `ctx.MAT`
-   materials; anything animated or glowing goes in `live`.
+   materials; anything animated or glowing goes in `live`. Static props are
+   plain merge-able geometry (ruling R36): `_mergeStatics` skips
+   InstancedMesh, so instancing a static prop costs its own draw per
+   instance set; use it only for large counts, with the draw delta measured.
 7. Budgets (AAA-7) are `src/kit/budgets.js` per tier (`budgetFor(id, tier)`;
-   per-asset exceptions cite why).
+   per-asset exceptions cite why). Triangles count every instance of an
+   instanced draw (InstancedMesh and InstancedBufferGeometry alike, G-V1).
+8. Kit materials (gate G-V1, ruling R39; budgets.md section 4). The whole
+   kit may add at most 11 merged materials, and after wave 2.1 it has 11.
+   They are named in `src/kit/materials.js` `KIT_SHARED`
+   (`ctx.kitMaterials.shared('bamboo' | 'matte' | 'crate' | 'cord' |
+   'darkWood' | 'stone' | 'basinStone' | 'rock' | 'rockDark' | 'moss')`);
+   carry an asset's own colour in vertex or instance colour
+   (`tintToward(hex, KIT_SHARED[name].base)`, `tintGeometry`), or use a
+   classic `ctx.MAT` material. A new merged material needs an Integrator
+   ruling backed by a same-session `perf_spots` run (shrine spot, high), or
+   it retires one. Materials only on pickups, `live` or instanced meshes do
+   not merge and are budgeted as live draws.
 
 ### 3.4 Layout / mesh split in the classic builders
 
@@ -560,10 +575,11 @@ The Integrator merges one lane at a time:
 3. Run `node tools/kit_index.mjs`, then gate **G1** (Appendix C).
 4. Merge, tick the master board, push `fable/integration`.
 
-The cache tag is bumped **once per gate**, by the Integrator, on
-`fable/integration`. Workers never bump tags: a bump touches every module and
-would conflict with every other lane. New files written in a worktree import
-with the tag currently on `fable/integration`.
+The cache tag is bumped **only at a gate that merges to `main`** (G-F, G-V3,
+G-R and the final merge; ruling R44: only `main` reaches players), by the
+Integrator, on `fable/integration`. Workers never bump tags: a bump touches
+every module and would conflict with every other lane. New files written in a
+worktree import with the tag currently on `fable/integration`.
 
 ---
 
@@ -603,7 +619,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 
 - [x] **G-P0** Baseline recorded, decisions D1–D8 answered
 - [x] **G-F** Foundation merged; classic output proven unchanged (→ may merge to `main`)
-- [ ] **G-V1** Village wave 1 (props) merged
+- [x] **G-V1** Village wave 1 (props) merged; G1–G3 green, budgets hold on modular (`docs/fable/baseline/perf_gv1.md`), kit materials at the cap (budgets.md section 4)
 - [ ] **G-V2** Village wave 2 (landmarks) merged
 - [ ] **G-V3** Village wave 3 (systems, life) merged (→ may merge to `main`)
 - [ ] **G-C** Characters merged
@@ -863,13 +879,28 @@ specifics.
 - [ ] L5 **Promote** into `src/kit/<family>/`: one `defineAsset` per id,
       split into named parts, three tiers, params with ranges, `footprint`
       copied from the classic layout, lab materials replaced by
-      `KitMaterials`.
+      `KitMaterials`. Wave 2.1 rules: static props are plain merge-able
+      geometry, no InstancedMesh for a static prop unless the count is large
+      and the draw delta is measured and recorded (R36); reuse a kit
+      material before adding one: `ctx.kitMaterials.shared(name)` with your
+      colour in vertex or instance colour, or a `ctx.MAT` material (§3.3
+      rule 8; the kit has no material left to add without a ruling); the
+      asset's contract `sample` is the LARGEST real layout the game builds
+      (the longest fence, the biggest grove), so AAA-7 is tested on what
+      players see; a real layout over the cap needs a `BUDGET_EXCEPTIONS`
+      request in the handoff with measured modular and classic counts.
 - [ ] L6 **Compare** in the game: `?assets=classic` against
       `?swap=<id>:modular` from the same camera at dawn, noon, dusk and
       night. Save the pairs under `docs/fable/status/<lane>/` (small JPGs).
+      One pair per promoted id, framed on that asset (from cat height and
+      2–3 m); the two images of a pair must not be byte-identical (`cmp`),
+      and read several before judging AAA-1 and AAA-5.
 - [ ] L7 **Check**: `node tools/kit_check.mjs`, the contract test page for
       the family, the footprint golden (must still be empty for classic,
-      and within waivers for modular), `node tools/labs_check.mjs`.
+      and within waivers for modular), `node tools/labs_check.mjs`. Then
+      `node tools/perf_spots.mjs` classic high against your swap at modular
+      HIGH and MEDIUM, in one session (the rule: modular medium ≤ classic
+      high; modular high ≤ 1.2 × calls); explain every draw-call change.
 - [ ] L8 **Self-review** against AAA-1…AAA-10. Tick each in the status file
       or write why it is not met.
 - [ ] L9 **Handoff**: write `docs/fable/handoff/<lane>.md`: inventory rows
