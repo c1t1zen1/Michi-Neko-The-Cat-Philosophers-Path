@@ -149,8 +149,8 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="larry"></a>`larry` — Larry the turtle | [src/countryside.js:turtle.name = 'Turtle Guardian (Larry)'](../src/countryside.js#L3451) | [fences / corral](../labs/fences/js/recipes.js#L71) (embedded) — The complete original corral includes Larry; there is no isolated turtle or patrol study. |  |
 | <a id="guardian-crows"></a>`guardian-crows` — Nest guardian crows | [src/ambient_life.js:buildGuardianBirds(](../src/ambient_life.js#L221) | **No mapped evidence** | Critters extracts a sparrow, not guardianBirds; constructing AmbientLife alone does not put the crows on a specimen. |
 | <a id="sparrows"></a>`sparrows` — Valley sparrows | [src/ambient_life.js:buildBirds(](../src/ambient_life.js#L160) | [critters / game-bird](../labs/critters/js/recipes.js#L42) (direct)<br>[critters / flock](../labs/critters/js/recipes.js#L46) (direct) |  |
-| <a id="koi"></a>`koi` — River koi (procedural coat variants) | [src/ambient_life.js:buildKoi(](../src/ambient_life.js#L636) | [critters / game-koi](../labs/critters/js/recipes.js#L32) (direct) | Repeated koi and randomized markings are instances of this type, not additional inventory rows. |
-| <a id="butterflies"></a>`butterflies` — Valley butterflies | [src/ambient_life.js:buildButterflies(](../src/ambient_life.js#L415) | [critters / game-flutter](../labs/critters/js/recipes.js#L50) (direct)<br>[critters / hinge](../labs/critters/js/recipes.js#L54) (direct) |  |
+| <a id="koi"></a>`koi` — River koi (procedural coat variants) | [src/ambient_life.js:buildKoi(](../src/ambient_life.js#L637) | [critters / game-koi](../labs/critters/js/recipes.js#L32) (direct) | Repeated koi and randomized markings are instances of this type, not additional inventory rows. |
+| <a id="butterflies"></a>`butterflies` — Valley butterflies | [src/ambient_life.js:buildButterflies(](../src/ambient_life.js#L415) | [critters / game-flutter](../labs/critters/js/recipes.js#L54) (direct)<br>[critters / hinge](../labs/critters/js/recipes.js#L58) (direct) |  |
 
 ### Cat components
 
