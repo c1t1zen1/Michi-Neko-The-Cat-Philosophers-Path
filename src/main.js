@@ -216,6 +216,13 @@ class Game {
       search: location.search,
       quality: this.initialQuality
     });
+    // t3-audio: today's sounds for the moments the game already voices; the rest stay silent until a dawCAT pack is installed
+    this.assets.audio?.setSink((ev) => {
+      const a = this.audio; if (!a) return;
+      if (ev === 'shrine.bell.ring') a.playBell();
+      else if (ev === 'nest.settle') a.playPurr();
+      // keepsake.collect: main.js already calls playCollect on pickup; do not double-play
+    });
   }
 
   /** Preload the kit (nothing on the classic set), then build the valley. */
