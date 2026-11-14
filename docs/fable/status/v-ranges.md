@@ -40,3 +40,8 @@ Waivers: none in footprints. Budget exceptions requested (handoff). Mid-tier mod
 ## Open concerns
 - tools/ranges_test.mjs is not edited (not in my files): test_life.mjs is separate.
 - Summit horizon reuse: ridgeRingGeometry / valleyRangeColors / canopySet (handoff "Reusable kit builders").
+
+## Pre-review: budgets
+Integrator grant: src/kit/budgets.js BUDGET_EXCEPTIONS for the seven ranges ids committed, with measured classic and modular counts in each why. Merged origin/fable/integration (no conflicts; kit_index --check: in sync, 10 families).
+- kit_contract_test --family ranges: 7 assets, 21 asset x tier builds, 603 checks, 0 failed; PASS: kit contract (on the committed tree)
+- kit_check: All kit checks OK (144 passed); verify.mjs: All checks passed
