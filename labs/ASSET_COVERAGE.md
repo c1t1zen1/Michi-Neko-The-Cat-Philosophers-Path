@@ -6,7 +6,7 @@ Reviewed 2026-11-10. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **144 of 186 (77.4%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **145 of 186 (78.0%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -28,9 +28,9 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 144 | 77.4% |
+| Focused lab study | 145 | 78.0% |
 | Review sheet | 27 | 14.5% |
-| Embedded in a specimen | 3 | 1.6% |
+| Embedded in a specimen | 2 | 1.1% |
 | Related evidence only | 9 | 4.8% |
 | No mapped evidence | 3 | 1.6% |
 
@@ -40,7 +40,7 @@ Each active row is counted once at its strongest evidence level, in the order ab
 |---|---:|---:|---:|---:|---:|---:|
 | Characters | 9 | 8 | 1 | 0 | 0 | 0 |
 | Cat components | 5 | 0 | 3 | 1 | 0 | 1 |
-| Ground and water | 13 | 12 | 0 | 1 | 0 | 0 |
+| Ground and water | 13 | 13 | 0 | 0 | 0 | 0 |
 | Landscape | 7 | 7 | 0 | 0 | 0 | 0 |
 | Buildings | 5 | 4 | 0 | 0 | 1 | 0 |
 | Building components | 10 | 10 | 0 | 0 | 0 | 0 |
@@ -66,7 +66,6 @@ This list includes every active row without a focused study, including review-on
 | [Braided collar, bow and brass bell](#cat-collar) | Review sheet | No individual focused specimen is mapped. |
 | [Master Cat gold and twin bells](#master-bells) | No mapped evidence | The ordinary collar is reviewed; no specimen explicitly enables setMasterCat(). |
 | [Cat contact-shadow blob](#cat-shadow) | Embedded in a specimen | Visible with the complete cat; no isolated shadow study. |
-| [Paddy beds and raised banks](#paddy-bunds) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Village street assembly](#village-street) | Related evidence only | Individual house references, not a specimen of the complete original street layout. |
 | [Sakura trees](#sakura) | Review sheet | No individual focused specimen is mapped. |
 | [Maple trees](#maples) | Review sheet | No individual focused specimen is mapped. |
@@ -142,10 +141,10 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="path-boulders"></a>`path-boulders` — Path boulders | [src/countryside.js:buildPathBoulders(](../src/countryside.js#L1315) | [rocks / game-boulder](../labs/rocks/js/recipes.js#L33) (direct) |  |
 | <a id="key-rock"></a>`key-rock` — Key-hiding rock and companion stones | [src/countryside.js:buildKeyHidingRock(](../src/countryside.js#L2822) | [rocks / game-rock](../labs/rocks/js/recipes.js#L37) (direct) |  |
 | <a id="river"></a>`river` — River water surface and bed | [src/countryside.js:buildRiverAndBridge(](../src/countryside.js#L1388)<br>[src/countryside.js:createRiverWaterMaterial(](../src/countryside.js#L1723) | [water / game](../labs/water/js/variants.js#L155) (direct)<br>[water / kyoto](../labs/water/js/variants.js#L165) (direct) |  |
-| <a id="bridge"></a>`bridge` — Kiyomizu bridge, ramps and walkable rails | [src/countryside.js:bridge.name = 'Kiyomizu Bridge'](../src/countryside.js#L1492) | [water / b-game](../labs/water/js/variants.js#L232) (direct) |  |
-| <a id="paddies"></a>`paddies` — Rice-paddy water | [src/countryside.js:buildPaddies(](../src/countryside.js#L1072)<br>[src/countryside.js:createPaddyWaterMaterial(](../src/countryside.js#L1612) | [water / p-game](../labs/water/js/variants.js#L312) (direct)<br>[water / p-mirror](../labs/water/js/variants.js#L321) (direct) |  |
-| <a id="paddy-bunds"></a>`paddy-bunds` — Paddy beds and raised banks | [src/countryside.js:Paddy Ridge](../src/countryside.js#L1149) | [water / p-game](../labs/water/js/variants.js#L312) (embedded) |  |
-| <a id="rice"></a>`rice` — Rice stalks | [src/countryside.js:rice.name = 'Rice Stalks'](../src/countryside.js#L1173) | [water / p-summer](../labs/water/js/variants.js#L340) (direct)<br>[water / p-autumn](../labs/water/js/variants.js#L350) (direct) |  |
+| <a id="bridge"></a>`bridge` — Kiyomizu bridge, ramps and walkable rails | [src/countryside.js:bridge.name = 'Kiyomizu Bridge'](../src/countryside.js#L1492) | [water / b-game](../labs/water/js/variants.js#L232) (direct)<br>[water / b-sanjo](../labs/water/js/variants.js#L241) (direct) — Promoted as the kit bridge on the classic platforms (src/kit/water/bridge.js). |  |
+| <a id="paddies"></a>`paddies` — Rice-paddy water | [src/countryside.js:buildPaddies(](../src/countryside.js#L1072)<br>[src/countryside.js:createPaddyWaterMaterial(](../src/countryside.js#L1612) | [water / p-game](../labs/water/js/variants.js#L312) (direct)<br>[water / p-mirror](../labs/water/js/variants.js#L321) (direct)<br>[water / p-taue](../labs/water/js/variants.js#L330) (direct)<br>[water / p-summer](../labs/water/js/variants.js#L340) (direct)<br>[water / p-autumn](../labs/water/js/variants.js#L350) (direct)<br>[water / p-winter](../labs/water/js/variants.js#L371) (direct) |  |
+| <a id="paddy-bunds"></a>`paddy-bunds` — Paddy beds and raised banks | [src/countryside.js:Paddy Ridge](../src/countryside.js#L1149) | [water / p-aze](../labs/water/js/variants.js#L360) (direct)<br>[water / p-game](../labs/water/js/variants.js#L312) (embedded) |  |
+| <a id="rice"></a>`rice` — Rice stalks | [src/countryside.js:rice.name = 'Rice Stalks'](../src/countryside.js#L1173) | [water / p-summer](../labs/water/js/variants.js#L340) (direct)<br>[water / p-autumn](../labs/water/js/variants.js#L350) (direct)<br>[water / p-taue](../labs/water/js/variants.js#L330) (direct) |  |
 | <a id="water-ripples"></a>`water-ripples` — Cat and koi ripple rings | [src/countryside.js:buildRipplePool(](../src/countryside.js#L893) | [water / ripple](../labs/water/js/variants.js#L120) (direct) — Technique study; not a replay of the game ripple-pool logic. |  |
 | <a id="rain-ripples"></a>`rain-ripples` — Separate raindrop ripple pool | [src/countryside.js:buildRainRipplePool(](../src/countryside.js#L930) | [weather / splash](../labs/weather/js/recipes.js#L64) (direct) — Rain impact study; original pool eviction behavior is not tested. |  |
 

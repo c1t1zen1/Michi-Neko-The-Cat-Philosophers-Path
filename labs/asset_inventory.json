@@ -1474,6 +1474,34 @@
       "kind": "specimen",
       "file": "labs/sky/js/data.js",
       "anchor": "study('cloud-field'"
+    },
+    "water/b-sanjo": {
+      "lab": "water",
+      "selector": "b-sanjo",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'b-sanjo'"
+    },
+    "water/p-taue": {
+      "lab": "water",
+      "selector": "p-taue",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'p-taue'"
+    },
+    "water/p-winter": {
+      "lab": "water",
+      "selector": "p-winter",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'p-winter'"
+    },
+    "water/p-aze": {
+      "lab": "water",
+      "selector": "p-aze",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'p-aze'"
     }
   },
   "assets": [
@@ -1925,6 +1953,11 @@
         {
           "target": "water/b-game",
           "level": "direct"
+        },
+        {
+          "target": "water/b-sanjo",
+          "level": "direct",
+          "note": "Promoted as the kit bridge on the classic platforms (src/kit/water/bridge.js)."
         }
       ]
     },
@@ -1951,6 +1984,22 @@
         {
           "target": "water/p-mirror",
           "level": "direct"
+        },
+        {
+          "target": "water/p-taue",
+          "level": "direct"
+        },
+        {
+          "target": "water/p-summer",
+          "level": "direct"
+        },
+        {
+          "target": "water/p-autumn",
+          "level": "direct"
+        },
+        {
+          "target": "water/p-winter",
+          "level": "direct"
         }
       ]
     },
@@ -1966,6 +2015,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "water/p-aze",
+          "level": "direct"
+        },
         {
           "target": "water/p-game",
           "level": "embedded"
@@ -1990,6 +2043,10 @@
         },
         {
           "target": "water/p-autumn",
+          "level": "direct"
+        },
+        {
+          "target": "water/p-taue",
           "level": "direct"
         }
       ]
