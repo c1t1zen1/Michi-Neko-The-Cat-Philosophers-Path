@@ -1,0 +1,65 @@
+# Roof Road stage 2 — agility and atmosphere follow-up
+
+The existing downtown checkpoint is already merged in `main` (`955209d`).
+It provides the 1,082.05m / 3.21× route, fourteen interlocking streets, eight
+under-house tunnels and five short alley pockets. This follow-up deepens that
+build in an isolated `feat/rooftops-agility` worktree. The valley and summit
+remain outside its scope.
+
+## Further reference dive
+
+These are design observations and adaptations, rather than a literal map of
+Kyoto. All new runtime art remains procedural, with maps at most 256px.
+
+- [Hachise's illustrated machiya vocabulary](https://www.hachise.com/kyomachiya/features/features.html):
+  lattice varies with the trade; tile drip edges, rain chains, ceramic wiring
+  fixtures, folding benches and house-name boards give each threshold a use.
+  Translate these into recognizable cat-scale route entrances and silhouette
+  detail, rather than identical clutter along every facade.
+- [Kyoto City's machiya construction study, especially pages 2–3](https://www.city.kyoto.lg.jp/tokei/cmsfiles/contents/0000260/260189/04_kyoumachiyanochie.pdf):
+  deep plots connect street, passage, light well and rear garden. Use changes
+  of light, paving and height to signal optional low alley routes that rejoin
+  the roofs, including shaded soffits and stepping stones.
+- [Machiya Vision, residents and craftspeople](https://kyoto-machisen.jp/machiya-vision/2020/?lang=en):
+  daily work and small gardens matter as much as landmark architecture. Laundry
+  workers should handle cloth; cooks should handle utensils and serving ware.
+- [Nishiki merchants' illustrated map](https://www.kyoto-nishiki.or.jp/wp-content/uploads/2024/02/nishikimap_ura20240116_en.pdf)
+  and [shop categories](https://www.kyoto-nishiki.or.jp/en/):
+  crossing streets divide an otherwise long arcade. Produce, fish, pickles,
+  umbrellas and household goods offer stronger landmarks than a generic stall.
+- [Kyoto's official Yoiyama guide](https://kyoto.travel/en/news/yoiyama-procession-guide/):
+  the lit floats, music and displayed folding screens suggest warm pockets of
+  inhabited street rather than uninterrupted lantern wallpaper.
+- [Kyoto Prefecture's Ichi-no-Funairi account](https://www.kyoto-kankou.or.jp/info_search/32):
+  the canal transported goods via loading basins. Give boats weathered planks,
+  useful ropes, cargo and bank details, and keep the shallow water legible.
+
+## Lab recipes reviewed
+
+- `labs/alley/js/props.js`: slatted boxes, open stave barrels, bicycles, tile
+  stacks, tenugui and broom bristles. Adapt locally with the scene's shared
+  materials and spatial batches.
+- `labs/ground/js/ground.js`: damp stone, moss seams and differences between
+  lane and garden paving. Borrow the visual logic without importing its field
+  simulation or the workshop UI.
+- `labs/greenery/js/kit.js`, `labs/shared/bamboo.js`: tapered leaf silhouettes,
+  paired foliage and nodal culms. The existing downtown kit already shares
+  the actual bamboo geometry; extend its vine branching and bindings.
+- `labs/shared/paperlantern.js`, `labs/machiya/js/machiya.js`: paper ribs,
+  mounting hardware, layered drip edges and visible timber joints.
+- `labs/shared/water.js`, `labs/water/js/bridges.js`: shallow bed colour, broad
+  broken highlights, wet bank edges and current round structures. Retain one
+  water shader pass and no scene-reflection render.
+
+## Delivery passes
+
+1. Reference checkpoint, followed by stronger optional alley/agility routes
+   and map landmarks. Preserve the proven 3.21× route and forgiving floors.
+2. Contextual companion behaviour: vary duration and intent by place, allow
+   harmless wrong turns and pauses, react when Michi stops, keep real physics.
+   Verify portrait framing on actual rendered views and throughout the run.
+3. Scenery and mobile review: distinct alley surfaces, household details,
+   working stall tools/laundry, vines, posts, boat and water refinement. Check
+   shader errors, reachability, touch controls and finale, then merge and push.
+
+Results and checkpoint commits will be recorded here when measured.
