@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%BE%3C/text%3E%3C/svg%3E">
+  <title>Summit Golden</title>
+  <style>
+    :root { --bg: #f6f3ec; --fg: #23211d; --dim: #6d675c; --ok: #1d6b2c; --bad: #a12a1a; --rule: #d8d1c2; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #1b1a17; --fg: #e9e4d8; --dim: #a39c8c; --ok: #7fcf8b; --bad: #ff8f7a; --rule: #3a372f; } }
+    html, body { background: var(--bg); color: var(--fg); }
+    body { margin: 16px; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    h1 { font-size: 16px; margin: 0 0 4px; }
+    p { margin: 4px 0; }
+    #status { font-weight: 700; }
+    #status.equal { color: var(--ok); }
+    #status.different, #status.failed { color: var(--bad); }
+    pre { margin: 10px 0; padding-top: 8px; border-top: 1px solid var(--rule); white-space: pre-wrap; word-break: break-word; }
+    .dim { color: var(--dim); }
+    a { color: inherit; }
+  </style>
+  <script type="importmap">
+    {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <h1>Summit golden</h1>
+  <p class="dim">Classic summit objects, colliders, platforms, stream draws, terrain and perch sightline against <span id="golden">tools/golden/summit_classic.json</span>.
+    Headless: <code>node tools/summit_golden.mjs</code></p>
+  <p id="status">building the summit…</p>
+  <pre id="summary"></pre>
+  <pre id="changes"></pre>
+  <p><a id="download" hidden download="summit_classic.json">download the fresh digest</a></p>
+  <script>
+    // Read by tools/summit_golden.mjs; the module replaces it when done.
+    window.__summitGolden = { done: false };
+    window.addEventListener('error', (e) => {
+      if (window.__summitGolden.done) return;
+      window.__summitGolden = { done: true, ok: false, error: String((e.error && e.error.stack) || e.message || e) };
+      document.getElementById('status').textContent = 'failed: ' + window.__summitGolden.error;
+      document.getElementById('status').className = 'failed';
+    });
+  </script>
+  <script type="module" src="summit_golden.js?v=20261113a" onerror="window.__summitGolden = { done: true, ok: false, error: 'summit_golden.js did not load' }"></script>
+</body>
+</html>
