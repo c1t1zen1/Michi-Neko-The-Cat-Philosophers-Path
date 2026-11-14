@@ -3495,6 +3495,30 @@ export class Countryside {
   }
 
   buildShrine(x, z) {
+    const layout = this.layoutShrine(x, z);
+    return this.placeAsset('shrine-hall', layout, () => this.meshShrineClassic(layout));
+  }
+
+  /** The hongu; its roof, shimenawa, bell and offering box are components. */
+  layoutShrine(x, z) {
+    // collider: the sanctuary hall, padded 0.4
+    const hall = shapeBox(frameOf(frameOf(null, x, 0, z), 0, 1.75, 0), 'BoxGeometry', 2.2, 1.8, 1.8);
+    const piece = (id, mesh, at) => component(id, { index: this.nextIndex(id), ...at, footprint: footprint() }, mesh, 'parent');
+    return {
+      index: this.nextIndex('shrine-hall'), name: 'Shrine (Hongu)', x, z,
+      footprint: footprint({ colliders: [hall.expandByScalar(0.4)] }),
+      components: [
+        component('kawara-roof', Object.assign(this.layoutKawaraRoof(2.9, 2.35, 1.12, 0.78), { y: 2.62 }), 'meshKawaraRoofClassic', 'caller'),
+        piece('shimenawa', 'meshShimenawaClassic', { y: 2.42, z: 0.96 }),
+        piece('shrine-bell', 'meshShrineBellClassic', { y: 2.05, z: 0.96 }),
+        piece('offering-box', 'meshOfferingBoxClassic', { y: 0.7, z: 0.95 })
+      ]
+    };
+  }
+
+  meshShrineClassic(layout) {
+    const { x, z } = layout;
+    const [roof, rope, bell, saisen] = layout.components;
     const shrine = new THREE.Group();
     shrine.name = 'Shrine (Hongu)';
     // Stepped stone foundation (Dan)
@@ -3511,9 +3535,7 @@ export class Countryside {
     // Deep-eaved kawara gable roof. This replaces the two disconnected slabs
     // with a proper shrine silhouette: eaves, tiled slopes, gable end caps,
     // raised ridge, chigi cross-beams, and katsuogi ridge logs.
-    const roof = this.createKawaraRoof(2.9, 2.35, 1.12, 0.78);
-    roof.position.y = 2.62;
-    shrine.add(roof);
+    this.placeComponent(roof, shrine);
 
     // Dark wooden eave fascia makes the roof feel structurally supported.
     shrine.add(box(4.45, 0.16, 0.14, MAT.timberDark, 0, 2.7, 1.93));
@@ -3533,12 +3555,29 @@ export class Countryside {
       shrine.add(katsuogi);
     }
 
+    this.placeComponent(rope, shrine);
+
+    this.placeComponent(bell, shrine);
+
+    this.placeComponent(saisen, shrine);
+
+    shrine.position.set(x, 0, z);
+    this.scene.add(shrine);
+    this.addCollider(hall, 0.4);
+  }
+
+  /** The shimenawa rope across the hall front (a component of 'shrine-hall'). */
+  meshShimenawaClassic(layout, shrine) {
     // Sacred Shimenawa Straw Rope with paper Shide zigzags
     const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.8, 8), new THREE.MeshStandardMaterial({ color: 0xd6c085, roughness: 1 }));
     rope.rotation.z = Math.PI / 2;
     rope.position.set(0, 2.42, 0.96);
     shrine.add(rope);
+    return rope;
+  }
 
+  /** The suzu bell and its cords (a component of 'shrine-hall'). */
+  meshShrineBellClassic(layout, shrine) {
     // Sacred Buddha / Shrine Spiritual Bell (Suzu / Bonsho) with warm sublime bronze warmth
     const bellGroup = new THREE.Group();
     bellGroup.position.set(0, 2.05, 0.96);
@@ -3554,14 +3593,15 @@ export class Countryside {
     cord.position.set(0, -0.42, 0);
     bellGroup.add(cord);
     shrine.add(bellGroup);
+    return bellGroup;
+  }
 
+  /** The saisen-bako (a component of 'shrine-hall'). */
+  meshOfferingBoxClassic(layout, shrine) {
     // Saisen-bako wooden offering box
     const saisen = box(0.8, 0.45, 0.5, MAT.timberDark, 0, 0.925, 0.95);
     shrine.add(saisen);
-
-    shrine.position.set(x, 0, z);
-    this.scene.add(shrine);
-    this.addCollider(hall, 0.4);
+    return saisen;
   }
 
   buildLanterns() {
