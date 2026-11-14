@@ -3027,15 +3027,64 @@ export class Countryside {
   }
 
   buildBambooCorral(x, z) {
+    const layout = this.layoutBambooCorral(x, z);
+    return this.placeAsset('corral', layout, () => this.meshBambooCorralClassic(layout));
+  }
+
+  /**
+   * Larry's corral: the vegetation clearing is the corral's own footprint;
+   * its four fences, the warning sign, the Jade Paw and Larry are components.
+   */
+  layoutBambooCorral(x, z) {
     const width = 7.2;
     const depth = 6.2;
+    const fence = (fx, fz, rot, length) => component('bamboo-fence', this.layoutBambooFence(fx, fz, rot, { length, rotationJitter: false }), 'meshBambooFenceClassic');
+    const userData = { id: 91, isCollectible: true, isCorralReward: true, velocity: new THREE.Vector3(), batted: false };
+    return {
+      index: this.nextIndex('corral'), x, z, width, depth,
+      footprint: footprint({ exclusions: [{ x, z, width: width + 2, depth: depth + 2 }] }),
+      components: [
+        fence(x, z - depth / 2, 0, width), fence(x, z + depth / 2, 0, width),
+        fence(x - width / 2, z, Math.PI / 2, depth), fence(x + width / 2, z, Math.PI / 2, depth),
+        component('corral-sign', { index: this.nextIndex('corral-sign'), name: 'Corral Warning Sign', x, z: z - depth / 2 - 0.35, footprint: footprint() }, 'meshCorralSignClassic'),
+        component('jade-paw', {
+          index: this.nextIndex('jade-paw'), name: 'Jade Paw Reward', x, y: 0.42, z,
+          footprint: footprint({ lists: { collectibles: [part('.', { userData, visible: false })] } }),
+          bind: { corralRewardMesh: part('.', { userData, visible: false }) }
+        }, 'meshJadePawClassic'),
+        component('larry', {
+          index: this.nextIndex('larry'), name: 'Turtle Guardian (Larry)', x, z,
+          footprint: footprint({
+            anchors: {
+              corralGuardian: {
+                name: 'Larry',
+                mesh: part('.'),
+                home: new THREE.Vector3(x, 0, z),
+                // Keep enough clearance that a full contact push cannot place the cat
+                // inside or through a fence at the edge of the chase area.
+                bounds: { minX: x - width / 2 + 1.35, maxX: x + width / 2 - 1.35, minZ: z - depth / 2 + 1.35, maxZ: z + depth / 2 - 1.35 },
+                alerted: false,
+                hasBeenAlerted: false,
+                alertTimer: 0,
+                speed: 1.05,
+                radius: 0.72
+              }
+            }
+          })
+        }, 'meshLarryClassic')
+      ]
+    };
+  }
+
+  meshBambooCorralClassic(layout) {
+    const { x, z, width, depth } = layout;
     this.vegetationExclusions.push({ x, z, width: width + 2, depth: depth + 2 });
 
-    this.buildBambooFence(x, z - depth / 2, 0, { length: width, rotationJitter: false });
-    this.buildBambooFence(x, z + depth / 2, 0, { length: width, rotationJitter: false });
-    this.buildBambooFence(x - width / 2, z, Math.PI / 2, { length: depth, rotationJitter: false });
-    this.buildBambooFence(x + width / 2, z, Math.PI / 2, { length: depth, rotationJitter: false });
+    for (const c of layout.components) this.placeComponent(c, this.scene);
+  }
 
+  /** The corral's warning sign (a component of 'corral'). */
+  meshCorralSignClassic(layout) {
     const marker = new THREE.Group();
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 1.7, 7), MAT.timberDark);
     post.position.y = 0.85;
@@ -3064,11 +3113,15 @@ export class Countryside {
     signFace.position.set(0, 1.3, -0.056);
     signFace.rotation.y = Math.PI;
     marker.add(signFace);
-    marker.position.set(x, 0, z - depth / 2 - 0.35);
+    marker.position.set(layout.x, 0, layout.z); // in front of the corral's north fence
     marker.name = 'Corral Warning Sign';
     marker.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     this.scene.add(marker);
+    return marker;
+  }
 
+  /** The Jade Paw reward inside the corral (a component of 'corral'). */
+  meshJadePawClassic({ x, z }) {
     const rewardMat = new THREE.MeshStandardMaterial({
       color: 0x76c7a1,
       emissive: 0x245c48,
@@ -3092,7 +3145,13 @@ export class Countryside {
     this.scene.add(reward);
     this.collectibles.push(reward);
     this.corralRewardMesh = reward;
+    return reward;
+  }
 
+  /** Larry, the turtle guardian: the body only (his patrol stays in updateCorralGuardian). */
+  meshLarryClassic(layout) {
+    const { x, z } = layout;
+    const width = 7.2, depth = 6.2;
     const turtle = new THREE.Group();
     turtle.name = 'Turtle Guardian (Larry)';
     const shellMat = new THREE.MeshStandardMaterial({ color: 0x5f7e42, roughness: 0.78, flatShading: true });
@@ -3131,6 +3190,7 @@ export class Countryside {
       speed: 1.05,
       radius: 0.72
     };
+    return turtle;
   }
 
   updateCorralGuardian(dt, player, challengeActive = false) {
