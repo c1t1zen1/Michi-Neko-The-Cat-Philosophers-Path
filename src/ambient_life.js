@@ -1,4 +1,13 @@
 ﻿import * as THREE from 'three';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261107a';
+
+// Asset routing (BUILD_GUIDE_FABLE §3.4, Integrator rulings R12 / R18): each
+// builder runs a layout step (its Math.random() spawn draws, in the original
+// order — these are runtime effects, so the classic randomness is kept
+// exactly as it was) and routes each creature's classic mesh step through
+// placeAsset(). A creature's runtime record (the flock / swim / guard state
+// update() drives) is registered from its footprint, binding the mesh, wing,
+// tail and fin handles from the classic meshes or a kit instance's parts.
 
 /**
  * Shared low-poly bird geometries. Only ~17 birds ever exist at once, so
@@ -56,9 +65,12 @@ function birdTailGeometry() {
 }
 
 export class AmbientLife {
-  constructor(scene, audio = null, nestPos = null) {
+  constructor(scene, audio = null, nestPos = null, { assets } = {}) {
     this.scene = scene;
     this.audio = audio;
+    // The kit runtime (main.js hands it in); without one the classic builders
+    // run. Ambient life builds with its own materials: no table to scope with.
+    this.assets = scopeAssets(assets, {});
     this.time = 0;
     this.nestPos = nestPos ? nestPos.clone() : new THREE.Vector3(-12.55, 4.9, -3.55);
     this.buildBirds();
@@ -67,114 +79,205 @@ export class AmbientLife {
     this.buildKoi();
   }
 
-  buildBirds() {
-    this.birds = [];
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x5a4e44, roughness: 0.9, flatShading: true });
-    const wingMat = new THREE.MeshStandardMaterial({ color: 0x6e6054, roughness: 0.9, side: THREE.DoubleSide });
-    const bodyGeo = birdBodyGeometry();
-    const wingGeo = birdWingGeometry();
-    const tailGeo = birdTailGeometry();
-
-    for (let i = 0; i < 14; i++) {
-      const g = new THREE.Group();
-      g.name = `Sparrow ${i + 1}`;
-      const body = new THREE.Mesh(bodyGeo, bodyMat);
-      body.rotation.x = Math.PI / 2;
-      g.add(body);
-
-      // Wings root right at the shoulder and sweep outward, instead of the
-      // old flat rectangle straddling the body
-      const lWing = new THREE.Mesh(wingGeo, wingMat);
-      lWing.position.set(0.015, 0.008, 0.05);
-      g.add(lWing);
-
-      const rWing = new THREE.Mesh(wingGeo, wingMat);
-      rWing.scale.x = -1;
-      rWing.position.set(-0.015, 0.008, 0.05);
-      g.add(rWing);
-
-      const tail = new THREE.Mesh(tailGeo, wingMat);
-      tail.position.set(0, 0, -0.19);
-      tail.rotation.y = Math.PI / 2;
-      g.add(tail);
-
-      const cx = (Math.random() - 0.5) * 90;
-      const cz = (Math.random() - 0.5) * 90;
-      const yBase = 9 + Math.random() * 8;
-      g.position.set(cx + Math.random() * 10, yBase, cz + Math.random() * 10);
-      this.scene.add(g);
-
-      this.birds.push({
-        mesh: g,
-        wings: [lWing, rWing],
-        center: new THREE.Vector3(cx, yBase, cz),
-        radius: 6 + Math.random() * 12,
-        speed: 0.25 + Math.random() * 0.35,
-        yAmp: 0.8 + Math.random(),
-        yFreq: 0.3 + Math.random() * 0.3,
-        seed: Math.random() * 100,
-        wingSpeed: 12 + Math.random() * 6
-      });
+  /**
+   * Classic: `classicFn()` builds the creature and registers its record.
+   * Kit: the instance's group goes into the scene at the layout's place and
+   * its footprint (by default the layout's) is registered through
+   * registerFootprint() with the instance's parts.
+   */
+  placeAsset(id, layout, classicFn, parent = this.scene) {
+    const out = (this.assets || CLASSIC_ASSETS).build(id, layout, classicFn);
+    if (!isAssetInstance(out)) return out;
+    const g = out.group;
+    if (layout.x !== undefined) g.position.set(layout.x, layout.y || 0, layout.z || 0);
+    if (layout.ry) g.rotation.y = layout.ry;
+    if (layout.scale) g.scale.setScalar(layout.scale);
+    parent.add(g);
+    this.registerFootprint(out.footprint || layout.footprint, out.group, out.parts || {});
+    for (const [field, part] of Object.entries(layout.bind || {})) {
+      this[field] = (out.parts && out.parts[part]) || (out.sockets && out.sockets[part]) || null;
     }
+    return out;
   }
 
-  buildGuardianBirds() {
-    this.guardianBirds = [];
-    const crowBodyMat = new THREE.MeshStandardMaterial({ color: 0x1a1a24, roughness: 0.6, metalness: 0.2 });
-    const crowWingMat = new THREE.MeshStandardMaterial({ color: 0x222230, roughness: 0.6, side: THREE.DoubleSide });
-    const beakMat = new THREE.MeshStandardMaterial({ color: 0xe0a020, roughness: 0.4 });
-    const scale = 1.4;
-    const bodyGeo = birdBodyGeometry();
-    const wingGeo = birdWingGeometry();
-    const tailGeo = birdTailGeometry();
-
-    for (let i = 0; i < 3; i++) {
-      const g = new THREE.Group();
-      g.name = `Crow ${i + 1}`;
-      const body = new THREE.Mesh(bodyGeo, crowBodyMat);
-      body.scale.setScalar(scale);
-      body.rotation.x = Math.PI / 2;
-      g.add(body);
-
-      // Yellow/orange beak
-      const beak = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.16, 4), beakMat);
-      beak.rotation.x = -Math.PI / 2;
-      beak.position.set(0, 0, 0.32);
-      g.add(beak);
-
-      const lWing = new THREE.Mesh(wingGeo, crowWingMat);
-      lWing.scale.setScalar(scale);
-      lWing.position.set(0.025, 0.012, 0.09);
-      g.add(lWing);
-
-      const rWing = new THREE.Mesh(wingGeo, crowWingMat);
-      rWing.scale.set(-scale, scale, scale);
-      rWing.position.set(-0.025, 0.012, 0.09);
-      g.add(rWing);
-
-      const tail = new THREE.Mesh(tailGeo, crowWingMat);
-      tail.scale.setScalar(scale);
-      tail.position.set(0, 0, -0.19 * scale);
-      tail.rotation.y = Math.PI / 2;
-      g.add(tail);
-
-      g.position.set(this.nestPos.x + (i === 0 ? 1.5 : -1.5), 7.5, this.nestPos.z);
-      this.scene.add(g);
-
+  /**
+   * One creature's footprint into its registry: `birds`, `guardianBirds` or
+   * `koi` entries become the records update() drives; `mesh` is the
+   * creature's group, wings / tail / fins the parts the entry names.
+   */
+  registerFootprint(fp, mesh, parts = {}) {
+    if (!fp) return;
+    for (const b of fp.birds || []) {
+      this.birds.push({
+        mesh,
+        wings: b.wings.map((k) => parts[k]).filter(Boolean),
+        center: new THREE.Vector3(b.center[0], b.center[1], b.center[2]),
+        radius: b.radius,
+        speed: b.speed,
+        yAmp: b.yAmp,
+        yFreq: b.yFreq,
+        seed: b.seed,
+        wingSpeed: b.wingSpeed
+      });
+    }
+    for (const c of fp.guardianBirds || []) {
       this.guardianBirds.push({
-        mesh: g,
-        wings: [lWing, rWing],
+        mesh,
+        wings: c.wings.map((k) => parts[k]).filter(Boolean),
         state: 'circle',
-        circleAngle: i * Math.PI,
+        circleAngle: c.circleAngle,
         swoopProgress: 0,
         swoopStart: new THREE.Vector3(),
         swoopTarget: new THREE.Vector3(),
-        swoopTimer: 2.5 + i * 2.0,
+        swoopTimer: c.swoopTimer,
         swoopCount: 0,
         isAggro: false,
         didNudge: false
       });
     }
+    for (const k of fp.koi || []) {
+      this.koi.push({
+        mesh,
+        x: k.x,
+        z: k.z,
+        cruiseSpeed: k.cruiseSpeed,
+        speed: k.speed,
+        direction: k.direction,
+        lane: k.lane,
+        fleeTimer: 0,
+        wobble: k.wobble,
+        tail: parts[k.tail] || null,
+        pectorals: k.pectorals.map((p) => parts[p]).filter(Boolean),
+        surfaceTimer: k.surfaceTimer,
+        surfacing: 0,
+        rippled: false,
+        len: k.len
+      });
+    }
+  }
+
+  buildBirds() {
+    this.birds = [];
+    const layout = this.layoutBirds();
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x5a4e44, roughness: 0.9, flatShading: true });
+    const wingMat = new THREE.MeshStandardMaterial({ color: 0x6e6054, roughness: 0.9, side: THREE.DoubleSide });
+    const kit = { bodyMat, wingMat, bodyGeo: birdBodyGeometry(), wingGeo: birdWingGeometry(), tailGeo: birdTailGeometry() };
+    for (const bird of layout.birds) this.placeAsset('sparrows', bird, () => this.meshSparrowClassic(bird, kit));
+    return layout;
+  }
+
+  /** Each sparrow's spawn: its circling centre and height, start offset, radius, speed, bob and wingbeat. */
+  layoutBirds() {
+    const birds = [];
+    for (let i = 0; i < 14; i++) {
+      const cx = (Math.random() - 0.5) * 90;
+      const cz = (Math.random() - 0.5) * 90;
+      const yBase = 9 + Math.random() * 8;
+      const x = cx + Math.random() * 10, z = cz + Math.random() * 10;
+      const radius = 6 + Math.random() * 12;
+      const speed = 0.25 + Math.random() * 0.35;
+      const yAmp = 0.8 + Math.random();
+      const yFreq = 0.3 + Math.random() * 0.3;
+      const seed = Math.random() * 100;
+      const wingSpeed = 12 + Math.random() * 6;
+      birds.push({
+        index: i, name: `Sparrow ${i + 1}`, x, y: yBase, z, floating: true,
+        footprint: { birds: [{ wings: ['wing_l', 'wing_r'], center: [cx, yBase, cz], radius, speed, yAmp, yFreq, seed, wingSpeed }] }
+      });
+    }
+    return { birds };
+  }
+
+  meshSparrowClassic(L, kit) {
+    const g = new THREE.Group();
+    g.name = L.name;
+    const body = new THREE.Mesh(kit.bodyGeo, kit.bodyMat);
+    body.rotation.x = Math.PI / 2;
+    g.add(body);
+
+    // Wings root right at the shoulder and sweep outward, instead of the
+    // old flat rectangle straddling the body
+    const lWing = new THREE.Mesh(kit.wingGeo, kit.wingMat);
+    lWing.position.set(0.015, 0.008, 0.05);
+    g.add(lWing);
+
+    const rWing = new THREE.Mesh(kit.wingGeo, kit.wingMat);
+    rWing.scale.x = -1;
+    rWing.position.set(-0.015, 0.008, 0.05);
+    g.add(rWing);
+
+    const tail = new THREE.Mesh(kit.tailGeo, kit.wingMat);
+    tail.position.set(0, 0, -0.19);
+    tail.rotation.y = Math.PI / 2;
+    g.add(tail);
+
+    g.position.set(L.x, L.y, L.z);
+    this.scene.add(g);
+    this.registerFootprint(L.footprint, g, { wing_l: lWing, wing_r: rWing });
+    return g;
+  }
+
+  buildGuardianBirds() {
+    this.guardianBirds = [];
+    const layout = this.layoutGuardianBirds();
+    const kit = {
+      crowBodyMat: new THREE.MeshStandardMaterial({ color: 0x1a1a24, roughness: 0.6, metalness: 0.2 }),
+      crowWingMat: new THREE.MeshStandardMaterial({ color: 0x222230, roughness: 0.6, side: THREE.DoubleSide }),
+      beakMat: new THREE.MeshStandardMaterial({ color: 0xe0a020, roughness: 0.4 }),
+      bodyGeo: birdBodyGeometry(), wingGeo: birdWingGeometry(), tailGeo: birdTailGeometry()
+    };
+    for (const crow of layout.crows) this.placeAsset('guardian-crows', crow, () => this.meshCrowClassic(crow, kit));
+    return layout;
+  }
+
+  /** The three nest guardians: perch beside the nest, circling phase, first swoop delay (no draws). */
+  layoutGuardianBirds() {
+    const crows = [];
+    for (let i = 0; i < 3; i++) {
+      crows.push({
+        index: i, name: `Crow ${i + 1}`, x: this.nestPos.x + (i === 0 ? 1.5 : -1.5), y: 7.5, z: this.nestPos.z,
+        size: 1.4, floating: true,
+        footprint: { guardianBirds: [{ wings: ['wing_l', 'wing_r'], circleAngle: i * Math.PI, swoopTimer: 2.5 + i * 2.0 }] }
+      });
+    }
+    return { crows, nest: this.nestPos.toArray() };
+  }
+
+  meshCrowClassic(L, kit) {
+    const scale = L.size;
+    const g = new THREE.Group();
+    g.name = L.name;
+    const body = new THREE.Mesh(kit.bodyGeo, kit.crowBodyMat);
+    body.scale.setScalar(scale);
+    body.rotation.x = Math.PI / 2;
+    g.add(body);
+
+    // Yellow/orange beak
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.16, 4), kit.beakMat);
+    beak.rotation.x = -Math.PI / 2;
+    beak.position.set(0, 0, 0.32);
+    g.add(beak);
+
+    const lWing = new THREE.Mesh(kit.wingGeo, kit.crowWingMat);
+    lWing.scale.setScalar(scale);
+    lWing.position.set(0.025, 0.012, 0.09);
+    g.add(lWing);
+
+    const rWing = new THREE.Mesh(kit.wingGeo, kit.crowWingMat);
+    rWing.scale.set(-scale, scale, scale);
+    rWing.position.set(-0.025, 0.012, 0.09);
+    g.add(rWing);
+
+    const tail = new THREE.Mesh(kit.tailGeo, kit.crowWingMat);
+    tail.scale.setScalar(scale);
+    tail.position.set(0, 0, -0.19 * scale);
+    tail.rotation.y = Math.PI / 2;
+    g.add(tail);
+
+    g.position.set(L.x, L.y, L.z);
+    this.scene.add(g);
+    this.registerFootprint(L.footprint, g, { wing_l: lWing, wing_r: rWing });
+    return g;
   }
 
   updateGuardianBirds(dt, t, playerPos, playerCat) {
@@ -185,8 +288,10 @@ export class AmbientLife {
       const gb = this.guardianBirds[i];
       const flapSpeed = (gb.state === 'dive') ? 22 : 11;
       const flap = Math.sin(t * flapSpeed + i * 2.5);
-      gb.wings[0].rotation.z = 0.16 + flap * 0.7;
-      gb.wings[1].rotation.z = -0.16 - flap * 0.7;
+      if (gb.wings.length === 2) {
+        gb.wings[0].rotation.z = 0.16 + flap * 0.7;
+        gb.wings[1].rotation.z = -0.16 - flap * 0.7;
+      }
 
       if (isPlayerNearNest && !gb.isAggro) {
         gb.isAggro = true;
@@ -307,11 +412,18 @@ export class AmbientLife {
   }
 
   buildButterflies() {
+    const layout = this.layoutButterflies();
+    // The spawn seeds are layout data: the classic drift reads them (a kit swarm may too)
+    this.bflySeeds = layout.seeds;
+    return this.placeAsset('butterflies', layout, () => this.meshButterfliesClassic(layout));
+  }
+
+  /** Fifty butterflies over seven meadow zones: start position, drift seeds, wing colour. */
+  layoutButterflies() {
     const count = 50;
-    const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
-    this.bflySeeds = new Float32Array(count * 3);
+    const seeds = new Float32Array(count * 3);
     const zones = [[-20, 14], [12, 24], [0, 31], [26, 4], [0, -26], [-15, -10], [18, -5]];
     const palette = [new THREE.Color(0xffcc44), new THREE.Color(0x66ccff), new THREE.Color(0xff88aa), new THREE.Color(0xaaff66)];
 
@@ -320,16 +432,21 @@ export class AmbientLife {
       pos[i * 3] = zx + (Math.random() - 0.5) * 10;
       pos[i * 3 + 1] = 0.8 + Math.random() * 1.6;
       pos[i * 3 + 2] = zz + (Math.random() - 0.5) * 10;
-      this.bflySeeds[i * 3] = Math.random() * 100;
-      this.bflySeeds[i * 3 + 1] = 0.4 + Math.random() * 0.6;
-      this.bflySeeds[i * 3 + 2] = 0.6 + Math.random() * 1.2;
+      seeds[i * 3] = Math.random() * 100;
+      seeds[i * 3 + 1] = 0.4 + Math.random() * 0.6;
+      seeds[i * 3 + 2] = 0.6 + Math.random() * 1.2;
       const color = palette[Math.floor(Math.random() * palette.length)];
       col[i * 3] = color.r;
       col[i * 3 + 1] = color.g;
       col[i * 3 + 2] = color.b;
     }
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    return { index: 0, x: 0, y: 0, z: 0, count, zones, positions: pos, colors: col, seeds, footprint: {} };
+  }
+
+  meshButterfliesClassic(L) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(L.positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(L.colors, 3));
     this.bflyMat = new THREE.PointsMaterial({
       map: this.butterflyTexture(),
       size: 0.22,
@@ -344,6 +461,7 @@ export class AmbientLife {
     this.butterflies.name = 'Butterflies';
     this.butterflies.frustumCulled = false;
     this.scene.add(this.butterflies);
+    return this.butterflies;
   }
 
   /** Three-step toon ramp shared by every koi: shadow, mid-tone, light. */
@@ -516,84 +634,101 @@ export class AmbientLife {
    */
   buildKoi() {
     this.koi = [];
-    const ramp = this.koiGradientMap();
-    const body = this.koiBodyGeometry();
-    const { tailGeo, dorsalGeo, pectGeo } = this.koiFinGeometries();
-    const variants = ['kohaku', 'kohaku', 'sanke', 'showa', 'ogon', 'tancho', 'kohaku', 'sanke'];
-    const finTints = { kohaku: 0xffd9c2, sanke: 0xffd9c2, showa: 0x4a4250, ogon: 0xf6cf74, tancho: 0xfff1e4 };
-    const outlineMat = new THREE.MeshBasicMaterial({ color: 0x1b1418, side: THREE.BackSide });
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x14100f });
-    const eyeGeo = new THREE.SphereGeometry(0.015, 8, 6);
+    const layout = this.layoutKoi();
+    const kit = {
+      ramp: this.koiGradientMap(),
+      body: this.koiBodyGeometry(),
+      fins: this.koiFinGeometries(),
+      finTints: { kohaku: 0xffd9c2, sanke: 0xffd9c2, showa: 0x4a4250, ogon: 0xf6cf74, tancho: 0xfff1e4 },
+      outlineMat: new THREE.MeshBasicMaterial({ color: 0x1b1418, side: THREE.BackSide }),
+      eyeMat: new THREE.MeshBasicMaterial({ color: 0x14100f }),
+      eyeGeo: new THREE.SphereGeometry(0.015, 8, 6)
+    };
+    for (const fish of layout.fish) this.placeAsset('koi', fish, () => this.meshKoiClassic(fish, kit));
+    return layout;
+  }
 
+  /**
+   * Eighteen koi: variety (in a fixed rotation) and pattern seed, length,
+   * where each starts along the river and its lane, cruise and current
+   * speed, heading, wobble phase and first surfacing — in the classic draw
+   * order (length first, then the rest).
+   */
+  layoutKoi() {
+    const variants = ['kohaku', 'kohaku', 'sanke', 'showa', 'ogon', 'tancho', 'kohaku', 'sanke'];
+    const fish = [];
     for (let i = 0; i < 18; i++) {
       const variant = variants[i % variants.length];
       const len = 0.55 + Math.random() * 0.3;
-      const fish = new THREE.Group();
-      fish.name = `Koi ${String(i + 1).padStart(2, '0')}`;
-      const bodyMat = new THREE.MeshToonMaterial({ map: this.koiPatternTexture(variant, i + 1), gradientMap: ramp });
-      const finMat = new THREE.MeshToonMaterial({
-        color: finTints[variant], gradientMap: ramp, side: THREE.DoubleSide, transparent: true, opacity: 0.82
-      });
-
-      const bodyMesh = new THREE.Mesh(body, bodyMat);
-      bodyMesh.castShadow = true;
-      fish.add(bodyMesh);
-      const outline = new THREE.Mesh(body, outlineMat);
-      outline.scale.set(1.09, 1.07, 1.02);
-      fish.add(outline);
-
-      const tailPivot = new THREE.Group();
-      tailPivot.position.z = -0.485;
-      const tail = new THREE.Mesh(tailGeo, finMat);
-      tailPivot.add(tail);
-      fish.add(tailPivot);
-
-      const dorsal = new THREE.Mesh(dorsalGeo, finMat);
-      dorsal.position.set(0, 0.085, 0.02);
-      fish.add(dorsal);
-
-      const pectorals = [];
-      for (const side of [-1, 1]) {
-        const pivot = new THREE.Group();
-        pivot.position.set(side * 0.07, -0.02, 0.2);
-        const fin = new THREE.Mesh(pectGeo, finMat);
-        fin.scale.x = side;
-        pivot.add(fin);
-        pivot.rotation.z = -side * 0.4;
-        fish.add(pivot);
-        pectorals.push(pivot);
-      }
-      for (const side of [-1, 1]) {
-        const eye = new THREE.Mesh(eyeGeo, eyeMat);
-        eye.position.set(side * 0.062, 0.035, 0.37);
-        fish.add(eye);
-      }
-
-      fish.scale.setScalar(len);
       const x = -45 + Math.random() * 100;
       const lane = (Math.random() - 0.5) * 3.6;
       const z = 29.5 + lane;
-      fish.position.set(x, -0.3, z);
-      this.scene.add(fish);
-
-      this.koi.push({
-        mesh: fish,
-        x,
-        z,
-        cruiseSpeed: 0.4 + Math.random() * 0.4,
-        speed: 0.4 + Math.random() * 0.4,
-        direction: Math.random() < 0.5 ? -1 : 1,
-        lane,
-        fleeTimer: 0,
-        wobble: Math.random() * 100,
-        tail: tailPivot,
-        pectorals,
-        surfaceTimer: 4 + Math.random() * 16,
-        surfacing: 0,
-        rippled: false,
-        len
+      const cruiseSpeed = 0.4 + Math.random() * 0.4;
+      const speed = 0.4 + Math.random() * 0.4;
+      const direction = Math.random() < 0.5 ? -1 : 1;
+      const wobble = Math.random() * 100;
+      const surfaceTimer = 4 + Math.random() * 16;
+      fish.push({
+        index: i, name: `Koi ${String(i + 1).padStart(2, '0')}`, variant, patternSeed: i + 1,
+        x, y: -0.3, z, scale: len, floating: true,
+        footprint: {
+          koi: [{ x, z, cruiseSpeed, speed, direction, lane, wobble, tail: 'tail', pectorals: ['pectoral_l', 'pectoral_r'], surfaceTimer, len }]
+        }
       });
     }
+    return { fish };
+  }
+
+  meshKoiClassic(L, kit) {
+    const { ramp, body, finTints, outlineMat, eyeMat, eyeGeo } = kit;
+    const { tailGeo, dorsalGeo, pectGeo } = kit.fins;
+    const variant = L.variant;
+    const fish = new THREE.Group();
+    fish.name = L.name;
+    const bodyMat = new THREE.MeshToonMaterial({ map: this.koiPatternTexture(variant, L.patternSeed), gradientMap: ramp });
+    const finMat = new THREE.MeshToonMaterial({
+      color: finTints[variant], gradientMap: ramp, side: THREE.DoubleSide, transparent: true, opacity: 0.82
+    });
+
+    const bodyMesh = new THREE.Mesh(body, bodyMat);
+    bodyMesh.castShadow = true;
+    fish.add(bodyMesh);
+    const outline = new THREE.Mesh(body, outlineMat);
+    outline.scale.set(1.09, 1.07, 1.02);
+    fish.add(outline);
+
+    const tailPivot = new THREE.Group();
+    tailPivot.position.z = -0.485;
+    const tail = new THREE.Mesh(tailGeo, finMat);
+    tailPivot.add(tail);
+    fish.add(tailPivot);
+
+    const dorsal = new THREE.Mesh(dorsalGeo, finMat);
+    dorsal.position.set(0, 0.085, 0.02);
+    fish.add(dorsal);
+
+    const pectorals = [];
+    for (const side of [-1, 1]) {
+      const pivot = new THREE.Group();
+      pivot.position.set(side * 0.07, -0.02, 0.2);
+      const fin = new THREE.Mesh(pectGeo, finMat);
+      fin.scale.x = side;
+      pivot.add(fin);
+      pivot.rotation.z = -side * 0.4;
+      fish.add(pivot);
+      pectorals.push(pivot);
+    }
+    for (const side of [-1, 1]) {
+      const eye = new THREE.Mesh(eyeGeo, eyeMat);
+      eye.position.set(side * 0.062, 0.035, 0.37);
+      fish.add(eye);
+    }
+
+    fish.scale.setScalar(L.scale);
+    fish.position.set(L.x, L.y, L.z);
+    this.scene.add(fish);
+    this.registerFootprint(L.footprint, fish, { tail: tailPivot, pectoral_l: pectorals[0], pectoral_r: pectorals[1] });
+    return fish;
   }
 
   updateBirds(dt, t, sky) {
@@ -623,12 +758,15 @@ export class AmbientLife {
       b.mesh.lookAt(tx, ty, tz);
 
       const flap = Math.sin(t * b.wingSpeed + b.seed);
-      b.wings[0].rotation.z = flap * 0.45;
-      b.wings[1].rotation.z = -flap * 0.45;
+      if (b.wings.length === 2) {
+        b.wings[0].rotation.z = flap * 0.45;
+        b.wings[1].rotation.z = -flap * 0.45;
+      }
     }
   }
 
   updateButterflies(dt, t, sky, playerPos) {
+    if (!this.butterflies) return; // a kit swarm animates itself
     const sunUp = sky ? Math.max(0, sky.sunDir.y) : 1;
     const raining = sky && sky.weather === 'rain';
     const day = sunUp > 0.2 && !raining;
@@ -687,7 +825,7 @@ export class AmbientLife {
 
       // Tail beat quickens with speed; pectorals feather slowly
       const beat = t * (6 + k.speed * 3) + k.wobble;
-      k.tail.rotation.y = Math.sin(beat) * (0.42 + k.speed * 0.12);
+      if (k.tail) k.tail.rotation.y = Math.sin(beat) * (0.42 + k.speed * 0.12);
       for (let i = 0; i < k.pectorals.length; i++) {
         const side = i === 0 ? -1 : 1;
         k.pectorals[i].rotation.z = -side * (0.4 + Math.sin(t * 2.2 + k.wobble + i) * 0.22);
