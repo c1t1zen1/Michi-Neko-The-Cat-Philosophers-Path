@@ -4,6 +4,7 @@ import { originalOf, gameKit, ensureCountryside, ownMaterials } from '../../shar
 import { V3, Bag, TAU } from '../../shared/craft.js';
 import { M } from '../../shared/painted.js';
 import { fence, STYLES, straight, runAlong } from './kit.js';
+import { warningSign } from './sign.js';
 
 let cs = null;
 export const loadDeps = async () => { cs = (await ensureCountryside()).prototype; };
@@ -70,7 +71,11 @@ export const SPECIMENS = [
   { id: 'corral', family: 'corral', original: true, name: 'The corral, and Larry', jp: '囲い', tag: 'buildBambooCorral(), complete', plinth: 'earth', game: G('buildBambooCorral'),
     blurb: 'The real corral with its warning sign and the turtle guardian. Our fences need to replace this and keep the sign, the reward and the turtle.',
     how: ['Four fences and a post, all through the game’s builder.'], use: 'Baseline.', sources: ['notes'],
-    build(k) { const kit = gameKit(4); kit.vegetationExclusions = []; kit.collectibles = []; kit.buildBambooCorral(0, 0); return ownMaterials(kit.scene); } }
+    build(k) { const kit = gameKit(4); kit.vegetationExclusions = []; kit.collectibles = []; kit.buildBambooCorral(0, 0); return ownMaterials(kit.scene); } },
+  { id: 'corral-sign', family: 'corral', name: 'The warning sign', jp: '警告の札', tag: 'Post, board and painted face, studied alone', plinth: 'earth',
+    blurb: 'The sign on the corral’s north side, apart from the corral. A knotted bamboo post with a small rain cap, a framed board and a lit painted face, lashed with cord. It keeps the game’s reading and footprint.',
+    how: ['The post is the instanced culm profile with nodes.', 'The face is a canvas texture on a lit paper material, so it dims at dusk instead of glowing.', 'Two torus lashings sit where the board crosses the post.'], use: 'Corral, one per pen; the same board works for any farm warning.', sources: ['notes'],
+    build() { return warningSign(); } }
 ];
 
 function culmG() { return culmCached ||= (window.__culmG); }
