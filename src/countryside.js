@@ -2979,6 +2979,29 @@ export class Countryside {
   }
 
   buildTorii(x, z) {
+    const layout = this.layoutTorii(x, z);
+    return this.placeAsset('torii', layout, () => this.meshToriiClassic(layout));
+  }
+
+  layoutTorii(x, z) {
+    const colliders = [-1, 1].map((s) => new THREE.Box3(
+      new THREE.Vector3(x + s * 1.8 - 0.3, 0, z - 0.3),
+      new THREE.Vector3(x + s * 1.8 + 0.3, 4.6, z + 0.3)
+    ));
+    // Late-game climbing route (City Legend rank): the three joinery pegs,
+    // then the nuki and kasagi tops
+    const platforms = [[-1.8, 1.35], [-1.8, 2.55], [1.8, 3.65]].map(([sx, sy]) => ({
+      oriented: [{ minX: sx - 0.36, maxX: sx + 0.36, minZ: -0.36, maxZ: 0.36 }, sy + 0.08, { requiredRank: 4 }]
+    }));
+    platforms.push({ oriented: [{ minX: -2.8, maxX: 2.8, minZ: -0.24, maxZ: 0.24 }, 4.91, { requiredRank: 4 }] });
+    platforms.push({ oriented: [{ minX: -3.1, maxX: 3.1, minZ: -0.28, maxZ: 0.28 }, 5.29, { requiredRank: 4 }] });
+    return {
+      index: this.nextIndex('torii'), name: 'Torii Gate', x, z,
+      footprint: footprint({ colliders, platforms, anchors: { toriiTopPos: new THREE.Vector3(x, 5.29, z) } })
+    };
+  }
+
+  meshToriiClassic({ x, z }) {
     const torii = new THREE.Group();
     torii.name = 'Torii Gate';
     const pillarGeo = new THREE.CylinderGeometry(0.22, 0.28, 4.6, 14);
