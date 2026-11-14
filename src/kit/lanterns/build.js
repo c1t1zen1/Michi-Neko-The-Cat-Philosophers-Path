@@ -118,13 +118,13 @@ export function buildAndon(ctx, layout, p) {
     pane.rotateY(a).translate(Math.sin(a) * (hw - 0.002), (y0 + y1) / 2, Math.cos(a) * (hw - 0.002));
     panes.push(pane);
   }
-  const lit = tier === 'far' ? null : litWashi(washiTexture(km, { ribs: 5 }), { color: paperTint(p.flame), glowColor: flameColor(p.flame).getHex(), glow: 0.4, fall: 0.5 });
+  const lit = tier === 'far' ? null : litWashi(washiTexture(km, { ribs: 5 }), { color: paperTint(p.flame), glowColor: flameColor(p.flame).getHex(), glow: 0.22, fall: 0.5 });
   const g = new THREE.Group();
   const f = mesh(indexed(merge(frame)), timber, 'frame');
   const paper = mesh(indexed(merge(panes)), lit || ownerGlow(ctx, 'lanternPaper'), 'paper', false);
   g.add(f, paper);
   // the paper is centred on its own flame so the glow falls off from the middle
   paper.geometry.translate(0, -(y0 + y1) / 2, 0); paper.position.y = (y0 + y1) / 2;
-  const step = lampUpdate({ lit, index: layout.index, base: 0.4, gain: 1.4, always: 0 });
+  const step = lampUpdate({ lit, index: layout.index, base: 0.22, gain: 0.55, always: 0 });
   return { group: g, parts: { frame: f, paper }, live: lit ? [paper] : [], update: step, dispose() { freePrivate([lit]); } };
 }

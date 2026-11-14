@@ -50,3 +50,9 @@ None. Chochin/andon/courtyard/pool shots not captured (interior and hidden place
 - andon (interior, cam y 100.9): AAA-1 frame, ribs and four panes beat the flat box; AAA-5 lit all hours like the classic (paper glow base 0.4). Concern: at night the paper is close to blown out white; gain could be lowered by the Integrator/design pass.
 - courtyard-toro: AAA-1 hollow Kasuga with visible higuchi vs four boxes; AAA-5 always warm, matching the interior being lit.
 - pool-toro (-16.1,0,-24.6): AAA-1 hollow firebox and swept roof; AAA-5 halo is a tighter bloom than the classic big orange disc, lamp lights at dusk and stays dark by day; judged better, flagged as a visible look difference.
+
+## Andon fix
+- Andon lit-paper emissive lowered (base 0.4 to 0.22, gain 1.4 to 0.55, texture glow 0.4 to 0.22). 18 h and 22 h modular shots re-taken and Read: paper is warm cream with the rib texture visible, no longer white; brightness is now close to the classic yellow box.
+- pool-toro halo kept: shot from the Moon Pool seat distance (about 4 m) at 22 h reads clearly lit with a warm bloom; no widening needed.
+- kit_contract_test --family lanterns: 6 assets, 18 asset×tier builds, 509 checks, 0 failed (gpu: ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version), 1705 ms)
+- verify: 
