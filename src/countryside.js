@@ -1016,21 +1016,49 @@ export class Countryside {
   }
 
   buildPaddies() {
+    const layout = this.layoutPaddies();
+    return this.placeAsset('paddies', layout, () => this.meshPaddiesClassic(layout));
+  }
+
+  /**
+   * Four terraced plots. The still water sheets are this builder's own mesh;
+   * each plot's bed and bunds is a 'paddy-bunds' component, and the seedlings
+   * one 'rice' component (per stalk: x, z, yaw, size — the valley draws).
+   */
+  layoutPaddies() {
     const plots = [
       // The former (-26, 8) paddy overlapped the turtle corral. Removing this
       // one plot clears its water, rice instances, and enclosing ridges only.
       [-26, 22, 14, 10],
       [14, 22, 12, 10], [28, 22, 12, 10], [26, -2, 12, 12]
     ];
-    this.waterRects = plots;
-    const riceMat = new THREE.MeshStandardMaterial({ color: 0x86b23e, roughness: 0.9 });
-    const riceGeo = new THREE.ConeGeometry(0.05, 0.5, 4);
     let riceCount = 0;
     for (const [px, pz, w, d] of plots) riceCount += Math.floor(w * d / 1.6);
-    const rice = new THREE.InstancedMesh(riceGeo, riceMat, riceCount);
-    rice.castShadow = false;
-    let ri = 0;
-    const dummy = new THREE.Object3D();
+    const stalks = [];
+    const components = [];
+    plots.forEach(([px, pz, w, d], k) => {
+      components.push(component('paddy-bunds', { index: this.nextIndex('paddy-bunds'), plot: k + 1, x: px, z: pz, w, d, footprint: footprint() }, 'meshPaddyBundsClassic'));
+      for (let i = 0; i < Math.floor(w * d / 1.6); i++) {
+        const x = px + (this.random() - 0.5) * (w - 1.2);
+        const z = pz + (this.random() - 0.5) * (d - 1.2);
+        const ry = this.random() * Math.PI;
+        stalks.push([x, z, ry, 0.7 + this.random() * 0.6]);
+      }
+    });
+    components.push(component('rice', { index: this.nextIndex('rice'), name: 'Rice Stalks', capacity: riceCount, stalks, footprint: footprint() }, 'meshRiceClassic'));
+    return {
+      index: this.nextIndex('paddies'), plots,
+      footprint: footprint({
+        waterRects: plots,
+        lists: { paddyWaterMaterials: plots.map((_, k) => ({ material: part(`water_${k + 1}.material`) })) }
+      }),
+      components
+    };
+  }
+
+  meshPaddiesClassic(layout) {
+    const plots = layout.plots;
+    this.waterRects = plots;
 
     // Still shader water, sharing the river's sun/sky uniforms: mirror-like
     // sheets that catch the sky, breathe with wind cat's-paws, and show the
@@ -1046,32 +1074,44 @@ export class Countryside {
       water.rotation.x = -Math.PI / 2;
       water.position.set(px, 0.02, pz);
       this.scene.add(water);
-      // Silty paddy floor just under the sheet so the water reads as depth
-      const bed = new THREE.Mesh(new THREE.PlaneGeometry(w, d), MAT.paddyMud);
-      bed.name = `Paddy Bed ${paddyIdx}`;
-      bed.rotation.x = -Math.PI / 2;
-      bed.position.set(px, 0.008, pz);
-      bed.receiveShadow = true;
-      this.scene.add(bed);
+      this.placeComponent(layout.components[paddyIdx - 1], this.scene);
+    }
+    this.placeComponent(layout.components[plots.length], this.scene);
+  }
 
-      const ridgeH = 0.28, ridgeW = 0.5;
-      const ridgeN = box(w + ridgeW * 2, ridgeH, ridgeW, MAT.ridge, px, ridgeH / 2, pz - d / 2 - ridgeW / 2); ridgeN.name = `Paddy Ridge ${paddyIdx} N`; this.scene.add(ridgeN);
-      const ridgeS = box(w + ridgeW * 2, ridgeH, ridgeW, MAT.ridge, px, ridgeH / 2, pz + d / 2 + ridgeW / 2); ridgeS.name = `Paddy Ridge ${paddyIdx} S`; this.scene.add(ridgeS);
-      const ridgeWm = box(ridgeW, ridgeH, d, MAT.ridge, px - w / 2 - ridgeW / 2, ridgeH / 2, pz); ridgeWm.name = `Paddy Ridge ${paddyIdx} W`; this.scene.add(ridgeWm);
-      const ridgeE = box(ridgeW, ridgeH, d, MAT.ridge, px + w / 2 + ridgeW / 2, ridgeH / 2, pz); ridgeE.name = `Paddy Ridge ${paddyIdx} E`; this.scene.add(ridgeE);
+  /** One plot's silty bed and its four bunds (a component of 'paddies'). */
+  meshPaddyBundsClassic(layout) {
+    const { x: px, z: pz, w, d } = layout;
+    const paddyIdx = layout.plot;
+    // Silty paddy floor just under the sheet so the water reads as depth
+    const bed = new THREE.Mesh(new THREE.PlaneGeometry(w, d), MAT.paddyMud);
+    bed.name = `Paddy Bed ${paddyIdx}`;
+    bed.rotation.x = -Math.PI / 2;
+    bed.position.set(px, 0.008, pz);
+    bed.receiveShadow = true;
+    this.scene.add(bed);
 
-      for (let i = 0; i < Math.floor(w * d / 1.6); i++) {
-        dummy.position.set(
-          px + (this.random() - 0.5) * (w - 1.2),
-          0.26,
-          pz + (this.random() - 0.5) * (d - 1.2)
-        );
-        dummy.rotation.y = this.random() * Math.PI;
-        const s = 0.7 + this.random() * 0.6;
-        dummy.scale.set(s, s, s);
-        dummy.updateMatrix();
-        rice.setMatrixAt(ri++, dummy.matrix);
-      }
+    const ridgeH = 0.28, ridgeW = 0.5;
+    const ridgeN = box(w + ridgeW * 2, ridgeH, ridgeW, MAT.ridge, px, ridgeH / 2, pz - d / 2 - ridgeW / 2); ridgeN.name = `Paddy Ridge ${paddyIdx} N`; this.scene.add(ridgeN);
+    const ridgeS = box(w + ridgeW * 2, ridgeH, ridgeW, MAT.ridge, px, ridgeH / 2, pz + d / 2 + ridgeW / 2); ridgeS.name = `Paddy Ridge ${paddyIdx} S`; this.scene.add(ridgeS);
+    const ridgeWm = box(ridgeW, ridgeH, d, MAT.ridge, px - w / 2 - ridgeW / 2, ridgeH / 2, pz); ridgeWm.name = `Paddy Ridge ${paddyIdx} W`; this.scene.add(ridgeWm);
+    const ridgeE = box(ridgeW, ridgeH, d, MAT.ridge, px + w / 2 + ridgeW / 2, ridgeH / 2, pz); ridgeE.name = `Paddy Ridge ${paddyIdx} E`; this.scene.add(ridgeE);
+  }
+
+  /** The rice seedlings of every plot, one instanced mesh (a component of 'paddies'). */
+  meshRiceClassic(layout) {
+    const riceMat = new THREE.MeshStandardMaterial({ color: 0x86b23e, roughness: 0.9 });
+    const riceGeo = new THREE.ConeGeometry(0.05, 0.5, 4);
+    const rice = new THREE.InstancedMesh(riceGeo, riceMat, layout.capacity);
+    rice.castShadow = false;
+    let ri = 0;
+    const dummy = new THREE.Object3D();
+    for (const [x, z, ry, s] of layout.stalks) {
+      dummy.position.set(x, 0.26, z);
+      dummy.rotation.y = ry;
+      dummy.scale.set(s, s, s);
+      dummy.updateMatrix();
+      rice.setMatrixAt(ri++, dummy.matrix);
     }
     rice.count = ri;
     rice.instanceMatrix.needsUpdate = true;
