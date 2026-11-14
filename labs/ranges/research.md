@@ -167,3 +167,7 @@ games actually ship these produced the fixes below.
    lifting the instances can't.
 5. **Clearings must be sized like real gaps** — ~40–60 m lobes read as gullies
    and meadows; 90 m lobes read as missing data.
+
+## Time of day bench — 2026-11-13
+
+Added a seventh bench that demonstrates how the same range stack reads completely differently at different times of day. The mountain geometry never changes; the air between the viewer and the range does. Moving the hour slider from 6 AM to 6 PM shows the progression from a cool, blue dawn veil to a warm, golden sunset, then to the deep blue of night. This demonstrates the aerial perspective principle that distance fog is not static — it carries the light of the sun, and as the sun moves, the fog moves with it. The bench uses four stacked range planes with increasing foot mist, and the veil strength slider lets the user exaggerate or minimize the effect.

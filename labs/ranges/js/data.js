@@ -101,5 +101,5 @@ export const SOURCES = [
   { title: 'Cloud shadows on terrain — tosijs / Mirza Beig', url: 'https://tosiasander.itch.io/', note: 'A single top-down cloud field sampled by world-space xz and scrolled by wind; shadows darken before lighting so sun and ambient dim together.' },
   { title: 'Japan Shader — Konrad Earth', url: 'https://konrad.earth/', note: 'Painting Japan in fragment shaders: layered ridge silhouettes, moving kasumi bands, value-graded distance. The strongest prior art for this exact scene.' },
   { title: 'Kameoka basin fog (京都・亀岡の霧)', url: 'https://www.kyoto-kameoka-kankou.jp/', note: 'Kyoto’s neighbour basin fills with radiation fog on autumn dawns — the physical reference for the mist ring and the foot-mist bands.' },
-  { title: 'Mantle and sode communities — forest-edge ecology', url: 'https://www.jstage.jst.go.jp/', note: 'Japanese forest-edge studies name the shrub belt (mantle) and the low herbaceous sleeve (sode) the wall’s foot is really made of.' }
+  { title: 'Mantle and sode communities — forest-edge ecology', url: 'https://www.jstage.jst.go.jp/', note: 'Japanese forest-edge studies name the shrub belt (mantle) and the low herbaceous sleeve (sode) the wall’s foot is really made of.' },
 ];

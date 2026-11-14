@@ -1,5 +1,9 @@
 {
   "private": true,
   "description": "The Roof Road lab. Lets Node import js/*.js as ES modules for tools/rooftop_test.mjs; there is nothing to install.",
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "test": "node ../tools/rooftop_test.mjs && node ../tools/rooftop_companion_test.mjs",
+    "test:browser": "node ../tools/rooftop_browser_test.mjs"
+  }
 }
