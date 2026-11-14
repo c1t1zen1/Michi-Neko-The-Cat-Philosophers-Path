@@ -45,7 +45,7 @@ export function resolveTargetLink(target, { rootUrl } = {}) {
     path = `labs/ranges/${id === 'wall-mass' ? '?wall4=mass' : ''}#${anchors[id]}`;
   } else if (target.lab === 'interiors') {
     if (target.kind === 'bench') {
-      if (!['tatami', 'shoji', 'pottery', 'frame', 'tokonoma', 'scroll', 'chabudai', 'zabuton', 'bonsai', 'knockables'].includes(id)) throw new Error('Unknown interiors craft: ' + id);
+      if (!['tatami', 'shoji', 'pottery', 'frame', 'tokonoma', 'scroll', 'chabudai', 'zabuton', 'bonsai', 'knockables', 'courtyard-wall', 'secret-tatami', 'secret-table', 'secret-bed', 'secret-andon'].includes(id)) throw new Error('Unknown interiors craft: ' + id);
       path = `labs/interiors/?craft=${id}#craft`;
     } else if (target.kind === 'interaction') {
       if (id !== 'bat-cup') throw new Error('Unknown interiors interaction: ' + id);

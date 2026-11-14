@@ -650,7 +650,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 2.2 | `v-machiya` | Machiya, components, street (lab 04) | G-V1 | [x] |
 | 2.2 | `v-pagoda` | Distant pagoda (lab 08) | G-V1 | [x] |
 | 2.2 | `v-hidden` | Moon Pool and Lantern Glade (lab 07) | G-V1 | [x] |
-| 2.2 | `v-interiors` | Tea house and secret house interiors (lab 21) | G-V1 | [ ] |
+| 2.2 | `v-interiors` | Tea house and secret house interiors (lab 21) | G-V1 | [x] |
 | 2.3 | `v-ground` | Ground, path, shoulders (lab 01) | G-V2 | [ ] |
 | 2.3 | `v-water` | River, bridge, paddies (lab 02) | G-V2 | [ ] |
 | 2.3 | `v-ranges` | Forest wall, mountains, mist (lab 03) | G-V2 | [x] |

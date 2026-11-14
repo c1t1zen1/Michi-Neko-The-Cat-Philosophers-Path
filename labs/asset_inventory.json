@@ -1173,6 +1173,41 @@
       "file": "labs/interiors/js/specimens.js",
       "anchor": "  knockables: {"
     },
+    "interiors/courtyard-wall": {
+      "lab": "interiors",
+      "selector": "courtyard-wall",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens_b.js",
+      "anchor": "  'courtyard-wall': {"
+    },
+    "interiors/secret-tatami": {
+      "lab": "interiors",
+      "selector": "secret-tatami",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens_b.js",
+      "anchor": "  'secret-tatami': {"
+    },
+    "interiors/secret-table": {
+      "lab": "interiors",
+      "selector": "secret-table",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens_b.js",
+      "anchor": "  'secret-table': {"
+    },
+    "interiors/secret-bed": {
+      "lab": "interiors",
+      "selector": "secret-bed",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens_b.js",
+      "anchor": "  'secret-bed': {"
+    },
+    "interiors/secret-andon": {
+      "lab": "interiors",
+      "selector": "secret-andon",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens_b.js",
+      "anchor": "  'secret-andon': {"
+    },
     "interiors/pottery": {
       "lab": "interiors",
       "selector": "pottery",
@@ -3979,8 +4014,8 @@
       ],
       "coverage": [
         {
-          "target": "interiors/garden",
-          "level": "embedded"
+          "target": "interiors/courtyard-wall",
+          "level": "direct"
         }
       ]
     },
@@ -4025,6 +4060,10 @@
       ],
       "coverage": [
         {
+          "target": "interiors/secret-tatami",
+          "level": "direct"
+        },
+        {
           "target": "machiya/original-secret",
           "level": "embedded"
         }
@@ -4042,6 +4081,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "interiors/secret-table",
+          "level": "direct"
+        },
         {
           "target": "machiya/original-secret",
           "level": "embedded"
@@ -4061,6 +4104,10 @@
       ],
       "coverage": [
         {
+          "target": "interiors/secret-bed",
+          "level": "direct"
+        },
+        {
           "target": "machiya/original-secret",
           "level": "embedded"
         }
@@ -4078,6 +4125,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "interiors/secret-andon",
+          "level": "direct"
+        },
         {
           "target": "machiya/original-secret",
           "level": "embedded"
