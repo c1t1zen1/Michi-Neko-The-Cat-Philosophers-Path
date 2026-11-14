@@ -1383,6 +1383,41 @@
       "kind": "specimen",
       "file": "labs/summit/js/life.js",
       "anchor": "id: 'life-light'"
+    },
+    "summit/c-stone": {
+      "lab": "summit",
+      "selector": "c-stone",
+      "kind": "specimen",
+      "file": "labs/summit/js/recipes.js",
+      "anchor": "id: 'c-stone'"
+    },
+    "summit/c-enso": {
+      "lab": "summit",
+      "selector": "c-enso",
+      "kind": "specimen",
+      "file": "labs/summit/js/recipes.js",
+      "anchor": "id: 'c-enso'"
+    },
+    "summit/c-furin": {
+      "lab": "summit",
+      "selector": "c-furin",
+      "kind": "specimen",
+      "file": "labs/summit/js/recipes.js",
+      "anchor": "id: 'c-furin'"
+    },
+    "summit/c-entry": {
+      "lab": "summit",
+      "selector": "c-entry",
+      "kind": "specimen",
+      "file": "labs/summit/js/recipes.js",
+      "anchor": "id: 'c-entry'"
+    },
+    "summit/c-path": {
+      "lab": "summit",
+      "selector": "c-path",
+      "kind": "specimen",
+      "file": "labs/summit/js/recipes.js",
+      "anchor": "id: 'c-path'"
     }
   },
   "assets": [
@@ -4411,11 +4446,16 @@
       ],
       "coverage": [
         {
+          "target": "summit/c-entry",
+          "level": "direct"
+        },
+        {
           "target": "summit-review/whole-scene",
           "level": "review",
           "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
         }
-      ]
+      ],
+      "production": "clearing"
     },
     {
       "id": "summit-trees",
@@ -4449,11 +4489,16 @@
       ],
       "coverage": [
         {
+          "target": "summit/c-stone",
+          "level": "direct"
+        },
+        {
           "target": "summit-review/whole-scene",
           "level": "review",
           "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
         }
-      ]
+      ],
+      "production": "clearing"
     },
     {
       "id": "meditation-atmosphere",
@@ -4506,11 +4551,16 @@
       ],
       "coverage": [
         {
+          "target": "summit/c-path",
+          "level": "direct"
+        },
+        {
           "target": "summit-review/whole-scene",
           "level": "review",
           "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
         }
-      ]
+      ],
+      "production": "clearing"
     },
     {
       "id": "summit-terrain",
@@ -4938,10 +4988,15 @@
       ],
       "coverage": [
         {
+          "target": "summit/c-enso",
+          "level": "direct"
+        },
+        {
           "target": "summit-review/whole-scene",
           "level": "review"
         }
-      ]
+      ],
+      "production": "clearing"
     },
     {
       "id": "summit-furin",
@@ -4956,10 +5011,15 @@
       ],
       "coverage": [
         {
+          "target": "summit/c-furin",
+          "level": "direct"
+        },
+        {
           "target": "summit-review/whole-scene",
           "level": "review"
         }
-      ]
+      ],
+      "production": "clearing"
     },
     {
       "id": "bay-bridge",
