@@ -83,6 +83,12 @@ Tobi-ishi follow the lab's Rikyū-to-Enshū heights inside the classic slab size
   `?assets=modular` → `warnings: []`, kit `problems: []`; the only error line is the pre-existing optional
   `/cad-overrides.json` 404, present on classic too.
 - Determinism: two boots `game_shot --query "hour=12&cam=1.5,0.5,9,…&shot=1&swap=<ids>"` → `--diff` `maxDelta 0, pixelsOver8 0`.
+- **After merging `origin/fable/integration` (31661bb; 83 commits, 21 families; `budgets.js` and the generated
+  `index.js` resolved):** kit_check `All kit checks OK (361 passed)`, check_syntax `All 148 modules OK`, verify
+  `kit_test 36/36`, `All checks passed`, labs_check OK; contract `--family ground` `433 checks, 0 failed`; goldens
+  classic EQUAL, systems EQUAL, swap the same 4 changed / 3 added (518 colliders, rng 49233), systems swap EQUAL;
+  boots `?assets=classic`, `?swap=<my ids>`, `?assets=modular` (235 kit instances): `warnings: []`, `problems: []`;
+  `env.mist` (now sent by main.js) reaches the ground's dew film (a dusk-mist capture on `?assets=modular`).
 
 ### Draw calls (deterministic: frame 120 of `?shot=1`, `renderer.render(scene)` incl. shadow pass, perf-spot cameras)
 | tier | street | shrine | river | meadow |
