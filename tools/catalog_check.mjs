@@ -25,8 +25,8 @@ for (const target of Object.values(inventory.targets)) {
   try { const link = resolveTargetLink(target); const local = resolve(ROOT, 'catalog', link.split(/[?#]/)[0]); check(statSync(local).isFile() || statSync(local).isDirectory(), 'Missing evidence page: ' + link); }
   catch (error) { problems.push('Evidence link: ' + error.message); }
 }
-function image(record, name) {
-  check(['original', 'study', 'context'].includes(record.kind), 'Invalid image provenance: ' + name);
+function image(record, name, production = false) {
+  check((production ? ['production'] : ['original', 'study', 'context']).includes(record.kind), 'Invalid image provenance: ' + name);
   check(typeof record.label === 'string' && record.label.length > 0, 'Image label required: ' + name);
   check(/^thumbnails\/[a-z0-9][a-z0-9_.-]*\.webp$/i.test(record.src), 'Unsafe image path: ' + name);
   try {
@@ -37,6 +37,8 @@ function image(record, name) {
 }
 for (const [id, record] of Object.entries(thumbs.assets)) { check(ids.has(id), 'Thumbnail uses an unknown asset: ' + id); image(record, id); check(Boolean(thumbs.targets[record.targetId]), 'Thumbnail target missing: ' + id); }
 for (const [id, record] of Object.entries(thumbs.targets)) image(record, id);
+// Production kit renders: provenance 'production', keyed by an inventory id, generated from catalog/preview.html.
+for (const [id, record] of Object.entries(thumbs.production || {})) { check(ids.has(id), 'Production thumbnail uses an unknown asset: ' + id); image(record, 'production/' + id, true); check(typeof record.source === 'string' && record.capturedAt, 'Production thumbnail needs source and capturedAt: ' + id); }
 const bytes = [...images].reduce((sum, src) => sum + read('catalog/' + src).length, 0);
 check(bytes < 10 * 1024 * 1024, 'Thumbnail budget exceeds 10 MB');
 const stats = summarize(createRecords(inventory, undefined, getAssetCapabilities));

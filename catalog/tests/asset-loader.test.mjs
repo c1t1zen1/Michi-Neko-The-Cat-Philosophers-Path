@@ -103,3 +103,14 @@ test('the production variant builds from the registry, not from a hand-kept id l
   assert.doesNotMatch(loader, /PRODUCTION\s*=/); assert.match(loader, /runtime\.defs\.get\(assetId\)/);
   assert.match(loader, /classic only/);
 });
+
+test('every production thumbnail is a labeled, provenance-tagged render of an inventory asset', () => {
+  const thumbs = JSON.parse(read('catalog/thumbnails.json')), ids = new Set(inventory.assets.map(a => a.id));
+  const entries = Object.entries(thumbs.production || {});
+  assert.ok(entries.length >= 28, String(entries.length));
+  for (const [id, record] of entries) {
+    assert.ok(ids.has(id), id); assert.equal(record.kind, 'production'); assert.match(record.src, /^thumbnails\/production-[a-z0-9-]+\.webp$/);
+    assert.ok(record.label && record.source && record.capturedAt, id);
+    const bytes = readFileSync(new URL('../' + record.src, import.meta.url)); assert.equal(bytes.toString('ascii', 8, 12), 'WEBP'); assert.ok(bytes.length < 30000, id);
+  }
+});
