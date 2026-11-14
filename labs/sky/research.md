@@ -121,6 +121,43 @@ Serve the repository root; open `/labs/sky/`. Useful captures:
 See [verification.md](verification.md) for the actual validation record and
 limits. The portal image is a capture of the real lab, not concept art.
 
+## Night studies (2026-11-13, lane v-sky)
+
+Two focused specimens close the asset-coverage gaps for `stars` and `moon`
+(they were only *embedded* in `sky-night`, which shows the game's own stars
+and moon). Module `js/night.js`; selector **Night** in the observatory;
+family "After the lanterns go out." in the gallery.
+
+* **`night-stars` — A sky full of names (星月夜).** 1,600 points with a
+  magnitude distribution N(<m) ∝ 10^(0.45 m) on 0…6.2 (many faint, few
+  bright), brightness 10^(−0.4 m), colour from a B−V index (blue-white to
+  orange), a third of them crowded toward a tilted great circle: the
+  Amanogawa, drawn as a faint additive strip with value-noise structure and
+  a dark rift just off its centre line. Low stars dim and redden
+  (extinction) and twinkle harder (scintillation). Limit: a stylised
+  distribution and a hand-placed band, not a catalogue or an ephemeris.
+* **`night-moon` — The moon with a face (月の兎).** One 256² painting per
+  phase: a disc lit from the phase angle (0.5 full, 0.25 first quarter),
+  limb darkening, ten soft seas placed after the maria the rabbit pounding
+  mochi is read from, a small rayed crater, and earthshine on the dark limb;
+  a soft glow sprite and, only under a thin veil, a faint 22° ring
+  (tsukigasa, 月暈). Limit: the phase is a parameter, not a calendar; the ring
+  is an artistic accent, not ice-crystal optics.
+
+The drawing code is promoted unchanged into the game kit
+(`src/kit/sky/night.js`). Only the draw order differs: here the lab's dome is
+a transparent pass, so the night objects draw as ordinary transparent
+objects; in the game they draw in the background band before the kit cloud
+deck, so drifting cloud covers them without a per-star test.
+
+### What the game kit promotes from this lab (lane v-sky)
+
+| Inventory id | Specimen | In the game |
+| --- | --- | --- |
+| `clouds` | `cloud-field` (thickness painting) with the `cloud-painted` slab idea, and `shade-soft` | A curved deck 170 m above the cat, three height slices on hero (two on mid), one shared 256² four-genus field (cumulus puffs, cirrus, altocumulus, stratus) crossfaded by weather; the same field projected along the sun as cloud shade inside the atmosphere pass |
+| `stars` | `night-stars` | As studied, 1,600 / 960 / 420 stars by tier, band on hero and mid |
+| `moon` | `night-moon` | As studied; ring on hero only, woken by a cloudy or misty veil |
+
 ---
 
 # Historical proposal — 2026-10-25
