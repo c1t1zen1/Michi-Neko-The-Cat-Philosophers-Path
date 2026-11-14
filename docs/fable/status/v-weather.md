@@ -54,7 +54,7 @@ Frame ms (amortised) | calls | scene tris. classic / modular (all 8 ids).
 | snow | medium | meadow | 7.12 ms, 684 | 7.6 ms, 672 |
 | snow | high | street | 10.3 ms, 770 | 7.9 ms, 758 |
 | snow | high | meadow | 8.3 ms, 682 | 8.25 ms, 677 |
-Modular medium is at or below classic high in every row (budget rule met). Differences between classic and modular are inside the run-to-run noise of one boot (headless frames are rAF-paced; two high rows swing 2 to 4 ms either way); no row shows a regression beyond that. Draw calls: dappled light is one instanced draw for 14 (medium shows 11) pools; every other system is one draw as classic. The few extra calls on medium rain street are the kit rain/ripples differing in visible-ring count between runs. Triangles within 1% (street high rain +53k from the kit's tier meshes being rebuilt vs. merged differences elsewhere in the scene, not weather).
+Modular medium is at or below classic high in every row (budget rule met). Differences between classic and modular are inside the run-to-run noise of one boot (headless frames are rAF-paced; two high rows swing 2 to 4 ms either way); no row shows a regression beyond that. Draw calls: dappled light is one instanced draw for 14 (medium shows 11) pools; every other system is one draw as classic. Medium rain street shows +13 calls in the modular run; I did not isolate it (rings are drawn only while visible, so counts vary run to run). Scene triangles agree within about 1%.
 
 ## Compare (L6)
 `docs/fable/status/v-weather/<id>-<hour>-classic|modular.jpg` for all 8 ids at two hours (16 pairs; 960x600 JPG, all < 150 KB). All pairs differ (`cmp`) except `rain-ripples` (both hours): in those frames no raindrop ring happens to be in view (the cat spawns more than 20 m from water; rings spawn only within 24 m), so the pair is identical; the swap is proved by the live check above. I read petals-17, dappled-light-17, river-petals-14, rain-18 (classic + modular), fireflies-22, snow2.
@@ -71,5 +71,4 @@ None.
 - Single-writer grant used on `src/particles.js`: `kitHandles` + `motionScale()` (reduce-motion damping of kit systems only; classic dt untouched) and nothing else. Byte-for-byte classic goldens EQUAL.
 - `src/kit/budgets.js`: `BUDGET_EXCEPTIONS['rain-ripples']` (28 materials, as classic).
 - `labs/ASSET_COVERAGE.md` regenerated (labs_check requires it); inventory JSON rows in the handoff.
-- PR is about 1.2k changed lines (kit ~560, lab specimens ~40 dense lines, docs).
-
+- PR is about 700 changed lines (kit ~560, five dense lab specimens, docs, 32 compare JPGs).
