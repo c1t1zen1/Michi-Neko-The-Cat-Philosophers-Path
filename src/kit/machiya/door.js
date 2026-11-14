@@ -1,5 +1,5 @@
 // The secret house's sliding door and its brass lock plate. The door group is
-// what gameplay slides (secretDoorMesh); the lock plate is a component placed
+// the secretDoorMesh handle (nothing slides it today); the lock plate is a component placed
 // into it (lockPlate, hidden once the lock is opened). Gameplay names and the
 // anchors come from the layout untouched: this file only draws.
 //   secret-door  origin on the floor, centre of the leaf: 2.35 x 2.05 x 0.08 shoji panel (y 0.025..2.075)

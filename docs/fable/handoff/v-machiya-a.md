@@ -32,3 +32,8 @@ None. Footprints are the layouts' (empty for every component).
 - Hero noren is one live draw each (cloth). Budget `liveMeshes.hero = 2` is a whole-spot cap; a street with more than two hero houses exceeds it. Tell me if the Integrator prefers hero noren static (one-line change: drop `inst.live`/`inst.update`).
 - namako `wall` uses MAT.namako, whose texture is one tile per metre; the kit sets box-projected metre UVs.
 - No new merged materials; no BUDGET_EXCEPTIONS needed (largest: roof hero 7,960 of 25,000).
+
+## Fix round 1 notes
+- Noren is static: shared sway material, uniform driven by each instance's update(); nothing is live. Remove the earlier "hero noren is one live draw" note.
+- Roof Road callers (and any layout without x/z) must pass `layout.band` ('near' | 'rim' | 'far'); otherwise the tier resolves to near (hero).
+- Noren hemp is now a flat colour (no weave texture). Sway is not damped by reduce-motion (not in the kit env).
