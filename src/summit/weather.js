@@ -7,7 +7,7 @@
 
 import * as THREE from 'three';
 import { glowTexture } from '../textures.js?v=20261113a';
-import { summitWeatherAmount, summitFootprint } from './common.js?v=20261113a';
+import { summitWeatherAmount, summitFootprint, pointsPosition } from './common.js?v=20261113a';
 
 export const weatherMethods = {
   // Each build*() is the §3.4 split: a layout step (every this.rng() draw, in
@@ -63,7 +63,8 @@ export const weatherMethods = {
 
   /** Scatter the live flakes through the column above the cat. */
   reseedSnow() {
-    const sp = this.snow.geometry.attributes.position;
+    const sp = pointsPosition(this.snow); // null for a kit part without geometry
+    if (!sp) return;
     const cx = this._localPlayer.x, cz = this._localPlayer.z;
     for (let i = 0; i < sp.count; i++) {
       sp.setXYZ(
@@ -132,7 +133,8 @@ export const weatherMethods = {
   },
 
   reseedRain() {
-    const rp = this.rain.geometry.attributes.position;
+    const rp = pointsPosition(this.rain); // null for a kit part without geometry
+    if (!rp) return;
     for (let i = 0; i < rp.count; i++) {
       rp.setXYZ(
         i,

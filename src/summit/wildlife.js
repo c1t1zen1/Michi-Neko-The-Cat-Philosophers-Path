@@ -4,7 +4,7 @@
 // `this` = the manager, so the code reads exactly as it did in the class.
 
 import * as THREE from 'three';
-import { summitWeatherAmount, summitFootprint } from './common.js?v=20261113a';
+import { summitWeatherAmount, summitFootprint, pointsPosition } from './common.js?v=20261113a';
 
 function summitBirdWingGeometry() {
   const geo = new THREE.BufferGeometry();
@@ -176,8 +176,11 @@ export const wildlifeMethods = {
     const direction = this.rng() < 0.5 ? 1 : -1;
     const baseY = 7 + this.rng() * 8;
     const baseZ = 36 + this.rng() * 54;
-    for (let i = 0; i < this.summitBirds.length; i++) {
-      const bird = this.summitBirds[i];
+    // The pool is the classic birds' (a kit summit-birds brings none unless
+    // its footprint anchors set summitBirds); a missing pool flies nobody.
+    const birds = this.summitBirds || [];
+    for (let i = 0; i < birds.length; i++) {
+      const bird = birds[i];
       if (i >= count) {
         bird.active = false;
         bird.mesh.visible = false;
@@ -202,7 +205,7 @@ export const wildlifeMethods = {
     const snowing = summitWeatherAmount(sky, 'snow') > 0.45;
     this._birdFlybyTimer -= dt;
     if (!snowing && this._birdFlybyTimer <= 0) this.startBirdFlyby();
-    for (const bird of this.summitBirds) {
+    for (const bird of this.summitBirds || []) {
       if (!bird.active) continue;
       bird.age += dt;
       if (bird.age < 0) continue;
@@ -231,11 +234,17 @@ export const wildlifeMethods = {
     }
     if (this._butterflyVisit > 0) this._butterflyVisit -= dt;
     const butterflyTarget = !snowing && this._butterflyVisit > 0 ? 0.92 : 0;
-    this.butterflyMat.opacity += (butterflyTarget - this.butterflyMat.opacity) * Math.min(1, dt * 1.6);
-    this.butterflies.visible = this.butterflyMat.opacity > 0.015;
-    if (this.butterflies.visible) {
-      const bp = this.butterflies.geometry.attributes.position;
-      for (let i = 0; i < bp.count; i++) {
+    // Kit-safe: the material is the classic step's, so a kit swarm (bound
+    // as 'swarm') has none and simply shows for the visit; its points move
+    // only if it is a point cloud, and no further than the layout's seeds.
+    const mat = this.butterflyMat;
+    if (mat) mat.opacity += (butterflyTarget - mat.opacity) * Math.min(1, dt * 1.6);
+    if (!this.butterflies) return;
+    this.butterflies.visible = (mat ? mat.opacity : butterflyTarget) > 0.015;
+    const bp = this.butterflies.visible ? pointsPosition(this.butterflies) : null;
+    if (bp && this._butterflySeeds && this._butterflyAnchors) {
+      const count = Math.min(bp.count, this._butterflySeeds.length / 3, this._butterflyAnchors.length / 3);
+      for (let i = 0; i < count; i++) {
         const seed = this._butterflySeeds[i * 3];
         const speed = this._butterflySeeds[i * 3 + 1];
         const range = this._butterflySeeds[i * 3 + 2];

@@ -7,6 +7,7 @@
 // line for line, with tools/golden/summit_test.txt.
 //
 //   node tools/summit_golden.mjs                compare; exit 0 equal, 1 different, 2 could not run
+//                                               (2 also when the routing self-test did not run)
 //   node tools/summit_golden.mjs --write        regenerate both goldens from this checkout
 //   node tools/summit_golden.mjs --out /tmp/summit.json    also save the fresh digest
 //
@@ -39,7 +40,7 @@ node tools/summit_test.mjs with tools/golden/summit_test.txt.
   --console           stream the page's console to stderr
 
 Exit: 0 equal (or written), 1 different, 2 could not run (no golden, page error,
-Playwright missing), 64 bad arguments.
+the routing self-test did not run, Playwright missing), 64 bad arguments.
 `;
 
 class UsageError extends Error {}
@@ -105,6 +106,18 @@ function firstDiff(a, b) {
 }
 
 const kb = (n) => `${Number(n).toLocaleString('en-US')} bytes`;
+
+/** The routing test's per-frame drive (fix round 1): throws, portal, perch and fūrin per build. */
+function driveLine(d) {
+  if (!d) return 'update() drive not run';
+  const one = (k) => {
+    const x = d[k];
+    if (!x || !x.ran) return `${k} not run`;
+    return `${k} ${x.throws} throws, portal ${x.portal ? 'ok' : 'SHUT'}, perch ${x.scenic ? 'ok' : 'NO VIEW'}, fūrin ${x.chimes}`;
+  };
+  return `update() on classic and kit stand-ins: ${['classic', 'modular', 'bare'].map(one).join('; ')}; ` +
+    `bind warnings ${d.bindWarnings}/${d.boundFields} (bare)`;
+}
 const secs = (ms) => `${(ms / 1000).toFixed(1)} s`;
 
 function printSummary(r, run, test, { write, out, goldenFile, max }) {
@@ -116,6 +129,7 @@ function printSummary(r, run, test, { write, out, goldenFile, max }) {
   else if (!r.golden.found) state = 'NO GOLDEN';
   else state = r.equal && (!test || test.equal) ? 'EQUAL' : 'DIFFERENT';
   if (!write && r.routing && r.routing.ran && !r.routing.ok) state += ', ROUTING FAILED';
+  if (!write && (!r.routing || !r.routing.ran)) state += ', ROUTING NOT RUN';
   const lines = [];
   lines.push(`summit golden: ${state}${d && !write && !r.equal ? ` (${d.counts.changed} changed, ${d.counts.added} added, ${d.counts.removed} removed)` : ''}`);
   lines.push(`  page     ${run.url}${run.gpu ? '   [' + run.gpu.replace(/^ANGLE \((.*)\)$/, '$1') + ']' : ''}`);
@@ -137,9 +151,10 @@ function printSummary(r, run, test, { write, out, goldenFile, max }) {
     lines.push(`  routing  ${g.ok ? 'ok' : 'FAILED'}: ${g.ids} summit ids, ${g.classicCalls} classic placeAsset() calls; ` +
       `all modular ${g.allModular.kit}/${g.allModular.calls} stand-ins, ${g.allModular.draws} draws (probe ${g.allModular.probe ? 'ok' : 'FAILED'}); ` +
       `single swaps ${g.singles.ok}/${g.singles.of} ok (${secs(g.ms)})`);
+    lines.push(`  drive    ${driveLine(g.drive)}`);
     for (const p of g.problems || []) lines.push(`  routing  ${p}`);
-  } else if (g) {
-    lines.push(`  routing  not run: ${(g.problems || []).join('; ')}`);
+  } else {
+    lines.push(`  routing  not run: ${(g && g.problems || ['the page reported no routing result']).join('; ')}`);
   }
   if (test) {
     const tail = test.summary ? `"${test.summary}"` : 'no summary line';
@@ -258,8 +273,9 @@ async function main(argv) {
   }
   if (opts.write) return test && test.code !== 0 ? 1 : 0;
   if (!r.golden.found || (test && !test.found)) return 2;
-  const routed = !r.routing || !r.routing.ran || r.routing.ok;
-  return r.equal && routed && (!test || (test.equal && test.code === 0)) ? 0 : 1;
+  // The routing self-test is part of the verdict: not run is "could not run".
+  if (!r.routing || !r.routing.ran) return 2;
+  return r.equal && r.routing.ok && (!test || (test.equal && test.code === 0)) ? 0 : 1;
 }
 
 main(process.argv.slice(2)).then((code) => {

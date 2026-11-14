@@ -42,7 +42,10 @@ export const vistaMethods = {
       index: 0, name: 'Layered Kyoto Bay Vista', x: 0, y: 0, z: 0,
       footprint: summitFootprint(), bind: { vista: 'layers' }
     };
-    this.placeAsset('summit-vista', layout, () => vistaMethods.meshVistaClassic.call(this, layout));
+    const vista = this.placeAsset('summit-vista', layout, () => vistaMethods.meshVistaClassic.call(this, layout));
+    // A kit vista without a 'layers' part (placeAsset warns once): the classic
+    // layers below still need their assembly, so they go into its group.
+    if (!this.vista && vista && vista.group && vista.group.isObject3D) this.vista = vista.group;
     this.buildVistaTerrain();
     this.buildKyotoCity();
     this.buildSummitBay();
@@ -1303,7 +1306,8 @@ export const vistaMethods = {
       this.summitSkyFill.intensity = 0.12 + dayness * 0.62 + nightness * 0.1;
       if (pal && pal.hemiSky && this.summitSkyFill.color && this.summitSkyFill.color.copy) {
         this.summitSkyFill.color.copy(pal.hemiSky);
-        this.summitSkyFill.groundColor.copy(pal.hemiGround);
+        // A kit 'sky_fill' part may be a light without a ground colour.
+        if (this.summitSkyFill.groundColor) this.summitSkyFill.groundColor.copy(pal.hemiGround);
       }
     }
     if (this.summitWarmFill) {

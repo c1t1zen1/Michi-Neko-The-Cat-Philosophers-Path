@@ -72,4 +72,20 @@
   PASS  movement exits scenic view and restores controls
   PASS  the cat can fall asleep a second time
 
-70 passed, 0 failed
+--- kit stand-ins without the classic handles ---
+
+  PASS  bare stand-ins: every summit id is built from its kit stand-in
+  PASS  bare stand-ins: colliders and platforms come from the layouts, as on classic
+  PASS  bare stand-ins: unlock, beacon, portal, every weather and light, the perch, setQuality() and leaving never throw
+  PASS  bare stand-ins: the portal behind the shrine opens with no beacon handle
+  PASS  bare stand-ins: each missing bound part is warned once, through the runtime
+  PASS  a repeated unresolved bind is not warned again; an unknown parent is warned once
+  PASS  first-part stand-ins: a bell without its sail and clapper, a sky fill without the warm fill, … never throw
+  PASS  first-part stand-ins: the kit fūrin bell still sways in the breeze
+  PASS  plain-part stand-ins: every bound handle is the kit part
+  PASS  plain-part stand-ins: parts without geometry, material or ground colour never throw anywhere
+  PASS  plain-part stand-ins: the kit fūrin still sways in the breeze
+  PASS  a kit vista without a layers part still holds the classic layers
+  PASS  a ?swap for an id with no kit registered is warned once and builds classic
+
+83 passed, 0 failed

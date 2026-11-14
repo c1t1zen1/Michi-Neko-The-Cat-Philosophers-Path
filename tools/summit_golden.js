@@ -370,6 +370,84 @@ function instrument() {
 // under its layout's parent with its layout.bind parts set on the manager.
 // Run all-modular (game configuration) and with each id alone swapped in
 // (?swap=<id>:modular, preview configuration).
+//
+// Then the per-frame code (review fix round 1): driveSummit() runs the
+// unlock, the valley beacon and the portal, every weather at three sun
+// heights with the wildlife forced, the fūrin spot, the perch, setQuality()
+// and leaving on three game-configuration builds with real three.js: classic
+// (the control), all modular with every bound part a plain Object3D, and all
+// modular with stand-ins that bring no bound part at all. Nothing may throw,
+// the portal must open in all three, the fūrin must ring once where a bell
+// exists (a kit bell inside its instance group included) and never without
+// one, and each unresolved bind must be warned once through the runtime.
+
+/** A game stub complete enough for update(), the transitions and the perch. */
+function driveSummit(summit, game) {
+  const failures = [];
+  const run = (label, fn) => {
+    try { fn(); } catch (error) { failures.push(`${label}: ${String(error && error.message || error)}`); }
+  };
+  let chimes = 0;
+  const day = summit.skyPalette.phases.day;
+  Object.assign(game.sky, {
+    sunDir: new THREE.Vector3(0.3, 1, 0.2), weather: 'clear', targetWeather: 'clear', weatherBlend: 1,
+    weatherDurations: {}, weatherPool: null, currentPalette: day, resolvePalette: () => day
+  });
+  Object.assign(game, {
+    camera: new THREE.PerspectiveCamera(50, 1.6, 0.1, 4000),
+    ui: { showToast() {}, hideAllGuidance() {}, setSummitMode() {}, setScenicView() {} },
+    audio: {
+      playMonkChoir() {}, playDreamChime() { chimes++; }, playSingingBowl() {}, setSummitWind() {}, playPurr() {}
+    },
+    progression: { addXP() {} }, music: { swell() {} }, city: { setShrineThicketOpen() {} },
+    waypoints: { setTargets() {} }
+  });
+  Object.assign(game.player, {
+    velocity: new THREE.Vector3(), heading: 0, yaw: 0, yawPrev: 0, pitch: 0, fovCurrent: 50,
+    actionLocked: false, isGrounded: true, currentSpeed: 0, moveInput: new THREE.Vector2(),
+    cat: {
+      idleAction: null, idleActionTimer: 0, idleActionDuration: 0, idleTimer: 0, state: 'idle',
+      endIdleAction() { this.idleAction = null; }, setMood() {}
+    }
+  });
+  const pos = game.player.mesh.position;
+  const local = (x, z) => pos.set(summit.origin.x + x, summit.origin.y + summit.perchLocal.y, summit.origin.z + z);
+  run('setQuality', () => { for (const q of ['low', 'medium', 'high']) summit.setQuality(q); });
+  run('unlock', () => summit.setUnlocked(true));
+  run('valley beacon', () => { pos.set(0, 0, -20); for (let i = 0; i < 4; i++) summit.update(0.25, true); });
+  run('portal', () => { pos.set(0, 0, -40); summit.update(0.016, true); });
+  const portal = summit.active === true;
+  // The veil's finish() timer is not awaited: hand the controls back now.
+  summit.transitioning = false;
+  game.player.actionLocked = false;
+  game.controls.enabled = true;
+  // The return crossing, the fūrin's shade (the classic bell's spot, where a
+  // kit bell's instance group is placed), the perch.
+  const spots = [[0, 9.5], [4.55, 5.1], [summit.perchLocal.x, summit.perchLocal.z]];
+  for (const weather of ['clear', 'cloudy', 'mist', 'rain', 'snow']) {
+    game.sky.weather = game.sky.targetWeather = weather;
+    for (const sunY of [1, 0.1, -0.4]) {
+      game.sky.sunDir.set(0.3, sunY, 0.2);
+      run(`update (${weather}, sun ${sunY})`, () => {
+        summit._birdFlybyTimer = 0;
+        summit._butterflyVisitTimer = 0;
+        for (const [x, z] of spots) { local(x, z); summit.update(0.5, true); }
+      });
+    }
+  }
+  run('perch', () => {
+    game.player.cat.idleAction = 'sit';
+    for (let i = 0; i < 12; i++) { local(summit.perchLocal.x, summit.perchLocal.z); summit.update(0.5, true); }
+  });
+  const scenic = summit.cameraActive === true;
+  run('direct calls', () => {
+    summit.startBirdFlyby(); summit.reseedSnow(); summit.reseedRain(); summit.resetAmbientWildlife();
+    summit.updateAmbientWildlife(0.1, 1, game.sky); summit.updateSakuraPetals(0.1, 1, game.sky);
+    summit.updateVistaEnvironment(0.1, 1, game.sky); summit.updateMeditationAtmosphere(0.1, 1, true, game.sky);
+  });
+  run('leave', () => { summit.setActive(false); summit.update(0.016, true); });
+  return { failures, portal, scenic, chimes };
+}
 
 async function routingTest(classicGame, classicPreview) {
   const t0 = realNow();
@@ -380,28 +458,30 @@ async function routingTest(classicGame, classicPreview) {
   }
   const inv = await (await fetch('../labs/asset_inventory.json', { cache: 'no-store' })).json();
   const ids = inv.assets.filter((a) => a.group === 'Summit').map((a) => a.id);
-  const standIn = (id) => defineAsset({
+  // withParts false: a bare stand-in, no part any layout.bind names.
+  const standIn = (id, withParts = true) => defineAsset({
     id, family: 'summit-standin', tiers: ['hero', 'mid', 'far'],
     build(ctx, layout) {
       const group = new ctx.THREE.Group();
       const parts = {};
-      for (const part of Object.values(layout.bind || {})) parts[part] = new ctx.THREE.Object3D();
+      if (withParts) for (const part of Object.values(layout.bind || {})) parts[part] = new ctx.THREE.Object3D();
       if (!Object.keys(parts).length) parts.body = new ctx.THREE.Object3D();
       for (const obj of Object.values(parts)) group.add(obj);
       return { group, parts, sockets: {}, live: [], footprint: layout.footprint };
     }
   });
-  const runtimeFor = (assetSet, search) => {
+  // Warnings are collected, not printed: the bare build is expected to warn.
+  const runtimeFor = (assetSet, search, withParts = true) => {
     const rt = new AssetRuntime({
-      THREE, assetSet, search, quality: 'high',
+      THREE, assetSet, search, quality: 'high', logger: { warn() {} },
       loadFamilies: async () => ({}), createMaterials: async () => null, fetchOverrides: async () => null
     });
-    for (const id of ids) rt.register(standIn(id), 'summit-standin');
+    for (const id of ids) rt.register(standIn(id, withParts), 'summit-standin');
     return rt;
   };
   const sameList = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-  async function routedBuild(preview, assets, label, classic) {
+  async function routedBuild(preview, assets, label, classic, { binds = true } = {}) {
     setAmbient(BUILDS[0]);
     const scene = new THREE.Scene();
     const game = stubGame(scene, preview);
@@ -419,7 +499,7 @@ async function routingTest(classicGame, classicPreview) {
       ROUTE = null;
     }
     await settleLoads();
-    if (!summit) return { problems, calls };
+    if (!summit) return { problems, calls, game };
     const fresh = mulberry32(SUMMIT_SEED);
     for (let i = 0; i < rec.draws; i++) fresh();
     const probe = summit.rng() === fresh();
@@ -434,11 +514,11 @@ async function routingTest(classicGame, classicPreview) {
       const want = c.layout.space === 'valley' ? scene : c.layout.parent ? c.layout.parent : summit.group;
       const okParent = typeof want === 'string' ? parent && parent.name === want : parent === want;
       if (!okParent) problems.push(`${label}: ${c.id} placed under ${parent ? parent.name || parent.type : 'nothing'}`);
-      for (const [field, part] of Object.entries(c.layout.bind || {})) {
+      for (const [field, part] of Object.entries(binds ? c.layout.bind || {} : {})) {
         if (summit[field] !== c.out.parts[part]) problems.push(`${label}: ${c.id} did not bind ${field} to part ${part}`);
       }
     }
-    return { problems, calls, draws: rec.draws, probe, summit };
+    return { problems, calls, draws: rec.draws, probe, summit, game };
   }
 
   const problems = [];
@@ -452,6 +532,34 @@ async function routingTest(classicGame, classicPreview) {
   problems.push(...all.problems);
   const kitCalls = all.calls.filter((c) => isAssetInstance(c.out)).length;
   if (all.calls.length && kitCalls !== all.calls.length) problems.push(`all modular: ${all.calls.length - kitCalls} call(s) built classic`);
+
+  // The per-frame code on kit instances (fix round 1); see driveSummit().
+  const drive = {};
+  const control = await routedBuild(false, runtimeFor('classic', ''), 'classic control', classicGame);
+  problems.push(...control.problems);
+  const bareRuntime = runtimeFor('modular', '', false);
+  const bare = await routedBuild(false, bareRuntime, 'bare stand-ins', classicGame, { binds: false });
+  problems.push(...bare.problems);
+  for (const [key, label, build, rings] of [
+    ['classic', 'classic control', control, 1], ['modular', 'all modular', all, 1], ['bare', 'bare stand-ins', bare, 0]
+  ]) {
+    if (!build.summit) { drive[key] = { ran: false }; continue; }
+    const d = driveSummit(build.summit, build.game);
+    drive[key] = { ran: true, throws: d.failures.length, portal: d.portal, scenic: d.scenic, chimes: d.chimes };
+    for (const f of d.failures.slice(0, 4)) problems.push(`drive ${label}: ${f}`);
+    if (!d.portal) problems.push(`drive ${label}: the portal behind the shrine did not open`);
+    if (!d.scenic) problems.push(`drive ${label}: the perch did not engage the scenic camera`);
+    if (d.chimes !== rings) problems.push(`drive ${label}: the fūrin rang ${d.chimes} time(s), expected ${rings}`);
+  }
+  // Each layout.bind of the bare build is unresolved: one warning per id and field.
+  const boundFields = new Set(bare.calls.filter((c) => isAssetInstance(c.out))
+    .flatMap((c) => Object.keys(c.layout.bind || {}).map((field) => `${c.id}:${field}`)));
+  const bindWarnings = bareRuntime.problems.filter((p) => /has no part '.*' that layout\.bind\./.test(p));
+  drive.bindWarnings = bindWarnings.length;
+  drive.boundFields = boundFields.size;
+  if (bindWarnings.length !== boundFields.size || new Set(bindWarnings).size !== bindWarnings.length) {
+    problems.push(`bare stand-ins: ${bindWarnings.length} bind warnings for ${boundFields.size} unresolved bound fields`);
+  }
 
   let singlesOk = 0;
   for (const id of ids) {
@@ -467,6 +575,7 @@ async function routingTest(classicGame, classicPreview) {
     classicCalls: [...classicCalls.values()].reduce((s, n) => s + n, 0),
     allModular: { calls: all.calls.length, kit: kitCalls, draws: all.draws, probe: all.probe },
     singles: { ok: singlesOk, of: ids.length },
+    drive,
     problems: problems.slice(0, 40), problemCount: problems.length,
     ms: Math.round(realNow() - t0)
   };
@@ -1349,11 +1458,19 @@ function summaryLines(r) {
   return lines;
 }
 
+/** The per-frame drive of the routing test, one line (also printed by summit_golden.mjs). */
+function driveLine(d) {
+  if (!d) return 'update drive not run';
+  const one = (k) => (d[k] && d[k].ran ? `${k} ${d[k].throws} throws, fūrin ${d[k].chimes}` : `${k} not run`);
+  return `update drive: ${['classic', 'modular', 'bare'].map(one).join(', ')}; bind warnings ${d.bindWarnings}/${d.boundFields}`;
+}
+
 function routingLine(g) {
   if (!g || !g.ran) return g && g.problems ? g.problems.join('; ') : 'not run';
   return `${g.ok ? 'ok' : 'FAILED'}: ${g.ids} summit ids, ${g.classicCalls} classic placeAsset() calls; all modular ` +
     `${g.allModular.kit}/${g.allModular.calls} stand-ins, ${g.allModular.draws} draws (probe ${g.allModular.probe ? 'ok' : 'FAILED'}); ` +
-    `single swaps ${g.singles.ok}/${g.singles.of} ok; ${g.ms} ms` + (g.problemCount ? ` — ${g.problemCount} problem(s): ${g.problems.slice(0, 3).join('; ')}` : '');
+    `single swaps ${g.singles.ok}/${g.singles.of} ok; ${driveLine(g.drive)}; ${g.ms} ms` +
+    (g.problemCount ? ` — ${g.problemCount} problem(s): ${g.problems.slice(0, 3).join('; ')}` : '');
 }
 
 function changeLines(diff, max) {

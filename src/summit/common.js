@@ -96,6 +96,16 @@ export function summitFootprint(colliders = [], platforms = []) {
   return { colliders, platforms, exclusions: [], anchors: {} };
 }
 
+/**
+ * The position attribute of a particle or mesh handle, or null. A kit part
+ * bound in place of a classic Points system may be any Object3D (no
+ * geometry), so the per-frame code reads positions only through this.
+ */
+export function pointsPosition(obj) {
+  const geo = obj && obj.geometry;
+  return (geo && geo.attributes && geo.attributes.position) || null;
+}
+
 /** Register a footprint through the classic helpers, in order. `this` = the manager. */
 export function registerFootprint(footprint) {
   for (const box of footprint.colliders) this.addColliderBox(...box);

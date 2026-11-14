@@ -8,7 +8,7 @@ import {
 } from './foliage.js?v=20261113a';
 import {
   mulberry32, smoothstep, ORIGIN, MEADOW_R, MEADOW_Y, CORRIDOR_W, CORRIDOR_Z0, CORRIDOR_Z1, GATE_Z,
-  ENTRY_Y, PERCH_CAM, approachTopAt, MEDITATE_SECONDS, summitWeatherAmount
+  ENTRY_Y, PERCH_CAM, approachTopAt, MEDITATE_SECONDS, summitWeatherAmount, pointsPosition
 } from './summit/common.js?v=20261113a';
 import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261113a';
 import { lightMethods } from './summit/light.js?v=20261113a';
@@ -35,6 +35,25 @@ const SUMMIT_WEATHER_POOL = [
 const SUMMIT_WEATHER_DURATIONS = {
   clear: 520, cloudy: 360, mist: 260, rain: 250, snow: 220
 };
+
+// Keys warned without a runtime (an `assets` object that has no warnOnce).
+const _summitWarned = new Set();
+
+/**
+ * One console warning per key, through the asset runtime's warnOnce (so it
+ * also lands in the runtime's `problems`, which the debug overlay and the
+ * tests read). The classic set never builds a kit instance, so it never warns.
+ */
+function summitWarnOnce(assets, key, message) {
+  const runtime = assets && (assets.runtime || assets);
+  if (runtime && typeof runtime.warnOnce === 'function') {
+    runtime.warnOnce(key, message);
+    return;
+  }
+  if (_summitWarned.has(key)) return;
+  _summitWarned.add(key);
+  if (typeof console !== 'undefined' && console.warn) console.warn('[kit] ' + message);
+}
 
 /**
  * The hidden summit clearing — a wind-combed grass field above Kyoto with
@@ -293,13 +312,31 @@ export class SummitManager {
    * (`this[name] = value`) and `layout.bind` parts too. Nothing on the summit
    * is merged, so `instance.live` needs no special case; animated instances
    * are updated by update() below.
+   *
+   * Warned once per key (summitWarnOnce): a `?swap=<id>:modular` for an id
+   * with no kit asset registered (it builds classic), a `layout.parent` that
+   * is not in the summit (the instance goes to the root), and a `layout.bind`
+   * part the instance does not have (that handle stays null; update(),
+   * setQuality() and the transitions null-guard every routed handle, and the
+   * vista falls back to the instance group). Nothing here runs on classic.
    */
   placeAsset(id, layout, classicFn) {
     const assets = this.assets || CLASSIC_ASSETS; // the Summit Lab runs builders on a bare prototype
+    if (assets.swaps && assets.swaps[id] === 'modular' && typeof assets.has === 'function' && !assets.has(id)) {
+      summitWarnOnce(assets, 'summit-unregistered:' + id,
+        `${id}: ?swap asks for the kit, but no kit asset is registered under that id; it builds classic`);
+    }
     const out = assets.build(id, layout, classicFn);
     if (!isAssetInstance(out)) return out;
     const root = layout.space === 'valley' ? this.scene : this.group;
-    const parent = (layout.parent && root.getObjectByName(layout.parent)) || root;
+    let parent = root;
+    if (layout.parent) {
+      parent = (typeof root.getObjectByName === 'function' && root.getObjectByName(layout.parent)) || root;
+      if (parent === root) {
+        summitWarnOnce(assets, `summit-parent:${id}:${layout.parent}`,
+          `${id}: layout parent '${layout.parent}' is not in the summit; the instance is placed at the summit root`);
+      }
+    }
     out.group.position.set(layout.x || 0, layout.y || 0, layout.z || 0);
     out.group.rotation.y = layout.ry || 0;
     parent.add(out.group);
@@ -308,7 +345,12 @@ export class SummitManager {
     for (const box of f.platforms || []) this.addPlatformBox(...box);
     for (const [name, value] of Object.entries(f.anchors || {})) this[name] = value;
     for (const [field, part] of Object.entries(layout.bind || {})) {
-      this[field] = out.parts[part] || (out.sockets && out.sockets[part]) || null;
+      const obj = (out.parts && out.parts[part]) || (out.sockets && out.sockets[part]) || null;
+      if (!obj) {
+        summitWarnOnce(assets, `summit-bind:${id}:${field}`,
+          `${id}: the instance has no part '${part}' that layout.bind.${field} names`);
+      }
+      this[field] = obj;
     }
     return out;
   }
@@ -360,11 +402,14 @@ export class SummitManager {
     const weatherFraction = tier === 'low' ? 0.5 : tier === 'medium' ? 0.76 : 1;
     setPointBudget(this.rain, weatherFraction);
     setPointBudget(this.snow, weatherFraction);
-    if (this.rain && this.rain.geometry.attributes.position) {
-      this._rainActive = Math.max(1, Math.floor(this.rain.geometry.attributes.position.count * weatherFraction));
+    // A kit 'drops' / 'flakes' part may be any Object3D (no geometry).
+    const rainPosition = pointsPosition(this.rain);
+    if (rainPosition) {
+      this._rainActive = Math.max(1, Math.floor(rainPosition.count * weatherFraction));
     }
-    if (this.snow && this.snow.geometry.attributes.position) {
-      this._snowActive = Math.max(1, Math.floor(this.snow.geometry.attributes.position.count * weatherFraction));
+    const snowPosition = pointsPosition(this.snow);
+    if (snowPosition) {
+      this._snowActive = Math.max(1, Math.floor(snowPosition.count * weatherFraction));
     }
     for (let i = 0; i < (this.vistaBoats || []).length; i++) {
       this.vistaBoats[i].visible = tier !== 'low' || i < 4;
@@ -785,10 +830,12 @@ export class SummitManager {
   /* ================= Per-frame ================= */
 
   update(dt, playing) {
-    // The shrine beacon pulses even while the player is in the valley.
-    if (this.unlocked && this.raysGroup && !this.active) {
+    // The shrine beacon pulses even while the player is in the valley. The
+    // thicket, the reveal and the portal below never depend on the beacon's
+    // handles: a kit 'shrine-rays' may bind no beacon and bring no pulse list.
+    if (this.unlocked && !this.active) {
       const t = this.time += dt;
-      for (const r of this._rays) {
+      for (const r of this._rays || []) {
         r.material.opacity = r.userData.baseOpacity * (0.72 + 0.28 * Math.sin(t * 0.7 + r.userData.phase));
       }
       // The thicket behind the shrine parts open — one-way, permanent.
@@ -856,13 +903,15 @@ export class SummitManager {
       });
     }
 
-    // Clouds drift through on the wind; pollen rides it visibly.
-    for (const c of this.summitClouds) {
+    // Clouds drift through on the wind; pollen rides it visibly. A kit
+    // summit-clouds sets no cloud list, and a kit 'pollen' part may be any
+    // Object3D (no geometry): both are skipped.
+    for (const c of this.summitClouds || []) {
       c.mesh.position.x += c.speed * dt * 1.8;
       if (c.mesh.position.x > c.maxX) c.mesh.position.x = c.minX;
     }
-    if (this.pollen) {
-      const pp = this.pollen.geometry.attributes.position;
+    const pp = pointsPosition(this.pollen);
+    if (pp) {
       const wv = 2.6 + Math.sin(t * 0.4) * 1.2;
       for (let i = 0; i < pp.count; i++) {
         let x = pp.getX(i) + wv * dt + Math.sin(t * 1.7 + i) * dt * 0.5;

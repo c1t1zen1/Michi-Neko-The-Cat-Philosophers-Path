@@ -46,6 +46,15 @@ const node3 = () => ({
   userData: {}, children: [], name: '', visible: true, frustumCulled: true, renderOrder: 0,
   add(c) { this.children.push(c); return this; },
   remove() {}, traverse() {}, lookAt() {},
+  // placeAsset() finds a kit instance's parent by name (classic never asks).
+  getObjectByName(n) {
+    if (this.name === n) return this;
+    for (const c of this.children) {
+      const found = c && typeof c.getObjectByName === 'function' ? c.getObjectByName(n) : undefined;
+      if (found) return found;
+    }
+    return undefined;
+  },
   updateMatrix() {}, updateMatrixWorld() {}, matrix: {}, matrixWorld: {},
 });
 const geo3 = () => ({
@@ -670,6 +679,169 @@ ok('movement exits scenic view and restores controls',
 for (let i = 0; i < 400; i++) { g.player.moveInput.lengthSq = () => 0; park(); S.update(0.5, true); }
 ok('the cat can fall asleep a second time', S.sleeping === true,
   `t=${S.meditateT.toFixed(1)}`);
+
+// --- kit stand-ins that leave the handles out --------------------------------
+// Every summit inventory id is built from a kit stand-in through the real
+// asset runtime, three times: with no bound parts at all (each layout.bind
+// resolves to nothing and no classic step sets its fields), with only the
+// first part each layout binds (a fūrin bell without its sail and clapper,
+// a sky fill without the warm fill, …), and with every bound part a bare
+// Object3D that carries only a colour (no geometry, material or ground
+// colour). The unlock, the valley beacon and portal, every per-frame path in
+// every weather and light, the perch, setQuality() and leaving must not
+// throw, and each unresolved bind is reported once, through the runtime.
+console.log('\n--- kit stand-ins without the classic handles ---\n');
+const { AssetRuntime } = native['src/kit/runtime.js'];
+const { defineAsset } = await import(pathToFileURL(join(ROOT, 'src', 'kit', 'contract.js')).href);
+const summitIds = JSON.parse(readFileSync(join(ROOT, 'labs', 'asset_inventory.json'), 'utf8'))
+  .assets.filter((a) => a.group === 'Summit').map((a) => a.id);
+const kitObject = () => Object.assign(new THREE.Object3D(), { isObject3D: true });
+// parts: 'none' | 'first' (the first part each layout binds) | 'all'
+const standIn = (id, parts) => defineAsset({
+  id, family: 'summit-standin', tiers: ['hero', 'mid', 'far'],
+  build(ctx, layout) {
+    const group = kitObject();
+    const out = { body: kitObject() };
+    const bound = Object.values(layout.bind || {});
+    for (const part of parts === 'all' ? bound : parts === 'first' ? bound.slice(0, 1) : []) {
+      out[part] = Object.assign(kitObject(), { color: new THREE.Color() });
+    }
+    for (const part of Object.values(out)) group.add(part);
+    return { group, parts: out, sockets: {}, live: [], footprint: layout.footprint };
+  },
+});
+const kitRuntime = ({ parts = 'none', assetSet = 'modular', search = '', ids = summitIds } = {}, warnings = []) => {
+  const rt = new AssetRuntime({
+    THREE, assetSet, search, quality: 'high', logger: { warn: (m) => warnings.push(m) },
+    loadFamilies: async () => ({}), createMaterials: async () => null, fetchOverrides: async () => null,
+  });
+  for (const id of ids) rt.register(standIn(id, parts), 'summit-standin');
+  return rt;
+};
+const fullPalette = Object.fromEntries(['top', 'mid', 'horizon', 'warm', 'sun', 'hemiSky', 'hemiGround', 'fog', 'cloud']
+  .map((k) => [k, new THREE.Color()]));
+const boxes = (list) => JSON.stringify(list.map((b) => [b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z]));
+const classicBoxes = (() => { const C = new SummitManager(makeGame()); return { c: boxes(C.colliders), p: boxes(C.platforms) }; })();
+
+function driveKitSummit(parts) {
+  const warnings = [], failures = [];
+  const game = makeGame();
+  game.assets = kitRuntime({ parts }, warnings);
+  const run = (label, fn) => { try { fn(); } catch (e) { failures.push(`${label}: ${e && e.message || e}`); } };
+  let K = null;
+  run('build', () => { K = new SummitManager(game); });
+  if (!K) return { K, game, warnings, failures, portal: false };
+  const sky = game.sky;
+  sky.resolvePalette = () => fullPalette; // the whole re-lighting path, not only the fills
+  run('setQuality', () => { for (const q of ['low', 'medium', 'high']) K.setQuality(q); });
+  run('unlock', () => K.setUnlocked(true));
+  run('valley beacon', () => { game.player.mesh.position.set(0, 0, -20); for (let i = 0; i < 4; i++) K.update(0.25, true); });
+  run('portal', () => { game.player.mesh.position.set(0, 0, -40); K.update(0.016, true); });
+  const portal = K.transitioning === true;
+  // Skip the veil's timers: arrive directly, controls back.
+  K.transitioning = false;
+  game.player.actionLocked = false;
+  game.controls.enabled = true;
+  run('enter', () => K.enterImmediate());
+  const spots = [[0, 9.5], [4.55, 5.1], [K.perchLocal.x, K.perchLocal.z]];
+  for (const weather of ['clear', 'cloudy', 'mist', 'rain', 'snow']) {
+    sky.weather = sky.targetWeather = weather;
+    sky.weatherBlend = 1;
+    for (const sunY of [1, 0.1, -0.4]) {
+      sky.sunDir.set(0.3, sunY, 0.2);
+      run(`update (${weather}, sun ${sunY})`, () => {
+        K._birdFlybyTimer = 0;
+        K._butterflyVisitTimer = 0;
+        for (const [x, z] of spots) {
+          game.player.mesh.position.set(K.origin.x + x, K.origin.y + 0.08, K.origin.z + z);
+          K.update(0.5, true);
+        }
+      });
+    }
+  }
+  run('perch', () => {
+    game.player.cat.idleAction = 'sit';
+    for (let i = 0; i < 12; i++) {
+      game.player.mesh.position.set(K.origin.x + K.perchLocal.x, K.origin.y + K.perchLocal.y, K.origin.z + K.perchLocal.z);
+      K.update(0.5, true);
+    }
+  });
+  run('direct calls', () => {
+    K.startBirdFlyby(); K.reseedSnow(); K.reseedRain(); K.resetAmbientWildlife();
+    K.updateAmbientWildlife(0.1, 1, sky); K.updateSakuraPetals(0.1, 1, sky);
+    K.updateVistaEnvironment(0.1, 1, sky); K.updateMeditationAtmosphere(0.1, 1, true, sky);
+  });
+  run('leave', () => { K.setActive(false); K.update(0.016, true); });
+  return { K, game, warnings, failures, portal };
+}
+
+const bare = driveKitSummit('none');
+const B = bare.K;
+ok('bare stand-ins: every summit id is built from its kit stand-in',
+  !!B && new Set(B.assets.instances.map((i) => i.id)).size === summitIds.length &&
+  B.assets.instances.length === 34,
+  B ? `${B.assets.instances.length} instances` : 'no summit');
+ok('bare stand-ins: colliders and platforms come from the layouts, as on classic',
+  !!B && boxes(B.colliders) === classicBoxes.c && boxes(B.platforms) === classicBoxes.p);
+ok('bare stand-ins: unlock, beacon, portal, every weather and light, the perch, setQuality() and leaving never throw',
+  bare.failures.length === 0, bare.failures.slice(0, 3).join(' | '));
+ok('bare stand-ins: the portal behind the shrine opens with no beacon handle',
+  bare.portal && !!B && B.raysGroup === null && B._rays === undefined);
+const bindWarnings = bare.warnings.filter((w) => /has no part '.*' that layout\.bind\./.test(w));
+const boundFields = !B ? [] : B.assets.instances.flatMap((i) => Object.keys((i.layout && i.layout.bind) || {}).map((f) => `${i.id}:${f}`));
+ok('bare stand-ins: each missing bound part is warned once, through the runtime',
+  bindWarnings.length > 0 && bindWarnings.length === new Set(boundFields).size &&
+  new Set(bindWarnings).size === bindWarnings.length &&
+  bindWarnings.every((w) => B.assets.problems.includes(w.replace(/^\[kit\] /, ''))),
+  `${bindWarnings.length} warnings for ${new Set(boundFields).size} bound fields`);
+let rebound = false;
+if (B) {
+  const furinInstance = B.assets.instances.find((i) => i.id === 'summit-furin');
+  const before = bare.warnings.length;
+  B.placeAsset('summit-furin', furinInstance.layout, () => null);
+  B.placeAsset('summit-enso', { index: 0, x: 0, y: 0, z: 0, parent: 'No Such Summit Object', footprint: { colliders: [], platforms: [], anchors: {} } }, () => null);
+  B.placeAsset('summit-enso', { index: 0, x: 0, y: 0, z: 0, parent: 'No Such Summit Object', footprint: { colliders: [], platforms: [], anchors: {} } }, () => null);
+  const added = bare.warnings.slice(before);
+  rebound = added.length === 1 && /layout parent 'No Such Summit Object' is not in the summit/.test(added[0]);
+}
+ok('a repeated unresolved bind is not warned again; an unknown parent is warned once', rebound);
+
+const first = driveKitSummit('first');
+const F = first.K;
+ok('first-part stand-ins: a bell without its sail and clapper, a sky fill without the warm fill, … never throw',
+  first.failures.length === 0 && !!F && !!F.furin && F.furinSail === null && F.furinClapper === null &&
+  !!F.summitSkyFill && F.summitWarmFill === null && !!F.meditationPool && F.meditationMotes === null,
+  first.failures.slice(0, 3).join(' | '));
+ok('first-part stand-ins: the kit fūrin bell still sways in the breeze', !!F && F.furin.rotation.z !== 0);
+
+const plain = driveKitSummit('all');
+const P = plain.K;
+ok('plain-part stand-ins: every bound handle is the kit part',
+  !!P && P.raysGroup && P.raysGroup.isObject3D && P.furin && P.furin.isObject3D && P.snow && P.snow.isObject3D &&
+  P.butterflies && P.butterflies.isObject3D && P.vista && P.vista.isObject3D && plain.warnings.length === 0,
+  plain.warnings.slice(0, 2).join(' | '));
+ok('plain-part stand-ins: parts without geometry, material or ground colour never throw anywhere',
+  plain.failures.length === 0, plain.failures.slice(0, 3).join(' | '));
+ok('plain-part stand-ins: the kit fūrin still sways in the breeze',
+  !!P && P.furin.rotation.z !== 0 && P.furinSail.rotation.y !== 0);
+
+// One kit vista without a 'layers' part, everything else classic; and a
+// ?swap for an id that has no kit asset registered.
+const mixedWarnings = [];
+let M = null, mixedError = '';
+try {
+  const mg = makeGame();
+  mg.assets = kitRuntime({ assetSet: 'classic', search: '?swap=summit-vista:modular,summit-furin:modular', ids: ['summit-vista'] }, mixedWarnings);
+  M = new SummitManager(mg);
+} catch (e) { mixedError = e && e.message || String(e); }
+const kitVista = M && M.assets.instances.find((i) => i.id === 'summit-vista');
+ok('a kit vista without a layers part still holds the classic layers',
+  !!kitVista && M.vista === kitVista.group && M.vista.children.length > 5 &&
+  M.assets.instances.every((i) => i.id === 'summit-vista') && !!M.furin,
+  mixedError || (M ? `${M.vista && M.vista.children.length} children` : ''));
+ok('a ?swap for an id with no kit registered is warned once and builds classic',
+  mixedWarnings.filter((w) => /summit-furin: \?swap asks for the kit, but no kit asset is registered/.test(w)).length === 1,
+  mixedWarnings.join(' | '));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

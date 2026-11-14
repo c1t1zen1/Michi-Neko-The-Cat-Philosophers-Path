@@ -3,8 +3,8 @@
 - Worker / model:     Claude Opus 5.5 (claude-opus-5-5)
 - Claimed:            2026-11-13 04:10 PST
 - Branch:             fable/s1-summit-split
-- Base commit:        5dc924a (fable/integration); merged 619aab7 (Phase 0 + f1-runtime) as b8e4602 and 5297f2d (f2, f3, c1, G-F chores) as 915fd33
-- State:              ready for review
+- Base commit:        5dc924a (fable/integration); merged 619aab7 (Phase 0 + f1-runtime) as b8e4602, 5297f2d (f2, f3, c1, G-F chores) as 915fd33, c39a982 (tag 20261113a; f2, f3, c1, c2) as e879e3f, and 4273c90 (c3, Roof Road downtown from main) as 8bcec2a
+- State:              review fix round 1 done; ready for re-review
 
 Lane: guide section 11, Phase 4, steps S1.1 to S1.5 (gate G-S). Splits
 `src/mountaintop.js` into `src/summit/` modules behind the `SummitManager`
@@ -39,10 +39,19 @@ Result: no unmerged summit work elsewhere. Phase 4 proceeds under D2.
 - [x] S1.4 `tools/summit_test.mjs` loads the facade and its real modules (d2138d6; native `src/kit/runtime.js` 2615b07); no check changed
 - [x] S1.5 `tools/verify.mjs` checks read the files the code moved to (ae6fc42, dcf0297); summit syntax pass and three wiring checks added (f9d69ec); none removed
 - [x] AGENTS.md row and summit paragraph references (f8ab3a6); handoff; previews against the Phase 0 masters; boots; report; PR
+- [x] Review fix round 1: golden ignores cache tags in load URLs (01c745e); every per-frame and state path that reads a routed handle is bound or null-guarded, the portal no longer depends on the beacon handle, placeAsset warns once (unresolved bind part, unknown parent, `?swap` of an unregistered id) through the runtime; 13 checks added to `summit_test.mjs` and an update() drive added to the golden's routing test; routing "not run" exits 2
 
 ## Checks run (command → real result)
 
-Final, on the merged tree (915fd33):
+Review fix round 1, on the tree merged with 4273c90 (details and output in the
+lane report's "Fix round 1" section):
+
+- `node tools/summit_golden.mjs` → `summit golden: EQUAL`, exit 0; routing ok 32/32; `drive update() on classic and kit stand-ins: classic 0 throws, portal ok, perch ok, fūrin 1; modular 0 throws, portal ok, perch ok, fūrin 1; bare 0 throws, portal ok, perch ok, fūrin 0; bind warnings 25/25 (bare)`; `summit_test.mjs "83 passed, 0 failed", output identical to tools/golden/summit_test.txt (91 lines)`. Same page on the pre-fix sources → `EQUAL, ROUTING FAILED`, exit 1; routing forced off → `EQUAL, ROUTING NOT RUN`, exit 2.
+- `node tools/summit_test.mjs` → `83 passed, 0 failed` (the 70 earlier checks unchanged; on the pre-fix sources 8 of the 13 new checks fail); a scratch mutation pass undoing each of the 21 new guards one at a time: 21 of 21 caught.
+- `node tools/verify.mjs` → `All checks passed`, 53 PASS lines (none removed); `node tools/check_syntax.mjs` → `All 62 modules OK`; `node tools/kit_check.mjs` → `All kit checks OK (29 passed)`; `node tools/labs_check.mjs` → `All labs checks OK` (after `labs_coverage.mjs --write`: line links only); `node tools/footprint_golden.mjs` → `footprint golden: EQUAL`; `git diff --check origin/fable/integration...HEAD` → no output.
+- Boots (Metal): `/__boot.html` and `/index.html?assets=modular` play, summit entered: `{set classic|modular, scoped, kit 0, active, colliders 24, platforms 8, problems []}`, only the known `cad-overrides.json` 404; `?swap=summit-furin:modular` adds exactly one `[kit]` warning.
+
+Before review (merged tree 915fd33):
 
 - `node tools/summit_golden.mjs` → `summit golden: EQUAL`, exit 0; `rng summit 51267 draws (probe ok) · Math.random 0 · volatile 0`; `routing ok: 32 summit ids, 34 classic placeAsset() calls; all modular 34/34 stand-ins, 51267 draws (probe ok); single swaps 32/32 ok`; `test summit_test.mjs "70 passed, 0 failed", output identical to tools/golden/summit_test.txt (75 lines)`. Advisory only (not the verdict): `+api placeAsset, assetEnv`, `+state.assets`, `_tree` no longer called by `buildRocksAndTrees`.
 - Golden determinism (S1.1, before any move): 3 Metal runs byte-identical; after switching canvas textures to drawing-command hashes, Metal and SwiftShader digests byte-identical (`adc8a2c1…`); three EQUAL runs after `--write`.
@@ -65,8 +74,10 @@ None.
 
 ## Notes for the Integrator
 See `docs/fable/handoff/s1-summit-split.md`: no hot-file patch needed (the
-runtime reaches the summit through `game.assets`); the tag bump must include
-`src/summit/*.js` and `tools/summit_golden.*`; six inventory anchors changed;
-the Summit Lab's code panel now shows a delegator; the per-id handle table for
-`s2`–`s4`; the branch merged integration twice rather than rebasing (no
-force-push).
+runtime reaches the summit through `game.assets`); both AGENTS.md tag-bump
+forms already cover `src/summit/`, and `tools/summit_golden.html/.js` are
+bumped by hand; six inventory anchors changed; the Summit Lab's code panel now
+shows a delegator; the per-id handle table for `s2`–`s4` (every handle now
+bound or guarded); the branch merged integration four times rather than
+rebasing (no force-push); `tools/golden/summit_test.txt` was regenerated for
+the 13 added checks.

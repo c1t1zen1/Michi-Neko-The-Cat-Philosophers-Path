@@ -16,6 +16,25 @@ import {
   LOWER_STEP_RUN, approachTopAt, lowerStepTopAt, MEDITATE_SECONDS, summitWeatherAmount, summitFootprint
 } from './common.js?v=20261113a';
 
+const _furinAt = new THREE.Vector3();
+
+/**
+ * The fūrin's position in summit-local space, for the chime's proximity
+ * check. The classic bell hangs directly in the summit group, so that is its
+ * own position (unchanged). A kit 'bell' part sits inside its instance group,
+ * so its local position is measured from there and is converted instead.
+ */
+function furinLocalPosition(manager) {
+  const furin = manager.furin;
+  const group = manager.group;
+  if (furin.parent === group || typeof furin.getWorldPosition !== 'function' ||
+      !group || typeof group.worldToLocal !== 'function') {
+    return furin.position;
+  }
+  furin.updateWorldMatrix(true, false);
+  return group.worldToLocal(furin.getWorldPosition(_furinAt));
+}
+
 export const clearingMethods = {
   // Each build*() is the §3.4 split: a layout step (every this.rng() draw, in
   // the classic order, and the footprint), then placeAsset() with the classic
@@ -714,10 +733,12 @@ export const clearingMethods = {
       const motion = this._reducedMotion ? 0.18 : 1;
       this.furin.rotation.z = Math.sin(t * 1.15) * 0.075 * gust * motion;
       this.furin.rotation.x = Math.cos(t * 0.73) * 0.035 * gust * motion;
-      this.furinSail.rotation.y = Math.sin(t * 1.7) * 0.48 * motion;
-      this.furinClapper.position.x = Math.sin(t * 1.15 + 0.35) * 0.045 * gust * motion;
-      const dx = this._localPlayer.x - this.furin.position.x;
-      const dz = this._localPlayer.z - this.furin.position.z;
+      // A kit bell may come without a sail or a clapper part.
+      if (this.furinSail) this.furinSail.rotation.y = Math.sin(t * 1.7) * 0.48 * motion;
+      if (this.furinClapper) this.furinClapper.position.x = Math.sin(t * 1.15 + 0.35) * 0.045 * gust * motion;
+      const at = furinLocalPosition(this);
+      const dx = this._localPlayer.x - at.x;
+      const dz = this._localPlayer.z - at.z;
       const near = dx * dx + dz * dz < 8.2;
       if (playing && near && !this._furinNear && !this._furinChimed) {
         this._furinChimed = true;
