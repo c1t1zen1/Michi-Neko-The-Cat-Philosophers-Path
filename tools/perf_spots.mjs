@@ -6,8 +6,13 @@
 //
 //   node tools/perf_spots.mjs [--tiers low,medium,high] [--spots street,shrine,river,meadow]
 //     [--boots 3] [--rounds 3] [--frames 240] [--warmup 3000] [--hour 10.5]
-//     [--url-suffix "?assets=modular"] [--gpu metal|swiftshader] [--size 1200x750]
+//     [--url-suffix "?assets=modular" ...] [--gpu metal|swiftshader] [--size 1200x750]
 //     [--shots <dir>] --out <file.json>
+//
+// Boots are interleaved (boot 1 of every set and tier, then boot 2, …) and
+// each records os.loadavg(), so background load spreads across tiers and is
+// on record. Several --url-suffix values compare sets in one session, e.g.
+// --url-suffix "" --url-suffix "?assets=modular" (classic vs modular).
 //
 // Prints a markdown table (and writes the raw numbers to --out). Uses
 // tools/headless.mjs (Playwright outside the repo: PLAYWRIGHT_MODULE).
@@ -147,7 +152,9 @@ async function measureFrames({ frames, rounds, warmup, renderReps }) {
     loop.call(this);
     const submitted = performance.now();
     sync();
-    samples.push({ start, cpu: submitted - start, gpuWait: performance.now() - submitted,
+    // Game.loop() zeroes _shadowFrame on the frames where it refreshes the
+    // sun's shadow map (every frame on high, every 2nd on low and medium).
+    samples.push({ start, cpu: submitted - start, gpuWait: performance.now() - submitted, shadow: g._shadowFrame === 0,
       calls: info.render.calls, triangles: info.render.triangles, mainCalls: main.calls, mainTriangles: main.triangles });
   };
   const out = [];
@@ -161,7 +168,7 @@ async function measureFrames({ frames, rounds, warmup, renderReps }) {
       }
       const s = samples.slice(1, frames + 1);
       out.push({
-        frame: s.map((x) => x.cpu + x.gpuWait), cpu: s.map((x) => x.cpu), gpuWait: s.map((x) => x.gpuWait),
+        frame: s.map((x) => x.cpu + x.gpuWait), cpu: s.map((x) => x.cpu), gpuWait: s.map((x) => x.gpuWait), shadow: s.map((x) => x.shadow),
         interval: s.map((x, i) => x.start - samples[i].start),
         calls: s.map((x) => x.calls), triangles: s.map((x) => x.triangles),
         mainCalls: s.map((x) => x.mainCalls), mainTriangles: s.map((x) => x.mainTriangles)
@@ -263,8 +270,37 @@ function machine() {
   return out;
 }
 
+/**
+ * Per-spot numbers. Low and medium refresh the shadow map every 2nd frame,
+ * so their per-frame counts (and times) are bimodal: each metric keeps the
+ * median of shadow-refresh frames ("shadow"), of the other frames ("other",
+ * null on high, which refreshes every frame), the plain mean, and the
+ * amortised value (the two medians weighted by how often each frame kind
+ * occurs; robust to contention spikes, unlike the mean).
+ */
+function spotStats(m) {
+  const pick = (key, kind) => m.rounds.flatMap((r) => r[key].filter((_, i) => kind === 'all' || (kind === 'shadow') === r.shadow[i]));
+  const amortised = (sh, no) => ((sh.length ? median(sh) * sh.length : 0) + (no.length ? median(no) * no.length : 0)) / (sh.length + no.length);
+  const modes = (key, d = 2) => {
+    const sh = pick(key, 'shadow'), no = pick(key, 'other'), all = pick(key, 'all');
+    return { ...stats(all, d), mean: round(all.reduce((a, b) => a + b, 0) / all.length, d),
+      shadow: sh.length ? round(median(sh), d) : null, other: no.length ? round(median(no), d) : null,
+      amortised: round(amortised(sh, no), d), shadowShare: round(sh.length / all.length, 3) };
+  };
+  const perRound = (key) => m.rounds.map((r) => round(amortised(r[key].filter((_, i) => r.shadow[i]), r[key].filter((_, i) => !r.shadow[i]))));
+  return {
+    frameMs: { ...modes('frame'), roundAmortised: perRound('frame') },
+    loopCpuMs: { ...modes('cpu'), roundAmortised: perRound('cpu') },
+    gpuWaitMs: modes('gpuWait'),
+    rafIntervalMs: stats(pick('interval', 'all')),
+    renderMs: { ...stats(m.render, 3), reps: m.render.map((v) => round(v, 3)) },
+    drawCalls: modes('calls', 0), triangles: modes('triangles', 0),
+    sceneDrawCalls: modes('mainCalls', 0), sceneTriangles: modes('mainTriangles', 0)
+  };
+}
+
 async function bootOnce(tier, opts, log) {
-  log(`${tier} boot ${opts.bootNo}: starting`);
+  log(`${opts.label}${tier} boot ${opts.bootNo}: starting (load ${os.loadavg().map((v) => v.toFixed(2)).join(' ')})`);
   const session = await openPage('/index.html' + opts.urlSuffix, {
     size: opts.size, gpu: opts.gpu, timeout: opts.timeout, init: TIMING_HOOK,
     session: { catwalk_autostart: 'new' }, local: { catwalk_settings_v1: { quality: tier } }
@@ -285,26 +321,17 @@ async function bootOnce(tier, opts, log) {
     for (const name of opts.spots) {
       const placed = await page.evaluate(placeCat, SPOTS[name]);
       const m = await page.evaluate(measureFrames, { frames: opts.frames, rounds: opts.rounds, warmup: opts.warmup, renderReps: 30 });
-      const all = (key) => m.rounds.flatMap((r) => r[key]);
-      spots[name] = {
-        placed,
-        frameMs: { ...stats(all('frame')), roundMedians: m.rounds.map((r) => round(median(r.frame))) },
-        loopCpuMs: { ...stats(all('cpu')), roundMedians: m.rounds.map((r) => round(median(r.cpu))) },
-        gpuWaitMs: stats(all('gpuWait')),
-        rafIntervalMs: stats(all('interval')),
-        renderMs: { ...stats(m.render, 3), reps: m.render.map((v) => round(v, 3)) },
-        drawCalls: stats(all('calls'), 0), triangles: stats(all('triangles'), 0),
-        sceneDrawCalls: stats(all('mainCalls'), 0), sceneTriangles: stats(all('mainTriangles'), 0),
-        memory: m.memory, adaptive: m.adaptive
-      };
+      spots[name] = { placed, ...spotStats(m), memory: m.memory, adaptive: m.adaptive };
       if (m.syncError) throw new Error(`readPixels sync raised GL error ${m.syncError}; frame timings would not be synced`);
       if (opts.shots && opts.shotBoot) {
-        const file = path.join(opts.shots, `${tier}-${name}.jpg`);
+        const file = path.join(opts.shots, `${opts.shotPrefix}${tier}-${name}.jpg`);
         await page.screenshot({ path: file, type: 'jpeg', quality: 80 });
         spots[name].shot = file;
       }
-      log(`  ${tier} boot ${opts.bootNo} ${name}: frame ${spots[name].frameMs.median} ms (cpu ${spots[name].loopCpuMs.median} + gpu wait ${spots[name].gpuWaitMs.median}), ` +
-        `render ${spots[name].renderMs.median} ms, calls ${spots[name].drawCalls.median}, tris ${spots[name].triangles.median}`);
+      const x = spots[name];
+      log(`  ${opts.label}${tier} boot ${opts.bootNo} ${name}: frame ${x.frameMs.amortised} ms amortised (shadow ${x.frameMs.shadow} / other ${x.frameMs.other ?? '—'}), ` +
+        `cpu ${x.loopCpuMs.amortised}, render ${x.renderMs.median} ms, calls ${x.drawCalls.shadow} / ${x.drawCalls.other ?? '—'}, ` +
+        `tris ${x.triangles.shadow} / ${x.triangles.other ?? '—'}`);
     }
     return { build, state, spots, errors: [...session.errors], warnings: [...session.warnings] };
   } finally {
@@ -313,37 +340,55 @@ async function bootOnce(tier, opts, log) {
 }
 
 const fmtSpread = (median, lo, hi, d = 1) => `${median.toFixed(d)} (${lo.toFixed(d)}–${hi.toFixed(d)})`;
-const fmtInt = (v) => Math.round(v).toLocaleString('en-US');
+const fmtInt = (v) => (v === null || v === undefined ? '—' : Math.round(v).toLocaleString('en-US'));
+const fmtMs = (v) => (v === null || v === undefined ? '—' : v.toFixed(2));
+const med = (list) => (list.some((v) => v === null) ? null : median(list));
 
-/** Markdown tables from the raw result. */
-export function tables(result) {
+/** Markdown tables for one set (one --url-suffix). */
+function setTables(result, set) {
   const lines = [];
-  lines.push('| Tier | Spot | Frame ms, GPU-synced: median (round medians min–max) | p90 | Loop CPU ms (boot medians min–max) | GPU wait ms | Render-only ms (boot medians min–max) | Draw calls (scene / frame) | Triangles (scene / frame) |');
+  const runsOf = (tier, spot) => set.tiers[tier].boots.map((b) => b.spots[spot]);
+  lines.push('| Tier | Spot | Frame ms amortised (round values min–max) | Shadow-refresh frame ms | Other frame ms | p90 | Loop CPU ms amortised (boot min–max) | GPU wait ms (shadow / other) | Render-only ms (boot min–max) |');
   lines.push('|---|---|---:|---:|---:|---:|---:|---:|---:|');
   for (const tier of result.options.tiers) {
     for (const spot of result.options.spots) {
-      const runs = result.tiers[tier].boots.map((b) => b.spots[spot]);
-      const roundMedians = runs.flatMap((s) => s.frameMs.roundMedians);
-      const frame = median(runs.map((s) => s.frameMs.median));
-      const p90 = median(runs.map((s) => s.frameMs.p90));
-      const cpu = runs.map((s) => s.loopCpuMs.median), render = runs.map((s) => s.renderMs.median);
-      const gpuWait = median(runs.map((s) => s.gpuWaitMs.median));
-      const sceneCalls = median(runs.map((s) => s.sceneDrawCalls.median)), calls = median(runs.map((s) => s.drawCalls.median));
-      const sceneTris = median(runs.map((s) => s.sceneTriangles.median)), tris = median(runs.map((s) => s.triangles.median));
-      lines.push(`| ${tier} | ${spot} | ${fmtSpread(frame, Math.min(...roundMedians), Math.max(...roundMedians), 2)} | ${p90.toFixed(2)} | ` +
-        `${fmtSpread(median(cpu), Math.min(...cpu), Math.max(...cpu), 2)} | ${gpuWait.toFixed(2)} | ${fmtSpread(median(render), Math.min(...render), Math.max(...render), 2)} | ` +
-        `${fmtInt(sceneCalls)} / ${fmtInt(calls)} | ${fmtInt(sceneTris)} / ${fmtInt(tris)} |`);
+      const runs = runsOf(tier, spot);
+      const rounds = runs.flatMap((x) => x.frameMs.roundAmortised);
+      const cpu = runs.map((x) => x.loopCpuMs.amortised), render = runs.map((x) => x.renderMs.median);
+      lines.push(`| ${tier} | ${spot} | ${fmtSpread(median(runs.map((x) => x.frameMs.amortised)), Math.min(...rounds), Math.max(...rounds), 2)} | ` +
+        `${fmtMs(med(runs.map((x) => x.frameMs.shadow)))} | ${fmtMs(med(runs.map((x) => x.frameMs.other)))} | ${fmtMs(median(runs.map((x) => x.frameMs.p90)))} | ` +
+        `${fmtSpread(median(cpu), Math.min(...cpu), Math.max(...cpu), 2)} | ${fmtMs(med(runs.map((x) => x.gpuWaitMs.shadow)))} / ${fmtMs(med(runs.map((x) => x.gpuWaitMs.other)))} | ` +
+        `${fmtSpread(median(render), Math.min(...render), Math.max(...render), 2)} |`);
     }
   }
   lines.push('');
-  lines.push('| Tier | World ready ms, ctor → first frame (min–max) | World build ms (min–max) | First frame ms (min–max) | Boot total ms, engine start → first frame (min–max) | Boots |');
-  lines.push('|---|---:|---:|---:|---:|---:|');
+  lines.push('| Tier | Spot | Draw calls per frame: shadow-refresh / other / mean | Scene-pass calls: shadow / other | Triangles per frame: shadow-refresh / other / mean | Scene-pass triangles: shadow / other |');
+  lines.push('|---|---|---:|---:|---:|---:|');
   for (const tier of result.options.tiers) {
-    const b = result.tiers[tier].boots.map((x) => x.build);
-    const col = (k) => { const v = b.map((x) => x[k]); return fmtSpread(median(v), Math.min(...v), Math.max(...v), 0); };
-    lines.push(`| ${tier} | ${col('worldReadyMs')} | ${col('worldBuildMs')} | ${col('firstFrameMs')} | ${col('bootTotalMs')} | ${b.length} |`);
+    for (const spot of result.options.spots) {
+      const runs = runsOf(tier, spot);
+      const m3 = (key) => `${fmtInt(med(runs.map((x) => x[key].shadow)))} / ${fmtInt(med(runs.map((x) => x[key].other)))} / ${fmtInt(median(runs.map((x) => x[key].mean)))}`;
+      const m2 = (key) => `${fmtInt(med(runs.map((x) => x[key].shadow)))} / ${fmtInt(med(runs.map((x) => x[key].other)))}`;
+      lines.push(`| ${tier} | ${spot} | ${m3('drawCalls')} | ${m2('sceneDrawCalls')} | ${m3('triangles')} | ${m2('sceneTriangles')} |`);
+    }
+  }
+  lines.push('');
+  lines.push('| Tier | World ready ms, ctor → first frame (min–max) | World build ms (min–max) | First frame ms (min–max) | Boot total ms, engine start → first frame (min–max) | Boots | Load avg, 1 min, at boot start (min–max) |');
+  lines.push('|---|---:|---:|---:|---:|---:|---:|');
+  for (const tier of result.options.tiers) {
+    const b = set.tiers[tier].boots;
+    const col = (k) => { const v = b.map((x) => x.build[k]); return fmtSpread(median(v), Math.min(...v), Math.max(...v), 0); };
+    const load = b.map((x) => x.load.start[0]);
+    lines.push(`| ${tier} | ${col('worldReadyMs')} | ${col('worldBuildMs')} | ${col('firstFrameMs')} | ${col('bootTotalMs')} | ${b.length} | ` +
+      `${fmtSpread(median(load), Math.min(...load), Math.max(...load), 2)} |`);
   }
   return lines.join('\n');
+}
+
+/** Markdown tables from the raw result: one block per set. */
+export function tables(result) {
+  const sets = Object.entries(result.sets);
+  return sets.map(([label, set]) => (sets.length > 1 ? `#### Set \`${label}\` (url suffix \`${set.urlSuffix || '(none)'}\`)\n\n` : '') + setTables(result, set)).join('\n\n');
 }
 
 /** --assets: per-asset classic costs, measured in a light host page that has the three import map. */
@@ -383,10 +428,11 @@ const USAGE = `Usage: node tools/perf_spots.mjs [options] --out <file.json>
   --spots street,shrine,river,meadow   fixed spots: ${Object.keys(SPOTS).join(', ')}
   --boots N                      fresh boots per tier (default 3; build time is per boot)
   --rounds N                     measurement rounds per spot per boot (default 3)
-  --frames N                     frames per round (default 240)
+  --frames N                     frames per round, even (default 240): low/medium refresh shadows every 2nd frame
   --warmup ms                    frames before measuring each spot (default 3000)
   --hour H                       fixed time of day (default 10.5), clear weather
-  --url-suffix S                 appended to /index.html, e.g. "?assets=modular"
+  --url-suffix S                 appended to /index.html, e.g. "?assets=modular"; repeat it to compare
+                                 sets in one session (boots interleave): --url-suffix "" --url-suffix "?assets=modular"
   --gpu metal|swiftshader        default ${DEFAULT_GPU}
   --size WxH                     viewport (default 1200x750, device scale 1)
   --shots <dir>                  JPG of each tier × spot from the first boot
@@ -398,7 +444,7 @@ const USAGE = `Usage: node tools/perf_spots.mjs [options] --out <file.json>
 
 async function main(argv) {
   const opts = { tiers: TIERS, spots: Object.keys(SPOTS), boots: 3, rounds: 3, frames: 240, warmup: 3000, hour: 10.5,
-    urlSuffix: '', gpu: DEFAULT_GPU, size: '1200x750', shots: null, timeout: 900, out: null, assets: false };
+    urlSuffixes: [], gpu: DEFAULT_GPU, size: '1200x750', shots: null, timeout: 900, out: null, assets: false };
   for (let i = 0; i < argv.length; i++) {
     const [flag, inline] = argv[i].split(/=(.*)/s);
     const value = () => (inline !== undefined ? inline : argv[++i]);
@@ -410,7 +456,7 @@ async function main(argv) {
       case '--frames': opts.frames = Number(value()); break;
       case '--warmup': opts.warmup = Number(value()); break;
       case '--hour': opts.hour = Number(value()); break;
-      case '--url-suffix': opts.urlSuffix = value(); break;
+      case '--url-suffix': opts.urlSuffixes.push(value()); break;
       case '--gpu': opts.gpu = value(); break;
       case '--size': opts.size = value(); break;
       case '--shots': opts.shots = path.resolve(value()); break;
@@ -422,10 +468,11 @@ async function main(argv) {
     }
   }
   const bad = opts.tiers.find((t) => !TIERS.includes(t)) || opts.spots.find((s) => !SPOTS[s]);
-  if (bad || !opts.out || ![opts.boots, opts.rounds, opts.frames].every((n) => Number.isInteger(n) && n > 0)) {
-    process.stderr.write(`perf_spots: ${bad ? `unknown tier or spot ${bad}` : 'check --out / --boots / --rounds / --frames'}\n\n${USAGE}`);
+  if (bad || !opts.out || ![opts.boots, opts.rounds, opts.frames].every((n) => Number.isInteger(n) && n > 0) || opts.frames % 2) {
+    process.stderr.write(`perf_spots: ${bad ? `unknown tier or spot ${bad}` : 'check --out / --boots / --rounds / --frames (an even number)'}\n\n${USAGE}`);
     return 64;
   }
+  if (!opts.urlSuffixes.length) opts.urlSuffixes = [''];
   if (opts.shots) await mkdir(opts.shots, { recursive: true });
   const log = (line) => process.stderr.write(line + '\n');
   const started = new Date();
@@ -445,22 +492,37 @@ async function main(argv) {
       gpuWaitMs: 'time the 1-pixel readPixels after the loop waited for the GPU to finish the frame',
       renderMs: 'composer.render() 30× back to back at the tier shadow cadence, synced by a 1-pixel readPixels, divided by 30; 5 reps',
       drawCalls: 'renderer.info.render with autoReset off for one whole loop: every pass (shadow map, scene, AO, atmosphere, bloom, grade, grass physics, env bake when due); "scene" = the RenderPass call (scene + shadow map)',
+      shadowSplit: 'each frame is tagged by whether Game.loop() refreshed the sun shadow map (game._shadowFrame === 0 afterwards): every frame on high, every 2nd frame on low/medium. Per metric: shadow = median of refresh frames, other = median of the rest, mean = plain mean, amortised = the two medians weighted by their share',
+      load: 'os.loadavg() at the start and end of every boot; boots are interleaved across sets and tiers (boot 1 of each, then boot 2, …)',
       build: 'worldBuildMs = Game constructor start (#canvas lookup) → its closing this.loop(); firstFrameMs = that first loop (shader compile + first render); worldReadyMs = sum; bootTotalMs adds engine start (boot screen "loading") → constructor, i.e. module download/evaluation',
       pinned: 'quality saved in localStorage before boot; hour fixed, clear weather; adaptive resolution and eco governor switched off; tier re-applied with applyQuality()'
     },
-    tiers: {}
+    sets: {}
   };
-  for (const tier of opts.tiers) {
-    result.tiers[tier] = { boots: [] };
-    for (let b = 0; b < opts.boots; b++) {
-      const run = await bootOnce(tier, { ...opts, bootNo: b + 1, shotBoot: b === 0 }, log);
-      result.tiers[tier].boots.push(run);
-      log(`${tier} boot ${b + 1}: world ready ${run.build.worldReadyMs} ms (build ${run.build.worldBuildMs}, first frame ${run.build.firstFrameMs})` +
-        (run.errors.length ? `; page errors: ${run.errors.join(' | ')}` : ''));
+  const labelOf = (suffix) => suffix || 'default';
+  const many = opts.urlSuffixes.length > 1;
+  for (const suffix of opts.urlSuffixes) {
+    result.sets[labelOf(suffix)] = { urlSuffix: suffix, tiers: Object.fromEntries(opts.tiers.map((t) => [t, { boots: [] }])) };
+  }
+  let order = 0;
+  for (let b = 0; b < opts.boots; b++) {
+    for (const suffix of opts.urlSuffixes) {
+      for (const tier of opts.tiers) {
+        const label = many ? `[${labelOf(suffix)}] ` : '';
+        const shotPrefix = many ? `${labelOf(suffix).replace(/[^a-z0-9]+/gi, '_')}-` : '';
+        const load = { start: os.loadavg().map((v) => round(v, 2)) };
+        const run = await bootOnce(tier, { ...opts, urlSuffix: suffix, label, shotPrefix, bootNo: b + 1, shotBoot: b === 0 }, log);
+        load.end = os.loadavg().map((v) => round(v, 2));
+        run.load = load;
+        run.order = ++order;
+        result.sets[labelOf(suffix)].tiers[tier].boots.push(run);
+        log(`${label}${tier} boot ${b + 1}: world ready ${run.build.worldReadyMs} ms (build ${run.build.worldBuildMs}, first frame ${run.build.firstFrameMs}); ` +
+          `load ${load.start.join(' ')} → ${load.end.join(' ')}` + (run.errors.length ? `; page errors: ${run.errors.join(' | ')}` : ''));
+      }
     }
   }
-  // Browser + GPU strings from one short extra session.
-  const probe = await openPage('/__boot.html', { gpu: opts.gpu, size: opts.size, timeout: 60 });
+  // Browser + GPU strings from one short extra session on a light page.
+  const probe = await openPage('/tools/labs_geometry_test.html', { gpu: opts.gpu, size: opts.size, timeout: 60 });
   try {
     result.browser = `Chromium ${probe.browser.version()} (Playwright headless)`;
     result.gpuRenderer = await gpuInfo(probe.browser);

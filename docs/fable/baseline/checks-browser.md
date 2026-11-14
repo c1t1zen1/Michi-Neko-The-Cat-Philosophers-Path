@@ -85,7 +85,7 @@ Three runs of exactly this command: 2,956 / 3,451 / 4,920 ms (launch to
 playing). Two more runs went on playing for 10 s (below); their only console
 line arrived at +4.2 s and +7.0 s. The spread is GPU and CPU contention:
 other Fable lanes were running browsers at the same time. `perf.md` has the
-precise split with timing hooks (world ready 2.8–3.3 s from the
+precise split with timing hooks (world ready ~1.2 s from the
 constructor's start). With 10 s of play, an eval and a screenshot:
 
 ```sh
@@ -114,8 +114,8 @@ error, no other warning.
 
 **AudioContext warnings:** none were logged in any recorded boot (the 5
 Metal boots above, the SwiftShader boot, 2 direct `/index.html` boots with
-`--session catwalk_autostart=new`, with and without a saved tier, and the 9
-boots of the perf run). One early exploratory scratch run (an early version
+`--session catwalk_autostart=new`, with and without a saved tier, and the 18
+boots of the two perf runs). One early exploratory scratch run (an early version
 of the perf timing hook, polling the page every second) logged 9 `The
 AudioContext was not allowed to start` warnings from `src/audio.js` and
 `src/music.js`; they did not recur. If they appear, they are the expected
@@ -197,7 +197,7 @@ Every page this lane ran, except the catalog suites, went through
 `tools/headless.mjs` (CLI or module): the lab geometry suite; `/__boot.html`
 on Metal and SwiftShader and `/index.html` on Metal; all 62 review-sheet and
 Roof Road captures (`captures.md`); the
-9 perf boots plus a 1-boot trial and the per-asset run (`perf.md`); plus its own modes:
+18 perf boots (the first run and the re-baseline), two trials and two per-asset runs (`perf.md`); plus its own modes:
 `--diff` (identical pair → `maxDelta 0`), `--convert` (PNG → 185 KB JPG),
 an HTTP 404 page (`exit 2`, `"error":"HTTP 404 for /no-such-page.html"`), a
 `--wait` timeout (`exit 2`), a bad option (`exit 64`), and module import

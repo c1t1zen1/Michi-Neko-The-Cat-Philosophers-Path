@@ -29,6 +29,13 @@ recorded in `docs/fable/status/p0-baseline.md`).
 - `ls /tmp/michi-test` → No such file or directory (the 44-check smoke suite was not run)
 - After merging `origin/fable/integration` (5dc924a): `node tools/footprint_golden.mjs` (f1-golden's CLI, through this `runPage`) → `footprint golden: EQUAL`, exit 0, 3.3 s; `node tools/check_syntax.mjs` → All 37 modules OK; `node tools/verify.mjs` → All checks passed; `node tools/labs_check.mjs` → All labs checks OK; `git diff --check origin/fable/integration` → clean; `git diff --name-only origin/fable/integration` → only this lane's 8 files + 66 preview JPGs
 
+## Review fix round 1 (2026-11-13 17:00 PST)
+- [x] Bimodal counts: frames tagged by shadow-map refresh (`game._shadowFrame === 0`); perf.md reports shadow-refresh / other / mean (and amortised frame ms); `--frames` must be even
+- [x] Contention: boots interleaved across tiers, `os.loadavg()` per boot; re-baselined at load 1.35–2.54 (`node tools/perf_spots.mjs --shots … --out …` → exit 0, 9.6 min); frame-ms budgets marked provisional; gate prefers a same-session run (`--url-suffix` is repeatable)
+- [x] budgets.md: shadow pass ×1.5 (medium) / ×2 (high) in the derivation; caps lowered to 25k / 6k / 1k (worst case 1.54 M ≤ 1.84 M medium, 2.06 M ≤ 2.08 M high); draw calls re-checked (≤ 11 new merged materials)
+- [x] Raw JSON in `/Users/c1t1zen/Documents/GitHub/michi-wt/_baseline/perf/` (cited in perf.md with SHA-256); probe page is `labs_geometry_test.html`
+- [x] Merged `origin/fable/integration` @ b45953d
+
 ## Notes for the Integrator
 - Phase 0 changes no game file. Lossless masters live outside the repo in
   `/Users/c1t1zen/Documents/GitHub/michi-wt/_baseline/` (ruling R8).
