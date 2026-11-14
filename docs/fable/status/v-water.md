@@ -178,4 +178,3 @@ Checks (real output):
 - Look unchanged: re-shot `river` pairs at 6/12/18/22 (classic and modular, same cameras) are byte-identical (`cmp`) to the
   committed L6 pairs (8/8 "same"): classic is neutral and the env values equal the ones the dome gave. Read the four
   modular frames: dawn mist, noon teal with koi, dusk gold glitter under the bridge, night blue: as before.
-
