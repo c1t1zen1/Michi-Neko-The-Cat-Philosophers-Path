@@ -121,6 +121,11 @@ const MAT = {
   featherGold: new THREE.MeshStandardMaterial({ color: 0xffd042, emissive: 0xb38600, emissiveIntensity: 0.8, roughness: 0.3 })
 };
 
+// MAT key of a material, so layouts name materials as plain data
+const MAT_KEY = new Map(Object.entries(MAT).map(([k, v]) => [v, k]));
+const matKey = (mat) => MAT_KEY.get(mat) || mat;
+const matOf = (key) => (typeof key === 'string' ? MAT[key] : key);
+
 function box(w, h, d, mat, x = 0, y = 0, z = 0) {
   const geo = new THREE.BoxGeometry(w, h, d);
   if (!(mat && mat.userData && mat.userData.uvPanel)) worldScaleBoxUVs(geo, 1);
@@ -1585,6 +1590,18 @@ export class Countryside {
   // --- Kyoto Edo Period Architecture Builders ---
 
   createKoushi(w, h, count = 8, mat = MAT.timberDark) {
+    const layout = this.layoutKoushi(w, h, count, mat);
+    return this.placeAsset('koushi', layout, () => this.meshKoushiClassic(layout));
+  }
+
+  /** Koushi lattice: returned to the caller, who places it (parent null). */
+  layoutKoushi(w, h, count = 8, mat = MAT.timberDark, id = 'koushi') {
+    return setParent({ index: this.nextIndex(id), w, h, count, mat: matKey(mat), footprint: footprint() }, null);
+  }
+
+  meshKoushiClassic(layout) {
+    const { w, h, count } = layout;
+    const mat = matOf(layout.mat);
     const group = new THREE.Group();
     group.name = 'Koushi Lattice';
     const frameThick = 0.04;
