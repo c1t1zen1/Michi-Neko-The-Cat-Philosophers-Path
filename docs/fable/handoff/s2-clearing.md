@@ -16,8 +16,8 @@ Binds (`layout.bind`) all resolve: `perchStone->stone`, `furin->bell`, `furinSai
 ## Deferred (classic), with reasons
 - `summit-meadow`: one ShapeGeometry disc whose colours come from the same world noise the grass mask reads; no study exists and the physics plane is tied to it.
 - `meditation-atmosphere`: the sun pool and motes are additive sprites whose materials the manager animates by field (`meditationPoolMat`, `meditationMoteMat`); a kit version would be a re-skin with no better read from the seat.
-- `summit-trees`: the layout already carries each tree's grown canopy buffers (drawn from the summit stream) and the summit foliage materials and `swayables`; a kit would only re-skin the trunk. The kit trees family builds from `ctx.rng`, so it cannot reproduce the summit stream layout.
-- `slope-forest`: planting inside the perch window is capped by `perchSightlineAt()` and drawn from the stream in the layout; same reason as `summit-trees`.
+- `summit-trees`: NO STUDY, NO SWAP. A study would need a Summit Lab tile for a stream-seeded canopy (the layout hands over grown buffers) and a kit trunk/stem that accepts them plus the `swayables` wiring. The layout already carries each tree's grown canopy buffers (drawn from the summit stream) and the summit foliage materials and `swayables`; a kit would only re-skin the trunk. The kit trees family builds from `ctx.rng`, so it cannot reproduce the summit stream layout.
+- `slope-forest`: NO STUDY, NO SWAP (needs a sightline-capped planting study in the Summit Lab first). Planting inside the perch window is capped by `perchSightlineAt()` and drawn from the stream in the layout; same reason as `summit-trees`.
 - `summit-terrain`, `summit-shoulder`: `terrainHeightAt()` is the one landform and must not change.
 - `summit-grass`: stays on `src/grass.js` (not rebuilt).
 
@@ -34,6 +34,6 @@ Add `"production": "clearing"` (or the catalog's adapter key) to `meditation-sto
 Summit Lab (`labs/summit/js/recipes.js`) now has family `clearing` and five specimens: `c-stone`, `c-enso`, `c-furin`, `c-entry`, `c-path` (they build the real kit assets). Map them in the coverage evidence list for the five ids (direct). `labs/ASSET_COVERAGE.md` was regenerated (`node tools/labs_coverage.mjs --write`; line numbers only). `labs/registry.js` needs no change (Lab 09 entry stands).
 
 ## Notes for later lanes
-- Lantern y on the lower path: the classic reads `terrainHeightAt(x, z) - 0.05`; the layout carries no terrain, so the kit uses `lowerStepTopAt(z) - 0.12` on a buried footing. If s3/s4 changes the landform, give the layout a `lanternY: [yL, yR]` and read it in `buildLowerPath`.
+- Lantern y on the lower path (fix round 1): `src/summit/clearing.js` `buildLowerPath` now puts `lanternY: [yL, yR]` (terrain - 0.05, exactly the classic arithmetic) in the layout and the kit reads it. Previously: the classic reads `terrainHeightAt(x, z) - 0.05`; the layout carries no terrain, so the kit uses `lowerStepTopAt(z) - 0.12` on a buried footing. If s3/s4 changes the landform, give the layout a `lanternY: [yL, yR]` and read it in `buildLowerPath`.
 - The fūrin pivots on its hook half a metre above the glass (`bell` is the swung part).
 - Preview with the kit: `tools/summit_preview.js` builds the manager with no `game.assets`, so it is classic-only. Add `game.assets = new AssetRuntime({ THREE, search: location.search, quality: 'high' }); await game.assets.preload();` before `new SummitManager(game)` to review `?assets=modular` (not done here: `tools/` is not this lane's).

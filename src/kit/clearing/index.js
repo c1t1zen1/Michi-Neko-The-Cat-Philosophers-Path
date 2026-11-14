@@ -32,7 +32,7 @@ const PATH_STONES = [[0.15, 7.72, 0.48, 0.36, -0.15], [0.62, 6.78, 0.43, 0.33, 0
 export const assets = [
   defineAsset({
     id: 'meditation-stone', family: 'clearing', lab: 'summit/stone', label: 'Meditation stone and path stones',
-    params: { size: num(1, 0.8, 1.3, 0.05, 'Size'), moss: num(0.3, 0, 1, 0.1, 'Moss'), weathering: num(0.6, 0, 1, 0.1, 'Weathering') },
+    params: { size: num(0.85, 0.7, 1.3, 0.05, 'Size'), moss: num(0.3, 0, 1, 0.1, 'Moss'), weathering: num(0.6, 0, 1, 0.1, 'Weathering') },
     // the largest real layout: the five path stones (the single seat stone has no `stones`)
     sample: { index: 1, x: 0, y: 0, z: 0, stones: PATH_STONES },
     build: buildMeditationStone

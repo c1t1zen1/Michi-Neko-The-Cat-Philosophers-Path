@@ -166,11 +166,13 @@ export function buildLowerPath(ctx, layout, p) {
 
   // a second pair of toro partway down, on a buried footing so the slope never shows a gap
   const lanterns = [];
-  const z = LANDING_Z1 + 5.5 * LOWER_STEP_RUN, y = lowerStepTopAt(z) - 0.12;
+  const z = LANDING_Z1 + 5.5 * LOWER_STEP_RUN;
   const footings = [];
   for (const side of [-1, 1]) {
+    // the classic height (terrain - 0.05) comes with the layout; the step top is only the fallback
+    const y = (layout.lanternY && Number.isFinite(layout.lanternY[side < 0 ? 0 : 1])) ? layout.lanternY[side < 0 ? 0 : 1] : lowerStepTopAt(z) - 0.12;
     addToro(path, lanterns, ctx, side * 3.15, y, z, (rnd() - 0.5) * 0.3, 1.5, 0.38, 2 + (side < 0 ? 0 : 1));
-    footings.push(new THREE.BoxGeometry(0.46, 0.5, 0.46).translate(side * 3.15, y - 0.25, z));
+    footings.push(new THREE.BoxGeometry(0.46, 0.3, 0.46).translate(side * 3.15, y - 0.15, z));
   }
   const foot = castMesh(indexed(merge(footings)), cool, { cast: false });
   path.add(foot); parts.footings = foot;

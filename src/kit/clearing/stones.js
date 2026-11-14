@@ -10,7 +10,7 @@ import { castMesh } from '../shrine/util.js?v=20261113a';
 const seedOf = (r) => 1 + Math.floor(r() * 9000);
 
 /** The warm summit rock: sun-bleached, a little moss on the shade side. One kit material for the family's stones. */
-export const warmRock = (km, moss) => km.rock({ a: 0x8c7c64, b: 0xcbbf9f, moss, lichen: 0.3, rough: 0.93 });
+export const warmRock = (km, moss) => km.rock({ a: 0x4f4636, b: 0x8a7d63, moss, lichen: 0.3, rough: 0.93 });
 
 export function buildMeditationStone(ctx, layout, p) {
   const { tier, rng, kitMaterials: km } = ctx;
@@ -66,7 +66,7 @@ export function buildEnso(ctx, layout, p) {
       const k = (i * 2 + (s < 0 ? 0 : 1)) * 3;
       pos[k] = cx * (R + s * w); pos[k + 1] = 0; pos[k + 2] = cz * (R + s * w) * ry;
       const c = (i * 2 + (s < 0 ? 0 : 1)) * 4;
-      col[c] = 0.4; col[c + 1] = 0.37; col[c + 2] = 0.3; col[c + 3] = Math.min(1, 0.4 + (1 - t) * 0.8);
+      col[c] = 0.05; col[c + 1] = 0.045; col[c + 2] = 0.04; col[c + 3] = Math.min(1, 0.4 + (1 - t) * 0.8);
     }
     if (i < n) { const a0 = i * 2; idx.push(a0, a0 + 1, a0 + 2, a0 + 1, a0 + 3, a0 + 2); }
   }
@@ -74,7 +74,8 @@ export function buildEnso(ctx, layout, p) {
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(col, 4));
   geo.setIndex(idx);
-  const mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide });
+  // lit and matte (no self-glow): ink pressed into the stone, darker than its face
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, transparent: true, opacity: 0.7, roughness: 1, metalness: 0, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   const ring = new THREE.Mesh(geo, mat);
   // the classic ring sits inside the seat stone (centred on it, 0.06 m under its top); lift it onto the stone's face so it reads
   ring.renderOrder = 1; ring.rotation.y = 0.36; ring.position.y = 0.075;
