@@ -115,6 +115,7 @@ function printSummary(r, run, test, { write, out, goldenFile, max }) {
   if (write) state = 'WROTE';
   else if (!r.golden.found) state = 'NO GOLDEN';
   else state = r.equal && (!test || test.equal) ? 'EQUAL' : 'DIFFERENT';
+  if (!write && r.routing && r.routing.ran && !r.routing.ok) state += ', ROUTING FAILED';
   const lines = [];
   lines.push(`summit golden: ${state}${d && !write && !r.equal ? ` (${d.counts.changed} changed, ${d.counts.added} added, ${d.counts.removed} removed)` : ''}`);
   lines.push(`  page     ${run.url}${run.gpu ? '   [' + run.gpu.replace(/^ANGLE \((.*)\)$/, '$1') + ']' : ''}`);
@@ -131,6 +132,15 @@ function printSummary(r, run, test, { write, out, goldenFile, max }) {
   lines.push(`  rng      summit ${c.draws} draws (probe ${r.probe ? 'ok' : 'FAILED'}) · Math.random ${r.ambient.draws}` +
     ` · volatile ${r.volatile.leaves} leaves, ${r.volatile.members} members`);
   lines.push(`  loads    ${(r.loads || []).join(', ') || 'none'}`);
+  const g = r.routing;
+  if (g && g.ran) {
+    lines.push(`  routing  ${g.ok ? 'ok' : 'FAILED'}: ${g.ids} summit ids, ${g.classicCalls} classic placeAsset() calls; ` +
+      `all modular ${g.allModular.kit}/${g.allModular.calls} stand-ins, ${g.allModular.draws} draws (probe ${g.allModular.probe ? 'ok' : 'FAILED'}); ` +
+      `single swaps ${g.singles.ok}/${g.singles.of} ok (${secs(g.ms)})`);
+    for (const p of g.problems || []) lines.push(`  routing  ${p}`);
+  } else if (g) {
+    lines.push(`  routing  not run: ${(g.problems || []).join('; ')}`);
+  }
   if (test) {
     const tail = test.summary ? `"${test.summary}"` : 'no summary line';
     if (write) lines.push(`  test     summit_test.mjs ${tail} → ${rel(TEST_GOLDEN)}`);
@@ -248,7 +258,8 @@ async function main(argv) {
   }
   if (opts.write) return test && test.code !== 0 ? 1 : 0;
   if (!r.golden.found || (test && !test.found)) return 2;
-  return r.equal && (!test || (test.equal && test.code === 0)) ? 0 : 1;
+  const routed = !r.routing || !r.routing.ran || r.routing.ok;
+  return r.equal && routed && (!test || (test.equal && test.code === 0)) ? 0 : 1;
 }
 
 main(process.argv.slice(2)).then((code) => {

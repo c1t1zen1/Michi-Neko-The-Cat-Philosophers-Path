@@ -340,10 +340,135 @@ async function settleLoads(limitMs = 30000) {
   return out === 'timeout' ? [{ ok: false, error: `GLTF load did not settle within ${limitMs} ms` }] : out;
 }
 
+let ROUTE = null; // placeAsset() calls of the routed build in progress
+
+/** Record every placeAsset(id, layout, classicFn) call (S1.3 routing). */
+function trackRouting(proto) {
+  const place = proto.placeAsset;
+  if (typeof place !== 'function') return;
+  proto.placeAsset = function (id, layout, classicFn) {
+    const out = place.call(this, id, layout, classicFn);
+    if (ROUTE) ROUTE.push({ id, layout, out, self: this });
+    return out;
+  };
+}
+
 function instrument() {
   countDraws(SummitManager.prototype, 'rng');
   trackPhases(SummitManager.prototype);
   trackLoads();
+  trackRouting(SummitManager.prototype);
+}
+
+// -------------------------------------------------------------- routing ---
+// S1.3 proof, kept out of the digest (the golden is the unchanged classic
+// summit): the summit built through the real AssetRuntime with a stand-in
+// kit asset for every summit inventory id must advance the summit stream
+// exactly as the classic build does and register the same colliders and
+// platforms, in the same order, through placeAsset(); each stand-in must sit
+// under its layout's parent with its layout.bind parts set on the manager.
+// Run all-modular (game configuration) and with each id alone swapped in
+// (?swap=<id>:modular, preview configuration).
+
+async function routingTest(classicGame, classicPreview) {
+  const t0 = realNow();
+  const { AssetRuntime, isAssetInstance } = await import('../src/kit/runtime.js?v=20261107a');
+  const { defineAsset } = await import('../src/kit/contract.js?v=20261107a');
+  if (typeof SummitManager.prototype.placeAsset !== 'function') {
+    return { ok: false, ran: false, problems: ['SummitManager has no placeAsset(): nothing is routed'] };
+  }
+  const inv = await (await fetch('../labs/asset_inventory.json', { cache: 'no-store' })).json();
+  const ids = inv.assets.filter((a) => a.group === 'Summit').map((a) => a.id);
+  const standIn = (id) => defineAsset({
+    id, family: 'summit-standin', tiers: ['hero', 'mid', 'far'],
+    build(ctx, layout) {
+      const group = new ctx.THREE.Group();
+      const parts = {};
+      for (const part of Object.values(layout.bind || {})) parts[part] = new ctx.THREE.Object3D();
+      if (!Object.keys(parts).length) parts.body = new ctx.THREE.Object3D();
+      for (const obj of Object.values(parts)) group.add(obj);
+      return { group, parts, sockets: {}, live: [], footprint: layout.footprint };
+    }
+  });
+  const runtimeFor = (assetSet, search) => {
+    const rt = new AssetRuntime({
+      THREE, assetSet, search, quality: 'high',
+      loadFamilies: async () => ({}), createMaterials: async () => null, fetchOverrides: async () => null
+    });
+    for (const id of ids) rt.register(standIn(id), 'summit-standin');
+    return rt;
+  };
+  const sameList = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+  async function routedBuild(preview, assets, label, classic) {
+    setAmbient(BUILDS[0]);
+    const scene = new THREE.Scene();
+    const game = stubGame(scene, preview);
+    game.assets = assets;
+    const rec = REC = newRecorder();
+    const calls = ROUTE = [];
+    const problems = [];
+    let summit = null;
+    try {
+      summit = new SummitManager(game);
+    } catch (error) {
+      problems.push(`${label}: the build threw: ${String(error && error.message || error)}`);
+    } finally {
+      REC = null;
+      ROUTE = null;
+    }
+    await settleLoads();
+    if (!summit) return { problems, calls };
+    const fresh = mulberry32(SUMMIT_SEED);
+    for (let i = 0; i < rec.draws; i++) fresh();
+    const probe = summit.rng() === fresh();
+    if (rec.draws !== classic.rng.summit.draws || !probe) {
+      problems.push(`${label}: summit stream ${rec.draws} draws (probe ${probe ? 'ok' : 'FAILED'}), classic ${classic.rng.summit.draws}`);
+    }
+    if (!sameList(summit.colliders.map(box6), classic.colliders)) problems.push(`${label}: colliders differ from the classic build`);
+    if (!sameList(summit.platforms.map(box6), classic.platforms)) problems.push(`${label}: platforms differ from the classic build`);
+    for (const c of calls) {
+      if (!isAssetInstance(c.out)) continue;
+      const parent = c.out.group.parent;
+      const want = c.layout.space === 'valley' ? scene : c.layout.parent ? c.layout.parent : summit.group;
+      const okParent = typeof want === 'string' ? parent && parent.name === want : parent === want;
+      if (!okParent) problems.push(`${label}: ${c.id} placed under ${parent ? parent.name || parent.type : 'nothing'}`);
+      for (const [field, part] of Object.entries(c.layout.bind || {})) {
+        if (summit[field] !== c.out.parts[part]) problems.push(`${label}: ${c.id} did not bind ${field} to part ${part}`);
+      }
+    }
+    return { problems, calls, draws: rec.draws, probe, summit };
+  }
+
+  const problems = [];
+  // Every id routed once or more by the classic build (the digest build A).
+  const classicCalls = new Map();
+  for (const c of classicGame.routes || []) classicCalls.set(c, (classicCalls.get(c) || 0) + 1);
+  for (const id of ids) if (!classicCalls.has(id)) problems.push(`classic: ${id} is never routed through placeAsset()`);
+  for (const id of classicCalls.keys()) if (!ids.includes(id)) problems.push(`classic: ${id} is routed but is not a summit inventory id`);
+
+  const all = await routedBuild(false, runtimeFor('modular', ''), 'all modular', classicGame);
+  problems.push(...all.problems);
+  const kitCalls = all.calls.filter((c) => isAssetInstance(c.out)).length;
+  if (all.calls.length && kitCalls !== all.calls.length) problems.push(`all modular: ${all.calls.length - kitCalls} call(s) built classic`);
+
+  let singlesOk = 0;
+  for (const id of ids) {
+    const one = await routedBuild(true, runtimeFor('classic', `?swap=${id}:modular`), `swap ${id}`, classicPreview);
+    const kits = one.calls.filter((c) => isAssetInstance(c.out));
+    if (!kits.length) one.problems.push(`swap ${id}: no stand-in was built`);
+    if (kits.some((c) => c.id !== id)) one.problems.push(`swap ${id}: other ids built from the kit`);
+    problems.push(...one.problems);
+    if (!one.problems.length) singlesOk++;
+  }
+  return {
+    ok: !problems.length, ran: true, ids: ids.length,
+    classicCalls: [...classicCalls.values()].reduce((s, n) => s + n, 0),
+    allModular: { calls: all.calls.length, kit: kitCalls, draws: all.draws, probe: all.probe },
+    singles: { ok: singlesOk, of: ids.length },
+    problems: problems.slice(0, 40), problemCount: problems.length,
+    ms: Math.round(realNow() - t0)
+  };
 }
 
 // ------------------------------------------------------- materials, maps ---
@@ -786,6 +911,7 @@ function phaseTable(list) {
 async function buildOnce(spec, preview) {
   setAmbient(spec);
   const rec = REC = newRecorder();
+  const routes = ROUTE = [];
   const scene = new THREE.Scene();
   const game = stubGame(scene, preview);
   const t0 = realNow();
@@ -794,6 +920,7 @@ async function buildOnce(spec, preview) {
     summit = new SummitManager(game);
   } finally {
     REC = null;
+    ROUTE = null;
   }
   const buildMs = realNow() - t0;
   const ambientDraws = ambient.draws;
@@ -825,7 +952,8 @@ async function buildOnce(spec, preview) {
     platforms: summit.platforms.map(box6),
     loads: loads.map((l) => (l.ok ? l.url : `failed: ${l.url || ''}`)),
     samples, quality, state,
-    objects: W.objects, members: W.members
+    objects: W.objects, members: W.members,
+    routes: routes.map((c) => c.id) // not in the digest: placeAsset() ids, for the routing test
   };
 }
 
@@ -1210,6 +1338,7 @@ function summaryLines(r) {
     `counts    objects ${c.objects} · aggregates ${c.aggregates} (${c.members} members) · colliders ${c.colliders} · platforms ${c.platforms}`,
     `          state fields ${c.state} · api ${c.api} · preview objects ${p.objects}, members ${p.members}`,
     `loads     ${r.loads.join(', ') || 'none'}`,
+    `routing   ${routingLine(r.routing)}`,
     `volatile  ${r.volatile.leaves} leaves as "~", ${r.volatile.members} members left out of aggregates` +
       `${r.ambient.uuidSeparated ? '' : ' (UUIDs NOT separated)'}`,
     `digest    ${r.digestBytes} bytes · golden ${r.golden.found ? r.golden.bytes + ' bytes' : 'missing'} (${r.golden.url})`,
@@ -1217,6 +1346,13 @@ function summaryLines(r) {
   ];
   if (r.warnings.length) lines.push('', 'warnings:', ...r.warnings.map((w) => '  ' + w));
   return lines;
+}
+
+function routingLine(g) {
+  if (!g || !g.ran) return g && g.problems ? g.problems.join('; ') : 'not run';
+  return `${g.ok ? 'ok' : 'FAILED'}: ${g.ids} summit ids, ${g.classicCalls} classic placeAsset() calls; all modular ` +
+    `${g.allModular.kit}/${g.allModular.calls} stand-ins, ${g.allModular.draws} draws (probe ${g.allModular.probe ? 'ok' : 'FAILED'}); ` +
+    `single swaps ${g.singles.ok}/${g.singles.of} ok; ${g.ms} ms` + (g.problemCount ? ` — ${g.problemCount} problem(s): ${g.problems.slice(0, 3).join('; ')}` : '');
 }
 
 function changeLines(diff, max) {
@@ -1279,6 +1415,7 @@ async function main() {
     }
   };
   const text = toText(digest);
+  const routing = await routingTest(builds[0], builds[2]);
   const warnings = [...new Set(builds.flatMap((b) => b.warnings))];
   for (const [label, f] of [['game', game], ['preview', prev]]) {
     if (f.unstable.length) warnings.push(`${label}: the two builds differ in shape at ${f.unstable.length} place(s): ${f.unstable.slice(0, 5).join(', ')}`);
@@ -1317,7 +1454,7 @@ async function main() {
     loads: digest.loads,
     volatile: { leaves: digest.volatile.leaves, members: digest.volatile.members },
     ambient: { draws: digest.rng.ambient.draws, uuidSeparated },
-    golden, equal: !!(diff && diff.equal), diff, warnings,
+    golden, equal: !!(diff && diff.equal), diff, warnings, routing,
     digestBytes: new TextEncoder().encode(text).length,
     builds: builds.map((b) => ({ label: b.label, preview: b.preview, draws: b.rng.summit.draws, objects: b.objects.length })),
     timing: {

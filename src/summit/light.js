@@ -16,7 +16,7 @@ export const lightMethods = {
   buildSummitLight() {
     const layout = {
       index: 0, x: 0, y: 0, z: 0, footprint: summitFootprint(),
-      bind: { summitSkyFill: 'skyFill', summitWarmFill: 'warmFill' }
+      bind: { summitSkyFill: 'sky_fill', summitWarmFill: 'warm_fill' }
     };
     return this.placeAsset('summit-light', layout, () => lightMethods.meshSummitLightClassic.call(this, layout));
   },
