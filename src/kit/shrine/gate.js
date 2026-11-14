@@ -10,19 +10,13 @@
 // registers (late-game route); the three joinery pegs stay at +-span/2.
 // Geometry is merged per material: lacquer frame, black kasagi/sleeves, stone.
 import * as THREE from 'three';
-import { V3, sweep, ringRect, tube, clamp, lerp } from '../craft.js?v=20261113a';
+import { V3, sweep, ringRect, tube, lerp } from '../craft.js?v=20261113a';
 import { defineAsset } from '../contract.js?v=20261113a';
+import { SORI, curveOf, solveGate, postTopY } from './solve.js?v=20261113a';
 import { bake, castMesh, byTier, gameMat } from './util.js?v=20261113a';
 
-export const SORI = { straight: [0, 0, 0, 0, 0], gentle: [0, 0.01, 0.03, 0.07, 0.13], myojin: [0, 0.015, 0.05, 0.12, 0.24], deep: [0, 0.03, 0.1, 0.24, 0.46] };
+export { SORI, curveOf, solveGate };
 const DEFAULT_PAINT = 0xd8482c;
-
-/** Catmull-Rom through evenly spaced values: the kasagi's drawn curve (0 centre .. 1 end). */
-export const curveOf = (vals) => (t) => {
-  const n = vals.length - 1, x = clamp(t, 0, 1) * n, i = Math.min(n - 1, Math.floor(x)), f = x - i;
-  const a = vals[Math.max(0, i - 1)], b = vals[i], c = vals[i + 1], d = vals[Math.min(n, i + 2)];
-  return 0.5 * ((2 * b) + (-a + c) * f + (2 * a - 5 * b + 4 * c - d) * f * f + (-a + 3 * b - 3 * c + d) * f * f * f);
-};
 
 /** Shear the last few centimetres of a beam so its end face is cut at an angle. */
 function cutEnds(g, halfL, tan, yMid) {
@@ -41,18 +35,6 @@ function beamOnCurve(L, y0, curve, h, d, bev, steps, tan = 0.35) {
   return cutEnds(sweep(pts, ringRect(h, d, bev), { uScale: 1.2 }), L / 2, tan, y0 + curve(1));
 }
 
-/** The solved dimensions of a gate (pure numbers, exported for tests and the handoff). */
-export function solveGate(p) {
-  const lintelH = 0.28, shimH = 0.14, C = curveOf(SORI[p.sori] || SORI.gentle);
-  const L = p.span + 2 * p.ext, topX = p.span / 2 - p.lean * p.height;
-  // kasagi top at the centre = p.height; the posts rise to H, which the bearing solve fixes
-  const Cb = C(Math.abs(topX) / (L / 2));
-  const H = p.height - shimH - lintelH + Cb + 0.027;
-  const shimY = H + shimH / 2 - Cb - 0.015;
-  const kasY = shimY + (shimH + lintelH) / 2 - 0.012;
-  return { lintelH, shimH, C, L, H, shimY, kasY, nukiH: 0.3, nukiTop: H - 0.02 };
-}
-
 function buildTorii(ctx, layout, p) {
   const { THREE: T, tier, kitMaterials: km } = ctx;
   const S = solveGate(p), n = byTier(tier, 48, 20, 8), radial = byTier(tier, 18, 12, 6), stone = p.finish === 'stone';
@@ -64,7 +46,11 @@ function buildTorii(ctx, layout, p) {
   const half = p.span / 2;
   for (const s of [-1, 1]) {
     const a = V3(s * half, 0, 0), b = V3(s * (half - p.lean * p.height), S.H, 0);
-    frame.push(tube([a, a.clone().lerp(b, 0.5), b], (t) => p.post_r * lerp(1, p.taper, t), { radial, uScale: 1.2 }));
+    const post = tube([a, a.clone().lerp(b, 0.5), b], (t) => p.post_r * lerp(1, p.taper, t), { radial, uScale: 1.2 });
+    const pp = post.attributes.position;           // cut the post top on the lintel curve
+    for (let i = 0; i < pp.count; i++) if (pp.getY(i) > S.H - 1e-4) pp.setY(i, postTopY(S, pp.getX(i)));
+    post.computeVertexNormals();
+    frame.push(post);
     if (tier !== 'far') {
       if (!stone) dark.push(tube([a, V3(s * (half - p.lean * 0.6), 0.6, 0)], (t) => p.post_r * lerp(1.14, 1.08, t), { radial, uScale: 1.2 }));
       const k = new T.LatheGeometry([[0.001, 0], [p.post_r * 1.25, 0], [p.post_r * 1.27, 0.07], [p.post_r * 1.12, 0.2], [p.post_r * 0.98, 0.3], [0.001, 0.31]].map(([x, y]) => new T.Vector2(x, y)), radial);

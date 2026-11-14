@@ -8,3 +8,5 @@
 - s2-clearing torii reuse: `torii` params `span`, `height` (kasagi top), `post_r`, `taper`, `lean`, `ext`, `sori`, `finish` (lacquer|stone), `paint`, `pegs` (set false: the three climbing pegs are only for the valley gate); `solveGate(params)` is exported from src/kit/shrine/gate.js.
 - Integrator: regenerate src/kit/index.js with `node tools/kit_index.mjs` (done in this PR; shrine added).
 - New merged materials: 1 (black lacquer in torii).
+- Torii for s2-clearing: the nuki (top 4.91 m at defaults, `H - 0.02`) and the climbing pegs are tied to `height` and `span/2`, but the layout's climbing platforms (countryside.layoutTorii) are fixed numbers; with other span/height pass `pegs: false` and register your own platforms. Post tops are cut on the lintel curve (src/kit/shrine/solve.js); `node --test src/kit/shrine/solve.test.mjs` sweeps sori x post_r x ext x span x lean x height x taper.
+- mist-altar far tier: three fade handles on two materials (budget cap) means the shared material fades at 3x rate; the far tier is never built (the altar is inside r 39 near band), so left as is.
