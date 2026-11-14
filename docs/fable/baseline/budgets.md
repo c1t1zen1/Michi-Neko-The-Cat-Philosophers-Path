@@ -290,9 +290,9 @@ and casting); the gate that matters is section 1, measured per spot in
 `perf_gv1.md`. If later lanes need more materials, re-derive the cap from
 measured draws rather than raising it by fiat.
 
-**Known per-asset overrun (G-V1).** The contract samples `bamboo-fence` on a
-3.4 m run; the valley's longest runs (about 11 m) build 12,660 triangles at
-`mid` against the 6,000 cap (hero 22,638 ≤ 25,000, far 568 ≤ 1,000). The
-scene budgets hold with it (`perf_gv1.md`); it needs a ruling: a
-`BUDGET_EXCEPTIONS` entry or a lighter mid culm, and a contract sample that is
-the longest run.
+**Known per-asset overrun (G-V1), resolved by R51.** The valley's longest
+`bamboo-fence` runs (about 11 m) build 22,638 / 12,660 / 568 triangles
+(hero / mid / far). `BUDGET_EXCEPTIONS['bamboo-fence']` allows 13,000 mid
+triangles and a 14 ms first build (hero and mid), and the contract sample is
+now the 11.0 m run, so both are tested on what players see (G-V2 chores).
+The scene budgets hold with it (`perf_gv1.md`).
