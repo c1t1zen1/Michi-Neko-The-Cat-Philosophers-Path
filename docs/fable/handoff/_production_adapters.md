@@ -9,6 +9,7 @@
 | v-alley | crates, sake-barrel | `src/kit/alley/index.js` `assets` |
 | v-nest | nest, nest-eggs, guardian-feather | `src/kit/nest/index.js` `assets` |
 | v-greenery | greenery (street-bushes, roadside-moss, bamboo-groves) | `src/kit/greenery/index.js` `assets` |
+| v-keepsakes | keepsakes (yarn, key, dango, jade-paw, secret-fish, interior-fish) | `src/kit/keepsakes/index.js` `assets` |
 
 ## Pending helper moves
 
@@ -18,3 +19,4 @@
 - alley: none requested.
 - nest: none requested.
 - greenery: none requested (bamboo.js `culmGeometry` etc. stay local; v-hidden may import them).
+- keepsakes: none requested (shapes.js stays local).
