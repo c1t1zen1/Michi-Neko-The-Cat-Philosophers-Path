@@ -75,6 +75,17 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
     why: 'a whole clearing: floor, noded culms + blades, one lantern set (3 draws for 11 lanterns), seat, boulder, fireflies'
   },
   'glade-lanterns': { far: { materials: 3 }, why: 'frame, lit paper and halo are three materials even at far (the halo is the night read)' },
+  // s2-clearing: the summit's two stairways are whole places (steps, rails, a torii or toro pairs); measured with
+  // kit_contract_test --family clearing (hero/mid/far): entry 20/20/8 meshes, 7/7/6 materials, far 1,380 tris;
+  // path 20/19/9 meshes, 5 mid / 5 far materials, far 1,540 tris. Classic entry is ~45 box meshes, path ~50.
+  'summit-entry': {
+    hero: { meshes: 22, materials: 8, buildMs: 10 }, mid: { meshes: 22, materials: 8, buildMs: 5 }, far: { triangles: 1700, meshes: 10, materials: 7, buildMs: 3 },
+    why: 'a whole approach: warm treads, dark posts, rope, the shrine torii (lacquer, black, stone footing) and a toro pair (stone, dark, glow); modular 20/20/8 meshes, 1,380 far tris'
+  },
+  'summit-path': {
+    hero: { meshes: 22, buildMs: 8 }, mid: { meshes: 22, materials: 6, buildMs: 4 }, far: { triangles: 1800, meshes: 10, materials: 6, buildMs: 3 },
+    why: 'a whole stair: two stone batches, moss joints, posts, rope, footings and a toro pair; modular 20/19/9 meshes, 1,540 far tris'
+  },
   // classic grove 82.3k hero tris; modular 89.9k/12.5k/4.7k; ruling R40, v-greenery handoff
   // v-ranges (see docs/fable/handoff/v-ranges.md): landscape rings are instanced by the hundred; classic counts are
   // mountains 57.8k, edge-forest 1.70M, edge-undergrowth 89.6k, foothill-forest 189k, distant-village 1.1k
