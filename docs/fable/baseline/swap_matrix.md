@@ -8,7 +8,7 @@ Sources: `labs/asset_inventory.json` (schema 1, reviewed 2026-11-10), `catalog/j
 ## Totals
 
 - Inventory rows: **190**, of which **186 active** and **4 inactive**. This matrix has **186 rows, one per active row**; the generator refuses to run if any active row has no lane or two.
-- Coverage of the 186 active rows (strongest evidence, as `labs/ASSET_COVERAGE.md`): direct 123, review 41, embedded 11, related 8, missing 3. Rows without a focused lab study: 63.
+- Coverage of the 186 active rows (strongest evidence, as `labs/ASSET_COVERAGE.md`): direct 124, review 41, embedded 10, related 8, missing 3. Rows without a focused lab study: 62.
 - Asset Library adapters: 124 rows have an original adapter; 61 rows have a lab adapter, backed by 71 unique lab specimens (85 row-to-specimen links). The guide's "71 lab recipes" is the 71 specimens, not the 61 rows.
 
 ## Lanes and the rules used to assign them
@@ -42,7 +42,7 @@ Coverage levels, as in the inventory:
 
 "Best lab target" is the first evidence target at the row's strongest level, as `lab/selector` (`(+n)` means n more targets at the same level). "Lab adapter" and "Original adapter" are what the Asset Library can load today (`getAssetCapabilities(id).lab` and `.original`); the specimens the catalog opens for a row can differ from the inventory's evidence target.
 
-A lab adapter is not a focused study, and the reverse. 2 rows have a lab adapter without a `direct` study (the catalog opens a specimen that embeds or relates to the row): `michi`, `summit-pagoda`. 64 rows have a `direct` study but no lab adapter, mostly because the ground, water, ranges, sky, weather, grass and summit labs are not wired into the catalog (see the "Lab adapter" counts per lane below).
+A lab adapter is not a focused study, and the reverse. 2 rows have a lab adapter without a `direct` study (the catalog opens a specimen that embeds or relates to the row): `michi`, `summit-pagoda`. 65 rows have a `direct` study but no lab adapter, mostly because the ground, water, ranges, sky, weather, grass and summit labs are not wired into the catalog (see the "Lab adapter" counts per lane below).
 
 ## Summary per lane
 
@@ -70,13 +70,13 @@ A lab adapter is not a focused study, and the reverse. 2 rows have a lab adapter
 | v-critters | 2.3 | `src/kit/critters/` | 18 `labs/critters/` | 3 | 3 | 0 | 0 | 0 | 0 | 0 | 3 | 3 |
 | c2-michi | 3 | characters (`src/characters/`) | villagers lab 19 or a new cat lab | 6 | 0 | 4 | 1 | 0 | 1 | 6 | 1 | 6 |
 | c3-villagers | 3 | characters (`src/characters/`) | 19 `labs/villagers/` | 3 | 3 | 0 | 0 | 0 | 0 | 0 | 3 | 3 |
-| c4-creatures | 3 | characters (`src/characters/`) | none; the crows get a study from v-critters | 2 | 1 | 0 | 1 | 0 | 0 | 1 | 0 | 2 |
+| c4-creatures | 3 | characters (`src/characters/`) | none; the crows get a study from v-critters | 2 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 2 |
 | s2-clearing | 4 | summit (`src/summit/`) | 09 `labs/summit/` | 12 | 0 | 12 | 0 | 0 | 0 | 12 | 0 | 0 |
 | s3-vista | 4 | summit (`src/summit/`) | 09 `labs/summit/` | 10 | 1 | 9 | 0 | 0 | 0 | 9 | 1 | 0 |
 | s4-summit-life | 4 | summit (`src/summit/`) | 09 `labs/summit/` | 9 | 0 | 9 | 0 | 0 | 0 | 9 | 0 | 0 |
 | at-standard | - | already at standard (`src/grass.js`, not rebuilt; guide section 9 wave 2.3) | - | 14 | 13 | 0 | 0 | 1 | 0 | 1 | 0 | 12 |
 | media | - | media, not a kit asset (optional runtime media with fallbacks) | - | 2 | 0 | 1 | 0 | 0 | 1 | 2 | 0 | 1 |
-| **All lanes** | | | | **186** | **123** | **41** | **11** | **8** | **3** | **63** | **61** | **124** |
+| **All lanes** | | | | **186** | **124** | **41** | **10** | **8** | **3** | **62** | **61** | **124** |
 
 Roof Road lanes `r1` to `r5` have no rows here: the Roof Road is listed under `exclusions` in the inventory and r1 adds roughly forty rows (guide section 12, R1.1).
 
@@ -106,7 +106,7 @@ Active rows whose strongest evidence is not `direct`. Under the standard lane re
 - **v-critters** (0 of 3): none
 - **c2-michi** (6 of 6): `michi` (review), `cat-coat` (review), `cat-face` (review), `cat-collar` (review), `master-bells` (missing), `cat-shadow` (embedded)
 - **c3-villagers** (0 of 3): none
-- **c4-creatures** (1 of 2): `larry` (embedded)
+- **c4-creatures** (0 of 2): none
 - **s2-clearing** (12 of 12): `summit-meadow` (review), `summit-entry` (review), `summit-trees` (review), `meditation-stone` (review), `meditation-atmosphere` (review), `summit-enso` (review), `summit-furin` (review), `summit-path` (review), `summit-shoulder` (review), `summit-terrain` (review), `slope-forest` (review), `summit-grass` (review)
 - **s3-vista** (9 of 10): `summit-pagoda` (review), `summit-bay` (review), `harbour` (review), `bay-bridge` (review), `ferris-wheel` (review), `horizon` (review), `summit-clouds` (review), `summit-vista` (review), `vista-terrain` (review)
 - **s4-summit-life** (9 of 9): `summit-snow` (review), `summit-rain` (review), `summit-pollen` (review), `summit-petals` (review), `summit-wildlife` (review), `summit-butterflies` (review), `summit-birds` (review), `shrine-rays` (review), `summit-light` (review)
@@ -116,7 +116,7 @@ Active rows whose strongest evidence is not `direct`. Under the standard lane re
 ### Differences from the guide's Appendix D
 
 - Moved by a ruling: `pool-toro` (Appendix D: v-hidden; this matrix: v-lanterns); `courtyard-toro` (Appendix D: v-interiors; this matrix: v-lanterns); `grass-fireflies` (Appendix D: v-weather; this matrix: at-standard); `roadside-moss` (Appendix D: v-trees; this matrix: v-greenery).
-- Listed in Appendix D but not a gap in the inventory: `corral-sign` (listed under v-fences; the inventory has `direct` coverage); `dango` (listed under v-keepsakes; the inventory has `direct` coverage); `jade-paw` (listed under v-keepsakes; the inventory has `direct` coverage); `secret-fish` (listed under v-keepsakes; the inventory has `direct` coverage); `interior-fish` (listed under v-keepsakes; the inventory has `direct` coverage); `offering-box` (listed under v-shrine; the inventory has `direct` coverage); `mist-altar` (listed under v-shrine; the inventory has `direct` coverage); `namako` (listed under v-machiya; the inventory has `direct` coverage); `tea-bench` (listed under v-machiya; the inventory has `direct` coverage); `secret-door` (listed under v-machiya; the inventory has `direct` coverage); `lock-plate` (listed under v-machiya; the inventory has `direct` coverage); `pool-apron` (listed under v-hidden; the inventory has `direct` coverage); `pool-rim` (listed under v-hidden; the inventory has `direct` coverage); `pool-seat` (listed under v-hidden; the inventory has `direct` coverage); `lantern-glade` (listed under v-hidden; the inventory has `direct` coverage); `glade-floor` (listed under v-hidden; the inventory has `direct` coverage); `glade-bamboo` (listed under v-hidden; the inventory has `direct` coverage); `glade-seat` (listed under v-hidden; the inventory has `direct` coverage); `interior-frame` (listed under v-interiors; the inventory has `direct` coverage); `tokonoma` (listed under v-interiors; the inventory has `direct` coverage); `scroll` (listed under v-interiors; the inventory has `direct` coverage); `bonsai` (listed under v-interiors; the inventory has `direct` coverage); `chabudai` (listed under v-interiors; the inventory has `direct` coverage); `zabuton` (listed under v-interiors; the inventory has `direct` coverage); `knockables` (listed under v-interiors; the inventory has `direct` coverage); `foothill-forest` (listed under v-ranges; the inventory has `direct` coverage); `distant-village` (listed under v-ranges; the inventory has `direct` coverage); `mist-ring` (listed under v-ranges; the inventory has `direct` coverage); `dawn-mist` (listed under v-ranges; the inventory has `direct` coverage); `fireflies` (listed under v-weather; the inventory has `direct` coverage); `dust-motes` (listed under v-weather; the inventory has `direct` coverage); `scent` (listed under v-weather; the inventory has `direct` coverage); `splash` (listed under v-weather; the inventory has `direct` coverage); `landing-dust` (listed under v-weather; the inventory has `direct` coverage); `guardian-crows` (listed under v-critters; the inventory has `direct` coverage); `guardian-crows` (listed under c4-creatures; the inventory has `direct` coverage).
+- Listed in Appendix D but not a gap in the inventory: `corral-sign` (listed under v-fences; the inventory has `direct` coverage); `dango` (listed under v-keepsakes; the inventory has `direct` coverage); `jade-paw` (listed under v-keepsakes; the inventory has `direct` coverage); `secret-fish` (listed under v-keepsakes; the inventory has `direct` coverage); `interior-fish` (listed under v-keepsakes; the inventory has `direct` coverage); `offering-box` (listed under v-shrine; the inventory has `direct` coverage); `mist-altar` (listed under v-shrine; the inventory has `direct` coverage); `namako` (listed under v-machiya; the inventory has `direct` coverage); `tea-bench` (listed under v-machiya; the inventory has `direct` coverage); `secret-door` (listed under v-machiya; the inventory has `direct` coverage); `lock-plate` (listed under v-machiya; the inventory has `direct` coverage); `pool-apron` (listed under v-hidden; the inventory has `direct` coverage); `pool-rim` (listed under v-hidden; the inventory has `direct` coverage); `pool-seat` (listed under v-hidden; the inventory has `direct` coverage); `lantern-glade` (listed under v-hidden; the inventory has `direct` coverage); `glade-floor` (listed under v-hidden; the inventory has `direct` coverage); `glade-bamboo` (listed under v-hidden; the inventory has `direct` coverage); `glade-seat` (listed under v-hidden; the inventory has `direct` coverage); `interior-frame` (listed under v-interiors; the inventory has `direct` coverage); `tokonoma` (listed under v-interiors; the inventory has `direct` coverage); `scroll` (listed under v-interiors; the inventory has `direct` coverage); `bonsai` (listed under v-interiors; the inventory has `direct` coverage); `chabudai` (listed under v-interiors; the inventory has `direct` coverage); `zabuton` (listed under v-interiors; the inventory has `direct` coverage); `knockables` (listed under v-interiors; the inventory has `direct` coverage); `foothill-forest` (listed under v-ranges; the inventory has `direct` coverage); `distant-village` (listed under v-ranges; the inventory has `direct` coverage); `mist-ring` (listed under v-ranges; the inventory has `direct` coverage); `dawn-mist` (listed under v-ranges; the inventory has `direct` coverage); `fireflies` (listed under v-weather; the inventory has `direct` coverage); `dust-motes` (listed under v-weather; the inventory has `direct` coverage); `scent` (listed under v-weather; the inventory has `direct` coverage); `splash` (listed under v-weather; the inventory has `direct` coverage); `landing-dust` (listed under v-weather; the inventory has `direct` coverage); `guardian-crows` (listed under v-critters; the inventory has `direct` coverage); `larry` (listed under c4-creatures; the inventory has `direct` coverage); `guardian-crows` (listed under c4-creatures; the inventory has `direct` coverage).
 - Gaps in the inventory that Appendix D does not list (outside the summit and media rows): none.
 - Appendix D says "31 summit rows with review-sheet evidence only" for s2 to s4. In the inventory that is 30 kit rows assigned to s2, s3 and s4 plus the media row `blender-roofscape` (review) = 31, which matches; `kyoto-city` is `direct`.
 
@@ -448,11 +448,11 @@ Phase 3, modular characters · kit family characters (`src/characters/`) · lab 
 
 ### c4-creatures
 
-Phase 3, modular characters · kit family characters (`src/characters/`) · lab none; the crows get a study from v-critters · 2 rows, 1 with a focused study.
+Phase 3, modular characters · kit family characters (`src/characters/`) · lab none; the crows get a study from v-critters · 2 rows, 2 with a focused study.
 
 | Inventory id | Area | Lane | Basis | Best lab target | Coverage | Lab adapter | Original adapter |
 |---|---|---|---|---|---|---|---|
-| `larry` | Characters | c4-creatures | ruling | `fences/corral` | embedded | no | yes |
+| `larry` | Characters | c4-creatures | ruling | `critters/larry` | direct | no | yes |
 | `guardian-crows` | Characters | c4-creatures | ruling | `critters/guardian-crow` | direct | no | yes |
 
 ### s2-clearing

@@ -284,6 +284,13 @@
       "file": "labs/critters/js/recipes.js",
       "anchor": "id: 'guardian-crow'"
     },
+    "critters/larry": {
+      "lab": "critters",
+      "selector": "larry",
+      "kind": "specimen",
+      "file": "labs/critters/js/recipes.js",
+      "anchor": "id: 'larry'"
+    },
     "critters/game-bird": {
       "lab": "critters",
       "selector": "game-bird",
@@ -1429,9 +1436,8 @@
       ],
       "coverage": [
         {
-          "target": "fences/corral",
-          "level": "embedded",
-          "note": "The complete original corral includes Larry; there is no isolated turtle or patrol study."
+          "target": "critters/larry",
+          "level": "direct"
         }
       ]
     },

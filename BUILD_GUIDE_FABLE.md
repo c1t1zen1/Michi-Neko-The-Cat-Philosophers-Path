@@ -661,7 +661,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 3 | `c1-rig-split` | `Cat` split into rig, parts, behaviour (serial) | G-F | [x] |
 | 3 | `c2-michi` | Player cat parts, collar, master bells | c1 | [ ] |
 | 3 | `c3-villagers` | Luna, Mochi, Kuro (lab 19) | c1 | [ ] |
-| 3 | `c4-creatures` | Larry the turtle, guardian crows | c1 | [ ] |
+| 3 | `c4-creatures` | Larry the turtle, guardian crows | c1 | [x] |
 | 4 | `s1-summit-split` | `mountaintop.js` split behind the facade (serial) | G-F, D2 | [x] |
 | 4 | `s2-clearing` | Meadow, stone, ensō, fūrin, torii, path, trees | s1, G-V2 | [ ] |
 | 4 | `s3-vista` | City, pagoda, bay, harbour, ranges, clouds | s1, `v-pagoda`, `v-ranges` | [ ] |
