@@ -3263,6 +3263,20 @@ export class Countryside {
    * remain readable above the canopy from the bridge and village pathways.
    */
   buildDistantPagoda(x, z) {
+    const layout = this.layoutDistantPagoda(x, z);
+    return this.placeAsset('distant-pagoda', layout, () => this.meshDistantPagodaClassic(layout));
+  }
+
+  layoutDistantPagoda(x, z) {
+    // No collision or platforms: it stands beyond the forest boundary
+    return {
+      index: this.nextIndex('distant-pagoda'), name: 'Distant Pagoda', band: 'rim',
+      x, y: Math.min(0, this.terrainHeight(x, z)), z, scale: 1.12 * 1.1,
+      footprint: footprint()
+    };
+  }
+
+  meshDistantPagodaClassic({ x, z }) {
     const pagoda = new THREE.Group();
     pagoda.name = 'Distant Pagoda';
     const roofTileDark = new THREE.MeshStandardMaterial({
