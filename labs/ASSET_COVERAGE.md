@@ -6,7 +6,7 @@ Reviewed 2026-11-10. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **145 of 186 (78.0%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **152 of 186 (81.7%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -28,10 +28,10 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 145 | 78.0% |
-| Review sheet | 27 | 14.5% |
+| Focused lab study | 152 | 81.7% |
+| Review sheet | 19 | 10.2% |
 | Embedded in a specimen | 2 | 1.1% |
-| Related evidence only | 9 | 4.8% |
+| Related evidence only | 10 | 5.4% |
 | No mapped evidence | 3 | 1.6% |
 
 ## Coverage by area
@@ -52,7 +52,7 @@ Each active row is counted once at its strongest evidence level, in the order ab
 | Hidden places | 16 | 15 | 0 | 1 | 0 | 0 |
 | Interiors | 19 | 18 | 0 | 0 | 1 | 0 |
 | Sky and effects | 19 | 13 | 0 | 0 | 4 | 2 |
-| Summit | 32 | 14 | 17 | 0 | 1 | 0 |
+| Summit | 32 | 21 | 9 | 0 | 2 | 0 |
 
 ## Gaps requiring focused specimens
 
@@ -87,20 +87,13 @@ This list includes every active row without a focused study, including review-on
 | [Meditation sun pool, motes and furin](#meditation-atmosphere) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
 | [Torii approach earthen shoulder](#summit-shoulder) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
 | [Summit flanks and basin landform](#summit-terrain) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
-| [Vista Yodo River and road ribbons](#vista-terrain) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
-| [Higashiyama pagoda and evening lanterns](#summit-pagoda) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. buildKyotoCity() calls buildKyotoPagoda(); the tower is inside the original city tile. Its evening-light material starts at zero opacity. |
-| [Bay water, coastline and sun glints](#summit-bay) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
-| [Harbour skyline, islands, bridge and Ferris wheel](#harbour) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
-| [Summit horizon mountain ranges](#horizon) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
 | [Summit slope forest species](#slope-forest) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
 | [Summit cumulus and storm cloud banks](#summit-clouds) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
 | [Summit butterflies and fly-by birds](#summit-wildlife) | Related evidence only | Umbrella row: it builds nothing itself; the butterflies and birds are the specimens. Umbrella row: it builds nothing itself; the butterflies and birds are the specimens. |
 | [Summit biome grass field](#summit-grass) | Review sheet | Same GrassSystem recipes, but no specimen of the summit’s field layout. |
-| [Layered Kyoto Bay vista assembly](#summit-vista) | Review sheet | No individual focused specimen is mapped. |
+| [Layered Kyoto Bay vista assembly](#summit-vista) | Related evidence only | The specimen builds the kit city layer; the assembly itself (layers, clouds, deferred ids) is only reviewed whole on the summit preview. |
 | [Optional summit transition video](#summit-transition) | No mapped evidence | Optional runtime transition media, outside the lab specimen set; availability is not checked. |
 | [Optional Blender Kyoto roofscape GLB](#blender-roofscape) | Review sheet | Optional runtime asset with fallback; availability is not verified by this source audit. |
-| [Bay bridge](#bay-bridge) | Review sheet | No individual focused specimen is mapped. |
-| [Harbour Ferris wheel](#ferris-wheel) | Review sheet | No individual focused specimen is mapped. |
 
 ## Inventory and individual evidence
 
@@ -342,11 +335,11 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="summit-shoulder"></a>`summit-shoulder` — Torii approach earthen shoulder | [src/mountaintop.js:buildApproachShoulder(](../src/mountaintop.js#L437) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
 | <a id="summit-path"></a>`summit-path` — Lower stone path, stones and lanterns | [src/mountaintop.js:buildLowerPath(](../src/mountaintop.js#L451) | [summit / c-path](../labs/summit/js/recipes.js#L110) (direct)<br>[summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
 | <a id="summit-terrain"></a>`summit-terrain` — Summit flanks and basin landform | [src/mountaintop.js:buildSummitTerrain(](../src/mountaintop.js#L439) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
-| <a id="vista-terrain"></a>`vista-terrain` — Vista Yodo River and road ribbons | [src/mountaintop.js:buildVistaTerrain(](../src/mountaintop.js#L463) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
-| <a id="summit-pagoda"></a>`summit-pagoda` — Higashiyama pagoda and evening lanterns | [src/mountaintop.js:buildKyotoPagoda(](../src/mountaintop.js#L465) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset.<br>[summit / game-city](../labs/summit/js/recipes.js#L78) (embedded) — buildKyotoCity() calls buildKyotoPagoda(); the tower is inside the original city tile. Its evening-light material starts at zero opacity. |  |
-| <a id="summit-bay"></a>`summit-bay` — Bay water, coastline and sun glints | [src/mountaintop.js:buildSummitBay(](../src/mountaintop.js#L467) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
-| <a id="harbour"></a>`harbour` — Harbour skyline, islands, bridge and Ferris wheel | [src/mountaintop.js:buildHarbourAndIslands(](../src/mountaintop.js#L468) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
-| <a id="horizon"></a>`horizon` — Summit horizon mountain ranges | [src/mountaintop.js:buildHorizonRanges(](../src/mountaintop.js#L469) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
+| <a id="vista-terrain"></a>`vista-terrain` — Vista Yodo River and road ribbons | [src/mountaintop.js:buildVistaTerrain(](../src/mountaintop.js#L463) | [summit / v-ribbons](../labs/summit/js/vista.js#L45) (direct) |  |
+| <a id="summit-pagoda"></a>`summit-pagoda` — Higashiyama pagoda and evening lanterns | [src/mountaintop.js:buildKyotoPagoda(](../src/mountaintop.js#L465) | [summit / v-pagoda](../labs/summit/js/vista.js#L49) (direct) |  |
+| <a id="summit-bay"></a>`summit-bay` — Bay water, coastline and sun glints | [src/mountaintop.js:buildSummitBay(](../src/mountaintop.js#L467) | [summit / v-bay](../labs/summit/js/vista.js#L53) (direct) |  |
+| <a id="harbour"></a>`harbour` — Harbour skyline, islands, bridge and Ferris wheel | [src/mountaintop.js:buildHarbourAndIslands(](../src/mountaintop.js#L468) | [summit / v-harbour](../labs/summit/js/vista.js#L57) (direct) |  |
+| <a id="horizon"></a>`horizon` — Summit horizon mountain ranges | [src/mountaintop.js:buildHorizonRanges(](../src/mountaintop.js#L469) | [summit / v-horizon](../labs/summit/js/vista.js#L69) (direct) |  |
 | <a id="slope-forest"></a>`slope-forest` — Summit slope forest species | [src/mountaintop.js:buildSlopeForest(](../src/mountaintop.js#L458) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
 | <a id="summit-clouds"></a>`summit-clouds` — Summit cumulus and storm cloud banks | [src/mountaintop.js:buildSummitClouds(](../src/mountaintop.js#L473) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
 | <a id="summit-snow"></a>`summit-snow` — Summit snowfall | [src/mountaintop.js:buildSummitSnow(](../src/mountaintop.js#L477) | [summit / life-snow](../labs/summit/js/life.js#L21) (direct) |  |
@@ -357,13 +350,13 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="shrine-rays"></a>`shrine-rays` — Valley-to-summit shrine beacon rays | [src/mountaintop.js:buildShrineRays(](../src/mountaintop.js#L429) | [summit / life-rays](../labs/summit/js/life.js#L45) (direct) |  |
 | <a id="summit-light"></a>`summit-light` — Supplementary summit sky and rim lights | [src/mountaintop.js:buildSummitLight(](../src/mountaintop.js#L428) | [summit / life-light](../labs/summit/js/life.js#L49) (direct) |  |
 | <a id="summit-grass"></a>`summit-grass` — Summit biome grass field | [src/mountaintop.js:buildGrassField(](../src/mountaintop.js#L457) | [grass / ring-lod](../labs/grass/js/types_field.js#L273) (related) — Same GrassSystem recipes, but no specimen of the summit’s field layout.<br>[summit-review / whole-scene](../tools/summit_preview.js#L62) (review) |  |
-| <a id="summit-vista"></a>`summit-vista` — Layered Kyoto Bay vista assembly | [src/mountaintop.js:buildSkirtAndVista(](../src/mountaintop.js#L461) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) |  |
-| <a id="kyoto-city"></a>`kyoto-city` — Summit Kyoto houses, eaves, window lights and gardens | [src/mountaintop.js:buildKyotoCity(](../src/mountaintop.js#L464) | [summit / game-city](../labs/summit/js/recipes.js#L78) (direct)<br>[summit / night](../labs/summit/js/recipes.js#L90) (direct) |  |
+| <a id="summit-vista"></a>`summit-vista` — Layered Kyoto Bay vista assembly | [src/mountaintop.js:buildSkirtAndVista(](../src/mountaintop.js#L461) | [summit / v-city](../labs/summit/js/vista.js#L37) (related) — The specimen builds the kit city layer; the assembly itself (layers, clouds, deferred ids) is only reviewed whole on the summit preview. |  |
+| <a id="kyoto-city"></a>`kyoto-city` — Summit Kyoto houses, eaves, window lights and gardens | [src/mountaintop.js:buildKyotoCity(](../src/mountaintop.js#L464) | [summit / game-city](../labs/summit/js/recipes.js#L78) (direct)<br>[summit / v-city](../labs/summit/js/vista.js#L37) (direct)<br>[summit / v-city-lit](../labs/summit/js/vista.js#L41) (direct)<br>[summit / night](../labs/summit/js/recipes.js#L90) (direct) |  |
 | <a id="blender-roofscape"></a>`blender-roofscape` — Optional Blender Kyoto roofscape GLB | [src/mountaintop.js:loadVistaLandmarks(](../src/mountaintop.js#L472) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — Optional runtime asset with fallback; availability is not verified by this source audit. |  |
 | <a id="summit-enso"></a>`summit-enso` — Weathered enso marking | [src/mountaintop.js:buildMeditationStone(](../src/mountaintop.js#L448) | [summit / c-enso](../labs/summit/js/recipes.js#L98) (direct)<br>[summit-review / whole-scene](../tools/summit_preview.js#L62) (review) |  |
 | <a id="summit-furin"></a>`summit-furin` — Summit meditation furin | [src/mountaintop.js:buildMeditationAtmosphere(](../src/mountaintop.js#L450) | [summit / c-furin](../labs/summit/js/recipes.js#L102) (direct)<br>[summit-review / whole-scene](../tools/summit_preview.js#L62) (review) |  |
-| <a id="bay-bridge"></a>`bay-bridge` — Bay bridge | [src/mountaintop.js:buildHarbourAndIslands(](../src/mountaintop.js#L468) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) |  |
-| <a id="ferris-wheel"></a>`ferris-wheel` — Harbour Ferris wheel | [src/mountaintop.js:buildHarbourAndIslands(](../src/mountaintop.js#L468) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) |  |
+| <a id="bay-bridge"></a>`bay-bridge` — Bay bridge | [src/mountaintop.js:buildHarbourAndIslands(](../src/mountaintop.js#L468) | [summit / v-bridge](../labs/summit/js/vista.js#L61) (direct) |  |
+| <a id="ferris-wheel"></a>`ferris-wheel` — Harbour Ferris wheel | [src/mountaintop.js:buildHarbourAndIslands(](../src/mountaintop.js#L468) | [summit / v-wheel](../labs/summit/js/vista.js#L65) (direct) |  |
 | <a id="summit-butterflies"></a>`summit-butterflies` — Summit butterfly visitors | [src/mountaintop.js:buildAmbientWildlife(](../src/mountaintop.js#L489) | [summit / life-butterflies](../labs/summit/js/life.js#L37) (direct) |  |
 | <a id="summit-birds"></a>`summit-birds` — Summit fly-by bird palette variants | [src/mountaintop.js:buildAmbientWildlife(](../src/mountaintop.js#L489) | [summit / life-birds](../labs/summit/js/life.js#L41) (direct) |  |
 
