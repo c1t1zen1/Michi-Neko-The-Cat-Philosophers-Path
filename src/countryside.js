@@ -774,6 +774,16 @@ export class Countryside {
   }
 
   buildPathShoulders() {
+    const layout = this.layoutPathShoulders();
+    return this.placeAsset('path-shoulders', layout, () => this.meshPathShouldersClassic(layout));
+  }
+
+  /** The earthen shoulders either side of the road: no draws, no registration. */
+  layoutPathShoulders() {
+    return { index: this.nextIndex('path-shoulders'), name: 'Earthen Shoulders', footprint: footprint() };
+  }
+
+  meshPathShouldersClassic() {
     if (!this.pathSamplesPreview) {
       const pts = [
         new THREE.Vector3(0, 0, 34), new THREE.Vector3(-2, 0, 20), new THREE.Vector3(1.5, 0, 6),
