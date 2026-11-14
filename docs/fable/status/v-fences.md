@@ -46,3 +46,6 @@ None.
 
 ## Notes for the Integrator
 See docs/fable/handoff/v-fences.md (inventory row for corral-sign, kit_test fixture bug, helper promotion).
+
+## Fix round 1
+Fences/corral posts/sign lashings baked into plain merged geometry (no InstancedMesh); merged fable/integration. perf_spots draw calls 763->751 (street), 735->706 (meadow); triangles +4.8% / +4.4%. corral-sign JPGs re-shot from a real sign-framed camera. Hero end posts no longer 4 cm taller. Far sign dark wood is documented in the handoff. See the report's Fix round 1 section.

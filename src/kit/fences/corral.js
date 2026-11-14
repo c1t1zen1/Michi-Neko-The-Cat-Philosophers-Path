@@ -6,7 +6,7 @@
 // vegetation exclusion stay in the layout's footprint (countryside.js) and are
 // registered from `layout.footprint` untouched.
 import { defineAsset } from '../contract.js?v=20261113a';
-import { culmGeometry, knotGeometry, FINISHES } from './culm.js?v=20261113a';
+import { culmGeometry, knotGeometry, bake, FINISHES } from './culm.js?v=20261113a';
 
 export const corral = defineAsset({
   id: 'corral', family: 'fences', lab: 'fences/corral',
@@ -24,28 +24,29 @@ export const corral = defineAsset({
     const group = new THREE.Group();
     const o = new THREE.Object3D();
     const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
-    const posts = new THREE.InstancedMesh(culmGeometry(THREE, tier), km.bamboo({ color: FINISHES[params.finish], vcol: true, rough: 0.5 }), 4);
-    const col = new THREE.Color();
-    corners.forEach(([sx, sz], i) => {
-      o.position.set(sx * w / 2, 0, sz * d / 2);
-      o.rotation.set((rng() - 0.5) * 0.02, rng() * 6, (rng() - 0.5) * 0.02);
-      o.scale.set(params.post_radius, params.post_height, params.post_radius);
-      o.updateMatrix(); posts.setMatrixAt(i, o.matrix);
-      const v = 0.92 + rng() * 0.12; posts.setColorAt(i, col.setRGB(v, v, v * 0.95));
+    const po = [], pt = [];
+    corners.forEach(([sx, sz]) => {
+      const q = new THREE.Object3D();
+      q.position.set(sx * w / 2, 0, sz * d / 2);
+      q.rotation.set((rng() - 0.5) * 0.02, rng() * 6, (rng() - 0.5) * 0.02);
+      q.scale.set(params.post_radius, params.post_height, params.post_radius);
+      q.updateMatrix(); po.push(q);
+      const v = 0.92 + rng() * 0.12; pt.push([v, v, v * 0.95]);
     });
-    posts.instanceMatrix.needsUpdate = true; if (posts.instanceColor) posts.instanceColor.needsUpdate = true;
-    posts.castShadow = posts.receiveShadow = true; posts.userData.sharedGeometry = true;
+    const posts = new THREE.Mesh(bake(THREE, culmGeometry(THREE, tier), po, pt), km.bamboo({ color: FINISHES[params.finish], vcol: true, rough: 0.5 }));
+    posts.castShadow = posts.receiveShadow = true;
     group.add(posts);
     const parts = { corner_posts: posts };
     if (tier !== 'far') {
       // two cord lashings per post: below the cap and at the fence-rail height
-      const lash = new THREE.InstancedMesh(knotGeometry(THREE, tier), km.plain(0x2a2017, { rough: 1 }), 8);
-      let k = 0;
+      const lo = [];
       for (const [sx, sz] of corners) for (const y of [0.82, params.post_height - 0.12]) {
-        o.position.set(sx * w / 2, y, sz * d / 2); o.rotation.set(Math.PI / 2, 0, 0); o.scale.setScalar(params.post_radius * 1.15);
-        o.updateMatrix(); lash.setMatrixAt(k++, o.matrix);
+        const q = new THREE.Object3D();
+        q.position.set(sx * w / 2, y, sz * d / 2); q.rotation.set(Math.PI / 2, 0, 0); q.scale.setScalar(params.post_radius * 1.15);
+        q.updateMatrix(); lo.push(q);
       }
-      lash.instanceMatrix.needsUpdate = true; lash.castShadow = true; lash.userData.sharedGeometry = true;
+      const lash = new THREE.Mesh(bake(THREE, knotGeometry(THREE, tier), lo), km.plain(0x2a2017, { rough: 1 }));
+      lash.castShadow = true;
       group.add(lash); parts.lashings = lash;
     }
     return { group, parts };

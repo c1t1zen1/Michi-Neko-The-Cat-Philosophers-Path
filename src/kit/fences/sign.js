@@ -3,7 +3,7 @@
 // lashings. Promoted from labs/fences/js/sign.js. Origin at the ground in
 // front of the north fence; the face reads from -z like the classic sign.
 import { defineAsset } from '../contract.js?v=20261113a';
-import { culmGeometry, knotGeometry } from './culm.js?v=20261113a';
+import { culmGeometry, knotGeometry, bake } from './culm.js?v=20261113a';
 import { canvas2d, canvasTexture } from '../craft.js?v=20261113a';
 
 let faceMap = null;   // one canvas texture for the page (shared: never disposed by an instance)
@@ -53,12 +53,10 @@ export const corralSign = defineAsset({
       group.add(cap); parts.cap = cap;
     }
     if (tier === 'hero') {
-      const kg = knotGeometry(THREE, tier), kmat = km.plain(0x2a2017, { rough: 1 });
-      const lash = new THREE.InstancedMesh(kg, kmat, 2);
-      const o = new THREE.Object3D();
-      [boardY - 0.12, boardY + 0.12].forEach((y, i) => { o.position.set(0, y, 0); o.rotation.set(Math.PI / 2, 0, 0); o.scale.setScalar(0.075); o.updateMatrix(); lash.setMatrixAt(i, o.matrix); });
-      lash.instanceMatrix.needsUpdate = true;
-      lash.userData.sharedGeometry = true;
+      const lo = [boardY - 0.12, boardY + 0.12].map((y) => {
+        const o = new THREE.Object3D(); o.position.set(0, y, 0); o.rotation.set(Math.PI / 2, 0, 0); o.scale.setScalar(0.075); o.updateMatrix(); return o;
+      });
+      const lash = new THREE.Mesh(bake(THREE, knotGeometry(THREE, tier), lo), km.plain(0x2a2017, { rough: 1 }));
       group.add(lash); parts.lashing = lash;
     }
     group.traverse((o) => { if (o.isMesh) o.castShadow = true; });

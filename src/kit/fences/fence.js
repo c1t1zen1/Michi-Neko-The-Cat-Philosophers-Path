@@ -7,7 +7,7 @@
 // tilts[n + 1], colliderHeight, role, footprint. The footprint and the
 // bambooFences list entry are the layout's own; nothing here changes them.
 import { defineAsset } from '../contract.js?v=20261113a';
-import { culmGeometry, knotGeometry, FINISHES } from './culm.js?v=20261113a';
+import { culmGeometry, knotGeometry, bake, FINISHES } from './culm.js?v=20261113a';
 
 const RAILS = [0.32, 0.82];
 
@@ -49,31 +49,27 @@ export const bambooFence = defineAsset({
     const list = [];
     const thick = params.thickness;
     for (const y of RAILS) list.push({ x: len / 2, y, z: -0.01, rz: Math.PI / 2, r: 0.045 * thick, l: len });
-    const _o = new THREE.Object3D(), _v = new THREE.Vector3(), _e = new THREE.Euler();
+    const _v = new THREE.Vector3(), _e = new THREE.Euler();
     for (let i = 0; i <= n; i++) {
       const sx = -len / 2 + i * (len / n), post = i === 0 || i === n;
-      const ph = post && tier === 'hero' ? h + 0.04 : h;
+      const ph = h;
       const tilt = post ? 0 : tilts[i] * params.lean;
       // classic slats tilt about their middle; place the culm's base so the middle stays put
       _e.set(tilt, 0, 0);
       _v.set(0, -ph / 2, 0).applyEuler(_e);
       list.push({ x: sx + _v.x, y: ph / 2 + _v.y, z: _v.z, rx: tilt, r: (post ? 0.05 : 0.032) * thick, l: ph });
     }
-    const culms = new THREE.InstancedMesh(culmGeo, mat, list.length);
-    const col = new THREE.Color();
-    list.forEach((c, i) => {
-      _o.position.set(c.x, c.y, c.z);
-      _o.rotation.set(c.rx || 0, 0, c.rz || 0);
-      _o.scale.set(c.r, c.l, c.r);
-      _o.updateMatrix();
-      culms.setMatrixAt(i, _o.matrix);
+    const objs = [], tints = [];
+    for (const c of list) {
+      const o = new THREE.Object3D();
+      o.position.set(c.x, c.y, c.z); o.rotation.set(c.rx || 0, 0, c.rz || 0); o.scale.set(c.r, c.l, c.r); o.updateMatrix();
+      objs.push(o);
       const v = 0.9 + rng() * 0.16;
-      culms.setColorAt(i, col.setRGB(v, v * (0.97 + rng() * 0.05), v * 0.94));
-    });
-    culms.instanceMatrix.needsUpdate = true;
-    if (culms.instanceColor) culms.instanceColor.needsUpdate = true;
+      tints.push([v, v * (0.97 + rng() * 0.05), v * 0.94]);
+    }
+    // baked into one plain indexed mesh on a merge-able material (see culm.js bake)
+    const culms = new THREE.Mesh(bake(THREE, culmGeo, objs, tints), mat);
     culms.castShadow = culms.receiveShadow = true;
-    culms.userData.sharedGeometry = true;
     culms.name = 'culms';
     group.add(culms);
     const parts = { culms };
@@ -82,21 +78,19 @@ export const bambooFence = defineAsset({
     if (params.lashing && tier !== 'far') {
       const kg = knotGeometry(THREE, tier);
       const kmat = km.plain(0x2a2017, { rough: 1 });
-      const knots = new THREE.InstancedMesh(kg, kmat, (n + 1) * RAILS.length);
-      let k = 0;
+      const ko = [];
       for (let i = 0; i <= n; i++) {
         const sx = -len / 2 + i * (len / n);
         for (const y of RAILS) {
-          _o.position.set(sx, y, 0.012 * (i % 2 ? 1 : -1));
-          _o.rotation.set(Math.PI / 2, 0, rng() * 3);
-          _o.scale.setScalar(0.05 * thick);
-          _o.updateMatrix();
-          knots.setMatrixAt(k++, _o.matrix);
+          const o = new THREE.Object3D();
+          o.position.set(sx, y, 0.012 * (i % 2 ? 1 : -1));
+          o.rotation.set(Math.PI / 2, 0, rng() * 3);
+          o.scale.setScalar(0.05 * thick);
+          o.updateMatrix(); ko.push(o);
         }
       }
-      knots.instanceMatrix.needsUpdate = true;
+      const knots = new THREE.Mesh(bake(THREE, kg, ko), kmat);
       knots.castShadow = true;
-      knots.userData.sharedGeometry = true;
       knots.name = 'knots';
       group.add(knots);
       parts.knots = knots;

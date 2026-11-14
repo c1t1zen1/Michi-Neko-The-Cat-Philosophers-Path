@@ -5,9 +5,10 @@
 // (vertex colour), the same profile as labs/shared/bamboo.js `culmGeometry`
 // with the ring count cut by tier.
 import { lerp } from '../craft.js?v=20261113a';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const TIER_CULM = {
-  hero: { nodes: 5, radial: 8, rows: 5 },
+  hero: { nodes: 5, radial: 7, rows: 3 },
   mid: { nodes: 4, radial: 5, rows: 3 },
   far: { nodes: 0, radial: 4, rows: 1 }
 };
@@ -54,7 +55,7 @@ export function culmGeometry(THREE, tier) {
 export function knotGeometry(THREE, tier) {
   const key = THREE.REVISION + ':' + tier;
   if (knots.has(key)) return knots.get(key);
-  const g = tier === 'hero' ? new THREE.TorusGeometry(1, 0.32, 5, 9) : new THREE.TorusGeometry(1, 0.34, 3, 5);
+  const g = tier === 'hero' ? new THREE.TorusGeometry(1, 0.32, 4, 7) : new THREE.TorusGeometry(1, 0.34, 3, 5);
   g.userData.shared = true;
   knots.set(key, g);
   return g;
@@ -62,3 +63,25 @@ export function knotGeometry(THREE, tier) {
 
 /** Age ramp for the three finishes: fresh green, dry straw, weathered brown. */
 export const FINISHES = Object.freeze({ fresh: 0xa9c06a, straw: 0xd2b87c, weathered: 0x9c8056 });
+
+/**
+ * Bake copies of a shared unit geometry into ONE indexed BufferGeometry
+ * (position, normal, uv, and colour when `tints` is given), so the mesh is a
+ * plain Mesh on a merge-able material and Countryside._mergeStatics() folds
+ * every fence in the valley into one draw per material. `objs` are
+ * Object3Ds with `updateMatrix()` already called; `tints[i]` is [r, g, b].
+ */
+export function bake(THREE, geo, objs, tints = null) {
+  const parts = objs.map((o, i) => {
+    const g = geo.clone();
+    g.applyMatrix4(o.matrix);
+    if (tints) {
+      const c = g.attributes.color, t = tints[i];
+      for (let k = 0; k < c.count; k++) c.setXYZ(k, c.getX(k) * t[0], c.getY(k) * t[1], c.getZ(k) * t[2]);
+    } else g.deleteAttribute('color');
+    return g;
+  });
+  const out = mergeGeometries(parts);
+  for (const p of parts) p.dispose();
+  return out;
+}

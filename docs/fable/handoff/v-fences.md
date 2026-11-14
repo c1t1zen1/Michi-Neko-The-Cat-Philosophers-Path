@@ -24,8 +24,23 @@
 ## Footprint
 No waivers. Every instance's footprint is `layout.footprint` (runtime default, R12): colliders, platform, `bambooFences` list entry, the corral exclusion, and Larry's patrol bounds (in the `larry` component layout) are untouched. Footprint golden: classic EQUAL; modular swap of all three ids: only `objects`/`aggregates`/`baked`/`counts` sections differ (mesh composition), no colliders/platforms/exclusions/anchors/waterRects changes.
 
-## Materials
-Reuses `kitMaterials.bamboo` (vertex-coloured, finish tints fresh/straw/weathered; only the chosen finish is created), `plain` (cord), `wood` (sign), `paper` (sign face, lit, with the shared canvas texture). Default build creates 4 kit materials (bamboo straw, plain cord, wood x2 for the sign boards; paper counts as the 5th): `kit:` family total within R26? Bamboo finish + cord + 2 woods + paper; the three finishes are alternatives, not simultaneous. If the Integrator counts strictly against R26 "one new merged material", these are all existing `KitMaterials` factories and other lanes (garden, greenery) will memoise the same entries only when args match.
+## Materials (R26)
+All from existing `KitMaterials` factories; NEW merged materials added by this family: 0 beyond the shared set below (the bamboo finishes are alternatives: only the chosen one is created).
+- Possibly shared with other lanes (memoised by args): `plain(0x2a2017, rough 1)` cord, `wood` x2 (sign post cap/board colours), `paper` with the sign face map.
+- Family-specific by arguments: `bamboo({color: finish tint, vcol: true, rough 0.5})` (straw by default), one per finish in use.
+Default valley build creates at most 5 kit materials (bamboo straw, cord, 2 woods, paper); if R26 counts distinct args strictly, that is the family's total and the Integrator may trim by sharing the cord/wood with other families.
+
+## Draw calls and triangles (perf_spots, high, boots 1, 60 frames; classic vs swap of all three ids)
+Fences are now baked into plain indexed meshes on merge-able materials (not InstancedMesh), so `_mergeStatics` folds them into the valley's per-material draws.
+| Spot | Draw calls classic -> modular | Triangles/frame classic -> modular |
+|---|---|---|
+| street | 763 -> 751 (-12) | 8,116,087 -> 8,503,793 (+388k, +4.8%) |
+| meadow | 735 -> 706 (-29) | 7,535,912 -> 7,867,954 (+332k, +4.4%) |
+Triangle cost: merged statics are not frustum-culled, so every fence in the valley is drawn from every spot (hero detail near, shadow pass counted). Hero culm was trimmed (7 radial, 3 rows per node) to hold this.
+
+## Cosmetic deviations from classic
+- far-tier sign uses the dark wood for post and board (the far budget allows 2 materials); hero/mid sign post is bamboo.
+- hero end posts are now the same height as the verticals (fix round 1; previously +4 cm).
 
 ## Helpers to move into shared kit code
 - `src/kit/fences/culm.js` `culmGeometry(THREE, tier)` (per-tier unit culm with swollen nodes, cached) and `knotGeometry`: reusable by bamboo grove, garden and tea-garden lanes (promote to `src/kit/craft.js` if wanted).
