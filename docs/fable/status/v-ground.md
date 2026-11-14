@@ -6,8 +6,9 @@
 - Base commit:        5575aee (fable/integration)
 - State:              ready for review
 - Grant:              single writer of `src/kit/budgets.js` for this lane (BUDGET_EXCEPTIONS entry for the
-                      whole-system valley ground). No hot-file grant: the main.js line that binds live wear is an
-                      exact patch in `docs/fable/handoff/v-ground.md`.
+                      whole-system valley ground). Pre-review grant (R47 pattern): `src/main.js` for the one
+                      `bindWorld` loop of the handoff §1 (applied in-lane), with `labs/ASSET_COVERAGE.md` regenerated.
+                      R52: the `kit-ground` material is accepted.
 
 ## Assets
 | Inventory id | Promoted from (lab/specimen) | Parts | Tiers | Footprint | State |
@@ -166,3 +167,15 @@ None.
 - PR size: ~2,000 added lines in `src/kit/ground/` (≈ 900 of them the lab's shader, field and painter ported) plus
   64 small JPGs; over the ~1,500-line guide, but one system that does not split cleanly (the four ids share the field
   and material).
+
+## Pre-review: bindWorld (main.js applied in-lane; R52 accepted)
+- `src/main.js`: the handoff §1 loop after the `grassContext` line (7 lines); `labs/ASSET_COVERAGE.md` regenerated
+  (`node tools/labs_coverage.mjs --write` → `Active coverage: direct=137, …`; only `src/main.js` line anchors moved).
+- Classic-neutral: `node tools/footprint_golden.mjs` → `footprint golden: EQUAL`; `--systems` → `footprint golden: EQUAL`;
+  boot `?assets=classic` → `{"kit":0,"problems":[],"ground":0}`, `warnings: []` (only the pre-existing cad-overrides 404).
+- Modular boot `?assets=modular` → `{"kit":235,"problems":[],"ground":1}`, `warnings: []`.
+- Wear test with main.js doing the binding (no manual `bindWorld` call; `_scratch/v-ground/wear_eval_main.js`):
+  `{"mid":{"lawnWear":0.737,"wear":0.694,"maskR":0,"bakedR":255,"lawnG":255,"lawnBakedG":255},"after":{"wear":0,"maskR":255,"bakedR":255,"live":null},"maskTexelsDifferentFromBaked":0}`
+  → meadow thins (255 → 0) where the cat wore it, the lawn stays (g 255), and it heals back to the baked mask exactly.
+- Also: check_syntax `All 148 modules OK`; verify `kit_test 36/36`, `All checks passed`; kit_check `361 passed`;
+  labs_check `All labs checks OK`; `node --test tools/labs_coverage_test.mjs` → `pass 11, fail 0`; `git diff --check` clean.

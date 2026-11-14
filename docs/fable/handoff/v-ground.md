@@ -3,7 +3,7 @@
 Family `src/kit/ground/` (lab 01, Ground, path & shoulders). Four ids, all promoted: `valley-ground`, `path`,
 `path-shoulders`, `path-slabs`. No change to `countryside.js`; layouts and footprints untouched (no waiver).
 
-## 1. Hot file: `src/main.js` — live wear (exact patch, optional but recommended)
+## 1. Hot file: `src/main.js` — live wear (APPLIED IN-LANE under the pre-review grant, R47 pattern; commit below)
 
 The valley ground's field wears where paws pass and thins the grass BiomeMask there (lawns never: lawn texels have
 meadow 0 in the baked mask and are skipped). The kit instance cannot see the player or the grass (ctx and env do
@@ -21,7 +21,8 @@ not carry them), so main.js binds it once, right after `grassContext` is set (`G
 +    }
 ```
 
-Unbound (no patch), the modular ground still renders, wets, puddles and snows; only paw wear is off. The patch
+Applied verbatim in this branch (`src/main.js`, after the `grassContext` line; `labs/ASSET_COVERAGE.md`
+regenerated with `node tools/labs_coverage.mjs --write` for the shifted line anchors). Unbound, the modular ground still renders, wets, puddles and snows; only paw wear is off. The patch
 changes nothing on the classic set (no `valley-ground` instance exists) and nothing at build time (the systems
 golden digests the mask as baked; the first write happens after a paw lands). Proof that the hook works: status
 file, "Live wear".
@@ -40,7 +41,7 @@ file, "Live wear".
 Measured: classic 45,000 tris (150 x 150 plane); modular 45,000 / 45,000 / 5,000. Warm builds 2-3 ms; first build in
 the game ~390 ms (classic ground ~35-43 ms warm, plus the same `groundTextures(6)` both sets generate once).
 
-## 3. Materials (ruling R52): one new kit material, net -2 draws
+## 3. Materials (ruling R52): one new kit material, net -2 draws — ACCEPTED at pre-review
 
 - `kit-ground` (src/kit/ground/material.js `createGroundMaterial`): one private, unmerged MeshStandardMaterial
   with onBeforeCompile per ground surface. **Justification:** the ground is one height-blended splat over a
