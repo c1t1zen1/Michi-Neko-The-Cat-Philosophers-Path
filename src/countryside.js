@@ -2919,29 +2919,28 @@ export class Countryside {
 
   // --- Street greenery: bushes, moss, bamboo fences & toro stone lanterns ---
   buildStreetGreenery() {
-    this.buildStreetBushes();
-    const dummy = new THREE.Object3D();
+    const layout = this.layoutStreetGreenery();
+    return this.placeAsset('roadside-moss', layout, () => this.meshStreetGreeneryClassic(layout));
+  }
 
-    // Moss / grass patches hugging the road edges
-    const mossMat = new THREE.MeshStandardMaterial({ color: 0x48682f, roughness: 1 });
-    const mossGeo = new THREE.CircleGeometry(1, 8);
-    const moss = new THREE.InstancedMesh(mossGeo, mossMat, 70);
-    let mi = 0;
-    for (let z = 32; z > -29 && mi < 70; z -= 2.6) {
+  /**
+   * The roadside moss is this builder's own mesh; the street bushes, the
+   * takegaki runs between neighbouring townhouses and the toro lanterns are
+   * components, laid out in the classic order (bushes, moss, fences, toro).
+   */
+  layoutStreetGreenery() {
+    const components = [component('street-bushes', this.layoutStreetBushes(), 'meshStreetBushesClassic')];
+
+    // Moss / grass patches hugging the road edges: keep?, x, z jitter, x/z size, yaw
+    const patches = [];
+    for (let z = 32; z > -29 && patches.length < 70; z -= 2.6) {
       for (const side of [-1, 1]) {
-        if (this.random() < 0.3 || mi >= 70) continue;
-        dummy.position.set(side * (1.9 + this.random() * 0.7), 0.045, z + (this.random() - 0.5) * 1.2);
-        dummy.scale.set(0.4 + this.random() * 0.7, 1, 0.3 + this.random() * 0.6);
-        dummy.rotation.set(-Math.PI / 2, 0, this.random() * Math.PI);
-        dummy.updateMatrix();
-        moss.setMatrixAt(mi++, dummy.matrix);
+        if (this.random() < 0.3 || patches.length >= 70) continue;
+        const position = [side * (1.9 + this.random() * 0.7), 0.045, z + (this.random() - 0.5) * 1.2];
+        const scale = [0.4 + this.random() * 0.7, 1, 0.3 + this.random() * 0.6];
+        patches.push({ position, scale, rz: this.random() * Math.PI });
       }
     }
-    moss.count = mi;
-    moss.instanceMatrix.needsUpdate = true;
-    moss.receiveShadow = true;
-    moss.name = 'Roadside Moss';
-    this.scene.add(moss);
 
     // Continuous takegaki runs bridge the exact world-space gaps between
     // neighboring townhouses. Each fence overlaps both building colliders so
@@ -2964,12 +2963,12 @@ export class Countryside {
         // Choose the street-facing edge of the houses' shared X footprint, so
         // the fence physically enters both building colliders at its ends.
         const x = sideName === 'left' ? sharedMaxX - 0.12 : sharedMinX + 0.12;
-        this.buildBambooFence(x, z, Math.PI / 2, {
+        components.push(component('bamboo-fence', this.layoutBambooFence(x, z, Math.PI / 2, {
           length,
           rotationJitter: false,
           role: 'village-gap',
           connects: [northHouse, southHouse]
-        });
+        }), 'meshBambooFenceClassic'));
       }
     }
 
@@ -2977,8 +2976,36 @@ export class Countryside {
     const toroZ = [22, 14, 4, -2, -11, -21];
     toroZ.forEach((z, i) => {
       const side = i % 2 === 0 ? -1 : 1;
-      this.buildToroLantern(side * 2.5, z);
+      components.push(component('toro', this.layoutToroLantern(side * 2.5, z), 'meshToroLanternClassic'));
     });
+    return { index: this.nextIndex('roadside-moss'), name: 'Roadside Moss', patches, footprint: footprint(), components };
+  }
+
+  meshStreetGreeneryClassic(layout) {
+    const [bushes, ...rest] = layout.components;
+    this.placeComponent(bushes, this.scene);
+    const dummy = new THREE.Object3D();
+
+    // Moss / grass patches hugging the road edges
+    const mossMat = new THREE.MeshStandardMaterial({ color: 0x48682f, roughness: 1 });
+    const mossGeo = new THREE.CircleGeometry(1, 8);
+    const moss = new THREE.InstancedMesh(mossGeo, mossMat, 70);
+    let mi = 0;
+    for (const patch of layout.patches) {
+      dummy.position.set(...patch.position);
+      dummy.scale.set(...patch.scale);
+      dummy.rotation.set(-Math.PI / 2, 0, patch.rz);
+      dummy.updateMatrix();
+      moss.setMatrixAt(mi++, dummy.matrix);
+    }
+    moss.count = mi;
+    moss.instanceMatrix.needsUpdate = true;
+    moss.receiveShadow = true;
+    moss.name = 'Roadside Moss';
+    this.scene.add(moss);
+
+    // The takegaki runs, then the toro lanterns
+    for (const c of rest) this.placeComponent(c, this.scene);
   }
 
   buildBambooFence(x, z, rot, options = {}) {
