@@ -10,6 +10,7 @@ export const KURO = villagerDef({
   personality: {
     notice: 7,
     idle: { weights: { sit: 0.65, groom: 0.15, stretch: 0.1, yawn: 0.1 }, interval: [14, 24] },
+    shine: 0xdcef86, // tapetum glint at dusk (behaviour/eyeshine.js)
     greeting: 'wary', startle: 'cautious',
     groom: { bout: [4, 7], pause: [50, 100], chance: 0.4 }
   }

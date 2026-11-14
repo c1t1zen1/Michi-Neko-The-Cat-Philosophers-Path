@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Cat } from './cat.js?v=20261107a';
 import { VILLAGER_DEFS } from './characters/defs/index.js?v=20261107a';
+import { EyeShine } from './characters/behaviour/eyeshine.js?v=20261107a';
 import { GroomingBehaviour } from './characters/behaviour/grooming.js?v=20261107a';
 
 const _lookAt = new THREE.Vector3();
@@ -58,8 +59,10 @@ export class NPC {
     if (this.modular) {
       this.cat = new Cat({ def, audio: options.audio || null });
       this.grooming = new GroomingBehaviour(def.personality);
+      this.eyeShine = new EyeShine(this.cat, def.personality.shine);
     } else {
       this.grooming = null;
+      this.eyeShine = null;
       this.cat = new Cat({
       stripeAmount: options.stripeAmount ?? (persona ? persona.stripes : undefined),
       idleProfile: options.idleProfile ?? (persona ? persona.idle : undefined),
@@ -331,6 +334,7 @@ export class NPC {
       this.mesh.position.y += (targetY - this.mesh.position.y) * Math.min(1, dt * 2);
     }
 
+    if (this.eyeShine) this.eyeShine.update(camera, sky ? sky.dayTime : null);
     if (this.grooming) this.grooming.update(dt, this.cat, !this.sleeping && this.moveSpeed === 0 && !this.wanderTarget && dist >= 5.0);
 
     // Follow the player with the head while they're close

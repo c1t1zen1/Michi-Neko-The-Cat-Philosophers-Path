@@ -1,6 +1,6 @@
 # Handoff: c3-villagers
 
-## main.js (hot, Integrator)
+## main.js (hot, Integrator) — APPLIED IN-LANE (Integrator grant): `assets: this.assets` in the three NPC option objects, nothing else
 `NPC` builds from its CharacterDef when `options.assets.setFor('luna'|'mochi'|'kuro') === 'modular'`
 (never on quality `low`). Add `assets: this.assets` to the options of the three `new NPC(...)` calls
 in `src/main.js` (~lines 268, 292, 307), e.g. `{ wanderRadius: 3, assets: this.assets }`.

@@ -266,7 +266,7 @@ class Game {
         'I am Luna. This valley is full of secrets... and yarn.',
         'Could you collect 3 yarn balls for me?'
       ],
-      { wanderRadius: 3 }
+      { wanderRadius: 3, assets: this.assets }
     );
     this.luna.dialogueProvider = () => this.getLunaDialogue();
     this.luna.onDialogueComplete = () => this.finishLunaDialogue();
@@ -290,7 +290,7 @@ class Game {
         'They say a hidden house appears for cats who explore...',
         'I saw something shiny glinting near the old torii gate!'
       ],
-      { fur: 0xe8b06a, belly: 0xfaf0dc, accent: 0xb07840, wanderRadius: 5 }
+      { fur: 0xe8b06a, belly: 0xfaf0dc, accent: 0xb07840, wanderRadius: 5, assets: this.assets }
     );
     // Mochi plays with fallen bamboo leaves when the wind picks up (N2.2).
     this.mochi.schedule = { playInWind: true, sleepAtNight: true };
@@ -305,7 +305,7 @@ class Game {
         'The river keeps old secrets, little one.',
         'Follow the red shrine gates when the mist rolls in.'
       ],
-      { fur: 0x1c1c22, belly: 0x2e2e38, accent: 0x101014, eyeColor: 0xd8b04a, wanderRadius: 6, wanderSpeed: 0.9 }
+      { fur: 0x1c1c22, belly: 0x2e2e38, accent: 0x101014, eyeColor: 0xd8b04a, wanderRadius: 6, wanderSpeed: 0.9, assets: this.assets }
     );
     // Kuro's routines (N2.2): the river only in mist; shelter under the tea
     // house eave when it rains.

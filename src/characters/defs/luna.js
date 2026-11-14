@@ -10,6 +10,7 @@ export const LUNA = villagerDef({
   personality: {
     notice: 8,
     idle: { weights: { groom: 0.42, sit: 0.4, stretch: 0.1, yawn: 0.08 }, interval: [9, 16] },
+    shine: 0xc6e87a, // tapetum glint at dusk (behaviour/eyeshine.js)
     greeting: 'slowblink', startle: 'alert',
     groom: { bout: [6, 10], pause: [20, 40], chance: 0.7 }
   }

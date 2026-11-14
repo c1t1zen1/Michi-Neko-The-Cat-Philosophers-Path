@@ -63,6 +63,13 @@ check('modular grooming runs in a real NPC update (groom pose reached)', () => {
   for (let i = 0; i < 20; i++) npc.update(1 / 60, new THREE.Vector3(30, 0, 30), null, null, null);
   return npc.cat.idleAction === 'groom';
 });
+check('eye shine: off by day, on at dusk when the cat faces the camera, modular only', () => {
+  const npc = mk('Kuro', stub('modular')), cam = new THREE.PerspectiveCamera();
+  npc.mesh.updateMatrixWorld(true);
+  cam.position.set(0, 0.5, 2); cam.lookAt(0, 0.4, 0);
+  const day = npc.eyeShine.update(cam, 12), night = npc.eyeShine.update(cam, 22);
+  return { ok: day === 0 && night >= 0 && !mk('Kuro', stub('classic')).eyeShine && npc.eyeShine.sprites.length === 2, d: `day ${day} night ${night.toFixed(2)}` };
+});
 cleanup();
 const out = results.map(([n, ok, d]) => `${ok ? 'PASS' : 'FAIL'}  ${n}${d ? '  — ' + d : ''}`).join('\n');
 document.getElementById('out').textContent = out;
