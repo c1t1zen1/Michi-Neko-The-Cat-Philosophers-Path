@@ -5,7 +5,7 @@
 // part's own origin: the owner places the group at the layout's x, y, z.
 import * as THREE from 'three';
 import { TAU, sstep, canvas2d, canvasTexture, merge, indexed, rockGeometry, withUv } from '../craft.js?v=20261113a';
-import { fitRock, variantRock, placed, bake, DETAIL } from '../rocks/stone.js?v=20261113a';
+import { fitRock, variantRock, placed, bake, DETAIL, rockMaterials } from '../rocks/stone.js?v=20261113a';
 import { buildStoneLantern } from '../lanterns/build.js?v=20261113a';
 import {
   nightnessAt, dayLightAt, calmAt, hourOf, shared, glowTexture, leafMaterial, freePrivate,
@@ -49,14 +49,14 @@ function apronTexture(L) {
 
 export function buildApron(ctx, L, p) {
   const { tier, kitMaterials: km } = ctx;
-  const map = apronTexture(L);
+  const map = shared(km, 'apron:' + L.marks.length + ':' + L.marks[0][4].toFixed(5), () => apronTexture(L));   // one painting per layout
   const mat = new THREE.MeshStandardMaterial({ map, color: p.tint, transparent: true, roughness: 1, depthWrite: false });
   const r = L.radius * p.spread;
   const mesh = new THREE.Mesh(polarDisc(r, TIER(tier, 4, 2, 1), TIER(tier, 56, 32, 16), { uvScale: 1 / p.spread }), mat);
   mesh.position.y = Math.min(L.lift, 0.02);
   mesh.receiveShadow = true;
   mesh.name = 'disc';
-  return single('disc', mesh, { dispose() { freePrivate([mat, map]); } });
+  return single('disc', mesh, { dispose() { freePrivate([mat]); } });
 }
 
 /* ----------------------------------------------------------------- water --- */
@@ -65,9 +65,14 @@ export function buildApron(ctx, L, p) {
 // Voronoi; the bright network is the cell edges (F2 - F1), as light is on a
 // real pool floor. One texture per layout, shared by every instance.
 function causticTexture(km, L) {
-  const sites = L.rings.map((r) => [r.cx, r.cy]);
+  // four sites per ring: its centre and three jittered by the ring's own squash and turn
+  const sites = [];
+  for (const r of L.rings) {
+    sites.push([r.cx, r.cy]);
+    for (let k = 0; k < 3; k++) sites.push([(r.cx + (r.copies[k][0] - 0.7) * 0.22 + 1) % 1, (r.cy + (r.copies[k][1] - 1.5) * 0.09 + 1) % 1]);
+  }
   return shared(km, 'caustic:' + sites.length + ':' + sites[0][0].toFixed(5), () => {
-    const N = 96, [c, x] = canvas2d(N, N), img = x.createImageData(N, N);
+    const N = 64, [c, x] = canvas2d(N, N), img = x.createImageData(N, N);
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
       const u = (i + 0.5) / N, v = (j + 0.5) / N;
       let f1 = 9, f2 = 9;
@@ -75,15 +80,15 @@ function causticTexture(km, L) {
         const d = Math.hypot(sx + ox - u, sy + oy - v);
         if (d < f1) { f2 = f1; f1 = d; } else if (d < f2) f2 = d;
       }
-      const e = f2 - f1, k = Math.max(0, 1 - e * 38);
-      const a = Math.round(255 * k * k);
+      const k = Math.max(0, 1 - (f2 - f1) * 46), a = k * k * k;     // thin bright cell edges, soft shoulders
       const o = (j * N + i) * 4;
-      img.data[o] = 180; img.data[o + 1] = 255; img.data[o + 2] = 238; img.data[o + 3] = 255;
-      img.data[o] = img.data[o] * a / 255; img.data[o + 1] = img.data[o + 1] * a / 255; img.data[o + 2] = img.data[o + 2] * a / 255;
+      img.data[o] = 170 * a; img.data[o + 1] = 255 * a; img.data[o + 2] = 232 * a; img.data[o + 3] = 255;
     }
     x.putImageData(img, 0, 0);
-    const t = canvasTexture(c, { repeat: true });
-    t.repeat.set(2.2, 2.2); t.center.set(0.5, 0.5);
+    const [c2, x2] = canvas2d(128, 128);                           // a smooth upscale: soft lines, no pixel blocks
+    x2.imageSmoothingEnabled = true; x2.imageSmoothingQuality = 'high'; x2.drawImage(c, 0, 0, 128, 128);
+    const t = canvasTexture(c2, { repeat: true });
+    t.repeat.set(2.4, 2.4); t.center.set(0.5, 0.5);
     return t;
   });
 }
@@ -118,7 +123,7 @@ export function buildWater(ctx, L, p) {
       const hour = hourOf(env), night = nightnessAt(hour);
       mat.emissiveIntensity = 0.3 + night * 0.9;
       if (cmat) {
-        cmat.opacity = dayLightAt(hour) * 0.55 * calmAt(env);
+        cmat.opacity = dayLightAt(hour) * 0.4 * calmAt(env);
         tex.offset.set(t * 0.012, t * 0.008); tex.rotation = t * 0.015;
       }
     },
@@ -141,7 +146,7 @@ export function buildMoon(ctx, L, p) {
   let glints = null, gl = null, ph = null;
   if (tier === 'hero') {
     const n = 18;
-    gl = glowPoints(km, n, { size: 0.085, tex: glowTexture(km, 'glint', 'rgba(255,255,255,1)', 'rgba(190,225,255,0.4)'), color: 0xdcefff });
+    gl = glowPoints(km, n, { size: 0.15, tex: glowTexture(km, 'glint', 'rgba(255,255,255,1)', 'rgba(190,225,255,0.4)'), color: 0xdcefff });
     ph = [];
     for (let i = 0; i < n; i++) {
       const f = (i + rng()) / n;
@@ -160,7 +165,7 @@ export function buildMoon(ctx, L, p) {
         glints.visible = night > 0.02;
         for (let i = 0; i < ph.length; i++) {
           const q = ph[i], k = Math.max(0, Math.sin(t * q.sp + q.ph));
-          gl.set(i, q.x, -0.02, q.z, night * k * k * k * 0.9 * calmAt(env));
+          gl.set(i, q.x, -0.02, q.z, night * k * k * 1.3 * calmAt(env));
         }
         gl.done();
       }
@@ -174,19 +179,23 @@ export function buildMoon(ctx, L, p) {
 // 34 chiselled stones round the pool, each tinted by the layout's own hue
 // (the rock material is world-painted, so the variety comes from three
 // variants, moss and the layout's scale and tumble).
+const rimVariants = new Map();
 export function buildRim(ctx, L, p) {
   const { tier, rng, kitMaterials: km } = ctx;
   const det = DETAIL[tier][1];
   const opts = { cuts: p.facets, cutDepth: 0.66, rough: 0.2, ridge: 0.05 };
-  const variants = [0, 1, 2].map(() => variantRock(1 + Math.floor(rng() * 9000), det, opts));
+  const variants = [0, 1, 2].map(() => {
+    const seed = 1 + Math.floor(rng() * 9000), key = `${seed}:${det}:${p.facets}`;
+    if (!rimVariants.has(key)) rimVariants.set(key, variantRock(seed, det, opts));      // chiselled once, placed by every build
+    return rimVariants.get(key);
+  });
   const list = [];
   L.stones.forEach(({ a, rr, s, euler }, i) => {
     const k = p.size, sx = 0.33 * 1.15 * s * k, sy = 0.3 * 0.62 * s * k * 1.25, sz = 0.33 * s * k;
     list.push(placed(variants[i % 3], [Math.cos(a) * rr, 0.07 * s * k, Math.sin(a) * rr], [euler[0] * 0.3, euler[1], euler[2] * 0.3], [sx, sy / 0.85, sz]));
   });
-  for (const v of variants) v.dispose();
   const geo = bake(list);
-  const mesh = new THREE.Mesh(geo, km.rock({ a: 0x4e5b4a, b: 0x9aa08e, moss: p.moss, lichen: 0.18 }));
+  const mesh = new THREE.Mesh(geo, rockMaterials(km, p.moss).stone);
   mesh.castShadow = mesh.receiveShadow = true; mesh.name = 'stones';
   return single('stones', mesh);
 }
@@ -209,7 +218,7 @@ export function slabGeometry(seed, tier, hx, hy, hz) {
 export function buildPoolSeat(ctx, L, p) {
   const { tier, rng, kitMaterials: km } = ctx;
   const geo = slabGeometry(1 + Math.floor(rng() * 9000), tier, 0.67 * p.size, 0.048, 0.62 * p.size);
-  const mesh = new THREE.Mesh(geo, km.rock({ a: 0x6a665e, b: 0xa8a294, moss: p.moss, lichen: 0.3 }));
+  const mesh = new THREE.Mesh(geo, rockMaterials(km, p.moss).stone);
   mesh.position.set(0, 0.045, 0);
   mesh.castShadow = mesh.receiveShadow = true; mesh.name = 'slab';
   return single('slab', mesh);
@@ -261,11 +270,11 @@ function petalGeometry(m, len, w, tilt, curl, base, tip) {
 function lotusGeometry(tier, flower, rng, p) {
   const parts = [], m = TIER(tier, 4, 3, 2);
   const stemH = 0.22 * p.height, top = stemH;
-  const rows = tier === 'far' ? [{ n: 6, tilt: 0.5, len: 0.2 }] : [{ n: 5, tilt: 0.18, len: 0.16 }, { n: 7, tilt: 0.5, len: 0.2 }, { n: 8, tilt: 0.85, len: 0.21 }];
+  const rows = tier === 'far' ? [{ n: 6, tilt: 0.5, len: 0.2 }] : [{ n: 5, tilt: 0.18, len: 0.2 }, { n: 7, tilt: 0.5, len: 0.25 }, { n: 8, tilt: 0.85, len: 0.27 }];
   const stem = new THREE.CylinderGeometry(0.011, 0.014, stemH + 0.08, 5, 1, true).translate(0, (stemH - 0.08) / 2, 0);
   parts.push(tint(stem, 0x5f8a4a));
   rows.forEach((row, ri) => {
-    const pg = petalGeometry(m, row.len, 0.052 + ri * 0.006, row.tilt, 0.5, ri === 0 ? 0xfff6e0 : 0xfff0ee, ri === 2 ? 0xe9a2bc : 0xf3bfd0);
+    const pg = petalGeometry(m, row.len, 0.064 + ri * 0.008, row.tilt, 0.5, ri === 0 ? 0xfff2d6 : 0xffe6ea, ri === 2 ? 0xe27aa2 : 0xee9ab8);
     for (let k = 0; k < row.n; k++) {
       const g = pg.clone(), a = (k / row.n) * TAU + ri * 0.4 + rng() * 0.12;
       g.rotateY(a).translate(0, top, 0);
@@ -276,7 +285,7 @@ function lotusGeometry(tier, flower, rng, p) {
   if (tier !== 'far') parts.push(tint(new THREE.CylinderGeometry(0.036, 0.03, 0.03, 8).translate(0, top + 0.04, 0), 0xd6c866));
   if (tier === 'hero') {                                             // the standing leaf: lotus raises its leaves, lilies do not
     const a = rng() * TAU, lx = Math.cos(a) * 0.36, lz = Math.sin(a) * 0.36, lh = 0.3 + rng() * 0.12;
-    const dish = polarDisc(0.19, 2, 18, { y: (rn) => 0.07 * rn * rn, color: (rn) => { const k = 0.85 + 0.2 * rn; return [0.3 * k, 0.5 * k, 0.28 * k]; } }).translate(lx, lh, lz);
+    const dish = polarDisc(0.19, 2, 18, { y: (rn) => 0.07 * rn * rn, color: (rn) => { const k = 0.8 + 0.2 * rn; return [0.17 * k, 0.34 * k, 0.16 * k]; } }).translate(lx, lh, lz);
     parts.push(dish, tint(new THREE.CylinderGeometry(0.008, 0.011, lh + 0.08, 4, 1, true).translate(lx, (lh - 0.08) / 2, lz), 0x5f8a4a));
   }
   const geo = indexed(merge(parts));

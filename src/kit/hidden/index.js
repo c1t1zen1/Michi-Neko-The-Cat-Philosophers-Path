@@ -9,7 +9,7 @@ import { buildMoonPool, buildApron, buildWater, buildMoon, buildRim, buildPoolSe
 import { buildLanternGlade, buildFloor, buildBamboo, buildLanternSet, buildGladeSeat, buildFlies } from './glade.js?v=20261113a';
 
 const num = (def, min, max, step, label) => ({ type: 'number', default: def, min, max, step, label });
-const moss = (d) => num(d, 0, 1.2, 0.1, 'Moss');
+const moss = (d) => num(d, 0, 1.5, 0.1, 'Moss');
 const density = num(1, 0.5, 1.5, 0.1, 'Density');
 const spread = num(1, 0.85, 1.2, 0.05, 'Spread');
 const white = { type: 'color', default: 0xffffff, label: 'Tint' };
@@ -20,7 +20,7 @@ const G = (pick) => () => pick(sampleGlade());
 export const assets = [
   defineAsset({
     id: 'moon-pool', family: 'hidden', lab: 'moonpool/pool-assembly', label: 'Moon Pool', legacyName: 'Moon Pool',
-    params: { shine: num(0.06, 0.02, 0.3, 0.02, 'Water gloss'), moss: moss(0.7), density },
+    params: { shine: num(0.06, 0.02, 0.3, 0.02, 'Water gloss'), moss: moss(0.4), density },
     floating: [], sample: samplePool, build: buildMoonPool
   }),
   defineAsset({
@@ -37,11 +37,11 @@ export const assets = [
   }),
   defineAsset({
     id: 'pool-rim', family: 'hidden', lab: 'moonpool/pool-rim', label: 'Pool rim stones',
-    params: { size: num(1, 0.8, 1.25, 0.05, 'Stone size'), moss: moss(0.7), facets: num(8, 3, 12, 1, 'Chisel cuts') }, sample: L((s) => s.rim), build: buildRim
+    params: { size: num(1, 0.8, 1.25, 0.05, 'Stone size'), moss: moss(0.4), facets: num(8, 3, 12, 1, 'Chisel cuts') }, sample: L((s) => s.rim), build: buildRim
   }),
   defineAsset({
     id: 'pool-seat', family: 'hidden', lab: 'moonpool/pool-seat', label: 'Pool sitting stone',
-    params: { size: num(1, 0.85, 1.2, 0.05, 'Size'), moss: moss(0.5) }, sample: L((s) => s.seat), build: buildPoolSeat
+    params: { size: num(1, 0.85, 1.2, 0.05, 'Size'), moss: moss(0.4) }, sample: L((s) => s.seat), build: buildPoolSeat
   }),
   defineAsset({
     id: 'lily-pads', family: 'hidden', lab: 'moonpool/game-pad', label: 'Lily pad',
@@ -58,7 +58,7 @@ export const assets = [
   }),
   defineAsset({
     id: 'lantern-glade', family: 'hidden', lab: 'moonpool/lantern-glade', label: 'Lantern Glade', legacyName: 'Lantern Glade',
-    params: { girth: num(1, 0.8, 1.4, 0.05, 'Culm girth'), moss: moss(1), density },
+    params: { girth: num(1, 0.8, 1.4, 0.05, 'Culm girth'), moss: moss(0.4), density },
     floating: [], sample: sampleGlade, build: buildLanternGlade
   }),
   defineAsset({
@@ -77,7 +77,7 @@ export const assets = [
   }),
   defineAsset({
     id: 'glade-seat', family: 'hidden', lab: 'moonpool/glade-seat', label: 'Glade seat and boulder',
-    params: { size: num(1, 0.85, 1.2, 0.05, 'Size'), moss: moss(0.9) }, sample: G((s) => s.seat), build: buildGladeSeat
+    params: { size: num(1, 0.85, 1.2, 0.05, 'Size'), moss: moss(0.4) }, sample: G((s) => s.seat), build: buildGladeSeat
   }),
   defineAsset({
     id: 'glade-fireflies', family: 'hidden', lab: 'moonpool/fireflies', label: 'Glade fireflies',

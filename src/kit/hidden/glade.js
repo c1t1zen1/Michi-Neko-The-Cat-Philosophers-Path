@@ -4,11 +4,11 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { TAU, sstep, canvas2d, canvasTexture, merge, indexed, rockGeometry } from '../craft.js?v=20261113a';
-import { fitRock } from '../rocks/stone.js?v=20261113a';
+import { fitRock, rockMaterials } from '../rocks/stone.js?v=20261113a';
 import { culmGeometry, bladeGeometry } from '../greenery/bamboo.js?v=20261113a';
 import { washiTexture, haloTexture, kindle } from '../lanterns/light.js?v=20261113a';
 import {
-  nightnessAt, hourOf, glowTexture, leafMaterial, freePrivate, polarDisc, tint, strut,
+  nightnessAt, hourOf, shared, glowTexture, leafMaterial, freePrivate, polarDisc, tint, strut,
   glowPoints, billboardSet, compose, single
 } from './common.js?v=20261113a';
 import { slabGeometry } from './pool.js?v=20261113a';
@@ -45,13 +45,13 @@ function floorTexture(L) {
 }
 
 export function buildFloor(ctx, L, p) {
-  const { tier } = ctx;
-  const map = floorTexture(L);
+  const { tier, kitMaterials: km } = ctx;
+  const map = shared(km, 'floor:' + L.litter.length + ':' + L.litter[0][4].toFixed(5), () => floorTexture(L));
   const mat = new THREE.MeshStandardMaterial({ map, color: p.tint, transparent: true, roughness: 1, depthWrite: false });
   const mesh = new THREE.Mesh(polarDisc(L.radius * p.spread, TIER(tier, 4, 2, 1), TIER(tier, 48, 28, 14), { uvScale: 1 / p.spread }), mat);
   mesh.position.y = Math.min(L.lift, 0.02);
   mesh.receiveShadow = true; mesh.name = 'disc';
-  return single('disc', mesh, { dispose() { freePrivate([mat, map]); } });
+  return single('disc', mesh, { dispose() { freePrivate([mat]); } });
 }
 
 /* ---------------------------------------------------------------- bamboo --- */
@@ -145,7 +145,7 @@ export function buildLanternSet(ctx, entries, p) {
     statics.push(tint(strut(end, [o[0], o[1] + 0.25 * s, o[2]], 0.0045, 3), 0x4a3a28));
     centers.push(o);
   }
-  const frame = new THREE.Mesh(indexed(merge(statics)), km.bag({ rough: 0.8 }));
+  const frame = new THREE.Mesh(indexed(merge(statics)), leafMaterial(km));
   frame.castShadow = true; frame.name = 'frame';
   const ranges = []; let at = 0;                                   // vertex range per lantern (merge keeps the order)
   for (const g of papers) { ranges.push([at, g.attributes.position.count]); at += g.attributes.position.count; }
@@ -181,11 +181,11 @@ export function buildLanternSet(ctx, entries, p) {
 export function buildGladeSeat(ctx, L, p) {
   const { tier, rng, kitMaterials: km } = ctx;
   const seed = () => 1 + Math.floor(rng() * 9000);
-  const slab = new THREE.Mesh(slabGeometry(seed(), tier, 0.76 * p.size, 0.05, 0.74 * p.size), km.rock({ a: 0x6a665e, b: 0xa8a294, moss: 0.3, lichen: 0.3 }));
+  const slab = new THREE.Mesh(slabGeometry(seed(), tier, 0.76 * p.size, 0.05, 0.74 * p.size), rockMaterials(km, p.moss).stone);
   slab.position.set(L.x, 0.05, L.z);
   const b = L.boulder, sc = b.scale;
   const bg = fitRock(rockGeometry(seed(), { detail: TIER(tier, 3, 2, 1), h: 0.8, rough: 0.16, ridge: 0.06, cuts: 7, cutDepth: 0.7, flat: 0.25 }), 0.6 * sc[0] * p.size, 0.41 * sc[1] / 0.75, 0.5 * sc[2] * p.size);
-  const boulder = new THREE.Mesh(bg, km.rock({ a: 0x4a5640, b: 0x8c9b7a, moss: p.moss, lichen: 0.25 }));
+  const boulder = new THREE.Mesh(bg, rockMaterials(km, p.moss).stoneDark);
   boulder.position.set(b.x, b.y, b.z);
   for (const m of [slab, boulder]) { m.castShadow = true; m.receiveShadow = true; }
   const group = new THREE.Group();
