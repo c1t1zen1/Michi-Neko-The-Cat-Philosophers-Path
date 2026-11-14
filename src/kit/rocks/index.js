@@ -57,8 +57,8 @@ function buildPathBoulders(ctx, layout, p) {
 // yaw 0.38; two low companions. Half extents below match their bounds.
 const MAIN = { half: [1.02, 0.78, 0.7], pos: [0, 0.64, 0], rot: [0.12, 0.38, -0.08] };
 const COMPANIONS = [
-  { half: [0.3, 0.2, 0.28], pos: [-0.68, 0.165, 0.3], key: 'stone_a', mat: 'stone' },
-  { half: [0.25, 0.17, 0.23], pos: [0.55, 0.19, 0.24], key: 'stone_b', mat: 'stone' }
+  { half: [0.3, 0.22, 0.3], pos: [-0.68, 0.165, 0.28], key: 'stone_a', mat: 'stone' },
+  { half: [0.24, 0.18, 0.24], pos: [0.55, 0.132, 0.35], key: 'stone_b', mat: 'stone' }
 ];
 
 function buildKeyRock(ctx, layout, p) {
