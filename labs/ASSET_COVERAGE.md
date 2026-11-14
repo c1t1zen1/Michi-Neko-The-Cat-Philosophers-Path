@@ -253,16 +253,16 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="sakura"></a>`sakura` — Sakura trees | [src/vegetation.js:sakuraTree(](../src/vegetation.js#L348) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
-| <a id="maples"></a>`maples` — Maple trees | [src/vegetation.js:mapleTree(](../src/vegetation.js#L699)<br>[src/vegetation.js:buildMaplesAndPines(](../src/vegetation.js#L728) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
-| <a id="pines"></a>`pines` — Garden pines | [src/vegetation.js:pineTree(](../src/vegetation.js#L713) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
+| <a id="sakura"></a>`sakura` — Sakura trees | [src/vegetation.js:sakuraTree(](../src/vegetation.js#L357) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
+| <a id="maples"></a>`maples` — Maple trees | [src/vegetation.js:mapleTree(](../src/vegetation.js#L708)<br>[src/vegetation.js:buildMaplesAndPines(](../src/vegetation.js#L737) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
+| <a id="pines"></a>`pines` — Garden pines | [src/vegetation.js:pineTree(](../src/vegetation.js#L722) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
 | <a id="rim-trees"></a>`rim-trees` — Rim sakura, maple and pine leaf masses | [src/vegetation.js:treeStyle(](../src/vegetation.js#L184)<br>[src/vegetation.js:canopyTree(](../src/vegetation.js#L211) | [tree / rim](../tools/tree_preview.js#L104) (review) |  |
-| <a id="tree-trunks"></a>`tree-trunks` — Tree trunks and limbs | [src/vegetation.js:trunkMesh(](../src/vegetation.js#L325) | [tree / detail](../tools/tree_preview.js#L128) (review) |  |
+| <a id="tree-trunks"></a>`tree-trunks` — Tree trunks and limbs | [src/vegetation.js:trunkMesh(](../src/vegetation.js#L334) | [tree / detail](../tools/tree_preview.js#L128) (review) |  |
 | <a id="tree-canopies"></a>`tree-canopies` — Leaf sprays and clumped/mass canopy families | [src/foliage.js:export function buildCanopy](../src/foliage.js#L1172) | [tree / compare](../tools/tree_preview.js#L118) (review) |  |
-| <a id="bamboo-groves"></a>`bamboo-groves` — Bamboo groves, culms and leaves | [src/vegetation.js:buildBambooGrove(](../src/vegetation.js#L458) | [greenery / game-grove](../labs/greenery/js/recipes.js#L54) (direct)<br>[greenery / nodes](../labs/greenery/js/recipes.js#L33) (direct)<br>[greenery / leaves](../labs/greenery/js/recipes.js#L58) (direct) |  |
+| <a id="bamboo-groves"></a>`bamboo-groves` — Bamboo groves, culms and leaves | [src/vegetation.js:buildBambooGrove(](../src/vegetation.js#L467) | [greenery / game-grove](../labs/greenery/js/recipes.js#L54) (direct)<br>[greenery / nodes](../labs/greenery/js/recipes.js#L33) (direct)<br>[greenery / leaves](../labs/greenery/js/recipes.js#L58) (direct) |  |
 | <a id="street-bushes"></a>`street-bushes` — Street bushes | [src/countryside.js:buildStreetBushes(](../src/countryside.js#L3070) | [greenery / game-bush](../labs/greenery/js/recipes.js#L75) (direct) |  |
 | <a id="roadside-moss"></a>`roadside-moss` — Roadside moss patches | [src/countryside.js:buildStreetGreenery(](../src/countryside.js#L3153) | [grass / moss](../labs/grass/js/types_wild.js#L375) (related) — The grass moss pillow differs from the roadside instanced tufts. |  |
-| <a id="meadow-system"></a>`meadow-system` — Valley biome layout and grass LOD rings | [src/vegetation.js:buildMeadow(](../src/vegetation.js#L749)<br>[src/grass.js:addRing(](../src/grass.js#L1523)<br>[src/grass.js:addZone(](../src/grass.js#L1532) | [grass / ring-lod](../labs/grass/js/types_field.js#L273) (direct) | The meadow’s collider-derived biome layout has no isolated original specimen; Ring LOD studies the shared layout technique. |
+| <a id="meadow-system"></a>`meadow-system` — Valley biome layout and grass LOD rings | [src/vegetation.js:buildMeadow(](../src/vegetation.js#L758)<br>[src/grass.js:addRing(](../src/grass.js#L1523)<br>[src/grass.js:addZone(](../src/grass.js#L1532) | [grass / ring-lod](../labs/grass/js/types_field.js#L273) (direct) | The meadow’s collider-derived biome layout has no isolated original specimen; Ring LOD studies the shared layout technique. |
 | <a id="grass-near"></a>`grass-near` — Near meadow blades and tufts | [src/grass.js:near: {](../src/grass.js#L881) | [grass / bezier](../labs/grass/js/types_field.js#L25) (direct) |  |
 | <a id="grass-mid"></a>`grass-mid` — Mid-distance tri-quad clumps | [src/grass.js:mid: {](../src/grass.js#L898) | [grass / triquad](../labs/grass/js/types_field.js#L59) (direct) |  |
 | <a id="grass-far"></a>`grass-far` — Far painted tuft cards | [src/grass.js:far: {](../src/grass.js#L914) | [grass / meadow-painted](../labs/grass/js/types_ours.js#L245) (direct) |  |
@@ -281,7 +281,7 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
 | <a id="grass-fireflies"></a>`grass-fireflies` — River-bank grass fireflies | [src/grass.js:addFireflies(](../src/grass.js#L1607) | [moonpool / fireflies](../labs/moonpool/js/recipes.js#L267) (related) — Related hotaru study; not the GrassSystem particle shader. |  |
-| <a id="dappled-light"></a>`dappled-light` — Projected dappled light pools | [src/vegetation.js:buildDappledLight(](../src/vegetation.js#L373) | [komorebi / game-dapple](../labs/komorebi/js/recipes.js#L35) (direct) |  |
+| <a id="dappled-light"></a>`dappled-light` — Projected dappled light pools | [src/vegetation.js:buildDappledLight(](../src/vegetation.js#L382) | [komorebi / game-dapple](../labs/komorebi/js/recipes.js#L35) (direct) |  |
 
 ### Hidden places
 
@@ -393,8 +393,8 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="old-petal-drifts"></a>`old-petal-drifts` — Removed static petal-drift discs | [src/vegetation.js:buildPetalDrifts(](../src/vegetation.js#L438) | [komorebi / game-drift](../labs/komorebi/js/recipes.js#L60) (direct) | **Inactive.** Method is a no-op. Its original lab tile is an empty baseline, not a shipped visible asset. |
-| <a id="old-sakura-grove"></a>`old-sakura-grove` — Unused empty sakura-grove method | [src/vegetation.js:buildSakuraGrove(](../src/vegetation.js#L366) | **No mapped evidence** | **Inactive.** Empty legacy entry point; active sakura are built by sakuraTree(). |
+| <a id="old-petal-drifts"></a>`old-petal-drifts` — Removed static petal-drift discs | [src/vegetation.js:buildPetalDrifts(](../src/vegetation.js#L447) | [komorebi / game-drift](../labs/komorebi/js/recipes.js#L60) (direct) | **Inactive.** Method is a no-op. Its original lab tile is an empty baseline, not a shipped visible asset. |
+| <a id="old-sakura-grove"></a>`old-sakura-grove` — Unused empty sakura-grove method | [src/vegetation.js:buildSakuraGrove(](../src/vegetation.js#L375) | **No mapped evidence** | **Inactive.** Empty legacy entry point; active sakura are built by sakuraTree(). |
 | <a id="legacy-summit-gate"></a>`legacy-summit-gate` — Legacy rear summit gate, stairs, toro and gorinto | [src/mountaintop.js:buildLegacyRearGate(](../src/mountaintop.js#L446) | **No mapped evidence** | **Inactive.** Defined but not called by the current summit constructor. |
 | <a id="legacy-vista-approach"></a>`legacy-vista-approach` — Unused vista descent and torii | [src/mountaintop.js:buildVistaApproach(](../src/mountaintop.js#L447) | **No mapped evidence** | **Inactive.** Defined but not called by the current summit constructor. |
 

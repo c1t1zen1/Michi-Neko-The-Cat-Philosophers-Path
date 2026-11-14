@@ -43,3 +43,4 @@ For s3-vista and r4-festival (import with the current `?v=` tag):
 | v-ranges | mountains, edge-forest, edge-undergrowth, foothill-forest, distant-village, mist-ring, dawn-mist | src/kit/ranges/index.js assets |
 | v-weather | falling-petals, river-petals, snow, fireflies, dust-motes, rain, rain-ripples, dappled-light | src/kit/weather/index.js assets (production: "weather/<id>") |
 | v-machiya-b | tea-house, residence, secret-house, street-house (village-street deferred, classic) | src/kit/machiya/index.js assets (production: "machiya") |
+| v-trees | sakura, maples, pines, rim-trees (tree-trunks, tree-canopies DEFERRED, classic) | src/kit/trees/index.js assets (production: "trees") |

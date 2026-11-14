@@ -656,7 +656,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 2.3 | `v-ranges` | Forest wall, mountains, mist (lab 03) | G-V2 | [x] |
 | 2.3 | `v-sky` | Sky, clouds, cloud shadows, post (lab 05) | G-V2 | [ ] |
 | 2.3 | `v-weather` | Petals, rain, snow, motes, komorebi (labs 20, 22) | G-V2 | [x] |
-| 2.3 | `v-trees` | Sakura, maple, pine, rim trees (new lab) | G-V2 | [ ] |
+| 2.3 | `v-trees` | Sakura, maple, pine, rim trees (new lab) | G-V2 | [x] |
 | 2.3 | `v-critters` | Koi, birds, butterflies, crows (lab 18) | G-V2 | [x] |
 | 3 | `c1-rig-split` | `Cat` split into rig, parts, behaviour (serial) | G-F | [x] |
 | 3 | `c2-michi` | Player cat parts, collar, master bells | c1 | [ ] |
