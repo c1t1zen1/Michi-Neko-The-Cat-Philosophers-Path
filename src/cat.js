@@ -12,6 +12,9 @@ import {
 } from './characters/rig.js?v=20261107a';
 import { coatPalette, coatMaterials, buildCoat } from './characters/parts/coat.js?v=20261107a';
 import { faceFrame, faceMaterials, buildFace } from './characters/parts/face.js?v=20261107a';
+import {
+  collarMaterials, buildCollarCord, bellMaterials, buildBell, goldBell
+} from './characters/parts/collar.js?v=20261107a';
 
 export { catRimUniforms };
 
@@ -159,15 +162,8 @@ export class Cat {
     faceFrame(this, eyeColor);
     coatMaterials(this);
     faceMaterials(this, options.noseColor);
-    this.matRibbon = toonMat(0xffffff, { map: makeCollarTexture(ribbonColor) });
-    this.matBellBrass = new THREE.MeshStandardMaterial({
-      map: makeBellTexture(0xc79a4e), metalness: 0.5, roughness: 0.36, envMapIntensity: 1.2
-    });
-    this.matGoldBell = new THREE.MeshStandardMaterial({
-      map: makeBellTexture(0xf5cf55), metalness: 0.62, roughness: 0.26, envMapIntensity: 1.4,
-      emissive: new THREE.Color(0x3a2604), emissiveIntensity: 0.35
-    });
-    this.matRing = new THREE.MeshStandardMaterial({ color: 0xc9a25a, metalness: 0.8, roughness: 0.3 });
+    collarMaterials(this, ribbonColor);
+    bellMaterials(this);
   }
 
   buildCoat() {
@@ -179,44 +175,8 @@ export class Cat {
   }
 
   buildCollar() {
-    const A = this.anatomy;
-    const c = A.collar;
-    // Braided silk cord hugging the coat (C2.1 cosmetics; Master Cat rank
-    // swaps the bell for bright gold and adds a twin — setMasterCat()).
-    this.collar = new THREE.Mesh(c.geometry, this.matRibbon);
-    this.collar.castShadow = false;
-    this.collar.name = 'Collar';
-    this.neck.add(this.collar);
-    this.collar.add(new THREE.Mesh(c.geometry, outlineMaterial(0.0012)));
-
-    // Front fitting: a little cord bow, a brass ring, and the suzu bell
-    const front = new THREE.Vector3(...c.front);
-    const out = new THREE.Vector3(...c.frontDir);
-    const hk = A.face.headScale;
-    this.bellMount = new THREE.Group();
-    this.bellMount.position.copy(front).addScaledVector(out, 0.0015);
-    this.collar.add(this.bellMount);
-    const knot = new THREE.Mesh(new THREE.SphereGeometry(0.0052 * hk, 12, 10), this.matRibbon);
-    knot.scale.set(1.15, 0.9, 0.8);
-    this.bellMount.add(knot);
-    for (const s of [-1, 1]) {
-      const loop = new THREE.Mesh(new THREE.TorusGeometry(0.0068 * hk, 0.0024 * hk, 8, 16), this.matRibbon);
-      loop.position.set(s * 0.0085 * hk, 0.001, 0);
-      loop.rotation.set(0, Math.PI / 2 * 0.35 * s, s * 0.45);
-      loop.scale.set(1, 0.72, 1);
-      this.bellMount.add(loop);
-    }
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.0052 * hk, 0.0014 * hk, 8, 18), this.matRing);
-    ring.position.set(0, -0.0068 * hk, 0.001);
-    this.bellMount.add(ring);
-    this.bellR = 0.0165 * hk;
-    this.collarBell = new THREE.Mesh(new THREE.SphereGeometry(this.bellR, 28, 18), this.matBellBrass);
-    this.collarBell.position.set(0, -0.0112 * hk - this.bellR, 0.002);
-    this.collarBell.castShadow = true;
-    this.bellMount.add(this.collarBell);
-    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.0028 * hk, 0.0036 * hk, 0.0028 * hk, 10), this.matRing);
-    cap.position.set(0, -0.0112 * hk + 0.0006, 0.002);
-    this.bellMount.add(cap);
+    buildCollarCord(this);
+    buildBell(this);
   }
 
   buildShadowBlob() {
@@ -773,17 +733,7 @@ export class Cat {
   setMasterCat() {
     if (this._masterCat) return;
     this._masterCat = true;
-    if (this.collarBell) {
-      this.collarBell.material = this.matGoldBell;
-      const hk = this.anatomy.face.headScale;
-      const twin = new THREE.Mesh(new THREE.SphereGeometry(this.bellR * 0.72, 22, 14), this.matGoldBell);
-      twin.position.copy(this.collarBell.position);
-      twin.position.x += 0.024 * hk;
-      twin.position.y += 0.005 * hk;
-      twin.rotation.y = -0.5;
-      this.bellMount.add(twin);
-      this.collarBellTwin = twin;
-    }
+    if (this.collarBell) goldBell(this);
   }
 
   setProwling(prowl) {
