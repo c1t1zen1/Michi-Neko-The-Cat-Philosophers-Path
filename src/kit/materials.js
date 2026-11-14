@@ -24,6 +24,7 @@ import {
   stoneTextures, woodTextures, lacquerTextures, strawTextures, metalTextures, plasterTextures,
   kawaraTextures, barkTextures, texturedMaterial
 } from '../textures.js?v=20261113a';
+import { rng, canvas2d, canvasTexture } from './craft.js?v=20261113a';
 
 /* ---------------------------------------------------------- GLSL chunks --- */
 
@@ -332,4 +333,98 @@ export class KitMaterials {
     this.created = [];
     this.memo.clear();
   }
+}
+
+/* ------------------------------------------------- lantern light helpers --- */
+
+// Promoted from src/kit/lanterns/light.js at gate G-V1 (v-lanterns handoff):
+// the dusk curve, the washi and halo textures and the lit-washi material are
+// shared by every family that lights paper (lanterns, shrine, hidden places,
+// interiors). lanterns/light.js re-exports them unchanged. Nothing here reads
+// Math.random or Date.now.
+
+/**
+ * How dark it is, 0 (sun well up) .. 1, from the hour of the day: the same
+ * asymmetric sun path as Sky.updateDayNight() (the source of truth is `sky.sunDir`; keep this in step, it ignores weather) (daylight 6:00-19:12) pushed
+ * through Countryside.update()'s `1 - sunUp * 5`.
+ */
+export function nightnessAt(hour) {
+  const h = ((hour % 24) + 24) % 24;
+  const dayStart = 6.0, dayEnd = 19.2;
+  let angle;
+  if (h >= dayStart && h <= dayEnd) angle = ((h - dayStart) / (dayEnd - dayStart)) * Math.PI;
+  else {
+    const nightT = h < dayStart ? h + 24 - dayEnd : h - dayEnd;
+    angle = Math.PI + (nightT / (24 - (dayEnd - dayStart))) * Math.PI;
+  }
+  const sunY = Math.sin(angle) / Math.sqrt(1.25); // sunDir = (cos, sin, 0.5) normalised
+  return Math.max(0, 1 - Math.max(0, sunY) * 5);
+}
+
+// One texture per KitMaterials set (the set is the kit's shared state): built
+// lazily, shared by every lantern, never disposed by an instance.
+const cache = new WeakMap();
+function shared(km, key, make) {
+  const owner = km && typeof km === 'object' ? km : cache;
+  let bag = cache.get(owner);
+  if (!bag) { bag = new Map(); cache.set(owner, bag); }
+  if (!bag.has(key)) { const t = make(); t.userData.kit = true; bag.set(key, t); }
+  return bag.get(key);
+}
+
+/** A washi sheet: long fibres and the shadow of the bamboo ribs (labs/shared/paperlantern.js). */
+export function washiTexture(km, { ribs = 0, seed = 7 } = {}) {
+  return shared(km, `washi:${ribs}:${seed}`, () => {
+    const [c, x] = canvas2d(128, 128);
+    const r = rng(seed);
+    x.fillStyle = '#fff4e2'; x.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 220; i++) {
+      x.strokeStyle = `rgba(150,110,70,${0.04 + r() * 0.08})`; x.lineWidth = 0.4 + r() * 0.6;
+      x.beginPath(); const px = r() * 128, py = r() * 128; x.moveTo(px, py);
+      x.quadraticCurveTo(px + (r() - 0.5) * 25, py + (r() - 0.5) * 15, px + (r() - 0.5) * 35, py + (r() - 0.5) * 15); x.stroke();
+    }
+    for (let i = 0; i < ribs; i++) {
+      const y = (i + 0.5) / ribs * 128;
+      x.fillStyle = 'rgba(120,80,40,.34)'; x.fillRect(0, y - 0.6, 128, 1.2);
+      x.fillStyle = 'rgba(255,255,255,.25)'; x.fillRect(0, y + 0.6, 128, 0.5);
+    }
+    return canvasTexture(c, { repeat: true });
+  });
+}
+
+/** The soft warm bloom behind a flame (the game's makeGlowBallTexture, redrawn). */
+export function haloTexture(km) {
+  return shared(km, 'halo', () => {
+    const [c, x] = canvas2d(64, 64);
+    const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,240,200,1)'); g.addColorStop(0.25, 'rgba(255,200,120,0.55)');
+    g.addColorStop(0.6, 'rgba(255,160,70,0.14)'); g.addColorStop(1, 'rgba(255,140,50,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+    return canvasTexture(c);
+  });
+}
+
+/**
+ * Lit washi: a warm emissive with a fibre map, hottest where the flame is
+ * (the object-space height of the mesh, so build the mesh centred on its
+ * flame and place it with `mesh.position`). `uGlow` is the dial update() turns.
+ * One private material per lantern (each kindles on its own); the compiled
+ * program is shared.
+ */
+export function litWashi(tex, { color = 0xfff0dc, glowColor = 0xff9a3e, fall = 0.2, glow = 0.15, side = THREE.DoubleSide } = {}) {
+  const u = { uGlow: { value: glow }, uFall: { value: fall }, uGlowCol: { value: new THREE.Color(glowColor) } };
+  const m = new THREE.MeshStandardMaterial({ color, map: tex, roughness: 0.9, side });
+  m.onBeforeCompile = (s) => {
+    Object.assign(s.uniforms, u);
+    s.vertexShader = s.vertexShader.replace('#include <common>', '#include <common>\nvarying float vH;').replace('#include <project_vertex>', '#include <project_vertex>\nvH = position.y;');
+    s.fragmentShader = s.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vH; uniform float uGlow, uFall; uniform vec3 uGlowCol;')
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        float bl = exp(-pow(abs(vH) * uFall / 0.28, 2.0));
+        vec3 glowC = uGlowCol * (0.5 + 1.6 * bl) * texture2D(map, vMapUv).rgb;
+        totalEmissiveRadiance += glowC * uGlow;`);
+  };
+  m.userData.u = u;
+  m.customProgramCacheKey = () => 'kit-washi';
+  return m;
 }

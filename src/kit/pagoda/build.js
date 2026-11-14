@@ -12,7 +12,7 @@
 // futanoki rafters, koran rails, full sorin, fūtaku), mid (shelf brackets,
 // painted soffit), far (silhouette: roofs, dark eave band, needle sorin).
 import * as THREE from 'three';
-import { UNIT, clamp, V3 } from '../craft.js?v=20261113a';
+import { UNIT, clamp, V3, CBag } from '../craft.js?v=20261113a';   // CBag: the flat-array accumulator, promoted to craft.js at G-V1
 import { PAINTS, byKey } from './presets.js?v=20261113a';
 
 export const DEFAULTS = {
@@ -148,61 +148,8 @@ function paintRoof(g, hex, rows, age) {
   return g;
 }
 
-const CYL6 = new THREE.CylinderGeometry(1, 1, 1, 6, 1);
 const SPH = new THREE.SphereGeometry(1, 10, 6);
 const CONE = new THREE.ConeGeometry(1, 1, 8);
-
-const _m = new THREE.Matrix4(), _n3 = new THREE.Matrix3(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _v = new THREE.Vector3(), _c = new THREE.Color();
-
-/** A fast geometry accumulator: transformed, coloured primitives written straight into flat arrays. */
-class CBag {
-  constructor(color, sink = null) {
-    this.col = color;
-    this.s = sink || { pos: [], nor: [], uv: [], col: [], idx: [], n: 0 };
-  }
-  /** Another bag with a different default colour writing into the same buffers. */
-  view(color) { return new CBag(color, this.s); }
-  add(geo, { x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1, color, order = 'XYZ', keep = false } = {}) {
-    const S = this.s, pa = geo.attributes.position, na = geo.attributes.normal, ua = geo.attributes.uv, ca = keep ? geo.attributes.color : null;
-    _m.compose(_p.set(x, y, z), _q.setFromEuler(_e.set(rx, ry, rz, order)), _s.set(sx, sy, sz));
-    _n3.getNormalMatrix(_m);
-    _c.set(color === undefined ? this.col : color);
-    const cnt = pa.count, base = S.n;
-    for (let i = 0; i < cnt; i++) {
-      _v.fromBufferAttribute(pa, i).applyMatrix4(_m);
-      S.pos.push(_v.x, _v.y, _v.z);
-      if (na) { _v.fromBufferAttribute(na, i).applyMatrix3(_n3).normalize(); S.nor.push(_v.x, _v.y, _v.z); } else S.nor.push(0, 1, 0);
-      if (ua) S.uv.push(ua.getX(i), ua.getY(i)); else S.uv.push(0, 0);
-      if (ca) S.col.push(ca.getX(i), ca.getY(i), ca.getZ(i)); else S.col.push(_c.r, _c.g, _c.b);
-    }
-    const ix = geo.index;
-    if (ix) for (let i = 0; i < ix.count; i++) S.idx.push(base + ix.getX(i));
-    else for (let i = 0; i < cnt; i++) S.idx.push(base + i);
-    S.n += cnt;
-    return this;
-  }
-  box(w, h, d, o = {}) { return this.add(UNIT.box, { ...o, sx: w, sy: h, sz: d }); }
-  cyl(r, h, o = {}) { return this.add(UNIT.cyl, { ...o, sx: r, sy: h, sz: r }); }
-  cyl6(r, h, o = {}) { return this.add(CYL6, { ...o, sx: r, sy: h, sz: r }); }
-  beam(a, b, w, h, o = {}) {
-    const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z, len = Math.hypot(dx, dy, dz);
-    const ry = Math.atan2(dx, dz), rx = -Math.atan2(dy, Math.hypot(dx, dz));
-    return this.add(UNIT.box, { ...o, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: (a.z + b.z) / 2, ry, rx, order: 'YXZ', sx: w, sy: h, sz: len });
-  }
-  get empty() { return this.s.n === 0; }
-  geometry() {
-    const S = this.s;
-    if (!S.n) return null;
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(S.pos, 3));
-    g.setAttribute('normal', new THREE.Float32BufferAttribute(S.nor, 3));
-    g.setAttribute('uv', new THREE.Float32BufferAttribute(S.uv, 2));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(S.col, 3));
-    g.setIndex(S.n > 65535 ? new THREE.Uint32BufferAttribute(S.idx, 1) : new THREE.Uint16BufferAttribute(S.idx, 1));
-    this.s = { pos: [], nor: [], uv: [], col: [], idx: [], n: 0 };
-    return g;
-  }
-}
 
 /** One mitesaki (three-step) bracket cluster facing +z, base on the column top. */
 function bracketCluster(bs, P, corner = false) {
