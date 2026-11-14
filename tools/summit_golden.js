@@ -105,6 +105,87 @@ function setAmbient(spec) {
   ambient.draws = 0;
 }
 
+// Canvas textures are identified by their drawing commands, not their pixels:
+// 2D rasterisation differs between GPU backends (Metal and SwiftShader give
+// different antialiasing), while the command stream (methods, arguments,
+// style changes, gradient stops, CPU-made ImageData) is the same everywhere
+// and changes whenever the drawing code or its seed does. Pixels read back
+// with getImageData() are backend-dependent, so data derived from them is
+// recorded by size only.
+const canvasLog = new WeakMap();   // canvas → running FNV-1a state
+const gradientSig = new WeakMap(); // CanvasGradient → its definition
+const readback = new WeakSet();    // ImageData that came from getImageData()
+
+function fnvFeed(h, str) {
+  for (let i = 0; i < str.length; i++) {
+    const c = str.charCodeAt(i);
+    h ^= c & 0xff; h = Math.imul(h, 0x01000193);
+    h ^= c >>> 8; h = Math.imul(h, 0x01000193);
+  }
+  return h;
+}
+
+function logCanvas(canvas, entry) {
+  if (!canvas) return;
+  canvasLog.set(canvas, fnvFeed(canvasLog.has(canvas) ? canvasLog.get(canvas) : 0x811c9dc5, entry + ';'));
+}
+
+function argSig(v) {
+  if (v === null || v === undefined) return String(v);
+  const t = typeof v;
+  if (t === 'number' || t === 'boolean') return String(v);
+  if (t === 'string') return v;
+  if (gradientSig.has(v)) return gradientSig.get(v);
+  if (typeof ImageData !== 'undefined' && v instanceof ImageData) {
+    if (readback.has(v)) return `readback(${v.width}x${v.height})`;
+    let h = 0x811c9dc5;
+    const d = v.data;
+    for (let i = 0; i < d.length; i++) { h ^= d[i]; h = Math.imul(h, 0x01000193); }
+    return `data(${v.width}x${v.height}:${(h >>> 0).toString(16)})`;
+  }
+  if (canvasLog.has(v)) return `canvas(${v.width}x${v.height}:${(canvasLog.get(v) >>> 0).toString(16)})`;
+  if (Array.isArray(v)) return '[' + v.map(argSig).join(',') + ']';
+  if (v && v.width !== undefined) return `${v.constructor && v.constructor.name}(${v.width}x${v.height})`;
+  return t;
+}
+
+(function instrumentCanvas() {
+  if (typeof CanvasRenderingContext2D === 'undefined') return;
+  const P = CanvasRenderingContext2D.prototype;
+  const READS = new Set(['measureText', 'isPointInPath', 'isPointInStroke', 'getLineDash', 'getTransform', 'getContextAttributes']);
+  for (const name of Object.getOwnPropertyNames(P)) {
+    const d = Object.getOwnPropertyDescriptor(P, name);
+    if (!d || name === 'constructor' || name === 'canvas') continue;
+    if (typeof d.value === 'function') {
+      const orig = d.value;
+      P[name] = function (...args) {
+        const out = orig.apply(this, args);
+        if (name === 'createLinearGradient' || name === 'createRadialGradient' || name === 'createConicGradient') {
+          gradientSig.set(out, `${name}(${args.map(argSig).join(',')})`);
+        } else if (name === 'getImageData') {
+          readback.add(out);
+        } else if (!READS.has(name)) {
+          logCanvas(this.canvas, `${name}(${args.map(argSig).join(',')})`);
+        }
+        return out;
+      };
+    } else if (d.set) {
+      const set = d.set;
+      Object.defineProperty(P, name, {
+        configurable: true, enumerable: d.enumerable, get: d.get,
+        set(v) { logCanvas(this.canvas, `${name}=${argSig(v)}`); set.call(this, v); }
+      });
+    }
+  }
+  if (typeof CanvasGradient !== 'undefined') {
+    const add = CanvasGradient.prototype.addColorStop;
+    CanvasGradient.prototype.addColorStop = function (offset, color) {
+      gradientSig.set(this, (gradientSig.get(this) || 'gradient') + `+${offset}:${color}`);
+      return add.call(this, offset, color);
+    };
+  }
+})();
+
 // Build A is the digest; build B only reveals which values are ambient.
 const BUILDS = [
   { label: 'A', seed: 0x0a11ce5, t0: 1e6, step: 0.5 },
@@ -269,19 +350,20 @@ function instrument() {
 
 const texHashes = new WeakMap();
 
-/** Pixel hash of a canvas or data texture (cached); '' when unreadable. */
+/**
+ * A texture's identity (cached): the hash of a canvas's drawing commands
+ * (`cmd…`), or of a data texture's bytes (`data…`); '' for images loaded
+ * from files (the GLB's), which never change with the code.
+ */
 function texHash(t) {
   if (texHashes.has(t)) return texHashes.get(t);
   let h = '';
   const img = t.image;
-  try {
-    if (img && img.data && ArrayBuffer.isView(img.data)) {
-      h = fnv(new Uint8Array(img.data.buffer, img.data.byteOffset, img.data.byteLength));
-    } else if (img && typeof img.getContext === 'function' && img.width && img.height) {
-      const ctx = img.getContext('2d');
-      if (ctx) h = fnv(ctx.getImageData(0, 0, img.width, img.height).data);
-    }
-  } catch { h = ''; }
+  if (img && img.data && ArrayBuffer.isView(img.data)) {
+    h = 'data' + fnv(new Uint8Array(img.data.buffer, img.data.byteOffset, img.data.byteLength));
+  } else if (img && canvasLog.has(img)) {
+    h = 'cmd' + (canvasLog.get(img) >>> 0).toString(16).padStart(8, '0');
+  }
   texHashes.set(t, h);
   return h;
 }
@@ -1237,6 +1319,7 @@ async function main() {
     ambient: { draws: digest.rng.ambient.draws, uuidSeparated },
     golden, equal: !!(diff && diff.equal), diff, warnings,
     digestBytes: new TextEncoder().encode(text).length,
+    builds: builds.map((b) => ({ label: b.label, preview: b.preview, draws: b.rng.summit.draws, objects: b.objects.length })),
     timing: {
       importMs: Math.round(tImport - tStart),
       buildMs: builds.map((b) => Math.round(b.buildMs)),
