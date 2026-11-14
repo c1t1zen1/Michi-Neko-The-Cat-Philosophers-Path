@@ -4577,27 +4577,18 @@ export class Countryside {
    * since they are only ever seen from across the valley.
    */
   buildFoothillForest() {
-    const cedarGeo = lumpyConeGeometry(1, 8, 0.3);
-    const cedarGeoB = lumpyConeGeometry(1, 12, 0.34);
-    const roundGeo = lumpyTuftGeometry(1, 8, 0.36);
-    const cedarMat = createFoliageMaterial({
-      sss: 0.15, wind: 0.5, mottle: 0.24, vertexColors: false, massMap: leafMassTexture('needle'), massScale: 1 / 2.4
-    });
-    const crownMat = createFoliageMaterial({
-      sss: 0.15, wind: 0.5, mottle: 0.24, vertexColors: false, massMap: leafMassTexture('leaf'), massScale: 1 / 3
-    });
+    const layout = this.layoutFoothillForest();
+    return this.placeAsset('foothill-forest', layout, () => this.meshFoothillForestClassic(layout));
+  }
+
+  /**
+   * Up to 3800 cedars and broadleaf crowns on the foothills. Per candidate:
+   * bearing, radius, open-lowland cull; then kind, size, stretch, tilt and
+   * colour — the classic draws, in order. Kinds: 0/1 cedar spires, 2 crowns.
+   */
+  layoutFoothillForest() {
     const treeCount = 3800;
-    const meshes = [
-      new THREE.InstancedMesh(cedarGeo, cedarMat, treeCount),
-      new THREE.InstancedMesh(cedarGeoB, cedarMat, treeCount),
-      new THREE.InstancedMesh(roundGeo, crownMat, treeCount)
-    ];
-    meshes[0].name = 'Foothill Forest A';
-    meshes[1].name = 'Foothill Forest B';
-    meshes[2].name = 'Foothill Forest Crowns';
-    const dummy = new THREE.Object3D();
-    const color = new THREE.Color();
-    const placed = [0, 0, 0];
+    const trees = [];
     for (let i = 0; i < treeCount; i++) {
       const a = this.random() * Math.PI * 2;
       const r = 60 + Math.pow(this.random(), 0.75) * 130;
@@ -4612,17 +4603,48 @@ export class Countryside {
       const y = this.terrainHeight(x, z);
       if (kind === 2) {
         const s = 1.1 + this.random() * 1.7;
-        dummy.position.set(x, y + s * 0.45, z);
-        dummy.scale.set(s * (0.8 + this.random() * 0.5), s * 1.1, s * (0.8 + this.random() * 0.5));
-        dummy.rotation.set(this.random() * 0.3, this.random() * Math.PI, this.random() * 0.3);
-        color.setHSL(0.24 + this.random() * 0.08, 0.32 + this.random() * 0.14, 0.17 + this.random() * 0.1);
+        const position = [x, y + s * 0.45, z];
+        const scale = [s * (0.8 + this.random() * 0.5), s * 1.1, s * (0.8 + this.random() * 0.5)];
+        const rotation = [this.random() * 0.3, this.random() * Math.PI, this.random() * 0.3];
+        trees.push({ kind, position, scale, rotation, hsl: [0.24 + this.random() * 0.08, 0.32 + this.random() * 0.14, 0.17 + this.random() * 0.1] });
       } else {
         const s = 0.9 + this.random() * 1.4;
-        dummy.position.set(x, y - 0.2, z);
-        dummy.scale.set(s * (0.85 + this.random() * 0.3), s * (1.0 + this.random() * 0.5), s * (0.85 + this.random() * 0.3));
-        dummy.rotation.set((this.random() - 0.5) * 0.12, this.random() * Math.PI, (this.random() - 0.5) * 0.12);
-        color.setHSL(0.33 + this.random() * 0.07, 0.26 + this.random() * 0.14, 0.13 + this.random() * 0.09);
+        const position = [x, y - 0.2, z];
+        const scale = [s * (0.85 + this.random() * 0.3), s * (1.0 + this.random() * 0.5), s * (0.85 + this.random() * 0.3)];
+        const rotation = [(this.random() - 0.5) * 0.12, this.random() * Math.PI, (this.random() - 0.5) * 0.12];
+        trees.push({ kind, position, scale, rotation, hsl: [0.33 + this.random() * 0.07, 0.26 + this.random() * 0.14, 0.13 + this.random() * 0.09] });
       }
+    }
+    return { index: this.nextIndex('foothill-forest'), band: 'far', count: treeCount, trees, footprint: footprint() };
+  }
+
+  meshFoothillForestClassic(layout) {
+    const cedarGeo = lumpyConeGeometry(1, 8, 0.3);
+    const cedarGeoB = lumpyConeGeometry(1, 12, 0.34);
+    const roundGeo = lumpyTuftGeometry(1, 8, 0.36);
+    const cedarMat = createFoliageMaterial({
+      sss: 0.15, wind: 0.5, mottle: 0.24, vertexColors: false, massMap: leafMassTexture('needle'), massScale: 1 / 2.4
+    });
+    const crownMat = createFoliageMaterial({
+      sss: 0.15, wind: 0.5, mottle: 0.24, vertexColors: false, massMap: leafMassTexture('leaf'), massScale: 1 / 3
+    });
+    const treeCount = layout.count;
+    const meshes = [
+      new THREE.InstancedMesh(cedarGeo, cedarMat, treeCount),
+      new THREE.InstancedMesh(cedarGeoB, cedarMat, treeCount),
+      new THREE.InstancedMesh(roundGeo, crownMat, treeCount)
+    ];
+    meshes[0].name = 'Foothill Forest A';
+    meshes[1].name = 'Foothill Forest B';
+    meshes[2].name = 'Foothill Forest Crowns';
+    const dummy = new THREE.Object3D();
+    const color = new THREE.Color();
+    const placed = [0, 0, 0];
+    for (const { kind, position, scale, rotation, hsl } of layout.trees) {
+      dummy.position.set(...position);
+      dummy.scale.set(...scale);
+      dummy.rotation.set(...rotation);
+      color.setHSL(...hsl);
       dummy.updateMatrix();
       meshes[kind].setMatrixAt(placed[kind], dummy.matrix);
       meshes[kind].setColorAt(placed[kind], color);
