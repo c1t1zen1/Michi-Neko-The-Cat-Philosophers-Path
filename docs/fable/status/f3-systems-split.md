@@ -120,3 +120,5 @@ None.
 ## Notes for the Integrator
 See `docs/fable/handoff/f3-systems-split.md`: the cache-tag files, a context_actions.js patch for the interior anchors,
 a pre-existing knick-knack placement bug (100 m above the table), and notes for the kit lanes.
+
+Integrator, gate G-F: the interior-anchor patch (handoff section 2) is applied to `src/context_actions.js` (no value changes; goldens EQUAL). The knick-knack height bug (handoff section 3) is DEFERRED to lane v-interiors: fixing it changes the classic picture, so it needs its own `--systems --write` with a reason.
