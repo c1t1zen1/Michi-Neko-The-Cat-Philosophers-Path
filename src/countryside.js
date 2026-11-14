@@ -239,6 +239,24 @@ function buildingWallBoxes(matrix, w, d, height, baseY = 0, thickness = 0.18) {
   return { boxes, aggregate };
 }
 
+/** The world boxes of createKoushi's frame and slats under `frame` (meshKoushiClassic's arithmetic). */
+function koushiBoxes(frame, w, h, count) {
+  const frameThick = 0.04;
+  const out = [
+    shapeBox(frameOf(frame, 0, h / 2, 0), 'BoxGeometry', w, frameThick, frameThick * 1.5),
+    shapeBox(frameOf(frame, 0, -h / 2, 0), 'BoxGeometry', w, frameThick, frameThick * 1.5),
+    shapeBox(frameOf(frame, -w / 2, 0, 0), 'BoxGeometry', frameThick, h, frameThick * 1.5),
+    shapeBox(frameOf(frame, w / 2, 0, 0), 'BoxGeometry', frameThick, h, frameThick * 1.5)
+  ];
+  const slatW = 0.018;
+  const spacing = (w - frameThick * 2) / (count + 1);
+  for (let i = 1; i <= count; i++) {
+    const sx = -w / 2 + frameThick + i * spacing;
+    out.push(shapeBox(frameOf(frame, sx, 0, 0), 'BoxGeometry', slatW, h - frameThick * 2, slatW * 1.2));
+  }
+  return out;
+}
+
 /** Attach a non-enumerable parent link, so layouts stay plain, serialisable data. */
 function setParent(layout, parent) {
   Object.defineProperty(layout, 'parent', { value: parent, writable: true, configurable: true, enumerable: false });
@@ -2068,6 +2086,94 @@ export class Countryside {
 
   // --- 3. Secret Locked Kyoto Machiya (Hisomu-an) with Interior ---
   buildSecretMachiya(x, z, rotY) {
+    const layout = this.layoutSecretMachiya(x, z, rotY);
+    return this.placeAsset('secret-house', layout, () => this.meshSecretMachiyaClassic(layout));
+  }
+
+  /**
+   * Hisomu-an. Its furnishings, door, roof, lanterns and noren are components
+   * (F2.4); the house registers the colliders of the walls, the table, the
+   * tansu and the door, so its footprint holds their world boxes: the union
+   * of every mesh of the table and of the door, as Box3.setFromObject takes it.
+   */
+  layoutSecretMachiya(x, z, rotY) {
+    const H = frameOf(null, x, 0, z, 0, rotY, 0);
+    // Outer shell: left, right, back, front-left and front-right walls
+    const walls = [[0.3, 2.6, 5.2, -3.8, 1.3, 0], [0.3, 2.6, 5.2, 3.8, 1.3, 0], [7.8, 2.6, 0.3, 0, 1.3, -2.5],
+      [2.7, 2.6, 0.3, -2.55, 1.3, 2.5], [2.7, 2.6, 0.3, 2.55, 1.3, 2.5]]
+      .map(([w, h, d, px, py, pz]) => shapeBox(frameOf(H, px, py, pz), 'BoxGeometry', w, h, d));
+    const T = frameOf(H, 0, 0, -0.4), F = frameOf(T, 0.2, 0.52, 0.1);
+    const tableBox = unionOf([
+      shapeBox(frameOf(T, 0, 0.42, 0), 'BoxGeometry', 1.5, 0.08, 1.1),
+      ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => shapeBox(frameOf(T, sx * 0.65, 0.19, sz * 0.45), 'BoxGeometry', 0.1, 0.38, 0.1))),
+      shapeBox(frameOf(T, -0.35, 0.53, -0.2), 'CylinderGeometry', 0.08, 0.11, 0.14, 8),
+      shapeBox(frameOf(T, -0.18, 0.49, -0.2), 'CylinderGeometry', 0.045, 0.035, 0.06, 8),
+      shapeBox(frameOf(T, 0.2, 0.47, 0.1), 'CylinderGeometry', 0.2, 0.18, 0.025, 12),
+      shapeBox(frameOf(F, 0, 0, 0, 0, 0, 0, 1.4, 0.45, 0.55), 'SphereGeometry', 0.12, 8, 6),
+      shapeBox(frameOf(F, -0.2, 0, 0, 0, 0, Math.PI / 2), 'ConeGeometry', 0.08, 0.14, 4)
+    ]);
+    const tansuBox = shapeBox(frameOf(H, 2.6, 0.55, 0.6), 'BoxGeometry', 1.3, 1.1, 0.65);
+    const D = frameOf(H, 0, 0, 2.52), P = frameOf(D);
+    const doorBox = unionOf([
+      shapeBox(frameOf(D, 0, 1.05, 0), 'BoxGeometry', 2.35, 2.05, 0.08),
+      ...koushiBoxes(frameOf(D, 0, 0, 0.05), 2.35, 2.05, 11),
+      shapeBox(frameOf(P, 0, 1.05, 0.1), 'BoxGeometry', 0.24, 0.3, 0.06),
+      shapeBox(frameOf(P, 0, 1.2, 0.1), 'TorusGeometry', 0.09, 0.025, 6, 12, Math.PI)
+    ]);
+    // The shoji transition's door point, spawn point and heading
+    const doorWorld = new THREE.Vector3().setFromMatrixPosition(D);
+    const outDir = new THREE.Vector3(Math.sin(rotY), 0, Math.cos(rotY));
+
+    const table = {
+      index: this.nextIndex('secret-table'), name: 'Chabudai Table', z: -0.4, footprint: footprint(),
+      components: [component('secret-fish', {
+        index: this.nextIndex('secret-fish'), name: 'Grilled Fish Treat', x: 0.2, y: 0.52, z: 0.1,
+        footprint: footprint(), bind: { fishMesh: '.' }
+      }, 'meshSecretFishClassic', 'parent')]
+    };
+    const door = {
+      index: this.nextIndex('secret-door'), name: 'Secret Sliding Door', z: 2.52, footprint: footprint(), bind: { secretDoorMesh: '.' },
+      components: [
+        component('koushi', Object.assign(this.layoutKoushi(2.35, 2.05, 11), { z: 0.05 }), 'meshKoushiClassic', 'caller'),
+        component('lock-plate', {
+          index: this.nextIndex('lock-plate'), name: 'Brass Lock Plate', footprint: footprint(), bind: { lockPlate: '.' }
+        }, 'meshLockPlateClassic', 'parent')
+      ]
+    };
+    return {
+      index: this.nextIndex('secret-house'), name: 'Secret Machiya (Hisomu-an)', x, z, ry: rotY,
+      footprint: footprint({
+        platforms: [
+          // the low table, then the roof slopes
+          new THREE.Box3(new THREE.Vector3(x - 1.0, 0, z - 1.2), new THREE.Vector3(x + 1.0, 0.55, z + 0.4)),
+          { sloped: [2.45, 7.6, 4.8, 1.4, 0.7] }
+        ],
+        colliders: [...walls, tableBox, tansuBox, doorBox],
+        anchors: {
+          doorCollider: doorBox,
+          secretDoorWorldPos: doorWorld.clone(),
+          secretDoorSpawnPos: doorWorld.clone().addScaledVector(outDir, 2.5),
+          secretDoorOutHeading: Math.atan2(outDir.x, outDir.z)
+        }
+      }),
+      // in the order the house places them
+      components: [
+        component('secret-tatami', { index: this.nextIndex('secret-tatami'), name: 'Tatami Floor', footprint: footprint() }, 'meshSecretTatamiClassic', 'parent'),
+        component('secret-table', table, 'meshSecretTableClassic', 'parent'),
+        component('secret-bed', { index: this.nextIndex('secret-bed'), x: -1.8, y: 0.07, z: -0.8, footprint: footprint() }, 'meshSecretBedClassic', 'parent'),
+        component('secret-andon', { index: this.nextIndex('secret-andon'), name: 'Andon Lantern', x: 2.4, z: -1.6, footprint: footprint() }, 'meshSecretAndonClassic', 'parent'),
+        component('secret-door', door, 'meshSecretDoorClassic', 'parent'),
+        component('kawara-roof', Object.assign(this.layoutKawaraRoof(7.6, 4.8, 1.4, 0.7), { y: 2.45 }), 'meshKawaraRoofClassic', 'caller'),
+        component('chochin', this.layoutChochinLantern(-1.8, 2.45, 3.1), 'meshChochinLanternClassic', 'parent'),
+        component('chochin', this.layoutChochinLantern(1.8, 2.45, 3.1), 'meshChochinLanternClassic', 'parent'),
+        component('noren', this.layoutNoren(2.4, 0.55, 0.04, MAT.norenCrimson, 0, 2.2, 2.65), 'meshNorenClassic', 'parent')
+      ]
+    };
+  }
+
+  meshSecretMachiyaClassic(layout) {
+    const { x, z, ry: rotY } = layout;
+    const [tatami, tableC, bed, andonC, door, roof, lanternL, lanternR, noren] = layout.components;
     const house = new THREE.Group();
     house.name = 'Secret Machiya (Hisomu-an)';
 
@@ -2085,6 +2191,79 @@ export class Countryside {
 
     // --- INTERIOR DESIGN (Ghibli Cozy Tatami Room) ---
     // 1. Tatami Mat Floor (6-mat pattern)
+    this.placeComponent(tatami, house);
+
+    // 2. Low Table (Kotatsu / Chabudai) with ceramic tea set & Grilled Fish Cat Treat
+    const table = this.placeComponent(tableC, house);
+    this.addPlatform(new THREE.Box3(
+      new THREE.Vector3(x - 1.0, 0, z - 1.2),
+      new THREE.Vector3(x + 1.0, 0.55, z + 0.4)
+    ));
+
+    // 3. Cozy Velvet Cat Bed (Zabuton Nap Spot)
+    this.placeComponent(bed, house);
+
+    // 4. Traditional Wall Hanging Scroll (Kakejiku) with cat motif
+    const scroll = box(1.0, 1.8, 0.04, MAT.norenHemp, 0, 1.5, -2.32);
+    const scrollArt = box(0.65, 1.1, 0.05, MAT.timberDark, 0, 1.5, -2.31);
+    const scrollRoller = box(1.15, 0.06, 0.06, MAT.timberDark, 0, 0.58, -2.3);
+    house.add(scroll, scrollArt, scrollRoller);
+
+    // 5. Paper Andon Floor Lantern (glowing warm interior lamp)
+    this.placeComponent(andonC, house);
+
+    // 6. Antique Chest (Tansu)
+    const tansu = box(1.3, 1.1, 0.65, MAT.timberDark, 2.6, 0.55, 0.6);
+    house.add(tansu);
+
+    // --- FRONT SLIDING DOOR & ANTIQUE LOCK ---
+    const doorFrame = box(2.6, 2.2, 0.15, MAT.timberDark, 0, 1.1, 2.5);
+    house.add(doorFrame);
+
+    const slidingDoor = this.placeComponent(door, house);
+
+    // Roof & Eaves
+    this.placeComponent(roof, house);
+
+    // Front Hanging Chochin Lanterns
+    this.placeComponent(lanternL, house);
+    this.placeComponent(lanternR, house);
+
+    // Noren above doorway
+    this.placeComponent(noren, house);
+
+    house.position.set(x, 0, z);
+    house.rotation.y = rotY;
+    this.scene.add(house);
+    this.addSlopedRoofPlatforms(house, 2.45, 7.6, 4.8, 1.4, 0.7);
+
+    // Outer colliders (leaves doorway passable when opened)
+    this.addCollider(wallL, 0);
+    this.addCollider(wallR, 0);
+    this.addCollider(wallB, 0);
+    this.addCollider(wallFL, 0);
+    this.addCollider(wallFR, 0);
+    // (a table or door holding kit meshes registers the classic box from the layout)
+    this.addComponentCollider(table, 0, layout.footprint.colliders[5]);
+    this.addCollider(tansu, 0);
+
+    // Door collider — computed from actual world-space mesh bounds after
+    // house rotation so the solid wall is correctly positioned.
+    this.addComponentCollider(slidingDoor, 0, layout.footprint.colliders[7]);
+    this.doorCollider = this.colliders[this.colliders.length - 1];
+
+    // Store actual door world position and outward spawn point for the
+    // shoji transition (context_actions + InteriorManager use these).
+    const doorWorld = new THREE.Vector3();
+    slidingDoor.getWorldPosition(doorWorld);
+    this.secretDoorWorldPos = doorWorld.clone();
+    const outDir = new THREE.Vector3(Math.sin(rotY), 0, Math.cos(rotY));
+    this.secretDoorSpawnPos = doorWorld.clone().addScaledVector(outDir, 2.5);
+    this.secretDoorOutHeading = Math.atan2(outDir.x, outDir.z);
+  }
+
+  /** 1. Tatami Mat Floor (6-mat pattern), a component of 'secret-house'. */
+  meshSecretTatamiClassic(layout, house) {
     const tatamiFloor = new THREE.Group();
     tatamiFloor.name = 'Tatami Floor';
     const matW = 1.15, matL = 2.3, matH = 0.08;
@@ -2101,8 +2280,11 @@ export class Countryside {
       tatamiFloor.add(matMesh, borderMesh);
     }
     house.add(tatamiFloor);
+    return tatamiFloor;
+  }
 
-    // 2. Low Table (Kotatsu / Chabudai) with ceramic tea set & Grilled Fish Cat Treat
+  /** 2. Low Table (Chabudai) with its tea set; the fish is a component. */
+  meshSecretTableClassic(layout, house) {
     const table = new THREE.Group();
     table.name = 'Chabudai Table';
     table.add(box(1.5, 0.08, 1.1, MAT.timberEngawa, 0, 0.42, 0));
@@ -2124,6 +2306,15 @@ export class Countryside {
     plate.position.set(0.2, 0.47, 0.1);
     table.add(plate);
 
+    this.placeComponent(layout.components[0], table);
+
+    table.position.set(0, 0, -0.4);
+    house.add(table);
+    return table;
+  }
+
+  /** The grilled fish treat on the table plate (a component of 'secret-table'). */
+  meshSecretFishClassic(layout, table) {
     const fish = new THREE.Group();
     fish.name = 'Grilled Fish Treat';
     const fishBody = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), MAT.grilledFish);
@@ -2136,15 +2327,11 @@ export class Countryside {
     fish.position.set(0.2, 0.52, 0.1);
     table.add(fish);
     this.fishMesh = fish;
+    return fish;
+  }
 
-    table.position.set(0, 0, -0.4);
-    house.add(table);
-    this.addPlatform(new THREE.Box3(
-      new THREE.Vector3(x - 1.0, 0, z - 1.2),
-      new THREE.Vector3(x + 1.0, 0.55, z + 0.4)
-    ));
-
-    // 3. Cozy Velvet Cat Bed (Zabuton Nap Spot)
+  /** 3. Cozy Velvet Cat Bed (Zabuton Nap Spot), a component of 'secret-house'. */
+  meshSecretBedClassic(layout, house) {
     const cushion = box(0.75, 0.14, 0.75, MAT.cushionRed, -1.8, 0.07, -0.8);
     cushion.castShadow = true;
     house.add(cushion);
@@ -2154,14 +2341,11 @@ export class Countryside {
         cushion.add(box(0.05, 0.03, 0.05, MAT.goldAntique, sx * 0.35, 0, sz * 0.35));
       }
     }
+    return cushion;
+  }
 
-    // 4. Traditional Wall Hanging Scroll (Kakejiku) with cat motif
-    const scroll = box(1.0, 1.8, 0.04, MAT.norenHemp, 0, 1.5, -2.32);
-    const scrollArt = box(0.65, 1.1, 0.05, MAT.timberDark, 0, 1.5, -2.31);
-    const scrollRoller = box(1.15, 0.06, 0.06, MAT.timberDark, 0, 0.58, -2.3);
-    house.add(scroll, scrollArt, scrollRoller);
-
-    // 5. Paper Andon Floor Lantern (glowing warm interior lamp)
+  /** 5. Paper Andon Floor Lantern, a component of 'secret-house'. */
+  meshSecretAndonClassic(layout, house) {
     const andon = new THREE.Group();
     andon.name = 'Andon Lantern';
     andon.add(box(0.4, 0.05, 0.4, MAT.timberDark, 0, 0.025, 0));
@@ -2169,23 +2353,28 @@ export class Countryside {
     andon.add(box(0.38, 0.04, 0.38, MAT.timberDark, 0, 0.7, 0));
     andon.position.set(2.4, 0, -1.6);
     house.add(andon);
+    return andon;
+  }
 
-    // 6. Antique Chest (Tansu)
-    const tansu = box(1.3, 1.1, 0.65, MAT.timberDark, 2.6, 0.55, 0.6);
-    house.add(tansu);
-
-    // --- FRONT SLIDING DOOR & ANTIQUE LOCK ---
-    const doorFrame = box(2.6, 2.2, 0.15, MAT.timberDark, 0, 1.1, 2.5);
-    house.add(doorFrame);
-
+  /** The front sliding door: shoji, koushi (component) and the brass lock (component). */
+  meshSecretDoorClassic(layout, house) {
+    const [lattice, lock] = layout.components;
     const slidingDoor = new THREE.Group();
     slidingDoor.name = 'Secret Sliding Door';
     slidingDoor.add(box(2.35, 2.05, 0.08, MAT.shoji, 0, 1.05, 0));
-    const doorLattice = this.createKoushi(2.35, 2.05, 11);
-    doorLattice.position.z = 0.05;
-    slidingDoor.add(doorLattice);
+    this.placeComponent(lattice, slidingDoor);
 
     // Antique Brass Padlock Emblem on the door handle
+    this.placeComponent(lock, slidingDoor);
+
+    slidingDoor.position.set(0, 0, 2.52);
+    house.add(slidingDoor);
+    this.secretDoorMesh = slidingDoor;
+    return slidingDoor;
+  }
+
+  /** The brass lock plate on the sliding door (a component of 'secret-door'). */
+  meshLockPlateClassic(layout, slidingDoor) {
     this.lockPlate = new THREE.Group();
     this.lockPlate.name = 'Brass Lock Plate';
     this.lockPlate.add(box(0.24, 0.3, 0.06, MAT.goldAntique, 0, 1.05, 0.1));
@@ -2193,51 +2382,18 @@ export class Countryside {
     shackle.position.set(0, 1.2, 0.1);
     this.lockPlate.add(shackle);
     slidingDoor.add(this.lockPlate);
+    return this.lockPlate;
+  }
 
-    slidingDoor.position.set(0, 0, 2.52);
-    house.add(slidingDoor);
-    this.secretDoorMesh = slidingDoor;
+  /** A noren cloth, one box centred at (x, y, z) in its parent. */
+  layoutNoren(w, h, d, mat, x, y, z) {
+    return { index: this.nextIndex('noren'), w, h, d, mat: matKey(mat), x, y, z, footprint: footprint() };
+  }
 
-    // Roof & Eaves
-    const mainRoof = this.createKawaraRoof(7.6, 4.8, 1.4, 0.7);
-    mainRoof.position.y = 2.45;
-    house.add(mainRoof);
-
-    // Front Hanging Chochin Lanterns
-    this.createChochinLantern(-1.8, 2.45, 3.1, house);
-    this.createChochinLantern(1.8, 2.45, 3.1, house);
-
-    // Noren above doorway
-    const secretNoren = box(2.4, 0.55, 0.04, MAT.norenCrimson, 0, 2.2, 2.65);
-    house.add(secretNoren);
-
-    house.position.set(x, 0, z);
-    house.rotation.y = rotY;
-    this.scene.add(house);
-    this.addSlopedRoofPlatforms(house, 2.45, 7.6, 4.8, 1.4, 0.7);
-
-    // Outer colliders (leaves doorway passable when opened)
-    this.addCollider(wallL, 0);
-    this.addCollider(wallR, 0);
-    this.addCollider(wallB, 0);
-    this.addCollider(wallFL, 0);
-    this.addCollider(wallFR, 0);
-    this.addCollider(table, 0);
-    this.addCollider(tansu, 0);
-
-    // Door collider — computed from actual world-space mesh bounds after
-    // house rotation so the solid wall is correctly positioned.
-    this.addCollider(slidingDoor, 0);
-    this.doorCollider = this.colliders[this.colliders.length - 1];
-
-    // Store actual door world position and outward spawn point for the
-    // shoji transition (context_actions + InteriorManager use these).
-    const doorWorld = new THREE.Vector3();
-    slidingDoor.getWorldPosition(doorWorld);
-    this.secretDoorWorldPos = doorWorld.clone();
-    const outDir = new THREE.Vector3(Math.sin(rotY), 0, Math.cos(rotY));
-    this.secretDoorSpawnPos = doorWorld.clone().addScaledVector(outDir, 2.5);
-    this.secretDoorOutHeading = Math.atan2(outDir.x, outDir.z);
+  meshNorenClassic(layout, parent) {
+    const noren = box(layout.w, layout.h, layout.d, matOf(layout.mat), layout.x, layout.y, layout.z);
+    parent.add(noren);
+    return noren;
   }
 
   // --- 4. Interactive Bird Nest on Machiya Rooftop ---
