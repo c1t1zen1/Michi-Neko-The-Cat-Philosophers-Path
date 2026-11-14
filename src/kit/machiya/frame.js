@@ -13,7 +13,7 @@ function buildTimberFrame(ctx, layout, p) {
   const { tier, rng, kitMaterials: km } = ctx;
   const { w, d } = layout, post = layout.post ?? 0.3;
   const postX = layout.postX ?? [-w / 2 + 0.4, w / 2 - 0.4], postZ = layout.postZ ?? [-d / 2 + 0.4, d / 2 - 0.4];
-  const bag = new Bag(), dark = 0x4b3427;
+  const bag = new Bag(), dark = 0x41302a;
   const bev = tier === 'far' ? 0 : p.bevel;
   const slab = (sw, sh, sd, x, y, z, color) => (bev > 0.002
     ? bag.add(new RoundedBoxGeometry(sw, sh, sd, 1, Math.min(bev, sw / 3, sh / 3, sd / 3)), { x, y, z, color })
@@ -86,7 +86,7 @@ function buildEngawa(ctx, layout, p) {
   if (p.joists && tier !== 'far') {                                      // dark beams the boards sit on
     bag.box(w - 0.1, 0.07, 0.1, { y: h - 0.135, z: d / 2 - 0.2, color: 0x35261c });
     bag.box(w - 0.1, 0.07, 0.1, { y: h - 0.135, z: -d / 2 + 0.2, color: 0x35261c });
-    if (tier === 'hero') bag.box(w, 0.06, 0.08, { y: h - 0.07, z: d / 2 + 0.005, color: 0x4b3427 });   // front edge beam
+    if (tier === 'hero') bag.box(w, 0.06, 0.08, { y: h - 0.07, z: d / 2 + 0.005, color: 0x41302a });   // front edge beam
   }
   if (p.step) {                                                          // kutsunugi-ishi, a boot-removing stone
     if (tier === 'far') bag.box(0.9, 0.18, 0.5, { y: 0.09, z: d / 2 + 0.3, color: 0x8f8c82 });
@@ -103,7 +103,7 @@ const FELT = { scarlet: 0xb52b22, indigo: 0x28405e, moss: 0x5b6b3a };
 function buildTeaBench(ctx, layout, p) {
   const { tier, rng, kitMaterials: km } = ctx;
   const bag = new Bag();
-  const wood = 0x4b3427;
+  const wood = 0x41302a;
   // classic: a 2.2 x 0.42 x 0.9 cushion on a 2.25 x 0.06 x 0.95 plinth
   bag.box(2.25, 0.06, 0.95, { y: 0.03, color: 0x35261c });
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) bag.box(0.08, 0.12, 0.08, { x: sx * 1.05, y: 0.09, z: sz * 0.4, color: wood });

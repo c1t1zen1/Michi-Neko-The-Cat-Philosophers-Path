@@ -104,7 +104,7 @@ function buildRoof(ctx, layout, p) {
       }
       for (let i = 0; i < rafterN; i++) {            // rafter tails under the eave
         const x = -fullW / 2 + 0.3 + (i / (rafterN - 1)) * (fullW - 0.6);
-        trim.box(0.07, 0.09, overhang + 0.35, { x, y: eaveY - 0.1, z: sz * (halfD - overhang * 0.5 - 0.1), rx: sz * angle * 0.6, color: tint(0x4b3427, (rng() - 0.5) * 0.05 * (1 + wear)) });
+        trim.box(0.07, 0.09, overhang + 0.35, { x, y: eaveY - 0.1, z: sz * (halfD - overhang * 0.5 - 0.1), rx: sz * angle * 0.6, color: tint(0x41302a, (rng() - 0.5) * 0.05 * (1 + wear)) });
       }
     }
   }
@@ -120,9 +120,9 @@ function buildRoof(ctx, layout, p) {
   for (const sx of [-1, 1]) {
     gable(sx * (w / 2), halfD, ridgeH, false, trim, 0xe3d6b9);
     gable(sx * (w / 2), halfD, ridgeH, true, trim, 0xe3d6b9);
-    trim.box(0.1, ridgeH, 0.1, { x: sx * (w / 2 + 0.02), y: ridgeH / 2, color: 0x4b3427 });
+    trim.box(0.1, ridgeH, 0.1, { x: sx * (w / 2 + 0.02), y: ridgeH / 2, color: 0x41302a });
     if (tier !== 'far') for (const sz of [-1, 1])  // bargeboards along the rake
-      trim.box(0.05, 0.16, len * 0.98, { x: sx * (fullW / 2 - 0.03), y: ridgeH / 2 - 0.12 * Math.cos(angle), z: sz * halfD / 2, rx: sz * angle, color: 0x4b3427 });
+      trim.box(0.05, 0.16, len * 0.98, { x: sx * (fullW / 2 - 0.03), y: ridgeH / 2 - 0.12 * Math.cos(angle), z: sz * halfD / 2, rx: sz * angle, color: 0x41302a });
   }
   const parts = { tiles, trim: meshOf(trim.geometry(), bagMat(km)) };
   if (ridge !== trim) parts.ridge = meshOf(ridge.geometry(), matOr(ctx, 'roofRidge', () => km.bag({ rough: 0.5 })));

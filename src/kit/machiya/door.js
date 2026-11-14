@@ -14,7 +14,7 @@ function buildSecretDoor(ctx, layout, p) {
   const W = 2.35, H = 2.05, T = 0.08;
   const paper = p.lit ? matOr(ctx, 'shoji', () => km.paper({ glow: 0.12 })) : matOr(ctx, 'shojiOff', () => km.paper({}));
   const panel = meshOf(new THREE.BoxGeometry(W, H, T).translate(0, 1.05, 0), paper);
-  const wood = 0x4b3427, bag = new Bag(), z = 0;
+  const wood = 0x41302a, bag = new Bag(), z = 0;
   const x0 = W / 2, y0 = 0.025, y1 = 2.075;
   bag.box(0.09, H + 0.05, 0.1, { x: -x0 + 0.045, y: 1.05, z, color: wood });          // stiles
   bag.box(0.09, H + 0.05, 0.1, { x: x0 - 0.045, y: 1.05, z, color: wood });

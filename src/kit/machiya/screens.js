@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { Bag, bagMat, matOr, meshOf, assemble, seg, tint } from './common.js?v=20261113a';
 
-const FINISH = { dark: 0x4b3427, bengara: 0x7a2f22, natural: 0x9a7650 };
+const FINISH = { dark: 0x41302a, bengara: 0x7a2f22, natural: 0x9a7650 };
 
 /* ------------------------------------------------------------------ koushi --- */
 
@@ -103,7 +103,7 @@ function buildNoren(ctx, layout, p) {
     for (const sx of [-1, 1]) bag.sphere(0.03, { x: sx * (w / 2 + 0.09), y: top + 0.01, color: 0x2a1d14 });
     for (let i = 0; i < n; i++) bag.box(pw, 0.05, 0.012, { x: -w / 2 + pw / 2 + i * (pw + gap), y: -top + 0.03, z: 0.004, color: tint(base, -0.06) });  // hem band
   }
-  if (p.crest) bag.add(new THREE.CylinderGeometry(0.1, 0.1, 0.006, seg(tier, 20, 10, 6)).rotateX(Math.PI / 2), { y: 0, z: 0.008, color: 0xe9e1cf });
+  if (p.crest) bag.add(new THREE.CylinderGeometry(0.1, 0.1, 0.006, seg(tier, 20, 10, 6)).rotateX(Math.PI / 2), { y: 0, z: 0.02, color: 0xe9e1cf });
   const inst = assemble({ cloth: mesh, trim: meshOf(bag.geometry(), bagMat(km)) });
   if (tier === 'hero') {
     const pos = merged.attributes.position, rest = pos.array.slice();

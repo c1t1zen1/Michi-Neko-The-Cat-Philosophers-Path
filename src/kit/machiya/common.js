@@ -21,7 +21,7 @@ export const matOr = (ctx, name, make) => (ctx.MAT && ctx.MAT[name]) || make();
 export function timberColour(key, finish = 'dark') {
   if (finish === 'bengara') return 0x7a2f22;
   if (finish === 'natural') return 0x9a7650;
-  return key === 'timberEngawa' ? 0x7a5a3c : 0x4b3427;
+  return key === 'timberEngawa' ? 0x7a5a3c : 0x41302a;
 }
 
 /** Overwrite uv with box-projected world metres (dominant normal axis), one tile per metre. */
