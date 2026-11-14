@@ -49,10 +49,10 @@ export const KIT_LIMITS = Object.freeze({
  * fields it names and must cite why. Added by the owning lane in its PR.
  */
 export const BUDGET_EXCEPTIONS = Object.freeze({
-  // 11 m valley runs build 12,660 mid tris (contract sample 3.4 m); ruling R51
+  // the contract samples the real 11 m run (G-V1 I1); ruling R51
   'bamboo-fence': {
-    mid: { triangles: 13000 },
-    why: '11 m valley runs build 12,660 mid tris (contract sample 3.4 m); ruling R51; a1-village lightens the mid tier and removes this'
+    hero: { buildMs: 14 }, mid: { triangles: 13000, buildMs: 14 },
+    why: 'the contract samples the real 11 m valley run: 22,638 / 12,660 / 568 tris (hero/mid/far), 71 culms + 138 knots warm-build 8-11 ms under load; ruling R51; a1-village lightens the mid tier and removes this'
   },
   'tea-interior': { hero: { meshes: 34, materials: 12, buildMs: 9 }, mid: { triangles: 9500, meshes: 34, materials: 12, buildMs: 6 }, far: { triangles: 3000, meshes: 24, materials: 11, buildMs: 5 }, why: 'the whole room as one asset (every classic sub-part plus courtyard, andon and toro); far is not a real LOD, the room is only seen from inside' },
   // whole buildings (ruling R52); measured with kit_contract_test --family machiya
