@@ -261,4 +261,3 @@ Checks (real output, after this round):
 - Boots: classic → 0 instances, 0 problems; six-id swap → 9 instances, 0 problems, river field obstacles at
   (s, u) (57.83, −3.10) (60.26, −3.27) (58.14, 0.89) (60.52, 0.72); `?assets=modular` → 241 instances, 0 problems.
   Console on all three: only the pre-existing `/cad-overrides.json` 404, no warnings.
-
