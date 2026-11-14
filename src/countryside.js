@@ -4520,11 +4520,49 @@ export class Countryside {
   }
 
   buildVillage() {
-    const pastelWalls = [0xf5e6c8, 0xf2b8c6, 0xfdf3e0, 0xe8d8f0];
-    const pastelRoofs = [0x7a8aa8, 0xc87888, 0x88a890, 0x9a86b0, 0xd8a878];
+    const layout = this.layoutVillage();
+    return this.placeAsset('distant-village', layout, () => this.meshVillageClassic(layout));
+  }
+
+  /**
+   * The distant hillside village: six clusters of pastel houses. Per house:
+   * x, z, size, wall and roof colour, 1–3 windows (side, x, height each),
+   * yaw. Its window material kindles at dusk; the foothill forest is a component.
+   */
+  layoutVillage() {
     const clusters = [
       [-62, -78, 9], [18, -88, 12], [78, -70, 8], [-95, -35, 6], [95, -20, 7], [40, -96, 6]
     ];
+    const houses = [];
+    for (const [cx, cz, n] of clusters) {
+      for (let i = 0; i < n; i++) {
+        const hx = cx + (this.random() - 0.5) * 26;
+        const hz = cz + (this.random() - 0.5) * 18;
+        const s = 1.4 + this.random() * 1.6;
+        const wall = Math.floor(this.random() * 4);
+        const roof = Math.floor(this.random() * 5);
+        const winCount = 1 + Math.floor(this.random() * 3);
+        const windows = [];
+        for (let wnd = 0; wnd < winCount; wnd++) {
+          const side = this.random() < 0.5 ? 1 : -1;
+          windows.push([side, (this.random() - 0.5) * 1.8 * s, (0.6 + this.random() * 0.7) * s]);
+        }
+        houses.push({
+          name: `Distant House ${cx > 0 ? 'E' : 'W'}${i + 1}`, x: hx, y: this.terrainHeight(hx, hz) - 0.3, z: hz,
+          s, wall, roof, windows, ry: this.random() * Math.PI
+        });
+      }
+    }
+    return {
+      index: this.nextIndex('distant-village'), band: 'far', houses, footprint: footprint(),
+      bind: { villageWindowMat: 'windows.material' },
+      components: [component('foothill-forest', this.layoutFoothillForest(), 'meshFoothillForestClassic')]
+    };
+  }
+
+  meshVillageClassic(layout) {
+    const pastelWalls = [0xf5e6c8, 0xf2b8c6, 0xfdf3e0, 0xe8d8f0];
+    const pastelRoofs = [0x7a8aa8, 0xc87888, 0x88a890, 0x9a86b0, 0xd8a878];
     const wallMats = pastelWalls.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95 }));
     const roofMats = pastelRoofs.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 }));
     // Warm hearth-window glow shared by every distant house; kindles at dusk
@@ -4535,38 +4573,28 @@ export class Countryside {
       roughness: 0.6
     });
     const winGeo = new THREE.PlaneGeometry(0.34, 0.42);
-    for (const [cx, cz, n] of clusters) {
-      for (let i = 0; i < n; i++) {
-        const hx = cx + (this.random() - 0.5) * 26;
-        const hz = cz + (this.random() - 0.5) * 18;
-        const s = 1.4 + this.random() * 1.6;
-        const house = new THREE.Group();
-        const wall = box(2.6 * s, 1.6 * s, 2.0 * s, wallMats[Math.floor(this.random() * wallMats.length)], 0, 0.8 * s, 0);
-        house.add(wall);
-        const roof = new THREE.Mesh(new THREE.ConeGeometry(2.0 * s, 1.1 * s, 4), roofMats[Math.floor(this.random() * roofMats.length)]);
-        roof.position.y = 1.6 * s + 0.55 * s;
-        roof.rotation.y = Math.PI / 4;
-        house.add(roof);
-        // 1-3 warm windows on the out-facing walls of distant townhouses
-        const winCount = 1 + Math.floor(this.random() * 3);
-        for (let wnd = 0; wnd < winCount; wnd++) {
-          const win = new THREE.Mesh(winGeo, this.villageWindowMat);
-          const side = this.random() < 0.5 ? 1 : -1;
-          win.position.set(
-            (this.random() - 0.5) * 1.8 * s,
-            (0.6 + this.random() * 0.7) * s,
-            side * (1.002 * s)
-          );
-          if (side === -1) win.rotation.y = Math.PI;
-          house.add(win);
-        }
-        house.name = `Distant House ${cx > 0 ? 'E' : 'W'}${i + 1}`;
-        house.position.set(hx, this.terrainHeight(hx, hz) - 0.3, hz);
-        house.rotation.y = this.random() * Math.PI;
-        this.scene.add(house);
+    for (const h of layout.houses) {
+      const s = h.s;
+      const house = new THREE.Group();
+      const wall = box(2.6 * s, 1.6 * s, 2.0 * s, wallMats[h.wall], 0, 0.8 * s, 0);
+      house.add(wall);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(2.0 * s, 1.1 * s, 4), roofMats[h.roof]);
+      roof.position.y = 1.6 * s + 0.55 * s;
+      roof.rotation.y = Math.PI / 4;
+      house.add(roof);
+      // 1-3 warm windows on the out-facing walls of distant townhouses
+      for (const [side, wx, wy] of h.windows) {
+        const win = new THREE.Mesh(winGeo, this.villageWindowMat);
+        win.position.set(wx, wy, side * (1.002 * s));
+        if (side === -1) win.rotation.y = Math.PI;
+        house.add(win);
       }
+      house.name = h.name;
+      house.position.set(h.x, h.y, h.z);
+      house.rotation.y = h.ry;
+      this.scene.add(house);
     }
-    this.buildFoothillForest();
+    this.placeComponent(layout.components[0], this.scene);
   }
 
   /**
