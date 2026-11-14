@@ -135,3 +135,35 @@ export function crow() {
   pose(0);
   return { group: g, parts, pose };
 }
+
+/* ---------------- Larry the turtle (study for lane c4-creatures) ---------------- */
+
+/**
+ * A guardian turtle with flipper pivots. Metres, nose +Z, shell top 0.57 m.
+ * Parts: shell, plastron, neck, head, tail, flipper_{fl,fr,bl,br} (pivot Groups, rotation.x swings).
+ * turtle.walk(t, speed) swings diagonal pairs and noses the head, as the game's gait does from the group's displacement.
+ */
+export function turtle() {
+  const g = new THREE.Group(), parts = {};
+  const mat = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.82, flatShading: true });
+  const shellM = mat(0x5f7e42), light = mat(0x8da85c), skin = mat(0x9aaa68), belly = mat(0xd8cfa0);
+  const shell = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 7, 0, TAU, 0, Math.PI * 0.58).scale(0.6, 0.27, 0.47), shellM); shell.position.y = 0.3; g.add(shell);
+  const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(0.38, 1).scale(1.15, 0.35, 0.86), light); crown.position.y = 0.5; shell.add(crown); crown.position.set(0, 0.17, 0);
+  const plastron = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 6).scale(0.5, 0.07, 0.4), belly); plastron.position.y = 0.2; g.add(plastron);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.3, 6).rotateX(Math.PI / 2 - 0.15), skin); neck.position.set(0, 0.27, 0.42); g.add(neck);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6).scale(0.95, 0.85, 1.15), skin); head.position.set(0, 0.27, 0.62); g.add(head);
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.2, 5).rotateX(-Math.PI / 2 - 0.3), skin); tail.position.set(0, 0.2, -0.52); g.add(tail);
+  Object.assign(parts, { shell, plastron, neck, head, tail });
+  for (const [k, x, z] of [['fl', 0.4, 0.33], ['fr', -0.4, 0.33], ['bl', 0.4, -0.35], ['br', -0.4, -0.35]]) {
+    const pivot = new THREE.Group(); pivot.position.set(x, 0.2, z); g.add(pivot);
+    const f = new THREE.Mesh(new THREE.SphereGeometry(0.13, 7, 5).scale(1.2, 1.1, k[0] === 'f' ? 1.1 : 0.85), skin); f.position.y = -0.06; pivot.add(f);
+    parts['flipper_' + k] = pivot;
+  }
+  const walk = (t, speed = 0.5) => {
+    const s = Math.sin(t * (1.5 + speed * 5)) * Math.min(1, speed * 1.6) * 0.55;
+    parts.flipper_fl.rotation.x = s; parts.flipper_br.rotation.x = s; parts.flipper_fr.rotation.x = -s; parts.flipper_bl.rotation.x = -s;
+    head.position.z = 0.62 + 0.02 * Math.sin(t * (1.5 + speed * 5)) * Math.min(1, speed * 2);
+  };
+  walk(0, 0);
+  return { group: g, parts, walk };
+}

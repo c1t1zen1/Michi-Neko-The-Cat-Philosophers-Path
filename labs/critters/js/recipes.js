@@ -4,7 +4,7 @@ import { loadAmbientLifeModule } from '../../shared/game.js';
 import { ownMaterials } from '../../shared/original.js';
 import { V3, TAU, Bag, instances } from '../../shared/craft.js';
 import { M } from '../../shared/painted.js';
-import { KOI_KINDS, koiTexture, koiGeometry, koiMaterial, sparrowGeo, wingGeo, butterfly, wingTexture, crow } from './kit.js';
+import { KOI_KINDS, koiTexture, koiGeometry, koiMaterial, sparrowGeo, wingGeo, butterfly, wingTexture, crow, turtle } from './kit.js';
 
 let AL = null;
 export const loadDeps = async () => { AL = (await loadAmbientLifeModule()).AmbientLife; };
@@ -25,6 +25,7 @@ export const SOURCES = {
 export const FAMILIES = [
   { key: 'koi', title: 'Painted fish, <em>bent from the tail</em>', sub: 'The game’s koi already have good patterns. Swimming is a sine wave along the body, and the real difference between kinds is where the colour goes.' },
   { key: 'birds', title: 'Small birds, <em>in silhouette</em>', sub: 'Up in the sky, birds are a shape and a rhythm.' },
+  { key: 'turtle', title: 'A guardian that <em>walks</em>', sub: 'Larry is a shell, a head and four flippers. The patrol moves the whole turtle; the legs follow how far it went.' },
   { key: 'flutter', title: 'Things that choose <em>a flower</em>', sub: 'The game’s butterflies are coloured dots. Up close, a butterfly is two painted hinges.' }
 ];
 
@@ -51,6 +52,10 @@ export const SPECIMENS = [
     blurb: 'The nest guardian rebuilt with a two-joint wing: a shoulder hinge that flaps and a wrist hinge that folds the primaries on the upstroke. Glide, flap and dive poses.',
     how: ['wing_l / wing_r are Groups pivoting at the shoulder; wing_*_hand pivots at the wrist.', 'Parts: body, head, beak, tail, leg_l, leg_r, wing_{l,r}, wing_{l,r}_arm, wing_{l,r}_hand, wing_{l,r}_primaries.', 'The game keeps driving wing_l / wing_r rotation.z; the wrist is the extra life.'], use: 'Lane c4-creatures promotes this to the guardian-crows asset.', sources: ['notes'], also: [crow],
     build(k) { const c = crow(); c.group.position.y = 0.5; c.group.scale.setScalar(2.2); c.group.rotation.y = 0.5; return { group: c.group, noCast: false, update: (t) => { const m = Math.floor(t / 3) % 3; c.pose(t, ['flap', 'glide', 'dive'][m]); } }; } },
+  { id: 'larry', family: 'turtle', name: 'Larry, with flipper pivots', jp: '亀の番人', tag: 'Shell, plastron, head, four flippers', plinth: 'moss', hour: 12, animatedShadow: false,
+    blurb: 'Larry the corral turtle rebuilt as a small rig: a scuted shell, a pale plastron, a neck and head, a tail and four flipper pivots swinging in diagonal pairs.',
+    how: ['Parts: shell, plastron, neck, head, tail, flipper_{fl,fr,bl,br}.', 'The patrol only moves the group; the gait is read from how far the group moved this frame, so legs and head follow a chase, a patrol and a rest.'], use: 'Lane c4-creatures promotes this to the larry asset.', sources: ['notes'], also: [turtle],
+    build(k) { const c = turtle(); c.group.position.y = 0.05; c.group.scale.setScalar(1.6); c.group.rotation.y = 0.6; return { group: c.group, noCast: false, update: (t) => { c.walk(t, Math.floor(t / 4) % 2 ? 0.9 : 0); } }; } },
   { id: 'game-flutter', family: 'flutter', original: true, name: 'Our butterflies', jp: '今の蝶', tag: 'A cloud of coloured points', plinth: 'moss', hour: 12, animatedShadow: false, game: () => AL.prototype.buildButterflies,
     blurb: 'The real system: fifty additive sprites with a bobbing path. Lovely from afar. They have no wings up close.',
     how: ['A Points cloud with an additive butterfly texture.'], use: 'Baseline.', sources: ['notes'],
