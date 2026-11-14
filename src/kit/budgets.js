@@ -80,6 +80,11 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
     hero: { triangles: 92000 }, mid: { triangles: 13000 }, far: { triangles: 5000 },
     why: 'a grove is 40-78 culms with 72 leaf cards each; classic is 82k (r=7); modular hero ~90k, mid/far far below classic'
   },
+  // Countryside.updateRainRipples() sets opacity per ring, so each of the 28 rings owns a material (as classic does); the texture is shared
+  'rain-ripples': {
+    hero: { materials: 28 }, mid: { materials: 28 }, far: { materials: 28 },
+    why: 'the game animates each ring through its own material (f2 handoff): 28 rings, 28 materials, as classic'
+  },
 });
 
 /** The budget row for one asset and tier, with exceptions applied. */

@@ -16,6 +16,9 @@ export class Particles {
     // run. Particles build with their own materials: the shared kit tables (MAT + textures).
     this.assets = scopeAssets(options.assets, KIT_TABLES);
     this.time = 0;
+    // Handles a kit system drives (petals, rain, snow ...). Those, and only those,
+    // slow down under the reduce-motion comfort setting; classic motion is untouched.
+    this.kitHandles = new Set();
     this.godRays = [];
     this.buildPetals();
     this.buildFireflies();
@@ -43,8 +46,19 @@ export class Particles {
     this.registerFootprint(out.footprint || layout.footprint, g);
     for (const [field, part] of Object.entries(layout.bind || {})) {
       this[field] = (out.parts && out.parts[part]) || (out.sockets && out.sockets[part]) || null;
+      this.kitHandles.add(field);
     }
     return out;
+  }
+
+  /**
+   * How much of their motion kit weather keeps: CALM (0.3) while the comfort
+   * setting is on (Game.applyComfort() toggles body.reduce-motion), else 1. The kit twin is reducedMotion()/CALM in kit/weather/sprites.js (not imported here: classic must not load the kit).
+   * Classic systems never read it.
+   */
+  motionScale() {
+    if (!this.kitHandles.size) return 1;
+    try { return document.body && document.body.classList.contains('reduce-motion') ? 0.3 : 1; } catch (e) { return 1; }
   }
 
   /** `godRays` entries become the records updateGodRays() drives (`mesh` is the card). */
@@ -597,8 +611,11 @@ export class Particles {
     this.time += dt;
     const t = this.time;
 
-    this.updateSnow(dt, playerPos, sky);
-    this.updateRain(dt, playerPos, sky);
+    // dt per system: slowed only when a kit system drives that handle and motion is reduced (no closure: this runs every frame)
+    const calm = this.motionScale();
+    const kh = this.kitHandles;
+    this.updateSnow((calm !== 1 && kh.has('snow') ? dt * calm : dt), playerPos, sky);
+    this.updateRain((calm !== 1 && kh.has('rain') ? dt * calm : dt), playerPos, sky);
     this.updateGodRays(dt, sky, playerPos);
 
     const sunUp = sky ? Math.max(0, sky.sunDir.y) : 1;
@@ -606,13 +623,14 @@ export class Particles {
 
     // (each system's handle is missing only when a kit replaced it without its `points` part)
     const pp = this.petals ? this.petals.geometry.attributes.position : null;
+    const dtP = (calm !== 1 && kh.has('petals') ? dt * calm : dt);
     for (let i = 0; pp && i < this.petalActive; i++) {
       const seed = this.petalSeeds[i * 3];
       const fall = this.petalSeeds[i * 3 + 1];
       const ph = this.petalSeeds[i * 3 + 2];
-      let y = pp.getY(i) - fall * dt;
-      let x = pp.getX(i) + Math.sin(t * 1.4 + seed) * dt * 1.1 + dt * 0.35;
-      let z = pp.getZ(i) + Math.cos(t * 1.1 + ph) * dt * 0.9;
+      let y = pp.getY(i) - fall * dtP;
+      let x = pp.getX(i) + Math.sin(t * 1.4 + seed) * dtP * 1.1 + dtP * 0.35;
+      let z = pp.getZ(i) + Math.cos(t * 1.1 + ph) * dtP * 0.9;
       if (y < 0.05) {
         y = 9 + Math.random() * 4;
         x = (playerPos ? playerPos.x : 0) + (Math.random() - 0.5) * 60;
@@ -632,35 +650,38 @@ export class Particles {
     }
     if (this.fireflies && this.fireflies.visible) {
       const fp = this.fireflies.geometry.attributes.position;
+      const dtF = (calm !== 1 && kh.has('fireflies') ? dt * calm : dt);
       for (let i = 0; i < this.fireflyActive; i++) {
         const seed = this.fireflySeeds[i * 3];
         const speed = this.fireflySeeds[i * 3 + 1];
         const baseY = this.fireflySeeds[i * 3 + 2];
-        fp.setX(i, fp.getX(i) + Math.sin(t * speed + seed) * dt * 0.7);
-        fp.setZ(i, fp.getZ(i) + Math.cos(t * speed * 0.8 + seed * 1.3) * dt * 0.7);
+        fp.setX(i, fp.getX(i) + Math.sin(t * speed + seed) * dtF * 0.7);
+        fp.setZ(i, fp.getZ(i) + Math.cos(t * speed * 0.8 + seed * 1.3) * dtF * 0.7);
         fp.setY(i, baseY + Math.sin(t * speed * 1.6 + seed * 2) * 0.35);
       }
       this.uploadRange(fp, this.fireflyActive);
     }
 
     const rp = this.riverPetals ? this.riverPetals.geometry.attributes.position : null;
+    const dtR = (calm !== 1 && kh.has('riverPetals') ? dt * calm : dt);
     for (let i = 0; rp && i < this.riverActive; i++) {
       const seed = this.riverSeeds[i * 2];
       const speed = this.riverSeeds[i * 2 + 1];
-      let x = rp.getX(i) + dt * speed * 1.2;
+      let x = rp.getX(i) + dtR * speed * 1.2;
       if (x > 65) x = -55;
       rp.setX(i, x);
-      rp.setZ(i, rp.getZ(i) + Math.sin(t * 1.8 + seed) * dt * 0.3);
+      rp.setZ(i, rp.getZ(i) + Math.sin(t * 1.8 + seed) * dtR * 0.3);
       rp.setY(i, 0.05 + Math.sin(t * 2.2 + seed) * 0.015);
     }
     if (rp) this.uploadRange(rp, this.riverActive);
 
     const mp = this.motes ? this.motes.geometry.attributes.position : null;
+    const dtM = (calm !== 1 && kh.has('motes') ? dt * calm : dt);
     for (let i = 0; mp && i < this.moteActive; i++) {
       const seed = this.moteSeeds[i * 2];
       const speed = this.moteSeeds[i * 2 + 1];
-      mp.setX(i, mp.getX(i) + Math.sin(t * speed + seed) * dt * 0.25 + dt * 0.12);
-      mp.setY(i, mp.getY(i) + Math.cos(t * speed * 0.7 + seed) * dt * 0.12);
+      mp.setX(i, mp.getX(i) + Math.sin(t * speed + seed) * dtM * 0.25 + dtM * 0.12);
+      mp.setY(i, mp.getY(i) + Math.cos(t * speed * 0.7 + seed) * dtM * 0.12);
       if (playerPos && mp.getX(i) - playerPos.x > 30) mp.setX(i, playerPos.x - 28);
     }
     if (mp) this.uploadRange(mp, this.moteActive);
