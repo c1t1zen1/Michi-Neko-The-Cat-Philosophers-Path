@@ -534,11 +534,21 @@ test('generated src/kit/index.js is in sync and exports FAMILIES', async () => {
   assert.match(two, /FAMILY_NAMES = Object\.freeze\(\['lanterns', 'shrine'\]\)/);
 });
 
-test('runtime default loaders read the generated index (zero families today)', async () => {
-  const rt = new AssetRuntime({ assetSet: 'modular', quality: 'high', fetchOverrides: async () => null, createMaterials: async () => ({ bind() {} }) });
+test('runtime default loaders read the generated index', async () => {
+  const { FAMILY_NAMES } = await import('../src/kit/index.js');
+  const log = quiet();
+  const rt = new AssetRuntime({ assetSet: 'modular', quality: 'high', logger: log, fetchOverrides: async () => null, createMaterials: async () => ({ bind() {} }) });
   await rt.preload();
   assert.ok(rt.loaded);
-  assert.deepEqual(rt.summary().assets, []);
+  // Families import the bare 'three' specifier, which only the browser's import map resolves:
+  // under Node each listed family is attempted, fails once, and stays classic (the browser
+  // contract test, tools/kit_contract_test.mjs, builds them for real). Every warning must name a
+  // family from the generated index — no other family is attempted.
+  for (const w of log.warnings) {
+    const m = /family '([^']+)' failed to load/.exec(w);
+    assert.ok(m && FAMILY_NAMES.includes(m[1]), w);
+  }
+  assert.ok(log.warnings.length <= FAMILY_NAMES.length);
 });
 
 test('budgets are per tier, exceptions apply, source is cited', () => {
@@ -552,7 +562,7 @@ test('budgets are per tier, exceptions apply, source is cited', () => {
 
 /* ------------------------------------------------------ kit_check fixtures --- */
 
-import { mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
@@ -561,7 +571,13 @@ function fixtureRoot() {
   const root = mkdtempSync(join(tmpdir(), 'kit-check-'));
   mkdirSync(join(root, 'src'), { recursive: true });
   mkdirSync(join(root, 'labs'), { recursive: true });
-  cpSync(join(ROOT, 'src', 'kit'), join(root, 'src', 'kit'), { recursive: true });
+  // Core kit files only: real family folders (any directory directly under src/kit) would bring
+  // ids the fixture inventory does not list, so a merged family would fail this test.
+  const kitDir = join(ROOT, 'src', 'kit');
+  cpSync(kitDir, join(root, 'src', 'kit'), {
+    recursive: true,
+    filter: (src) => src === kitDir || !(statSync(src).isDirectory() && dirname(src) === kitDir)
+  });
   writeFileSync(join(root, 'src', 'main.js'), `import { x } from './kit/runtime.js?v=${TAG}';\n`);
   writeFileSync(join(root, 'labs', 'asset_inventory.json'), JSON.stringify({ assets: [{ id: 'torii', lifecycle: 'active' }, { id: 'old-gate', lifecycle: 'inactive' }] }));
   return root;
