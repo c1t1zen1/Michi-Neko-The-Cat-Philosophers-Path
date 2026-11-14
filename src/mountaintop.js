@@ -16,26 +16,7 @@ import { clearingMethods } from './summit/clearing.js?v=20261107a';
 import { plantingMethods } from './summit/planting.js?v=20261107a';
 import { vistaMethods } from './summit/vista.js?v=20261107a';
 import { weatherMethods } from './summit/weather.js?v=20261107a';
-
-function summitBirdWingGeometry() {
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
-    0.02, 0, 0.1,   0.92, 0, 0.02,   0.56, 0, -0.22,
-    0.02, 0, 0.1,   0.56, 0, -0.22,  0.08, 0, -0.13
-  ]), 3));
-  geo.computeVertexNormals();
-  return geo;
-}
-
-function summitBirdTailGeometry() {
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
-    -0.11, 0, 0,  0.11, 0, 0,  -0.2, 0, -0.42,
-     0.11, 0, 0,  0.2, 0, -0.42,  0, 0, -0.28
-  ]), 3));
-  geo.computeVertexNormals();
-  return geo;
-}
+import { wildlifeMethods } from './summit/wildlife.js?v=20261107a';
 
 // Optional cinematic for the ascent. Drop an mp4 at this path and it plays
 // full-screen; when the file is absent (or undecodable) the CSS light-burst
@@ -62,6 +43,11 @@ const SUMMIT_WEATHER_DURATIONS = {
  *
  * No quests, no hints, no NPCs — a respite scene. The only mechanism is
  * stillness: sit in the meadow long enough and the cat sleeps.
+ *
+ * This class is the facade. The constructor, the world shims, setQuality(),
+ * the unlock and transitions, the scenic camera and the per-frame update live
+ * here; the builders live in src/summit/ by concern, each behind a one-line
+ * method of the same name ("Builders by concern" below).
  */
 export class SummitManager {
   constructor(game) {
@@ -253,11 +239,6 @@ export class SummitManager {
     return this.origin.y + MEADOW_Y;
   }
 
-  approachSupportAt(x, z) { return terrainMethods.approachSupportAt.call(this, x, z); }
-  landHeightAt(x, z) { return terrainMethods.landHeightAt.call(this, x, z); }
-  perchSightlineAt(x, z) { return terrainMethods.perchSightlineAt.call(this, x, z); }
-  terrainHeightAt(x, z) { return terrainMethods.terrainHeightAt.call(this, x, z); }
-
   /** Soft containment: meadow circle + the stair corridor notch. */
   constrain(pos) {
     const lx = pos.x - this.origin.x, lz = pos.z - this.origin.z;
@@ -339,48 +320,64 @@ export class SummitManager {
     }
   }
 
-  /* ================= Terrain & architecture ================= */
+  /* ================= Builders by concern (src/summit/) ================= */
 
+  // Each method below runs code that lives in a src/summit/ module, with
+  // `this` = the manager, so the prototype (what main.js, the review pages
+  // and the Summit Lab call) is the same as before the split. The
+  // constructor decides the build order; these groups only say where the
+  // code is.
+
+  // Summit lights and the shrine-side beacon (src/summit/light.js)
   buildSummitLight() { return lightMethods.buildSummitLight.call(this); }
+  buildShrineRays() { return lightMethods.buildShrineRays.call(this); }
+  makeRayTexture() { return lightMethods.makeRayTexture.call(this); }
+
+  // Landform, perch sightline and land colour (src/summit/terrain.js)
+  approachSupportAt(x, z) { return terrainMethods.approachSupportAt.call(this, x, z); }
+  landHeightAt(x, z) { return terrainMethods.landHeightAt.call(this, x, z); }
+  perchSightlineAt(x, z) { return terrainMethods.perchSightlineAt.call(this, x, z); }
+  terrainHeightAt(x, z) { return terrainMethods.terrainHeightAt.call(this, x, z); }
+  buildApproachShoulder() { return terrainMethods.buildApproachShoulder.call(this); }
+  landColorAt(x, z, c) { return terrainMethods.landColorAt.call(this, x, z, c); }
+  buildSummitTerrain() { return terrainMethods.buildSummitTerrain.call(this); }
+  vistaGroundHeight(x, z) { return terrainMethods.vistaGroundHeight.call(this, x, z); }
+  makeLandTexture() { return terrainMethods.makeLandTexture.call(this); }
+
+  // Meadow, torii approach, meditation perch and lower path (src/summit/clearing.js)
   buildMeadow() { return clearingMethods.buildMeadow.call(this); }
   buildStepsAndGate() { return clearingMethods.buildStepsAndGate.call(this); }
   buildLegacyRearGate() { return clearingMethods.buildLegacyRearGate.call(this); }
   buildVistaApproach() { return clearingMethods.buildVistaApproach.call(this); }
-
-  /* ================= Flora ================= */
-
-  _tree(x, z, scale, kind, opts) { return plantingMethods._tree.call(this, x, z, scale, kind, opts); }
-  buildRocksAndTrees() { return plantingMethods.buildRocksAndTrees.call(this); }
-
-  /* ================= Wind grass (src/grass.js) ================= */
-
-  buildGrassField() { return plantingMethods.buildGrassField.call(this); }
   buildMeditationStone() { return clearingMethods.buildMeditationStone.call(this); }
   makeFurinPaperTexture() { return clearingMethods.makeFurinPaperTexture.call(this); }
   buildMeditationAtmosphere() { return clearingMethods.buildMeditationAtmosphere.call(this); }
-
-  /* ================= The drop & the panorama ================= */
-
-  buildApproachShoulder() { return terrainMethods.buildApproachShoulder.call(this); }
   buildLowerPath() { return clearingMethods.buildLowerPath.call(this); }
+  updateMeditationAtmosphere(dt, t, playing, sky) { return clearingMethods.updateMeditationAtmosphere.call(this, dt, t, playing, sky); }
+
+  // Trees, brush, boulders, grass and slope forest (src/summit/planting.js)
+  _tree(x, z, scale, kind, opts) { return plantingMethods._tree.call(this, x, z, scale, kind, opts); }
+  buildRocksAndTrees() { return plantingMethods.buildRocksAndTrees.call(this); }
+  buildGrassField() { return plantingMethods.buildGrassField.call(this); }
+  buildSlopeForest() { return plantingMethods.buildSlopeForest.call(this); }
+
+  // Kyoto basin, bay, harbour, horizon and clouds (src/summit/vista.js)
   buildSkirtAndVista() { return vistaMethods.buildSkirtAndVista.call(this); }
-  landColorAt(x, z, c) { return terrainMethods.landColorAt.call(this, x, z, c); }
-  buildSummitTerrain() { return terrainMethods.buildSummitTerrain.call(this); }
-  vistaGroundHeight(x, z) { return terrainMethods.vistaGroundHeight.call(this, x, z); }
   vistaRiverX(z) { return vistaMethods.vistaRiverX.call(this, z); }
   buildVistaTerrain() { return vistaMethods.buildVistaTerrain.call(this); }
   buildKyotoCity() { return vistaMethods.buildKyotoCity.call(this); }
   buildKyotoPagoda() { return vistaMethods.buildKyotoPagoda.call(this); }
-  makeLandTexture() { return terrainMethods.makeLandTexture.call(this); }
   makeBayWaterTexture() { return vistaMethods.makeBayWaterTexture.call(this); }
   buildSummitBay() { return vistaMethods.buildSummitBay.call(this); }
   buildHarbourAndIslands() { return vistaMethods.buildHarbourAndIslands.call(this); }
   buildHorizonRanges() { return vistaMethods.buildHorizonRanges.call(this); }
   makeVistaTexture() { return vistaMethods.makeVistaTexture.call(this); }
   makeVistaTextureLegacy() { return vistaMethods.makeVistaTextureLegacy.call(this); }
-  buildSlopeForest() { return plantingMethods.buildSlopeForest.call(this); }
   loadVistaLandmarks() { return vistaMethods.loadVistaLandmarks.call(this); }
   buildSummitClouds() { return vistaMethods.buildSummitClouds.call(this); }
+  updateVistaEnvironment(dt, t, sky) { return vistaMethods.updateVistaEnvironment.call(this, dt, t, sky); }
+
+  // Snow, rain, pollen and sakura petals (src/summit/weather.js)
   buildSummitSnow() { return weatherMethods.buildSummitSnow.call(this); }
   reseedSnow() { return weatherMethods.reseedSnow.call(this); }
   makeRainStreakTexture() { return weatherMethods.makeRainStreakTexture.call(this); }
@@ -389,230 +386,14 @@ export class SummitManager {
   buildPollen() { return weatherMethods.buildPollen.call(this); }
   makePetalTexture() { return weatherMethods.makePetalTexture.call(this); }
   buildSakuraPetals() { return weatherMethods.buildSakuraPetals.call(this); }
-
-  /* ================= Quiet summit wildlife ================= */
-
-  butterflyTexture() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 64;
-    canvas.height = 64;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, 64, 64);
-    const wing = ctx.createRadialGradient(18, 28, 2, 18, 28, 19);
-    wing.addColorStop(0, 'rgba(255,255,244,1)');
-    wing.addColorStop(0.58, 'rgba(255,236,166,0.96)');
-    wing.addColorStop(1, 'rgba(255,205,92,0)');
-    ctx.fillStyle = wing;
-    ctx.beginPath();
-    ctx.ellipse(17, 28, 16, 23, -0.24, 0, Math.PI * 2);
-    ctx.ellipse(47, 28, 16, 23, 0.24, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(65,43,27,0.9)';
-    ctx.beginPath();
-    ctx.ellipse(32, 33, 2.4, 17, 0, 0, Math.PI * 2);
-    ctx.fill();
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    return tex;
-  }
-
-  buildAmbientWildlife() {
-    // Butterflies are one inexpensive point cloud whose whole visit fades in
-    // and out. Anchors are kept separately so their drift never accumulates
-    // away from the flowers during a long meditation.
-    const butterflyCount = this.previewQuality ? 8 : 18;
-    const butterflyGeo = new THREE.BufferGeometry();
-    const positions = new Float32Array(butterflyCount * 3);
-    const colors = new Float32Array(butterflyCount * 3);
-    this._butterflyAnchors = new Float32Array(butterflyCount * 3);
-    this._butterflySeeds = new Float32Array(butterflyCount * 3);
-    const palette = [0xffd34e, 0x73c9ff, 0xff91b5, 0xd9f278, 0xf7f0e5];
-    const color = new THREE.Color();
-    for (let i = 0; i < butterflyCount; i++) {
-      const a = this.rng() * Math.PI * 2;
-      const r = 1.5 + Math.sqrt(this.rng()) * 5.6;
-      const x = this.perchLocal.x + Math.cos(a) * r;
-      const z = this.perchLocal.z + Math.sin(a) * r;
-      const y = 0.65 + this.rng() * 1.15;
-      positions[i * 3] = this._butterflyAnchors[i * 3] = x;
-      positions[i * 3 + 1] = this._butterflyAnchors[i * 3 + 1] = y;
-      positions[i * 3 + 2] = this._butterflyAnchors[i * 3 + 2] = z;
-      this._butterflySeeds[i * 3] = this.rng() * 100;
-      this._butterflySeeds[i * 3 + 1] = 0.55 + this.rng() * 0.65;
-      this._butterflySeeds[i * 3 + 2] = 0.35 + this.rng() * 0.55;
-      color.setHex(palette[Math.floor(this.rng() * palette.length)]);
-      colors[i * 3] = color.r;
-      colors[i * 3 + 1] = color.g;
-      colors[i * 3 + 2] = color.b;
-    }
-    butterflyGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    butterflyGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    this.butterflyMat = new THREE.PointsMaterial({
-      map: this.butterflyTexture(), size: 0.34, transparent: true, opacity: 0,
-      depthWrite: false, vertexColors: true, sizeAttenuation: true
-    });
-    this.butterflies = new THREE.Points(butterflyGeo, this.butterflyMat);
-    this.butterflies.name = 'Summit Butterfly Visitors';
-    this.butterflies.frustumCulled = false;
-    this.butterflies.visible = false;
-    this.group.add(this.butterflies);
-
-    // A tiny pool of individually articulated birds. They stay hidden until
-    // a seeded fly-by, then cross the bay in loose formation and park again.
-    const wingGeo = summitBirdWingGeometry();
-    const tailGeo = summitBirdTailGeometry();
-    const bodyGeo = new THREE.SphereGeometry(0.23, 8, 6);
-    const headGeo = new THREE.SphereGeometry(0.135, 8, 6);
-    const beakGeo = new THREE.ConeGeometry(0.045, 0.15, 6);
-    const birdColors = [
-      [0x315f82, 0x8fc6df, 0xe8a33b], // kingfisher blue
-      [0xf0eee5, 0xc8d1d4, 0xd6a642], // pale gull
-      [0x4b4039, 0x9a6f54, 0xc89335], // mountain thrush
-      [0x263c53, 0x718ba0, 0xe0a33d]
-    ];
-    this.summitBirds = [];
-    for (let i = 0; i < 4; i++) {
-      const [bodyCol, wingCol, beakCol] = birdColors[i % birdColors.length];
-      const bodyMat = new THREE.MeshStandardMaterial({ color: bodyCol, roughness: 0.88, flatShading: true });
-      const wingMat = new THREE.MeshStandardMaterial({ color: wingCol, roughness: 0.9, side: THREE.DoubleSide });
-      const beakMat = new THREE.MeshStandardMaterial({ color: beakCol, roughness: 0.72 });
-      const bird = new THREE.Group();
-      bird.name = `Summit Fly-by Bird ${i + 1}`;
-      const body = new THREE.Mesh(bodyGeo, bodyMat);
-      body.scale.set(0.85, 0.68, 1.45);
-      bird.add(body);
-      const head = new THREE.Mesh(headGeo, bodyMat);
-      head.position.set(0, 0.045, 0.31);
-      bird.add(head);
-      const beak = new THREE.Mesh(beakGeo, beakMat);
-      beak.rotation.x = Math.PI / 2;
-      beak.position.set(0, 0.025, 0.48);
-      bird.add(beak);
-      const leftWing = new THREE.Mesh(wingGeo, wingMat);
-      leftWing.position.set(0.04, 0.05, 0.06);
-      bird.add(leftWing);
-      const rightWing = new THREE.Mesh(wingGeo, wingMat);
-      rightWing.scale.x = -1;
-      rightWing.position.set(-0.04, 0.05, 0.06);
-      bird.add(rightWing);
-      const tail = new THREE.Mesh(tailGeo, wingMat);
-      tail.position.set(0, 0, -0.23);
-      bird.add(tail);
-      bird.visible = false;
-      this.group.add(bird);
-      this.summitBirds.push({
-        mesh: bird, wings: [leftWing, rightWing], active: false, age: 0,
-        duration: 0, direction: 1, startX: 0, baseY: 0, baseZ: 0,
-        span: 0, depthDrift: 0, phase: this.rng() * Math.PI * 2
-      });
-    }
-    this._birdLook = new THREE.Vector3();
-    this._birdFlybyTimer = 5 + this.rng() * 7;
-    this._butterflyVisitTimer = 2 + this.rng() * 4;
-    this._butterflyVisit = 0;
-  }
-
-  startBirdFlyby() {
-    const count = 1 + Math.floor(this.rng() * 3);
-    const direction = this.rng() < 0.5 ? 1 : -1;
-    const baseY = 7 + this.rng() * 8;
-    const baseZ = 36 + this.rng() * 54;
-    for (let i = 0; i < this.summitBirds.length; i++) {
-      const bird = this.summitBirds[i];
-      if (i >= count) {
-        bird.active = false;
-        bird.mesh.visible = false;
-        continue;
-      }
-      bird.active = true;
-      bird.age = -i * (0.32 + this.rng() * 0.24);
-      bird.duration = 8 + this.rng() * 5;
-      bird.direction = direction;
-      bird.startX = direction > 0 ? -48 - i * 2.8 : 48 + i * 2.8;
-      bird.baseY = baseY + i * 0.65 + (this.rng() - 0.5) * 1.2;
-      bird.baseZ = baseZ + i * 2.6 + (this.rng() - 0.5) * 4;
-      bird.span = 96 + this.rng() * 18;
-      bird.depthDrift = (this.rng() - 0.5) * 18;
-      bird.mesh.scale.setScalar(0.85 + this.rng() * 0.55);
-      bird.mesh.visible = false;
-    }
-    this._birdFlybyTimer = 18 + this.rng() * 30;
-  }
-
-  updateAmbientWildlife(dt, t, sky) {
-    const snowing = summitWeatherAmount(sky, 'snow') > 0.45;
-    this._birdFlybyTimer -= dt;
-    if (!snowing && this._birdFlybyTimer <= 0) this.startBirdFlyby();
-    for (const bird of this.summitBirds) {
-      if (!bird.active) continue;
-      bird.age += dt;
-      if (bird.age < 0) continue;
-      const u = bird.age / bird.duration;
-      if (u >= 1 || snowing) {
-        bird.active = false;
-        bird.mesh.visible = false;
-        continue;
-      }
-      bird.mesh.visible = true;
-      const x = bird.startX + bird.direction * bird.span * u;
-      const y = bird.baseY + Math.sin(u * Math.PI) * 4.2 + Math.sin(t * 0.8 + bird.phase) * 0.45;
-      const z = bird.baseZ + (u - 0.5) * bird.depthDrift + Math.sin(u * Math.PI * 2 + bird.phase) * 1.4;
-      bird.mesh.position.set(x, y, z);
-      this._birdLook.set(x + bird.direction * 3, y + Math.cos(u * Math.PI) * 0.3, z + bird.depthDrift * 0.025);
-      bird.mesh.lookAt(this._birdLook);
-      const flap = Math.sin(t * 11.5 + bird.phase) * 0.62;
-      bird.wings[0].rotation.z = flap;
-      bird.wings[1].rotation.z = -flap;
-    }
-
-    this._butterflyVisitTimer -= dt;
-    if (!snowing && this._butterflyVisit <= 0 && this._butterflyVisitTimer <= 0) {
-      this._butterflyVisit = 12 + this.rng() * 12;
-      this._butterflyVisitTimer = this._butterflyVisit + 16 + this.rng() * 24;
-    }
-    if (this._butterflyVisit > 0) this._butterflyVisit -= dt;
-    const butterflyTarget = !snowing && this._butterflyVisit > 0 ? 0.92 : 0;
-    this.butterflyMat.opacity += (butterflyTarget - this.butterflyMat.opacity) * Math.min(1, dt * 1.6);
-    this.butterflies.visible = this.butterflyMat.opacity > 0.015;
-    if (this.butterflies.visible) {
-      const bp = this.butterflies.geometry.attributes.position;
-      for (let i = 0; i < bp.count; i++) {
-        const seed = this._butterflySeeds[i * 3];
-        const speed = this._butterflySeeds[i * 3 + 1];
-        const range = this._butterflySeeds[i * 3 + 2];
-        const ax = this._butterflyAnchors[i * 3];
-        const ay = this._butterflyAnchors[i * 3 + 1];
-        const az = this._butterflyAnchors[i * 3 + 2];
-        bp.setXYZ(
-          i,
-          ax + Math.sin(t * speed + seed) * range + Math.cos(t * 0.43 + seed) * 0.25,
-          ay + Math.sin(t * (1.2 + speed * 0.4) + seed * 1.7) * 0.32,
-          az + Math.cos(t * speed * 0.82 + seed * 1.3) * range
-        );
-      }
-      bp.needsUpdate = true;
-    }
-  }
-
-  updateMeditationAtmosphere(dt, t, playing, sky) { return clearingMethods.updateMeditationAtmosphere.call(this, dt, t, playing, sky); }
   updateSakuraPetals(dt, t, sky) { return weatherMethods.updateSakuraPetals.call(this, dt, t, sky); }
 
-  resetAmbientWildlife() {
-    if (this.butterflyMat) this.butterflyMat.opacity = 0;
-    if (this.butterflies) this.butterflies.visible = false;
-    this._butterflyVisit = 0;
-    this._butterflyVisitTimer = 2 + this.rng() * 4;
-    this._birdFlybyTimer = 5 + this.rng() * 7;
-    for (const bird of this.summitBirds || []) {
-      bird.active = false;
-      bird.mesh.visible = false;
-    }
-  }
-
-  /* ================= The shrine-side beacon ================= */
-
-  buildShrineRays() { return lightMethods.buildShrineRays.call(this); }
-  makeRayTexture() { return lightMethods.makeRayTexture.call(this); }
+  // Butterflies and fly-by birds (src/summit/wildlife.js)
+  butterflyTexture() { return wildlifeMethods.butterflyTexture.call(this); }
+  buildAmbientWildlife() { return wildlifeMethods.buildAmbientWildlife.call(this); }
+  startBirdFlyby() { return wildlifeMethods.startBirdFlyby.call(this); }
+  updateAmbientWildlife(dt, t, sky) { return wildlifeMethods.updateAmbientWildlife.call(this, dt, t, sky); }
+  resetAmbientWildlife() { return wildlifeMethods.resetAmbientWildlife.call(this); }
 
   /* ================= Keep-list for valley hiding ================= */
 
@@ -949,8 +730,6 @@ export class SummitManager {
     g.player.heading += headingDiff * (this._reducedMotion ? 1 : Math.min(1, dt * 2.4));
     g.player.mesh.rotation.y = g.player.heading;
   }
-
-  updateVistaEnvironment(dt, t, sky) { return vistaMethods.updateVistaEnvironment.call(this, dt, t, sky); }
 
   /* ================= Per-frame ================= */
 
