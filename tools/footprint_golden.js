@@ -1215,6 +1215,9 @@ async function main() {
   if (!golden.found) {
     statusEl.textContent = `no usable golden at ${GOLDEN_URL} (${golden.error}): write it with node tools/footprint_golden.mjs --write`;
     statusEl.className = 'failed';
+  } else if (!diff) {
+    statusEl.textContent = `could not compare with ${GOLDEN_URL}: ${golden.error}`;
+    statusEl.className = 'failed';
   } else if (diff.equal) {
     statusEl.textContent = `EQUAL: the build matches the golden${golden.textEqual ? ' byte for byte' : ''}`;
     statusEl.className = 'equal';

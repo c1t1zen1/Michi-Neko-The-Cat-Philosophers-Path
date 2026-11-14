@@ -8,8 +8,8 @@ the footprint golden (`tools/footprint_golden.html` + `.js`, CLI
 
 The page never edits game code. It instruments `Countryside` and `HiddenPlaces`
 at run time, and each hook is tied to one name or one statement in a game
-module. A lane that renames or moves one of those targets must update the hook
-in `tools/footprint_golden.js` in the same PR. Otherwise the golden reports
+module. A lane that renames or moves one of those targets must tell the Integrator,
+or update the hook if your brief grants the page. Otherwise the golden reports
 something that looks like a layout change but is really a broken hook.
 
 Line numbers: `tools/footprint_golden.js` as of 592d425 (= `fable/integration`
@@ -36,7 +36,7 @@ Lighter couplings (same rule: move the target, update the hook):
 - **`anchorsOf`** (L557): Countryside field names (`napSpotPos`, `nestPos`, `secretKeyPos`, `chimePos`, `secretDoor*`, the `*Mesh` handles, `collectibles`, `lanterns[].group`, `toroSpots`, `corralGuardian.bounds`, `bambooFences`, `shrineThicket*`, …). Renaming a field turns its anchor into `null`, which reads as DIFFERENT.
 - **`countrysideOptions()`** (L66) is where f1-runtime passes `options.assets` (ruling R11).
 
-## Pending page patch (not applied: two lanes are editing `footprint_golden.js` now)
+## Page patch (applied by the Integrator at gate G-F)
 
 When the diff itself throws, the page records the error in `golden.error` and
 leaves `diff` as `null`. Its status rendering then reads `diff.equal`, so
