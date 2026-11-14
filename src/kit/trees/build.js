@@ -25,7 +25,7 @@ export const SPECIES = {
     colors: [0xd27a94, 0xeaa2b6, 0xf6c6d2, 0xfbdde6],
     trunk: { rTop: 0.13, rBot: 0.22, h: 2.3, lean: 0.14 },
     canopy: { primaries: 6, tilt: 0.9, tiltVar: 0.2, droop: -0.08, bend: 0.14, branchLen: 1.5, secondaries: 2 },
-    leaves: { habit: 'cloud', twigsPerLimb: 3, sprigs: 2, sprayLen: 0.46, sprayAspect: 1, density: 13, tipSprays: 3, colors: [0xe4a2b6, 0xf0bccb, 0xf8d4de, 0xfde8ee] },
+    leaves: { habit: 'cloud', twigsPerLimb: 3, sprigs: 2, sprayLen: 0.46, sprayAspect: 1, density: 17, tipSprays: 3, colors: [0xe4a2b6, 0xf0bccb, 0xf8d4de, 0xfde8ee] },
     masses: { twigs: false, crownFill: 3, clumpR: 0.5, tuftsPerClump: [3, 3, 2], tuftFlat: 0.74, lump: 0.4, seed: 11 },
     clumps: { crownFill: 3, clumpR: 0.5, tuftsPerClump: [3, 3, 2], cardsPerClump: [10, 9, 6], cardSize: 0.68, tuftFlat: 0.74, lump: 0.4, seed: 11 },
     collider: 0.35, bark: 'warm', buttress: 0.5
@@ -35,7 +35,7 @@ export const SPECIES = {
     colors: [0x8e2d20, 0xc24a34, 0xe0704a, 0xf09060],
     trunk: { rTop: 0.11, rBot: 0.2, h: 2.0, lean: 0.1 },
     canopy: { primaries: 5, tilt: 1.02, tiltVar: 0.18, droop: 0.05, bend: 0.1, branchLen: 1.3, secondaries: 2 },
-    leaves: { habit: 'tier', twigsPerLimb: 3, sprigs: 2, sprayLen: 0.42, density: 14, tipSprays: 3 },
+    leaves: { habit: 'tier', twigsPerLimb: 3, sprigs: 2, sprayLen: 0.42, density: 19, tipSprays: 3 },
     masses: { twigs: false, crownFill: 2, clumpR: 0.44, tuftsPerClump: [3, 2, 2], tuftFlat: 0.55, lump: 0.36, seed: 23 },
     clumps: { crownFill: 2, clumpR: 0.44, tuftsPerClump: [3, 2, 2], cardsPerClump: [10, 9, 6], cardSize: 0.66, tuftFlat: 0.55, lump: 0.36, seed: 23 },
     collider: 0.3, bark: 'grey', buttress: 0.35
@@ -148,7 +148,7 @@ export function buildTrunkGeometry(T, { rTop, rBot, h, lean = 0, tier = 'hero', 
   const ring = radial + 1;
   for (let j = 0; j <= rings; j++) {
     const t = j / rings;
-    const cx = spineX(lean, h, t), cy = t * h;
+    const cx = spineX(lean, h, t), cy = t * h * 0.96;
     const flare = 1 + Math.pow(Math.max(0, 1 - t * 4), 2) * 0.55;
     const r0 = (rBot + (rTop - rBot) * t) * girth * flare;
     const root = Math.pow(Math.max(0, 1 - t * 5), 2) * buttress;
@@ -156,7 +156,7 @@ export function buildTrunkGeometry(T, { rTop, rBot, h, lean = 0, tier = 'hero', 
       const a = (i / radial) * Math.PI * 2;
       const lobe = 1 + root * (0.5 + 0.5 * Math.cos(lobes * a + phase)) * 0.9;
       const wob = 1 + Math.sin(a * 3 + t * 9 + phase) * 0.035;
-      const r = r0 * lobe * wob * (j === rings ? 0.7 : 1);
+      const r = r0 * lobe * wob * (j === rings ? 0.45 : 1);
       pos.push(cx + Math.cos(a) * r, cy, Math.sin(a) * r);
       uv.push((i / radial) * 2, t * h / 1.1);
     }
@@ -169,7 +169,7 @@ export function buildTrunkGeometry(T, { rTop, rBot, h, lean = 0, tier = 'hero', 
   }
   // flat cap at the fork (the limbs start inside it)
   const cap = pos.length / 3;
-  pos.push(spineX(lean, h, 1), h + rTop * 0.5, 0); uv.push(0.5, h);
+  pos.push(spineX(lean, h, 1), h * 0.96 + rTop * 0.25, 0); uv.push(0.5, h);
   for (let i = 0; i < radial; i++) idx.push(rings * ring + i, rings * ring + i + 1, cap);
   const geo = new T.BufferGeometry();
   geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
@@ -236,7 +236,7 @@ export function canopyOptions(sp, style, tier, { S = 1, size = 1, density = 1 } 
   base.branchLen = sp.canopy.branchLen * size;
   if (style === 'leaves') {
     const l = { ...sp.leaves };
-    const k = tier === 'hero' ? 1 : 0.5;
+    const k = tier === 'hero' ? 1 : 0.4;
     if (l.habit === 'pad') l.padSprays = Math.max(8, Math.round(l.padSprays * (tier === 'hero' ? 1 : 0.55) * density));
     else {
       l.density = l.density * S * k * density;
@@ -280,8 +280,14 @@ function joinWood(T, trunk, limbs) {
   if (!limbs) return trunk;
   const n = trunk.attributes.position.count;
   if (limbs.attributes.aWind && !trunk.attributes.aWind) trunk.setAttribute('aWind', new T.BufferAttribute(new Float32Array(n * 2), 2));
-  for (const g of [trunk, limbs]) for (const k of Object.keys(g.attributes)) if (!trunk.attributes[k] || !limbs.attributes[k]) g.deleteAttribute(k);
-  if (!trunk.index) trunk.setIndex([...Array(n).keys()]);
+  for (const g of [trunk, limbs]) {
+    for (const k of Object.keys(g.attributes)) {
+      if (trunk.attributes[k] && limbs.attributes[k]) continue;
+      console.warn(`[kit trees] joinWood: attribute '${k}' is on only one of trunk / limbs and is dropped`);
+      g.deleteAttribute(k);
+    }
+  }
+  if (!limbs.index) limbs.setIndex([...Array(limbs.attributes.position.count).keys()]);
   const out = mergeGeometries([trunk, limbs], false);
   trunk.dispose(); limbs.dispose();
   return out;

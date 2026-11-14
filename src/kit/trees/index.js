@@ -3,8 +3,7 @@
 //   maples          the garden maples
 //   pines           the niwaki pines
 //   rim-trees       any of the three past r = 39 m, as painted leaf masses
-//   tree-trunks     the trunk and bare limbs on their own (reusable component)
-//   tree-canopies   one canopy on its own: leaves | masses | clumps (the summit's habit)
+// Deferred (not assets): tree-trunks / tree-canopies; buildSkeleton / buildCanopyOnly are exported building blocks.
 // Reusable builders: buildTree, buildTrunkGeometry, addCanopy, SPECIES (see build.js).
 import { defineAsset } from '../contract.js?v=20261113a';
 import { buildTree, addCanopy, buildTrunkGeometry, spineX, SPECIES, TREE_PARAMS, sampleLayout, KIND_OF_ID } from './build.js?v=20261113a';
@@ -52,25 +51,10 @@ export const assets = [
     // the heaviest rim tree: a sakura (six primaries, three-tuft clumps) at the rim
     sample: sampleLayout('sakura', { scale: 1.15, rim: true }),
     build: (ctx, layout, p) => buildTree(ctx, layout, p, KIND_OF_ID[layout.kind] || layout.kind)
-  }),
-  defineAsset({
-    id: 'tree-trunks', family: 'trees', lab: 'trees/trunk', label: 'Tree trunks and limbs',
-    params: {
-      species: { type: 'enum', default: 'sakura', options: ['sakura', 'maple', 'needle'], label: 'Species' },
-      trunk_girth: TREE_PARAMS.trunk_girth
-    },
-    tiers: ['hero', 'mid', 'far'], sample: { index: 0, x: 0, y: 0, z: 0, scale: 1.3, band: 'near' },
-    build: buildSkeleton
-  }),
-  defineAsset({
-    id: 'tree-canopies', family: 'trees', lab: 'trees/canopy', label: 'Leaf sprays and clumped / mass canopies',
-    params: {
-      species: { type: 'enum', default: 'sakura', options: ['sakura', 'maple', 'needle'], label: 'Species' },
-      style: { type: 'enum', default: 'leaves', options: ['leaves', 'masses', 'clumps'], label: 'Canopy style' },
-      crown_spread: TREE_PARAMS.crown_spread,
-      leaf_density: TREE_PARAMS.leaf_density
-    },
-    tiers: ['hero', 'mid', 'far'], floating: ['limbs', 'leaves', 'tufts', 'leaf_cards'], sample: { index: 0, x: 0, y: 0, z: 0, scale: 1.3, band: 'near' },
-    build: buildCanopyOnly
   })
 ];
+
+// DEFERRED ids `tree-trunks` and `tree-canopies` (v-trees review r1): Vegetation never routes to them, there is no
+// consumer or compare pair yet, and the lab has no clumps specimen. Their builders stay as building blocks for
+// s2-clearing, which should promote them with a summit compare.
+export { buildSkeleton, buildCanopyOnly };

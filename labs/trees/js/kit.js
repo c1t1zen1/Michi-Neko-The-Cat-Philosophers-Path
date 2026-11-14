@@ -10,11 +10,11 @@ export const TREE_WIND = 1.1;
 export const SPECIES = {
   sakura: { label: 'Sakura', jp: '桜', massKey: 'blossom', colors: [0xd27a94, 0xeaa2b6, 0xf6c6d2, 0xfbdde6], bark: 0, buttress: 0.5,
     trunk: { rTop: 0.13, rBot: 0.22, h: 2.3, lean: 0.14 }, canopy: { primaries: 6, tilt: 0.9, tiltVar: 0.2, droop: -0.08, bend: 0.14, branchLen: 1.5, secondaries: 2 },
-    leaves: { habit: 'cloud', twigsPerLimb: 3, sprigs: 2, sprayLen: 0.46, sprayAspect: 1, density: 13, tipSprays: 3, colors: [0xe4a2b6, 0xf0bccb, 0xf8d4de, 0xfde8ee] },
+    leaves: { habit: 'cloud', twigsPerLimb: 3, sprigs: 2, sprayLen: 0.46, sprayAspect: 1, density: 17, tipSprays: 3, colors: [0xe4a2b6, 0xf0bccb, 0xf8d4de, 0xfde8ee] },
     masses: { twigs: false, crownFill: 3, clumpR: 0.5, tuftsPerClump: [3, 3, 2], tuftFlat: 0.74, lump: 0.4, seed: 11 } },
   maple: { label: 'Maple', jp: '紅葉', massKey: 'leaf', colors: [0x8e2d20, 0xc24a34, 0xe0704a, 0xf09060], bark: 1, buttress: 0.35,
     trunk: { rTop: 0.11, rBot: 0.2, h: 2.0, lean: 0.1 }, canopy: { primaries: 5, tilt: 1.02, tiltVar: 0.18, droop: 0.05, bend: 0.1, branchLen: 1.3, secondaries: 2 },
-    leaves: { habit: 'tier', twigsPerLimb: 3, sprigs: 2, sprayLen: 0.42, density: 14, tipSprays: 3 },
+    leaves: { habit: 'tier', twigsPerLimb: 3, sprigs: 2, sprayLen: 0.42, density: 19, tipSprays: 3 },
     masses: { twigs: false, crownFill: 2, clumpR: 0.44, tuftsPerClump: [3, 2, 2], tuftFlat: 0.55, lump: 0.36, seed: 23 } },
   needle: { label: 'Pine', jp: '松', massKey: 'needle', colors: [0x24401f, 0x33582f, 0x4a7040, 0x5f8850], bark: 2, buttress: 0.2,
     trunk: { rTop: 0.09, rBot: 0.17, h: 1.9, lean: 0.2 }, canopy: { primaries: 4, tilt: 1.05, tiltVar: 0.28, droop: 0.12, bend: 0.06, branchLen: 1.45, secondaries: 2 },
@@ -31,12 +31,12 @@ export function trunkGeometry({ rTop, rBot, h, lean = 0, radial = 14, rings = 12
     const t = j / rings, flare = 1 + Math.pow(Math.max(0, 1 - t * 4), 2) * 0.55, r0 = (rBot + (rTop - rBot) * t) * girth * flare;
     const root = Math.pow(Math.max(0, 1 - t * 5), 2) * buttress;
     for (let i = 0; i <= radial; i++) {
-      const a = (i / radial) * Math.PI * 2, r = (j === rings ? 0.7 : 1) * r0 * (1 + root * (0.5 + 0.5 * Math.cos(5 * a + phase)) * 0.9) * (1 + Math.sin(a * 3 + t * 9 + phase) * 0.035);
-      pos.push(spineX(lean, h, t) + Math.cos(a) * r, t * h, Math.sin(a) * r); uv.push((i / radial) * 2, t * h / 1.1);
+      const a = (i / radial) * Math.PI * 2, r = (j === rings ? 0.45 : 1) * r0 * (1 + root * (0.5 + 0.5 * Math.cos(5 * a + phase)) * 0.9) * (1 + Math.sin(a * 3 + t * 9 + phase) * 0.035);
+      pos.push(spineX(lean, h, t) + Math.cos(a) * r, t * h * 0.96, Math.sin(a) * r); uv.push((i / radial) * 2, t * h / 1.1);
     }
   }
   for (let j = 0; j < rings; j++) for (let i = 0; i < radial; i++) { const a = j * ring + i, b = a + ring; idx.push(a, b, a + 1, b, b + 1, a + 1); }
-  const cap = pos.length / 3; pos.push(spineX(lean, h, 1), h + rTop * 0.5, 0); uv.push(0.5, h);
+  const cap = pos.length / 3; pos.push(spineX(lean, h, 1), h * 0.96 + rTop * 0.25, 0); uv.push(0.5, h);
   for (let i = 0; i < radial; i++) idx.push(rings * ring + i, rings * ring + i + 1, cap);
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals();
@@ -63,7 +63,7 @@ export function canopyOptions(sp, style, tier, S = 1) {
   if (style === 'leaves') {
     const l = { ...sp.leaves };
     if (l.habit === 'pad') l.padSprays = Math.round(l.padSprays * (tier === 'hero' ? 1 : 0.55));
-    else { l.density = l.density * S * (tier === 'hero' ? 1 : 0.5); if (tier !== 'hero') { l.twigsPerLimb = Math.max(1, l.twigsPerLimb - 1); l.sprigs = 1; l.tipSprays = 2; } }
+    else { l.density = l.density * S * (tier === 'hero' ? 1 : 0.4); if (tier !== 'hero') { l.twigsPerLimb = Math.max(1, l.twigsPerLimb - 1); l.sprigs = 1; l.tipSprays = 2; } }
     l.sprayLen /= S;
     return Object.assign(base, l, { style: 'leaves' });
   }

@@ -83,7 +83,7 @@
 
   <script>
     if (location.protocol === 'file:') {
-      document.getElementById('wake').textContent = 'Serve the repository over HTTP: python3 -m http.server 8000, then open localhost:8000/labs/greenery/.';
+      document.getElementById('wake').textContent = 'Serve the repository over HTTP: python3 -m http.server 8000, then open localhost:8000/labs/trees/.';
     } else {
       const s = document.createElement('script'); s.type = 'module'; s.src = 'js/main.js'; document.body.append(s);
       s.addEventListener('error', () => { document.getElementById('wake').textContent = 'The lab could not load. Check your connection to the Three.js CDN and reload.'; });

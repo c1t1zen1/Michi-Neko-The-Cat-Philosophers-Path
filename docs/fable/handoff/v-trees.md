@@ -33,7 +33,7 @@ const c = addCanopy(ctx, group, SPECIES.maple, 'clumps', ctx.tier, { S: 1, size:
 ```
 or build the `tree-canopies` asset with `style: 'clumps'`. 'clumps' draws tuft cores + leaf cards (`km`-free foliage materials, one set per species, ref-counted: `release()` frees them when the last tree goes). Everything is drawn from `ctx.rng`; nothing touches `this.rng`.
 
-## Hot-file patch: Vegetation bake hook (src/vegetation.js, optional, saves draws)
+## Vegetation bake hook: ALREADY APPLIED (committed in src/vegetation.js under the R47 grant; do not apply again)
 Kit trees put their wood and leaves in two meshes per tree instead of the classic per-material static merges (trunks merged globally, rim canopies merged). The kit instance lists `bake` (part keys) when `layout.bake` is true; this lets Vegetation fold those into the same `_staticAccum` merges the classic path uses. In `canopyTree()`, after `if (!isAssetInstance(out)) return out;` add:
 ```js
     if (layout.bake && out.bake && out.bake.length) {
@@ -46,7 +46,7 @@ Kit trees put their wood and leaves in two meshes per tree instead of the classi
       }
     }
 ```
-Without it everything works; with it the rim and far trees add no draws of their own (measured below).
+The patch below is shown for reference only. Without it everything works; with it the rim and far trees add no draws of their own (measured below).
 
 ## Helpers to move
 None (the trunk builder lives in src/kit/trees/build.js; the study copy is in labs/trees/js/kit.js; keep them in step).
@@ -67,3 +67,8 @@ New kit materials: 0 new (bark is `km.bark` with the classic three bark textures
 | modular high, with the bake hook | 778 | 8.18M |
 | modular medium, with the bake hook | 767 / 589 | 6.96M / 5.88M |
 Without the hook, +46 shadow-refresh calls (about 23 per pass): the 19 near trees keep two draws each as classic did, but the six rim and far trees and the trunks that classic merged globally now draw on their own. Rule "modular medium <= classic high": passes on the mean (621 <= 771) and on triangles; on the shadow-refresh frame it needs the hook (767 <= 771). Recommend applying the hook.
+
+## Fix round 1 changes
+- DEFERRED: `tree-trunks` and `tree-canopies` are no longer assets (no routing, no consumer, no compare pair, no clumps specimen). `buildSkeleton` / `buildCanopyOnly` stay exported from src/kit/trees/index.js as building blocks; s2-clearing should promote them with a summit compare. Inventory: leave both ids as not-promoted; only `sakura`, `maples`, `pines`, `rim-trees` map to the trees family (lab specimens `trees/sakura`, `trees/maple`, `trees/pine`, `trees/rim`).
+- Hook names baked meshes 'Canopy Limbs' / 'Canopy Leaves' (near) like classic.
+- Drift check: `node labs/trees/drift_check.mjs` compares the species table, trunk tier detail and taper between the lab study and the kit.

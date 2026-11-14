@@ -218,7 +218,7 @@ export class Vegetation {
       for (const key of out.bake) {
         const m = out.parts[key];
         if (!m || !m.geometry) continue;
-        this._bakeStatic(m.geometry.clone(), m.matrixWorld, m.material, m.customDepthMaterial || null, 'Trunks & Canopy');
+        this._bakeStatic(m.geometry.clone(), m.matrixWorld, m.material, m.customDepthMaterial || null, key === 'leaves' ? 'Canopy Leaves' : layout.rim ? 'Trunks & Canopy' : 'Canopy Limbs');
         m.parent.remove(m);
       }
     }
