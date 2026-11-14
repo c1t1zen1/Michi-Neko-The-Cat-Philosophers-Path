@@ -2795,6 +2795,25 @@ export class Countryside {
    * weather a faint foundation ring is all that remains.
    */
   buildMistAltar(x, z) {
+    const layout = this.layoutMistAltar(x, z);
+    return this.placeAsset('mist-altar', layout, () => this.meshMistAltarClassic(layout));
+  }
+
+  layoutMistAltar(x, z) {
+    return {
+      index: this.nextIndex('mist-altar'), name: 'Mist Altar', x, z,
+      footprint: footprint({
+        anchors: {
+          mistAltarPos: new THREE.Vector3(x, 0, z), mistAltarTouched: false,
+          // the fading materials: stone (plinth and slab), bell, spirit flame
+          _altarFadeMats: [part('plinth.material'), part('bell.material'), part('flame.material')]
+        }
+      }),
+      bind: { mistAltar: '.' }
+    };
+  }
+
+  meshMistAltarClassic({ x, z }) {
     const altar = new THREE.Group();
     altar.name = 'Mist Altar';
 
