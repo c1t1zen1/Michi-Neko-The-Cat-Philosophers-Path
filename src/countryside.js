@@ -1815,6 +1815,39 @@ export class Countryside {
   }
 
   createClimbCrates(x, y, z, parentGroup, rotY = 0) {
+    parentGroup.updateWorldMatrix(true, false);
+    const layout = setParent(this.layoutClimbCrates(x, y, z, rotY, parentGroup.matrixWorld), parentGroup);
+    return this.placeAsset('crates', layout, () => this.meshClimbCratesClassic(layout, parentGroup));
+  }
+
+  /**
+   * Climb crates at (x, y, z, rotY) inside a parent whose world matrix is
+   * `parentMatrix` (the platforms are world boxes, so the parent must already
+   * be placed). The sake barrel is a component of its own.
+   */
+  layoutClimbCrates(x, y, z, rotY, parentMatrix) {
+    const frame = frameOf(parentMatrix, x, y, z, 0, rotY, 0);
+    // [w, h, d, x, y, z, platform top above y] for c1…c4, as built below
+    const crates = [
+      [0.9, 0.65, 0.9, -0.5, 0.325, 0, 0.70], [0.9, 0.65, 0.9, 0.5, 0.325, 0, 0.70],
+      [0.85, 0.65, 0.85, -0.45, 0.975, 0, 1.33], [0.75, 0.65, 0.75, -0.4, 1.625, -0.3, 1.98]
+    ];
+    const platforms = crates.map(([w, h, d, cx, cy, cz, top]) => {
+      const b = shapeBox(frameOf(frame, cx, cy, cz), 'BoxGeometry', w, h, d);
+      b.min.y = y + top - 0.75;
+      b.max.y = y + top;
+      return b.expandByScalar(-0.05);
+    });
+    const barrel = { index: this.nextIndex('sake-barrel'), x: 0.5, y: 0, z: 0.9, footprint: footprint() };
+    return {
+      index: this.nextIndex('crates'), name: 'Climb Crates', x, y, z, ry: rotY,
+      footprint: footprint({ platforms }),
+      components: [component('sake-barrel', barrel, 'meshSakeBarrelClassic', 'parent')]
+    };
+  }
+
+  meshClimbCratesClassic(layout, parentGroup) {
+    const { x, y, z, ry: rotY } = layout;
     const group = new THREE.Group();
     group.name = 'Climb Crates';
     // Bottom step: 2 heavy wooden crates + 1 sake barrel
@@ -1822,11 +1855,7 @@ export class Countryside {
     const c2 = box(0.9, 0.65, 0.9, MAT.timberDark, 0.5, 0.325, 0);
     group.add(c1, c2);
 
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.34, 0.75, 10), MAT.timberMedium);
-    barrel.position.set(0.5, 0.375, 0.9);
-    barrel.castShadow = true;
-    barrel.receiveShadow = true;
-    group.add(barrel);
+    this.placeComponent(layout.components[0], group);
 
     // Mid step: 1 crate atop bottom crate
     const c3 = box(0.85, 0.65, 0.85, MAT.timberLight, -0.45, 0.975, 0);
@@ -1858,6 +1887,17 @@ export class Countryside {
     registerWorldPlat(c3, y + 1.33);
     registerWorldPlat(c4, y + 1.98);
   }
+
+  /** The sake barrel beside the bottom crates (a component of 'crates'). */
+  meshSakeBarrelClassic(layout, group) {
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.34, 0.75, 10), MAT.timberMedium);
+    barrel.position.set(0.5, 0.375, 0.9);
+    barrel.castShadow = true;
+    barrel.receiveShadow = true;
+    group.add(barrel);
+    return barrel;
+  }
+
 
   // --- 1. Merchant Tea House (Chaya) with Rooftop Bird Nest ---
   buildMachiyaTeaHouse(x, z, rotY) {
