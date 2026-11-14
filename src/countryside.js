@@ -1227,9 +1227,16 @@ export class Countryside {
   }
 
   buildPathBoulders(curve) {
-    const rockGeo = new THREE.DodecahedronGeometry(1, 0);
+    const layout = this.layoutPathBoulders(curve);
+    return this.placeAsset('path-boulders', layout, () => this.meshPathBouldersClassic(layout));
+  }
+
+  /** Boulders along both sides of the road; per rock: side, size, offset, stone, stretch, tumble. */
+  layoutPathBoulders(curve) {
     const len = curve.getLength();
     const count = Math.floor(len / 3.2);
+    const rocks = [];
+    const colliders = [];
     for (let i = 0; i < count; i++) {
       const t = (i + 0.5) / count;
       const p = curve.getPoint(t);
@@ -1239,16 +1246,30 @@ export class Countryside {
       const dramatic = this.random() > 0.9;
       const s = dramatic ? 0.55 + this.random() * 0.5 : 0.18 + this.random() * 0.3;
       const off = sideSign * (2.4 + this.random() * 1.8 + s * 0.5);
-      const rock = new THREE.Mesh(rockGeo, this.random() > 0.5 ? MAT.stone : MAT.stoneDark);
-      rock.position.set(p.x + side.x * off, s * 0.45, p.z + side.z * off);
-      rock.scale.set(s * (0.8 + this.random() * 0.5), s * (0.6 + this.random() * 0.7), s * (0.8 + this.random() * 0.5));
-      rock.rotation.set(this.random() * Math.PI, this.random() * Math.PI, this.random() * Math.PI);
+      const mat = this.random() > 0.5 ? 'stone' : 'stoneDark';
+      const position = [p.x + side.x * off, s * 0.45, p.z + side.z * off];
+      const scale = [s * (0.8 + this.random() * 0.5), s * (0.6 + this.random() * 0.7), s * (0.8 + this.random() * 0.5)];
+      const rotation = [this.random() * Math.PI, this.random() * Math.PI, this.random() * Math.PI];
+      rocks.push({ s, mat, position, scale, rotation });
+      // the big ones block the cat (dodecahedron bounds, shrunk 0.05)
+      if (s > 0.5) colliders.push(shapeBox(frameOf(null, ...position, ...rotation, ...scale), 'DodecahedronGeometry', 1, 0).expandByScalar(-0.05));
+    }
+    return { index: this.nextIndex('path-boulders'), rocks, footprint: footprint({ colliders }) };
+  }
+
+  meshPathBouldersClassic(layout) {
+    const rockGeo = new THREE.DodecahedronGeometry(1, 0);
+    layout.rocks.forEach(({ s, mat, position, scale, rotation }, i) => {
+      const rock = new THREE.Mesh(rockGeo, MAT[mat]);
+      rock.position.set(...position);
+      rock.scale.set(...scale);
+      rock.rotation.set(...rotation);
       rock.castShadow = true;
       rock.receiveShadow = true;
       rock.name = `Path Boulder ${i + 1}`;
       this.scene.add(rock);
       if (s > 0.5) this.addCollider(rock, -0.05);
-    }
+    });
   }
 
   /** Dense centreline samples of the river, used to carve the bed. */
