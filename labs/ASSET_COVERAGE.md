@@ -6,7 +6,7 @@ Reviewed 2026-11-10. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **124 of 186 (66.7%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **132 of 186 (71.0%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -28,10 +28,10 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 124 | 66.7% |
-| Review sheet | 41 | 22.0% |
+| Focused lab study | 132 | 71.0% |
+| Review sheet | 32 | 17.2% |
 | Embedded in a specimen | 10 | 5.4% |
-| Related evidence only | 8 | 4.3% |
+| Related evidence only | 9 | 4.8% |
 | No mapped evidence | 3 | 1.6% |
 
 ## Coverage by area
@@ -52,7 +52,7 @@ Each active row is counted once at its strongest evidence level, in the order ab
 | Hidden places | 16 | 15 | 0 | 1 | 0 | 0 |
 | Interiors | 19 | 13 | 0 | 5 | 1 | 0 |
 | Sky and effects | 19 | 11 | 0 | 2 | 4 | 2 |
-| Summit | 32 | 1 | 31 | 0 | 0 | 0 |
+| Summit | 32 | 9 | 22 | 0 | 1 | 0 |
 
 ## Gaps requiring focused specimens
 
@@ -105,13 +105,7 @@ This list includes every active row without a focused study, including review-on
 | [Summit horizon mountain ranges](#horizon) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
 | [Summit slope forest species](#slope-forest) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
 | [Summit cumulus and storm cloud banks](#summit-clouds) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
-| [Summit snowfall](#summit-snow) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
-| [Summit rainfall](#summit-rain) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
-| [Summit pollen](#summit-pollen) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
-| [Summit sakura petals](#summit-petals) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
-| [Summit butterflies and fly-by birds](#summit-wildlife) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
-| [Valley-to-summit shrine beacon rays](#shrine-rays) | Review sheet | The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |
-| [Supplementary summit sky and rim lights](#summit-light) | Review sheet | No individual focused specimen is mapped. |
+| [Summit butterflies and fly-by birds](#summit-wildlife) | Related evidence only | Umbrella row: it builds nothing itself; the butterflies and birds are the specimens. Umbrella row: it builds nothing itself; the butterflies and birds are the specimens. |
 | [Summit biome grass field](#summit-grass) | Review sheet | Same GrassSystem recipes, but no specimen of the summit’s field layout. |
 | [Layered Kyoto Bay vista assembly](#summit-vista) | Review sheet | No individual focused specimen is mapped. |
 | [Optional summit transition video](#summit-transition) | No mapped evidence | Optional runtime transition media, outside the lab specimen set; availability is not checked. |
@@ -120,8 +114,6 @@ This list includes every active row without a focused study, including review-on
 | [Summit meditation furin](#summit-furin) | Review sheet | No individual focused specimen is mapped. |
 | [Bay bridge](#bay-bridge) | Review sheet | No individual focused specimen is mapped. |
 | [Harbour Ferris wheel](#ferris-wheel) | Review sheet | No individual focused specimen is mapped. |
-| [Summit butterfly visitors](#summit-butterflies) | Review sheet | No individual focused specimen is mapped. |
-| [Summit fly-by bird palette variants](#summit-birds) | Review sheet | No individual focused specimen is mapped. |
 
 ## Inventory and individual evidence
 
@@ -370,13 +362,13 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="horizon"></a>`horizon` — Summit horizon mountain ranges | [src/mountaintop.js:buildHorizonRanges(](../src/mountaintop.js#L469) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
 | <a id="slope-forest"></a>`slope-forest` — Summit slope forest species | [src/mountaintop.js:buildSlopeForest(](../src/mountaintop.js#L458) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
 | <a id="summit-clouds"></a>`summit-clouds` — Summit cumulus and storm cloud banks | [src/mountaintop.js:buildSummitClouds(](../src/mountaintop.js#L473) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
-| <a id="summit-snow"></a>`summit-snow` — Summit snowfall | [src/mountaintop.js:buildSummitSnow(](../src/mountaintop.js#L477) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
-| <a id="summit-rain"></a>`summit-rain` — Summit rainfall | [src/mountaintop.js:buildSummitRain(](../src/mountaintop.js#L480) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
-| <a id="summit-pollen"></a>`summit-pollen` — Summit pollen | [src/mountaintop.js:buildPollen(](../src/mountaintop.js#L482) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
-| <a id="summit-petals"></a>`summit-petals` — Summit sakura petals | [src/mountaintop.js:buildSakuraPetals(](../src/mountaintop.js#L484) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
-| <a id="summit-wildlife"></a>`summit-wildlife` — Summit butterflies and fly-by birds | [src/mountaintop.js:buildAmbientWildlife(](../src/mountaintop.js#L489) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
-| <a id="shrine-rays"></a>`shrine-rays` — Valley-to-summit shrine beacon rays | [src/mountaintop.js:buildShrineRays(](../src/mountaintop.js#L429) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) — The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset. |  |
-| <a id="summit-light"></a>`summit-light` — Supplementary summit sky and rim lights | [src/mountaintop.js:buildSummitLight(](../src/mountaintop.js#L428) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) |  |
+| <a id="summit-snow"></a>`summit-snow` — Summit snowfall | [src/mountaintop.js:buildSummitSnow(](../src/mountaintop.js#L477) | [summit / life-snow](../labs/summit/js/life.js#L21) (direct) |  |
+| <a id="summit-rain"></a>`summit-rain` — Summit rainfall | [src/mountaintop.js:buildSummitRain(](../src/mountaintop.js#L480) | [summit / life-rain](../labs/summit/js/life.js#L25) (direct) |  |
+| <a id="summit-pollen"></a>`summit-pollen` — Summit pollen | [src/mountaintop.js:buildPollen(](../src/mountaintop.js#L482) | [summit / life-pollen](../labs/summit/js/life.js#L29) (direct) |  |
+| <a id="summit-petals"></a>`summit-petals` — Summit sakura petals | [src/mountaintop.js:buildSakuraPetals(](../src/mountaintop.js#L484) | [summit / life-petals](../labs/summit/js/life.js#L33) (direct) |  |
+| <a id="summit-wildlife"></a>`summit-wildlife` — Summit butterflies and fly-by birds | [src/mountaintop.js:buildAmbientWildlife(](../src/mountaintop.js#L489) | [summit / life-butterflies](../labs/summit/js/life.js#L37) (related) — Umbrella row: it builds nothing itself; the butterflies and birds are the specimens.<br>[summit / life-birds](../labs/summit/js/life.js#L41) (related) — Umbrella row: it builds nothing itself; the butterflies and birds are the specimens. |  |
+| <a id="shrine-rays"></a>`shrine-rays` — Valley-to-summit shrine beacon rays | [src/mountaintop.js:buildShrineRays(](../src/mountaintop.js#L429) | [summit / life-rays](../labs/summit/js/life.js#L45) (direct) |  |
+| <a id="summit-light"></a>`summit-light` — Supplementary summit sky and rim lights | [src/mountaintop.js:buildSummitLight(](../src/mountaintop.js#L428) | [summit / life-light](../labs/summit/js/life.js#L49) (direct) |  |
 | <a id="summit-grass"></a>`summit-grass` — Summit biome grass field | [src/mountaintop.js:buildGrassField(](../src/mountaintop.js#L457) | [grass / ring-lod](../labs/grass/js/types_field.js#L273) (related) — Same GrassSystem recipes, but no specimen of the summit’s field layout.<br>[summit-review / whole-scene](../tools/summit_preview.js#L62) (review) |  |
 | <a id="summit-vista"></a>`summit-vista` — Layered Kyoto Bay vista assembly | [src/mountaintop.js:buildSkirtAndVista(](../src/mountaintop.js#L461) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) |  |
 | <a id="kyoto-city"></a>`kyoto-city` — Summit Kyoto houses, eaves, window lights and gardens | [src/mountaintop.js:buildKyotoCity(](../src/mountaintop.js#L464) | [summit / game-city](../labs/summit/js/recipes.js#L57) (direct)<br>[summit / night](../labs/summit/js/recipes.js#L69) (direct) |  |
@@ -385,8 +377,8 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="summit-furin"></a>`summit-furin` — Summit meditation furin | [src/mountaintop.js:buildMeditationAtmosphere(](../src/mountaintop.js#L450) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) |  |
 | <a id="bay-bridge"></a>`bay-bridge` — Bay bridge | [src/mountaintop.js:buildHarbourAndIslands(](../src/mountaintop.js#L468) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) |  |
 | <a id="ferris-wheel"></a>`ferris-wheel` — Harbour Ferris wheel | [src/mountaintop.js:buildHarbourAndIslands(](../src/mountaintop.js#L468) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) |  |
-| <a id="summit-butterflies"></a>`summit-butterflies` — Summit butterfly visitors | [src/mountaintop.js:buildAmbientWildlife(](../src/mountaintop.js#L489) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) |  |
-| <a id="summit-birds"></a>`summit-birds` — Summit fly-by bird palette variants | [src/mountaintop.js:buildAmbientWildlife(](../src/mountaintop.js#L489) | [summit-review / whole-scene](../tools/summit_preview.js#L62) (review) |  |
+| <a id="summit-butterflies"></a>`summit-butterflies` — Summit butterfly visitors | [src/mountaintop.js:buildAmbientWildlife(](../src/mountaintop.js#L489) | [summit / life-butterflies](../labs/summit/js/life.js#L37) (direct) |  |
+| <a id="summit-birds"></a>`summit-birds` — Summit fly-by bird palette variants | [src/mountaintop.js:buildAmbientWildlife(](../src/mountaintop.js#L489) | [summit / life-birds](../labs/summit/js/life.js#L41) (direct) |  |
 
 ### Inactive code
 
