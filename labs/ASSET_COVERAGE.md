@@ -6,7 +6,7 @@ Reviewed 2026-11-10. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **137 of 186 (73.7%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **139 of 186 (74.7%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -28,9 +28,9 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 137 | 73.7% |
+| Focused lab study | 139 | 74.7% |
 | Review sheet | 27 | 14.5% |
-| Embedded in a specimen | 10 | 5.4% |
+| Embedded in a specimen | 8 | 4.3% |
 | Related evidence only | 9 | 4.8% |
 | No mapped evidence | 3 | 1.6% |
 
@@ -51,7 +51,7 @@ Each active row is counted once at its strongest evidence level, in the order ab
 | Effects | 2 | 1 | 0 | 0 | 1 | 0 |
 | Hidden places | 16 | 15 | 0 | 1 | 0 | 0 |
 | Interiors | 19 | 13 | 0 | 5 | 1 | 0 |
-| Sky and effects | 19 | 11 | 0 | 2 | 4 | 2 |
+| Sky and effects | 19 | 13 | 0 | 0 | 4 | 2 |
 | Summit | 32 | 14 | 17 | 0 | 1 | 0 |
 
 ## Gaps requiring focused specimens
@@ -83,8 +83,6 @@ This list includes every active row without a focused study, including review-on
 | [Secret-house table and teaware](#secret-table) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Secret-house nap cushion](#secret-bed) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Secret-house andon](#secret-andon) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Twinkling stars](#stars) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Crescent moon](#moon) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Sun, hemisphere, fill and bounce lighting](#sky-light) | Related evidence only | The baseline adapter hides the original lights; labs use their own rig. |
 | [Valley god-ray cards](#god-rays) | Related evidence only | Sky-space rays are a different implementation from the game’s ground cards. |
 | [Screen-space ambient occlusion](#ao) | No mapped evidence | Sky’s air-game baseline explicitly excludes the full game post-processing pipeline. |
@@ -319,9 +317,9 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
 | <a id="sky-dome"></a>`sky-dome` — Sky dome and day/night palette | [src/sky.js:buildDome(](../src/sky.js#L222) | [sky / sky-game](../labs/sky/js/data.js#L33) (direct) |  |
-| <a id="clouds"></a>`clouds` — Painted cloud sprites | [src/sky.js:buildClouds(](../src/sky.js#L273)<br>[src/sky.js:buildCloudTexture(](../src/sky.js#L233) | [sky / cloud-game](../labs/sky/js/data.js#L40) (direct) |  |
-| <a id="stars"></a>`stars` — Twinkling stars | [src/sky.js:buildStars(](../src/sky.js#L315) | [sky / sky-night](../labs/sky/js/data.js#L37) (embedded) |  |
-| <a id="moon"></a>`moon` — Crescent moon | [src/sky.js:buildMoon(](../src/sky.js#L374) | [sky / sky-night](../labs/sky/js/data.js#L37) (embedded) |  |
+| <a id="clouds"></a>`clouds` — Painted cloud sprites | [src/sky.js:buildClouds(](../src/sky.js#L273)<br>[src/sky.js:buildCloudTexture(](../src/sky.js#L233) | [sky / cloud-game](../labs/sky/js/data.js#L40) (direct)<br>[sky / cloud-field](../labs/sky/js/data.js#L41) (direct) — The kit deck promotes this thickness painting (slab slices, four-genus field) and the shade-soft projection. |  |
+| <a id="stars"></a>`stars` — Twinkling stars | [src/sky.js:buildStars(](../src/sky.js#L315) | [sky / sky-night](../labs/sky/js/data.js#L37) (embedded)<br>[sky / night-stars](../labs/sky/js/data.js#L65) (direct) |  |
+| <a id="moon"></a>`moon` — Crescent moon | [src/sky.js:buildMoon(](../src/sky.js#L374) | [sky / sky-night](../labs/sky/js/data.js#L37) (embedded)<br>[sky / night-moon](../labs/sky/js/data.js#L66) (direct) |  |
 | <a id="sky-light"></a>`sky-light` — Sun, hemisphere, fill and bounce lighting | [src/sky.js:buildLights(](../src/sky.js#L403)<br>[src/sky.js:buildPalettes(](../src/sky.js#L445) | [sky / sky-game](../labs/sky/js/data.js#L33) (related) — The baseline adapter hides the original lights; labs use their own rig. |  |
 | <a id="god-rays"></a>`god-rays` — Valley god-ray cards | [src/particles.js:buildGodRays(](../src/particles.js#L127) | [sky / air-rays](../labs/sky/js/data.js#L60) (related) — Sky-space rays are a different implementation from the game’s ground cards. |  |
 | <a id="rain"></a>`rain` — Valley rain streaks | [src/particles.js:buildRain(](../src/particles.js#L215) | [weather / game-rain](../labs/weather/js/recipes.js#L56) (direct) |  |
