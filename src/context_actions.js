@@ -151,14 +151,16 @@ export class ContextActionManager {
     if (isInside) {
       // 1. Grilled Sea Bream Treat on Chabudai Table
       if (!interior.fishEaten) {
-        _tableCenter.set(interior.origin.x + 0.3, interior.origin.y + 0.5, interior.origin.z - 0.1);
+        const a = interior.eatFishAnchor || [0.3, 0.5, -0.1];
+        _tableCenter.set(interior.origin.x + a[0], interior.origin.y + a[1], interior.origin.z + a[2]);
         if (pos.distanceToSquared(_tableCenter) < 2.5) {
           return { type: 'eatFish', label: 'eat Grilled Sea Bream', target: _tableCenter };
         }
       }
 
       // 3. Cozy Velvet Zabuton Bed Nap Spot
-      _napCenter.set(interior.origin.x - 2.2, interior.origin.y + 0.1, interior.origin.z - 1.2);
+      const n = interior.napAnchor || [-2.2, 0.1, -1.2];
+      _napCenter.set(interior.origin.x + n[0], interior.origin.y + n[1], interior.origin.z + n[2]);
       if (pos.distanceToSquared(_napCenter) < 2.2) {
         return { type: 'cozyNap', label: 'curl up & take cozy nap', target: _napCenter };
       }
@@ -817,10 +819,11 @@ export class ContextActionManager {
     } else {
       const localX = pos.x - interior.origin.x;
       const localZ = pos.z - interior.origin.z;
-      if (!this._doorLatch && localZ > 1.8 && Math.abs(localX) < 1.8) {
+      const ez = interior.exitZone || { minZ: 1.8, halfX: 1.8, rearmZ: 1.2 };
+      if (!this._doorLatch && localZ > ez.minZ && Math.abs(localX) < ez.halfX) {
         this._doorLatch = true;
         interior.transitionToExterior();
-      } else if (localZ < 1.2) {
+      } else if (localZ < ez.rearmZ) {
         this._doorLatch = false;
       }
     }
