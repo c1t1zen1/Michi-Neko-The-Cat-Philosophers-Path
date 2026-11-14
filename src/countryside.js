@@ -4200,6 +4200,78 @@ export class Countryside {
   }
 
   buildEdgeForest() {
+    const layout = this.layoutEdgeForest();
+    return this.placeAsset('edge-forest', layout, () => this.meshEdgeForestClassic(layout));
+  }
+
+  /**
+   * The edge-forest ring: 260 trees of four canopy variants. Draws, in the
+   * classic order: each tree's variant; the four canopies (buildCanopy draws
+   * from the valley stream, so its geometry is made here and handed to the
+   * mesh step as a non-enumerable `canopies`); then per tree bearing jitter,
+   * radius, size, crown yaw, x/z stretch, trunk yaw and tint. Every trunk is a
+   * wall collider; the corridor trees behind the shrine (parts
+   * thicket_crown_N / thicket_branches_N, trunk instances of 'trunks') lean
+   * aside when the thicket opens. The undergrowth is a component.
+   */
+  layoutEdgeForest() {
+    const count = 260;
+    const variantCount = 4;
+    const forestGreens = [0x2e5a24, 0x3b6e2e, 0x4e873c, 0x67a24a];
+    const assign = [];
+    for (let i = 0; i < count; i++) assign.push(Math.floor(this.random() * variantCount));
+    const canopies = [];
+    for (let v = 0; v < variantCount; v++) {
+      canopies.push(buildCanopy(this.rng, {
+        style: 'masses', scale: 1, trunkH: 1.15, trunkR: 0.14, primaries: 5, tilt: 0.76 + v * 0.06, tiltVar: 0.22,
+        droop: -0.02, bend: 0.12, branchLen: 0.78, secondaries: 2, twigs: false, crownFill: 3,
+        colors: forestGreens, clumpR: 0.36, tuftsPerClump: [3, 3, 2], tuftFlat: 0.74, lump: 0.4, seed: 50 + v * 7
+      }));
+    }
+    const thicketSets = [0, 1, 2, 3].map((v) => ({ tufts: part(`thicket_crown_${v + 1}`), branches: part(`thicket_branches_${v + 1}`), next: 0 }));
+    const trees = [], colliders = [], thicketTrees = [];
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2 + this.random() * 0.09;
+      const r = 37 + this.random() * 7;
+      const x = Math.cos(a) * r;
+      const z = Math.sin(a) * r;
+      const s = 1.8 + this.random() * 2.4;
+      // Captured so the thicket can re-pose this instance later; the call
+      // order of the RNG is preserved exactly.
+      const rotCrown = this.random() * Math.PI * 2;
+      const sx = s * (0.9 + this.random() * 0.2);
+      const sz = s * (0.9 + this.random() * 0.2);
+      const rotTrunk = this.random() * Math.PI;
+      const tint = [0.88 + this.random() * 0.24, 0.9 + this.random() * 0.2, 0.84 + this.random() * 0.22];
+      trees.push({ a, x, z, s, rotCrown, sx, sz, rotTrunk, tint });
+      // Impassable wall collider
+      const box = new THREE.Box3(
+        new THREE.Vector3(x - s * 0.35, 0, z - s * 0.35),
+        new THREE.Vector3(x + s * 0.35, s * 2.2, z + s * 0.35)
+      );
+      colliders.push(box);
+      if (Math.abs(x) < 3.6 && z < -33) {
+        const pagodaBearing = Math.atan2(56, 12);
+        const angleDelta = Math.atan2(Math.sin(a - pagodaBearing), Math.cos(a - pagodaBearing));
+        const sightlineHeight = Math.abs(angleDelta) < 0.3 ? 0.88 * 0.9 : 1;
+        const set = thicketSets[assign[i]];
+        thicketTrees.push({
+          set, idx: set.next++, trunkIdx: i, x, z, s, sy: s * sightlineHeight,
+          sx, sz, rotCrown, rotTrunk, side: x >= 0 ? 1 : -1, box
+        });
+      }
+    }
+    const layout = {
+      index: this.nextIndex('edge-forest'), name: 'Edge Forest Trunks', band: 'rim', assign, trees,
+      footprint: footprint({ colliders, lists: { shrineThicketTrees: thicketTrees } }),
+      bind: { edgeForestTrunks: 'trunks' },
+      components: [component('edge-undergrowth', this.layoutEdgeUndergrowth(), 'meshEdgeUndergrowthClassic')]
+    };
+    Object.defineProperty(layout, 'canopies', { value: canopies, enumerable: false });
+    return layout;
+  }
+
+  meshEdgeForestClassic(layout) {
     // Dense impassable tree wall ringing the playfield just inside the
     // hard boundary radius. Four broadleaf variants are instanced around
     // the ring as painted leaf masses: scalloped crown clumps on short
@@ -4216,14 +4288,10 @@ export class Countryside {
     const barkMat = texturedMaterial(TEX.woodDark, { color: 0x6a5a48, roughness: 1 });
     const trunkGeo = new THREE.CylinderGeometry(0.12, 0.2, 1.2, 7);
 
-    // Decide each tree's variant first so every instanced mesh is sized exactly
-    const assign = [];
+    // Each tree's variant was decided first (layout) so every instanced mesh is sized exactly
+    const assign = layout.assign;
     const perVariant = new Array(variantCount).fill(0);
-    for (let i = 0; i < count; i++) {
-      const v = Math.floor(this.random() * variantCount);
-      assign.push(v);
-      perVariant[v]++;
-    }
+    for (const v of assign) perVariant[v]++;
     // Corridor trees standing behind the shrine lean aside when the tenth
     // bell opens the way to the summit (setShrineThicketOpen). They get
     // their own small instanced sets: main.js splits the wide wall sets
@@ -4232,11 +4300,7 @@ export class Countryside {
     const sets = [];
     const thicketSets = [];
     for (let v = 0; v < variantCount; v++) {
-      const built = buildCanopy(this.rng, {
-        style: 'masses', scale: 1, trunkH: 1.15, trunkR: 0.14, primaries: 5, tilt: 0.76 + v * 0.06, tiltVar: 0.22,
-        droop: -0.02, bend: 0.12, branchLen: 0.78, secondaries: 2, twigs: false, crownFill: 3,
-        colors: forestGreens, clumpR: 0.36, tuftsPerClump: [3, 3, 2], tuftFlat: 0.74, lump: 0.4, seed: 50 + v * 7
-      });
+      const built = layout.canopies[v];
       for (const [list, label] of [[sets, 'Edge Forest'], [thicketSets, 'Shrine Thicket']]) {
         const tufts = new THREE.InstancedMesh(built.tufts, forestMat, perVariant[v]);
         const branches = new THREE.InstancedMesh(built.branches, barkMat, perVariant[v]);
@@ -4253,11 +4317,7 @@ export class Countryside {
     const col = new THREE.Color();
     const pagodaBearing = Math.atan2(56, 12);
     for (let i = 0; i < count; i++) {
-      const a = (i / count) * Math.PI * 2 + this.random() * 0.09;
-      const r = 37 + this.random() * 7;
-      const x = Math.cos(a) * r;
-      const z = Math.sin(a) * r;
-      const s = 1.8 + this.random() * 2.4;
+      const { a, x, z, s, rotCrown, sx, sz, rotTrunk, tint } = layout.trees[i];
       // Lower only the tree crowns in the pagoda's sightline (12%, then a
       // further 10%) so the tower's stories clear the canopy from the
       // village. Their horizontal footprint and collision wall remain untouched.
@@ -4266,12 +4326,6 @@ export class Countryside {
       const inThicket = Math.abs(x) < 3.6 && z < -33;
       const set = (inThicket ? thicketSets : sets)[assign[i]];
       const idx = set.next++;
-      // Captured so the thicket can re-pose this instance later; the call
-      // order of the RNG is preserved exactly.
-      const rotCrown = this.random() * Math.PI * 2;
-      const sx = s * (0.9 + this.random() * 0.2);
-      const sz = s * (0.9 + this.random() * 0.2);
-      const rotTrunk = this.random() * Math.PI;
       dummy.position.set(x, 0, z);
       dummy.rotation.set(0, rotCrown, 0);
       dummy.scale.set(sx, s * sightlineHeight, sz);
@@ -4279,7 +4333,7 @@ export class Countryside {
       set.tufts.setMatrixAt(idx, dummy.matrix);
       set.branches.setMatrixAt(idx, dummy.matrix);
       // Per-tree tint rides on top of the baked crown gradient
-      col.setRGB(0.88 + this.random() * 0.24, 0.9 + this.random() * 0.2, 0.84 + this.random() * 0.22);
+      col.setRGB(...tint);
       set.tufts.setColorAt(idx, col);
       dummy.position.set(x, 0.6 * s * sightlineHeight, z);
       dummy.scale.set(s, s * sightlineHeight, s);
@@ -4313,7 +4367,7 @@ export class Countryside {
     trunks.instanceMatrix.needsUpdate = true;
     trunks.castShadow = true;
     this.scene.add(trunks);
-    this.buildEdgeUndergrowth();
+    this.placeComponent(layout.components[0], this.scene);
   }
 
   /** Undergrowth shrubs thickening the edge-forest wall between trunks. */
