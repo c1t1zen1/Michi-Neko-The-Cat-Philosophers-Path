@@ -6,6 +6,7 @@ import {
   buildCanopy, updateFoliage
 } from './foliage.js?v=20261107a';
 import { GrassSystem, BiomeMask } from './grass.js?v=20261107a';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261107a';
 
 // Trees past this radius stand in or behind the edge-forest wall and are
 // built as textured leaf masses; inside it they are hero trees with
@@ -17,6 +18,15 @@ const NEAR_RADIUS = 36;
 // One wind strength for every hero canopy: twig and leaf materials must
 // share it exactly or the leaves would drift off their twigs.
 const TREE_WIND = 1.1;
+// Inventory ids of the hero trees by kind; every rim tree is `rim-trees`.
+const TREE_IDS = { sakura: 'sakura', maple: 'maples', needle: 'pines' };
+
+// Asset routing (BUILD_GUIDE_FABLE §3.4, Integrator rulings R12 / R18): each
+// builder runs a layout step (every this.random() / this.rng draw, in the
+// original order) and hands a classic mesh step to placeAsset(), which builds
+// the kit asset instead when one is registered and active for that id. The
+// layout step always runs, so the vegetation stream advances the same on
+// both asset sets.
 
 function mulberry32(a) {
   return function() {
@@ -31,6 +41,9 @@ export class Vegetation {
   constructor(scene, colliders, options = {}) {
     this.scene = scene;
     this.colliders = colliders;
+    // The kit runtime (main.js hands it in); without one the classic builders
+    // run. Vegetation builds with its own materials: no table to scope with.
+    this.assets = scopeAssets(options.assets, {});
     this.rng = mulberry32(options.seed || 77);
     this.time = 0;
     this.swayables = [];
@@ -86,6 +99,38 @@ export class Vegetation {
   }
 
   random() { return this.rng(); }
+
+  /**
+   * Classic: `classicFn()` builds and registers as before. Kit: the
+   * instance's group goes into the scene at the layout's place and its
+   * footprint (by default the layout's) is registered through
+   * registerFootprint(), the classic path. Works on the bare
+   * Object.create(Vegetation.prototype) kits of the review sheets, labs and
+   * catalog, which have no runtime (classic).
+   */
+  placeAsset(id, layout, classicFn, parent = this.scene) {
+    const out = (this.assets || CLASSIC_ASSETS).build(id, layout, classicFn);
+    if (!isAssetInstance(out)) return out;
+    const g = out.group;
+    if (layout.x !== undefined) g.position.set(layout.x, layout.y || 0, layout.z || 0);
+    if (layout.ry) g.rotation.y = layout.ry;
+    if (layout.scale) g.scale.setScalar(layout.scale);
+    parent.add(g);
+    this.registerFootprint(out.footprint || layout.footprint);
+    for (const [field, part] of Object.entries(layout.bind || {})) {
+      this[field] = (out.parts && out.parts[part]) || (out.sockets && out.sockets[part]) || null;
+    }
+    return out;
+  }
+
+  /**
+   * Vegetation registers colliders only, in its classic format: the
+   * addCollider(x, z, r, h) arguments, `{ x, z, r, h }` (h defaults to 6).
+   */
+  registerFootprint(fp) {
+    if (!fp) return;
+    for (const c of fp.colliders || []) this.addCollider(c.x, c.z, c.r, c.h);
+  }
 
   /**
    * Bark, hero-tree leaf sprays and rim leaf masses. Split out of the
@@ -162,31 +207,64 @@ export class Vegetation {
    * per tree; the rest bake too (the flex wind is per vertex, so baked
    * canopies sway exactly like the per-tree ones).
    */
-  canopyTree(x, z, scale, { kind, colors, trunk, canopy, leaves = {}, masses = {}, collider = 0.35 }) {
-    const tree = new THREE.Group();
+  canopyTree(x, z, scale, opts) {
+    const layout = this.layoutTree(x, z, scale, opts);
+    const id = layout.rim ? 'rim-trees' : (TREE_IDS[layout.kind] || layout.kind);
+    const out = this.placeAsset(id, layout, () => this.meshTreeClassic(layout));
+    return isAssetInstance(out) ? out.group : out;
+  }
+
+  /**
+   * One tree's draws from the stream, in the classic order: its turn, its
+   * trunk's lean, then the canopy. The canopy skeleton draws its numbers
+   * while foliage.js grows its geometry, so it is built here and handed to
+   * the classic mesh step as `canopy` (a kit ignores it; the stream has
+   * advanced the same either way).
+   */
+  layoutTree(x, z, scale, { kind, colors, trunk, canopy, leaves = {}, masses = {}, collider = 0.35 }) {
     const treeIdx = ++this._treeCount;
-    tree.name = `${kind.charAt(0).toUpperCase() + kind.slice(1)} Tree ${treeIdx}`;
-    tree.position.set(x, 0, z);
-    tree.rotation.y = this.random() * Math.PI * 2;
+    const name = `${kind.charAt(0).toUpperCase() + kind.slice(1)} Tree ${treeIdx}`;
+    const ry = this.random() * Math.PI * 2;
+    const barkIdx = Math.abs(Math.floor(x * 0.7 + z * 1.3)) % this.matTrunks.length;
+    const lean = (this.random() - 0.5) * trunk.lean;
+    const { rim, bake } = this.treeStyle(x, z);
+    const base = { scale, colors, trunkH: trunk.h, trunkR: trunk.rTop * 1.15 };
+    const built = rim
+      ? buildCanopy(this.rng, Object.assign(base, canopy, masses, { style: 'masses' }))
+      : buildCanopy(this.rng, Object.assign(base, canopy, leaves, { style: 'leaves' }));
+    return {
+      index: treeIdx - 1, name, kind, x, y: 0, z, ry, scale, lean, barkIdx, rim, bake, trunk,
+      band: rim ? 'rim' : 'near', canopy: built,
+      footprint: { colliders: [{ x, z, r: collider * scale }] }
+    };
+  }
+
+  /**
+   * The classic tree: a trunk baked into the per-material merges, and the
+   * canopy either baked (rim masses, far hero trees) or kept as this tree's
+   * own limb and leaf meshes (hero trees near the village).
+   */
+  meshTreeClassic(L) {
+    const tree = new THREE.Group();
+    tree.name = L.name;
+    tree.position.set(L.x, 0, L.z);
+    tree.rotation.y = L.ry;
     tree.updateMatrix();
 
-    const barkIdx = Math.abs(Math.floor(x * 0.7 + z * 1.3)) % this.matTrunks.length;
-    const trunkMat = this.matTrunks[barkIdx];
-    const trunkMesh = this.trunkMesh(trunk.rTop * scale, trunk.rBot * scale, trunk.h * scale, trunkMat, (this.random() - 0.5) * trunk.lean).children[0];
+    const { trunk, scale, kind } = L;
+    const trunkMat = this.matTrunks[L.barkIdx];
+    const trunkMesh = this.trunkMesh(trunk.rTop * scale, trunk.rBot * scale, trunk.h * scale, trunkMat, L.lean).children[0];
     trunkMesh.updateMatrix();
     this._bakeStatic(trunkMesh.geometry, new THREE.Matrix4().multiplyMatrices(tree.matrix, trunkMesh.matrix), trunkMat);
 
-    const { rim, bake } = this.treeStyle(x, z);
-    const base = { scale, colors, trunkH: trunk.h, trunkR: trunk.rTop * 1.15 };
-    if (rim) {
-      const built = buildCanopy(this.rng, Object.assign(base, canopy, masses, { style: 'masses' }));
+    const built = L.canopy;
+    if (L.rim) {
       this._bakeStatic(built.branches, tree.matrix, trunkMat);
       this._bakeStatic(built.tufts, tree.matrix, this.masses[kind]);
     } else {
-      const built = buildCanopy(this.rng, Object.assign(base, canopy, leaves, { style: 'leaves' }));
-      const branchMat = this.matBranches[barkIdx];
+      const branchMat = this.matBranches[L.barkIdx];
       const set = this.sprays[kind];
-      if (bake) {
+      if (L.bake) {
         this._bakeStatic(built.branches, tree.matrix, branchMat, this.branchDepth, 'Canopy Limbs');
         this._bakeStatic(built.cards, tree.matrix, set.material, set.depth, 'Canopy Leaves');
       } else {
@@ -205,7 +283,7 @@ export class Vegetation {
       }
     }
 
-    this.addCollider(x, z, collider * scale);
+    this.registerFootprint(L.footprint);
     return tree;
   }
 
@@ -286,15 +364,37 @@ export class Vegetation {
    * bloom at golden hour and vanish at night.
    */
   buildDappledLight() {
+    const layout = this.layoutDappledLight();
+    return this.placeAsset('dappled-light', layout, () => this.meshDappledLightClassic(layout));
+  }
+
+  /** The pool texture's blobs (only when it is first painted), then each pool's size draw. */
+  layoutDappledLight() {
+    let blobs = null;
+    if (!this.dappleTex) {
+      blobs = [];
+      for (let i = 0; i < 26; i++) {
+        const bx = 8 + this.random() * 48;
+        const by = 8 + this.random() * 48;
+        const br = 3 + this.random() * 7;
+        blobs.push([bx, by, br]);
+      }
+    }
+    const pools = [];
+    for (const [x, z, s] of this.sakuraSpots) {
+      // Offset pools toward the afternoon sun so light falls through foliage
+      pools.push({ x: x - 0.6 * s, y: 0.055, z: z + 0.8 * s, scale: s * (1.0 + this.random() * 0.5) });
+    }
+    return { index: 0, x: 0, y: 0, z: 0, size: 2.6, blobs, pools, footprint: {} };
+  }
+
+  meshDappledLightClassic(L) {
     if (!this.dappleTex) {
       const c = document.createElement('canvas');
       c.width = 64;
       c.height = 64;
       const ctx = c.getContext('2d');
-      for (let i = 0; i < 26; i++) {
-        const bx = 8 + this.random() * 48;
-        const by = 8 + this.random() * 48;
-        const br = 3 + this.random() * 7;
+      for (const [bx, by, br] of L.blobs) {
         const g = ctx.createRadialGradient(bx, by, 0, bx, by, br);
         g.addColorStop(0, 'rgba(255, 214, 150, 0.5)');
         g.addColorStop(1, 'rgba(255, 214, 150, 0)');
@@ -306,8 +406,8 @@ export class Vegetation {
       this.dappleTex = new THREE.CanvasTexture(c);
       this.dappleTex.colorSpace = THREE.SRGBColorSpace;
     }
-    const geo = new THREE.PlaneGeometry(2.6, 2.6);
-    for (const [x, z, s] of this.sakuraSpots) {
+    const geo = new THREE.PlaneGeometry(L.size, L.size);
+    for (const p of L.pools) {
       const mat = new THREE.MeshBasicMaterial({
         map: this.dappleTex,
         transparent: true,
@@ -317,15 +417,15 @@ export class Vegetation {
       });
       const pool = new THREE.Mesh(geo, mat);
       pool.rotation.x = -Math.PI / 2;
-      // Offset pools toward the afternoon sun so light falls through foliage
-      pool.position.set(x - 0.6 * s, 0.055, z + 0.8 * s);
-      pool.scale.setScalar(s * (1.0 + this.random() * 0.5));
+      pool.position.set(p.x, p.y, p.z);
+      pool.scale.setScalar(p.scale);
       pool.renderOrder = 1;
       pool.name = `Dapple Pool ${this.dapplePools.length + 1}`;
       this.scene.add(pool);
       this.dappleMeshes.push(mat);
       this.dapplePools.push(pool);
     }
+    return this.dapplePools;
   }
 
   buildPetalDrifts() {
@@ -349,6 +449,18 @@ export class Vegetation {
   }
 
   buildBambooGrove(cx, cz, radius, corridors = []) {
+    const layout = this.layoutBambooGrove(cx, cz, radius, corridors);
+    return this.placeAsset('bamboo-groves', layout, () => this.meshBambooGroveClassic(layout));
+  }
+
+  /**
+   * Every culm's draws, in the classic order: where it lands (skipped when a
+   * corridor claims the spot), its height, yaw and sway phase, then its 72
+   * leaves (angle, height ratio, branch length, phase, length, width, roll).
+   * Culms keep their numbers as doubles (the static lower culm is built from
+   * them); the leaf numbers go straight into the shader's float arrays.
+   */
+  layoutBambooGrove(cx, cz, radius, corridors = []) {
     const count = Math.floor(radius * radius * 1.6);
     const leavesPerStalk = 72;
     const leafTotal = count * leavesPerStalk;
@@ -370,6 +482,50 @@ export class Vegetation {
       return false;
     });
 
+    const plants = [];
+    const leafA = new Float32Array(leafTotal * 4);  // angle, heightRatio, branchLength, phase
+    const leafB = new Float32Array(leafTotal * 4);  // length, width, roll, plant yaw
+    const colliders = [];
+    for (let i = 0; i < count; i++) {
+      const a = this.random() * Math.PI * 2;
+      const r = Math.sqrt(this.random()) * radius;
+      const x = cx + Math.cos(a) * r;
+      const z = cz + Math.sin(a) * r;
+      if (inCorridor(x, z)) continue;
+      const k = plants.length;
+      const height = 5.6 + this.random() * 3.2;
+      const yaw = this.random() * Math.PI * 2;
+      const phase = this.random() * Math.PI * 2;
+      plants.push({ x, z, height, yaw, phase });
+      // One thin box per culm instead of a single grove-sized slab: the cat
+      // can weave between stalks, so the grove is somewhere to walk through
+      // rather than a hedge to walk around.
+      colliders.push({ x, z, r: 0.1 });
+      // Dense, top-heavy foliage hides upper culms while leaving the base open.
+      for (let j = 0; j < leavesPerStalk; j++) {
+        const li = k * leavesPerStalk + j;
+        leafA[li * 4] = this.random() * Math.PI * 2;                      // angle
+        leafA[li * 4 + 1] = 0.22 + Math.pow(this.random(), 0.48) * 0.76;  // heightRatio
+        leafA[li * 4 + 2] = 0.18 + this.random() * 0.46;                  // branchLength
+        leafA[li * 4 + 3] = this.random() * Math.PI * 2;                  // phase
+        leafB[li * 4] = 0.48 + this.random() * 0.42;                      // length
+        leafB[li * 4 + 1] = 0.78 + this.random() * 0.52;                  // width
+        leafB[li * 4 + 2] = (this.random() - 0.5) * 0.38;                 // roll
+        leafB[li * 4 + 3] = yaw;                                          // plant yaw
+      }
+    }
+    this._groveCount = (this._groveCount || 0) + 1;
+    return {
+      index: this._groveCount - 1, x: cx, y: 0, z: cz, radius, corridors, capacity: count, leavesPerStalk,
+      plants, leafA, leafB, band: Math.hypot(cx, cz) > 39 ? 'rim' : 'near', footprint: { colliders }
+    };
+  }
+
+  meshBambooGroveClassic(L) {
+    const { capacity: count, leavesPerStalk, plants } = L;
+    const leafTotal = count * leavesPerStalk;
+    const planted = plants.length;
+
     // Lower culms sit below the bend point and never move: bake their
     // matrices once into a plain InstancedMesh.
     const lowerStalks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.065, 0.075, 7, 6), this.matBamboo, count);
@@ -382,21 +538,9 @@ export class Vegetation {
     const plantArr = new Float32Array(count * 4);   // x, z, height, phase
     const yawArr = new Float32Array(count);
     const leafPlant = new Float32Array(leafTotal * 4);
-    const leafA = new Float32Array(leafTotal * 4);  // angle, heightRatio, branchLength, phase
-    const leafB = new Float32Array(leafTotal * 4);  // length, width, roll, plant yaw
     const dummy = new THREE.Object3D();
 
-    let planted = 0;
-    for (let i = 0; i < count; i++) {
-      const a = this.random() * Math.PI * 2;
-      const r = Math.sqrt(this.random()) * radius;
-      const x = cx + Math.cos(a) * r;
-      const z = cz + Math.sin(a) * r;
-      if (inCorridor(x, z)) continue;
-      const k = planted++;
-      const height = 5.6 + this.random() * 3.2;
-      const yaw = this.random() * Math.PI * 2;
-      const phase = this.random() * Math.PI * 2;
+    plants.forEach(({ x, z, height, yaw, phase }, k) => {
       plantArr[k * 4] = x;
       plantArr[k * 4 + 1] = z;
       plantArr[k * 4 + 2] = height;
@@ -411,28 +555,14 @@ export class Vegetation {
       dummy.updateMatrix();
       lowerStalks.setMatrixAt(k, dummy.matrix);
 
-      // One thin box per culm instead of a single grove-sized slab: the cat
-      // can weave between stalks, so the grove is somewhere to walk through
-      // rather than a hedge to walk around.
-      this.addCollider(x, z, 0.1);
-
-      // Dense, top-heavy foliage hides upper culms while leaving the base open.
       for (let j = 0; j < leavesPerStalk; j++) {
         const li = k * leavesPerStalk + j;
         leafPlant[li * 4] = x;
         leafPlant[li * 4 + 1] = z;
         leafPlant[li * 4 + 2] = height;
         leafPlant[li * 4 + 3] = phase;
-        leafA[li * 4] = this.random() * Math.PI * 2;                      // angle
-        leafA[li * 4 + 1] = 0.22 + Math.pow(this.random(), 0.48) * 0.76;  // heightRatio
-        leafA[li * 4 + 2] = 0.18 + this.random() * 0.46;                  // branchLength
-        leafA[li * 4 + 3] = this.random() * Math.PI * 2;                  // phase
-        leafB[li * 4] = 0.48 + this.random() * 0.42;                      // length
-        leafB[li * 4 + 1] = 0.78 + this.random() * 0.52;                  // width
-        leafB[li * 4 + 2] = (this.random() - 0.5) * 0.38;                 // roll
-        leafB[li * 4 + 3] = yaw;                                          // plant yaw
       }
-    }
+    });
     lowerStalks.count = planted;
     lowerStalks.instanceMatrix.needsUpdate = true;
 
@@ -440,11 +570,11 @@ export class Vegetation {
     upperGeo.setAttribute('aYaw', new THREE.InstancedBufferAttribute(yawArr, 1));
     upperGeo.instanceCount = planted;
     leafGeo.setAttribute('aPlant', new THREE.InstancedBufferAttribute(leafPlant, 4));
-    leafGeo.setAttribute('aLeafA', new THREE.InstancedBufferAttribute(leafA, 4));
-    leafGeo.setAttribute('aLeafB', new THREE.InstancedBufferAttribute(leafB, 4));
+    leafGeo.setAttribute('aLeafA', new THREE.InstancedBufferAttribute(L.leafA, 4));
+    leafGeo.setAttribute('aLeafB', new THREE.InstancedBufferAttribute(L.leafB, 4));
     leafGeo.instanceCount = planted * leavesPerStalk;
 
-    const groveSphere = new THREE.Sphere(new THREE.Vector3(cx, 4.5, cz), radius + 7);
+    const groveSphere = new THREE.Sphere(new THREE.Vector3(L.x, 4.5, L.z), L.radius + 7);
     upperGeo.boundingSphere = groveSphere.clone();
     leafGeo.boundingSphere = groveSphere.clone();
 
@@ -457,6 +587,8 @@ export class Vegetation {
     this.scene.add(lowerStalks);
     this.scene.add(upperStalks);
     this.scene.add(leaves);
+    this.registerFootprint(L.footprint);
+    return lowerStalks;
   }
 
   /**
@@ -585,6 +717,7 @@ export class Vegetation {
     });
   }
 
+  /** The garden maples and pines: placement lists; each tree routes on its own (canopyTree). */
   buildMaplesAndPines() {
     const maples = this.mapleSpots = [[-16, 14, 1.1], [14, 6, 1.0], [-6, -34, 1.2], [8, -36, 1.0], [28, 6, 1.1]];
     for (const [x, z, s] of maples) this.mapleTree(x, z, s);
@@ -607,7 +740,63 @@ export class Vegetation {
    *    and hotaru fireflies over the river at night.
    */
   buildMeadow() {
-    const mask = new BiomeMask(-52, -52, 104, 256);
+    const layout = this.layoutMeadow();
+    const out = this.placeAsset('meadow-system', layout, () => this.meshMeadowClassic(layout));
+    return out;
+  }
+
+  /**
+   * The meadow's recipe as data (it draws nothing from the stream): the
+   * mask's hand-placed regions, the grass layers and zones, and the moss
+   * pillows at tree roots, the Moon Pool and the shrine. The mask itself is
+   * painted from the world's registries (colliders, exclusions, water,
+   * paths, river) when the classic meadow is built.
+   */
+  layoutMeadow() {
+    // Tended lawns either side of the shrine approach (torii → hall)
+    const lawns = [[-4.7, -27.2, 2.1, 3.9], [4.7, -27.2, 2.1, 3.9]];
+    // Where the old susuki clumps stood, the meadow stays wild
+    const wildSpots = [[-10, 24], [6, 28], [22, 26], [32, 24], [-16, 2], [-4, -4], [4, -14],
+      [8, -20], [-12, -22], [24, -12], [28, 8], [-26, 4], [-20, 18]];
+    const moss = [];
+    const nearPath = (x, z, r) => this.pathSamples.some((s) => Math.hypot(s.x - x, s.z - z) < r + 1.2);
+    for (const [x, z, s] of [...this.sakuraSpots, ...this.mapleSpots]) {
+      if (Math.hypot(x, z) < RIM_RADIUS && !nearPath(x, z, 1.5)) moss.push({ x, z, r: 1.2 + s * 0.45 });
+    }
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * Math.PI * 2 + 0.3;
+      moss.push({ x: -20 + Math.cos(a) * 4.1, z: -27 + Math.sin(a) * 4.1, r: 1.25 });
+    }
+    moss.push({ x: -2.9, z: -30.6, r: 1.3 }, { x: 2.9, z: -30.6, r: 1.3 }, { x: -23.5, z: -20.5, r: 1.2 });
+    return {
+      index: 0, x: 0, y: 0, z: 0,
+      mask: { x0: -52, z0: -52, size: 104, res: 256, corral: [-31, 9, 2.0, 1, 0.6], torii: [0, -18.5, 9, 5, 0.6] },
+      lawns, wildSpots, moss,
+      grass: { wind: 0.55, gustLit: 0.45 },
+      // GLADE (-31, -10, r 6) and POOL (-20, -27, r 3) live in hidden_places.js
+      zones: { lantern: { x: -31, z: -10, hw: 5.4, hd: 5.4, spacing: 0.065, maxDist: 40 }, yarn: { x: -31, z: 9, hw: 2.1, hd: 2.1, spacing: 0.075, maxDist: 35 } },
+      fireflies: { x: 0, z: 29, hw: 44, hd: 4.2, count: 90 },
+      footprint: {}
+    };
+  }
+
+  /**
+   * The meadow — every Grass Lab recipe (src/grass.js) laid out by a biome
+   * mask painted from the valley's own colliders, paths and water:
+   *  - rings that follow the cat: Bezier blade tufts with pressed trails
+   *    near, tri-quad clumps mid, painted tuft cards far, a shell carpet
+   *    under the paws;
+   *  - cat-eye thicket where the meadow meets paths, walls and banks;
+   *  - wildflower cards in drifts, thicker under the sakura;
+   *  - susuki plumes on the river banks, paddy bunds and the wild rim;
+   *  - mown stripes on the tended lawns of the shrine precinct;
+   *  - moss pillows at tree roots, the Moon Pool and the shrine;
+   *  - lantern fibers in the Lantern Glade, yarn curls in the turtle corral,
+   *    and hotaru fireflies over the river at night.
+   */
+  meshMeadowClassic(L) {
+    const M = L.mask;
+    const mask = new BiomeMask(M.x0, M.z0, M.size, M.res);
     for (const c of this.colliders) mask.box('excl', c.min.x - 0.15, c.min.z - 0.15, c.max.x + 0.15, c.max.z + 0.15);
     for (const r of this.exclusionRects) mask.rect('excl', r.x, r.z, r.width, r.depth);
     for (const [px, pz, w, d] of this.waterRects) {
@@ -619,14 +808,11 @@ export class Vegetation {
       mask.disc('excl', s.x, s.z, 3.5);
       mask.disc('wild', s.x, s.z, 5.6, 1, 2.2);
     }
-    // Tended lawns either side of the shrine approach (torii → hall)
-    const lawns = [[-4.7, -27.2, 2.1, 3.9], [4.7, -27.2, 2.1, 3.9]];
+    const lawns = L.lawns;
     for (const [x, z, hw, hd] of lawns) mask.rect('lawn', x, z, hw * 2, hd * 2);
     // The turtle corral grows yarn curls instead of meadow
-    mask.disc('excl', -31, 9, 2.0, 1, 0.6);
-    // Where the old susuki clumps stood, the meadow stays wild
-    for (const [sx, sz] of [[-10, 24], [6, 28], [22, 26], [32, 24], [-16, 2], [-4, -4], [4, -14],
-      [8, -20], [-12, -22], [24, -12], [28, 8], [-26, 4], [-20, 18]]) mask.disc('wild', sx, sz, 1.6, 1, 1.6);
+    mask.disc('excl', M.corral[0], M.corral[1], M.corral[2], M.corral[3], M.corral[4]);
+    for (const [sx, sz] of L.wildSpots) mask.disc('wild', sx, sz, 1.6, 1, 1.6);
     // The wild rim before the forest, and flower drifts through the open meadow
     mask.paint('wild', (x, z) => THREE.MathUtils.smoothstep(Math.hypot(x, z), 37, 46));
     mask.paint('flower', (x, z) => {
@@ -634,10 +820,10 @@ export class Vegetation {
       return THREE.MathUtils.smoothstep(drift, 0.2, 0.85) * 0.85;
     });
     for (const [x, z] of this.sakuraSpots) mask.disc('flower', x, z, 2.6, 0.8, 2.2);
-    mask.rect('flower', 0, -18.5, 9, 5, 0.6);   // torii approach
+    mask.rect('flower', M.torii[0], M.torii[1], M.torii[2], M.torii[3], M.torii[4]);   // torii approach
     mask.bake((x, z) => 1 - THREE.MathUtils.smoothstep(Math.hypot(x, z), 45, 50));
 
-    const grass = this.grass = new GrassSystem(this.scene, { mask, wind: 0.55, gustLit: 0.45 });
+    const grass = this.grass = new GrassSystem(this.scene, { mask, wind: L.grass.wind, gustLit: L.grass.gustLit });
     grass.addRing('near', { radius: 8, spacing: 0.115, lead: 0.6 });
     grass.addRing('mid', { radius: 24, spacing: 0.27, lead: 0.4, inside: 'near' });
     grass.addRing('far', { radius: 58, spacing: 0.62, lead: 0.45, inside: 'mid' });
@@ -646,23 +832,13 @@ export class Vegetation {
     grass.addRing('flowers', { radius: 26, spacing: 0.34, lead: 0.4 });
     grass.addRing('susuki', { radius: 34, spacing: 0.95, lead: 0.4 });
     lawns.forEach(([x, z, hw, hd], i) => grass.addZone('mown', { name: 'mown' + i, x, z, hw, hd, spacing: 0.042, maxDist: 45 }));
-    // GLADE (-31, -10, r 6) and POOL (-20, -27, r 3) live in hidden_places.js
-    grass.addZone('lantern', { x: -31, z: -10, hw: 5.4, hd: 5.4, spacing: 0.065, maxDist: 40 });
-    grass.addZone('yarn', { x: -31, z: 9, hw: 2.1, hd: 2.1, spacing: 0.075, maxDist: 35 });
-    grass.addFireflies({ x: 0, z: 29, hw: 44, hd: 4.2, count: 90 });
+    grass.addZone('lantern', { ...L.zones.lantern });
+    grass.addZone('yarn', { ...L.zones.yarn });
+    grass.addFireflies({ ...L.fireflies });
 
-    const moss = [];
-    const nearPath = (x, z, r) => this.pathSamples.some((s) => Math.hypot(s.x - x, s.z - z) < r + 1.2);
-    for (const [x, z, s] of [...this.sakuraSpots, ...this.mapleSpots]) {
-      if (Math.hypot(x, z) < RIM_RADIUS && !nearPath(x, z, 1.5)) moss.push({ x, z, r: 1.2 + s * 0.45 });
-    }
-    for (let i = 0; i < 7; i++) {
-      const a = (i / 7) * Math.PI * 2 + 0.3;
-      moss.push({ x: -20 + Math.cos(a) * 4.1, z: -27 + Math.sin(a) * 4.1, r: 1.25 });
-    }
-    moss.push({ x: -2.9, z: -30.6, r: 1.3 }, { x: 2.9, z: -30.6, r: 1.3 }, { x: -23.5, z: -20.5, r: 1.2 });
-    grass.addMoss(moss);
+    grass.addMoss(L.moss.map((m) => ({ ...m })));
     this.grassMeshes = grass.meshes;
+    return grass;
   }
 
   isExcluded(x, z) {
