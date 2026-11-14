@@ -85,3 +85,21 @@ test('editable material copies retain game shader defines, callbacks and live sh
   assert.equal(copy.customProgramCacheKey, cacheKey); assert.equal(copy.uniforms, original.uniforms);
   original.uniforms.uTime.value = 3; assert.equal(copy.uniforms.uTime.value, 3);
 });
+
+test('the production variant is an accepted variant and unknown variants are still refused', async () => {
+  await assert.rejects(loadCatalogAsset('torii', { variant: 'nonsense' }), /production kit/);
+});
+
+test('catalog modules reach the kit only through labs/shared/game.js', () => {
+  const loader = read('catalog/js/asset-loader.mjs');
+  assert.doesNotMatch(loader, /(?:from\s*|import\s*\(\s*)['"](?:(?:\.\.\/)+|\/)src\//);
+  const game = read('labs/shared/game.js');
+  for (const name of ['loadKitIndexModule', 'loadKitRuntimeModule', 'loadKitContractModule', 'loadKitMaterialsModule']) assert.match(game, new RegExp('export const ' + name));
+  assert.match(loader, /loadKitIndexModule/); assert.match(loader, /FAMILIES/);
+});
+
+test('the production variant builds from the registry, not from a hand-kept id list', () => {
+  const loader = read('catalog/js/asset-loader.mjs');
+  assert.doesNotMatch(loader, /PRODUCTION\s*=/); assert.match(loader, /runtime\.defs\.get\(assetId\)/);
+  assert.match(loader, /classic only/);
+});
