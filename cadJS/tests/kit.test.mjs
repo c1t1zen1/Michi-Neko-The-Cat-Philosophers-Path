@@ -207,6 +207,16 @@ test('migrates a schema 1 package to schema 2 and still validates it as schema 1
   assert.throws(() => validateAssetPackage({ ...v1, schemaVersion: 3 }), /Unsupported asset package schema/);
 });
 
+test('records kit params in the package source and keeps them through validation and migration', () => {
+  const kit = { variant: 'modular', params: { size: 1.3, moss: 0.2 } };
+  const pkg = createAssetPackage({ ...base, source: { ...base.source, kit } });
+  assert.deepEqual(validateAssetPackage(pkg).source.kit, kit);
+  assert.deepEqual(migrateAssetPackage(pkg).source.kit, kit);
+  assert.equal(createAssetPackage(base).source.kit, undefined, 'a package without kit params stays valid');
+  assert.throws(() => createAssetPackage({ ...base, source: { ...base.source, kit: { variant: 'wire', params: {} } } }), /variant/);
+  assert.throws(() => createAssetPackage({ ...base, source: { ...base.source, kit: { variant: 'modular', params: { 'Bad': 1 } } } }), /unusable/);
+});
+
 let failures = 0;
 for (const item of tests) {
   try { await item.callback(); console.log(`✓ ${item.name}`); }

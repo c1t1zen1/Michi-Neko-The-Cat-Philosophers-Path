@@ -39,6 +39,17 @@ export function isSemanticVersion(value) {
   return SEMVER.test(String(value || ''));
 }
 
+/** The kit params a package was made with: { variant: classic|modular, params: { key: number|string|boolean } }. Values are checked against the schema on import. */
+export function normalizeKitSource(kit) {
+  if (!kit || typeof kit !== 'object' || !['classic', 'modular'].includes(kit.variant)) throw new Error('source.kit.variant must be classic or modular');
+  const params = {};
+  for (const [key, value] of Object.entries(kit.params && typeof kit.params === 'object' ? kit.params : {})) {
+    if (!/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/.test(key) || !(typeof value === 'boolean' || typeof value === 'string' && value.length <= 64 || typeof value === 'number' && Number.isFinite(value))) throw new Error(`source.kit.params.${key} is unusable`);
+    params[key] = value;
+  }
+  return { variant: kit.variant, params };
+}
+
 function packageWithoutChecksum(input) {
   const output = { ...input };
   delete output.checksum;
@@ -60,7 +71,8 @@ export function createAssetPackage(input = {}) {
     source: {
       module: String(input.source?.module || ''),
       symbol: String(input.source?.symbol || ''),
-      baselineFingerprint: String(input.source?.baselineFingerprint || '')
+      baselineFingerprint: String(input.source?.baselineFingerprint || ''),
+      ...(input.source?.kit ? { kit: normalizeKitSource(input.source.kit) } : {})
     },
     compatibility: { assetContract: ASSET_CONTRACT_VERSION },
     parentPackage: input.parentPackage ? {
@@ -100,7 +112,7 @@ export function validateAssetPackage(input, options = {}) {
   if (!options.allowMissingChecksum && input.checksum !== expectedChecksum) throw new Error('Asset package checksum does not match its contents');
   return {
     ...input,
-    source: { module:String(input.source.module || ''), symbol:String(input.source.symbol || ''), baselineFingerprint:input.source.baselineFingerprint },
+    source: { module:String(input.source.module || ''), symbol:String(input.source.symbol || ''), baselineFingerprint:input.source.baselineFingerprint, ...(input.source.kit ? { kit: normalizeKitSource(input.source.kit) } : {}) },
     parentPackage: input.parentPackage || null,
     metadata: { author:String(input.metadata?.author || ''), notes:String(input.metadata?.notes || ''), ...(input.metadata?.migratedFrom ? { migratedFrom:Number(input.metadata.migratedFrom) } : {}) },
     ...(input.schemaVersion === 2 ? { structure: { ops: structure } } : {}),

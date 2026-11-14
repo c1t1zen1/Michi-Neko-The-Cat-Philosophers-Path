@@ -237,7 +237,14 @@ async function applyAssetObjectState(object, state, textureLoader) {
 
 class History {
   constructor(onChange) { this.undoStack = []; this.redoStack = []; this.onChange = onChange; }
-  push(label, undo, redo) { this.undoStack.push({ label, undo, redo }); this.redoStack.length = 0; this.onChange?.(); }
+  // `hooks.dropRedo` runs when the entry leaves via redo truncation, `hooks.dropOld` when the cap pushes it off the bottom (to free retained builds).
+  push(label, undo, redo, hooks = {}) {
+    this.undoStack.push({ label, undo, redo, ...hooks });
+    for (const item of this.redoStack) item.dropRedo?.();
+    this.redoStack.length = 0;
+    while (this.undoStack.length > 50) this.undoStack.shift().dropOld?.();
+    this.onChange?.();
+  }
   undo() { const item = this.undoStack.pop(); if (!item) return; item.undo(); this.redoStack.push(item); this.onChange?.(); }
   redo() { const item = this.redoStack.pop(); if (!item) return; item.redo(); this.undoStack.push(item); this.onChange?.(); }
 }
@@ -1851,7 +1858,7 @@ class CadApp {
       const changes = this.packageChanges(root); const structure = this.packageStructure(root);
       const assetPackage = createAssetPackage({
         assetId, packageVersion, assetType:root.userData.cadAssetType,
-        source:{ module:root.userData.cadSourceModule || root.userData.sourceModule || '', symbol:root.userData.cadSourceSymbol || '', baselineFingerprint:baseline.baselineFingerprint },
+        source:{ module:root.userData.cadSourceModule || root.userData.sourceModule || '', symbol:root.userData.cadSourceSymbol || '', baselineFingerprint:baseline.baselineFingerprint, ...(this.kit?.group === root ? { kit:{ variant:this.kit.state.variant, params:this.kit.state.params } } : {}) },
         parentPackage:this.lastAssetPackage?.assetId === assetId ? { version:this.lastAssetPackage.packageVersion, checksum:this.lastAssetPackage.checksum } : null,
         changes:{ objects:changes }, structure:{ ops:structure }, metadata:{ notes }
       });
@@ -1879,9 +1886,25 @@ class CadApp {
     } catch (error) { this.status(`ASSET REGISTRATION: ${error.message}`, true); }
   }
 
+  /** A kit asset's baseline is its current build. Rebuild to the params the package recorded (or the defaults, for older packages) until the baseline matches. */
+  async alignKitForPackage(assetPackage) {
+    const kit = this.kit; if (!kit || normalizeAssetId(`catalog.${kit.id}`) !== assetPackage.assetId) return;
+    const matches = () => this.assetBaselines.get(assetPackage.assetId)?.baselineFingerprint === assetPackage.source.baselineFingerprint;
+    if (matches()) return;
+    const recorded = assetPackage.source.kit;
+    const candidates = [];
+    if (recorded) { const { values, errors } = validateParams(kit.def.params || {}, recorded.params || {}); if (errors.length) throw new Error(`Package kit params: ${errors.join('; ')}`); candidates.push(kitState(kit.id, recorded.variant, values)); }
+    candidates.push(kitState(kit.id, 'modular', {}));
+    for (const state of candidates) {
+      if (!await this.commitKit(state, 'Rebuild kit asset for package', { warn: false })) continue;
+      if (matches()) return;
+    }
+  }
+
   async loadAssetPackage(input) {
     // Schema 1 packages are migrated (no structure operations); schema 2 pass through. Either way the checksum is verified first.
     const original = validateAssetPackage(input); const assetPackage = migrateAssetPackage(input); const migrated = original.schemaVersion !== assetPackage.schemaVersion;
+    await this.alignKitForPackage(assetPackage);
     const root = this.findAssetRoot(assetPackage.assetId);
     const baseline = root ? this.assetBaselines.get(assetPackage.assetId) : null;
     const compatibility = evaluateAssetCompatibility(assetPackage, { assetId:root?.userData?.cadAssetId, baselineFingerprint:baseline?.baselineFingerprint });
@@ -1957,14 +1980,22 @@ class CadApp {
   }
 
   /** One undoable transaction from the committed state to `next` (a param edit, a variant swap, or an AI plan). */
-  async commitKit(next, label) {
+  async commitKit(next, label, { warn = true } = {}) {
     const before = this.kitGesture || this.kit; this.kitGesture = null;
+    if (warn) {
+      let free = 0; try { free = Object.keys(this.packageChanges(before.group)).length + this.packageStructure(before.group).length; } catch { free = 1; }
+      if ((free || this.lastAssetPackage) && !confirm(`Rebuilding ${before.id} drops ${free ? `${free} free-form edit${free === 1 ? '' : 's'}` : 'nothing'}${this.lastAssetPackage ? ' and re-bases the loaded package' : ''}: the new build becomes the package baseline. Packages made with kit parameters re-apply them on import. Continue? (Undo restores the old build.)`)) {
+        if (this.kit.preview) { this.kit.loaded.dispose?.(); this.installKitEntry(before, { register: false }); }
+        this.refreshInspector(); return false;
+      }
+    }
     const ticket = ++this.kitTicket;
     const entry = await this.buildKitEntry(next);
     if (ticket !== this.kitTicket) { entry.loaded.dispose?.(); return false; }
     if (this.kit.preview) this.kit.loaded.dispose?.();
     this.installKitEntry(entry, { register: true });
-    this.history.push(label, () => { this.installKitEntry(before, { register: true }); this.refreshInspector(); }, () => { this.installKitEntry(entry, { register: true }); this.refreshInspector(); });
+    this.history.push(label, () => { this.installKitEntry(before, { register: true }); this.refreshInspector(); }, () => { this.installKitEntry(entry, { register: true }); this.refreshInspector(); },
+      { dropRedo: () => { if (this.kit !== entry) entry.loaded.dispose?.(); }, dropOld: () => { if (this.kit !== before) before.loaded.dispose?.(); } });
     this.refreshInspector(); this.status(`${label.toUpperCase()}`);
     return true;
   }
