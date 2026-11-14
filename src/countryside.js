@@ -2946,11 +2946,48 @@ export class Countryside {
   }
 
   buildBambooFence(x, z, rot, options = {}) {
-    const fence = new THREE.Group();
-    fence.name = `Takegaki Fence ${this.bambooFences ? this.bambooFences.length + 1 : 1}`;
+    const layout = this.layoutBambooFence(x, z, rot, options);
+    return this.placeAsset('bamboo-fence', layout, () => this.meshBambooFenceClassic(layout));
+  }
+
+  /**
+   * A takegaki run; draws: its length (unless given), its yaw jitter (unless
+   * off), then one tilt per slat. The collider is the whole fence's world box
+   * (rails and slats, as setFromObject takes it), squared off to the ground.
+   */
+  layoutBambooFence(x, z, rot, options = {}) {
+    this._fenceCount = (this._fenceCount || 0) + 1;
     const len = options.length || (2.6 + this.random() * 1.6);
     const fenceHeight = options.height || 1.35;
     const rotationJitter = options.rotationJitter === false ? 0 : (this.random() - 0.5) * 0.2;
+    const n = Math.floor(len / 0.16);
+    const tilts = [];
+    for (let i = 0; i <= n; i++) tilts.push((this.random() - 0.5) * 0.06);
+    const F = frameOf(null, x, 0, z, 0, rot + rotationJitter, 0);
+    const collider = unionOf([
+      ...[0.32, 0.82].map((ry) => shapeBox(frameOf(F, 0, ry, 0, 0, 0, Math.PI / 2), 'CylinderGeometry', 0.045, 0.045, len, 6)),
+      ...tilts.map((tilt, i) => shapeBox(frameOf(F, -len / 2 + i * (len / n), fenceHeight / 2, 0, tilt), 'CylinderGeometry', 0.032, 0.032, fenceHeight, 5))
+    ]);
+    collider.min.y = 0;
+    collider.max.y = options.colliderHeight || 1.4;
+    collider.expandByVector(new THREE.Vector3(0.08, 0, 0.12));
+    return {
+      index: this.nextIndex('bamboo-fence'), name: `Takegaki Fence ${this._fenceCount}`,
+      x, z, ry: rot + rotationJitter, len, fenceHeight, tilts, colliderHeight: options.colliderHeight,
+      role: options.role || 'decorative',
+      footprint: footprint({
+        colliders: [collider],
+        platforms: [{ oriented: [{ minX: -len / 2 - 0.08, maxX: len / 2 + 0.08, minZ: -0.18, maxZ: 0.18 }, collider.max.y + 0.05, { requiredAbility: 'fenceWalk' }] }],
+        lists: { bambooFences: [{ mesh: part('.'), collider, role: options.role || 'decorative', connects: options.connects || [] }] }
+      })
+    };
+  }
+
+  meshBambooFenceClassic(layout) {
+    const { x, z, len, fenceHeight } = layout;
+    const options = { role: layout.role, colliderHeight: layout.colliderHeight, connects: layout.footprint.lists.bambooFences[0].connects };
+    const fence = new THREE.Group();
+    fence.name = layout.name;
     for (const ry of [0.32, 0.82]) {
       const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, len, 6), MAT.bambooGreen);
       rail.rotation.z = Math.PI / 2;
@@ -2962,11 +2999,11 @@ export class Countryside {
       const sx = -len / 2 + i * (len / n);
       const slat = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, fenceHeight, 5), MAT.timberMedium);
       slat.position.set(sx, fenceHeight / 2, 0);
-      slat.rotation.x = (this.random() - 0.5) * 0.06;
+      slat.rotation.x = layout.tilts[i];
       fence.add(slat);
     }
     fence.position.set(x, 0, z);
-    fence.rotation.y = rot + rotationJitter;
+    fence.rotation.y = layout.ry;
     fence.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     this.scene.add(fence);
     // A continuous, slightly thick barrier prevents tunnelling through the
