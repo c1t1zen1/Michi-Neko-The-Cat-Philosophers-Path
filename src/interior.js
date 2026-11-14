@@ -110,7 +110,7 @@ export class InteriorManager {
     if (layout.ry) g.rotation.y = layout.ry;
     parent.add(g);
     if (this.assetInstances) this.assetInstances.push(out);
-    this.registerFootprint(out.footprint || layout.footprint, out.parts || {});
+    this.registerFootprint(out.footprint || layout.footprint, out.parts || {}, layout.footprint);
     for (const [field, part] of Object.entries(layout.bind || {})) {
       this[field] = (out.parts && out.parts[part]) || (out.sockets && out.sockets[part]) || null;
     }
@@ -120,9 +120,11 @@ export class InteriorManager {
   /**
    * One footprint into the interior's registries, each in its list order:
    * colliders, platforms, knockables (a physics record per knick-knack; its
-   * mesh is the part named in the entry) and the gameplay anchors.
+   * mesh is the part named in the entry) and the gameplay anchors. Anchors a
+   * kit footprint leaves out are filled from `fallback` (the layout's), so
+   * the transitions and context actions always have them.
    */
-  registerFootprint(fp, parts = {}) {
+  registerFootprint(fp, parts = {}, fallback = null) {
     if (!fp) return;
     for (const b of fp.colliders || []) this.colliders.push(b);
     for (const b of fp.platforms || []) this.platforms.push(b);
@@ -138,7 +140,8 @@ export class InteriorManager {
         floorY: k.floorY
       });
     }
-    for (const [name, value] of Object.entries(fp.anchors || {})) this[name] = value;
+    const anchors = { ...((fallback && fallback.anchors) || {}), ...(fp.anchors || {}) };
+    for (const [name, value] of Object.entries(anchors)) this[name] = value;
   }
 
   /**

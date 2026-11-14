@@ -691,12 +691,15 @@ function buildOnce(M, spec, stub = null) {
 // The modular path of every placeAsset() in the five modules, run with a stub
 // kit runtime (no kit assets exist yet): once with every inventory id modular
 // (the wholes replace their parts), once with every part modular inside the
-// classic wholes. The layout steps must advance the seeded streams and
-// Math.random exactly as classic, every registry the classic builders fill
-// (colliders, exclusions, water, platforms, anchors, knockables, creature and
-// god-ray records, spawn seeds) must come out the same through the
-// footprint registration path, and each system's update() must run. Not part
-// of the digest: reported beside it, and the CLI fails on it.
+// classic wholes, and once with every id modular but kit footprints that
+// carry no anchors (the owners must fill them from the layout). The layout
+// steps must advance the seeded streams and Math.random exactly as classic,
+// every registry the classic builders fill (colliders, exclusions, water,
+// platforms, anchors, knockables, creature and god-ray records, spawn seeds)
+// must come out the same through the footprint registration path, and every
+// system's update() must run without an error, on the classic world too,
+// under the game's own Sky. Not part of the digest: reported beside it, and
+// the CLI fails on it.
 
 const WHOLES = new Set(['moon-pool', 'lantern-glade', 'tea-interior']);
 
@@ -729,9 +732,17 @@ function registrySnapshot(w, rec) {
   };
 }
 
-/** A stand-in kit runtime: every id `modular(id)` names gets an empty instance with the parts its layout binds. */
-function stubRuntime(modular) {
-  const placed = [];
+/**
+ * A stand-in kit runtime: every id `modular(id)` names gets an empty instance
+ * with the parts its layout binds; `bare` hands back footprints without anchors.
+ */
+function stubRuntime(modular, { bare = false } = {}) {
+  const footprintOf = (fp) => {
+    if (!bare || !fp || !fp.anchors) return fp;
+    const { anchors, ...rest } = fp;
+    return rest;
+  };
+  const placed = [], layouts = [];
   const partsFor = (layout) => {
     const names = new Set(Object.values(layout.bind || {}));
     const fp = layout.footprint || {};
@@ -751,7 +762,7 @@ function stubRuntime(modular) {
     return parts;
   };
   return {
-    placed, instances: [], update() {},
+    placed, layouts, instances: [], update() {},
     build(id, layout, classicFn) {
       if (!modular(id)) return classicFn();
       const group = new THREE.Group();
@@ -759,20 +770,19 @@ function stubRuntime(modular) {
       const parts = partsFor(layout || {});
       for (const p of Object.values(parts)) group.add(p);
       placed.push(id);
-      return { group, parts, sockets: {}, footprint: layout.footprint, live: [], dispose() {} };
+      layouts.push(layout);
+      return { group, parts, sockets: {}, footprint: footprintOf(layout.footprint), live: [], dispose() {} };
     }
   };
 }
 
-const SKY = () => ({
-  sunDir: new THREE.Vector3(0.3, 0.4, 0.2).normalize(), weather: 'clear', targetWeather: 'clear', weatherBlend: 1,
-  weatherAmount: () => 0
-});
-
-/** Five frames of every system's update(); the errors by system. */
-function runUpdates(w) {
-  const errors = {};
-  const sky = SKY(), at = new THREE.Vector3(-20, 0, -23);
+/** Five frames of every system's update() under a real Sky; the errors by system, and which ran. */
+function runUpdates(w, M) {
+  const errors = {}, ran = [];
+  // the game's own Sky (sunDir, resolvePalette(), weather …), dusk so the night paths run too
+  const sky = new M.Sky(new THREE.Scene());
+  sky.sunDir.set(-0.6, 0.12, -0.8).normalize();
+  const at = new THREE.Vector3(-20, 0, -23);
   const steps = {
     hidden: () => w.hidden.update(1 / 30, at, sky),
     interior: () => { w.interior.isInside = true; w.interior.update(1 / 30); w.interior.isInside = false; },
@@ -781,18 +791,24 @@ function runUpdates(w) {
     ambient: () => w.life.update(1 / 30, at, sky, null, null, w.city)
   };
   for (const [k, step] of Object.entries(steps)) {
-    try { for (let i = 0; i < 5; i++) step(); } catch (error) { errors[k] = String(error && error.message || error).slice(0, 160); }
+    try { for (let i = 0; i < 5; i++) step(); ran.push(k); } catch (error) { errors[k] = String(error && error.message || error).slice(0, 160); }
   }
-  return errors;
+  return { errors, ran };
 }
 
 function seamCheck(M, spec, classic) {
   if (typeof M.HiddenPlaces.prototype.placeAsset !== 'function') return { ok: true, skipped: 'no placeAsset() in this checkout' };
   const base = classic.rec.registry;
-  const classicErrors = runUpdates(classic.world);
+  const classicUpdates = runUpdates(classic.world, M);
   const runs = {}, failures = [];
-  for (const [name, modular] of [['wholes', () => true], ['parts', (id) => !WHOLES.has(id)]]) {
-    const stub = stubRuntime(modular);
+  for (const [k, e] of Object.entries(classicUpdates.errors)) failures.push(`classic: ${k}.update() threw — ${e}`);
+  const RUNS = [
+    ['wholes', () => true, {}],
+    ['parts', (id) => !WHOLES.has(id), {}],
+    ['bare', () => true, { bare: true }]   // kit footprints without anchors
+  ];
+  for (const [name, modular, how] of RUNS) {
+    const stub = stubRuntime(modular, how);
     let out;
     try { out = buildOnce(M, spec, stub); } catch (error) {
       failures.push(`${name}: the build threw — ${String(error && error.stack || error).split('\n').slice(0, 2).join(' ')}`);
@@ -808,14 +824,22 @@ function seamCheck(M, spec, classic) {
         : [];
       failures.push(`${name}: ${k} differs from classic${sub.length ? ' (' + sub.join('; ') + ')' : ''}`);
     }
-    const errors = runUpdates(out.world);
-    for (const [k, e] of Object.entries(errors)) if (classicErrors[k] !== e) failures.push(`${name}: ${k}.update() threw — ${e}`);
+    // a kit tree must not keep the classic canopy its layout step built
+    const trees = stub.layouts.filter((l) => 'canopy' in l);
+    const kept = trees.filter((l) => l.canopy).length;
+    if (kept) failures.push(`${name}: ${kept} of ${trees.length} kit trees still hold the classic canopy`);
+    const updates = runUpdates(out.world, M);
+    for (const [k, e] of Object.entries(updates.errors)) failures.push(`${name}: ${k}.update() threw — ${e}`);
     const counts = {};
     for (const id of stub.placed) counts[id] = (counts[id] || 0) + 1;
-    runs[name] = { placed: stub.placed.length, ids: counts, registries: Object.keys(base).length - differs.length + '/' + Object.keys(base).length };
+    runs[name] = {
+      placed: stub.placed.length, ids: counts,
+      registries: Object.keys(base).length - differs.length + '/' + Object.keys(base).length,
+      updates: `${updates.ran.length}/5`, canopiesFreed: `${trees.length - kept}/${trees.length}`
+    };
   }
-  const placedAll = new Set([...Object.keys(runs.wholes.ids || {}), ...Object.keys(runs.parts.ids || {})]);
-  return { ok: failures.length === 0, failures, runs, ids: placedAll.size, classicUpdateErrors: classicErrors };
+  const placedAll = new Set(Object.values(runs).flatMap((r) => Object.keys(r.ids || {})));
+  return { ok: failures.length === 0, failures, runs, ids: placedAll.size, classicUpdates: `${classicUpdates.ran.length}/5 (${classicUpdates.ran.join(', ')})` };
 }
 
 // ------------------------------------------------------------ the digest ---
@@ -1023,6 +1047,7 @@ export async function systemsGolden(helpers) {
   ({ Particles: M.Particles } = await import(`../../src/particles.js?v=${TAG}`));
   ({ AmbientLife: M.AmbientLife } = await import(`../../src/ambient_life.js?v=${TAG}`));
   ({ ContextActionManager: M.ContextActionManager } = await import(`../../src/context_actions.js?v=${TAG}`));
+  ({ Sky: M.Sky } = await import(`../../src/sky.js?v=${TAG}`));
   const tImport = H.realNow();
   instrument(M);
   const before = H.ambient.draws;
@@ -1120,7 +1145,8 @@ export async function systemsGolden(helpers) {
     `          colliders ${c.colliders} (interior + vegetation) · platforms ${c.platforms} · trees ${c.trees}`,
     `digest    ${result.digestBytes} bytes · golden ${golden.found ? golden.bytes + ' bytes' : 'missing'} (${goldenUrl})`,
     `time      import ${result.timing.importMs} ms · build ${result.timing.buildMs.join(' + ')} ms · digest ${result.timing.digestMs} ms · total ${result.timing.totalMs} ms`,
-    `seam      ${seam.skipped ? 'skipped: ' + seam.skipped : (seam.ok ? 'ok' : 'FAILED') + ` · ${seam.ids} ids routed · wholes ${seam.runs.wholes.placed} instances, registries ${seam.runs.wholes.registries} · parts ${seam.runs.parts.placed} instances, registries ${seam.runs.parts.registries}`}`,
+    `seam      ${seam.skipped ? 'skipped: ' + seam.skipped : (seam.ok ? 'ok' : 'FAILED') + ` · ${seam.ids} ids routed · classic updates ${seam.classicUpdates} · ` +
+      Object.entries(seam.runs).map(([k, r]) => `${k} ${r.placed} instances, registries ${r.registries}, updates ${r.updates}, canopies freed ${r.canopiesFreed}`).join(' · ')}`,
     ...(seam.failures && seam.failures.length ? seam.failures.map((f) => '  seam: ' + f) : []),
     ...(warnings.length ? ['', 'warnings:', ...warnings.map((w) => '  ' + w)] : [])
   ].join('\n');

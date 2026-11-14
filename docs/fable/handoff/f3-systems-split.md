@@ -93,14 +93,19 @@ space. It is an intended visible change: regenerate with
   `{ x, z, r }`. Extra R18 keys: `platforms`, `knockables` (interior),
   `birds`, `guardianBirds`, `koi` (ambient life), `godRays` (particles).
 - Trees: `layout.canopy` is the classic canopy geometry built in the layout
-  step (its draws are part of the stream). A kit tree ignores it; the
-  runtime keeps `instance.layout`, so a kit tree should `dispose()` those
-  three geometries (or drop the reference) to free the memory. Kit trees are
+  step (its draws are part of the stream). When a kit tree comes back,
+  `canopyTree()` disposes those geometries once and sets `layout.canopy =
+  null` (review round 1), so a kit tree must not rely on it. Kit trees are
   not baked into the vegetation's per-material merges; v-trees may want a
   bake hook there.
+- Anchors: a kit footprint may leave `anchors` out; `registerFootprint()` in
+  the interior and the hidden places fills each missing one from the layout's
+  footprint (review round 1).
 - The systems golden is the check: classic must stay `EQUAL`; a modular run
   (`--systems --query "?swap=<id>:modular"`) is expected to differ, and the
-  `seam` line (stub runtime, every id modular / every part modular) must stay ok.
+  `seam` lines (stub runtime: every id modular / every part modular / kit
+  footprints without anchors; every update() under the game's Sky, classic
+  included; kit trees free their canopies) must stay ok.
 
 ## 5. Process notes
 

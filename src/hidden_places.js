@@ -125,7 +125,7 @@ export class HiddenPlaces {
     if (layout.ry) g.rotation.y = layout.ry;
     if (layout.scale) g.scale.setScalar(layout.scale);
     parent.add(g);
-    this.registerFootprint(out.footprint || layout.footprint);
+    this.registerFootprint(out.footprint || layout.footprint, layout.footprint);
     for (const [field, part] of Object.entries(layout.bind || {})) {
       this[field] = (out.parts && out.parts[part]) || (out.sockets && out.sockets[part]) || null;
     }
@@ -136,15 +136,17 @@ export class HiddenPlaces {
    * One footprint into the world's registries, each in its list order:
    * vegetation exclusions, water rects and colliders (the valley's lists,
    * read by Vegetation and the player), then the anchors, each onto the
-   * field of its name (R18), which attach() reads.
+   * field of its name (R18), which attach() reads. Anchors a kit footprint
+   * leaves out are filled from `fallback` (the layout's).
    */
-  registerFootprint(fp) {
+  registerFootprint(fp, fallback = null) {
     if (!fp) return;
     const city = this.city;
     for (const rect of fp.exclusions || []) city.vegetationExclusions.push(rect);
     for (const rect of fp.waterRects || []) city.waterRects.push(rect);
     for (const box of fp.colliders || []) city.colliders.push(box);
-    for (const [name, value] of Object.entries(fp.anchors || {})) this[name] = value;
+    const anchors = { ...((fallback && fallback.anchors) || {}), ...(fp.anchors || {}) };
+    for (const [name, value] of Object.entries(anchors)) this[name] = value;
   }
 
   /* ------------------------------------------------------------------ */

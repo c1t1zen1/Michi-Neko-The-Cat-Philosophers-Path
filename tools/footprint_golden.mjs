@@ -156,7 +156,10 @@ function printSummary(r, run, v, { out, goldenFile, max }) {
   if (r.rngLine) lines.push(`  rng      ${r.rngLine}`);
   else lines.push(`  rng      valley ${c.draws} draws (probe ${r.probe ? 'ok' : 'FAILED'}) · hidden ${r.hiddenDraws} · Math.random ${r.ambient.draws}` +
     ` · volatile ${r.volatile.leaves} leaves, ${r.volatile.members} members`);
-  if (r.seam) lines.push(`  seam     ${r.seam.skipped ? 'skipped: ' + r.seam.skipped : `${r.seam.ok ? 'ok' : 'FAILED'} · ${r.seam.ids} ids routed · wholes ${r.seam.runs.wholes.placed} instances (registries ${r.seam.runs.wholes.registries}) · parts ${r.seam.runs.parts.placed} instances (registries ${r.seam.runs.parts.registries})`}`);
+  if (r.seam) {
+    lines.push(`  seam     ${r.seam.skipped ? 'skipped: ' + r.seam.skipped : `${r.seam.ok ? 'ok' : 'FAILED'} · ${r.seam.ids} ids routed · classic updates ${r.seam.classicUpdates}`}`);
+    for (const [k, run] of Object.entries(r.seam.runs || {})) lines.push(`           ${k}: ${run.placed} instances · registries ${run.registries} · updates ${run.updates} · canopies freed ${run.canopiesFreed}`);
+  }
   lines.push(`  time     build ${r.timing.buildMs.join(' + ')} ms · page ${secs(r.timing.totalMs)} · run ${secs(run.ms)}`);
   if (!v.state.startsWith('WRITE')) {
     for (const w of r.warnings || []) lines.push(`  warning  ${w}`);

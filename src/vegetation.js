@@ -211,7 +211,13 @@ export class Vegetation {
     const layout = this.layoutTree(x, z, scale, opts);
     const id = layout.rim ? 'rim-trees' : (TREE_IDS[layout.kind] || layout.kind);
     const out = this.placeAsset(id, layout, () => this.meshTreeClassic(layout));
-    return isAssetInstance(out) ? out.group : out;
+    if (!isAssetInstance(out)) return out;
+    // A kit tree never uses the classic canopy built in the layout step (only
+    // its draws had to happen): free it here, once, rather than in every kit
+    // tree, and drop it from the layout the runtime keeps on the instance.
+    for (const k of ['branches', 'cards', 'tufts']) if (layout.canopy[k]) layout.canopy[k].dispose();
+    layout.canopy = null;
+    return out.group;
   }
 
   /**
