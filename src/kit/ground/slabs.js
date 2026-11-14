@@ -48,11 +48,16 @@ function addStone(bag, px, pz, ry, hw, hd, top, { seg, rings, skirt }, bevel, wo
     const k = Math.pow(Math.pow(Math.abs(c), 3.2) + Math.pow(Math.abs(s), 3.2), -1 / 3.2) * (1 + wob[i]);
     outline.push([c * hw * k, s * hd * k]);
   }
-  const vert = (x, y, z) => {
+  // tops take world-planar UVs; the sides an arc-length u round the outline and v up the stone
+  // (a planar map smears the sides into streaks), with a duplicated seam vertex
+  const vert = (x, y, z, u = null, v = null) => {
     const wx = px + x * cr + z * sr, wz = pz - x * sr + z * cr;
-    P.push(wx, y, wz); UV.push(wx * 0.9, wz * 0.9 + y * 0.9);
+    P.push(wx, y, wz); UV.push(u === null ? wx * 0.9 : u, v === null ? wz * 0.9 : v);
     return P.length / 3 - 1;
   };
+  const arc = [0];
+  for (let i = 1; i <= seg; i++) { const [ax, az] = outline[i - 1], [bx, bz] = outline[i % seg]; arc.push(arc[i - 1] + Math.hypot(bx - ax, bz - az)); }
+  const sideRing = (f, y) => Array.from({ length: seg + 1 }, (_, i) => { const [x, z] = outline[i % seg]; return vert(x * f, y, z * f, (arc[i] + px + pz) * 0.9, y * 0.9); });
   if (skirt) {
     // far: the flat top and one bedded point under it (a pyramid skirt reaches the ground)
     const ring = outline.map(([x, z]) => vert(x, top, z));
@@ -68,12 +73,14 @@ function addStone(bag, px, pz, ry, hw, hd, top, { seg, rings, skirt }, bevel, wo
   const fs = rings >= 2 ? [0.55, edgeF] : [edgeF];
   for (const f of fs) levels.push(outline.map(([x, z]) => vert(x * f, top + dome * (1 - f * f), z * f)));
   levels.push(outline.map(([x, z]) => vert(x, top - bevel, z)));
-  levels.push(outline.map(([x, z]) => vert(x * 1.02, FOOT, z * 1.02)));
   for (let i = 0; i < seg; i++) I.push(centre, levels[0][(i + 1) % seg], levels[0][i]);
   for (let l = 0; l < levels.length - 1; l++) {
     const A = levels[l], B = levels[l + 1];
     for (let i = 0; i < seg; i++) { const j = (i + 1) % seg; I.push(A[i], A[j], B[i], A[j], B[j], B[i]); }
   }
+  // the side, from the arris down to the bedded foot
+  const A = sideRing(1, top - bevel), B = sideRing(1.02, FOOT);
+  for (let i = 0; i < seg; i++) I.push(A[i], A[i + 1], B[i], A[i + 1], B[i + 1], B[i]);
 }
 
 export function buildSlabs(ctx, layout, p) {

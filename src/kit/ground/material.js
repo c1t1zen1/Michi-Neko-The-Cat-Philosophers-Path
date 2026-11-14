@@ -17,6 +17,8 @@
 //   - outside the field rectangle the weights fade to plain meadow;
 //   - POM marches the nobedan too (a cheap height-only pavingH), and moss
 //     under the paving fills the joints;
+//   - the cool shade is milder than the lab's (0.35, not 0.55): the game's
+//     grade already cools its shadows;
 //   - cost: edge noise only where weights are in between, wet / puddles /
 //     snow only when the weather asks (uniform branches), 3 macro noises;
 //   - tiers: hero = everything; mid (quality medium) drops POM, puddles and
@@ -290,7 +292,7 @@ export function createGroundMaterial(field, layers, { tier = 'hero', hexCell = 1
     uTile: { value: LAYERS.map((l) => l.tile) }, uRoughL: { value: LAYERS.map((l) => l.rough) },
     uPorL: { value: LAYERS.map((l) => l.porosity) }, uRelief: { value: LAYERS.map((l) => l.relief * 0.55) },
     uBlend: { value: blend }, uMacro: { value: macro }, uTime: { value: 0 }, uWet: { value: 0 }, uWetSpec: { value: 0 }, uWater: { value: -0.3 },
-    uRain: { value: 0 }, uSnow: { value: 0 }, uFringe: { value: fringe }, uCool: { value: 0.55 }, uPomH: { value: 0.016 },
+    uRain: { value: 0 }, uSnow: { value: 0 }, uFringe: { value: fringe }, uCool: { value: 0.35 }, uPomH: { value: 0.016 },
     uSunDir: { value: new THREE.Vector3(0.4, 0.8, 0.3) }, uSunCol: { value: new THREE.Color(0xfff0d6) },
     uShadowTint: { value: new THREE.Color(0.8, 0.88, 1.16) }, uTint: { value: new THREE.Color(1, 1, 1) },
     uGrassTint: { value: new THREE.Color(1, 1, 1) }, uMossTint: { value: new THREE.Color(1, 1, 1) }
