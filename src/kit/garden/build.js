@@ -90,16 +90,25 @@ export function buildShishi(ctx, layout, p) {
   const live = [tube];
   const streamMat = new THREE.MeshStandardMaterial({ color: 0xc4e1de, transparent: true, opacity: 0.65, roughness: 0.12 });
   const priv = [streamMat];
-  let feed = null, pour = null;
+  // one live mesh holds both water segments (feed drip + pour); update() rewrites its vertices
+  let stream = null, base = null, per = 0;
   if (tier !== 'far') {
-    const sg = new THREE.CylinderGeometry(0.008, 0.011, 1, 6);
-    feed = mesh(sg, streamMat, 'stream', false); pour = mesh(sg.clone(), streamMat, 'pour', false);
-    pour.visible = false;
-    g.add(feed, pour); parts.stream = feed; parts.pour = pour; live.push(feed, pour);
+    const one = new THREE.CylinderGeometry(0.008, 0.011, 1, 6).toNonIndexed();
+    per = one.attributes.position.count;
+    stream = mesh(merge([one, one.clone()]), streamMat, 'stream', false);
+    base = stream.geometry.attributes.position.array.slice();
+    g.add(stream); parts.stream = stream; live.push(stream);
   }
-
+  const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), Sc = new THREE.Vector3(), Pv = new THREE.Vector3(), Vv = new THREE.Vector3();
+  const place = (k, hi, lo, on) => {
+    const arr = stream.geometry.attributes.position.array;
+    dir.copy(hi).sub(lo); const l = on ? Math.max(1e-4, dir.length()) : 0;
+    Q.setFromUnitVectors(up, l ? dir.multiplyScalar(1 / l) : up);
+    M4.compose(Pv.copy(hi).add(lo).multiplyScalar(0.5), Q, Sc.set(1, l, 1));
+    for (let i = k * per; i < (k + 1) * per; i++) { Vv.set(base[i * 3], base[i * 3 + 1], base[i * 3 + 2]).applyMatrix4(M4); arr[i * 3] = Vv.x; arr[i * 3 + 1] = Vv.y; arr[i * 3 + 2] = Vv.z; }
+    stream.geometry.attributes.position.needsUpdate = true;
+  };
   const up = V3(0, 1, 0), mouth = V3(), top = V3(), bot = V3(), dir = V3();
-  const link = (m, hi, lo) => { dir.copy(hi).sub(lo); const l = Math.max(1e-4, dir.length()); m.position.copy(hi).add(lo).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(up, dir.multiplyScalar(1 / l)); m.scale.y = l; };
   let mine = rocker.rotation.z, ext = false, prev = REST_TILT, cool = 0;
   const inst = {
     group: g, parts, live, onClack: null,
@@ -115,12 +124,11 @@ export function buildShishi(ctx, layout, p) {
       mouth.set(-ARM_MOUTH * Math.sin(th), ARM_MOUTH * Math.cos(th), 0).add(PIVOT);
       cool -= dt;
       if (prev > 0.08 && tilt <= 0.08 && cool <= 0) { cool = 0.6; if (typeof inst.onClack === 'function') inst.onClack(); if (typeof layout.onClack === 'function') layout.onClack(); }
-      if (feed) {
+      if (stream) {
         const under = Math.abs(mouth.x - FEED_TIP.x) < 0.1 && mouth.y < FEED_TIP.y;
-        link(feed, top.copy(FEED_TIP), bot.set(FEED_TIP.x, under ? mouth.y + TUBE_R * 0.6 : WATER_Y, 0));
+        place(0, top.copy(FEED_TIP), bot.set(FEED_TIP.x, under ? mouth.y + TUBE_R * 0.6 : WATER_Y, 0), true);
         const pouring = tilt > 0.4 && tilt >= prev - 1e-4;
-        pour.visible = pouring;
-        if (pouring) link(pour, top.copy(mouth), bot.set(mouth.x, WATER_Y, 0));
+        place(1, top.copy(mouth), bot.set(mouth.x, WATER_Y, 0), pouring);
       }
       prev = tilt;
     },
@@ -128,7 +136,7 @@ export function buildShishi(ctx, layout, p) {
     dispose() { for (const m of priv) m.dispose(); }
   };
   shadows(g, true, true);
-  if (feed) { feed.castShadow = false; pour.castShadow = false; }
+  if (stream) stream.castShadow = false;
   return inst;
 }
 
@@ -136,59 +144,69 @@ export function buildShishi(ctx, layout, p) {
 
 const GLASS = { sky: 0x9ccfe6, amber: 0xe3b86a, smoke: 0x9aa0a6 };
 
+const stripTex = new WeakMap();
+/** Washi with soft brush strokes and fibres, 256px, drawn from a fixed seed. */
+function washiStrokes(km) {
+  if (stripTex.has(km)) return stripTex.get(km);
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d'); x.fillStyle = '#f1e4c6'; x.fillRect(0, 0, 256, 256);
+  let a = 20261113; const r = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  for (let i = 0; i < 70; i++) { x.strokeStyle = `rgba(${150 + r() * 60 | 0},${120 + r() * 50 | 0},${80 + r() * 40 | 0},${0.05 + r() * 0.1})`; x.lineWidth = 2 + r() * 7; x.beginPath(); const y = r() * 256, x0 = r() * 120; x.moveTo(x0, y); x.lineTo(x0 + 60 + r() * 140, y + (r() - 0.5) * 8); x.stroke(); }
+  for (let i = 0; i < 160; i++) { x.strokeStyle = `rgba(255,252,240,${0.2 + r() * 0.3})`; x.lineWidth = 1; x.beginPath(); const x0 = r() * 256, y0 = r() * 256; x.moveTo(x0, y0); x.lineTo(x0 + (r() - 0.5) * 30, y0 + (r() - 0.5) * 30); x.stroke(); }
+  x.fillStyle = 'rgba(190,60,50,0.55)'; x.fillRect(100, 20, 22, 60); // a vermilion inked mark
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  stripTex.set(km, tex);
+  return tex;
+}
+
 export function buildWindChime(ctx, layout, p) {
   const { tier, kitMaterials: km } = ctx;
   const g = new THREE.Group(), parts = {};
   const radial = seg(tier, 24, 14, 8);
-  const cordMat = km.plain(0xe7d8ba), bronze = km.bronze({ color: 0x8a6a3a });
   const priv = [];
+  const far = tier === 'far';
+  // one painted washi material for cord, clapper and strip: one live draw
+  const paper = km.paper({ color: 0xffffff, map: washiStrokes(km), side: THREE.DoubleSide });
 
-  // hook ring at the hanging point + cord down to the bell
-  const cordGeo = merge([
-    new THREE.TorusGeometry(0.02, 0.006, 5, seg(tier, 12, 8, 6)).translate(0, 0.0, 0),
-    new THREE.CylinderGeometry(0.007, 0.007, 0.5, 5).translate(0, -0.27, 0)
-  ]);
-  const cord = mesh(indexed(cordGeo), cordMat, 'cord', false); g.add(cord); parts.cord = cord;
-
-  // the bell: an open glass bowl, rim at -0.59
+  // bell: open glass bowl, rim at -0.59 (live draw 1)
   const prof = [[0.008, 0], [0.04, -0.012], [0.075, -0.04], [0.092, -0.075], [0.09, -0.095]].map(([x, y]) => new THREE.Vector2(x, y - 0.5));
-  const glass = tier === 'far'
+  const glass = far
     ? new THREE.MeshStandardMaterial({ color: GLASS[p.glass], transparent: true, opacity: 0.55, roughness: 0.15, side: THREE.DoubleSide })
     : new THREE.MeshPhysicalMaterial({ color: GLASS[p.glass], transparent: true, opacity: 0.5, roughness: 0.08, clearcoat: 1, side: THREE.DoubleSide });
   priv.push(glass);
   const bell = mesh(new THREE.LatheGeometry(prof, radial), glass, 'bell'); bell.castShadow = false; g.add(bell); parts.bell = bell;
 
-  // clapper on its own pivot at the bell's crown; its material is the one the game binds
-  const clapMat = new THREE.MeshStandardMaterial({ color: 0xd6cdb8, roughness: 0.9 });
-  priv.push(clapMat);
-  const clapper = mesh(new THREE.CylinderGeometry(0.01, 0.014, 0.1, 6).translate(0, -0.05, 0), clapMat, 'clapper', false);
-  clapper.position.set(0, -0.5, 0); clapper.geometry.translate(0, 0, 0); g.add(clapper); parts.clapper = clapper;
-
-  // tanzaku: a paper strip hung from the clapper
-  if (tier === 'far') { clapper.material = cordMat; clapMat.dispose(); priv.splice(priv.indexOf(clapMat), 1); return farChime(g, parts, [cord, bell, clapper], priv); }
+  // hook ring, cord, clapper and strip as ONE mesh (live draw 2); the clapper and strip flex by vertex
   const tLen = p.tanzaku;
-  const stripGeo = new THREE.PlaneGeometry(0.05, tLen, 1, seg(tier, 8, 4, 1)).translate(0, -tLen / 2, 0);
-  const tanzaku = mesh(stripGeo, km.paper({ color: 0xf3e4c8, side: THREE.DoubleSide }), 'tanzaku', false);
-  tanzaku.position.set(0, -0.6, 0); g.add(tanzaku); parts.tanzaku = tanzaku;
-  const live = [cord, bell, clapper, tanzaku];
-
+  const list = [
+    new THREE.TorusGeometry(0.02, 0.006, 5, seg(tier, 12, 8, 6)),
+    new THREE.CylinderGeometry(0.007, 0.007, 0.5, 5).translate(0, -0.27, 0),
+    new THREE.CylinderGeometry(0.01, 0.014, 0.1, 6).translate(0, -0.55, 0)
+  ];
+  if (!far) list.push(new THREE.PlaneGeometry(0.05, tLen, 1, 8).translate(0, -0.6 - tLen / 2, 0));
+  const geo = indexed(merge(list));
+  const clapper = mesh(geo, paper, 'clapper', false); g.add(clapper); parts.clapper = clapper;
+  const pos = geo.attributes.position, base = pos.array.slice();
   const S = { a: 0, va: 0, s: 0, vs: 0 };
   return {
-    group: g, parts, live,
+    group: g, parts, live: [bell, clapper],
     update(dt, t, env) {
+      if (far) return;
       const wind = env && typeof env.wind === 'number' ? env.wind : 0.2;
       const f = (0.15 + wind) * (0.6 + Math.sin(t * 1.7) * 0.4 + Math.sin(t * 3.9) * 0.3);
       S.va += (f - S.a * 22 - S.va * 2.5) * dt; S.a += S.va * dt;
       S.vs += ((f * 0.7 - S.s * 36 - S.vs * 4) + S.va * 2) * dt; S.s += S.vs * dt;
-      clapper.rotation.z = Math.max(-0.5, Math.min(0.5, S.a * 1.4));
-      tanzaku.rotation.z = Math.max(-0.9, Math.min(0.9, S.s * 1.3 + S.a * 0.5));
-      tanzaku.rotation.x = Math.sin(t * 2.1) * 0.08 * (0.3 + wind);
+      const ca = Math.max(-0.5, Math.min(0.5, S.a * 1.4)), sa = Math.max(-0.9, Math.min(0.9, S.s * 1.3 + S.a * 0.5));
+      const arr = pos.array;
+      for (let i = 0; i < pos.count; i++) {
+        const y = base[i * 3 + 1]; let dx = 0;
+        if (y < -0.5) dx += ca * (-0.5 - y);
+        if (y < -0.6) dx += sa * (-0.6 - y);
+        arr[i * 3] = base[i * 3] + dx;
+      }
+      pos.needsUpdate = true;
     },
     setTier() {},
     dispose() { for (const m of priv) m.dispose(); }
   };
-}
-
-function farChime(g, parts, live, priv) {
-  return { group: g, parts, live, update() {}, setTier() {}, dispose() { for (const m of priv) m.dispose(); } };
 }
