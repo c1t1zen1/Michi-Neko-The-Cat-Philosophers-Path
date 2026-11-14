@@ -166,137 +166,137 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="michi"></a>`michi` — Michi (player cat) | [src/player.js:this.mesh.name = 'Player Character (Michi)'](../src/player.js#L27)<br>[src/cat.js:buildCoat(](../src/cat.js#L273) | [cat / anatomy](../tools/cat_preview.js#L117) (review)<br>[villagers / sleep](../labs/villagers/js/recipes.js#L60) (embedded) — The sleep specimen uses Michi’s coat/build; it is a pose study rather than a dedicated player-model lab. |  |
+| <a id="michi"></a>`michi` — Michi (player cat) | [src/player.js:this.mesh.name = 'Player Character (Michi)'](../src/player.js#L27)<br>[src/cat.js:buildCoat(](../src/cat.js#L88) | [cat / anatomy](../tools/cat_preview.js#L117) (review)<br>[villagers / sleep](../labs/villagers/js/recipes.js#L60) (embedded) — The sleep specimen uses Michi’s coat/build; it is a pose study rather than a dedicated player-model lab. |  |
 | <a id="luna"></a>`luna` — Luna | [src/main.js:'Luna',](../src/main.js#L261)<br>[src/npc.js:export class NPC](../src/npc.js#L38) | [villagers / luna](../labs/villagers/js/recipes.js#L39) (direct) |  |
 | <a id="mochi"></a>`mochi` — Mochi | [src/main.js:'Mochi',](../src/main.js#L285)<br>[src/npc.js:export class NPC](../src/npc.js#L38) | [villagers / mochi](../labs/villagers/js/recipes.js#L43) (direct) |  |
 | <a id="kuro"></a>`kuro` — Kuro | [src/main.js:'Kuro',](../src/main.js#L300)<br>[src/npc.js:export class NPC](../src/npc.js#L38) | [villagers / kuro](../labs/villagers/js/recipes.js#L47) (direct) |  |
-| <a id="larry"></a>`larry` — Larry the turtle | [src/countryside.js:turtle.name = 'Turtle Guardian (Larry)'](../src/countryside.js#L2419) | [fences / corral](../labs/fences/js/recipes.js#L70) (embedded) — The complete original corral includes Larry; there is no isolated turtle or patrol study. |  |
-| <a id="guardian-crows"></a>`guardian-crows` — Nest guardian crows | [src/ambient_life.js:buildGuardianBirds(](../src/ambient_life.js#L121) | **No mapped evidence** | Critters extracts a sparrow, not guardianBirds; constructing AmbientLife alone does not put the crows on a specimen. |
-| <a id="sparrows"></a>`sparrows` — Valley sparrows | [src/ambient_life.js:buildBirds(](../src/ambient_life.js#L70) | [critters / game-bird](../labs/critters/js/recipes.js#L42) (direct)<br>[critters / flock](../labs/critters/js/recipes.js#L46) (direct) |  |
-| <a id="koi"></a>`koi` — River koi (procedural coat variants) | [src/ambient_life.js:buildKoi(](../src/ambient_life.js#L517) | [critters / game-koi](../labs/critters/js/recipes.js#L32) (direct) | Repeated koi and randomized markings are instances of this type, not additional inventory rows. |
-| <a id="butterflies"></a>`butterflies` — Valley butterflies | [src/ambient_life.js:buildButterflies(](../src/ambient_life.js#L309) | [critters / game-flutter](../labs/critters/js/recipes.js#L50) (direct)<br>[critters / hinge](../labs/critters/js/recipes.js#L54) (direct) |  |
+| <a id="larry"></a>`larry` — Larry the turtle | [src/countryside.js:turtle.name = 'Turtle Guardian (Larry)'](../src/countryside.js#L3425) | [fences / corral](../labs/fences/js/recipes.js#L70) (embedded) — The complete original corral includes Larry; there is no isolated turtle or patrol study. |  |
+| <a id="guardian-crows"></a>`guardian-crows` — Nest guardian crows | [src/ambient_life.js:buildGuardianBirds(](../src/ambient_life.js#L220) | **No mapped evidence** | Critters extracts a sparrow, not guardianBirds; constructing AmbientLife alone does not put the crows on a specimen. |
+| <a id="sparrows"></a>`sparrows` — Valley sparrows | [src/ambient_life.js:buildBirds(](../src/ambient_life.js#L159) | [critters / game-bird](../labs/critters/js/recipes.js#L42) (direct)<br>[critters / flock](../labs/critters/js/recipes.js#L46) (direct) |  |
+| <a id="koi"></a>`koi` — River koi (procedural coat variants) | [src/ambient_life.js:buildKoi(](../src/ambient_life.js#L635) | [critters / game-koi](../labs/critters/js/recipes.js#L32) (direct) | Repeated koi and randomized markings are instances of this type, not additional inventory rows. |
+| <a id="butterflies"></a>`butterflies` — Valley butterflies | [src/ambient_life.js:buildButterflies(](../src/ambient_life.js#L414) | [critters / game-flutter](../labs/critters/js/recipes.js#L50) (direct)<br>[critters / hinge](../labs/critters/js/recipes.js#L54) (direct) |  |
 
 ### Cat components
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="cat-coat"></a>`cat-coat` — Cat body, fur and tabby coats | [src/cat.js:buildCoat(](../src/cat.js#L273)<br>[src/cat_anatomy.js:export function getCatAnatomy](../src/cat_anatomy.js#L515)<br>[src/cat_shading.js:export function furMaterial](../src/cat_shading.js#L340) | [cat / coat](../tools/cat_preview.js#L152) (review) |  |
-| <a id="cat-face"></a>`cat-face` — Cat nose, muzzle, whiskers, ears and painted eyes | [src/cat.js:buildFace(](../src/cat.js#L303) | [cat / face](../tools/cat_preview.js#L126) (review) |  |
-| <a id="cat-collar"></a>`cat-collar` — Braided collar, bow and brass bell | [src/cat.js:buildCollar(](../src/cat.js#L374) | [cat / closeup](../tools/cat_preview.js#L169) (review) |  |
-| <a id="master-bells"></a>`master-bells` — Master Cat gold and twin bells | [src/cat.js:setMasterCat(](../src/cat.js#L1034) | **No mapped evidence** | The ordinary collar is reviewed; no specimen explicitly enables setMasterCat(). |
-| <a id="cat-shadow"></a>`cat-shadow` — Cat contact-shadow blob | [src/cat.js:buildShadowBlob(](../src/cat.js#L415) | [cat / anatomy](../tools/cat_preview.js#L117) (embedded) — Visible with the complete cat; no isolated shadow study. |  |
+| <a id="cat-coat"></a>`cat-coat` — Cat body, fur and tabby coats | [src/cat.js:buildCoat(](../src/cat.js#L88)<br>[src/cat_anatomy.js:export function getCatAnatomy](../src/cat_anatomy.js#L515)<br>[src/cat_shading.js:export function furMaterial](../src/cat_shading.js#L340) | [cat / coat](../tools/cat_preview.js#L152) (review) |  |
+| <a id="cat-face"></a>`cat-face` — Cat nose, muzzle, whiskers, ears and painted eyes | [src/cat.js:buildFace(](../src/cat.js#L92) | [cat / face](../tools/cat_preview.js#L126) (review) |  |
+| <a id="cat-collar"></a>`cat-collar` — Braided collar, bow and brass bell | [src/cat.js:buildCollar(](../src/cat.js#L96) | [cat / closeup](../tools/cat_preview.js#L169) (review) |  |
+| <a id="master-bells"></a>`master-bells` — Master Cat gold and twin bells | [src/cat.js:setMasterCat(](../src/cat.js#L229) | **No mapped evidence** | The ordinary collar is reviewed; no specimen explicitly enables setMasterCat(). |
+| <a id="cat-shadow"></a>`cat-shadow` — Cat contact-shadow blob | [src/cat.js:buildShadowBlob(](../src/cat.js#L101) | [cat / anatomy](../tools/cat_preview.js#L117) (embedded) — Visible with the complete cat; no isolated shadow study. |  |
 
 ### Ground and water
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="valley-ground"></a>`valley-ground` — Valley ground and terrain | [src/countryside.js:buildGround(](../src/countryside.js#L463) | [ground / today](../labs/ground/js/variants.js#L39) (direct)<br>[ground / height](../labs/ground/js/variants.js#L53) (direct) |  |
-| <a id="path"></a>`path` — Cobbled valley path | [src/countryside.js:buildPath(](../src/countryside.js#L833) | [ground / setts](../labs/ground/js/variants.js#L113) (direct)<br>[ground / pom](../labs/ground/js/variants.js#L120) (direct) |  |
-| <a id="path-shoulders"></a>`path-shoulders` — Earthen path shoulders | [src/countryside.js:buildPathShoulders(](../src/countryside.js#L551) | [ground / today](../labs/ground/js/variants.js#L39) (direct)<br>[ground / height](../labs/ground/js/variants.js#L53) (direct) |  |
-| <a id="path-slabs"></a>`path-slabs` — Walkway stone slabs | [src/countryside.js:buildWalkwaySlabs(](../src/countryside.js#L911) | [ground / slabs](../labs/ground/js/variants.js#L127) (direct) |  |
-| <a id="path-boulders"></a>`path-boulders` — Path boulders | [src/countryside.js:buildPathBoulders(](../src/countryside.js#L940) | [rocks / game-boulder](../labs/rocks/js/recipes.js#L33) (direct) |  |
-| <a id="key-rock"></a>`key-rock` — Key-hiding rock and companion stones | [src/countryside.js:buildKeyHidingRock(](../src/countryside.js#L2022) | [rocks / game-rock](../labs/rocks/js/recipes.js#L37) (direct) |  |
-| <a id="river"></a>`river` — River water surface and bed | [src/countryside.js:buildRiverAndBridge(](../src/countryside.js#L992)<br>[src/countryside.js:createRiverWaterMaterial(](../src/countryside.js#L1266) | [water / game](../labs/water/js/variants.js#L155) (direct)<br>[water / kyoto](../labs/water/js/variants.js#L165) (direct) |  |
-| <a id="bridge"></a>`bridge` — Kiyomizu bridge, ramps and walkable rails | [src/countryside.js:bridge.name = 'Kiyomizu Bridge'](../src/countryside.js#L1030) | [water / b-game](../labs/water/js/variants.js#L232) (direct) |  |
-| <a id="paddies"></a>`paddies` — Rice-paddy water | [src/countryside.js:buildPaddies(](../src/countryside.js#L769)<br>[src/countryside.js:createPaddyWaterMaterial(](../src/countryside.js#L1155) | [water / p-game](../labs/water/js/variants.js#L312) (direct)<br>[water / p-mirror](../labs/water/js/variants.js#L321) (direct) |  |
-| <a id="paddy-bunds"></a>`paddy-bunds` — Paddy beds and raised banks | [src/countryside.js:Paddy Ridge](../src/countryside.js#L809) | [water / p-game](../labs/water/js/variants.js#L312) (embedded) |  |
-| <a id="rice"></a>`rice` — Rice stalks | [src/countryside.js:rice.name = 'Rice Stalks'](../src/countryside.js#L830) | [water / p-summer](../labs/water/js/variants.js#L340) (direct)<br>[water / p-autumn](../labs/water/js/variants.js#L350) (direct) |  |
-| <a id="water-ripples"></a>`water-ripples` — Cat and koi ripple rings | [src/countryside.js:buildRipplePool(](../src/countryside.js#L614) | [water / ripple](../labs/water/js/variants.js#L120) (direct) — Technique study; not a replay of the game ripple-pool logic. |  |
-| <a id="rain-ripples"></a>`rain-ripples` — Separate raindrop ripple pool | [src/countryside.js:buildRainRipplePool(](../src/countryside.js#L639) | [weather / splash](../labs/weather/js/recipes.js#L41) (direct) — Rain impact study; original pool eviction behavior is not tested. |  |
+| <a id="valley-ground"></a>`valley-ground` — Valley ground and terrain | [src/countryside.js:buildGround(](../src/countryside.js#L693) | [ground / today](../labs/ground/js/variants.js#L39) (direct)<br>[ground / height](../labs/ground/js/variants.js#L53) (direct) |  |
+| <a id="path"></a>`path` — Cobbled valley path | [src/countryside.js:buildPath(](../src/countryside.js#L1150) | [ground / setts](../labs/ground/js/variants.js#L113) (direct)<br>[ground / pom](../labs/ground/js/variants.js#L120) (direct) |  |
+| <a id="path-shoulders"></a>`path-shoulders` — Earthen path shoulders | [src/countryside.js:buildPathShoulders(](../src/countryside.js#L794) | [ground / today](../labs/ground/js/variants.js#L39) (direct)<br>[ground / height](../labs/ground/js/variants.js#L53) (direct) |  |
+| <a id="path-slabs"></a>`path-slabs` — Walkway stone slabs | [src/countryside.js:buildWalkwaySlabs(](../src/countryside.js#L1243) | [ground / slabs](../labs/ground/js/variants.js#L127) (direct) |  |
+| <a id="path-boulders"></a>`path-boulders` — Path boulders | [src/countryside.js:buildPathBoulders(](../src/countryside.js#L1289) | [rocks / game-boulder](../labs/rocks/js/recipes.js#L33) (direct) |  |
+| <a id="key-rock"></a>`key-rock` — Key-hiding rock and companion stones | [src/countryside.js:buildKeyHidingRock(](../src/countryside.js#L2796) | [rocks / game-rock](../labs/rocks/js/recipes.js#L37) (direct) |  |
+| <a id="river"></a>`river` — River water surface and bed | [src/countryside.js:buildRiverAndBridge(](../src/countryside.js#L1362)<br>[src/countryside.js:createRiverWaterMaterial(](../src/countryside.js#L1697) | [water / game](../labs/water/js/variants.js#L155) (direct)<br>[water / kyoto](../labs/water/js/variants.js#L165) (direct) |  |
+| <a id="bridge"></a>`bridge` — Kiyomizu bridge, ramps and walkable rails | [src/countryside.js:bridge.name = 'Kiyomizu Bridge'](../src/countryside.js#L1466) | [water / b-game](../labs/water/js/variants.js#L232) (direct) |  |
+| <a id="paddies"></a>`paddies` — Rice-paddy water | [src/countryside.js:buildPaddies(](../src/countryside.js#L1046)<br>[src/countryside.js:createPaddyWaterMaterial(](../src/countryside.js#L1586) | [water / p-game](../labs/water/js/variants.js#L312) (direct)<br>[water / p-mirror](../labs/water/js/variants.js#L321) (direct) |  |
+| <a id="paddy-bunds"></a>`paddy-bunds` — Paddy beds and raised banks | [src/countryside.js:Paddy Ridge](../src/countryside.js#L1123) | [water / p-game](../labs/water/js/variants.js#L312) (embedded) |  |
+| <a id="rice"></a>`rice` — Rice stalks | [src/countryside.js:rice.name = 'Rice Stalks'](../src/countryside.js#L1147) | [water / p-summer](../labs/water/js/variants.js#L340) (direct)<br>[water / p-autumn](../labs/water/js/variants.js#L350) (direct) |  |
+| <a id="water-ripples"></a>`water-ripples` — Cat and koi ripple rings | [src/countryside.js:buildRipplePool(](../src/countryside.js#L867) | [water / ripple](../labs/water/js/variants.js#L120) (direct) — Technique study; not a replay of the game ripple-pool logic. |  |
+| <a id="rain-ripples"></a>`rain-ripples` — Separate raindrop ripple pool | [src/countryside.js:buildRainRipplePool(](../src/countryside.js#L904) | [weather / splash](../labs/weather/js/recipes.js#L41) (direct) — Rain impact study; original pool eviction behavior is not tested. |  |
 
 ### Landscape
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="mountains"></a>`mountains` — Valley mountain terrain and ridges | [src/countryside.js:buildMountains(](../src/countryside.js#L2858) | [ranges / stack](../labs/ranges/js/main.js#L144) (direct) |  |
-| <a id="edge-forest"></a>`edge-forest` — Edge-forest broadleaf tree wall | [src/countryside.js:buildEdgeForest(](../src/countryside.js#L3034) | [ranges / wall-mass](../labs/ranges/js/main.js#L157) (direct) |  |
-| <a id="edge-undergrowth"></a>`edge-undergrowth` — Edge shrubs and shrine corridor thicket | [src/countryside.js:buildEdgeUndergrowth(](../src/countryside.js#L3152) | [ranges / edge](../labs/ranges/js/main.js#L193) (direct) |  |
-| <a id="foothill-forest"></a>`foothill-forest` — Foothill cedars and broadleaf crowns | [src/countryside.js:buildFoothillForest(](../src/countryside.js#L3318) | [ranges / foothills](../labs/ranges/js/main.js#L31) (embedded) — The hero valley includes the foothill carpet; there is no separate shelf specimen. |  |
-| <a id="distant-village"></a>`distant-village` — Distant valley village houses and hearth windows | [src/countryside.js:buildVillage(](../src/countryside.js#L3261) | [machiya / original-village](../labs/machiya/js/variants.js#L63) (related) — The street-house builder differs from buildVillage() distant silhouettes. |  |
-| <a id="mist-ring"></a>`mist-ring` — Valley mist ring | [src/countryside.js:buildMistRing(](../src/countryside.js#L3392) | [ranges / air](../labs/ranges/js/main.js#L211) (related) — Aerial perspective bench; it does not extract the original mist-ring mesh. |  |
-| <a id="dawn-mist"></a>`dawn-mist` — River dawn mist ribbons | [src/countryside.js:buildDawnMist(](../src/countryside.js#L3414) | [ranges / air](../labs/ranges/js/main.js#L211) (related) — General haze study; no dawn-river specimen or time envelope. |  |
+| <a id="mountains"></a>`mountains` — Valley mountain terrain and ridges | [src/countryside.js:buildMountains(](../src/countryside.js#L4017) | [ranges / stack](../labs/ranges/js/main.js#L144) (direct) |  |
+| <a id="edge-forest"></a>`edge-forest` — Edge-forest broadleaf tree wall | [src/countryside.js:buildEdgeForest(](../src/countryside.js#L4230) | [ranges / wall-mass](../labs/ranges/js/main.js#L157) (direct) |  |
+| <a id="edge-undergrowth"></a>`edge-undergrowth` — Edge shrubs and shrine corridor thicket | [src/countryside.js:buildEdgeUndergrowth(](../src/countryside.js#L4402) | [ranges / edge](../labs/ranges/js/main.js#L193) (direct) |  |
+| <a id="foothill-forest"></a>`foothill-forest` — Foothill cedars and broadleaf crowns | [src/countryside.js:buildFoothillForest(](../src/countryside.js#L4635) | [ranges / foothills](../labs/ranges/js/main.js#L31) (embedded) — The hero valley includes the foothill carpet; there is no separate shelf specimen. |  |
+| <a id="distant-village"></a>`distant-village` — Distant valley village houses and hearth windows | [src/countryside.js:buildVillage(](../src/countryside.js#L4550) | [machiya / original-village](../labs/machiya/js/variants.js#L63) (related) — The street-house builder differs from buildVillage() distant silhouettes. |  |
+| <a id="mist-ring"></a>`mist-ring` — Valley mist ring | [src/countryside.js:buildMistRing(](../src/countryside.js#L4731) | [ranges / air](../labs/ranges/js/main.js#L211) (related) — Aerial perspective bench; it does not extract the original mist-ring mesh. |  |
+| <a id="dawn-mist"></a>`dawn-mist` — River dawn mist ribbons | [src/countryside.js:buildDawnMist(](../src/countryside.js#L4774) | [ranges / air](../labs/ranges/js/main.js#L211) (related) — General haze study; no dawn-river specimen or time envelope. |  |
 
 ### Buildings
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="tea-house"></a>`tea-house` — Machiya tea house | [src/countryside.js:buildMachiyaTeaHouse(](../src/countryside.js#L1604) | [machiya / original-tea](../labs/machiya/js/variants.js#L63) (direct) |  |
-| <a id="residence"></a>`residence` — Craftsman residence | [src/countryside.js:buildMachiyaResidence(](../src/countryside.js#L1705) | [machiya / original-residence](../labs/machiya/js/variants.js#L63) (direct) |  |
-| <a id="secret-house"></a>`secret-house` — Hisomu-an secret machiya | [src/countryside.js:buildSecretMachiya(](../src/countryside.js#L1776) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (direct) |  |
-| <a id="street-house"></a>`street-house` — Village street house | [src/countryside.js:buildVillageHouse(](../src/countryside.js#L2123) | [machiya / original-village](../labs/machiya/js/variants.js#L63) (direct) |  |
-| <a id="village-street"></a>`village-street` — Village street assembly | [src/countryside.js:buildVillageStreet(](../src/countryside.js#L2109) | [machiya / original-village](../labs/machiya/js/variants.js#L63) (related) — Individual house references, not a specimen of the complete original street layout. |  |
+| <a id="tea-house"></a>`tea-house` — Machiya tea house | [src/countryside.js:buildMachiyaTeaHouse(](../src/countryside.js#L2122) | [machiya / original-tea](../labs/machiya/js/variants.js#L63) (direct) |  |
+| <a id="residence"></a>`residence` — Craftsman residence | [src/countryside.js:buildMachiyaResidence(](../src/countryside.js#L2272) | [machiya / original-residence](../labs/machiya/js/variants.js#L63) (direct) |  |
+| <a id="secret-house"></a>`secret-house` — Hisomu-an secret machiya | [src/countryside.js:buildSecretMachiya(](../src/countryside.js#L2362) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (direct) |  |
+| <a id="street-house"></a>`street-house` — Village street house | [src/countryside.js:buildVillageHouse(](../src/countryside.js#L2937) | [machiya / original-village](../labs/machiya/js/variants.js#L63) (direct) |  |
+| <a id="village-street"></a>`village-street` — Village street assembly | [src/countryside.js:buildVillageStreet(](../src/countryside.js#L2910) | [machiya / original-village](../labs/machiya/js/variants.js#L63) (related) — Individual house references, not a specimen of the complete original street layout. |  |
 
 ### Building components
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="kawara-roof"></a>`kawara-roof` — Kawara roof slopes, end tiles, ridge and onigawara | [src/countryside.js:createKawaraRoof(](../src/countryside.js#L1421)<br>[src/countryside.js:createCurvedSlope(](../src/countryside.js#L1404) | [machiya / roof-original](../labs/machiya/js/variants.js#L76) (direct) |  |
-| <a id="koushi"></a>`koushi` — Koushi lattice and framing | [src/countryside.js:createKoushi(](../src/countryside.js#L1380) | [machiya / lattice-original](../labs/machiya/js/variants.js#L85) (direct) |  |
-| <a id="engawa"></a>`engawa` — Engawa deck, plinths and stepping stone | [src/countryside.js:createEngawa(](../src/countryside.js#L1517) | [machiya / deck-original](../labs/machiya/js/variants.js#L91) (direct) |  |
-| <a id="timber-frame"></a>`timber-frame` — Timber posts, sills and eave beams | [src/countryside.js:// Dark timber foundation sill](../src/countryside.js#L1611) | [machiya / frame-original](../labs/machiya/js/variants.js#L79) (direct) |  |
-| <a id="upper-windows"></a>`upper-windows` — Upper-storey timber lattice windows | [src/countryside.js:// Upper fine vertical lattice windows](../src/countryside.js#L1659) | [machiya / window-original](../labs/machiya/js/variants.js#L88) (direct) |  |
-| <a id="noren"></a>`noren` — Noren shop curtains | [src/countryside.js:// Front Facade: Lattice](../src/countryside.js#L1620) | [machiya / cloth-original](../labs/machiya/js/variants.js#L97) (direct) |  |
-| <a id="namako"></a>`namako` — Namako skirt walls | [src/countryside.js:// Namako-kabe skirt](../src/countryside.js#L97) | [machiya / original-village](../labs/machiya/js/variants.js#L63) (embedded) |  |
-| <a id="tea-bench"></a>`tea-bench` — Tea-house bench and mosen cushion | [src/countryside.js:// Front Chamise Tea Bench](../src/countryside.js#L1632) | [machiya / original-tea](../labs/machiya/js/variants.js#L63) (embedded) |  |
-| <a id="secret-door"></a>`secret-door` — Secret sliding door | [src/countryside.js:slidingDoor.name = 'Secret Sliding Door'](../src/countryside.js#L1888) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
-| <a id="lock-plate"></a>`lock-plate` — Antique brass padlock emblem | [src/countryside.js:this.lockPlate.name = 'Brass Lock Plate'](../src/countryside.js#L1896) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
+| <a id="kawara-roof"></a>`kawara-roof` — Kawara roof slopes, end tiles, ridge and onigawara | [src/countryside.js:createKawaraRoof(](../src/countryside.js#L1864)<br>[src/countryside.js:createCurvedSlope(](../src/countryside.js#L1847) | [machiya / roof-original](../labs/machiya/js/variants.js#L76) (direct) |  |
+| <a id="koushi"></a>`koushi` — Koushi lattice and framing | [src/countryside.js:createKoushi(](../src/countryside.js#L1811) | [machiya / lattice-original](../labs/machiya/js/variants.js#L85) (direct) |  |
+| <a id="engawa"></a>`engawa` — Engawa deck, plinths and stepping stone | [src/countryside.js:createEngawa(](../src/countryside.js#L1970) | [machiya / deck-original](../labs/machiya/js/variants.js#L91) (direct) |  |
+| <a id="timber-frame"></a>`timber-frame` — Timber posts, sills and eave beams | [src/countryside.js:// Dark timber foundation sill](../src/countryside.js#L2253) | [machiya / frame-original](../labs/machiya/js/variants.js#L79) (direct) |  |
+| <a id="upper-windows"></a>`upper-windows` — Upper-storey timber lattice windows | [src/countryside.js:// Upper fine vertical lattice windows](../src/countryside.js#L2205) | [machiya / window-original](../labs/machiya/js/variants.js#L88) (direct) |  |
+| <a id="noren"></a>`noren` — Noren shop curtains | [src/countryside.js:// Front Facade: Lattice](../src/countryside.js#L2173) | [machiya / cloth-original](../labs/machiya/js/variants.js#L97) (direct) |  |
+| <a id="namako"></a>`namako` — Namako skirt walls | [src/countryside.js:// Namako-kabe skirt](../src/countryside.js#L98) | [machiya / original-village](../labs/machiya/js/variants.js#L63) (embedded) |  |
+| <a id="tea-bench"></a>`tea-bench` — Tea-house bench and mosen cushion | [src/countryside.js:// Front Chamise Tea Bench](../src/countryside.js#L2264) | [machiya / original-tea](../labs/machiya/js/variants.js#L63) (embedded) |  |
+| <a id="secret-door"></a>`secret-door` — Secret sliding door | [src/countryside.js:slidingDoor.name = 'Secret Sliding Door'](../src/countryside.js#L2637) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
+| <a id="lock-plate"></a>`lock-plate` — Antique brass padlock emblem | [src/countryside.js:this.lockPlate.name = 'Brass Lock Plate'](../src/countryside.js#L2653) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
 
 ### Props
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="crates"></a>`crates` — Climbable crate stacks | [src/countryside.js:createClimbCrates(](../src/countryside.js#L1558) | [alley / game-crates](../labs/alley/js/recipes.js#L26) (direct)<br>[alley / crate](../labs/alley/js/recipes.js#L30) (direct) |  |
-| <a id="sake-barrel"></a>`sake-barrel` — Climb-route sake barrel | [src/countryside.js:// Bottom step: 2 heavy wooden crates + 1 sake barrel](../src/countryside.js#L1561) | [alley / komodaru](../labs/alley/js/props.js#L23) (direct) — Generated as its own specimen by the PROPS map in recipes.js. |  |
-| <a id="nest"></a>`nest` — Rooftop bird nest | [src/countryside.js:buildBirdNest(](../src/countryside.js#L1950) | [nest / game-nest](../labs/nest/js/recipes.js#L28) (direct)<br>[nest / lined](../labs/nest/js/recipes.js#L44) (direct) |  |
-| <a id="nest-eggs"></a>`nest-eggs` — Three speckled nest eggs | [src/countryside.js:// Twig nest bowl](../src/countryside.js#L1954) | [nest / eggs](../labs/nest/js/recipes.js#L48) (direct) |  |
-| <a id="toro"></a>`toro` — Stone toro lanterns and halos | [src/countryside.js:buildToroLantern(](../src/countryside.js#L2534) | [lanterns / game-toro](../labs/lanterns/js/recipes.js#L34) (direct) |  |
-| <a id="chochin"></a>`chochin` — Hanging chochin lanterns | [src/countryside.js:createChochinLantern(](../src/countryside.js#L1534) | [lanterns / game-chochin](../labs/lanterns/js/recipes.js#L63) (direct) |  |
-| <a id="street-lamps"></a>`street-lamps` — Street lamp posts | [src/countryside.js:buildLanterns(](../src/countryside.js#L2831) | [lanterns / game-street](../labs/lanterns/js/recipes.js#L88) (direct) |  |
-| <a id="bamboo-fence"></a>`bamboo-fence` — Bamboo fence runs | [src/countryside.js:buildBambooFence(](../src/countryside.js#L2307) | [fences / game-fence](../labs/fences/js/recipes.js#L32) (direct) |  |
-| <a id="corral"></a>`corral` — Bamboo corral assembly | [src/countryside.js:buildBambooCorral(](../src/countryside.js#L2351) | [fences / corral](../labs/fences/js/recipes.js#L70) (direct) |  |
-| <a id="corral-sign"></a>`corral-sign` — Corral warning sign | [src/countryside.js:marker.name = 'Corral Warning Sign'](../src/countryside.js#L2390) | [fences / corral](../labs/fences/js/recipes.js#L70) (embedded) |  |
-| <a id="shishi"></a>`shishi` — Shishi-odoshi feeder, rocker, pivot and basin | [src/countryside.js:buildShishiOdoshi(](../src/countryside.js#L2054) | [garden / game-shishi](../labs/garden/js/recipes.js#L31) (direct)<br>[garden / shishi](../labs/garden/js/recipes.js#L35) (direct) |  |
-| <a id="wind-chime"></a>`wind-chime` — Furin wind chime | [src/countryside.js:buildWindChime(](../src/countryside.js#L2635) | [garden / game-chime](../labs/garden/js/recipes.js#L44) (direct) |  |
+| <a id="crates"></a>`crates` — Climbable crate stacks | [src/countryside.js:createClimbCrates(](../src/countryside.js#L2036) | [alley / game-crates](../labs/alley/js/recipes.js#L26) (direct)<br>[alley / crate](../labs/alley/js/recipes.js#L30) (direct) |  |
+| <a id="sake-barrel"></a>`sake-barrel` — Climb-route sake barrel | [src/countryside.js:// Bottom step: 2 heavy wooden crates + 1 sake barrel](../src/countryside.js#L2072) | [alley / komodaru](../labs/alley/js/props.js#L23) (direct) — Generated as its own specimen by the PROPS map in recipes.js. |  |
+| <a id="nest"></a>`nest` — Rooftop bird nest | [src/countryside.js:buildBirdNest(](../src/countryside.js#L2674) | [nest / game-nest](../labs/nest/js/recipes.js#L28) (direct)<br>[nest / lined](../labs/nest/js/recipes.js#L44) (direct) |  |
+| <a id="nest-eggs"></a>`nest-eggs` — Three speckled nest eggs | [src/countryside.js:// Twig nest bowl](../src/countryside.js#L2705) | [nest / eggs](../labs/nest/js/recipes.js#L48) (direct) |  |
+| <a id="toro"></a>`toro` — Stone toro lanterns and halos | [src/countryside.js:buildToroLantern(](../src/countryside.js#L3541) | [lanterns / game-toro](../labs/lanterns/js/recipes.js#L34) (direct) |  |
+| <a id="chochin"></a>`chochin` — Hanging chochin lanterns | [src/countryside.js:createChochinLantern(](../src/countryside.js#L1997) | [lanterns / game-chochin](../labs/lanterns/js/recipes.js#L63) (direct) |  |
+| <a id="street-lamps"></a>`street-lamps` — Street lamp posts | [src/countryside.js:buildLanterns(](../src/countryside.js#L3973) | [lanterns / game-street](../labs/lanterns/js/recipes.js#L88) (direct) |  |
+| <a id="bamboo-fence"></a>`bamboo-fence` — Bamboo fence runs | [src/countryside.js:buildBambooFence(](../src/countryside.js#L3217) | [fences / game-fence](../labs/fences/js/recipes.js#L32) (direct) |  |
+| <a id="corral"></a>`corral` — Bamboo corral assembly | [src/countryside.js:buildBambooCorral(](../src/countryside.js#L3298) | [fences / corral](../labs/fences/js/recipes.js#L70) (direct) |  |
+| <a id="corral-sign"></a>`corral-sign` — Corral warning sign | [src/countryside.js:marker.name = 'Corral Warning Sign'](../src/countryside.js#L3386) | [fences / corral](../labs/fences/js/recipes.js#L70) (embedded) |  |
+| <a id="shishi"></a>`shishi` — Shishi-odoshi feeder, rocker, pivot and basin | [src/countryside.js:buildShishiOdoshi(](../src/countryside.js#L2845) | [garden / game-shishi](../labs/garden/js/recipes.js#L31) (direct)<br>[garden / shishi](../labs/garden/js/recipes.js#L35) (direct) |  |
+| <a id="wind-chime"></a>`wind-chime` — Furin wind chime | [src/countryside.js:buildWindChime(](../src/countryside.js#L3683) | [garden / game-chime](../labs/garden/js/recipes.js#L44) (direct) |  |
 
 ### Shrine
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="torii"></a>`torii` — Valley torii gate and climbing joinery | [src/countryside.js:buildTorii(](../src/countryside.js#L2707) | [shrine / game-torii](../labs/shrine/js/recipes.js#L165) (direct) |  |
-| <a id="shrine-hall"></a>`shrine-hall` — Shrine hall, steps and roof | [src/countryside.js:buildShrine(](../src/countryside.js#L2761) | [shrine / game-hall](../labs/shrine/js/recipes.js#L368) (direct) |  |
-| <a id="shimenawa"></a>`shimenawa` — Sacred shimenawa rope and shide | [src/countryside.js:// Sacred Shimenawa](../src/countryside.js#L2800) | [shrine / game-rope](../labs/shrine/js/recipes.js#L264) (direct) |  |
-| <a id="shrine-bell"></a>`shrine-bell` — Shrine hanging bell and cords | [src/countryside.js:// Sacred Buddha / Shrine Spiritual Bell](../src/countryside.js#L2806) | [shrine / suzu](../labs/shrine/js/recipes.js#L400) (direct) |  |
-| <a id="offering-box"></a>`offering-box` — Saisen-bako offering box | [src/countryside.js:// Saisen-bako wooden offering box](../src/countryside.js#L2822) | [shrine / game-hall](../labs/shrine/js/recipes.js#L368) (embedded) |  |
-| <a id="mist-altar"></a>`mist-altar` — Mist altar plinth, bell, spirit flame and ring | [src/countryside.js:buildMistAltar(](../src/countryside.js#L2577) | [shrine / game-altar](../labs/shrine/js/recipes.js#L418) (direct) |  |
-| <a id="distant-pagoda"></a>`distant-pagoda` — Valley distant pagoda | [src/countryside.js:buildDistantPagoda(](../src/countryside.js#L2916) | [pagoda / orig-tower](../labs/pagoda/js/variants.js#L62) (direct) |  |
+| <a id="torii"></a>`torii` — Valley torii gate and climbing joinery | [src/countryside.js:buildTorii(](../src/countryside.js#L3786) | [shrine / game-torii](../labs/shrine/js/recipes.js#L165) (direct) |  |
+| <a id="shrine-hall"></a>`shrine-hall` — Shrine hall, steps and roof | [src/countryside.js:buildShrine(](../src/countryside.js#L3863) | [shrine / game-hall](../labs/shrine/js/recipes.js#L368) (direct) |  |
+| <a id="shimenawa"></a>`shimenawa` — Sacred shimenawa rope and shide | [src/countryside.js:// Sacred Shimenawa](../src/countryside.js#L3937) | [shrine / game-rope](../labs/shrine/js/recipes.js#L264) (direct) |  |
+| <a id="shrine-bell"></a>`shrine-bell` — Shrine hanging bell and cords | [src/countryside.js:// Sacred Buddha / Shrine Spiritual Bell](../src/countryside.js#L3947) | [shrine / suzu](../labs/shrine/js/recipes.js#L400) (direct) |  |
+| <a id="offering-box"></a>`offering-box` — Saisen-bako offering box | [src/countryside.js:// Saisen-bako wooden offering box](../src/countryside.js#L3967) | [shrine / game-hall](../labs/shrine/js/recipes.js#L368) (embedded) |  |
+| <a id="mist-altar"></a>`mist-altar` — Mist altar plinth, bell, spirit flame and ring | [src/countryside.js:buildMistAltar(](../src/countryside.js#L3606) | [shrine / game-altar](../labs/shrine/js/recipes.js#L418) (direct) |  |
+| <a id="distant-pagoda"></a>`distant-pagoda` — Valley distant pagoda | [src/countryside.js:buildDistantPagoda(](../src/countryside.js#L4098) | [pagoda / orig-tower](../labs/pagoda/js/variants.js#L62) (direct) |  |
 
 ### Items
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="yarn"></a>`yarn` — Yarn balls | [src/countryside.js:buildYarn(](../src/countryside.js#L3452) | [keepsakes / game-yarn](../labs/keepsakes/js/recipes.js#L31) (direct)<br>[keepsakes / wound](../labs/keepsakes/js/recipes.js#L35) (direct) |  |
-| <a id="key"></a>`key` — Antique secret-house key | [src/countryside.js:buildSecretKey(](../src/countryside.js#L1993) | [keepsakes / game-key](../labs/keepsakes/js/recipes.js#L52) (direct) |  |
-| <a id="guardian-feather"></a>`guardian-feather` — Guardian’s Feather trophy | [src/countryside.js:feather.name = "Guardian's Feather"](../src/countryside.js#L1975) | [nest / feather](../labs/nest/js/recipes.js#L52) (direct) |  |
-| <a id="offering-bells"></a>`offering-bells` — Five collectible offering bells | [src/countryside.js:buildOfferingBells(](../src/countryside.js#L2672) | [shrine / game-bell](../labs/shrine/js/recipes.js#L433) (direct) |  |
-| <a id="dango"></a>`dango` — Golden Dango / River-Spirit Charm | [src/countryside.js:charm.name = 'River-Spirit Charm'](../src/countryside.js#L1119) | **No mapped evidence** | Water Lab studies water and bridges, but does not extract the charm as a specimen. |
-| <a id="jade-paw"></a>`jade-paw` — Jade Paw corral reward | [src/countryside.js:reward.name = 'Jade Paw Reward'](../src/countryside.js#L2402) | [fences / corral](../labs/fences/js/recipes.js#L70) (related) — The original builder creates this reward with visible=false. The corral tile does not reveal it; construction is not visible coverage. |  |
-| <a id="secret-fish"></a>`secret-fish` — Secret-house grilled fish treat | [src/countryside.js:fish.name = 'Grilled Fish Treat'](../src/countryside.js#L1834) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) — Fish remains inside the furnished original secret-house reference. |  |
-| <a id="interior-fish"></a>`interior-fish` — Tea-house grilled sea-bream platter | [src/interior.js:fish.name = 'Grilled Sea Bream'](../src/interior.js#L334) | **No mapped evidence** | The standalone Interiors Lab does not reproduce this food item. |
+| <a id="yarn"></a>`yarn` — Yarn balls | [src/countryside.js:buildYarn(](../src/countryside.js#L4839) | [keepsakes / game-yarn](../labs/keepsakes/js/recipes.js#L31) (direct)<br>[keepsakes / wound](../labs/keepsakes/js/recipes.js#L35) (direct) |  |
+| <a id="key"></a>`key` — Antique secret-house key | [src/countryside.js:buildSecretKey(](../src/countryside.js#L2754) | [keepsakes / game-key](../labs/keepsakes/js/recipes.js#L52) (direct) |  |
+| <a id="guardian-feather"></a>`guardian-feather` — Guardian’s Feather trophy | [src/countryside.js:feather.name = "Guardian's Feather"](../src/countryside.js#L2740) | [nest / feather](../labs/nest/js/recipes.js#L52) (direct) |  |
+| <a id="offering-bells"></a>`offering-bells` — Five collectible offering bells | [src/countryside.js:buildOfferingBells(](../src/countryside.js#L3733) | [shrine / game-bell](../labs/shrine/js/recipes.js#L433) (direct) |  |
+| <a id="dango"></a>`dango` — Golden Dango / River-Spirit Charm | [src/countryside.js:charm.name = 'River-Spirit Charm'](../src/countryside.js#L1550) | **No mapped evidence** | Water Lab studies water and bridges, but does not extract the charm as a specimen. |
+| <a id="jade-paw"></a>`jade-paw` — Jade Paw corral reward | [src/countryside.js:reward.name = 'Jade Paw Reward'](../src/countryside.js#L3402) | [fences / corral](../labs/fences/js/recipes.js#L70) (related) — The original builder creates this reward with visible=false. The corral tile does not reveal it; construction is not visible coverage. |  |
+| <a id="secret-fish"></a>`secret-fish` — Secret-house grilled fish treat | [src/countryside.js:fish.name = 'Grilled Fish Treat'](../src/countryside.js#L2593) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) — Fish remains inside the furnished original secret-house reference. |  |
+| <a id="interior-fish"></a>`interior-fish` — Tea-house grilled sea-bream platter | [src/interior.js:fish.name = 'Grilled Sea Bream'](../src/interior.js#L588) | **No mapped evidence** | The standalone Interiors Lab does not reproduce this food item. |
 
 ### Vegetation
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="sakura"></a>`sakura` — Sakura trees | [src/vegetation.js:sakuraTree(](../src/vegetation.js#L263) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
-| <a id="maples"></a>`maples` — Maple trees | [src/vegetation.js:mapleTree(](../src/vegetation.js#L560)<br>[src/vegetation.js:buildMaplesAndPines(](../src/vegetation.js#L588) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
-| <a id="pines"></a>`pines` — Garden pines | [src/vegetation.js:pineTree(](../src/vegetation.js#L574) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
-| <a id="rim-trees"></a>`rim-trees` — Rim sakura, maple and pine leaf masses | [src/vegetation.js:treeStyle(](../src/vegetation.js#L138)<br>[src/vegetation.js:canopyTree(](../src/vegetation.js#L165) | [tree / rim](../tools/tree_preview.js#L104) (review) |  |
-| <a id="tree-trunks"></a>`tree-trunks` — Tree trunks and limbs | [src/vegetation.js:trunkMesh(](../src/vegetation.js#L240) | [tree / detail](../tools/tree_preview.js#L128) (review) |  |
+| <a id="sakura"></a>`sakura` — Sakura trees | [src/vegetation.js:sakuraTree(](../src/vegetation.js#L347) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
+| <a id="maples"></a>`maples` — Maple trees | [src/vegetation.js:mapleTree(](../src/vegetation.js#L698)<br>[src/vegetation.js:buildMaplesAndPines(](../src/vegetation.js#L727) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
+| <a id="pines"></a>`pines` — Garden pines | [src/vegetation.js:pineTree(](../src/vegetation.js#L712) | [tree / hero](../tools/tree_preview.js#L97) (review) |  |
+| <a id="rim-trees"></a>`rim-trees` — Rim sakura, maple and pine leaf masses | [src/vegetation.js:treeStyle(](../src/vegetation.js#L183)<br>[src/vegetation.js:canopyTree(](../src/vegetation.js#L210) | [tree / rim](../tools/tree_preview.js#L104) (review) |  |
+| <a id="tree-trunks"></a>`tree-trunks` — Tree trunks and limbs | [src/vegetation.js:trunkMesh(](../src/vegetation.js#L324) | [tree / detail](../tools/tree_preview.js#L128) (review) |  |
 | <a id="tree-canopies"></a>`tree-canopies` — Leaf sprays and clumped/mass canopy families | [src/foliage.js:export function buildCanopy](../src/foliage.js#L1172) | [tree / compare](../tools/tree_preview.js#L118) (review) |  |
-| <a id="bamboo-groves"></a>`bamboo-groves` — Bamboo groves, culms and leaves | [src/vegetation.js:buildBambooGrove(](../src/vegetation.js#L351) | [greenery / game-grove](../labs/greenery/js/recipes.js#L46) (direct)<br>[greenery / nodes](../labs/greenery/js/recipes.js#L33) (direct)<br>[greenery / leaves](../labs/greenery/js/recipes.js#L50) (direct) |  |
-| <a id="street-bushes"></a>`street-bushes` — Street bushes | [src/countryside.js:buildStreetBushes(](../src/countryside.js#L2197) | [greenery / game-bush](../labs/greenery/js/recipes.js#L67) (direct) |  |
-| <a id="roadside-moss"></a>`roadside-moss` — Roadside moss patches | [src/countryside.js:buildStreetGreenery(](../src/countryside.js#L2244) | [grass / moss](../labs/grass/js/types_wild.js#L375) (related) — The grass moss pillow differs from the roadside instanced tufts. |  |
-| <a id="meadow-system"></a>`meadow-system` — Valley biome layout and grass LOD rings | [src/vegetation.js:buildMeadow(](../src/vegetation.js#L609)<br>[src/grass.js:addRing(](../src/grass.js#L1523)<br>[src/grass.js:addZone(](../src/grass.js#L1532) | [grass / ring-lod](../labs/grass/js/types_field.js#L273) (direct) | The meadow’s collider-derived biome layout has no isolated original specimen; Ring LOD studies the shared layout technique. |
+| <a id="bamboo-groves"></a>`bamboo-groves` — Bamboo groves, culms and leaves | [src/vegetation.js:buildBambooGrove(](../src/vegetation.js#L457) | [greenery / game-grove](../labs/greenery/js/recipes.js#L46) (direct)<br>[greenery / nodes](../labs/greenery/js/recipes.js#L33) (direct)<br>[greenery / leaves](../labs/greenery/js/recipes.js#L50) (direct) |  |
+| <a id="street-bushes"></a>`street-bushes` — Street bushes | [src/countryside.js:buildStreetBushes(](../src/countryside.js#L3044) | [greenery / game-bush](../labs/greenery/js/recipes.js#L67) (direct) |  |
+| <a id="roadside-moss"></a>`roadside-moss` — Roadside moss patches | [src/countryside.js:buildStreetGreenery(](../src/countryside.js#L3127) | [grass / moss](../labs/grass/js/types_wild.js#L375) (related) — The grass moss pillow differs from the roadside instanced tufts. |  |
+| <a id="meadow-system"></a>`meadow-system` — Valley biome layout and grass LOD rings | [src/vegetation.js:buildMeadow(](../src/vegetation.js#L748)<br>[src/grass.js:addRing(](../src/grass.js#L1523)<br>[src/grass.js:addZone(](../src/grass.js#L1532) | [grass / ring-lod](../labs/grass/js/types_field.js#L273) (direct) | The meadow’s collider-derived biome layout has no isolated original specimen; Ring LOD studies the shared layout technique. |
 | <a id="grass-near"></a>`grass-near` — Near meadow blades and tufts | [src/grass.js:near: {](../src/grass.js#L881) | [grass / bezier](../labs/grass/js/types_field.js#L25) (direct) |  |
 | <a id="grass-mid"></a>`grass-mid` — Mid-distance tri-quad clumps | [src/grass.js:mid: {](../src/grass.js#L898) | [grass / triquad](../labs/grass/js/types_field.js#L59) (direct) |  |
 | <a id="grass-far"></a>`grass-far` — Far painted tuft cards | [src/grass.js:far: {](../src/grass.js#L914) | [grass / meadow-painted](../labs/grass/js/types_ours.js#L245) (direct) |  |
@@ -315,52 +315,52 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
 | <a id="grass-fireflies"></a>`grass-fireflies` — River-bank grass fireflies | [src/grass.js:addFireflies(](../src/grass.js#L1607) | [moonpool / fireflies](../labs/moonpool/js/recipes.js#L267) (related) — Related hotaru study; not the GrassSystem particle shader. |  |
-| <a id="dappled-light"></a>`dappled-light` — Projected dappled light pools | [src/vegetation.js:buildDappledLight(](../src/vegetation.js#L288) | [komorebi / game-dapple](../labs/komorebi/js/recipes.js#L35) (direct) |  |
+| <a id="dappled-light"></a>`dappled-light` — Projected dappled light pools | [src/vegetation.js:buildDappledLight(](../src/vegetation.js#L372) | [komorebi / game-dapple](../labs/komorebi/js/recipes.js#L35) (direct) |  |
 
 ### Hidden places
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="moon-pool"></a>`moon-pool` — Moon Pool assembly | [src/hidden_places.js:buildMoonPool(](../src/hidden_places.js#L95) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (direct) |  |
-| <a id="pool-apron"></a>`pool-apron` — Moon Pool mossy apron | [src/hidden_places.js:// Mossy ground apron](../src/hidden_places.js#L110) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
-| <a id="pool-water"></a>`pool-water` — Moon Pool water and caustic layer | [src/hidden_places.js:// The water: a deep](../src/hidden_places.js#L134) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (direct) |  |
-| <a id="pool-moon"></a>`pool-moon` — Moon reflection disc | [src/hidden_places.js:// Moon pooled on the water](../src/hidden_places.js#L169) | [moonpool / game-moon](../labs/moonpool/js/recipes.js#L217) (direct) |  |
-| <a id="pool-rim"></a>`pool-rim` — Pool rim stones | [src/hidden_places.js:// Rim stones](../src/hidden_places.js#L181) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
-| <a id="lily-pads"></a>`lily-pads` — Lily pads | [src/hidden_places.js:// Lily pads](../src/hidden_places.js#L217) | [moonpool / game-pad](../labs/moonpool/js/recipes.js#L231) (direct) |  |
-| <a id="lotus"></a>`lotus` — Lotus blossoms | [src/hidden_places.js:// Lily pads](../src/hidden_places.js#L217) | [moonpool / lotus](../labs/moonpool/js/recipes.js#L239) (direct) |  |
-| <a id="pool-seat"></a>`pool-seat` — Pool sitting stone | [src/hidden_places.js:// Flat sitting stone](../src/hidden_places.js#L244) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
-| <a id="pool-toro"></a>`pool-toro` — Moon Pool stone toro | [src/hidden_places.js:// A little stone toro](../src/hidden_places.js#L253) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
-| <a id="pool-motes"></a>`pool-motes` — Moon Pool rising motes | [src/hidden_places.js:// Motes lifting off](../src/hidden_places.js#L277) | [moonpool / game-motes](../labs/moonpool/js/recipes.js#L263) (direct) |  |
-| <a id="lantern-glade"></a>`lantern-glade` — Lantern Glade complete clearing | [src/hidden_places.js:buildLanternGlade(](../src/hidden_places.js#L318) | [moonpool / game-lamp](../labs/moonpool/js/recipes.js#L245) (related) — The original tile extracts a lantern, not the complete clearing. |  |
-| <a id="glade-floor"></a>`glade-floor` — Glade leaf-litter ground | [src/hidden_places.js:// Leaf-litter floor](../src/hidden_places.js#L329) | **No mapped evidence** | No specimen extracts this leaf-litter texture or clearing floor. |
-| <a id="glade-bamboo"></a>`glade-bamboo` — Glade bamboo ring and drooping leaves | [src/hidden_places.js:stalks.name = 'Glade Bamboo'](../src/hidden_places.js#L373) | [greenery / game-grove](../labs/greenery/js/recipes.js#L46) (related) — Vegetation.buildBambooGrove differs from the hidden-place bamboo. |  |
-| <a id="glade-lanterns"></a>`glade-lanterns` — Glade paper lanterns and glow | [src/hidden_places.js:// Paper lanterns strung](../src/hidden_places.js#L436) | [moonpool / game-lamp](../labs/moonpool/js/recipes.js#L245) (direct) |  |
-| <a id="glade-seat"></a>`glade-seat` — Glade seat and mossy central boulder | [src/hidden_places.js:// A flat sitting stone](../src/hidden_places.js#L473) | [rocks / moss-old](../labs/rocks/js/recipes.js#L67) (related) — Related stone finish, without the glade objects. |  |
-| <a id="glade-fireflies"></a>`glade-fireflies` — Glade fireflies | [src/hidden_places.js:// Fireflies that gather](../src/hidden_places.js#L494) | [moonpool / fireflies](../labs/moonpool/js/recipes.js#L267) (direct) |  |
+| <a id="moon-pool"></a>`moon-pool` — Moon Pool assembly | [src/hidden_places.js:buildMoonPool(](../src/hidden_places.js#L156) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (direct) |  |
+| <a id="pool-apron"></a>`pool-apron` — Moon Pool mossy apron | [src/hidden_places.js:// Mossy ground apron](../src/hidden_places.js#L295) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
+| <a id="pool-water"></a>`pool-water` — Moon Pool water and caustic layer | [src/hidden_places.js:// The water: a deep](../src/hidden_places.js#L323) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (direct) |  |
+| <a id="pool-moon"></a>`pool-moon` — Moon reflection disc | [src/hidden_places.js:// Moon pooled on the water](../src/hidden_places.js#L363) | [moonpool / game-moon](../labs/moonpool/js/recipes.js#L217) (direct) |  |
+| <a id="pool-rim"></a>`pool-rim` — Pool rim stones | [src/hidden_places.js:// Rim stones](../src/hidden_places.js#L378) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
+| <a id="lily-pads"></a>`lily-pads` — Lily pads | [src/hidden_places.js:// Lily pads](../src/hidden_places.js#L253) | [moonpool / game-pad](../labs/moonpool/js/recipes.js#L231) (direct) |  |
+| <a id="lotus"></a>`lotus` — Lotus blossoms | [src/hidden_places.js:// Lily pads](../src/hidden_places.js#L253) | [moonpool / lotus](../labs/moonpool/js/recipes.js#L239) (direct) |  |
+| <a id="pool-seat"></a>`pool-seat` — Pool sitting stone | [src/hidden_places.js:// Flat sitting stone](../src/hidden_places.js#L411) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
+| <a id="pool-toro"></a>`pool-toro` — Moon Pool stone toro | [src/hidden_places.js:// A little stone toro](../src/hidden_places.js#L424) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
+| <a id="pool-motes"></a>`pool-motes` — Moon Pool rising motes | [src/hidden_places.js:// Motes lifting off](../src/hidden_places.js#L450) | [moonpool / game-motes](../labs/moonpool/js/recipes.js#L263) (direct) |  |
+| <a id="lantern-glade"></a>`lantern-glade` — Lantern Glade complete clearing | [src/hidden_places.js:buildLanternGlade(](../src/hidden_places.js#L485) | [moonpool / game-lamp](../labs/moonpool/js/recipes.js#L245) (related) — The original tile extracts a lantern, not the complete clearing. |  |
+| <a id="glade-floor"></a>`glade-floor` — Glade leaf-litter ground | [src/hidden_places.js:// Leaf-litter floor](../src/hidden_places.js#L616) | **No mapped evidence** | No specimen extracts this leaf-litter texture or clearing floor. |
+| <a id="glade-bamboo"></a>`glade-bamboo` — Glade bamboo ring and drooping leaves | [src/hidden_places.js:stalks.name = 'Glade Bamboo'](../src/hidden_places.js#L662) | [greenery / game-grove](../labs/greenery/js/recipes.js#L46) (related) — Vegetation.buildBambooGrove differs from the hidden-place bamboo. |  |
+| <a id="glade-lanterns"></a>`glade-lanterns` — Glade paper lanterns and glow | [src/hidden_places.js:// Paper lanterns strung](../src/hidden_places.js#L598) | [moonpool / game-lamp](../labs/moonpool/js/recipes.js#L245) (direct) |  |
+| <a id="glade-seat"></a>`glade-seat` — Glade seat and mossy central boulder | [src/hidden_places.js:// A flat sitting stone](../src/hidden_places.js#L736) | [rocks / moss-old](../labs/rocks/js/recipes.js#L67) (related) — Related stone finish, without the glade objects. |  |
+| <a id="glade-fireflies"></a>`glade-fireflies` — Glade fireflies | [src/hidden_places.js:// Fireflies that gather](../src/hidden_places.js#L758) | [moonpool / fireflies](../labs/moonpool/js/recipes.js#L267) (direct) |  |
 
 ### Interiors
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="tea-interior"></a>`tea-interior` — Tea-house interior assembly | [src/interior.js:buildInterior(](../src/interior.js#L211) | [interiors / garden](../labs/interiors/js/data.js#L24) (direct) — A redesigned room study, not the original InteriorManager builder. |  |
-| <a id="tatami"></a>`tatami` — Eight-mat tatami floor and borders | [src/interior.js:floor.name = 'Tatami Floor'](../src/interior.js#L216) | [interiors / tatami](../labs/interiors/js/craft.js#L5) (direct) |  |
-| <a id="interior-frame"></a>`interior-frame` — Interior walls, timber posts and ceiling beams | [src/interior.js:// Ceiling beams & panel](../src/interior.js#L247) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
-| <a id="shoji-doors"></a>`shoji-doors` — Entrance and exit shoji doors | [src/interior.js:exitDoor.name = 'Exit Door'](../src/interior.js#L412) | [interiors / shoji](../labs/interiors/js/craft.js#L6) (direct) |  |
-| <a id="tokonoma"></a>`tokonoma` — Tokonoma alcove | [src/interior.js:toko.name = 'Tokonoma Alcove'](../src/interior.js#L262) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
-| <a id="scroll"></a>`scroll` — Kakejiku hanging scroll | [src/interior.js:// Hanging Scroll](../src/interior.js#L264) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
-| <a id="bonsai"></a>`bonsai` — Tokonoma bonsai pine | [src/interior.js:// Mini Bonsai Pine](../src/interior.js#L268) | **No mapped evidence** | No original bonsai specimen; the lab alcove uses other decorations. |
-| <a id="chabudai"></a>`chabudai` — Chabudai low table | [src/interior.js:table.name = 'Chabudai Table'](../src/interior.js#L312) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
-| <a id="teaware"></a>`teaware` — Ceramic teapot and yunomi cups | [src/interior.js:// Ceramic Teapot & Yunomi Cups](../src/interior.js#L319) | [interiors / pottery](../labs/interiors/js/craft.js#L7) (direct) |  |
-| <a id="zabuton"></a>`zabuton` — Zabuton nap bed and embroidered tassels | [src/interior.js:bed.name = 'Zabuton Nap Bed'](../src/interior.js#L350) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
-| <a id="andon"></a>`andon` — Andon paper floor lantern | [src/interior.js:andon.name = 'Andon Lantern'](../src/interior.js#L363) | [lanterns / andon](../labs/lanterns/js/recipes.js#L92) (direct) |  |
-| <a id="courtyard-gravel"></a>`courtyard-gravel` — Courtyard rock-garden gravel | [src/interior.js:// Courtyard rock garden gravel](../src/interior.js#L393) | [rocks / rake](../labs/rocks/js/recipes.js#L71) (direct) |  |
-| <a id="courtyard-toro"></a>`courtyard-toro` — Courtyard stone lantern | [src/interior.js:toro.name = 'Courtyard Toro Lantern'](../src/interior.js#L398) | [lanterns / game-toro](../labs/lanterns/js/recipes.js#L34) (related) — Different source builder; no courtyard lantern extraction. |  |
-| <a id="courtyard-wall"></a>`courtyard-wall` — Courtyard boundary timber wall | [src/interior.js:// Courtyard outer timber wall](../src/interior.js#L405) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
-| <a id="knockables"></a>`knockables` — Three tabletop knockables (white cup, blue bowl, white sphere) | [src/interior.js:buildKnockables(](../src/interior.js#L131) | [interiors / pottery](../labs/interiors/js/craft.js#L7) (related) — Vessel geometry is studied; these three original items are not specimens.<br>[interiors / bat-cup](../labs/interiors/js/cat.js#L53) (related) — Lab physics supports batting lab vessels; original item geometry and physics differ. |  |
-| <a id="secret-tatami"></a>`secret-tatami` — Secret-house tatami | [src/countryside.js:tatamiFloor.name = 'Tatami Floor'](../src/countryside.js#L1795) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
-| <a id="secret-table"></a>`secret-table` — Secret-house table and teaware | [src/countryside.js:table.name = 'Chabudai Table'](../src/countryside.js#L1813) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
-| <a id="secret-bed"></a>`secret-bed` — Secret-house nap cushion | [src/countryside.js:// Gold embroidery tassels](../src/countryside.js#L1857) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
-| <a id="secret-andon"></a>`secret-andon` — Secret-house andon | [src/countryside.js:andon.name = 'Andon Lantern'](../src/countryside.js#L1872) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
+| <a id="tea-interior"></a>`tea-interior` — Tea-house interior assembly | [src/interior.js:buildInterior(](../src/interior.js#L320) | [interiors / garden](../labs/interiors/js/data.js#L24) (direct) — A redesigned room study, not the original InteriorManager builder. |  |
+| <a id="tatami"></a>`tatami` — Eight-mat tatami floor and borders | [src/interior.js:floor.name = 'Tatami Floor'](../src/interior.js#L473) | [interiors / tatami](../labs/interiors/js/craft.js#L5) (direct) |  |
+| <a id="interior-frame"></a>`interior-frame` — Interior walls, timber posts and ceiling beams | [src/interior.js:// Ceiling beams & panel](../src/interior.js#L502) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
+| <a id="shoji-doors"></a>`shoji-doors` — Entrance and exit shoji doors | [src/interior.js:exitDoor.name = 'Exit Door'](../src/interior.js#L660) | [interiors / shoji](../labs/interiors/js/craft.js#L6) (direct) |  |
+| <a id="tokonoma"></a>`tokonoma` — Tokonoma alcove | [src/interior.js:toko.name = 'Tokonoma Alcove'](../src/interior.js#L410) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
+| <a id="scroll"></a>`scroll` — Kakejiku hanging scroll | [src/interior.js:// Hanging Scroll](../src/interior.js#L518) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
+| <a id="bonsai"></a>`bonsai` — Tokonoma bonsai pine | [src/interior.js:// Mini Bonsai Pine](../src/interior.js#L526) | **No mapped evidence** | No original bonsai specimen; the lab alcove uses other decorations. |
+| <a id="chabudai"></a>`chabudai` — Chabudai low table | [src/interior.js:table.name = 'Chabudai Table'](../src/interior.js#L421) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
+| <a id="teaware"></a>`teaware` — Ceramic teapot and yunomi cups | [src/interior.js:// Ceramic Teapot & Yunomi Cups](../src/interior.js#L570) | [interiors / pottery](../labs/interiors/js/craft.js#L7) (direct) |  |
+| <a id="zabuton"></a>`zabuton` — Zabuton nap bed and embroidered tassels | [src/interior.js:bed.name = 'Zabuton Nap Bed'](../src/interior.js#L604) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
+| <a id="andon"></a>`andon` — Andon paper floor lantern | [src/interior.js:andon.name = 'Andon Lantern'](../src/interior.js#L620) | [lanterns / andon](../labs/lanterns/js/recipes.js#L92) (direct) |  |
+| <a id="courtyard-gravel"></a>`courtyard-gravel` — Courtyard rock-garden gravel | [src/interior.js:// Courtyard rock garden gravel](../src/interior.js#L630) | [rocks / rake](../labs/rocks/js/recipes.js#L71) (direct) |  |
+| <a id="courtyard-toro"></a>`courtyard-toro` — Courtyard stone lantern | [src/interior.js:toro.name = 'Courtyard Toro Lantern'](../src/interior.js#L639) | [lanterns / game-toro](../labs/lanterns/js/recipes.js#L34) (related) — Different source builder; no courtyard lantern extraction. |  |
+| <a id="courtyard-wall"></a>`courtyard-wall` — Courtyard boundary timber wall | [src/interior.js:// Courtyard outer timber wall](../src/interior.js#L650) | [interiors / garden](../labs/interiors/js/data.js#L24) (embedded) |  |
+| <a id="knockables"></a>`knockables` — Three tabletop knockables (white cup, blue bowl, white sphere) | [src/interior.js:buildKnockables(](../src/interior.js#L219) | [interiors / pottery](../labs/interiors/js/craft.js#L7) (related) — Vessel geometry is studied; these three original items are not specimens.<br>[interiors / bat-cup](../labs/interiors/js/cat.js#L53) (related) — Lab physics supports batting lab vessels; original item geometry and physics differ. |  |
+| <a id="secret-tatami"></a>`secret-tatami` — Secret-house tatami | [src/countryside.js:tatamiFloor.name = 'Tatami Floor'](../src/countryside.js#L2542) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
+| <a id="secret-table"></a>`secret-table` — Secret-house table and teaware | [src/countryside.js:table.name = 'Chabudai Table'](../src/countryside.js#L2563) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
+| <a id="secret-bed"></a>`secret-bed` — Secret-house nap cushion | [src/countryside.js:// Gold embroidery tassels](../src/countryside.js#L2612) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
+| <a id="secret-andon"></a>`secret-andon` — Secret-house andon | [src/countryside.js:andon.name = 'Andon Lantern'](../src/countryside.js#L2624) | [machiya / original-secret](../labs/machiya/js/variants.js#L63) (embedded) |  |
 
 ### Sky and effects
 
@@ -371,16 +371,16 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="stars"></a>`stars` — Twinkling stars | [src/sky.js:buildStars(](../src/sky.js#L314) | [sky / sky-night](../labs/sky/js/data.js#L37) (embedded) |  |
 | <a id="moon"></a>`moon` — Crescent moon | [src/sky.js:buildMoon(](../src/sky.js#L373) | [sky / sky-night](../labs/sky/js/data.js#L37) (embedded) |  |
 | <a id="sky-light"></a>`sky-light` — Sun, hemisphere, fill and bounce lighting | [src/sky.js:buildLights(](../src/sky.js#L402)<br>[src/sky.js:buildPalettes(](../src/sky.js#L444) | [sky / sky-game](../labs/sky/js/data.js#L33) (related) — The baseline adapter hides the original lights; labs use their own rig. |  |
-| <a id="god-rays"></a>`god-rays` — Valley god-ray cards | [src/particles.js:buildGodRays(](../src/particles.js#L74) | [sky / air-rays](../labs/sky/js/data.js#L60) (related) — Sky-space rays are a different implementation from the game’s ground cards. |  |
-| <a id="rain"></a>`rain` — Valley rain streaks | [src/particles.js:buildRain(](../src/particles.js#L144) | [weather / game-rain](../labs/weather/js/recipes.js#L33) (direct) |  |
-| <a id="river-petals"></a>`river-petals` — River petal rafts | [src/particles.js:buildRiverPetals(](../src/particles.js#L216) | [water / hanaikada](../labs/water/js/variants.js#L198) (direct) |  |
-| <a id="falling-petals"></a>`falling-petals` — Falling sakura petals | [src/particles.js:buildPetals(](../src/particles.js#L273) | [weather / game-petal](../labs/weather/js/recipes.js#L59) (direct) |  |
-| <a id="fireflies"></a>`fireflies` — Ambient valley fireflies | [src/particles.js:buildFireflies(](../src/particles.js#L301) | [moonpool / fireflies](../labs/moonpool/js/recipes.js#L267) (related) — Related firefly study; not Particles.buildFireflies(). |  |
-| <a id="dust-motes"></a>`dust-motes` — Ambient dust motes | [src/particles.js:buildMotes(](../src/particles.js#L331) | [moonpool / game-motes](../labs/moonpool/js/recipes.js#L263) (related) — Moon Pool motes are a separate system. |  |
-| <a id="snow"></a>`snow` — Valley snowfall | [src/particles.js:buildSnow(](../src/particles.js#L374) | [weather / game-snow](../labs/weather/js/recipes.js#L50) (direct) |  |
+| <a id="god-rays"></a>`god-rays` — Valley god-ray cards | [src/particles.js:buildGodRays(](../src/particles.js#L112) | [sky / air-rays](../labs/sky/js/data.js#L60) (related) — Sky-space rays are a different implementation from the game’s ground cards. |  |
+| <a id="rain"></a>`rain` — Valley rain streaks | [src/particles.js:buildRain(](../src/particles.js#L200) | [weather / game-rain](../labs/weather/js/recipes.js#L33) (direct) |  |
+| <a id="river-petals"></a>`river-petals` — River petal rafts | [src/particles.js:buildRiverPetals(](../src/particles.js#L287) | [water / hanaikada](../labs/water/js/variants.js#L198) (direct) |  |
+| <a id="falling-petals"></a>`falling-petals` — Falling sakura petals | [src/particles.js:buildPetals(](../src/particles.js#L356) | [weather / game-petal](../labs/weather/js/recipes.js#L59) (direct) |  |
+| <a id="fireflies"></a>`fireflies` — Ambient valley fireflies | [src/particles.js:buildFireflies(](../src/particles.js#L396) | [moonpool / fireflies](../labs/moonpool/js/recipes.js#L267) (related) — Related firefly study; not Particles.buildFireflies(). |  |
+| <a id="dust-motes"></a>`dust-motes` — Ambient dust motes | [src/particles.js:buildMotes(](../src/particles.js#L440) | [moonpool / game-motes](../labs/moonpool/js/recipes.js#L263) (related) — Moon Pool motes are a separate system. |  |
+| <a id="snow"></a>`snow` — Valley snowfall | [src/particles.js:buildSnow(](../src/particles.js#L495) | [weather / game-snow](../labs/weather/js/recipes.js#L50) (direct) |  |
 | <a id="scent"></a>`scent` — Scent-trail glowing particles | [src/scent.js:build() {](../src/scent.js#L33) | **No mapped evidence** | No scent-trail specimen or interaction study. |
 | <a id="splash"></a>`splash` — Player water-entry splash droplets | [src/player.js:// Water-splash droplet pool](../src/player.js#L92) | [weather / splash](../labs/weather/js/recipes.js#L41) (related) — Rain impacts do not exercise the player water-entry splash. |  |
-| <a id="landing-dust"></a>`landing-dust` — Landing dust puffs | [src/context_actions.js:spawnLandDust(](../src/context_actions.js#L829) | **No mapped evidence** | No specimen exercises this pooled landing effect. |
+| <a id="landing-dust"></a>`landing-dust` — Landing dust puffs | [src/context_actions.js:spawnLandDust(](../src/context_actions.js#L832) | **No mapped evidence** | No specimen exercises this pooled landing effect. |
 | <a id="ao"></a>`ao` — Screen-space ambient occlusion | [src/postfx.js:export class AOPass](../src/postfx.js#L142) | **No mapped evidence** | Sky’s air-game baseline explicitly excludes the full game post-processing pipeline. |
 | <a id="atmosphere"></a>`atmosphere` — Screen-space distance and height atmosphere | [src/postfx.js:export class AtmospherePass](../src/postfx.js#L377) | [summit / haze](../labs/summit/js/recipes.js#L73) (related) — Layered haze cards are not the game’s depth-buffer atmosphere pass. |  |
 | <a id="grade"></a>`grade` — Painterly colour grading, vignette, grain and fringe | [src/postfx.js:export const GradeShader](../src/postfx.js#L479)<br>[src/postfx.js:export const GradeOutputShader](../src/postfx.js#L560) | [ground / kuwahara](../labs/ground/js/variants.js#L252) (related) — Related finish study; Kuwahara is not the game grade/grain/fringe pipeline. |  |
@@ -427,8 +427,8 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="old-petal-drifts"></a>`old-petal-drifts` — Removed static petal-drift discs | [src/vegetation.js:buildPetalDrifts(](../src/vegetation.js#L331) | [komorebi / game-drift](../labs/komorebi/js/recipes.js#L60) (direct) | **Inactive.** Method is a no-op. Its original lab tile is an empty baseline, not a shipped visible asset. |
-| <a id="old-sakura-grove"></a>`old-sakura-grove` — Unused empty sakura-grove method | [src/vegetation.js:buildSakuraGrove(](../src/vegetation.js#L281) | **No mapped evidence** | **Inactive.** Empty legacy entry point; active sakura are built by sakuraTree(). |
+| <a id="old-petal-drifts"></a>`old-petal-drifts` — Removed static petal-drift discs | [src/vegetation.js:buildPetalDrifts(](../src/vegetation.js#L437) | [komorebi / game-drift](../labs/komorebi/js/recipes.js#L60) (direct) | **Inactive.** Method is a no-op. Its original lab tile is an empty baseline, not a shipped visible asset. |
+| <a id="old-sakura-grove"></a>`old-sakura-grove` — Unused empty sakura-grove method | [src/vegetation.js:buildSakuraGrove(](../src/vegetation.js#L365) | **No mapped evidence** | **Inactive.** Empty legacy entry point; active sakura are built by sakuraTree(). |
 | <a id="legacy-summit-gate"></a>`legacy-summit-gate` — Legacy rear summit gate, stairs, toro and gorinto | [src/mountaintop.js:buildLegacyRearGate(](../src/mountaintop.js#L401) | **No mapped evidence** | **Inactive.** Defined but not called by the current summit constructor. |
 | <a id="legacy-vista-approach"></a>`legacy-vista-approach` — Unused vista descent and torii | [src/mountaintop.js:buildVistaApproach(](../src/mountaintop.js#L402) | **No mapped evidence** | **Inactive.** Defined but not called by the current summit constructor. |
 
@@ -480,9 +480,9 @@ Every current `src/*.js` module is classified. Every class method declared with 
 
 | Source | Reason |
 |---|---|
-| [src/cat.js:buildSkeleton(](../src/cat.js#L172) | Rigging helper; the rendered cat body and components are inventoried separately. |
-| [src/cat.js:buildMaterials(](../src/cat.js#L233) | Material setup for the inventoried cat; not another object. |
-| [src/countryside.js:createRiverUniforms(](../src/countryside.js#L1133) | Shader parameter state for the inventoried river/paddies, not another visible asset. |
+| [src/cat.js:buildSkeleton(](../src/cat.js#L76) | Rigging helper; the rendered cat body and components are inventoried separately. |
+| [src/cat.js:buildMaterials(](../src/cat.js#L80) | Material setup for the inventoried cat; not another object. |
+| [src/countryside.js:createRiverUniforms(](../src/countryside.js#L1564) | Shader parameter state for the inventoried river/paddies, not another visible asset. |
 | [src/npc.js:createNameTag(](../src/npc.js#L209) | DOM character label; interface is outside the visible world-asset inventory. |
 | [src/main.js:buildJournalUI(](../src/main.js#L1689) | DOM journal interface; journal text rewards are not physical inventory objects. |
 | [src/menus.js:buildSettings(](../src/menus.js#L140) | DOM settings interface, outside the world-asset scope. |
@@ -500,9 +500,9 @@ Narrative-only characters and journal/progression rewards are recorded separatel
 | Nonvisual entry | Source | Reason |
 |---|---|---|
 | Bokuchi, the forest spirit | [src/main.js](../src/main.js#L1838) | Named in Kuro’s dialogue; no separate Bokuchi actor or mesh is constructed. |
-| Mist Charm | [src/context_actions.js](../src/context_actions.js#L688) | Journal/progression reward from touching the altar; no collectible mesh. |
+| Mist Charm | [src/context_actions.js](../src/context_actions.js#L690) | Journal/progression reward from touching the altar; no collectible mesh. |
 | Bokuchi’s Blessing | [src/main.js](../src/main.js#L1909) | Journal/progression reward for the offering-bell quest; no separate item mesh. |
-| The valley became home | [src/context_actions.js](../src/context_actions.js#L760) | Journal memory from a quiet moment; no physical item. |
+| The valley became home | [src/context_actions.js](../src/context_actions.js#L762) | Journal memory from a quiet moment; no physical item. |
 
 Optional media and dormant code are recorded without claiming that a download succeeded or an unused builder is part of the current playable scene. The Roof Road retains its own prototype review and reachability checks.
 

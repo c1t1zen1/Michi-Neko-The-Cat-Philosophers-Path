@@ -182,6 +182,9 @@ async function checkAsset(rt, def, tier, list, tag = '') {
   check(`triangles ≤ ${budget.triangles} (AAA-7)`, counts.tris <= budget.triangles, `${counts.tris} tris`);
   check(`meshes ≤ ${budget.meshes} (AAA-7)`, counts.meshes <= budget.meshes, `${counts.meshes} meshes`);
 
+  const mats = new Set(); inst.group.traverse((o) => { if (o.isMesh || o.isPoints || o.isLine) [].concat(o.material || []).forEach((x) => mats.add(x)); });
+  if (budget.materials != null) check(`distinct materials ≤ ${budget.materials} (AAA-7, budgets.md)`, mats.size <= budget.materials, `${mats.size} materials`);
+
   const h1 = hashInstance(inst);
   const inst2 = rt.build(def.id, sampleLayout(def, tier), classic);
   const h2 = isAssetInstance(inst2) ? hashInstance(inst2) : null;

@@ -52,6 +52,9 @@
 // Page flags: ?golden=<path> (default golden/valley_classic.json, relative to
 // this page), ?max=<n> changes listed. Any other flag (?assets=, ?swap=, …) is
 // left to countrysideOptions() below and is otherwise ignored.
+// ?systems=1 runs the systems golden instead (tools/golden/systems_digest.js, F3.3).
+
+import { systemsGolden } from './golden/systems_digest.js?v=20261107a';
 
 const FORMAT = 'michi-neko-footprint-golden';
 const VERSION = 1;
@@ -1145,6 +1148,7 @@ async function main() {
   const { AssetRuntime } = await import('../src/kit/runtime.js?v=20261107a');
   assets = new AssetRuntime({ THREE, assetSet: 'classic', search: location.search, quality: 'high' });
   await assets.preload();
+  if (params.get('systems') === '1') return systemsGolden({ realNow, setAmbient, ambient, mulberry32, countrysideOptions: () => countrysideOptions(params), r4, v3, box6, quat, matSig, toText, diffDigests, changeLines });
   const tImport = realNow();
   instrument();
   // The UUID stream must stay apart from the game's Math.random() stream.
@@ -1210,6 +1214,9 @@ async function main() {
   $('golden').textContent = GOLDEN_URL.startsWith('/') ? GOLDEN_URL.slice(1) : 'tools/' + GOLDEN_URL.replace(/^\.\//, '');
   if (!golden.found) {
     statusEl.textContent = `no usable golden at ${GOLDEN_URL} (${golden.error}): write it with node tools/footprint_golden.mjs --write`;
+    statusEl.className = 'failed';
+  } else if (!diff) {
+    statusEl.textContent = `could not compare with ${GOLDEN_URL}: ${golden.error}`;
     statusEl.className = 'failed';
   } else if (diff.equal) {
     statusEl.textContent = `EQUAL: the build matches the golden${golden.textEqual ? ' byte for byte' : ''}`;

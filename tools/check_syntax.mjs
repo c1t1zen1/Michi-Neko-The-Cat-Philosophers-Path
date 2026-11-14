@@ -7,7 +7,8 @@
 // Files carry a UTF-8 BOM (harmless to the browser, a parse error to node);
 // it is stripped only in the copy handed to node.
 //
-// Covers src/*.js and the kit, src/kit/**/*.js (every family folder).
+// Covers src/*.js, the kit (src/kit/**/*.js, every family folder) and the
+// characters (src/characters/**/*.js).
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
@@ -18,7 +19,8 @@ const walk = (dir) => readdirSync(dir).flatMap((f) => {
 });
 const files = [
   ...readdirSync('src').filter((f) => f.endsWith('.js')),
-  ...walk(join('src', 'kit')).map((p) => p.slice('src'.length + 1))
+  ...walk(join('src', 'kit')).map((p) => p.slice('src'.length + 1)),
+  ...walk(join('src', 'characters')).map((p) => p.slice('src'.length + 1))
 ];
 let failed = 0;
 
