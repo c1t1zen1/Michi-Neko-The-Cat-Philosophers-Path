@@ -307,15 +307,37 @@ export function instances(geo, mat, list, name = '') {
   return im;
 }
 
-/** Visible meshes, triangles (instances counted) and instance total under a root. */
+/**
+ * How many copies of a mesh one draw renders, as three's renderer decides it:
+ * an InstancedMesh draws `count`; a plain Mesh on an InstancedBufferGeometry
+ * draws `instanceCount`, capped by its shortest instanced attribute; anything
+ * else draws once.
+ */
+export function instancesOf(o) {
+  if (o.isInstancedMesh) return o.count;
+  const g = o.geometry;
+  if (!g || !g.isInstancedBufferGeometry) return 1;
+  let max = Infinity;
+  for (const a of Object.values(g.attributes)) if (a.isInstancedBufferAttribute) max = Math.min(max, a.meshPerAttribute * a.count);
+  const n = Math.min(g.instanceCount, max);
+  return Number.isFinite(n) ? n : 1;
+}
+
+/**
+ * Visible meshes, triangles and instance total under a root. Triangles count
+ * every instance (geometry triangles × instancesOf: InstancedMesh.count and
+ * InstancedBufferGeometry.instanceCount alike); meshes count each draw once.
+ * The shadow pass is not counted here (the per-asset caps in budgets.md
+ * already allow for it).
+ */
 export function countScene(root) {
   let meshes = 0, tris = 0, instanced = 0;
   root.traverse((o) => {
     if (!(o.isMesh || o.isPoints || o.isLine || o.isSprite) || !o.visible) return;
     meshes++;
     if (!o.isMesh) return;
-    const g = o.geometry, k = o.isInstancedMesh ? o.count : 1;
-    instanced += o.isInstancedMesh ? o.count : 0;
+    const g = o.geometry, k = instancesOf(o);
+    if (o.isInstancedMesh || g.isInstancedBufferGeometry) instanced += k;
     tris += ((g.index ? g.index.count : g.attributes.position.count) / 3) * k;
   });
   return { meshes, tris: Math.round(tris), instanced };
