@@ -10,6 +10,7 @@ import {
 import {
   anatomyFor, buildSkeleton, applyPose, layTailOnGround
 } from './characters/rig.js?v=20261107a';
+import { coatPalette, coatMaterials, buildCoat } from './characters/parts/coat.js?v=20261107a';
 
 export { catRimUniforms };
 
@@ -46,10 +47,6 @@ const GAIT_WALK = [0.75, 0.25, 0.5, 0.0];   // lateral sequence: LH, LF, RH, RF
 const GAIT_TROT = [1.0, 0.5, 0.5, 0.0];     // diagonal pairs
 const GAIT_GALLOP = [1.42, 0.52, 0.1, 0.0]; // rotary gallop
 
-// The four back stripes (body-space z of their centres over the spine):
-// withers to saddle, clear of the rump and the tail root
-const STRIPE_Z = [0.165, 0.07, -0.025, -0.12];
-
 const _v1 = new THREE.Vector3();
 const _v2 = new THREE.Vector3();
 const _mGirdle = new THREE.Matrix4();
@@ -72,21 +69,7 @@ export class Cat {
     const eyeColor = options.eyeColor ?? 0xebb02a;
     const ribbonColor = options.ribbonColor ?? 0xd63228;
     this.anatomy = anatomyFor(options.build);
-    const A = this.anatomy;
-    const L = A.landmarks;
-
-    this.palette = {
-      fur: new THREE.Color(fur),
-      belly: new THREE.Color(belly),
-      stripe: new THREE.Color(accent),
-      stripeAmount: options.stripeAmount ?? 1.0,
-      stripeZ: new THREE.Vector4(...STRIPE_Z),
-      trunk: new THREE.Vector4(L.chest[1], A.build.girth, A.face.headScale, 5.4)
-    };
-    // Near-black coats read as black (not brown) under warm light with a
-    // cool sheen, and get a dusky nose and inner ear
-    const lum = this.palette.fur.r * 0.3 + this.palette.fur.g * 0.59 + this.palette.fur.b * 0.11;
-    this.palette.cool = THREE.MathUtils.clamp((0.16 - lum) / 0.1, 0, 1);
+    this.palette = coatPalette(this.anatomy, { fur, belly, accent, stripes: options.stripeAmount ?? 1.0 });
 
     this.group = new THREE.Group();
     this.buildSkeleton();
@@ -194,10 +177,7 @@ export class Cat {
       nose: new THREE.Vector3(...f.nose),
       mouth: { value: 0 }
     };
-    this.matBody = furMaterial(this.palette, FUR_PART.body);
-    this.matHead = furMaterial(this.palette, FUR_PART.head, this.face);
-    this.matTail = furMaterial(this.palette, FUR_PART.tail);
-    this.matEar = furMaterial(this.palette, FUR_PART.ear);
+    coatMaterials(this);
     const cool = this.palette.cool;
     this.matEarInner = toonMat(new THREE.Color(0xffffff).lerp(new THREE.Color(0x7d6168), cool * 0.75), { map: getEarInnerTexture() });
     this.matNose = toonMat(options.noseColor ?? new THREE.Color(0xd9868c).lerp(new THREE.Color(0x4f3a40), cool));
@@ -213,33 +193,7 @@ export class Cat {
   }
 
   buildCoat() {
-    const A = this.anatomy;
-    const skinned = (geo, mat, outline) => {
-      const m = new THREE.SkinnedMesh(geo, mat);
-      m.bind(this.skeleton, new THREE.Matrix4());
-      m.castShadow = true;
-      // Poses reach well beyond the rest silhouette; keep culling generous
-      m.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0.38, -0.02), 0.85);
-      this.group.add(m);
-      if (outline) {
-        const o = new THREE.SkinnedMesh(geo, outlineMaterial(outline));
-        o.bind(this.skeleton, new THREE.Matrix4());
-        o.boundingSphere = m.boundingSphere;
-        this.group.add(o);
-        m.userData.outline = o;
-      }
-      return m;
-    };
-    this.coat = skinned(A.body, this.matBody, 0.0032);
-    this.coat.name = 'Cat Coat';
-    this.tailMesh = skinned(A.tail, this.matTail, 0.0028);
-
-    const head = new THREE.Mesh(A.head, this.matHead);
-    head.castShadow = true;
-    head.name = 'Cat Head';
-    this.head.add(head);
-    this.head.add(new THREE.Mesh(A.head, outlineMaterial(0.0026)));
-    this.headMesh = head;
+    return buildCoat(this);
   }
 
   buildFace() {
