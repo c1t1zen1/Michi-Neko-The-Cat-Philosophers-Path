@@ -14,9 +14,10 @@ import {
   kawaraTextures, plasterTextures, woodTextures, namakoTextures, shojiTextures,
   cobbleTextures, stoneTextures, strawTextures, metalTextures, lacquerTextures,
   dirtTextures, texturedMaterial, worldScaleBoxUVs
-} from '../../src/textures.js?v=20261106a';
+} from '../../src/textures.js?v=20261107a';
 import { hash1 } from './level.js';
 import { downtownMaterials, paintDowntown, installDowntown } from './downtown.js';
+import { streetPaint } from './street-paint.js';
 import { makeCutaway } from './cutaway.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -256,15 +257,23 @@ function flowWaterMaterial(flowAlongDepth = false) {
         float glint = pow(max(0.0, current * 0.55 + cross * 0.45), 8.0);
         float depthBand = 0.5 + 0.5 * sin(flowUv.y * 2.4 + 0.7);
         float bed = sin(flowUv.x * 7.3 + sin(flowUv.y * 12.0)) * sin(flowUv.y * 15.1 + flowUv.x * 3.1);
+        float rippleA=sin(flowUv.x*9.0+sin(flowUv.y*17.0-uTime*.7)*1.3-uTime*.8);
+        float rippleB=cos(flowUv.x*13.0-flowUv.y*12.0+uTime*.65);
+        float caustic=pow(max(0.0,1.0-abs(rippleA+rippleB)*.72),12.0);
+        float silt=.5+.5*sin(flowUv.x*1.8+sin(flowUv.y*3.1));
         vec3 N = normalize(vec3(cos(flowUv.x * 37.0 - uTime * 2.4) * .05, 1.0, cos(flowUv.y * 22.0 + uTime) * .08));
         vec3 V = normalize(cameraPosition - vWorld);
         float fresnel = .03 + .65 * pow(1.0 - max(dot(N, V), 0.0), 4.0);
         vec3 col = mix(uDeep, uShallow, 0.32 + depthBand * 0.28);
         col += bed * vec3(.035, .045, .025);
+        col=mix(col,vec3(.29,.37,.25),silt*.13);
+        col+=vec3(.24,.34,.25)*caustic*.16*(1.0-uNight);
         vec3 reflectedSky = mix(vec3(.55, .70, .74), vec3(.08, .13, .24), uNight);
         float reflectedPosts = pow(max(0.0, sin(flowUv.x * 4.5 + sin(flowUv.y * 28.0 - uTime) * .16)), 16.0);
         col = mix(col, reflectedSky * (1.0 - reflectedPosts * .42), fresnel);
-        col += uSun * glint * (0.16 + 0.24 * (1.0 - uNight));
+        // Broad, broken brush glints rather than glitter on every pixel.
+        float brush=step(.24,fract(sin(floor(flowUv.x*18.0)*17.1+floor(flowUv.y*9.0)*31.7)*4375.5));
+        col += uSun * glint * brush * (0.12 + 0.18 * (1.0 - uNight));
         col += vec3(.9, .4, .13) * reflectedPosts * uNight * .12;
         col = mix(col, vec3(0.085, 0.12, 0.22), uNight * 0.48);
         float ripple = band(fract(flowUv.x * 0.23 - uTime * 0.08) - 0.5, 0.035) * 0.08;
@@ -341,6 +350,7 @@ function makeMaterials() {
   M.dark = new THREE.MeshStandardMaterial({ color: 0x1e1915, roughness: 0.95 });
   M.goods = [0xc9643a, 0xe0b04a, 0x7a9a4a, 0xb8384a, 0xe8dcc2, 0x5a7aa0].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 }));
   downtownMaterials(M, canvasTex);
+  streetPaint(M, canvasTex);
   return M;
 }
 
@@ -663,6 +673,8 @@ B.canalQuarter = (pc, ctx) => {
     const post = cyl(0.075, 1.05, M.timberMed, 'y', 8);
     post.position.set(x, 0.55, zNear - 0.18);
     g.add(post);
+    for(let j=0;j<3;j++){const wrap=new THREE.Mesh(new THREE.TorusGeometry(.085,.012,5,10),M.twine);wrap.rotation.x=Math.PI/2;wrap.position.set(x,.66+j*.028,zNear-.18);g.add(wrap);}
+    const cap=box(.17,.035,.17,M.agedWood,x,1.09,zNear-.18);cap.rotation.z=.025;g.add(cap);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.025, 5, 10), M.steel);
     ring.position.set(x, 0.77, zNear - 0.36);
     ring.rotation.x = Math.PI / 2;
@@ -1027,7 +1039,10 @@ B.post = (pc, ctx) => {
   const sm = (pc.s0 + pc.s1) / 2;
   const g = frameGroup(ctx.rail, sm);
   g.add(box(0.1, pc.y - 1.4, 0.1, M.timber, 0, 1.4 + (pc.y - 1.4) / 2, pc.d));
-  g.add(box(0.3, 0.05, 0.3, M.timber, 0, pc.y - 0.02, pc.d));
+  g.add(box(0.3, 0.05, 0.3, M.agedWood, 0, pc.y - 0.02, pc.d));
+  for(const y of [pc.y-.12,1.5]) {g.add(box(.13,.055,.13,M.steel,0,y,pc.d));}
+  for(const side of [-1,1]) {const brace=box(.035,.38,.04,M.agedWood,side*.1,pc.y-.18,pc.d);brace.rotation.z=side*-.48;g.add(brace);}
+
   const l = cyl(0.16, 0.4, M.lanternRed, 'y', 10);
   l.position.set(0, pc.y - 0.35, pc.d + 0.25);
   g.add(l);
@@ -1135,7 +1150,10 @@ B.rope = (pc, ctx) => {
     pole.position.set(0, pc.y - 0.04, pc.d);
     g.add(pole);
     for (let x = -w / 2 + 0.45, i = 0; x < w / 2 - 0.3; x += 0.8, i++) {
-      g.add(box(0.6, 0.75, 0.015, M.cloth[(i * 2 + Math.floor(sm)) % M.cloth.length], x, pc.y - 0.5, pc.d + 0.02));
+      const fabric=M.cloth[(i*2+Math.floor(sm))%M.cloth.length];
+      g.add(box(.46,.75,.018,fabric,x,pc.y-.48,pc.d+.02));
+      if(i%2===0) for(const side of [-1,1]) g.add(box(.23,.28,.018,fabric,x+side*.3,pc.y-.24,pc.d+.02));
+      for(const side of [-1,1]) g.add(box(.025,.09,.04,M.agedWood,x+side*.17,pc.y-.07,pc.d+.04));
     }
   } else if (pc.style === 'tow') {
     // The Takase boats were hauled by hand. A weathered hemp line crosses
@@ -1417,7 +1435,7 @@ B.boat = (pc, ctx) => {
   const len = pc.len || 4.4;
 
   // Tapered open hull, dark inside, raised gunwales and visible deck ribs.
-  const hull = new THREE.Mesh(boatHullGeometry(len + 0.5, 1.58, 0.5), M.timber);
+  const hull = new THREE.Mesh(boatHullGeometry(len + 0.5, 1.58, 0.5), M.hull);
   hull.position.y = 0.28;
   g.add(hull);
   g.add(box(len - 0.35, 0.07, 1.08, M.timberMed, 0, 0.22, 0));
@@ -1425,6 +1443,13 @@ B.boat = (pc, ctx) => {
   for (let x = -len / 2 + 0.45; x < len / 2 - 0.15; x += 0.55) {
     g.add(box(0.065, 0.2, 1.42, M.timberMed, x, 0.24, 0));
   }
+  for(const z of [-.78,.78]) {
+    g.add(box(len-.4,.045,.035,M.hullBand,0,.16,z));
+    for(let x=-len/2+.5;x<len/2-.2;x+=.5) {const nail=new THREE.Mesh(new THREE.SphereGeometry(.014,5,4),M.steel);nail.position.set(x,.32,z+.02*Math.sign(z));g.add(nail);}
+  }
+  for(let j=0;j<4;j++) {const coil=new THREE.Mesh(new THREE.TorusGeometry(.13+j*.025,.012,5,18),M.twine);coil.rotation.x=Math.PI/2;coil.position.set(-len*.35,.33,.22);g.add(coil);}
+  const bailer=new THREE.Mesh(new THREE.CylinderGeometry(.13,.10,.22,9,1,true),M.agedWood);bailer.position.set(len*.36,.4,.35);g.add(bailer);
+  g.add(box(.03,.06,.48,M.agedWood,len*.36,.52,.35));
   // Curled bow guards give the little boat a memorable animation silhouette.
   for (const sx of [-1, 1]) {
     const bow = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.055, 6, 12, Math.PI * 0.9), M.timber);
@@ -1947,7 +1972,7 @@ function mergeByMaterial(group, castShadow = true) {
   return out;
 }
 
-const downtown = installDowntown(B, { box, cyl, frameGroup, hiraRoof, ribbon, hash1 });
+const downtown = installDowntown(B, { box, cyl, frameGroup, hiraRoof, ribbon, hash1, mergeParts: mergeByMaterial });
 
 export function buildWorld(level, opts = {}) {
   const M = makeMaterials();
@@ -1985,14 +2010,19 @@ export function buildWorld(level, opts = {}) {
     glassGroup.add(c);
     m.parent.remove(m);
   }
-  root.add(mergeByMaterial(staticGroup));
-  root.add(mergeByMaterial(glassGroup, false));
+  const fixedBatches = mergeByMaterial(staticGroup), glassBatches = mergeByMaterial(glassGroup, false);
+  root.add(fixedBatches, glassBatches);
 
+  // Only world-space scenery belongs to this distance culler. Boat and worker
+  // batches are baked in their own local frames and move with their parents.
   const batches = [];
-  root.traverse(o => { if (o.userData.spatialBatch) batches.push(o); });
+  for(const group of [fixedBatches,glassBatches]) group.traverse(o => { if (o.userData.spatialBatch) batches.push(o); });
 
   // Ground under everything, the distant roofscape and a pagoda on each side.
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), M.ground);
+  const groundUV=ground.geometry.attributes.uv, groundPosition=ground.geometry.attributes.position;
+  for(let i=0;i<groundUV.count;i++)groundUV.setXY(i,groundPosition.getX(i)*.25,groundPosition.getY(i)*.25);
+  M.ground.map=M.gravel.map;
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.7;
   ground.receiveShadow = true;
@@ -2028,6 +2058,7 @@ export function buildWorld(level, opts = {}) {
       }
       for (const boat of dynamic.boats) {
         const p = platforms[boat.plat];
+        boat.group.visible=Math.abs((p.s0+p.s1)/2+platOffset(p,t)-playerS)<(opts.lowPower?42:70);
         const off = platOffset(p, t);
         const s = (p.s0 + p.s1) / 2 + off;
         const pos = rail.place(s, boat.d);

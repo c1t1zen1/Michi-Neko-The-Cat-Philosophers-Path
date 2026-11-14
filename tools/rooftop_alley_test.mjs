@@ -1,7 +1,8 @@
 // Behavioural checks for chosen branch lanes; exercises the actual Runner.
 import assert from 'node:assert/strict';
 import { buildLevel } from '../rooftops/js/level.js';
-import { Runner, PHYS } from '../rooftops/js/physics.js';
+import { Autopilot } from '../rooftops/js/autopilot.js';
+import { Runner } from '../rooftops/js/physics.js';
 import { Companion } from '../rooftops/js/companion.js';
 import { alleyDepth } from '../rooftops/js/alleys.js';
 const L=buildLevel(), dt=1/120;
@@ -35,6 +36,17 @@ for(const a of L.alleys) {
     assert.equal(c.runner.alley,null,'companion leaves alley');
     assert.ok(Math.abs(c.runner.s-r.s)<8,'guide stays close through chosen lane');
   }
+  // Run the raised agility sequence too: crates, shelves, coping, ropes,
+  // and the laundry futon use real jumps rather than graph-only promises.
+  const order=[a.plats[0],...a.plats.slice(3),a.plats[2]];
+  const fixture={...L,platforms:L.platforms.map(p=>({...p,route:undefined}))};
+  order.forEach((id,i)=>{fixture.platforms[id].route=i;fixture.platforms[id].sprint=true;});
+  const agile=new Runner(fixture), auto=new Autopilot(fixture);
+  agile.reset(a.s0+.8,0);agile.enterAlley(a);
+  const visited=new Set();
+  for(let i=0;i<120*45;i++) {const t=i*dt;agile.step(dt,{...auto.input(agile,t,dt),jumpHeld:true},t);if(agile.ground?.route!==undefined)visited.add(agile.ground.route);if(agile.lastGround?.kind==='futon')visited.add(agile.lastGround.route);if(auto.done)break;}
+  assert.ok(auto.done,a.name+' raised route completes');
+  assert.ok(order.every((_,i)=>visited.has(i)),a.name+' lands on every agility surface');
   // Reversal halfway through returns through the same entrance.
   const r=new Runner(L);r.reset(a.s0+.8,0);r.step(dt,{downPressed:true},0);
   let farthest=r.s;

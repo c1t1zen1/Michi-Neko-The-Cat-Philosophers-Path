@@ -6,6 +6,7 @@
 // object. No images are downloaded; the point sprites are drawn on tiny canvases.
 
 import * as THREE from 'three';
+import { alleyDepth } from './alleys.js';
 import { hash1 } from './level.js';
 
 const TAU = Math.PI * 2;
@@ -294,14 +295,16 @@ export class RooftopAtmosphere {
   }
 
   _buildPetals() {
+    const sources=this.level.pieces.filter(p=>p.type==='cherry');
     const count = this.lowPower ? 42 : 92;
     const positions = [], seeds = [];
     for (let i = 0; i < count; i++) {
       const seed = hash1(700 + i * 7.17);
-      const s = 126.4 + hash1(i * 3.31 + 4) * 32.2;
-      const d = 1.1 + hash1(i * 9.73 + 2) * 4.4;
+      const source=sources[i%sources.length];
+      const s=source.s0+hash1(i*3.31+4)*(source.s1-source.s0);
+      const d=source.d+(hash1(i*9.73+2)-.5)*2.8;
       const p = this.rail.place(s, d);
-      positions.push(p.x, 0.4 + hash1(i * 5.13) * 4.3, p.z);
+      positions.push(p.x, source.bough.y+hash1(i*5.13)*1.2, p.z);
       seeds.push(seed);
     }
     this.petals = pointSystem({
@@ -316,14 +319,14 @@ export class RooftopAtmosphere {
   }
 
   _buildSmoke() {
-    const chimneys = [31.5, 69.0, 106.2, 170.5, 203.5, 255.5, 298.0, 307.8];
+    const sources=this.level.pieces.filter(p=>p.type==='chimney'||p.type==='yatai'&&/yaki|ayu|chestnut/.test(p.fare));
     const positions = [], seeds = [];
     const per = this.lowPower ? 3 : 5;
-    chimneys.forEach((s, ci) => {
-      const d = ci % 2 ? -2.8 : -1.2;
+    sources.forEach((source, ci) => {
+      const s=(source.s0+source.s1)/2, d=source.d+(source.type==='yatai'?.4:0);
       const p = this.rail.place(s, d);
       for (let j = 0; j < per; j++) {
-        positions.push(p.x, 3.4 + (ci % 3) * 0.55, p.z);
+        positions.push(p.x, source.type==='yatai'?1.12:source.y+.05, p.z);
         seeds.push(hash1(ci * 17 + j * 4.7));
       }
     });
@@ -342,8 +345,9 @@ export class RooftopAtmosphere {
     const count = this.lowPower ? 34 : 72;
     const positions = [], seeds = [];
     for (let i = 0; i < count; i++) {
-      const s = 288.5 + hash1(i * 8.19) * 44;
-      const d = -2.8 + hash1(i * 2.77 + 9) * 8.2;
+      const a=this.level.alleys[i%this.level.alleys.length];
+      const s=i%3 ? a.s0+4+hash1(i*8.19)*(a.s1-a.s0-8) : this.level.mouths[5].s0+hash1(i*8.19)*(this.level.length-this.level.mouths[5].s0);
+      const d=i%3 ? alleyDepth(a,s)+(hash1(i*2.77+9)-.5)*1.8 : -2.8+hash1(i*2.77+9)*8.2;
       const p = this.rail.place(s, d);
       positions.push(p.x, 0.7 + hash1(i * 6.1) * 4.8, p.z);
       seeds.push(hash1(3000 + i * 4.9));

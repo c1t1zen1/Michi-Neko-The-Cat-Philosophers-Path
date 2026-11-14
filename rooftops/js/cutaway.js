@@ -10,7 +10,7 @@ export function makeCutaway(M) {
   };
   const materials = [M.plaster, M.plasterWarm, M.bengara, M.namako, M.koshi, M.roof,
     M.ridge, M.stone, M.slab, M.wetStone, M.timber, M.timberMed, M.agedWood, M.shoji, M.mushiko, M.sujibei,
-    M.tapestry, ...Object.values(M.noren)];
+    M.tapestry, M.twine, M.bamboo, M.bark, M.terracotta, M.foliage, M.pine, M.inuyarai, ...M.leaves, ...Object.values(M.noren)];
   for (const mat of materials) {
     const previous = mat.onBeforeCompile, previousKey = mat.customProgramCacheKey.bind(mat);
     const key = previousKey();

@@ -31,12 +31,12 @@ const damp = (cur, target, rate, dt) => cur + (target - cur) * (1 - Math.exp(-ra
 /* ---------------- renderer, scene, camera ---------------- */
 
 const canvas = $('gl');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: flag('shot') === '1' });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: lowPower ? 'low-power' : 'high-performance', preserveDrawingBuffer: flag('shot') === '1' });
 const basePixelRatio = Math.min(devicePixelRatio || 1, lowPower ? 1.15 : 1.5);
 renderer.setPixelRatio(basePixelRatio);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-const shadows = flag('shadows') !== '0';
+const shadows = flag('shadows') === '1' || (!lowPower && flag('shadows') !== '0');
 renderer.shadowMap.enabled = shadows;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -87,7 +87,7 @@ let guide = null;
 async function loadCats() {
   if (flag('cat') === '0') { hideWake(); return; }
   try {
-    const mod = await import('../../src/cat.js?v=20261106a');
+    const mod = await import('../../src/cat.js?v=20261107a');
     await new Promise((r) => setTimeout(r, 60));          // let the page paint first
     cat = new mod.Cat({ fur: 0xae8450, belly: 0xeedcb8, accent: 0x5e3d26 });
     cat.group.position.y = 0.02;
@@ -380,12 +380,12 @@ function readInput() {
     move = touch.move;
     sprint = touch.sprint;
   }
+  press.jump ||= gp.jumpPressed; press.down ||= gp.downPressed;
   const inp = {
     move, sprint,
     jumpHeld: keys.has('jump') || gp.jumpHeld, jumpPressed: press.jump || gp.jumpPressed, jumpReleased: press.jumpUp,
     downHeld: keys.has('down') || gp.downHeld, downPressed: press.down || gp.downPressed
   };
-  press.jump = press.down = press.jumpUp = false;
   return inp;
 }
 
@@ -483,7 +483,7 @@ function respawn() {
 
 function setPaused(on, reason = 'The roofs will wait.') {
   isPaused = !!on;
-  keys.clear(); resetTouch();
+  keys.clear(); resetTouch(); press.jump = press.down = press.jumpUp = false;
   audio.setPaused(isPaused);
   document.body.classList.toggle('paused', isPaused);
   const panel = $('pause-panel');
@@ -729,7 +729,7 @@ function frame(now) {
   tick(now);
 }
 function tick(now, draw = true) {
-  let dt = Math.min(0.1, (now - lastNow) / 1000);
+  let dt = Math.max(0, Math.min(0.1, (now - lastNow) / 1000));
   lastNow = now;
   if (flag('shot') === '1') dt = Math.min(dt, 1 / 30);
 
@@ -748,6 +748,7 @@ function tick(now, draw = true) {
     let use = inp;
     if (autopilot && !finale) use = autopilot.input(runner, time, STEP);
     stepPhysics(use);
+    press.jump = press.down = press.jumpUp = false;
     // Only the first sub-step sees the edge presses.
     inp = { ...inp, jumpPressed: false, downPressed: false, jumpReleased: false };
     acc -= STEP;
@@ -1008,6 +1009,14 @@ window.roofRoad = {
 // Deterministic browser review runs the actual frame pipeline without drawing
 // every intermediate tick. Available only with ?qa=1; normal play has no clock.
 if (flag('qa') === '1') {
+  roofRoad.advanceFramesForReview = milliseconds => {
+    acc=0;const states=[];
+    for(const ms of milliseconds.slice(0,120)) {
+      tick(lastNow+clamp(Number(ms)||0,0,100),false);
+      states.push({y:runner.y,vy:runner.vy,grounded:runner.grounded});
+    }
+    lastNow=performance.now();acc=0;renderer.render(scene,camera);return states;
+  };
   roofRoad.advanceForReview = seconds => {
     const n = Math.ceil(clamp(Number(seconds) || 0, 0, 450) * 60);
     const samples = [], moods = new Set();
