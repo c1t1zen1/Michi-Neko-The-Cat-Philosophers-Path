@@ -92,3 +92,18 @@ Rain barrels have interior walls and hollow hoops; the sake-barrel bindings are 
 [Sugimoto residence](https://en.sugimotoke.or.jp/) (official garden photograph inspected), [Kyoto City machiya guide](https://plus.kyoto.travel/entry/kyomachiya) (text read), [Tokyo National Museum, Kyoto scroll](https://www.tnm.jp/modules/r_exhibition/index.php?controller=item&id=7967&lang=en) (search image inspected; an Edo copy of an earlier scene).
 
 See the [complete lab review and before/after gallery](../REVIEW_2026-11-10.md).
+
+## Expanded prop set — 2026-11-13
+
+Added eight more objects to bring the prop palette from ten to eighteen:
+
+- **Noren curtain** — three fabric panels with painted kanji marking a shop entrance. A hanging rod, the cloth panels, and decorative fringe. Common sight at every machiya doorway.
+- **Hanging laundry** — shirts, towels, and the week's washing on a clothesline strung between houses. Clothespins hold each piece. The wind moves them.
+- **Fire bucket** — a wooden bucket of water kept ready against fire. A rope handle loops over the rim.
+- **Sand bucket** — sand for the charcoal hearth, kept in a bucket with the shovel resting in it.
+- **Rain gutter** — a tin downspout carrying rain from the roof. Elbow joint, splash plate at the bottom.
+- **Woodpile** — logs stacked to dry for winter, on flat stones to keep them off wet ground.
+- **Cat sleeping spot** — a woven mat in a sheltered corner with a curled-up cat. The spot is claimed.
+- **Broken crate** — a crate with one board kicked off, adding disorder to a stack.
+
+These bring the lab closer to the research notes' list of what a Kyoto lane actually holds. The game already has crates, a barrel, pots, a bicycle, a signboard, a broom, a tanuki, and spare tiles; this lab adds the rest.

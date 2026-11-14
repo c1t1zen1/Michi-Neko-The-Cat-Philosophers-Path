@@ -13,6 +13,8 @@ import { Autopilot } from './autopilot.js';
 import { buildWorld } from './build.js';
 import { Sky } from './sky.js';
 import { RooftopAtmosphere } from './atmosphere.js';
+import { Companion } from './companion.js';
+import { neighbourhoodMap } from './neighbourhood-map.js';
 
 const Q = new URLSearchParams(location.search);
 const flag = (k, d = null) => (Q.has(k) ? Q.get(k) : d);
@@ -44,7 +46,7 @@ scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnviron
 const level = buildLevel();
 const rail = level.rail;
 const runner = new Runner(level);
-const sky = new Sky(scene, renderer, { shadows, reduceMotion, lowPower });
+const sky = new Sky(scene, renderer, { shadows, reduceMotion, lowPower, center: new THREE.Vector3(level.center.x, 0, level.center.z) });
 const world = buildWorld(level, { reduceMotion, lowPower });
 scene.add(world.root);
 const atmosphere = new RooftopAtmosphere(scene, level, { reduceMotion, lowPower });
@@ -169,7 +171,7 @@ const audio = {
     const t = c.currentTime;
     if (t - this.lastMixT >= 0.1) {
       this.lastMixT = t;
-      const river = s < 122 ? 0.78 : (s < 165 ? 1 : 0);
+      const river = level.pieces.some(p => p.type === 'water' && s > p.s0 - 8 && s < p.s1 + 8) ? 1 : (s < level.mouths[1].s1 ? 0.55 : 0);
       const low = 1 - smooth(1.2, 6.5, y);
       const waterGain = 0.0015 + river * (0.009 + low * 0.009);
       const windGain = 0.0025 + smooth(3.0, 8.0, y) * 0.008 + progress * 0.0025;
@@ -189,7 +191,7 @@ const audio = {
       this.chirp(night);
       this.nextChirp = t + 2.8 + Math.random() * 4.2;
     }
-    if (!finaleActive && s > 286 && night > 0.42 && t >= this.nextFestivalDrum) {
+    if (!finaleActive && s > level.mouths[5].s0 && night > 0.42 && t >= this.nextFestivalDrum) {
       this.drum(58 + Math.random() * 8, 1.2, 0.009);
       this.nextFestivalDrum = t + 6.5 + Math.random() * 5.5;
     }
@@ -459,7 +461,11 @@ const cam = { s: 0, y: 2, dist: 8.2, water: 0, fov: 34, n: { x: 0, z: 1 }, init:
 function startAt(s, y) {
   runner.reset(s, y + 0.4);
   vis.depth = runner.depth;
+  const p = rail.place(runner.s, vis.depth);
+  catRoot.position.set(p.x, runner.y, p.z);
+  cam.dist = 10.2;
   cam.init = false;
+  if (typeof companion !== 'undefined') initChidori();
 }
 
 function jumpToMouth(id) {
@@ -507,64 +513,45 @@ setMuted(false, false);
 
 /* ---------------- Chidori, the guide cat ---------------- */
 
-const chidori = { idx: 0, from: null, to: null, t: 0, dur: 0, pos: new THREE.Vector3(), heading: 0, hopping: false, sitT: 0 };
-function perchWorld(p, out) {
-  const xz = rail.place(p.s, p.d);
-  return out.set(xz.x, p.y, xz.z);
-}
+const companion = new Companion(level);
+const townMap = neighbourhoodMap(level, () => { keys.clear(); resetTouch(); });
+const chidori = { pos: new THREE.Vector3(), heading: 0, depth: 0 };
 function initChidori() {
-  const p = level.perches[0];
-  perchWorld(p, chidori.pos);
-  chidori.idx = 0;
+  companion.reset(runner, time);
+  const r = companion.runner, p = rail.place(r.s, r.depth);
+  chidori.pos.set(p.x, r.y, p.z); chidori.depth = r.depth;
+  guideRoot.position.copy(chidori.pos);
 }
 function updateChidori(dt) {
-  const P = level.perches;
-  const here = P[chidori.idx];
-  if (!chidori.hopping && here) {
-    const near = Math.abs(runner.s - here.s) < 2.6 && runner.y > here.y - 2.6;
-    const passed = runner.s > here.s + 0.5;
-    let next = chidori.idx + 1;
-    // Never run off to a perch behind the player; skip ones already passed.
-    while (next < P.length - 1 && P[next].s < runner.s + 1.0) next++;
-    if ((near || passed) && next < P.length && (!finale || next === P.length - 1)) {
-      chidori.from = chidori.pos.clone();
-      chidori.to = perchWorld(P[next], new THREE.Vector3());
-      const dist = chidori.from.distanceTo(chidori.to);
-      chidori.dur = clamp(dist / 5.5, 0.45, 1.5);
-      chidori.t = 0;
-      chidori.peak = Math.max(0.5, chidori.to.y - chidori.from.y + 0.6, dist * 0.12);
-      chidori.hopping = true;
-      chidori.idx = next;
-      if (guide) guide.onJump();
-    }
+  const portrait = camera.aspect < 0.85;
+  // Substep the companion alongside the same real runner constants.
+  const steps = Math.max(1, Math.ceil(dt / STEP)), step = dt / steps;
+  let r = companion.runner;
+  const events = new Set();
+  for (let i = 0; i < steps; i++) {
+    if (finale) r.step(step, { move: 0 }, time - dt + i * step);
+    else r = companion.update(step, runner, time - dt + i * step, portrait);
+    for (const event of r.events) events.add(event);
   }
-  let speed = 0, grounded = true;
-  if (chidori.hopping) {
-    chidori.t += dt / chidori.dur;
-    const u = Math.min(1, chidori.t);
-    chidori.pos.lerpVectors(chidori.from, chidori.to, u);
-    const base = chidori.from.y + (chidori.to.y - chidori.from.y) * u;
-    chidori.pos.y = base + 4 * chidori.peak * u * (1 - u);
-    const dx = chidori.to.x - chidori.from.x, dz = chidori.to.z - chidori.from.z;
-    if (dx * dx + dz * dz > 1e-4) chidori.heading = Math.atan2(dx, dz);
-    speed = 4; grounded = false;
-    if (u >= 1) { chidori.hopping = false; chidori.sitT = 0; if (guide) guide.onLand(); }
-  } else {
-    chidori.sitT += dt;
-    // Turn to watch Michi coming.
-    const cp = catRoot.position;
-    const want = Math.atan2(cp.x - chidori.pos.x, cp.z - chidori.pos.z);
-    let d = want - chidori.heading;
-    while (d > Math.PI) d -= Math.PI * 2;
-    while (d < -Math.PI) d += Math.PI * 2;
-    chidori.heading += d * Math.min(1, dt * 3);
-    if (guide && chidori.sitT > 1.2 && !guide.idleAction) guide.startIdleAction('sit', 600);
-  }
-  guideRoot.position.copy(chidori.pos);
-  guideRoot.rotation.y = chidori.heading;
+  chidori.depth = damp(chidori.depth, r.depth, 9, dt);
+  const p = rail.place(r.s, chidori.depth);
+  chidori.pos.set(p.x, r.y, p.z);
+  const t = rail.tangentAt(r.s);
+  const watch = Math.abs(r.vs) < 0.2;
+  const want = watch ? Math.atan2(catRoot.position.x - p.x, catRoot.position.z - p.z) : Math.atan2(t.x * r.facing, t.z * r.facing);
+  let turn = want - chidori.heading;
+  while (turn > Math.PI) turn -= Math.PI * 2;
+  while (turn < -Math.PI) turn += Math.PI * 2;
+  chidori.heading += turn * Math.min(1, dt * 8);
+  guideRoot.position.copy(chidori.pos); guideRoot.rotation.y = chidori.heading;
   if (guide) {
-    if (chidori.hopping && guide.idleAction) guide.endIdleAction();
-    guide.update(dt, speed, grounded, false, false, false, null);
+    if (events.has('jump') || events.has('bounce')) guide.onJump();
+    if (events.has('land')) guide.onLand();
+    if (!watch && guide.idleAction) guide.endIdleAction();
+    if (watch && companion.modeTime > 0.65 && !guide.idleAction) guide.startIdleAction('sit', 2);
+    guide.setProwling(companion.mood === 'prowl');
+    guide.update(dt, Math.abs(r.vs), r.grounded, r.sprinting, false, r.inWater, null);
+    guide.setLookTarget(watch ? catRoot.position : null);
   }
 }
 
@@ -616,17 +603,15 @@ function checkProgress() {
 
 function startFinale() {
   finale = { t: 0, lit: 0, shown: false };
+  document.body.classList.add('at-finale');
   seenMouths.add(7);
   showCard(level.mouths[6]);
   updateStrip();
   if (cat) { cat.startIdleAction('sit', 9999); cat.setLookTarget(null); }
-  // Chidori comes to the float roof beside the perch.
-  const last = level.perches.length - 1;
-  if (chidori.idx !== last) {
-    chidori.from = chidori.pos.clone();
-    chidori.to = perchWorld(level.perches[last], new THREE.Vector3());
-    chidori.dur = 1.2; chidori.t = 0; chidori.peak = 1; chidori.hopping = true; chidori.idx = last;
-  }
+  // Chidori settles on the real roof he reached beside Michi. The chase
+  // ends here; no scripted long leap or old perch index takes over.
+  companion.runner.vs = 0;
+  if (guide && companion.runner.grounded) guide.startIdleAction('sit', 9999);
 }
 
 function updateFinale(dt) {
@@ -654,6 +639,7 @@ function updateFinale(dt) {
 
 $('again') && $('again').addEventListener('click', () => {
   $('finale').classList.remove('show');
+  document.body.classList.remove('at-finale');
   finale = null;
   sky.resetFires();
   if (cat) cat.endIdleAction();
@@ -739,13 +725,16 @@ function stepPhysics(inp) {
 
 function frame(now) {
   requestAnimationFrame(frame);
+  tick(now);
+}
+function tick(now, draw = true) {
   let dt = Math.min(0.1, (now - lastNow) / 1000);
   lastNow = now;
   if (flag('shot') === '1') dt = Math.min(dt, 1 / 30);
 
   if (isPaused || contextLost) {
     acc = 0;
-    if (!contextLost) { updateCamera(0); renderer.render(scene, camera); }
+    if (!contextLost) { updateCamera(0); if (draw) renderer.render(scene, camera); }
     return;
   }
 
@@ -773,7 +762,7 @@ function frame(now) {
     for (const m of envMats) m.envMapIntensity = (m.userData.env0 ?? 1) * envScale;
   }
   const night = sky.night;
-  world.update(time, night, platOffset, level.platforms);
+  world.update(time, night, platOffset, level.platforms, runner.s);
   audio.update(runner.s, runner.y, prog, night, runner.grounded ? runner.ground : null, !!finale);
 
   // Where the cat is drawn: depth eases toward what it stands on (or will land on).
@@ -826,6 +815,7 @@ function frame(now) {
   }
 
   updateChidori(dt);
+  townMap.update(runner.s, companion.runner.s);
   if (!finale) { checkPickups(); checkProgress(); }
   else updateFinale(dt);
 
@@ -865,7 +855,7 @@ function frame(now) {
     fpsT = 0; fpsN = 0;
   }
 
-  renderer.render(scene, camera);
+  if (draw) renderer.render(scene, camera);
 }
 
 function updateCamera(dt) {
@@ -883,34 +873,56 @@ function updateCamera(dt) {
     const c = catRoot.position;
     const want = tmpV.set(c.x - 5.2, c.y + 0.7, c.z + 3.6);
     camera.position.lerp(want, 1 - Math.exp(-(reduceMotion ? 1.2 : 2.2) * dt * (0.3 + k)));
-    const look = tmpL.set(c.x + 40, c.y + 2.0 + 4 * k, c.z - 9);
+    // The new downtown endpoint faces a different bearing. Aim at the real
+    // hill fires; a portrait panorama needs a wider horizontal field as well.
+    const look = tmpL.set(0, 0, 0);
+    for (const fire of sky.fires) look.add(fire.center);
+    look.multiplyScalar(1 / sky.fires.length); look.y -= 20;
     camera.lookAt(look);
-    camera.fov = damp(camera.fov, 50, 1.5, dt);
+    const finaleFov = camera.aspect < .85 ? 96 : 50;
+    camera.fov = damp(camera.fov, finaleFov, 1.5, dt);
     camera.updateProjectionMatrix();
+    world.setView(camera, catRoot, guideRoot);
     return;
   }
 
-  // Side-on rig: look ahead the way the cat faces, softened round corners.
-  const vertical = smooth(311, 316, runner.s) * (1 - smooth(323, 327, runner.s));
-  const waterView = runner.ground?.kind === 'water' ? 1 : 0;
-  const lookAhead = 1.3 * runner.facing * (1 - vertical);
-  const sTarget = runner.s + lookAhead;
-  const yTarget = runner.y + 0.7 + vertical * 0.6 + waterView * 0.2;
-  if (!cam.init) { cam.s = sTarget; cam.y = yTarget; cam.water = waterView; cam.init = true; }
-  const rate = reduceMotion ? 2.2 : 3.6;
-  cam.s = damp(cam.s, sTarget, rate, dt);
-  cam.y = damp(cam.y, yTarget, runner.vy < -4 ? 6 : 3.2, dt);
-  cam.water = damp(cam.water, waterView, 4.5, dt);
-  cam.dist = damp(cam.dist, 9.4 + vertical * 3.0 + cam.water * 1.2, 2, dt);
-  const nrm = rail.smoothNormalAt(clamp(cam.s, 0, level.length), 5, cam.n);
-  const base = rail.place(clamp(cam.s, 0, level.length), vis.depth * 0.6);
-  // A flat, side-on view just above the cat: roof lines read as the
-  // platforms, the gaps between houses as notches in the skyline.
-  camera.position.set(base.x + nrm.x * cam.dist, cam.y + 0.55 + vertical * 1.2 + cam.water * 0.95, base.z + nrm.z * cam.dist);
-  const look = rail.place(clamp(cam.s, 0, level.length), vis.depth);
-  camera.lookAt(look.x, cam.y - 0.15 + vertical * 0.2 - cam.water * 0.35, look.z);
-  camera.fov = damp(camera.fov, 34 + vertical * 6, 2, dt);
+  // Frame both cats inside the play area. Portrait uses a shorter companion
+  // lead and fits horizontally; the desktop camera keeps its open side view.
+  const portrait = camera.aspect < 0.85;
+  const f = level.mouths[6];
+  const vertical = smooth(f.s0 - 5, f.s0, runner.s) * (1 - smooth(f.s1 + 1, f.s1 + 5, runner.s));
+  const r = companion.runner;
+  const wantedS = (runner.s + r.s) / 2 + (portrait ? 0 : runner.facing * 0.65);
+  const rate = reduceMotion ? 4 : 6;
+  const mid = tmpL.copy(catRoot.position).add(guideRoot.position).multiplyScalar(0.5);
+  mid.y += 0.5 + vertical * 0.1;
+  if (!cam.init) { cam.s = wantedS; cam.center = mid.clone(); cam.init = true; }
+  cam.s = damp(cam.s, wantedS, rate, dt);
+  cam.center.lerp(mid, 1 - Math.exp(-rate * Math.max(dt, 1 / 120)));
+  const nrm = rail.smoothNormalAt(clamp(cam.s, 0, level.length), 3.5, cam.n);
+  camera.fov = portrait ? 43 : 35 + vertical * 4;
   camera.updateProjectionMatrix();
+  const minDist = portrait ? 10.2 : 9.8 + vertical * 1.8;
+  let distance = Math.max(minDist, damp(cam.dist, minDist, 3, dt));
+  const placeCamera = () => {
+    camera.position.set(cam.center.x + nrm.x * distance, cam.center.y + distance * (runner.inWater ? 0.32 : portrait ? 0.22 : 0.17), cam.center.z + nrm.z * distance);
+    camera.lookAt(cam.center); camera.updateMatrixWorld(true);
+  };
+  // Fit a volume around each cat, including ears, paws and its turning body.
+  // This solves perspective depth as well as aspect ratio at interior turns.
+  const point = new THREE.Vector3();
+  for (let fit = 0; fit < 8; fit++) {
+    placeCamera();
+    let overflow = 1;
+    for (const subject of [catRoot, guideRoot]) for (const x of [-0.42, 0.42]) for (const y of [0, 0.72]) for (const z of [-0.42, 0.42]) {
+      point.copy(subject.position).add(tmpV.set(x, y, z)).project(camera);
+      overflow = Math.max(overflow, Math.abs(point.x) / (portrait ? 0.8 : 0.88), point.y / 0.56, -point.y / 0.56);
+    }
+    if (overflow <= 1.001) break;
+    distance *= Math.min(1.8, overflow * 1.025);
+  }
+  cam.dist = distance; placeCamera();
+  world.setView(camera, catRoot, guideRoot);
 }
 
 /* ---------------- start ---------------- */
@@ -931,8 +943,7 @@ function start() {
     startAt(1.0, 1.1);
   }
   // Put Chidori just ahead of wherever we start.
-  while (chidori.idx < level.perches.length - 1 && level.perches[chidori.idx].s < runner.s + 1.0) chidori.idx++;
-  perchWorld(level.perches[chidori.idx], chidori.pos);
+  initChidori();
   currentMouth = mouthAt(level, runner.s, runner.y);
   seenMouths.add(currentMouth.id);
   if (flag('nohud') !== '1') showCard(currentMouth);
@@ -944,6 +955,20 @@ function start() {
 // Expose a little for headless captures and the console.
 window.roofRoad = {
   level, runner, sky, world, atmosphere, audio, PHYS, jumpToMouth,
+  get companion() { return companion; },
+  get view() {
+    const ndc = p => { const v = p.clone().add(new THREE.Vector3(0, 0.3, 0)).project(camera); return { x: v.x, y: v.y, z: v.z }; };
+    const bounds = p => {
+      const b = { left: Infinity, right: -Infinity, top: -Infinity, bottom: Infinity };
+      for (const x of [-.42,.42]) for (const y of [0,.72]) for (const z of [-.42,.42]) {
+        const v = p.clone().add(new THREE.Vector3(x,y,z)).project(camera);
+        b.left = Math.min(b.left,v.x); b.right = Math.max(b.right,v.x); b.top = Math.max(b.top,v.y); b.bottom = Math.min(b.bottom,v.y);
+      }
+      b.pixelsHigh = (b.top - b.bottom) * canvas.clientHeight / 2; return b;
+    };
+    return { player: ndc(catRoot.position), guide: ndc(guideRoot.position), fires: sky.fires.map(f => ndc(f.center)), bounds: { player: bounds(catRoot.position), guide: bounds(guideRoot.position) }, distance: cam.dist, aspect: camera.aspect, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, mood: companion.mood };
+  },
+  setAuto(on = true) { autopilot = on ? new Autopilot(level) : null; },
   get finale() { return finale; },
   get catReady() { return !!cat || flag('cat') === '0'; },
   /** Stand the cat at route position s; pass y to inspect a specific layer. */
@@ -972,4 +997,20 @@ window.roofRoad = {
     sky.fires.forEach((f, i) => { sky.lightFire(i); f.kindle = 1; });
   }
 };
+// Deterministic browser review runs the actual frame pipeline without drawing
+// every intermediate tick. Available only with ?qa=1; normal play has no clock.
+if (flag('qa') === '1') {
+  roofRoad.advanceForReview = seconds => {
+    const n = Math.ceil(clamp(Number(seconds) || 0, 0, 450) * 60);
+    const samples = [], moods = new Set();
+    for (let i = 0; i < n; i++) {
+      tick(lastNow + 1000 / 60, false);
+      if (i % 30 === 0 && !finale) { const v = roofRoad.view; samples.push({ s: runner.s, y: runner.y, ...v }); moods.add(companion.mood); }
+    }
+    // The accelerated review clock must never leak into the next real RAF.
+    lastNow = performance.now(); acc = 0;
+    renderer.render(scene, camera);
+    return { samples, moods: [...moods], s: runner.s, finale: !!finale, catReady: !!cat };
+  };
+}
 start();
