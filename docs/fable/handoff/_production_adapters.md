@@ -37,3 +37,4 @@ For s3-vista and r4-festival (import with the current `?v=` tag):
   - Detail meshes: hero 7, mid 7, far 3 (podium, tower, sorin). One material (`km.shared('matte')`), deterministic, mergeable.
 | v-shrine | torii, shrine-hall, shimenawa, shrine-bell, offering-box, mist-altar, offering-bells | src/kit/shrine/index.js assets |
 | v-machiya-a | kawara-roof, koushi, upper-windows, noren, timber-frame, namako, engawa, tea-bench, secret-door, lock-plate | src/kit/machiya/index.js assets (production: "machiya") |
+| v-hidden | all 15 hidden ids (moon-pool, lantern-glade, glade-lanterns, ...) | src/kit/hidden/index.js assets (production: "hidden") |

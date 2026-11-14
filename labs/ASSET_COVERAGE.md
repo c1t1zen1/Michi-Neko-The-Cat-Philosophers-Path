@@ -6,7 +6,7 @@ Reviewed 2026-11-10. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **99 of 186 (53.2%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **106 of 186 (57.0%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -28,11 +28,11 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 99 | 53.2% |
+| Focused lab study | 106 | 57.0% |
 | Review sheet | 41 | 22.0% |
-| Embedded in a specimen | 20 | 10.8% |
-| Related evidence only | 18 | 9.7% |
-| No mapped evidence | 8 | 4.3% |
+| Embedded in a specimen | 17 | 9.1% |
+| Related evidence only | 15 | 8.1% |
+| No mapped evidence | 7 | 3.8% |
 
 ## Coverage by area
 
@@ -49,7 +49,7 @@ Each active row is counted once at its strongest evidence level, in the order ab
 | Items | 8 | 8 | 0 | 0 | 0 | 0 |
 | Vegetation | 22 | 15 | 6 | 0 | 1 | 0 |
 | Effects | 2 | 1 | 0 | 0 | 1 | 0 |
-| Hidden places | 16 | 8 | 0 | 4 | 3 | 1 |
+| Hidden places | 16 | 15 | 0 | 1 | 0 | 0 |
 | Interiors | 19 | 6 | 0 | 10 | 2 | 1 |
 | Sky and effects | 19 | 6 | 0 | 2 | 7 | 4 |
 | Summit | 32 | 1 | 31 | 0 | 0 | 0 |
@@ -82,14 +82,7 @@ This list includes every active row without a focused study, including review-on
 | [Leaf sprays and clumped/mass canopy families](#tree-canopies) | Review sheet | No individual focused specimen is mapped. |
 | [Roadside moss patches](#roadside-moss) | Related evidence only | The grass moss pillow differs from the roadside instanced tufts. |
 | [River-bank grass fireflies](#grass-fireflies) | Related evidence only | Related hotaru study; not the GrassSystem particle shader. |
-| [Moon Pool mossy apron](#pool-apron) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Pool rim stones](#pool-rim) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Pool sitting stone](#pool-seat) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Moon Pool stone toro](#pool-toro) | Embedded in a specimen | No individual focused specimen is mapped. |
-| [Lantern Glade complete clearing](#lantern-glade) | Related evidence only | The original tile extracts a lantern, not the complete clearing. |
-| [Glade leaf-litter ground](#glade-floor) | No mapped evidence | No specimen extracts this leaf-litter texture or clearing floor. |
-| [Glade bamboo ring and drooping leaves](#glade-bamboo) | Related evidence only | Vegetation.buildBambooGrove differs from the hidden-place bamboo. |
-| [Glade seat and mossy central boulder](#glade-seat) | Related evidence only | Related stone finish, without the glade objects. |
 | [Interior walls, timber posts and ceiling beams](#interior-frame) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Tokonoma alcove](#tokonoma) | Embedded in a specimen | No individual focused specimen is mapped. |
 | [Kakejiku hanging scroll](#scroll) | Embedded in a specimen | No individual focused specimen is mapped. |
@@ -312,20 +305,20 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
 | <a id="moon-pool"></a>`moon-pool` — Moon Pool assembly | [src/hidden_places.js:buildMoonPool(](../src/hidden_places.js#L157) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (direct) |  |
-| <a id="pool-apron"></a>`pool-apron` — Moon Pool mossy apron | [src/hidden_places.js:// Mossy ground apron](../src/hidden_places.js#L296) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
+| <a id="pool-apron"></a>`pool-apron` — Moon Pool mossy apron | [src/hidden_places.js:// Mossy ground apron](../src/hidden_places.js#L296) | [moonpool / apron-moss](../labs/moonpool/js/ground.js#L109) (direct) |  |
 | <a id="pool-water"></a>`pool-water` — Moon Pool water and caustic layer | [src/hidden_places.js:// The water: a deep](../src/hidden_places.js#L324) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (direct) |  |
 | <a id="pool-moon"></a>`pool-moon` — Moon reflection disc | [src/hidden_places.js:// Moon pooled on the water](../src/hidden_places.js#L364) | [moonpool / game-moon](../labs/moonpool/js/recipes.js#L217) (direct) |  |
-| <a id="pool-rim"></a>`pool-rim` — Pool rim stones | [src/hidden_places.js:// Rim stones](../src/hidden_places.js#L379) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
+| <a id="pool-rim"></a>`pool-rim` — Pool rim stones | [src/hidden_places.js:// Rim stones](../src/hidden_places.js#L379) | [moonpool / rim-chisel](../labs/moonpool/js/ground.js#L113) (direct) |  |
 | <a id="lily-pads"></a>`lily-pads` — Lily pads | [src/hidden_places.js:// Lily pads](../src/hidden_places.js#L254) | [moonpool / game-pad](../labs/moonpool/js/recipes.js#L231) (direct) |  |
 | <a id="lotus"></a>`lotus` — Lotus blossoms | [src/hidden_places.js:// Lily pads](../src/hidden_places.js#L254) | [moonpool / lotus](../labs/moonpool/js/recipes.js#L239) (direct) |  |
-| <a id="pool-seat"></a>`pool-seat` — Pool sitting stone | [src/hidden_places.js:// Flat sitting stone](../src/hidden_places.js#L412) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
+| <a id="pool-seat"></a>`pool-seat` — Pool sitting stone | [src/hidden_places.js:// Flat sitting stone](../src/hidden_places.js#L412) | [moonpool / seat-slab](../labs/moonpool/js/ground.js#L117) (direct) |  |
 | <a id="pool-toro"></a>`pool-toro` — Moon Pool stone toro | [src/hidden_places.js:// A little stone toro](../src/hidden_places.js#L425) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
 | <a id="pool-motes"></a>`pool-motes` — Moon Pool rising motes | [src/hidden_places.js:// Motes lifting off](../src/hidden_places.js#L451) | [moonpool / game-motes](../labs/moonpool/js/recipes.js#L263) (direct) |  |
-| <a id="lantern-glade"></a>`lantern-glade` — Lantern Glade complete clearing | [src/hidden_places.js:buildLanternGlade(](../src/hidden_places.js#L486) | [moonpool / game-lamp](../labs/moonpool/js/recipes.js#L245) (related) — The original tile extracts a lantern, not the complete clearing. |  |
-| <a id="glade-floor"></a>`glade-floor` — Glade leaf-litter ground | [src/hidden_places.js:// Leaf-litter floor](../src/hidden_places.js#L617) | **No mapped evidence** | No specimen extracts this leaf-litter texture or clearing floor. |
-| <a id="glade-bamboo"></a>`glade-bamboo` — Glade bamboo ring and drooping leaves | [src/hidden_places.js:stalks.name = 'Glade Bamboo'](../src/hidden_places.js#L663) | [greenery / game-grove](../labs/greenery/js/recipes.js#L54) (related) — Vegetation.buildBambooGrove differs from the hidden-place bamboo. |  |
+| <a id="lantern-glade"></a>`lantern-glade` — Lantern Glade complete clearing | [src/hidden_places.js:buildLanternGlade(](../src/hidden_places.js#L486) | [moonpool / glade-whole](../labs/moonpool/js/ground.js#L138) (direct)<br>[moonpool / game-lamp](../labs/moonpool/js/recipes.js#L245) (related) — The original tile extracts a lantern, not the complete clearing. |  |
+| <a id="glade-floor"></a>`glade-floor` — Glade leaf-litter ground | [src/hidden_places.js:// Leaf-litter floor](../src/hidden_places.js#L617) | [moonpool / glade-litter](../labs/moonpool/js/ground.js#L121) (direct) |  |
+| <a id="glade-bamboo"></a>`glade-bamboo` — Glade bamboo ring and drooping leaves | [src/hidden_places.js:stalks.name = 'Glade Bamboo'](../src/hidden_places.js#L663) | [moonpool / bamboo-nodes](../labs/moonpool/js/ground.js#L125) (direct)<br>[greenery / game-grove](../labs/greenery/js/recipes.js#L54) (related) — Vegetation.buildBambooGrove differs from the hidden-place bamboo. |  |
 | <a id="glade-lanterns"></a>`glade-lanterns` — Glade paper lanterns and glow | [src/hidden_places.js:// Paper lanterns strung](../src/hidden_places.js#L599) | [moonpool / game-lamp](../labs/moonpool/js/recipes.js#L245) (direct) |  |
-| <a id="glade-seat"></a>`glade-seat` — Glade seat and mossy central boulder | [src/hidden_places.js:// A flat sitting stone](../src/hidden_places.js#L737) | [rocks / moss-old](../labs/rocks/js/recipes.js#L67) (related) — Related stone finish, without the glade objects. |  |
+| <a id="glade-seat"></a>`glade-seat` — Glade seat and mossy central boulder | [src/hidden_places.js:// A flat sitting stone](../src/hidden_places.js#L737) | [moonpool / boulder-moss](../labs/moonpool/js/ground.js#L129) (direct)<br>[rocks / moss-old](../labs/rocks/js/recipes.js#L67) (related) — Related stone finish, without the glade objects. |  |
 | <a id="glade-fireflies"></a>`glade-fireflies` — Glade fireflies | [src/hidden_places.js:// Fireflies that gather](../src/hidden_places.js#L759) | [moonpool / fireflies](../labs/moonpool/js/recipes.js#L267) (direct) |  |
 
 ### Interiors
@@ -474,7 +467,7 @@ Every current `src/*.js` module is classified. Every class method declared with 
 | [src/cat.js:buildMaterials(](../src/cat.js#L80) | Material setup for the inventoried cat; not another object. |
 | [src/countryside.js:createRiverUniforms(](../src/countryside.js#L1590) | Shader parameter state for the inventoried river/paddies, not another visible asset. |
 | [src/npc.js:createNameTag(](../src/npc.js#L212) | DOM character label; interface is outside the visible world-asset inventory. |
-| [src/main.js:buildJournalUI(](../src/main.js#L1698) | DOM journal interface; journal text rewards are not physical inventory objects. |
+| [src/main.js:buildJournalUI(](../src/main.js#L1699) | DOM journal interface; journal text rewards are not physical inventory objects. |
 | [src/menus.js:buildSettings(](../src/menus.js#L140) | DOM settings interface, outside the world-asset scope. |
 | [src/postfx.js:buildKernel(](../src/postfx.js#L176) | AO sampling-kernel data, not a second visual asset. |
 
@@ -489,9 +482,9 @@ Narrative-only characters and journal/progression rewards are recorded separatel
 
 | Nonvisual entry | Source | Reason |
 |---|---|---|
-| Bokuchi, the forest spirit | [src/main.js](../src/main.js#L1847) | Named in Kuro’s dialogue; no separate Bokuchi actor or mesh is constructed. |
+| Bokuchi, the forest spirit | [src/main.js](../src/main.js#L1848) | Named in Kuro’s dialogue; no separate Bokuchi actor or mesh is constructed. |
 | Mist Charm | [src/context_actions.js](../src/context_actions.js#L690) | Journal/progression reward from touching the altar; no collectible mesh. |
-| Bokuchi’s Blessing | [src/main.js](../src/main.js#L1918) | Journal/progression reward for the offering-bell quest; no separate item mesh. |
+| Bokuchi’s Blessing | [src/main.js](../src/main.js#L1919) | Journal/progression reward for the offering-bell quest; no separate item mesh. |
 | The valley became home | [src/context_actions.js](../src/context_actions.js#L762) | Journal memory from a quiet moment; no physical item. |
 
 Optional media and dormant code are recorded without claiming that a download succeeded or an unused builder is part of the current playable scene. The Roof Road retains its own prototype review and reachability checks.
