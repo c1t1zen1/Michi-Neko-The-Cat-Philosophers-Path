@@ -348,7 +348,9 @@ export class Countryside {
     const parent = layout.parent === undefined ? this.scene : layout.parent;
     if (parent) parent.add(g);
     this.registerFootprint(inst.footprint || layout.footprint, g, inst);
-    for (const [field, name] of Object.entries(layout.bind || {})) this[field] = this.resolvePart({ $part: name }, inst);
+    for (const [field, name] of Object.entries(layout.bind || {})) {
+      this[field] = this.resolvePart(typeof name === 'string' ? { $part: name } : name, inst);
+    }
     if (!this.assetInstances) this.assetInstances = [];
     this.assetInstances.push(inst);
     for (const c of layout.components || []) this.placeComponent(c, g);
@@ -2196,6 +2198,19 @@ export class Countryside {
 
   // --- 5. Antique Golden Key Collectible ---
   buildSecretKey(x, y, z) {
+    const layout = this.layoutSecretKey(x, y, z);
+    return this.placeAsset('key', layout, () => this.meshSecretKeyClassic(layout));
+  }
+
+  layoutSecretKey(x, y, z) {
+    return {
+      index: this.nextIndex('key'), name: 'Secret Key', x, y, z,
+      footprint: footprint({ anchors: { secretKeyPos: new THREE.Vector3(x, y, z) } }),
+      bind: { secretKeyMesh: part('.', { userData: { isSecretKey: true, id: 999 } }) }
+    };
+  }
+
+  meshSecretKeyClassic({ x, y, z }) {
     const keyGroup = new THREE.Group();
 
     // Antique Japanese Key (Key ring, stem, bit teeth)
