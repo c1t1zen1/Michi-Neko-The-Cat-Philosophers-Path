@@ -67,7 +67,7 @@ void main() {
   vec3 N = normalize(vec3(slope.x, 1., slope.y));
   float fres = 0.02 + 0.98 * pow(1. - max(dot(N, V), 0.), 5.);
   vec3 R = reflect(-V, N); R.y = abs(R.y);
-  vec3 refl = skyColor(R);
+  vec3 refl = reflColor(R);
   refl = mix(refl, uWarm, uDusk * 0.2);
   vec3 L = normalize(uSunDir);
   vec3 H = normalize(L + V);
@@ -84,6 +84,8 @@ void main() {
   // the silty bed, with the seedling rows' shade (rows 0.48 m apart along x)
   float rows = 0.5 + 0.5 * sin(p.y * 13.09);
   vec3 bed = mix(vec3(0.07, 0.065, 0.045), vec3(0.11, 0.12, 0.07), vnoise2(p * 0.8)) * (0.86 + rows * 0.14 * step(0.5, uSeason)) * amb * 1.5;
+  // the shallow water column tints the silt toward the river's teal, as the classic sheet does
+  bed = mix(bed, mix(vec3(0.0168, 0.0723, 0.1022), vec3(0.0782, 0.2705, 0.2623), 0.5) * amb * 2.6, 0.38);
   bed = mix(bed, vec3(0.08, 0.15, 0.05) * amb * 2., 0.6 * summer);
   float absorb = mix(0.42, 0.75, summer);
   vec3 col = bed * absorb * (1. - F) + refl * F + spec;
@@ -154,7 +156,8 @@ const PROFILE = {
   far: [[-0.25, -0.02], [-0.1, 0.28], [0.1, 0.28], [0.25, -0.02]]
 };
 const STEP = { hero: 0.4, mid: 1.0, far: 0 };
-const COL = { mud: [0.29, 0.25, 0.18], mudWet: [0.2, 0.17, 0.12], grass: [0.37, 0.48, 0.23], grass2: [0.46, 0.55, 0.27], earth: [0.42, 0.4, 0.27] };
+// sRGB hex, converted to the linear vertex colours three multiplies in
+const COL_HEX = { mud: 0x5a4a34, mudWet: 0x3e3226, grass: 0x5b7434, grass2: 0x7a8c42, earth: 0x6e6444 };
 
 /**
  * One aze ridge from A to B (xz), `out` the unit direction away from the
@@ -169,6 +172,8 @@ function ridgeGeometry(T, A, B, out, tier, seed, notch) {
   const ax = (B[0] - A[0]) / len, az = (B[1] - A[1]) / len;
   const pos = [], col = [], uv = [], idx = [];
   const K = prof.length;
+  const COL = {};
+  for (const [k, hex] of Object.entries(COL_HEX)) { const c = new T.Color(hex); COL[k] = [c.r, c.g, c.b]; }
   const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
   for (let i = 0; i <= segs; i++) {
     const t = i / segs, d = t * len;

@@ -185,6 +185,14 @@ vec3 ambientWater() {
   return uTop * 0.34 + uSky * 0.22 + uSunColor * 0.2 * max(uSunDir.y, 0.) + vec3(0.02, 0.025, 0.035) + uMoonI * vec3(0.03, 0.04, 0.06);
 }
 
+// What a low reflected ray meets in the valley: the forest wall and the
+// banks all round, not open sky (there is no mirror pass; this is its cheap
+// stand-in), so grazing views darken toward the treeline as real water does.
+vec3 reflColor(vec3 R) {
+  vec3 forest = vec3(0.045, 0.085, 0.04) * (ambientWater() * 2.2 + 0.04) + uWarm * uDusk * 0.04;
+  return mix(forest, skyColor(R) * 0.78, smoothstep(0.08, 0.45, R.y));
+}
+
 // the wave train under each ripple ring of the pool (lab: effects.js rings)
 vec2 ringWaves(vec2 p, out float crest) {
   vec2 g = vec2(0.);

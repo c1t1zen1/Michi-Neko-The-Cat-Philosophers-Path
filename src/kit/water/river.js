@@ -104,7 +104,9 @@ void main() {
   vec2 T2 = normalize(vTan), S2 = vec2(-T2.y, T2.x);
 
   // slopes in river space, turned into the world by the centreline frame
-  vec2 sl = flowSlope(q, flow, t) * (0.16 + 0.75 * smoothstep(0.05, 1.3, speed)) * uRough;
+  vec3 V = normalize(cameraPosition - P);
+  // grazing views see the ripples averaged out (what a normal map's mips do), so they calm toward the horizon
+  vec2 sl = flowSlope(q, flow, t) * (0.16 + 0.75 * smoothstep(0.05, 1.3, speed)) * uRough * mix(0.4, 1., smoothstep(0.04, 0.45, V.y));
   vec2 wt = T2 * sl.x + S2 * sl.y;
   float crest = 0.;
   #ifdef RINGS
@@ -113,11 +115,10 @@ void main() {
   wt += rainRings(P.xz, t) * uRain;
   vec3 N = normalize(vec3(wt.x, 1., wt.y));
 
-  vec3 V = normalize(cameraPosition - P);
   float NdV = max(dot(N, V), 0.);
   float fres = 0.02 + 0.98 * pow(1. - NdV, 5.);
   vec3 R = reflect(-V, N); R.y = abs(R.y);
-  vec3 refl = skyColor(R);
+  vec3 refl = reflColor(R);
   // a painter's water is lighter where the view grazes it and darker underfoot
   float far = 1. - smoothstep(0.12, 0.85, V.y);
   refl = mix(refl, mix(uTop * 0.5, uSky * 1.05, far), uPaint * 0.45);
@@ -125,12 +126,14 @@ void main() {
 
   vec3 amb = ambientWater();
   float absorb = 1. - exp(-depth * uClarity);
-  vec3 body = mix(uShallow, uDeep, smoothstep(0.05, 0.95, depth)) * amb * 1.7;
+  vec3 body = mix(uShallow, uDeep, smoothstep(0.05, 0.95, depth)) * amb * 2.2;
   float sunUp = smoothstep(-0.05, 0.08, uSunDir.y);
 
   // foam: the shallows by the banks, the field's pillows and eddy lines, ring crests
   vec4 fm = flowFoam(q, flow, t, 0.6);
-  float shore = (1. - smoothstep(0.03, 0.1, depth)) * smoothstep(0.25, 0.7, fm.r + 0.3);
+  // lapping at the banks: soft streaks broken by a few bubbles, not a lace of cells
+  float lap = 0.5 + 0.5 * sin(q.x * 1.3 - t * 0.9 + fm.g * 4.);
+  float shore = (1. - smoothstep(0.022, 0.06 + lap * 0.02, depth)) * smoothstep(0.5, 0.95, fm.g * 0.75 + fm.r * 0.3 + lap * 0.15) * 0.55;
   float fieldFoam = smoothstep(0.2, 0.7, F.a * (0.5 + fm.r * 0.65 + fm.g * 0.45));
   float foam = max(shore, fieldFoam) * uFoamAmt;
   foam = max(foam, smoothstep(0.35, 1.2, crest) * 0.55);
@@ -153,7 +156,7 @@ void main() {
   float aBody = absorb * (1. - fres);
   vec3 col = body * aBody + refl * fres + specCol;
   float a = aBody + fres;
-  vec3 foamCol = (uSky * 0.45 + uTop * 0.3 + uSunColor * 0.38 * max(uSunDir.y, 0.)) * 1.2 + 0.05 + uMoonI * 0.08;
+  vec3 foamCol = (uSky * 0.45 + uTop * 0.3 + uSunColor * 0.38 * max(uSunDir.y, 0.)) * 0.95 + 0.04 + uMoonI * 0.08;
   col = col * (1. - foam) + foamCol * foam;
   a = a * (1. - foam) + foam;
   #ifdef CAUSTICS
@@ -161,7 +164,7 @@ void main() {
     vec3 v1 = voronoi2(P.xz * 1.7 + t * vec2(0.23, 0.11));
     vec3 v2 = voronoi2(P.xz * 2.31 + t * vec2(-0.19, 0.27));
     float caus = (1. - smoothstep(0., 0.17, v1.y - v1.x)) * (1. - smoothstep(0., 0.17, v2.y - v2.x));
-    col += uSunColor * caus * 0.22 * sunUp * max(uSunDir.y, 0.) * (1. - absorb) * smoothstep(0.02, 0.12, depth) * (1. - foam);
+    col += uSunColor * caus * 0.1 * sunUp * max(uSunDir.y, 0.) * (1. - absorb) * smoothstep(0.03, 0.15, depth) * smoothstep(0.15, 0.6, V.y) * (1. - foam);
   #endif
   // a thin ink line where the water meets the bank (Ghibli backgrounds)
   col *= 1. - (1. - smoothstep(0.022, 0.05, depth)) * uPaint * 0.35;
@@ -186,7 +189,7 @@ function ribbonGeometry(T, frames, across, halfW) {
       rv[k * 4] = frames.s[i]; rv[k * 4 + 1] = u; rv[k * 4 + 2] = tx; rv[k * 4 + 3] = tz;
       if (i < n - 1 && j < across) {
         const a = k, b = k + 1, c = k + m, d = k + m + 1;
-        idx.push(a, c, b, b, c, d);
+        idx.push(a, b, c, b, d, c); // counter-clockwise seen from above (the classic ribbon's winding)
       }
     }
   }
