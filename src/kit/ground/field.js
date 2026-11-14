@@ -227,8 +227,10 @@ export class GroundField {
       this.dirty.f = false;
     }
     if (this.dirty.h) {
-      const H = this.bufH, toHalf = THREE.DataUtils.toHalfFloat;
-      for (let j = rows[0]; j <= rows[1]; j++) for (let i = j * nx + rows[2], e = j * nx + rows[3]; i <= e; i++) H[i] = toHalf(this.base[i] + this.compaction(i));
+      const H = this.bufH, toHalf = THREE.DataUtils.toHalfFloat, W = this.wear, base = this.base;
+      for (let j = rows[0]; j <= rows[1]; j++) for (let i = j * nx + rows[2], e = j * nx + rows[3]; i <= e; i++) {
+        H[i] = (base[i] === 0 && W[i] <= 0.45) ? 0 : toHalf(base[i] + this.compaction(i));   // flat, untrodden: 0
+      }
       this.texH.needsUpdate = true;
       this.dirty.h = false;
     }
@@ -302,10 +304,10 @@ export class GroundField {
 const _snapshots = new Map();
 export function cachedField(key, paint) {
   if (!_snapshots.has(key)) {
-    const f = paint();
+    const f = paint();            // the first build gets the painted field itself
     f.upload();
     _snapshots.set(key, f.snapshot());
-    f.dispose();
+    return f;
   }
   return GroundField.fromSnapshot(_snapshots.get(key));
 }

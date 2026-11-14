@@ -112,26 +112,29 @@ function paintValley() {
   const T = terrain();
   const f = new GroundField(VALLEY_FIELD);
   const bed = T.riverBedSamples();
-  const S = f.S;
-  for (let j = 0; j < f.nz; j++) {
-    const z = f.zOf(j);
-    for (let i = 0; i < f.nx; i++) {
-      const x = f.xOf(i), idx = j * f.nx + i, o = idx * 8;
-      S[o] = 1;                                                  // meadow floor
-      if (Math.abs(z - 29) >= 9) continue;
-      let best = Infinity;
-      for (let q = 0; q < bed.length; q++) { const dx = x - bed[q].x, dz = z - bed[q].z, d2 = dx * dx + dz * dz; if (d2 < best) best = d2; }
-      const d = Math.sqrt(best);
-      if (d > 6) continue;
-      // kawara: river cobbles at the waterline, damp, moss in the shade of the bank
-      const n = worldNoise(x, z, 0.9, 2, 61), n2 = worldNoise(x, z, 0.35, 2, 67);
-      const pebble = (1 - sstep(2.6, 4.8 + n * 0.9, d)) * 0.75;
-      const mossy = sstep(3.0, 4.2, d) * (1 - sstep(4.6, 5.8, d)) * sstep(0.45, 0.7, n2) * 0.8;
-      const grass = sstep(3.3, 5.4 + n * 0.6, d);
-      S[o] = grass; S[o + 2] = pebble * (1 - mossy * 0.5); S[o + 1] = mossy;
-      f.wet[idx] = (1 - sstep(2.8, 4.6, d)) * 0.7;
-      f.snow[idx] = sstep(3.2, 4.2, d);                           // nothing settles at the waterline
+  const S = f.S, n = f.n;
+  for (let i = 0; i < n; i++) S[i * 8] = 1;                       // meadow floor
+  // distance to the river's centreline, stamped from its dense samples (6 m reach)
+  const dist = new Float32Array(n).fill(Infinity);
+  const REACH = 6, k = f.k;
+  for (const q of bed) {
+    const i0 = Math.max(0, Math.floor((q.x - REACH - f.x0) * k)), i1 = Math.min(f.nx - 1, Math.ceil((q.x + REACH - f.x0) * k));
+    const j0 = Math.max(0, Math.floor((q.z - REACH - f.z0) * k)), j1 = Math.min(f.nz - 1, Math.ceil((q.z + REACH - f.z0) * k));
+    for (let j = j0; j <= j1; j++) {
+      const dz = f.zOf(j) - q.z, row = j * f.nx;
+      for (let i = i0; i <= i1; i++) { const dx = f.xOf(i) - q.x, d2 = dx * dx + dz * dz; if (d2 < dist[row + i]) dist[row + i] = d2; }
     }
+  }
+  for (let idx = 0; idx < n; idx++) {
+    if (dist[idx] > REACH * REACH) continue;
+    const d = Math.sqrt(dist[idx]), x = f.xOf(idx % f.nx), z = f.zOf(Math.floor(idx / f.nx)), o = idx * 8;
+    // kawara: river cobbles at the waterline, damp, moss in the shade of the bank
+    const nz = worldNoise(x, z, 0.9, 2, 61), n2 = worldNoise(x, z, 0.35, 2, 67);
+    const pebble = (1 - sstep(2.6, 4.8 + nz * 0.9, d)) * 0.75;
+    const mossy = sstep(3.0, 4.2, d) * (1 - sstep(4.6, 5.8, d)) * sstep(0.45, 0.7, n2) * 0.8;
+    S[o] = sstep(3.3, 5.4 + nz * 0.6, d); S[o + 2] = pebble * (1 - mossy * 0.5); S[o + 1] = mossy;
+    f.wet[idx] = (1 - sstep(2.8, 4.6, d)) * 0.7;
+    f.snow[idx] = sstep(3.2, 4.2, d);                              // nothing settles at the waterline
   }
   for (const [x, z, r] of MOSS_BEDS) f.paint('moss', x, z, r, 0.85, 0.6);
   return f;

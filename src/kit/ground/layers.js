@@ -229,33 +229,61 @@ const RECIPES = [earth, meadow, moss, gravel, sand, tataki, needles];
 
 /* ---------------- pack ---------------- */
 
-function paintLayers() {
-  const tiles = RECIPES.map((f) => f());
-  const L = tiles.length, S = N * N;
+// what a layer looks like when nobody asked for it: its base colour, flat
+// (never sampled: the shader reads a layer only where the field weights it)
+const BASES = ['#ae9878', '#55703c', '#2f4a1f', '#4e4943', '#d5d0c4', '#8e6a4f', '#4f3c29'];
+function flat(li) {
+  const hex = parseInt(BASES[li].slice(1), 16);   // sRGB bytes straight into the arrays: no canvas, no readback
+  return { flat: [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255] };
+}
+
+/** Paint the layers named in `need` (ids); the rest are flat fills (cheap). */
+function paintLayers(need) {
+  const tiles = RECIPES.map((f, li) => (need.has(LAYERS[li].id) ? f() : flat(li)));
+  const L = tiles.length, S = N * N, R = 3;
   const alb = new Uint8Array(S * 4 * L), nor = new Uint8Array(S * 4 * L);
+  // wrapped neighbour columns/rows, computed once (the lab used % per read)
+  const nxt = new Int32Array(N), prv = new Int32Array(N);
+  for (let i = 0; i < N; i++) { nxt[i] = (i + 1) % N; prv[i] = (i - 1 + N) % N; }
+  const hf = new Float32Array(S), rows = new Float32Array(S), cols = new Float32Array(S);
+  const to8 = (v) => (v < 0 ? 0 : v > 255 ? 255 : Math.round(v));
   tiles.forEach((t, li) => {
-    const a = t.x.getImageData(0, 0, N, N).data, h = t.h.getImageData(0, 0, N, N).data;
-    const hf = new Float32Array(S);
-    for (let i = 0; i < S; i++) hf[i] = h[i * 4] / 255;
-    // a soft copy for cavity (height minus its neighbourhood)
-    const blur = new Float32Array(S);
-    const R = 3;
-    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-      let s = 0;
-      for (let k = -R; k <= R; k++) s += hf[y * N + ((x + k + N) % N)] + hf[((y + k + N) % N) * N + x];
-      blur[y * N + x] = s / (4 * R + 2);
+    if (t.flat) {
+      const [r, g, b] = t.flat, base = li * S * 4;
+      for (let i = 0; i < S; i++) {
+        const q = base + i * 4;
+        alb[q] = r; alb[q + 1] = g; alb[q + 2] = b; alb[q + 3] = 102;
+        nor[q] = 128; nor[q + 1] = 128; nor[q + 2] = 128; nor[q + 3] = 255;
+      }
+      return;
     }
-    const relief = LAYERS[li].relief;
-    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-      const i = y * N + x, o = li * S * 4 + i * 4;
-      alb[o] = a[i * 4]; alb[o + 1] = a[i * 4 + 1]; alb[o + 2] = a[i * 4 + 2];
-      alb[o + 3] = h[i * 4];
-      const dx = (hf[y * N + ((x + 1) % N)] - hf[y * N + ((x - 1 + N) % N)]) * relief * 4;
-      const dy = (hf[((y + 1) % N) * N + x] - hf[((y - 1 + N) % N) * N + x]) * relief * 4;
-      nor[o] = Math.max(0, Math.min(255, Math.round((0.5 - dx * 0.5) * 255)));
-      nor[o + 1] = Math.max(0, Math.min(255, Math.round((0.5 - dy * 0.5) * 255)));
-      nor[o + 2] = Math.max(0, Math.min(255, Math.round((0.5 + (hf[i] - blur[i]) * 3) * 255)));
-      nor[o + 3] = 255;
+    const a = t.x.getImageData(0, 0, N, N).data, h = t.h.getImageData(0, 0, N, N).data;
+    for (let i = 0; i < S; i++) hf[i] = h[i * 4] / 255;
+    // the lab's cavity blur (a wrapped cross of radius R: row sum + column sum), as running sums
+    for (let y = 0; y < N; y++) {
+      const o = y * N;
+      let s = 0;
+      for (let k = -R; k <= R; k++) s += hf[o + ((k + N) % N)];
+      for (let x = 0; x < N; x++) { rows[o + x] = s; s += hf[o + (x + R + 1) % N] - hf[o + (x - R + N) % N]; }
+    }
+    for (let x = 0; x < N; x++) {
+      let s = 0;
+      for (let k = -R; k <= R; k++) s += hf[((k + N) % N) * N + x];
+      for (let y = 0; y < N; y++) { cols[y * N + x] = s; s += hf[((y + R + 1) % N) * N + x] - hf[((y - R + N) % N) * N + x]; }
+    }
+    const relief = LAYERS[li].relief * 4, base = li * S * 4, inv = 1 / (4 * R + 2);
+    for (let y = 0; y < N; y++) {
+      const o = y * N, on = nxt[y] * N, op = prv[y] * N;
+      for (let x = 0; x < N; x++) {
+        const i = o + x, q = base + i * 4, p = i * 4;
+        alb[q] = a[p]; alb[q + 1] = a[p + 1]; alb[q + 2] = a[p + 2]; alb[q + 3] = h[p];
+        const dx = (hf[o + nxt[x]] - hf[o + prv[x]]) * relief;
+        const dy = (hf[on + x] - hf[op + x]) * relief;
+        nor[q] = to8((0.5 - dx * 0.5) * 255);
+        nor[q + 1] = to8((0.5 - dy * 0.5) * 255);
+        nor[q + 2] = to8((0.5 + (hf[i] - (rows[i] + cols[i]) * inv) * 3) * 255);
+        nor[q + 3] = 255;
+      }
     }
   });
   const mk = (data, srgb) => {
@@ -275,13 +303,20 @@ function paintLayers() {
   return { alb: mk(alb, true), nor: mk(nor, false) };
 }
 
-// One pair per KitMaterials set (or one module-wide pair without one).
+// What the valley paints: earth, the meadow floor, moss, gravel (the road's
+// stones are procedural). Sand, tataki and needles are only for fields that
+// paint them (none in the valley today), so they are not painted unless asked.
+export const VALLEY_LAYERS = Object.freeze(['earth', 'meadow', 'moss', 'gravel']);
+
+// One pair per KitMaterials set and layer list (or one module-wide set without a kit set).
 const _layers = new WeakMap();
 const _solo = {};
 /** The painted layer arrays, shared by every ground surface of a kit set. */
-export function groundLayers(km) {
+export function groundLayers(km, need = VALLEY_LAYERS) {
   const key = km && typeof km === 'object' ? km : _solo;
-  let pair = _layers.get(key);
-  if (!pair) { pair = paintLayers(); _layers.set(key, pair); }
-  return pair;
+  let bag = _layers.get(key);
+  if (!bag) { bag = new Map(); _layers.set(key, bag); }
+  const id = [...need].sort().join(',');
+  if (!bag.has(id)) bag.set(id, paintLayers(new Set(need)));
+  return bag.get(id);
 }
