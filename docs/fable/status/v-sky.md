@@ -33,7 +33,7 @@
 - [x] L10 PR
 
 ## How the modular path is wired (single-writer files)
-- `src/sky.js`: `new Sky(scene, { assets })` (falls back to `globalThis.game.assets`, else classic). The three classic builder calls go through `placeSkyAsset(id, classicFn)`: classic → `classicFn()` unchanged; modular (runtime `setFor(id) === 'modular'`, registered, quality ≠ low) → `assets.build()`, burn the classic builder's Math.random draws (26 / 2,100 / 0), and hand the classic handles to the kit (`this.clouds = []` and the deck under the dome; `this.stars`/`this.starMat`, `this.moon`/`this.moonMat` = the kit objects, which the unchanged updateDayNight keeps driving). `update()` gains one line: `if (this.kit) this.updateKit(dt, playerPos)`. `dropKit()` reverts a live session to classic when quality drops to low. No classic line inside the builders, palettes, weather or updateDayNight changed.
+- `src/sky.js`: `new Sky(scene, { assets })` (no runtime handed in → classic; main.js passes it, pre-review grant). The three classic builder calls go through `placeSkyAsset(id, classicFn)`: classic → `classicFn()` unchanged; modular (runtime `setFor(id) === 'modular'`, registered, quality ≠ low) → `assets.build()`, burn the classic builder's Math.random draws (26 / 2,100 / 0), and hand the classic handles to the kit (`this.clouds = []` and the deck under the dome; `this.stars`/`this.starMat`, `this.moon`/`this.moonMat` = the kit objects, which the unchanged updateDayNight keeps driving). `update()` gains one line: `if (this.kit) this.updateKit(dt, playerPos)`. `dropKit()` reverts a live session to classic when quality drops to low. No classic line inside the builders, palettes, weather or updateDayNight changed.
 - `src/postfx.js`: one line at the end of `AtmospherePass.updateFromSky()` → `syncKit(sky, environment)`, plus one dispose line. When the sky has a kit deck hook and the tier is not low, the summit is not active (no `environment`) and the cat is outdoors, the pass renders with a kit copy of the classic shader (chunks inserted at three asserted markers) that shares every classic uniform object; otherwise the classic material and classic uniform values, untouched. No new pass, no new render target. AO and grade untouched.
 
 ## Checks run (command → real result)
@@ -86,7 +86,15 @@ Judgement (read): dawn/noon/dusk read as painted wata-gumo — separate lobed pu
 None.
 
 ## Notes for the Integrator
-- Hot-file patch (recommended, optional): `new Sky(this.scene, { assets: this.assets })` in main.js (handoff §1).
+- main.js `new Sky(this.scene, { assets: this.assets })`: applied in-lane under the pre-review grant (handoff §1).
 - Inventory targets/coverage rows (handoff §2), production row (§3), registry study count (§6).
 - 0 new merged materials (R52); live meshes 1 + 2 + 3.
 - The kit sky also runs on the summit (dome child) and indoors (driven by the Sky, not by `assets.update()`); the cloud shade is off on the summit and indoors.
+
+## Pre-review: assets wiring (Integrator grant, R47 pattern: src/main.js in-lane)
+- `src/main.js`: `this.sky = new Sky(this.scene, { assets: this.assets });` (the one line). `src/sky.js`: the `globalThis.game.assets` read is gone; `skyAssets()` accepts only a runtime handed in, else classic.
+- `node tools/check_syntax.mjs` → `All 137 modules OK`; `node tools/verify.mjs` → exit 0, `All checks passed` (summit_test 83 passed, kit_test 36/36); `node tools/labs_check.mjs` → `All labs checks OK`; `node tools/kit_check.mjs` → `All kit checks OK (307 passed)`; `git diff --check` clean
+- Classic game_shot vs fable/integration 1e74cf3 (`?assets=classic&shot=1`, cat-height sky + street camera, 960×600): hours 6 / 12 / 18 / 22 → `maxDelta 0, meanDelta 0, pixelsOver8 0` ×4
+- `node tools/footprint_golden.mjs` → `EQUAL`; `--systems` → `EQUAL`; `node tools/summit_golden.mjs` → `EQUAL` (summit_test 83 passed, output identical); `node tools/kit_contract_test.mjs --family sky` → 325 checks, 0 failed
+- Boots (headless Metal, nothing ignored): `/__boot.html` → set classic, `sky.assets` set, kit [], post classic, problems []; `?swap=clouds,stars,moon` → kit clouds/stars/moon, post `AtmospherePass.kit:clouds-hero`, problems []; `?assets=modular` → same, problems []. Each run's only console error is `404 /cad-overrides.json`, which the fable/integration 1e74cf3 classic boot logs identically (the optional file is absent from the repo); warnings [] everywhere
+- Labs importing Sky through labs/shared/game.js, headless `--fail-on-error`: `/labs/sky/` → errors [], Sky `assets null`, `kit null`, 26 classic clouds; `/labs/ground/` → errors [], Sky `assets null`, `kit null`, 26 clouds; `/labs/moonpool/` (labs/shared/world.js path) → errors [], warnings []

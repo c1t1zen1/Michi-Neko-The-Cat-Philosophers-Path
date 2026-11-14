@@ -6,13 +6,9 @@ Promoted: `clouds` (deck + projected cloud shade), `stars`, `moon`. Deferred:
 `sky-dome`, `sky-light`, `god-rays`, `ao`, `atmosphere`, `grade` (reasons in
 docs/fable/status/v-sky.md).
 
-## 1. main.js (hot file) — pass the runtime explicitly (recommended, classic-neutral)
+## 1. main.js (hot file) — DONE in-lane (pre-review grant, R47 pattern)
 
-The Sky works without this patch: with no `options.assets` it takes the
-game's own runtime from `globalThis.game.assets` (the Game constructor sets
-`window.game` and `this.assets` before `assembleWorld()` builds the Sky), and
-pages without a Game (labs, review sheets, the systems digest) stay classic.
-The patch makes the dependency explicit, like every other owner:
+Applied in this branch under the Integrator's pre-review grant:
 
 ```diff
 --- a/src/main.js
@@ -22,12 +18,12 @@ The patch makes the dependency explicit, like every other owner:
 +    this.sky = new Sky(this.scene, { assets: this.assets });
 ```
 
-After it lands, the `globalThis.game` fallback in `skyAssets()` (src/sky.js,
-end of file) can be dropped in a later sky change; leaving it is harmless.
-
-No other main.js change is needed: the Sky drives its kit instances itself
-(also on the summit and indoors, where `assets.update()` is skipped), and the
-runtime's generic `assets.update()` call is ignored by them (`attach(sky)`).
+The Sky no longer reads `globalThis.game`: without `{ assets }` (labs and
+review sheets construct `new Sky(scene)`) or with CLASSIC_ASSETS it is
+classic, quietly. No other main.js change is needed: the Sky drives its kit
+instances itself (also on the summit and indoors, where `assets.update()` is
+skipped), and the runtime's generic `assets.update()` call is ignored by them
+(`attach(sky)`).
 
 ## 2. Inventory (labs/asset_inventory.json) — then `node tools/labs_coverage.mjs --write`
 

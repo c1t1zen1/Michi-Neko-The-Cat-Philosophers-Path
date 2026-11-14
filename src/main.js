@@ -240,7 +240,7 @@ class Game {
 
   /** Everything the original constructor built after the renderer, in the same order. */
   assembleWorld() {
-    this.sky = new Sky(this.scene);
+    this.sky = new Sky(this.scene, { assets: this.assets });
     this.sky.attachRenderer(this.renderer);
     this.city = new Countryside(this.scene, { assets: this.assets });
     // Hidden valley places register their clearings with the world before the

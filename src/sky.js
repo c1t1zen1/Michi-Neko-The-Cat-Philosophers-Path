@@ -890,11 +890,9 @@ const SKY_CLASSIC_DRAWS = { clouds: 26, stars: 420 * 5, moon: 0 };
 
 /**
  * The kit runtime the Sky builds through: the one main.js hands in as
- * `{ assets }`, else the game's own (`game.assets`, constructed before the
- * Sky), else none — and with none every builder is classic, as in the labs
- * and review sheets that construct `new Sky(scene)`.
+ * `{ assets }`. Without one (the labs and review sheets construct
+ * `new Sky(scene)`), or with CLASSIC_ASSETS, every builder is classic.
  */
 function skyAssets(assets) {
-  const a = assets || (typeof globalThis !== 'undefined' && globalThis.game && globalThis.game.assets) || null;
-  return a && !a.isClassic && typeof a.build === 'function' && typeof a.setFor === 'function' ? a : null;
+  return assets && !assets.isClassic && typeof assets.build === 'function' && typeof assets.setFor === 'function' ? assets : null;
 }
