@@ -2836,10 +2836,51 @@ export class Countryside {
    * through (the foliage shader reads the shared player position).
    */
   buildStreetBushes() {
+    const layout = this.layoutStreetBushes();
+    return this.placeAsset('street-bushes', layout, () => this.meshStreetBushesClassic(layout));
+  }
+
+  /** Up to 90 shrubs along both kerbs; per bush: keep?, x, size, z jitter, x/z stretch, yaw; then tint, lightness. */
+  layoutStreetBushes() {
+    const count = 90;
+    const bushes = [];
+    let bi = 0;
+    for (let z = 30; z > -27 && bi < count; z -= 3.2) {
+      for (const side of [-1, 1]) {
+        if (this.random() < 0.28 || bi >= count) continue;
+        const x = side * (2.6 + this.random() * 1.3);
+        const s = 0.35 + this.random() * 0.55;
+        const position = [x, s * 0.5, z + (this.random() - 0.5) * 1.6];
+        const scale = [s * (1 + this.random() * 0.5), s * 0.75, s * (1 + this.random() * 0.5)];
+        bushes.push({ position, scale, ry: this.random() * Math.PI, spot: [x, z, s] });
+        bi++;
+      }
+    }
+    // Random per-bush tint via instance colors
     const bushTints = [0x5c9040, 0x6c9e4a, 0x7cac56, 0x52833a];
+    for (const b of bushes) {
+      b.tint = bushTints[(this.random() * bushTints.length) | 0];
+      b.light = (this.random() - 0.5) * 0.06;
+    }
+    const spots = bushes.map((b) => b.spot);
+    return {
+      index: this.nextIndex('street-bushes'), name: 'Street Bushes', count, bushes,
+      footprint: footprint({
+        colliders: spots.map(([bx_, bz_, bs_]) => new THREE.Box3(
+          new THREE.Vector3(bx_ - bs_ * 0.55, 0, bz_ - bs_ * 0.55),
+          new THREE.Vector3(bx_ + bs_ * 0.55, Math.max(0.8, bs_), bz_ + bs_ * 0.55)
+        )),
+        // the rustle centres the bush shader reads
+        lists: { bushColliderSpots: spots }
+      }),
+      bind: { bushMat: 'bushes.material' }
+    };
+  }
+
+  meshStreetBushesClassic(layout) {
     const bushGeo = bushGeometry(9, { lobes: 8, detail: 2, lump: 0.34 });
     const dummy = new THREE.Object3D();
-    const count = 90;
+    const count = layout.count;
     const swayMat = createFoliageMaterial({
       sss: 0.3, wind: 0.9, rustle: 1.0, mottle: 0.2, bump: 0.45, vertexColors: true,
       massMap: leafMassTexture('leaf'), massScale: 1 / 0.55, ragged: 1
@@ -2848,18 +2889,13 @@ export class Countryside {
     this.bushMat = swayMat;
     this.bushColliderSpots = [];
     let bi = 0;
-    for (let z = 30; z > -27 && bi < count; z -= 3.2) {
-      for (const side of [-1, 1]) {
-        if (this.random() < 0.28 || bi >= count) continue;
-        const x = side * (2.6 + this.random() * 1.3);
-        const s = 0.35 + this.random() * 0.55;
-        dummy.position.set(x, s * 0.5, z + (this.random() - 0.5) * 1.6);
-        dummy.scale.set(s * (1 + this.random() * 0.5), s * 0.75, s * (1 + this.random() * 0.5));
-        dummy.rotation.y = this.random() * Math.PI;
-        dummy.updateMatrix();
-        bushes.setMatrixAt(bi++, dummy.matrix);
-        this.bushColliderSpots.push([x, z, s]);
-      }
+    for (const b of layout.bushes) {
+      dummy.position.set(...b.position);
+      dummy.scale.set(...b.scale);
+      dummy.rotation.y = b.ry;
+      dummy.updateMatrix();
+      bushes.setMatrixAt(bi++, dummy.matrix);
+      this.bushColliderSpots.push(b.spot);
     }
     for (const [bx_, bz_, bs_] of this.bushColliderSpots) {
       this.colliders.push(new THREE.Box3(
@@ -2872,7 +2908,7 @@ export class Countryside {
     // Random per-bush tint via instance colors
     const col = new THREE.Color();
     for (let i = 0; i < bi; i++) {
-      bushes.setColorAt(i, col.setHex(bushTints[(this.random() * bushTints.length) | 0]).offsetHSL(0, 0, (this.random() - 0.5) * 0.06));
+      bushes.setColorAt(i, col.setHex(layout.bushes[i].tint).offsetHSL(0, 0, layout.bushes[i].light));
     }
     if (bushes.instanceColor) bushes.instanceColor.needsUpdate = true;
     bushes.castShadow = true;
