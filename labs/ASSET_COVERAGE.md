@@ -380,7 +380,7 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="snow"></a>`snow` — Valley snowfall | [src/particles.js:buildSnow(](../src/particles.js#L495) | [weather / game-snow](../labs/weather/js/recipes.js#L50) (direct) |  |
 | <a id="scent"></a>`scent` — Scent-trail glowing particles | [src/scent.js:build() {](../src/scent.js#L33) | **No mapped evidence** | No scent-trail specimen or interaction study. |
 | <a id="splash"></a>`splash` — Player water-entry splash droplets | [src/player.js:// Water-splash droplet pool](../src/player.js#L92) | [weather / splash](../labs/weather/js/recipes.js#L41) (related) — Rain impacts do not exercise the player water-entry splash. |  |
-| <a id="landing-dust"></a>`landing-dust` — Landing dust puffs | [src/context_actions.js:spawnLandDust(](../src/context_actions.js#L829) | **No mapped evidence** | No specimen exercises this pooled landing effect. |
+| <a id="landing-dust"></a>`landing-dust` — Landing dust puffs | [src/context_actions.js:spawnLandDust(](../src/context_actions.js#L832) | **No mapped evidence** | No specimen exercises this pooled landing effect. |
 | <a id="ao"></a>`ao` — Screen-space ambient occlusion | [src/postfx.js:export class AOPass](../src/postfx.js#L142) | **No mapped evidence** | Sky’s air-game baseline explicitly excludes the full game post-processing pipeline. |
 | <a id="atmosphere"></a>`atmosphere` — Screen-space distance and height atmosphere | [src/postfx.js:export class AtmospherePass](../src/postfx.js#L377) | [summit / haze](../labs/summit/js/recipes.js#L73) (related) — Layered haze cards are not the game’s depth-buffer atmosphere pass. |  |
 | <a id="grade"></a>`grade` — Painterly colour grading, vignette, grain and fringe | [src/postfx.js:export const GradeShader](../src/postfx.js#L479)<br>[src/postfx.js:export const GradeOutputShader](../src/postfx.js#L560) | [ground / kuwahara](../labs/ground/js/variants.js#L252) (related) — Related finish study; Kuwahara is not the game grade/grain/fringe pipeline. |  |
@@ -500,9 +500,9 @@ Narrative-only characters and journal/progression rewards are recorded separatel
 | Nonvisual entry | Source | Reason |
 |---|---|---|
 | Bokuchi, the forest spirit | [src/main.js](../src/main.js#L1838) | Named in Kuro’s dialogue; no separate Bokuchi actor or mesh is constructed. |
-| Mist Charm | [src/context_actions.js](../src/context_actions.js#L688) | Journal/progression reward from touching the altar; no collectible mesh. |
+| Mist Charm | [src/context_actions.js](../src/context_actions.js#L690) | Journal/progression reward from touching the altar; no collectible mesh. |
 | Bokuchi’s Blessing | [src/main.js](../src/main.js#L1909) | Journal/progression reward for the offering-bell quest; no separate item mesh. |
-| The valley became home | [src/context_actions.js](../src/context_actions.js#L760) | Journal memory from a quiet moment; no physical item. |
+| The valley became home | [src/context_actions.js](../src/context_actions.js#L762) | Journal memory from a quiet moment; no physical item. |
 
 Optional media and dormant code are recorded without claiming that a download succeeded or an unused builder is part of the current playable scene. The Roof Road retains its own prototype review and reachability checks.
 

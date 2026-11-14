@@ -14,7 +14,7 @@ import {
   kawaraTextures, plasterTextures, woodTextures, namakoTextures, shojiTextures,
   cobbleTextures, stoneTextures, strawTextures, metalTextures, lacquerTextures,
   dirtTextures, texturedMaterial, worldScaleBoxUVs
-} from '../../src/textures.js?v=20261106a';
+} from '../../src/textures.js?v=20261113a';
 import { hash1 } from './level.js';
 
 const UP = new THREE.Vector3(0, 1, 0);

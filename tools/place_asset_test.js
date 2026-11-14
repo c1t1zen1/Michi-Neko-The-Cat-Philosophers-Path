@@ -300,7 +300,7 @@ function compareDigests(a, b) {
 async function main() {
   const t0 = performance.now();
   THREE = await import('three');
-  ({ Countryside } = await import('../src/countryside.js?v=20261107a'));
+  ({ Countryside } = await import('../src/countryside.js?v=20261113a'));
   trackPlatformHelpers(Countryside.prototype);
   wrapPlaceAsset(Countryside.prototype);
 

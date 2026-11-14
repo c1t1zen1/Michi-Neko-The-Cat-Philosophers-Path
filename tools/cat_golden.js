@@ -367,9 +367,9 @@ function fakeAudio(log) {
 // ----------------------------------------------------------------- the digest
 
 async function buildDigest() {
-  const mod = await import('../src/cat.js?v=20261107a');
-  const { NPC } = await import('../src/npc.js?v=20261107a');
-  const { Player } = await import('../src/player.js?v=20261107a');
+  const mod = await import('../src/cat.js?v=20261113a');
+  const { NPC } = await import('../src/npc.js?v=20261113a');
+  const { Player } = await import('../src/player.js?v=20261113a');
   const { Cat } = mod;
   const digest = { format: 'michi-neko-cat-golden', version: 1, three: THREE.REVISION };
 
@@ -586,8 +586,8 @@ function pretty(v, pad = '') {
 async function runChecks(mod) {
   let character, rig;
   try {
-    character = await import('../src/characters/character.js?v=20261107a');
-    rig = await import('../src/characters/rig.js?v=20261107a');
+    character = await import('../src/characters/character.js?v=20261113a');
+    rig = await import('../src/characters/rig.js?v=20261113a');
   } catch (e) {
     return { skipped: 'src/characters/character.js is not present: ' + String(e.message || e).split('\n')[0] };
   }

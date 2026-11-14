@@ -1,30 +1,30 @@
-﻿import { catRimUniforms } from './cat_shading.js?v=20261107a';
-import { buildSkeleton, applyPose, layTailOnGround } from './characters/rig.js?v=20261107a';
-import { coatMaterials, buildCoat } from './characters/parts/coat.js?v=20261107a';
-import { faceFrame, faceMaterials, buildFace } from './characters/parts/face.js?v=20261107a';
+﻿import { catRimUniforms } from './cat_shading.js?v=20261113a';
+import { buildSkeleton, applyPose, layTailOnGround } from './characters/rig.js?v=20261113a';
+import { coatMaterials, buildCoat } from './characters/parts/coat.js?v=20261113a';
+import { faceFrame, faceMaterials, buildFace } from './characters/parts/face.js?v=20261113a';
 import {
   collarMaterials, buildCollarCord, bellMaterials, buildBell
-} from './characters/parts/collar.js?v=20261107a';
-import { buildShadowBlob, updateShadow } from './characters/parts/shadow.js?v=20261107a';
+} from './characters/parts/collar.js?v=20261113a';
+import { buildShadowBlob, updateShadow } from './characters/parts/shadow.js?v=20261113a';
 import {
   computeLocomotion, onJump, onLand, onSprint, setProwling
-} from './characters/behaviour/locomotion.js?v=20261107a';
+} from './characters/behaviour/locomotion.js?v=20261113a';
 import {
   makeNeutralPose, placeBody, poseSit, getActionPose, applyLook, setLookTarget, setDrinking,
   rollIdleInterval, startIdleAction, beginIdleAction, endIdleAction
-} from './characters/behaviour/poses.js?v=20261107a';
+} from './characters/behaviour/poses.js?v=20261113a';
 import {
   getMoodConfig, setMood, canPlaySound, triggerMeow, applyMood
-} from './characters/behaviour/mood.js?v=20261107a';
+} from './characters/behaviour/mood.js?v=20261113a';
 import {
   assembleCharacter, characterDefFor, updateCharacter, setAccessory, setMasterCat, setCharacterTier
-} from './characters/character.js?v=20261107a';
+} from './characters/character.js?v=20261113a';
 
 export { catRimUniforms };
 // The character kit, for callers that build from a CharacterDef (src/characters/character.js)
 export {
   defineCharacter, validateCharacterDef, MICHI, CHARACTER_SLOTS, CHARACTER_TIERS, characterTierFor
-} from './characters/character.js?v=20261107a';
+} from './characters/character.js?v=20261113a';
 
 /**
  * The cat.
