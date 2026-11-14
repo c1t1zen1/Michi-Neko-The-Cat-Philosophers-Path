@@ -16,6 +16,9 @@ import {
   collarMaterials, buildCollarCord, bellMaterials, buildBell, goldBell
 } from './characters/parts/collar.js?v=20261107a';
 import { buildShadowBlob, updateShadow } from './characters/parts/shadow.js?v=20261107a';
+import {
+  computeLocomotion, onJump, onLand, onSprint, setProwling
+} from './characters/behaviour/locomotion.js?v=20261107a';
 
 export { catRimUniforms };
 
@@ -45,12 +48,6 @@ const TAU = Math.PI * 2;
 const lerp = (a, b, t) => a + (b - a) * t;
 const frac = (x) => x - Math.floor(x);
 const approach = (cur, target, rate, dt) => cur + (target - cur) * (1 - Math.exp(-rate * dt));
-
-// Leg order: 0 front x<0, 1 front x>0, 2 hind x<0, 3 hind x>0.
-// Phase offsets (fraction of a stride) for each gait.
-const GAIT_WALK = [0.75, 0.25, 0.5, 0.0];   // lateral sequence: LH, LF, RH, RF
-const GAIT_TROT = [1.0, 0.5, 0.5, 0.0];     // diagonal pairs
-const GAIT_GALLOP = [1.42, 0.52, 0.1, 0.0]; // rotary gallop
 
 const _v1 = new THREE.Vector3();
 const _v2 = new THREE.Vector3();
@@ -287,131 +284,7 @@ export class Cat {
 
   /** Gait: paw targets, body bob / pitch / roll, spine bend, tail carriage. */
   computeLocomotion(dt, grounded, sprint) {
-    const P = this.locoPose;
-    copyPose(P, this.neutral);
-    const t = this.time;
-    const prowl = this.isProwling;
-    const state = this.state;
-    const moving = state === 'walk' || state === 'run';
-    const turning = state === 'turn';
-    const v = this.speed;
-    const sb = Math.min(1, this.speedBlend);
-
-    this.trotMix = approach(this.trotMix, prowl ? 0 : smoothstep(1.8, 3.4, v), 4, dt);
-    this.gallopMix = approach(this.gallopMix, sprint && v > 4.5 ? 1 : 0, 3.5, dt);
-    this.gaitAmp = approach(this.gaitAmp, moving || turning ? 1 : 0, moving ? 7 : 5, dt);
-    const tm = this.trotMix, gm = this.gallopMix, amp = this.gaitAmp;
-
-    // Stride length grows with speed; the stride rate follows from it, so
-    // a planted paw moves back exactly as fast as the body moves forward
-    const vEff = turning && v < 0.3 ? 0.6 : v;
-    let S = lerp(lerp(0.3 + 0.25 * vEff, 0.52 + 0.11 * vEff, tm), 0.85 + 0.09 * vEff, gm);
-    if (prowl) S *= 0.85;
-    const duty = lerp(lerp(0.62, 0.42, tm), 0.34, gm);
-    const liftF = lerp(lerp(0.05, 0.07, tm), 0.085, gm) * (prowl ? 1.25 : 1);
-    const liftH = lerp(lerp(0.055, 0.07, tm), 0.075, gm) * (prowl ? 1.2 : 1);
-    if (moving || turning) this.phase += dt * vEff / S;
-    const sweep = S * duty * (turning ? 0.22 : 1);
-
-    for (let i = 0; i < 4; i++) {
-      const front = i < 2;
-      const off = lerp(lerp(GAIT_WALK[i], GAIT_TROT[i], tm), GAIT_GALLOP[i], gm);
-      const ph = frac(this.phase + off);
-      let z, y = 0, flex = 0, toe = 0;
-      if (ph < duty) {
-        const u = ph / duty;
-        z = sweep * (0.5 - u);
-        // Heel peels off the ground at the end of stance
-        if (!front) toe = smoothstep(0.75, 1, u) * 0.35;
-      } else {
-        const s = (ph - duty) / (1 - duty);
-        z = sweep * (-0.5 + s * s * (3 - 2 * s));
-        y = (front ? liftF : liftH) * Math.pow(Math.sin(Math.PI * s), 0.85);
-        if (front) flex = 1.65 * Math.pow(Math.sin(Math.PI * Math.min(1, s * 1.25)), 1.3);
-        else toe = 0.75 * Math.sin(Math.PI * s);
-      }
-      const r = this.rest.paws[i];
-      const paw = P.paws[i];
-      paw.x = r.x * (1 - 0.1 * amp);
-      paw.y = r.y + y * amp;
-      paw.z = r.z + z * amp;
-      paw.flex = flex * amp;
-      paw.toe = toe * amp;
-    }
-
-    const ph2 = this.phase * TAU;
-    const bob = lerp(lerp(-0.0055 * Math.cos(2 * ph2), -0.012 * Math.cos(2 * (ph2 - 0.21 * TAU)), tm),
-      0.028 * Math.sin(ph2 - 0.3 * TAU), gm) * amp;
-    const breathe = Math.sin(t * 2.2) * 0.004 * (1 - sb);
-    P.bodyY = bob + breathe + (prowl ? -0.085 : 0);
-    P.bodyPitch = gm * 0.07 * Math.sin(ph2 - 0.05 * TAU) * amp + (prowl ? 0.045 : 0);
-    // Gallop: the spine flexes as the legs gather and extends as they reach
-    const flexS = Math.sin(ph2 + 0.15 * TAU) * gm * amp;
-    P.chestPitch = 0.13 * flexS;
-    P.hipsPitch = -0.15 * flexS;
-    P.chestZ = -0.022 * (0.5 + 0.5 * Math.sin(ph2 + 0.15 * TAU)) * gm * amp;
-    // Walk: a little roll and a lateral S through the spine
-    const lat = (1 - gm) * amp;
-    P.bodyRoll = 0.018 * Math.sin(ph2) * lat;
-    P.chestYaw = 0.05 * Math.sin(ph2 + 0.25 * TAU) * lat * (1 - tm * 0.5);
-    P.hipsYaw = -0.045 * Math.sin(ph2) * lat * (1 - tm * 0.5);
-    if (prowl) {
-      P.chestY = -0.02;
-      P.scapLift = 0.028;
-    }
-    // Head steadied against the body's rock (cats keep their gaze level)
-    P.neckPitch = -0.04 - (P.bodyPitch + P.chestPitch) * 0.85 + (prowl ? 0.32 : 0);
-    P.headPitch = Math.sin(t * 0.7) * 0.06 * (1 - sb) + (prowl ? -0.34 : 0);
-    P.headYaw = Math.sin(t * 0.45) * 0.22 * (1 - sb);
-
-    // Tail carriage: a raised question mark when relaxed, lower and
-    // straighter with speed, streaming behind in the gallop, low when stalking
-    const cfg = this.getMoodConfig();
-    P.tailLift = lerp(lerp(1.05, 0.88, tm * amp), 0.32, gm) + cfg.tailLift;
-    P.tailCurl = lerp(lerp(0.95, 0.45, Math.max(sb, tm)), -0.1, gm);
-    P.tailSway = lerp(1, 0.6, gm);
-    if (prowl) { P.tailLift = 0.14; P.tailCurl = -0.12; P.tailDroop = 0.25; P.tailSway = 0.5; }
-
-    // Airborne / landing
-    this.airBlend = approach(this.airBlend, grounded ? 0 : 1, 16, dt);
-    this.landBlend = approach(this.landBlend, this.landTime > 0 ? 1 : 0, 18, dt);
-    if (this.airBlend > 0.002) {
-      const Q = this.airPose;
-      copyPose(Q, P);
-      const launch = this.jumpTime > 0 ? smoothstep(0, 0.3, this.jumpTime) : 0;
-      for (let i = 0; i < 4; i++) {
-        const r = this.rest.paws[i];
-        const q = Q.paws[i];
-        q.x = r.x * 0.92;
-        if (i < 2) {
-          q.y = r.y + 0.11 + 0.05 * launch;
-          q.z = r.z + 0.13 + 0.05 * launch;
-          q.flex = lerp(0.45, 0.15, launch);
-          q.toe = 0;
-        } else {
-          q.y = r.y + lerp(0.1, 0.01, launch);
-          q.z = r.z + lerp(0.05, -0.17, launch);
-          q.flex = 0;
-          q.toe = lerp(0.45, 0.85, launch);
-        }
-      }
-      Q.bodyY = 0.02;
-      Q.bodyPitch = lerp(0.05, -0.22, launch);
-      Q.chestPitch = lerp(0.0, -0.08, launch);
-      Q.hipsPitch = lerp(-0.06, 0.12, launch);
-      Q.neckPitch = -Q.bodyPitch * 0.8 + 0.04;
-      Q.headPitch = 0.05;
-      Q.tailLift = lerp(0.55, 0.85, launch);
-      Q.tailCurl = 0.15;
-      lerpPose(P, P, Q, this.airBlend);
-    }
-    if (this.landBlend > 0.002) {
-      const k = this.landBlend;
-      P.bodyY -= 0.065 * k;
-      P.chestPitch += 0.08 * k;
-      P.neckPitch -= 0.06 * k;
-      P.tailLift -= 0.25 * k;
-    }
+    return computeLocomotion(this, dt, grounded, sprint);
   }
 
   /* ------------------------------------------------------------------ */
@@ -629,16 +502,15 @@ export class Cat {
   }
 
   onJump() {
-    this.jumpTime = 0.35;
-    this.setMood('alert', 0.6, 2);
+    return onJump(this);
   }
 
   onLand() {
-    this.landTime = 0.18;
+    return onLand(this);
   }
 
   onSprint(active) {
-    if (active) this.setMood('alert', 0.4, 1);
+    return onSprint(this, active);
   }
 
   setDrinking(active) {
@@ -712,8 +584,7 @@ export class Cat {
   }
 
   setProwling(prowl) {
-    this.isProwling = prowl;
-    if (prowl) this.setMood('alert', 0.8, 1);
+    return setProwling(this, prowl);
   }
 
   applyMood(dt, time, cfg) {
