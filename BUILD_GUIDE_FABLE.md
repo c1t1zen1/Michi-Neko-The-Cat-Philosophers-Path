@@ -629,7 +629,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 2.1 | `v-greenery` | Bushes, street greenery, bamboo (lab 15) | G-F | [ ] |
 | 2.1 | `v-alley` | Climb crates and street clutter (lab 16) | G-F | [x] |
 | 2.1 | `v-keepsakes` | Yarn, key, reward and food items (lab 17) | G-F | [ ] |
-| 2.1 | `v-nest` | The nest, eggs, feather (lab 10) | G-F | [ ] |
+| 2.1 | `v-nest` | The nest, eggs, feather (lab 10) | G-F | [x] |
 | 2.2 | `v-shrine` | Torii, sandō, shrine, altar (lab 06) | G-V1 | [ ] |
 | 2.2 | `v-machiya` | Machiya, components, street (lab 04) | G-V1 | [ ] |
 | 2.2 | `v-pagoda` | Distant pagoda (lab 08) | G-V1 | [ ] |
