@@ -37,16 +37,26 @@ export const vistaMethods = {
     // Their separation produces parallax even during the very slow seated
     // camera drift, while ordinary lit/fogged materials make every layer
     // participate in the live day, night and weather systems.
-    const vista = new THREE.Group();
-    vista.name = 'Layered Kyoto Bay Vista';
-    this.group.add(vista);
-    this.vista = vista;
+    // summit-vista is the assembly the layers below go into (this.vista).
+    const layout = {
+      index: 0, name: 'Layered Kyoto Bay Vista', x: 0, y: 0, z: 0,
+      footprint: summitFootprint(), bind: { vista: 'layers' }
+    };
+    this.placeAsset('summit-vista', layout, () => vistaMethods.meshVistaClassic.call(this, layout));
     this.buildVistaTerrain();
     this.buildKyotoCity();
     this.buildSummitBay();
     this.buildHarbourAndIslands();
     this.buildHorizonRanges();
     this.buildSlopeForest();
+  },
+
+  meshVistaClassic(layout) {
+    const vista = new THREE.Group();
+    vista.name = 'Layered Kyoto Bay Vista';
+    this.group.add(vista);
+    this.vista = vista;
+    return vista;
   },
 
   vistaRiverX(z) {
@@ -493,8 +503,49 @@ export const vistaMethods = {
 
   /** Harbour towers, bridge, cranes and islands occupy their own depths. */
   buildHarbourAndIslands() {
+    // Layout: the harbour's own stream (mulberry32(19271)) runs through the
+    // skyline (an ordinary tower draws once more for its window lights, a
+    // landmark does not, as before) and then the island turns. All of it is
+    // drawn here, in that order, so each routed part builds the same whatever
+    // set the others use.
     const rnd = mulberry32(19271);
     const skylineCount = this.previewQuality ? 72 : 138;
+    const towers = [];
+    for (let i = 0; i < skylineCount; i++) {
+      const z = 178 + rnd() * 48;
+      const x = (rnd() - 0.5) * 245;
+      const landmark = rnd() < 0.12;
+      const w = 0.9 + rnd() * (landmark ? 3.4 : 2.2);
+      const d = 0.8 + rnd() * 2.4;
+      const h = 1.3 + rnd() * rnd() * (landmark ? 15 : 7.5);
+      const ry = (rnd() - 0.5) * 0.08;
+      const color = [0x74878f, 0x91a0a1, 0xa2aaa6, 0x6d808b][Math.floor(rnd() * 4)];
+      const lit = landmark || rnd() < 0.42;
+      towers.push({ x, z, w, d, h, ry, color, lit });
+    }
+    const islandDefs = [
+      [-128, -13.05, 279, 31, 3.8, 18], [119, -13.25, 305, 43, 4.8, 21],
+      [-38, -13.35, 356, 24, 3.1, 14], [187, -13.45, 382, 56, 5.2, 26]
+    ];
+    const islands = islandDefs.map(([x, y, z, sx, sy, sz]) => ({ x, y, z, sx, sy, sz, ry: rnd() * Math.PI }));
+    const V = 'Layered Kyoto Bay Vista';
+    // In the classic order: skyline and window lights, bridge, islands, wheel.
+    const skyline = { index: 0, parent: V, x: 0, y: 0, z: 0, towers, footprint: summitFootprint() };
+    this.placeAsset('harbour', skyline, () => vistaMethods.meshHarbourSkylineClassic.call(this, skyline));
+    const bridge = { index: 0, name: 'Bay Bridge', parent: V, x: 8, y: 0, z: 238, footprint: summitFootprint() };
+    this.placeAsset('bay-bridge', bridge, () => vistaMethods.meshBayBridgeClassic.call(this, bridge));
+    const isles = { index: 1, parent: V, x: 0, y: 0, z: 0, islands, footprint: summitFootprint() };
+    this.placeAsset('harbour', isles, () => vistaMethods.meshHarbourIslandsClassic.call(this, isles));
+    const wheel = {
+      index: 0, name: 'Harbour Ferris Wheel', parent: V, x: 91, y: -4.15, z: 205,
+      footprint: summitFootprint(), bind: { ferrisWheel: 'wheel' }
+    };
+    return this.placeAsset('ferris-wheel', wheel, () => vistaMethods.meshFerrisWheelClassic.call(this, wheel));
+  },
+
+  /** The harbour skyline and its window lights, from the layout's towers. */
+  meshHarbourSkylineClassic(layout) {
+    const skylineCount = layout.towers.length;
     const towerGeo = new THREE.BoxGeometry(1, 1, 1);
     const towerMat = new THREE.MeshStandardMaterial({
       color: 0x84949a, roughness: 0.82, metalness: 0.04, fog: false
@@ -504,20 +555,15 @@ export const vistaMethods = {
     const col = new THREE.Color();
     const lights = [];
     for (let i = 0; i < skylineCount; i++) {
-      const z = 178 + rnd() * 48;
-      const x = (rnd() - 0.5) * 245;
-      const landmark = rnd() < 0.12;
-      const w = 0.9 + rnd() * (landmark ? 3.4 : 2.2);
-      const d = 0.8 + rnd() * 2.4;
-      const h = 1.3 + rnd() * rnd() * (landmark ? 15 : 7.5);
+      const { x, z, w, d, h, ry, color, lit } = layout.towers[i];
       dummy.position.set(x, -12.45 + h * 0.5, z);
-      dummy.rotation.set(0, (rnd() - 0.5) * 0.08, 0);
+      dummy.rotation.set(0, ry, 0);
       dummy.scale.set(w, h, d);
       dummy.updateMatrix();
       skyline.setMatrixAt(i, dummy.matrix);
-      col.setHex([0x74878f, 0x91a0a1, 0xa2aaa6, 0x6d808b][Math.floor(rnd() * 4)]);
+      col.setHex(color);
       skyline.setColorAt(i, col);
-      if (landmark || rnd() < 0.42) {
+      if (lit) {
         for (let y = 0.8; y < h - 0.2; y += 1.1) {
           lights.push(x - w * 0.51, -12.45 + y, z);
         }
@@ -546,7 +592,9 @@ export const vistaMethods = {
     this.vista.add(harbourLights);
     this.harbourLights = harbourLights;
     this.harbourLightMat = harbourLightMat;
+  },
 
+  meshBayBridgeClassic(layout) {
     const bridgeMat = new THREE.MeshStandardMaterial({ color: 0xb7b9b2, roughness: 0.78, fog: false });
     const bridge = new THREE.Group();
     bridge.name = 'Bay Bridge';
@@ -561,24 +609,24 @@ export const vistaMethods = {
     bridge.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
     this.vista.add(bridge);
     this.bridgeMat = bridgeMat;
+  },
 
+  meshHarbourIslandsClassic(layout) {
     const islandMat = new THREE.MeshLambertMaterial({ color: 0x477054, fog: false });
-    const islandDefs = [
-      [-128, -13.05, 279, 31, 3.8, 18], [119, -13.25, 305, 43, 4.8, 21],
-      [-38, -13.35, 356, 24, 3.1, 14], [187, -13.45, 382, 56, 5.2, 26]
-    ];
     this.vistaIslands = [];
-    for (const [x, y, z, sx, sy, sz] of islandDefs) {
+    for (const { x, y, z, sx, sy, sz, ry } of layout.islands) {
       const island = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 2), islandMat);
       island.position.set(x, y, z);
       island.scale.set(sx, sy, sz);
-      island.rotation.y = rnd() * Math.PI;
+      island.rotation.y = ry;
       island.castShadow = island.receiveShadow = false;
       this.vista.add(island);
       this.vistaIslands.push(island);
     }
     this.islandMat = islandMat;
+  },
 
+  meshFerrisWheelClassic(layout) {
     // A readable ferris wheel provides scale without dominating Kyoto's
     // traditional foreground landmarks.
     const wheel = new THREE.Group();
@@ -1157,7 +1205,9 @@ export const vistaMethods = {
     // Dimensional cumulus banks at several depths. Low-poly lobes catch the
     // live sun independently and overlap in parallax; no cloud is painted
     // into the horizon or flattened onto a panorama.
-    this.summitClouds = [];
+    // Layout: per bank, every lobe's stream draws in the classic order (the
+    // shade pick draws only for lobes above the shelf, as before), then the
+    // bank's drift speed.
     const defs = [
       { x: -98, y: 47, z: 186, sx: 58, sy: 19, lobes: 34 },
       { x: 64, y: 57, z: 215, sx: 78, sy: 39, lobes: 58 },
@@ -1166,19 +1216,8 @@ export const vistaMethods = {
       { x: 30, y: 29, z: 350, sx: 200, sy: 12, lobes: 48, small: true },
       { x: 0, y: 35, z: 167, sx: 112, sy: 24, lobes: 46, storm: true }
     ];
-    // Rounded lobes retain an illustrated silhouette without exposing the
-    // large triangular facets that made the old banks read as boulders.
-    const cloudGeo = new THREE.SphereGeometry(1, 14, 9);
-    for (let i = 0; i < defs.length; i++) {
-      const def = defs[i];
-      const mat = new THREE.MeshStandardMaterial({
-        color: 0xfff9e9, emissive: 0xfff9e9, emissiveIntensity: 0.12,
-        roughness: 1, metalness: 0, transparent: !!def.storm,
-        opacity: def.storm ? 0 : 1, depthWrite: !def.storm, fog: false
-      });
-      const mesh = new THREE.InstancedMesh(cloudGeo, mat, def.lobes);
-      const dummy = new THREE.Object3D();
-      const shade = new THREE.Color();
+    const banks = defs.map((def) => {
+      const lobes = [];
       for (let lobe = 0; lobe < def.lobes; lobe++) {
         const core = lobe < Math.ceil(def.lobes * 0.26);
         const a = this.rng() * Math.PI * 2;
@@ -1188,12 +1227,40 @@ export const vistaMethods = {
         const shelf = 1 - Math.abs(dx) / (def.sx * 0.56);
         const dy = (this.rng() - 0.42) * def.sy * 0.72 + Math.max(0, shelf) * def.sy * 0.16;
         const s = (3.5 + this.rng() * 5.4) * (core ? 1.3 : 1) * (def.small ? 0.55 : 1);
-        dummy.position.set(dx, dy, dz);
-        dummy.rotation.set(this.rng() * 0.5, this.rng() * Math.PI * 2, this.rng() * 0.5);
-        dummy.scale.set(s * (1.15 + this.rng() * 0.75), s * (0.7 + this.rng() * 0.7), s);
+        const rotation = [this.rng() * 0.5, this.rng() * Math.PI * 2, this.rng() * 0.5];
+        const scale = [s * (1.15 + this.rng() * 0.75), s * (0.7 + this.rng() * 0.7), s];
+        const shade = dy < -def.sy * 0.08 ? 0xd7e1e3 : (this.rng() < 0.35 ? 0xf8f3e4 : 0xffffff);
+        lobes.push({ position: [dx, dy, dz], rotation, scale, shade });
+      }
+      return { def, lobes, speed: 0.24 + this.rng() * 0.24 };
+    });
+    const layout = { index: 0, parent: 'Layered Kyoto Bay Vista', x: 0, y: 0, z: 0, banks, footprint: summitFootprint() };
+    return this.placeAsset('summit-clouds', layout, () => vistaMethods.meshSummitCloudsClassic.call(this, layout));
+  },
+
+  meshSummitCloudsClassic(layout) {
+    this.summitClouds = [];
+    // Rounded lobes retain an illustrated silhouette without exposing the
+    // large triangular facets that made the old banks read as boulders.
+    const cloudGeo = new THREE.SphereGeometry(1, 14, 9);
+    for (let i = 0; i < layout.banks.length; i++) {
+      const { def, lobes, speed } = layout.banks[i];
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xfff9e9, emissive: 0xfff9e9, emissiveIntensity: 0.12,
+        roughness: 1, metalness: 0, transparent: !!def.storm,
+        opacity: def.storm ? 0 : 1, depthWrite: !def.storm, fog: false
+      });
+      const mesh = new THREE.InstancedMesh(cloudGeo, mat, def.lobes);
+      const dummy = new THREE.Object3D();
+      const shade = new THREE.Color();
+      for (let lobe = 0; lobe < def.lobes; lobe++) {
+        const { position, rotation, scale } = lobes[lobe];
+        dummy.position.set(position[0], position[1], position[2]);
+        dummy.rotation.set(rotation[0], rotation[1], rotation[2]);
+        dummy.scale.set(scale[0], scale[1], scale[2]);
         dummy.updateMatrix();
         mesh.setMatrixAt(lobe, dummy.matrix);
-        shade.setHex(dy < -def.sy * 0.08 ? 0xd7e1e3 : (this.rng() < 0.35 ? 0xf8f3e4 : 0xffffff));
+        shade.setHex(lobes[lobe].shade);
         mesh.setColorAt(lobe, shade);
       }
       mesh.instanceMatrix.needsUpdate = true;
@@ -1205,7 +1272,7 @@ export const vistaMethods = {
       this.vista.add(mesh);
       this.summitClouds.push({
         mesh, material: mat, baseOpacity: 1, storm: !!def.storm,
-        speed: 0.24 + this.rng() * 0.24,
+        speed,
         minX: -235 - def.sx,
         maxX: 235 + def.sx
       });
