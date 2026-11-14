@@ -1327,6 +1327,62 @@
       "kind": "specimen",
       "file": "labs/keepsakes/js/treats.js",
       "anchor": "id: 'interior-fish'"
+    },
+    "summit/life-snow": {
+      "lab": "summit",
+      "selector": "life-snow",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-snow'"
+    },
+    "summit/life-rain": {
+      "lab": "summit",
+      "selector": "life-rain",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-rain'"
+    },
+    "summit/life-pollen": {
+      "lab": "summit",
+      "selector": "life-pollen",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-pollen'"
+    },
+    "summit/life-petals": {
+      "lab": "summit",
+      "selector": "life-petals",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-petals'"
+    },
+    "summit/life-butterflies": {
+      "lab": "summit",
+      "selector": "life-butterflies",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-butterflies'"
+    },
+    "summit/life-birds": {
+      "lab": "summit",
+      "selector": "life-birds",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-birds'"
+    },
+    "summit/life-rays": {
+      "lab": "summit",
+      "selector": "life-rays",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-rays'"
+    },
+    "summit/life-light": {
+      "lab": "summit",
+      "selector": "life-light",
+      "kind": "specimen",
+      "file": "labs/summit/js/life.js",
+      "anchor": "id: 'life-light'"
     }
   },
   "assets": [
@@ -4626,9 +4682,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/life-snow",
+          "level": "direct"
         }
       ]
     },
@@ -4645,9 +4700,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/life-rain",
+          "level": "direct"
         }
       ]
     },
@@ -4664,9 +4718,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/life-pollen",
+          "level": "direct"
         }
       ]
     },
@@ -4683,9 +4736,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/life-petals",
+          "level": "direct"
         }
       ]
     },
@@ -4702,9 +4754,14 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/life-butterflies",
+          "level": "related",
+          "note": "Umbrella row: it builds nothing itself; the butterflies and birds are the specimens."
+        },
+        {
+          "target": "summit/life-birds",
+          "level": "related",
+          "note": "Umbrella row: it builds nothing itself; the butterflies and birds are the specimens."
         }
       ]
     },
@@ -4721,9 +4778,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/life-rays",
+          "level": "direct"
         }
       ]
     },
@@ -4740,8 +4796,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review"
+          "target": "summit/life-light",
+          "level": "direct"
         }
       ]
     },
@@ -4954,8 +5010,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review"
+          "target": "summit/life-butterflies",
+          "level": "direct"
         }
       ]
     },
@@ -4972,8 +5028,8 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review"
+          "target": "summit/life-birds",
+          "level": "direct"
         }
       ]
     }
