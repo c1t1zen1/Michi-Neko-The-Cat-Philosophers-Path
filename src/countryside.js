@@ -1776,6 +1776,21 @@ export class Countryside {
   }
 
   createChochinLantern(x, y, z, parentGroup) {
+    const layout = setParent(this.layoutChochinLantern(x, y, z), parentGroup);
+    return this.placeAsset('chochin', layout, () => this.meshChochinLanternClassic(layout, parentGroup));
+  }
+
+  /** Chochin lantern hung at (x, y, z) inside a parent group; one draw: its sway phase. */
+  layoutChochinLantern(x, y, z) {
+    const phase = this.random() * Math.PI * 2;
+    return {
+      index: this.nextIndex('chochin'), name: 'Chochin Lantern', x, y, z, phase,
+      footprint: footprint({ lists: { lanterns: [{ group: part('.'), baseY: y, phase }] } })
+    };
+  }
+
+  meshChochinLanternClassic(layout, parentGroup) {
+    const { x, y, z } = layout;
     const lantern = new THREE.Group();
     lantern.name = 'Chochin Lantern';
     // Suspension cord
@@ -1795,7 +1810,7 @@ export class Countryside {
 
     lantern.position.set(x, y, z);
     parentGroup.add(lantern);
-    this.lanterns.push({ group: lantern, baseY: y, phase: this.random() * Math.PI * 2 });
+    this.lanterns.push({ group: lantern, baseY: y, phase: layout.phase });
     return lantern;
   }
 
