@@ -7,9 +7,14 @@
 
 import * as THREE from 'three';
 import { glowTexture } from '../textures.js?v=20261107a';
-import { summitWeatherAmount } from './common.js?v=20261107a';
+import { summitWeatherAmount, summitFootprint } from './common.js?v=20261107a';
 
 export const weatherMethods = {
+  // Each build*() is the §3.4 split: a layout step (every this.rng() draw, in
+  // the classic order, and the footprint), then placeAsset() with the classic
+  // mesh step, mesh*Classic(layout), which builds exactly what it always did.
+  // The particle seeds stay on the manager: update() reads them in both sets.
+
   /**
    * Summit-local snow. The valley's snowfall is a scene child and gets hidden
    * by setValleyVisible(), so a mountain-top 'snow' weather would otherwise
@@ -18,7 +23,6 @@ export const weatherMethods = {
    */
   buildSummitSnow() {
     const count = 620;
-    const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
     this._snowSeeds = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
@@ -29,6 +33,16 @@ export const weatherMethods = {
       this._snowSeeds[i * 3 + 1] = 0.55 + this.rng() * 0.7;   // fall speed
       this._snowSeeds[i * 3 + 2] = 0.6 + this.rng() * 0.9;    // flutter amp
     }
+    const layout = {
+      index: 0, name: 'Summit Snowfall', x: 0, y: 0, z: 0, positions: pos,
+      footprint: summitFootprint(), bind: { snow: 'flakes' }
+    };
+    return this.placeAsset('summit-snow', layout, () => weatherMethods.meshSummitSnowClassic.call(this, layout));
+  },
+
+  meshSummitSnowClassic(layout) {
+    const geo = new THREE.BufferGeometry();
+    const pos = layout.positions;
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 12, 0), 60);
     this.snowMat = new THREE.PointsMaterial({
@@ -82,7 +96,6 @@ export const weatherMethods = {
   /** Summit-local rain; the hidden valley particle system cannot be reused. */
   buildSummitRain() {
     const count = this.previewQuality ? 360 : 760;
-    const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
     this._rainSeeds = new Float32Array(count * 2);
     for (let i = 0; i < count; i++) {
@@ -92,6 +105,16 @@ export const weatherMethods = {
       this._rainSeeds[i * 2] = 14 + this.rng() * 11;
       this._rainSeeds[i * 2 + 1] = this.rng() * 100;
     }
+    const layout = {
+      index: 0, name: 'Summit Rainfall', x: 0, y: 0, z: 0, positions: pos,
+      footprint: summitFootprint(), bind: { rain: 'drops' }
+    };
+    return this.placeAsset('summit-rain', layout, () => weatherMethods.meshSummitRainClassic.call(this, layout));
+  },
+
+  meshSummitRainClassic(layout) {
+    const geo = new THREE.BufferGeometry();
+    const pos = layout.positions;
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 9, 0), 52);
     const mat = new THREE.PointsMaterial({
@@ -124,13 +147,22 @@ export const weatherMethods = {
   buildPollen() {
     // Grass pollen / seeds riding the gusts — visible wind.
     const count = 90;
-    const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       pos[i * 3] = (this.rng() - 0.5) * 56;
       pos[i * 3 + 1] = 0.15 + this.rng() * 2.6;
       pos[i * 3 + 2] = (this.rng() - 0.5) * 56;
     }
+    const layout = {
+      index: 0, name: 'Summit Pollen', x: 0, y: 0, z: 0, positions: pos,
+      footprint: summitFootprint(), bind: { pollen: 'pollen' }
+    };
+    return this.placeAsset('summit-pollen', layout, () => weatherMethods.meshPollenClassic.call(this, layout));
+  },
+
+  meshPollenClassic(layout) {
+    const geo = new THREE.BufferGeometry();
+    const pos = layout.positions;
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     const mat = new THREE.PointsMaterial({
       map: glowTexture(255, 246, 214, 32),
@@ -165,7 +197,6 @@ export const weatherMethods = {
   /** A sparse ribbon of petals blown from the sakura across the clearing. */
   buildSakuraPetals() {
     const count = this.previewQuality ? 26 : 76;
-    const geo = new THREE.BufferGeometry();
     const positions = new Float32Array(count * 3);
     this._petalSeeds = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
@@ -176,6 +207,16 @@ export const weatherMethods = {
       this._petalSeeds[i * 3 + 1] = 0.28 + this.rng() * 0.5;
       this._petalSeeds[i * 3 + 2] = 0.16 + this.rng() * 0.32;
     }
+    const layout = {
+      index: 0, name: 'Summit Sakura Drift', x: 0, y: 0, z: 0, positions,
+      footprint: summitFootprint(), bind: { petals: 'petals' }
+    };
+    return this.placeAsset('summit-petals', layout, () => weatherMethods.meshSakuraPetalsClassic.call(this, layout));
+  },
+
+  meshSakuraPetalsClassic(layout) {
+    const geo = new THREE.BufferGeometry();
+    const positions = layout.positions;
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 2.8, 3.5), 19);
     this.petalMat = new THREE.PointsMaterial({

@@ -4,7 +4,7 @@
 // `this` = the manager, so the code reads exactly as it did in the class.
 
 import * as THREE from 'three';
-import { summitWeatherAmount } from './common.js?v=20261107a';
+import { summitWeatherAmount, summitFootprint } from './common.js?v=20261107a';
 
 function summitBirdWingGeometry() {
   const geo = new THREE.BufferGeometry();
@@ -55,8 +55,11 @@ export const wildlifeMethods = {
     // Butterflies are one inexpensive point cloud whose whole visit fades in
     // and out. Anchors are kept separately so their drift never accumulates
     // away from the flowers during a long meditation.
+    // Layout: the wildlife's stream draws in the classic order (per butterfly
+    // its anchor, seeds and colour, per bird its wingbeat phase, then the
+    // first fly-by and visit timers). Anchors, seeds and timers stay on the
+    // manager: update() reads them in both sets.
     const butterflyCount = this.previewQuality ? 8 : 18;
-    const butterflyGeo = new THREE.BufferGeometry();
     const positions = new Float32Array(butterflyCount * 3);
     const colors = new Float32Array(butterflyCount * 3);
     this._butterflyAnchors = new Float32Array(butterflyCount * 3);
@@ -80,6 +83,29 @@ export const wildlifeMethods = {
       colors[i * 3 + 1] = color.g;
       colors[i * 3 + 2] = color.b;
     }
+    const birdPhases = [];
+    for (let i = 0; i < 4; i++) birdPhases.push(this.rng() * Math.PI * 2);
+    this._birdLook = new THREE.Vector3();
+    this._birdFlybyTimer = 5 + this.rng() * 7;
+    this._butterflyVisitTimer = 2 + this.rng() * 4;
+    this._butterflyVisit = 0;
+
+    const butterflies = {
+      index: 0, name: 'Summit Butterfly Visitors', x: 0, y: 0, z: 0, positions, colors,
+      footprint: summitFootprint(), bind: { butterflies: 'swarm' }
+    };
+    this.placeAsset('summit-butterflies', butterflies, () => wildlifeMethods.meshButterfliesClassic.call(this, butterflies));
+    const birds = { index: 0, x: 0, y: 0, z: 0, phases: birdPhases, footprint: summitFootprint() };
+    this.placeAsset('summit-birds', birds, () => wildlifeMethods.meshBirdsClassic.call(this, birds));
+    // summit-wildlife is the umbrella row (the butterflies and birds, routed
+    // above): the classic set adds nothing of its own; a kit may add visitors.
+    const visitors = { index: 0, x: 0, y: 0, z: 0, footprint: summitFootprint() };
+    return this.placeAsset('summit-wildlife', visitors, () => null);
+  },
+
+  meshButterfliesClassic(layout) {
+    const { positions, colors } = layout;
+    const butterflyGeo = new THREE.BufferGeometry();
     butterflyGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     butterflyGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     this.butterflyMat = new THREE.PointsMaterial({
@@ -91,7 +117,9 @@ export const wildlifeMethods = {
     this.butterflies.frustumCulled = false;
     this.butterflies.visible = false;
     this.group.add(this.butterflies);
+  },
 
+  meshBirdsClassic(layout) {
     // A tiny pool of individually articulated birds. They stay hidden until
     // a seeded fly-by, then cross the bay in loose formation and park again.
     const wingGeo = summitBirdWingGeometry();
@@ -138,13 +166,9 @@ export const wildlifeMethods = {
       this.summitBirds.push({
         mesh: bird, wings: [leftWing, rightWing], active: false, age: 0,
         duration: 0, direction: 1, startX: 0, baseY: 0, baseZ: 0,
-        span: 0, depthDrift: 0, phase: this.rng() * Math.PI * 2
+        span: 0, depthDrift: 0, phase: layout.phases[i]
       });
     }
-    this._birdLook = new THREE.Vector3();
-    this._birdFlybyTimer = 5 + this.rng() * 7;
-    this._butterflyVisitTimer = 2 + this.rng() * 4;
-    this._butterflyVisit = 0;
   },
 
   startBirdFlyby() {
