@@ -33,13 +33,13 @@ const butterflySample = () => {
 
 export const assets = [
   defineAsset({
-    id: 'sparrows', family: 'critters', lab: 'critters/sparrow', label: 'Valley sparrow',
+    id: 'sparrows', family: 'critters', lab: 'critters/flock', label: 'Valley sparrow',
     params: { size: { type: 'number', default: 1, min: 0.7, max: 1.5, step: 0.05, label: 'Size' } },
     sample: sparrowSample,
     build: (ctx, layout, p) => buildSparrow(ctx, layout, p)
   }),
   defineAsset({
-    id: 'koi', family: 'critters', lab: 'critters/koi', label: 'River koi',
+    id: 'koi', family: 'critters', lab: 'critters/sanke', label: 'River koi',
     params: { tail: { type: 'number', default: 1, min: 0.7, max: 1.6, step: 0.05, label: 'Tail length' } },
     sample: koiSample,
     build: (ctx, layout, p) => buildKoi(ctx, layout, p)

@@ -97,7 +97,7 @@ export function butterfly(hue, seed) {
  * 0.5 m long. Part names (what c4-creatures binds; the game's `guardianBirds`
  * records drive `wing_l` / `wing_r` rotation.z today):
  *   body, head, beak, tail, leg_l, leg_r          static meshes (merge candidates)
- *   wing_l, wing_r                                shoulder hinges (Group; rotation.z flaps, + raises the left tip)
+ *   wing_l, wing_r                                shoulder hinges (Group; rotation.z flaps: + raises the left tip, - raises the right, which is mirrored by scale.x = -1)
  *   wing_l_arm, wing_r_arm                        inner wing mesh (child of the hinge)
  *   wing_l_hand, wing_r_hand                      wrist hinges (Group, child of the hinge; rotation.z folds the primaries)
  *   wing_l_primaries, wing_r_primaries            outer feather fan (mesh, child of the wrist)
@@ -129,7 +129,7 @@ export function crow() {
   const pose = (t, mode = 'flap') => {
     const sp = mode === 'dive' ? 22 : mode === 'flap' ? 11 : 0, f = sp ? Math.sin(t * sp) : 0;
     const sh = mode === 'dive' ? -0.9 : 0.16 + f * 0.7, wr = mode === 'dive' ? -0.5 : -f * 0.35 - 0.05;
-    for (const k of ['l', 'r']) { parts['wing_' + k].rotation.z = sh; parts['wing_' + k + '_hand'].rotation.z = wr; } // the right hinge is mirrored by scale.x, so both take the same sign
+    for (const [k, sg] of [['l', 1], ['r', -1]]) { parts['wing_' + k].rotation.z = sh * sg; parts['wing_' + k + '_hand'].rotation.z = wr * sg; } // the right hinge is mirrored by scale.x = -1, so it takes the OPPOSITE sign (as the game's guardianBirds update does)
     g.rotation.x = mode === 'dive' ? 0.7 : 0;
   };
   pose(0);

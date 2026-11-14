@@ -18,8 +18,8 @@ const PATTERNS = {
 export const KOI_VARIANTS = Object.keys(PATTERNS);
 
 const shared = (g) => { g.userData.sharedGeometry = true; return g; };
-const _cache = new WeakMap(); // kitMaterials -> { hide, fin, geo }
-const store = (km) => { if (!_cache.has(km)) _cache.set(km, { hide: new Map(), fin: new Map(), geo: {} }); return _cache.get(km); };
+const _cache = new WeakMap(); // kitMaterials -> { hide, fin, geo, ink }
+const store = (km) => { if (!_cache.has(km)) _cache.set(km, { hide: new Map(), fin: new Map(), geo: {}, ink: null }); return _cache.get(km); };
 
 /** The koi hide, painted once. u runs round the body (back at u .5), v from tail to nose (nose at the canvas top). */
 function hideTexture(variant, seed) {
@@ -84,6 +84,10 @@ export function buildKoi(ctx, layout, p) {
 
   const group = new THREE.Group(), parts = {};
   const body = new THREE.Mesh(geo.body, hide); body.castShadow = true; group.add(body); parts.body = body;
+  if (tier === 'hero') { // the game's ink outline: one inverted hull on one shared basic material (+1 draw a fish, hero only)
+    const ink = (S.ink ||= Object.assign(new THREE.MeshBasicMaterial({ color: 0x1b1418, side: THREE.BackSide, name: 'critters:ink' }), { userData: { kit: true } }));
+    const hull = new THREE.Mesh(geo.body, ink); hull.scale.set(1.09, 1.07, 1.02); body.add(hull);
+  }
   const far = tier === 'far'; // far: body and tail only (the pivots stay, empty, so the bound parts resolve)
   const dorsal = far ? null : new THREE.Mesh(geo.fins.dorsal, finMat);
   if (dorsal) { dorsal.position.set(0, 0.085, 0.02); group.add(dorsal); parts.dorsal = dorsal; }

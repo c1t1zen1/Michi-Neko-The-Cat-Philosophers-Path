@@ -67,7 +67,7 @@ export function buildButterflies(ctx, layout, p) {
   const { tier, kitMaterials: km } = ctx;
   if (!_cache.has(km)) _cache.set(km, { tex: null });
   const S = _cache.get(km);
-  const W = 0.1 * p.size;
+  const W = 0.13 * p.size; // a touch wider than the first pass: wings must read at game distance
   const geo = geometry(tier, W); // one swarm: this mesh owns its geometry (the per-instance phase lives on it)
   const tex = (S.tex ||= wingTexture());
   const n = layout.count;
@@ -82,7 +82,7 @@ export function buildButterflies(ctx, layout, p) {
         float a = sign(position.x) * mix(-0.25, 1.0, fl);
         float ca = cos(a), sa = sin(a);
         transformed = vec3(position.x * ca - position.y * sa, position.x * sa + position.y * ca, position.z);`);
-    s.fragmentShader = s.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * 0.35; // thin wings glow with the light through them');
+    s.fragmentShader = s.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * 0.5; // thin wings glow with the light through them');
   };
   mat.customProgramCacheKey = () => 'critters-butterfly';
   const mesh = new THREE.InstancedMesh(geo, mat, n);
