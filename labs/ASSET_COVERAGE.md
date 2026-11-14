@@ -321,22 +321,22 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
-| <a id="moon-pool"></a>`moon-pool` — Moon Pool assembly | [src/hidden_places.js:buildMoonPool(](../src/hidden_places.js#L95) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (direct) |  |
-| <a id="pool-apron"></a>`pool-apron` — Moon Pool mossy apron | [src/hidden_places.js:// Mossy ground apron](../src/hidden_places.js#L110) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
-| <a id="pool-water"></a>`pool-water` — Moon Pool water and caustic layer | [src/hidden_places.js:// The water: a deep](../src/hidden_places.js#L134) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (direct) |  |
-| <a id="pool-moon"></a>`pool-moon` — Moon reflection disc | [src/hidden_places.js:// Moon pooled on the water](../src/hidden_places.js#L169) | [moonpool / game-moon](../labs/moonpool/js/recipes.js#L217) (direct) |  |
-| <a id="pool-rim"></a>`pool-rim` — Pool rim stones | [src/hidden_places.js:// Rim stones](../src/hidden_places.js#L181) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
-| <a id="lily-pads"></a>`lily-pads` — Lily pads | [src/hidden_places.js:// Lily pads](../src/hidden_places.js#L217) | [moonpool / game-pad](../labs/moonpool/js/recipes.js#L231) (direct) |  |
-| <a id="lotus"></a>`lotus` — Lotus blossoms | [src/hidden_places.js:// Lily pads](../src/hidden_places.js#L217) | [moonpool / lotus](../labs/moonpool/js/recipes.js#L239) (direct) |  |
-| <a id="pool-seat"></a>`pool-seat` — Pool sitting stone | [src/hidden_places.js:// Flat sitting stone](../src/hidden_places.js#L244) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
-| <a id="pool-toro"></a>`pool-toro` — Moon Pool stone toro | [src/hidden_places.js:// A little stone toro](../src/hidden_places.js#L253) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
-| <a id="pool-motes"></a>`pool-motes` — Moon Pool rising motes | [src/hidden_places.js:// Motes lifting off](../src/hidden_places.js#L277) | [moonpool / game-motes](../labs/moonpool/js/recipes.js#L263) (direct) |  |
-| <a id="lantern-glade"></a>`lantern-glade` — Lantern Glade complete clearing | [src/hidden_places.js:buildLanternGlade(](../src/hidden_places.js#L318) | [moonpool / game-lamp](../labs/moonpool/js/recipes.js#L245) (related) — The original tile extracts a lantern, not the complete clearing. |  |
-| <a id="glade-floor"></a>`glade-floor` — Glade leaf-litter ground | [src/hidden_places.js:// Leaf-litter floor](../src/hidden_places.js#L329) | **No mapped evidence** | No specimen extracts this leaf-litter texture or clearing floor. |
-| <a id="glade-bamboo"></a>`glade-bamboo` — Glade bamboo ring and drooping leaves | [src/hidden_places.js:stalks.name = 'Glade Bamboo'](../src/hidden_places.js#L373) | [greenery / game-grove](../labs/greenery/js/recipes.js#L46) (related) — Vegetation.buildBambooGrove differs from the hidden-place bamboo. |  |
-| <a id="glade-lanterns"></a>`glade-lanterns` — Glade paper lanterns and glow | [src/hidden_places.js:// Paper lanterns strung](../src/hidden_places.js#L436) | [moonpool / game-lamp](../labs/moonpool/js/recipes.js#L245) (direct) |  |
-| <a id="glade-seat"></a>`glade-seat` — Glade seat and mossy central boulder | [src/hidden_places.js:// A flat sitting stone](../src/hidden_places.js#L473) | [rocks / moss-old](../labs/rocks/js/recipes.js#L67) (related) — Related stone finish, without the glade objects. |  |
-| <a id="glade-fireflies"></a>`glade-fireflies` — Glade fireflies | [src/hidden_places.js:// Fireflies that gather](../src/hidden_places.js#L494) | [moonpool / fireflies](../labs/moonpool/js/recipes.js#L267) (direct) |  |
+| <a id="moon-pool"></a>`moon-pool` — Moon Pool assembly | [src/hidden_places.js:buildMoonPool(](../src/hidden_places.js#L156) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (direct) |  |
+| <a id="pool-apron"></a>`pool-apron` — Moon Pool mossy apron | [src/hidden_places.js:// Mossy ground apron](../src/hidden_places.js#L295) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
+| <a id="pool-water"></a>`pool-water` — Moon Pool water and caustic layer | [src/hidden_places.js:// The water: a deep](../src/hidden_places.js#L323) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (direct) |  |
+| <a id="pool-moon"></a>`pool-moon` — Moon reflection disc | [src/hidden_places.js:// Moon pooled on the water](../src/hidden_places.js#L363) | [moonpool / game-moon](../labs/moonpool/js/recipes.js#L217) (direct) |  |
+| <a id="pool-rim"></a>`pool-rim` — Pool rim stones | [src/hidden_places.js:// Rim stones](../src/hidden_places.js#L378) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
+| <a id="lily-pads"></a>`lily-pads` — Lily pads | [src/hidden_places.js:// Lily pads](../src/hidden_places.js#L253) | [moonpool / game-pad](../labs/moonpool/js/recipes.js#L231) (direct) |  |
+| <a id="lotus"></a>`lotus` — Lotus blossoms | [src/hidden_places.js:// Lily pads](../src/hidden_places.js#L253) | [moonpool / lotus](../labs/moonpool/js/recipes.js#L239) (direct) |  |
+| <a id="pool-seat"></a>`pool-seat` — Pool sitting stone | [src/hidden_places.js:// Flat sitting stone](../src/hidden_places.js#L411) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
+| <a id="pool-toro"></a>`pool-toro` — Moon Pool stone toro | [src/hidden_places.js:// A little stone toro](../src/hidden_places.js#L424) | [moonpool / game-water](../labs/moonpool/js/recipes.js#L177) (embedded) |  |
+| <a id="pool-motes"></a>`pool-motes` — Moon Pool rising motes | [src/hidden_places.js:// Motes lifting off](../src/hidden_places.js#L450) | [moonpool / game-motes](../labs/moonpool/js/recipes.js#L263) (direct) |  |
+| <a id="lantern-glade"></a>`lantern-glade` — Lantern Glade complete clearing | [src/hidden_places.js:buildLanternGlade(](../src/hidden_places.js#L485) | [moonpool / game-lamp](../labs/moonpool/js/recipes.js#L245) (related) — The original tile extracts a lantern, not the complete clearing. |  |
+| <a id="glade-floor"></a>`glade-floor` — Glade leaf-litter ground | [src/hidden_places.js:// Leaf-litter floor](../src/hidden_places.js#L616) | **No mapped evidence** | No specimen extracts this leaf-litter texture or clearing floor. |
+| <a id="glade-bamboo"></a>`glade-bamboo` — Glade bamboo ring and drooping leaves | [src/hidden_places.js:stalks.name = 'Glade Bamboo'](../src/hidden_places.js#L662) | [greenery / game-grove](../labs/greenery/js/recipes.js#L46) (related) — Vegetation.buildBambooGrove differs from the hidden-place bamboo. |  |
+| <a id="glade-lanterns"></a>`glade-lanterns` — Glade paper lanterns and glow | [src/hidden_places.js:// Paper lanterns strung](../src/hidden_places.js#L598) | [moonpool / game-lamp](../labs/moonpool/js/recipes.js#L245) (direct) |  |
+| <a id="glade-seat"></a>`glade-seat` — Glade seat and mossy central boulder | [src/hidden_places.js:// A flat sitting stone](../src/hidden_places.js#L736) | [rocks / moss-old](../labs/rocks/js/recipes.js#L67) (related) — Related stone finish, without the glade objects. |  |
+| <a id="glade-fireflies"></a>`glade-fireflies` — Glade fireflies | [src/hidden_places.js:// Fireflies that gather](../src/hidden_places.js#L758) | [moonpool / fireflies](../labs/moonpool/js/recipes.js#L267) (direct) |  |
 
 ### Interiors
 

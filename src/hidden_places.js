@@ -27,6 +27,19 @@ const GLADE = { id: 'lantern-glade', x: -31, z: -10, r: 6.0 };
 const TAU = Math.PI * 2;
 const PENTATONIC = [440.0, 523.25, 587.33, 659.25, 783.99, 880.0];
 
+// Asset routing (BUILD_GUIDE_FABLE §3.4, Integrator rulings R12 / R18). Each
+// builder runs a layout step (every this.rand() draw, in the original order,
+// recorded as plain data) and hands a classic mesh step to placeAsset(), which
+// builds the kit asset instead when one is registered and active for that
+// inventory id. The layout step always runs, so the hidden-places stream
+// advances the same on both asset sets.
+// src/kit/runtime.js is not on this lane's base yet: these local fallbacks
+// stand in for its exports until the Integrator swaps in
+//   import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261107a';
+const CLASSIC_ASSETS = { build: (id, layout, classicFn) => classicFn(), update() {}, instances: [] };
+const isAssetInstance = (x) => x && x.group && x.parts && typeof x.dispose === 'function';
+const scopeAssets = (a) => a || CLASSIC_ASSETS;
+
 // Small seeded generator so the layout is identical every load.
 function mulberry(seed) {
   let a = seed >>> 0;
@@ -70,9 +83,15 @@ function glowTexture(inner, outer) {
 }
 
 export class HiddenPlaces {
-  constructor(scene, city) {
+  /**
+   * `{ assets }`: the asset runtime (main.js hands it in); without one the
+   * classic builders run, as in the review sheets and the catalog.
+   */
+  constructor(scene, city, { assets } = {}) {
     this.scene = scene;
     this.city = city;
+    // Hidden places build with their own inline materials: no table to scope with.
+    this.assets = scopeAssets(assets, {});
     this.time = 0;
     this.rand = mulberry(0x4d43);
     this.group = new THREE.Group();
@@ -83,9 +102,51 @@ export class HiddenPlaces {
     this.lanterns = [];
     this.soundTimers = { pool: 3, glade: 2 };
     this.ctx = null;
+    // Gameplay anchors registered by the builders' footprints (the two
+    // sit-and-watch spots attach() hands to the ContextActionManager).
+    this.anchors = {};
 
     this.buildMoonPool();
     this.buildLanternGlade();
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Asset routing                                                      */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Classic: `classicFn()` builds the meshes into `parent` and registers the
+   * footprint itself. Kit: the instance's group goes into `parent` at the
+   * layout's place and its footprint (by default the layout's) is registered
+   * through registerFootprint(), the path the classic builders use.
+   */
+  placeAsset(id, layout, classicFn, parent = this.group) {
+    const out = (this.assets || CLASSIC_ASSETS).build(id, layout, classicFn);
+    if (!isAssetInstance(out)) return out;
+    const g = out.group;
+    if (layout.x !== undefined) g.position.set(layout.x, layout.y || 0, layout.z || 0);
+    if (layout.ry) g.rotation.y = layout.ry;
+    if (layout.scale) g.scale.setScalar(layout.scale);
+    parent.add(g);
+    this.registerFootprint(out.footprint || layout.footprint);
+    for (const [field, part] of Object.entries(layout.bind || {})) {
+      this[field] = (out.parts && out.parts[part]) || (out.sockets && out.sockets[part]) || null;
+    }
+    return out;
+  }
+
+  /**
+   * One footprint into the world's registries, each in its list order:
+   * vegetation exclusions, water rects and colliders (the valley's lists,
+   * read by Vegetation and the player), then the anchors attach() reads.
+   */
+  registerFootprint(fp) {
+    if (!fp) return;
+    const city = this.city;
+    for (const rect of fp.exclusions || []) city.vegetationExclusions.push(rect);
+    for (const rect of fp.waterRects || []) city.waterRects.push(rect);
+    for (const box of fp.colliders || []) city.colliders.push(box);
+    if (fp.anchors) Object.assign(this.anchors, fp.anchors);
   }
 
   /* ------------------------------------------------------------------ */
@@ -93,23 +154,147 @@ export class HiddenPlaces {
   /* ------------------------------------------------------------------ */
 
   buildMoonPool() {
+    const layout = this.poolLayout = this.layoutMoonPool();
+    const out = this.placeAsset('moon-pool', layout, () => this.meshMoonPoolClassic(layout));
+    if (isAssetInstance(out)) this.poolGroup = out.group;
+    return out;
+  }
+
+  /**
+   * Everything the Moon Pool draws from the hidden-places stream, in the
+   * order the classic builder drew it: the apron's moss marks and the caustic
+   * rings (both painted into textures), the rim stones, lily pads, lotus,
+   * then the motes. Positions are local to the pool's group.
+   */
+  layoutMoonPool() {
     const { x, z, r } = POOL;
     const rand = this.rand;
+    const clear = r * 2 + 5;
+    const side = r * 1.7;
+    const exclusion = { x, z, width: clear, depth: clear };
+    const water = [x, z, side, side];
+    const poolRest = [x, 0, z + r + 0.95];
+
+    // apron texture marks: [r, g, b, a, x/size, y/size, w, h]
+    const marks = [];
+    for (let i = 0; i < 260; i++) {
+      marks.push([60 + rand() * 40, 90 + rand() * 50, 50 + rand() * 30, 0.12 + rand() * 0.2, rand(), rand(), 2 + rand() * 4, 1 + rand() * 2]);
+    }
+    // caustic texture rings: centre / size, radius, then nine wrapped copies [squash, turn]
+    const rings = [];
+    for (let i = 0; i < 26; i++) {
+      const cx = rand(), cy = rand(), rr = 5 + rand() * 13;
+      const copies = [];
+      for (let k = 0; k < 9; k++) copies.push([0.55 + rand() * 0.3, rand() * 3]);
+      rings.push({ cx, cy, rr, copies });
+    }
+    // rim stones, leaving the arrival gap on the south shore (+z local)
+    const stones = [];
+    for (let i = 0; i < 46 && stones.length < 34; i++) {
+      const a = (i / 46) * TAU + rand() * 0.06;
+      const south = Math.abs(((a - Math.PI / 2 + Math.PI) % TAU) - Math.PI);
+      if (south < 0.42) continue;
+      const rr = r + 0.12 + rand() * 0.38;
+      const s = 0.65 + rand() * 0.9;
+      const euler = [rand() * 0.6, rand() * TAU, rand() * 0.6];
+      const hsl = [0.28 + rand() * 0.1, 0.1 + rand() * 0.12, 0.34 + rand() * 0.16];
+      stones.push({ a, rr, s, euler, hsl });
+    }
+    const pads = [];
+    for (let i = 0; i < 9; i++) {
+      const a = rand() * TAU, rr = 0.5 + rand() * (r - 1.1);
+      const turn = rand() * TAU;
+      const scale = 0.7 + rand() * 0.8;
+      pads.push({ index: i, x: Math.cos(a) * rr, y: 0.062, z: Math.sin(a) * rr, ry: turn, scale });
+    }
+    const lotus = [];
+    for (let i = 0; i < 3; i++) {
+      const a = 1.0 + i * 2.1 + rand() * 0.4, rr = 0.9 + rand() * 1.0;
+      lotus.push({ index: i, x: Math.cos(a) * rr, y: 0.06, z: Math.sin(a) * rr, petals: 7 });
+    }
+    const motes = [];
+    for (let i = 0; i < 42; i++) {
+      motes.push({ a: rand() * TAU, rr: rand() * (r - 0.2), y: rand() * 2.4, sp: 0.12 + rand() * 0.2, ph: rand() * TAU });
+    }
+    const toroAngle = 0.55;
+    const toroX = Math.cos(toroAngle) * (r + 1.5), toroZ = Math.sin(toroAngle) * (r + 1.5);
+
+    return {
+      index: 0, name: 'Moon Pool', x, y: 0, z, r,
+      // the whole pool's footprint (a kit that replaces the whole pool inherits all of it)
+      footprint: { colliders: [], exclusions: [exclusion], waterRects: [water], anchors: { poolRest } },
+      apron: { index: 0, x: 0, y: 0, z: 0, radius: r + 2.4, lift: 0.022, marks, footprint: {} },
+      water: { index: 0, x: 0, y: 0, z: 0, radius: r, surface: 0.05, rings, footprint: {} },
+      moon: { index: 0, x: r * 0.12, y: 0.09, z: -r * 0.1, size: r * 1.5, footprint: {} },
+      rim: { index: 0, x: 0, y: 0, z: 0, capacity: 34, stones, footprint: {} },
+      pads: pads.map((p) => Object.assign(p, { footprint: {} })),
+      lotus: lotus.map((p) => Object.assign(p, { footprint: {} })),
+      seat: { index: 0, x: 0, y: 0, z: r + 0.95, height: 0.09, footprint: { anchors: { poolRest } } },
+      toro: { index: 0, x: toroX, y: 0, z: toroZ, angle: toroAngle, glowY: 0.84, footprint: {} },
+      motes: { index: 0, x: 0, y: 0, z: 0, list: motes, footprint: {} }
+    };
+  }
+
+  meshMoonPoolClassic(L) {
     const g = new THREE.Group();
     g.name = 'Moon Pool';
-    g.position.set(x, 0, z);
+    g.position.set(L.x, 0, L.z);
     this.poolGroup = g;
 
     // Keep trees, bushes and grass off the clearing, and let the cat wade:
     // the inscribed square of the pool counts as water.
-    const clear = r * 2 + 5;
-    this.city.vegetationExclusions.push({ x, z, width: clear, depth: clear });
-    const side = r * 1.7;
-    this.city.waterRects.push([x, z, side, side]);
+    this.registerFootprint({ exclusions: L.footprint.exclusions, waterRects: L.footprint.waterRects });
 
+    this.placeAsset('pool-apron', L.apron, () => this.meshPoolApronClassic(L.apron, g), g);
+    this.placeAsset('pool-water', L.water, () => this.meshPoolWaterClassic(L.water, g), g);
+    this.placeAsset('pool-moon', L.moon, () => this.meshPoolMoonClassic(L.moon, g), g);
+    this.placeAsset('pool-rim', L.rim, () => this.meshPoolRimClassic(L.rim, g), g);
+
+    // Lily pads and three pale lotus blossoms
+    const padMat = new THREE.MeshStandardMaterial({ color: 0x4f8a4c, roughness: 0.8, side: THREE.DoubleSide });
+    const padGeo = new THREE.CircleGeometry(0.3, 14, 0.4, TAU - 0.5);
+    for (const pad of L.pads) {
+      this.placeAsset('lily-pads', pad, () => {
+        const mesh = new THREE.Mesh(padGeo, padMat);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.rotation.z = pad.ry;
+        mesh.position.set(pad.x, pad.y, pad.z);
+        mesh.scale.setScalar(pad.scale);
+        g.add(mesh);
+        return mesh;
+      }, g);
+    }
+    const petalMat = new THREE.MeshStandardMaterial({ color: 0xf6dce6, roughness: 0.6, emissive: 0x3a2030, emissiveIntensity: 0.2 });
+    const petalGeo = new THREE.ConeGeometry(0.07, 0.2, 6);
+    petalGeo.translate(0, 0.1, 0);
+    for (const flower of L.lotus) {
+      this.placeAsset('lotus', flower, () => {
+        const bloom = new THREE.Group();
+        for (let p = 0; p < flower.petals; p++) {
+          const petal = new THREE.Mesh(petalGeo, petalMat);
+          petal.rotation.set(0.9, (p / 7) * TAU, 0, 'YXZ');
+          bloom.add(petal);
+        }
+        bloom.position.set(flower.x, flower.y, flower.z);
+        g.add(bloom);
+        return bloom;
+      }, g);
+    }
+
+    this.placeAsset('pool-seat', L.seat, () => this.meshPoolSeatClassic(L.seat, g), g);
+    this.placeAsset('pool-toro', L.toro, () => this.meshPoolToroClassic(L.toro, g), g);
+    this.placeAsset('pool-motes', L.motes, () => this.meshPoolMotesClassic(L.motes, g), g);
+
+    this.group.add(g);
+    this.updatePoolMotes(0, 0);
+    return g;
+  }
+
+  meshPoolApronClassic(L, g) {
+    const marks = L.marks;
     // Mossy ground apron around the water
     const apron = new THREE.Mesh(
-      new THREE.CircleGeometry(r + 2.4, 40),
+      new THREE.CircleGeometry(L.radius, 40),
       new THREE.MeshStandardMaterial({
         map: canvasTexture(128, (ctx, s) => {
           const grad = ctx.createRadialGradient(s / 2, s / 2, s * 0.18, s / 2, s / 2, s / 2);
@@ -118,19 +303,23 @@ export class HiddenPlaces {
           grad.addColorStop(1, 'rgba(90,120,70,0)');
           ctx.fillStyle = grad;
           ctx.fillRect(0, 0, s, s);
-          for (let i = 0; i < 260; i++) {
-            ctx.fillStyle = `rgba(${60 + rand() * 40},${90 + rand() * 50},${50 + rand() * 30},${0.12 + rand() * 0.2})`;
-            ctx.fillRect(rand() * s, rand() * s, 2 + rand() * 4, 1 + rand() * 2);
+          for (const [cr, cg, cb, ca, mx, my, mw, mh] of marks) {
+            ctx.fillStyle = `rgba(${cr},${cg},${cb},${ca})`;
+            ctx.fillRect(mx * s, my * s, mw, mh);
           }
         }),
         transparent: true, roughness: 1, depthWrite: false
       })
     );
     apron.rotation.x = -Math.PI / 2;
-    apron.position.y = 0.022;
+    apron.position.y = L.lift;
     apron.receiveShadow = true;
     g.add(apron);
+    return apron;
+  }
 
+  meshPoolWaterClassic(L, g) {
+    const r = L.radius, rings = L.rings;
     // The water: a deep, slightly glassy disc plus a drifting caustic layer
     this.poolWaterMat = new THREE.MeshStandardMaterial({
       color: 0x24616c, roughness: 0.06, metalness: 0.05, transparent: true, opacity: 0.9,
@@ -138,7 +327,7 @@ export class HiddenPlaces {
     });
     const water = new THREE.Mesh(new THREE.CircleGeometry(r, 48), this.poolWaterMat);
     water.rotation.x = -Math.PI / 2;
-    water.position.y = 0.05;
+    water.position.y = L.surface;
     water.renderOrder = 1;
     g.add(water);
 
@@ -147,11 +336,13 @@ export class HiddenPlaces {
       ctx.fillRect(0, 0, s, s);
       ctx.strokeStyle = 'rgba(190,255,240,0.55)';
       ctx.lineWidth = 1.4;
-      for (let i = 0; i < 26; i++) {
-        const cx = rand() * s, cy = rand() * s, rr = 5 + rand() * 13;
+      for (const ring of rings) {
+        const cx = ring.cx * s, cy = ring.cy * s, rr = ring.rr;
+        let k = 0;
         for (const ox of [-s, 0, s]) for (const oy of [-s, 0, s]) {
+          const [squash, turn] = ring.copies[k++];
           ctx.beginPath();
-          ctx.ellipse(cx + ox, cy + oy, rr, rr * (0.55 + rand() * 0.3), rand() * 3, 0, TAU);
+          ctx.ellipse(cx + ox, cy + oy, rr, rr * squash, turn, 0, TAU);
           ctx.stroke();
         }
       }
@@ -165,7 +356,10 @@ export class HiddenPlaces {
     caustic.position.y = 0.056;
     caustic.renderOrder = 2;
     g.add(caustic);
+    return water;
+  }
 
+  meshPoolMoonClassic(L, g) {
     // Moon pooled on the water: a soft cool disc that only the night wakes
     this.moonTex = glowTexture('rgba(235,246,255,1)', 'rgba(150,200,235,0.45)');
     this.moonMat = new THREE.SpriteMaterial({
@@ -173,17 +367,20 @@ export class HiddenPlaces {
       blending: THREE.AdditiveBlending, fog: false
     });
     this.moonGlow = new THREE.Sprite(this.moonMat);
-    this.moonGlow.scale.set(r * 1.5, r * 1.5, 1);
-    this.moonGlow.position.set(r * 0.12, 0.09, -r * 0.1);
+    this.moonGlow.scale.set(L.size, L.size, 1);
+    this.moonGlow.position.set(L.x, L.y, L.z);
     this.moonGlow.renderOrder = 3;
     g.add(this.moonGlow);
+    return this.moonGlow;
+  }
 
+  meshPoolRimClassic(L, g) {
     // Rim stones, with a gap on the south shore for a visitor to arrive by
     const stoneGeo = new THREE.DodecahedronGeometry(0.34, 0);
     const stones = new THREE.InstancedMesh(
       stoneGeo,
       new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, flatShading: true }),
-      34
+      L.capacity
     );
     stones.name = 'Moon Pool Stones';
     stones.castShadow = true;
@@ -191,21 +388,15 @@ export class HiddenPlaces {
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
     const col = new THREE.Color();
     let n = 0;
-    for (let i = 0; i < 46 && n < 34; i++) {
-      const a = (i / 46) * TAU + rand() * 0.06;
-      // Skip the arrival gap (+z in local space = south)
-      const south = Math.abs(((a - Math.PI / 2 + Math.PI) % TAU) - Math.PI);
-      if (south < 0.42) continue;
-      const rr = r + 0.12 + rand() * 0.38;
-      const s = 0.65 + rand() * 0.9;
-      e.set(rand() * 0.6, rand() * TAU, rand() * 0.6);
+    for (const { a, rr, s, euler, hsl } of L.stones) {
+      e.set(euler[0], euler[1], euler[2]);
       q.setFromEuler(e);
       m4.compose(
         new THREE.Vector3(Math.cos(a) * rr, 0.08 * s, Math.sin(a) * rr),
         q, new THREE.Vector3(s * 1.15, s * 0.62, s)
       );
       stones.setMatrixAt(n, m4);
-      col.setHSL(0.28 + rand() * 0.1, 0.1 + rand() * 0.12, 0.34 + rand() * 0.16);
+      col.setHSL(hsl[0], hsl[1], hsl[2]);
       stones.setColorAt(n, col);
       n++;
     }
@@ -213,43 +404,23 @@ export class HiddenPlaces {
     stones.instanceMatrix.needsUpdate = true;
     if (stones.instanceColor) stones.instanceColor.needsUpdate = true;
     g.add(stones);
+    return stones;
+  }
 
-    // Lily pads and three pale lotus blossoms
-    const padMat = new THREE.MeshStandardMaterial({ color: 0x4f8a4c, roughness: 0.8, side: THREE.DoubleSide });
-    const padGeo = new THREE.CircleGeometry(0.3, 14, 0.4, TAU - 0.5);
-    for (let i = 0; i < 9; i++) {
-      const a = rand() * TAU, rr = 0.5 + rand() * (r - 1.1);
-      const pad = new THREE.Mesh(padGeo, padMat);
-      pad.rotation.x = -Math.PI / 2;
-      pad.rotation.z = rand() * TAU;
-      pad.position.set(Math.cos(a) * rr, 0.062, Math.sin(a) * rr);
-      pad.scale.setScalar(0.7 + rand() * 0.8);
-      g.add(pad);
-    }
-    const petalMat = new THREE.MeshStandardMaterial({ color: 0xf6dce6, roughness: 0.6, emissive: 0x3a2030, emissiveIntensity: 0.2 });
-    const petalGeo = new THREE.ConeGeometry(0.07, 0.2, 6);
-    petalGeo.translate(0, 0.1, 0);
-    for (let i = 0; i < 3; i++) {
-      const a = 1.0 + i * 2.1 + rand() * 0.4, rr = 0.9 + rand() * 1.0;
-      const bloom = new THREE.Group();
-      for (let p = 0; p < 7; p++) {
-        const petal = new THREE.Mesh(petalGeo, petalMat);
-        petal.rotation.set(0.9, (p / 7) * TAU, 0, 'YXZ');
-        bloom.add(petal);
-      }
-      bloom.position.set(Math.cos(a) * rr, 0.06, Math.sin(a) * rr);
-      g.add(bloom);
-    }
-
+  meshPoolSeatClassic(L, g) {
     // Flat sitting stone on the south shore (the "sit & watch" spot)
     const seat = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.62, 0.7, 0.09, 14),
+      new THREE.CylinderGeometry(0.62, 0.7, L.height, 14),
       new THREE.MeshStandardMaterial({ color: 0x8d9288, roughness: 0.95, flatShading: true })
     );
-    seat.position.set(0, 0.045, r + 0.95);
+    seat.position.set(L.x, 0.045, L.z);
     seat.receiveShadow = true;
     g.add(seat);
+    this.registerFootprint(L.footprint);
+    return seat;
+  }
 
+  meshPoolToroClassic(L, g) {
     // A little stone toro that glows when the light goes
     const toro = new THREE.Group();
     const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9a9f93, roughness: 0.95, flatShading: true });
@@ -262,8 +433,7 @@ export class HiddenPlaces {
     lamp.position.y = 0.82;
     toro.add(lamp);
     piece(new THREE.ConeGeometry(0.3, 0.22, 8), 1.03);
-    const toroAngle = 0.55;
-    toro.position.set(Math.cos(toroAngle) * (r + 1.5), 0, Math.sin(toroAngle) * (r + 1.5));
+    toro.position.set(L.x, 0, L.z);
     g.add(toro);
     this.poolToroHaloMat = new THREE.SpriteMaterial({
       map: this.city.lanternHaloTex, color: 0xffc878, transparent: true, opacity: 0,
@@ -271,18 +441,16 @@ export class HiddenPlaces {
     });
     const halo = new THREE.Sprite(this.poolToroHaloMat);
     halo.scale.set(1.5, 1.5, 1);
-    halo.position.copy(toro.position).setY(0.84);
+    halo.position.copy(toro.position).setY(L.glowY);
     g.add(halo);
+    return toro;
+  }
 
+  meshPoolMotesClassic(L, g) {
     // Motes lifting off the water on still nights
-    const count = 42;
+    const count = L.list.length;
     const pos = new Float32Array(count * 3);
-    this.poolMotes = [];
-    for (let i = 0; i < count; i++) {
-      this.poolMotes.push({
-        a: rand() * TAU, rr: rand() * (r - 0.2), y: rand() * 2.4, sp: 0.12 + rand() * 0.2, ph: rand() * TAU
-      });
-    }
+    this.poolMotes = L.list.map((m) => ({ ...m }));
     const moteGeo = new THREE.BufferGeometry();
     moteGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     this.poolMoteMat = new THREE.PointsMaterial({
@@ -292,12 +460,11 @@ export class HiddenPlaces {
     this.poolMotePoints = new THREE.Points(moteGeo, this.poolMoteMat);
     this.poolMotePoints.frustumCulled = false;
     g.add(this.poolMotePoints);
-
-    this.group.add(g);
-    this.updatePoolMotes(0, 0);
+    return this.poolMotePoints;
   }
 
   updatePoolMotes(dt, strength) {
+    if (!this.poolMotePoints) return; // a kit pool-motes animates itself
     const attr = this.poolMotePoints.geometry.attributes.position;
     const t = this.time;
     for (let i = 0; i < this.poolMotes.length; i++) {
@@ -316,19 +483,139 @@ export class HiddenPlaces {
   /* ------------------------------------------------------------------ */
 
   buildLanternGlade() {
+    const layout = this.gladeLayout = this.layoutLanternGlade();
+    // The stalk tops are layout data (the lanterns hang from them on either set)
+    this.stalkTops = layout.bamboo.tops.map((t) => ({ ...t }));
+    const out = this.placeAsset('lantern-glade', layout, () => this.meshLanternGladeClassic(layout));
+    if (isAssetInstance(out)) this.gladeGroup = out.group;
+    return out;
+  }
+
+  /**
+   * Everything the Lantern Glade draws from the hidden-places stream, in the
+   * classic order: the floor's leaf litter (painted into its texture), the
+   * bamboo ring and its leaves, each lantern's hang and flicker phase, then
+   * the fireflies. Positions are local to the glade's group; colliders world.
+   */
+  layoutLanternGlade() {
     const { x, z, r } = GLADE;
     const rand = this.rand;
+    const clear = r * 2 + 4;
+    const exclusion = { x, z, width: clear, depth: clear };
+    const gladeRest = [x, 0, z];
+
+    // floor texture litter: [hue, sat, light, alpha, x/size, y/size, turn, length]
+    const litter = [];
+    for (let i = 0; i < 320; i++) {
+      const h = 60 + rand() * 30;
+      litter.push([h, 30 + rand() * 25, 32 + rand() * 24, 0.25 + rand() * 0.3, rand(), rand(), rand() * 3, 2 + rand() * 6]);
+    }
+
+    // the ring of tall stalks, open toward the valley (+x), and outer stragglers
+    const stalkCount = 44;
+    const stalks = [], tops = [], stalkColliders = [];
+    for (let i = 0; i < stalkCount; i++) {
+      let a, rr;
+      if (i < 36) {
+        a = (i / 36) * TAU + (rand() - 0.5) * 0.12;
+        const d = Math.abs(((a + Math.PI) % TAU) - Math.PI);
+        if (d < 0.5) continue;
+        rr = r - 0.4 + rand() * 1.5;
+      } else {
+        a = rand() * TAU;
+        rr = r + 0.8 + rand() * 1.8;
+      }
+      const sx = Math.cos(a) * rr, sz = Math.sin(a) * rr;
+      const h = 6.0 + rand() * 3.2;
+      const lean = 0.04 + rand() * 0.05;
+      const hsl = [0.24 + rand() * 0.06, 0.38 + rand() * 0.14, 0.42 + rand() * 0.12];
+      const topX = sx + Math.cos(a) * lean * h, topZ = sz + Math.sin(a) * lean * h;
+      tops.push({ x: topX, y: h, z: topZ, a });
+      const leaves = [];
+      for (let k = 0; k < 6; k++) {
+        const ly = h * (0.72 + (k % 3) * 0.12) + rand() * 0.2;
+        const euler = [1.5 + rand() * 0.7, (k / 6) * TAU + rand() * 0.8];
+        const length = 0.9 + rand() * 0.7;
+        leaves.push({ ly, euler, length, hsl: [0.24 + rand() * 0.07, 0.42 + rand() * 0.18, 0.32 + rand() * 0.16] });
+      }
+      // A slim collider so the cat (and the camera) treat the grove as solid
+      const hw = 0.11;
+      stalkColliders.push(new THREE.Box3(
+        new THREE.Vector3(x + sx - hw, 0, z + sz - hw),
+        new THREE.Vector3(x + sx + hw, 3.0, z + sz + hw)
+      ));
+      stalks.push({ a, sx, sz, h, lean, hsl, leaves });
+    }
+
+    // lanterns hang from every third stalk top (eleven of them)
+    const picks = tops.filter((_, i) => i % 3 === 0).slice(0, 11);
+    const lanterns = picks.map((top, i) => {
+      const hang = 2.1 + rand() * 1.4;
+      const ix = top.x * 0.8 - Math.cos(top.a) * 0.0;
+      const iz = top.z * 0.8;
+      const phase = rand() * TAU;
+      return {
+        index: i, x: ix, y: hang, z: iz, hang, ix, iz, phase, onset: ((i * 0.618) % 1) * 0.42,
+        string: [top.x, top.y * 0.62, top.z], footprint: {}
+      };
+    });
+
+    const flies = [];
+    for (let i = 0; i < 34; i++) {
+      flies.push({ a: rand() * TAU, rr: 0.4 + rand() * (r - 1.2), y: 0.4 + rand() * 2.6, sp: 0.2 + rand() * 0.4, ph: rand() * TAU });
+    }
+
+    const boulderCollider = new THREE.Box3(
+      new THREE.Vector3(x - 1.7 - 0.6, 0, z - 0.9 - 0.5),
+      new THREE.Vector3(x - 1.7 + 0.6, 0.55, z - 0.9 + 0.5)
+    );
+
+    return {
+      index: 0, name: 'Lantern Glade', x, y: 0, z, r,
+      footprint: { colliders: [...stalkColliders, boulderCollider], exclusions: [exclusion], waterRects: [], anchors: { gladeRest } },
+      floor: { index: 0, x: 0, y: 0, z: 0, radius: r - 0.4, lift: 0.025, litter, footprint: {} },
+      bamboo: { index: 0, x: 0, y: 0, z: 0, stalks, tops, capacity: stalkCount, leavesPerStalk: 6, footprint: { colliders: stalkColliders } },
+      lanterns,
+      seat: {
+        index: 0, x: 0, y: 0, z: 0, boulder: { x: -1.7, y: 0.3, z: -0.9, scale: [1.2, 0.75, 1] },
+        footprint: { colliders: [boulderCollider], anchors: { gladeRest } }
+      },
+      flies: { index: 0, x: 0, y: 0, z: 0, list: flies, footprint: {} }
+    };
+  }
+
+  meshLanternGladeClassic(L) {
     const g = new THREE.Group();
     g.name = 'Lantern Glade';
-    g.position.set(x, 0, z);
+    g.position.set(L.x, 0, L.z);
     this.gladeGroup = g;
 
-    const clear = r * 2 + 4;
-    this.city.vegetationExclusions.push({ x, z, width: clear, depth: clear });
+    this.registerFootprint({ exclusions: L.footprint.exclusions });
 
+    this.placeAsset('glade-floor', L.floor, () => this.meshGladeFloorClassic(L.floor, g), g);
+    this.placeAsset('glade-bamboo', L.bamboo, () => this.meshGladeBambooClassic(L.bamboo, g), g);
+
+    // Paper lanterns strung from the bamboo; each kindles at its own moment
+    const lanternGeo = new THREE.CylinderGeometry(0.17, 0.17, 0.42, 10);
+    const stringMat = new THREE.LineBasicMaterial({ color: 0x4a3a28 });
+    const haloTex = this.city.lanternHaloTex;
+    for (const lantern of L.lanterns) {
+      this.placeAsset('glade-lanterns', lantern, () => this.meshGladeLanternClassic(lantern, g, lanternGeo, stringMat, haloTex), g);
+    }
+
+    this.placeAsset('glade-seat', L.seat, () => this.meshGladeSeatClassic(L.seat, g), g);
+    this.placeAsset('glade-fireflies', L.flies, () => this.meshGladeFliesClassic(L.flies, g), g);
+
+    this.group.add(g);
+    this.updateGladeFlies(0, 0);
+    return g;
+  }
+
+  meshGladeFloorClassic(L, g) {
+    const litter = L.litter;
     // Leaf-litter floor
     const floor = new THREE.Mesh(
-      new THREE.CircleGeometry(r - 0.4, 36),
+      new THREE.CircleGeometry(L.radius, 36),
       new THREE.MeshStandardMaterial({
         map: canvasTexture(128, (ctx, s) => {
           const grad = ctx.createRadialGradient(s / 2, s / 2, s * 0.1, s / 2, s / 2, s / 2);
@@ -337,13 +624,12 @@ export class HiddenPlaces {
           grad.addColorStop(1, 'rgba(100,126,64,0)');
           ctx.fillStyle = grad;
           ctx.fillRect(0, 0, s, s);
-          for (let i = 0; i < 320; i++) {
-            const h = 60 + rand() * 30;
-            ctx.fillStyle = `hsla(${h},${30 + rand() * 25}%,${32 + rand() * 24}%,${0.25 + rand() * 0.3})`;
+          for (const [h, sat, light, alpha, mx, my, turn, length] of litter) {
+            ctx.fillStyle = `hsla(${h},${sat}%,${light}%,${alpha})`;
             ctx.save();
-            ctx.translate(rand() * s, rand() * s);
-            ctx.rotate(rand() * 3);
-            ctx.fillRect(0, 0, 2 + rand() * 6, 1);
+            ctx.translate(mx * s, my * s);
+            ctx.rotate(turn);
+            ctx.fillRect(0, 0, length, 1);
             ctx.restore();
           }
         }),
@@ -351,10 +637,13 @@ export class HiddenPlaces {
       })
     );
     floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0.025;
+    floor.position.y = L.lift;
     floor.receiveShadow = true;
     g.add(floor);
+    return floor;
+  }
 
+  meshGladeBambooClassic(L, g) {
     // Bamboo: a ring of tall stalks with an opening toward the valley (+x)
     const stalkTex = canvasTexture(64, (ctx, s) => {
       ctx.fillStyle = '#7fa65a';
@@ -368,62 +657,38 @@ export class HiddenPlaces {
     });
     const stalkGeo = new THREE.CylinderGeometry(0.05, 0.07, 1, 7, 1, true);
     stalkGeo.translate(0, 0.5, 0);
-    const stalkCount = 44;
+    const stalkCount = L.capacity;
     const stalks = new THREE.InstancedMesh(stalkGeo, new THREE.MeshStandardMaterial({ map: stalkTex, roughness: 0.55, color: 0xffffff }), stalkCount);
     stalks.name = 'Glade Bamboo';
     stalks.castShadow = true;
     // Slim drooping leaf blades, several to a stalk top, instead of one fat crown
     const leafGeo = new THREE.ConeGeometry(0.17, 1.35, 4);
     leafGeo.translate(0, 0.675, 0);
-    const leaves = new THREE.InstancedMesh(leafGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, flatShading: true }), stalkCount * 6);
+    const leaves = new THREE.InstancedMesh(leafGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, flatShading: true }), stalkCount * L.leavesPerStalk);
     leaves.name = 'Glade Bamboo Leaves';
     leaves.castShadow = true;
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), col = new THREE.Color();
-    this.stalkTops = [];
     let sn = 0, ln = 0;
-    for (let i = 0; i < stalkCount; i++) {
-      let a, rr;
-      if (i < 36) {
-        // Outer ring, skipping the entrance
-        a = (i / 36) * TAU + (rand() - 0.5) * 0.12;
-        const d = Math.abs(((a + Math.PI) % TAU) - Math.PI);
-        if (d < 0.5) continue;
-        rr = r - 0.4 + rand() * 1.5;
-      } else {
-        a = rand() * TAU;
-        rr = r + 0.8 + rand() * 1.8;
-      }
-      const sx = Math.cos(a) * rr, sz = Math.sin(a) * rr;
-      const h = 6.0 + rand() * 3.2;
+    for (const { a, sx, sz, h, lean, hsl, leaves: blades } of L.stalks) {
       // Lean outward a little, like a grove opening to the sky
-      const lean = 0.04 + rand() * 0.05;
       e.set(Math.sin(a) * lean, 0, -Math.cos(a) * lean);
       q.setFromEuler(e);
       m4.compose(new THREE.Vector3(sx, 0, sz), q, new THREE.Vector3(1, h, 1));
       stalks.setMatrixAt(sn, m4);
-      col.setHSL(0.24 + rand() * 0.06, 0.38 + rand() * 0.14, 0.42 + rand() * 0.12);
+      col.setHSL(hsl[0], hsl[1], hsl[2]);
       stalks.setColorAt(sn, col);
       sn++;
-      const topX = sx + Math.cos(a) * lean * h, topZ = sz + Math.sin(a) * lean * h;
-      this.stalkTops.push({ x: topX, y: h, z: topZ, a });
-      for (let k = 0; k < 6; k++) {
-        const ly = h * (0.72 + (k % 3) * 0.12) + rand() * 0.2;
+      for (const { ly, euler, length, hsl: tint } of blades) {
         // Out and down from the stalk: rotate about X (droop), then spin
-        e.set(1.5 + rand() * 0.7, (k / 6) * TAU + rand() * 0.8, 0, 'YXZ');
+        e.set(euler[0], euler[1], 0, 'YXZ');
         q.setFromEuler(e);
         const lx = sx + Math.cos(a) * lean * ly, lz = sz + Math.sin(a) * lean * ly;
-        m4.compose(new THREE.Vector3(lx, ly, lz), q, new THREE.Vector3(1.0, 0.9 + rand() * 0.7, 1.0));
+        m4.compose(new THREE.Vector3(lx, ly, lz), q, new THREE.Vector3(1.0, length, 1.0));
         leaves.setMatrixAt(ln, m4);
-        col.setHSL(0.24 + rand() * 0.07, 0.42 + rand() * 0.18, 0.32 + rand() * 0.16);
+        col.setHSL(tint[0], tint[1], tint[2]);
         leaves.setColorAt(ln, col);
         ln++;
       }
-      // A slim collider so the cat (and the camera) treat the grove as solid
-      const hw = 0.11;
-      this.city.colliders.push(new THREE.Box3(
-        new THREE.Vector3(x + sx - hw, 0, z + sz - hw),
-        new THREE.Vector3(x + sx + hw, 3.0, z + sz + hw)
-      ));
     }
     stalks.count = sn;
     leaves.count = ln;
@@ -432,73 +697,69 @@ export class HiddenPlaces {
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       g.add(mesh);
     }
+    this.registerFootprint(L.footprint);
+    return stalks;
+  }
 
-    // Paper lanterns strung from the bamboo; each kindles at its own moment
-    const lanternGeo = new THREE.CylinderGeometry(0.17, 0.17, 0.42, 10);
-    const stringMat = new THREE.LineBasicMaterial({ color: 0x4a3a28 });
-    const haloTex = this.city.lanternHaloTex;
-    const picks = this.stalkTops.filter((_, i) => i % 3 === 0).slice(0, 11);
-    picks.forEach((top, i) => {
-      const hang = 2.1 + rand() * 1.4;
-      const ix = top.x * 0.8 - Math.cos(top.a) * 0.0;
-      const iz = top.z * 0.8;
-      const mat = new THREE.MeshStandardMaterial({
-        color: 0xffe4bc, emissive: 0x7a3c0c, emissiveIntensity: 0.25, roughness: 0.9
-      });
-      const lamp = new THREE.Mesh(lanternGeo, mat);
-      lamp.position.set(ix, hang, iz);
-      g.add(lamp);
-      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.04, 10), new THREE.MeshStandardMaterial({ color: 0x3a2a1c, roughness: 0.9 }));
-      cap.position.set(ix, hang + 0.23, iz);
-      g.add(cap);
-      const line = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(top.x, top.y * 0.62, top.z),
-          new THREE.Vector3(ix, hang + 0.25, iz)
-        ]),
-        stringMat
-      );
-      g.add(line);
-      const haloMat = new THREE.SpriteMaterial({
-        map: haloTex, color: 0xffc070, transparent: true, opacity: 0,
-        depthWrite: false, blending: THREE.AdditiveBlending, fog: false
-      });
-      const halo = new THREE.Sprite(haloMat);
-      halo.scale.set(1.9, 1.9, 1);
-      halo.position.set(ix, hang, iz);
-      g.add(halo);
-      this.lanterns.push({ mat, haloMat, lamp, onset: ((i * 0.618) % 1) * 0.42, phase: rand() * TAU, base: hang, ix, iz });
+  meshGladeLanternClassic(L, g, lanternGeo, stringMat, haloTex) {
+    const { ix, iz, hang } = L;
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xffe4bc, emissive: 0x7a3c0c, emissiveIntensity: 0.25, roughness: 0.9
     });
+    const lamp = new THREE.Mesh(lanternGeo, mat);
+    lamp.position.set(ix, hang, iz);
+    g.add(lamp);
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.04, 10), new THREE.MeshStandardMaterial({ color: 0x3a2a1c, roughness: 0.9 }));
+    cap.position.set(ix, hang + 0.23, iz);
+    g.add(cap);
+    const line = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(L.string[0], L.string[1], L.string[2]),
+        new THREE.Vector3(ix, hang + 0.25, iz)
+      ]),
+      stringMat
+    );
+    g.add(line);
+    const haloMat = new THREE.SpriteMaterial({
+      map: haloTex, color: 0xffc070, transparent: true, opacity: 0,
+      depthWrite: false, blending: THREE.AdditiveBlending, fog: false
+    });
+    const halo = new THREE.Sprite(haloMat);
+    halo.scale.set(1.9, 1.9, 1);
+    halo.position.set(ix, hang, iz);
+    g.add(halo);
+    this.lanterns.push({ mat, haloMat, lamp, onset: L.onset, phase: L.phase, base: hang, ix, iz });
+    return lamp;
+  }
 
+  meshGladeSeatClassic(L, g) {
     // A flat sitting stone and a mossy boulder in the middle of the ring
     const seat = new THREE.Mesh(
       new THREE.CylinderGeometry(0.7, 0.78, 0.1, 14),
       new THREE.MeshStandardMaterial({ color: 0x8d9288, roughness: 0.95, flatShading: true })
     );
-    seat.position.set(0, 0.05, 0);
+    seat.position.set(L.x, 0.05, L.z);
     seat.receiveShadow = true;
     g.add(seat);
+    const b = L.boulder;
     const boulder = new THREE.Mesh(
       new THREE.DodecahedronGeometry(0.55, 0),
       new THREE.MeshStandardMaterial({ color: 0x6f7b62, roughness: 1, flatShading: true })
     );
-    boulder.position.set(-1.7, 0.3, -0.9);
-    boulder.scale.set(1.2, 0.75, 1);
+    boulder.position.set(b.x, b.y, b.z);
+    boulder.scale.set(b.scale[0], b.scale[1], b.scale[2]);
     boulder.castShadow = true;
     g.add(boulder);
-    this.city.colliders.push(new THREE.Box3(
-      new THREE.Vector3(x - 1.7 - 0.6, 0, z - 0.9 - 0.5),
-      new THREE.Vector3(x - 1.7 + 0.6, 0.55, z - 0.9 + 0.5)
-    ));
+    this.registerFootprint(L.footprint);
+    return seat;
+  }
 
+  meshGladeFliesClassic(L, g) {
     // Fireflies that gather once the lanterns are lit
-    const count = 34;
+    const count = L.list.length;
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
-    this.gladeFlies = [];
-    for (let i = 0; i < count; i++) {
-      this.gladeFlies.push({ a: rand() * TAU, rr: 0.4 + rand() * (r - 1.2), y: 0.4 + rand() * 2.6, sp: 0.2 + rand() * 0.4, ph: rand() * TAU });
-    }
+    this.gladeFlies = L.list.map((f) => ({ ...f }));
     this.gladeFlyMat = new THREE.PointsMaterial({
       size: 0.16, map: glowTexture('rgba(255,236,150,1)', 'rgba(255,200,90,0.5)'), transparent: true, opacity: 0,
       depthWrite: false, blending: THREE.AdditiveBlending, color: 0xffe9a0, fog: false
@@ -506,12 +767,11 @@ export class HiddenPlaces {
     this.gladeFlyPoints = new THREE.Points(geo, this.gladeFlyMat);
     this.gladeFlyPoints.frustumCulled = false;
     g.add(this.gladeFlyPoints);
-
-    this.group.add(g);
-    this.updateGladeFlies(0, 0);
+    return this.gladeFlyPoints;
   }
 
   updateGladeFlies(dt, strength) {
+    if (!this.gladeFlyPoints) return; // a kit glade-fireflies animates itself
     const attr = this.gladeFlyPoints.geometry.attributes.position;
     const t = this.time;
     for (let i = 0; i < this.gladeFlies.length; i++) {
@@ -539,7 +799,7 @@ export class HiddenPlaces {
     const ca = ctx.contextActions;
     ca.restSpots.push({
       id: 'moonpool', name: 'Moon Pool', hidden: true,
-      pos: new THREE.Vector3(POOL.x, 0, POOL.z + POOL.r + 0.95),
+      pos: new THREE.Vector3().fromArray(this.anchors.poolRest || this.poolLayout.footprint.anchors.poolRest),
       poem: 'The water holds the sky very still, and so, for a while, do you.',
       quiet: {
         day: 'Light from the water wanders across the leaves, slow as breathing.',
@@ -549,7 +809,7 @@ export class HiddenPlaces {
     });
     ca.restSpots.push({
       id: 'glade', name: 'Lantern Glade', hidden: true,
-      pos: new THREE.Vector3(GLADE.x, 0, GLADE.z),
+      pos: new THREE.Vector3().fromArray(this.anchors.gladeRest || this.gladeLayout.footprint.anchors.gladeRest),
       poem: 'Bamboo knocks softly on bamboo, like someone asking to come in.',
       quiet: {
         day: 'The grove creaks and sways, and the light moves with it.',
@@ -572,14 +832,21 @@ export class HiddenPlaces {
     const calm = sky && (sky.weather === 'rain' || sky.weather === 'mist') ? 0.5 : 1;
 
     // ---- Moon Pool ----
+    // (each handle exists only when its part was built classic; a kit part animates itself)
     const dayLight = smooth(0.05, 0.4, sunUp);
-    this.causticMat.opacity = dayLight * 0.5 * calm;
-    this.causticTex.offset.set(this.time * 0.012, this.time * 0.008);
-    this.poolWaterMat.emissiveIntensity = 0.3 + night * 0.9;
-    this.moonMat.opacity = night * 0.75 * (0.9 + 0.1 * Math.sin(this.time * 1.3));
-    this.moonGlow.position.x = POOL.r * 0.12 + Math.sin(this.time * 0.5) * 0.08;
-    this.poolToroMat.emissiveIntensity = 0.2 + night * 2.0;
-    this.poolToroHaloMat.opacity = night * 0.5 * (0.88 + Math.sin(this.time * 7.1) * 0.12);
+    if (this.causticMat) {
+      this.causticMat.opacity = dayLight * 0.5 * calm;
+      this.causticTex.offset.set(this.time * 0.012, this.time * 0.008);
+      this.poolWaterMat.emissiveIntensity = 0.3 + night * 0.9;
+    }
+    if (this.moonMat) {
+      this.moonMat.opacity = night * 0.75 * (0.9 + 0.1 * Math.sin(this.time * 1.3));
+      this.moonGlow.position.x = POOL.r * 0.12 + Math.sin(this.time * 0.5) * 0.08;
+    }
+    if (this.poolToroMat) {
+      this.poolToroMat.emissiveIntensity = 0.2 + night * 2.0;
+      this.poolToroHaloMat.opacity = night * 0.5 * (0.88 + Math.sin(this.time * 7.1) * 0.12);
+    }
     this.updatePoolMotes(dt, night * calm);
 
     // ---- Lantern Glade ----
