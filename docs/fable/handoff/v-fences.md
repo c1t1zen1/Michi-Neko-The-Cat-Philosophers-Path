@@ -17,8 +17,8 @@
 ## Parts (public interface)
 | Asset | Parts |
 |---|---|
-| `bamboo-fence` | `culms` (InstancedMesh: 2 rails + n+1 verticals, end verticals are posts), `knots` (InstancedMesh of cord lashings; hero and mid, param `lashing`). `.` is bound to `bambooFences` through the layout footprint (unchanged) |
-| `corral` | `corner_posts` (InstancedMesh x4), `lashings` (hero and mid) |
+| `bamboo-fence` | `culms` (baked indexed mesh: 2 rails + n+1 verticals, end verticals are posts), `knots` (baked mesh of cord lashings; hero and mid, param `lashing`). `.` is bound to `bambooFences` through the layout footprint (unchanged) |
+| `corral` | `corner_posts` (baked mesh, x4), `lashings` (hero and mid) |
 | `corral-sign` | `post`, `board`, `face`, `cap` (hero, mid), `lashing` (hero) |
 
 ## Footprint
