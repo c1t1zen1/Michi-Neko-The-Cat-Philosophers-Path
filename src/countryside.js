@@ -1643,6 +1643,16 @@ export class Countryside {
   }
 
   createKawaraRoof(w, d, ridgeH = 1.2, overhang = 0.6) {
+    const layout = this.layoutKawaraRoof(w, d, ridgeH, overhang);
+    return this.placeAsset('kawara-roof', layout, () => this.meshKawaraRoofClassic(layout));
+  }
+
+  /** Kawara roof: returned to the caller, who places it (parent null). */
+  layoutKawaraRoof(w, d, ridgeH = 1.2, overhang = 0.6) {
+    return setParent({ index: this.nextIndex('kawara-roof'), w, d, ridgeH, overhang, footprint: footprint() }, null);
+  }
+
+  meshKawaraRoofClassic({ w, d, ridgeH, overhang }) {
     const roof = new THREE.Group();
     roof.name = 'Kawara Roof';
     const halfD = d / 2 + overhang;
