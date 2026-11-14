@@ -247,7 +247,7 @@ none), `label`. `tiers` defaults to all three.
   `InteriorManager`, …) writes one line in its constructor,
   `this.assets = scopeAssets(options.assets, { MAT, textures: TEX })`
   (`scopeAssets` from `src/kit/runtime.js`), and builds through that scoped
-  view: `ctx.MAT`/`ctx.textures` are that owner's, the kit materials are
+  view: `ctx.MAT`/`ctx.textures` are that owner's (Vegetation, HiddenPlaces, Particles and AmbientLife scope with the same shared `KIT_TABLES` exported by `countryside.js`, so every owner's `ctx` carries the shared `MAT` + `textures`), the kit materials are
   registered into EVERY bound MAT table (so each owner's `_mergeStatics()`
   merges them) and `scope.instances` lists what the owner built. Given
   nothing or `CLASSIC_ASSETS` it returns `CLASSIC_ASSETS`; `THREE` comes from `main.js`;

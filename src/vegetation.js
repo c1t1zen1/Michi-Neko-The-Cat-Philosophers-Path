@@ -7,6 +7,7 @@ import {
 } from './foliage.js?v=20261113a';
 import { GrassSystem, BiomeMask } from './grass.js?v=20261113a';
 import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261113a';
+import { KIT_TABLES } from './countryside.js?v=20261113a';
 
 // Trees past this radius stand in or behind the edge-forest wall and are
 // built as textured leaf masses; inside it they are hero trees with
@@ -42,8 +43,8 @@ export class Vegetation {
     this.scene = scene;
     this.colliders = colliders;
     // The kit runtime (main.js hands it in); without one the classic builders
-    // run. Vegetation builds with its own materials: no table to scope with.
-    this.assets = scopeAssets(options.assets, {});
+    // run. Vegetation scopes with the shared kit tables (MAT + textures).
+    this.assets = scopeAssets(options.assets, KIT_TABLES);
     this.rng = mulberry32(options.seed || 77);
     this.time = 0;
     this.swayables = [];

@@ -68,8 +68,9 @@ space. It is an intended visible change: regenerate with
 
 - Owners: each of the five modules has `placeAsset(id, layout, classicFn, parent)`
   and `registerFootprint(fp, …)`; `this.assets = scopeAssets(...)`. Hidden places,
-  vegetation, particles and ambient life pass `{}` (no material table of their own);
-  the interior passes `{ MAT }` (its `_mergeStatics()` merges by it; kit `live`
+  vegetation, particles and ambient life pass the shared `KIT_TABLES` (`{ MAT, textures }`
+  exported by `countryside.js`, gate G-F I2: every owner's `ctx.MAT` / `ctx.textures` are
+  Countryside's); the interior passes `{ MAT }` (its `_mergeStatics()` merges by it; kit `live`
   objects stay out of the merge, other kit meshes are eligible).
 - Parent / child seams: a kit `moon-pool`, `lantern-glade` or `tea-interior`
   replaces the whole (its footprint is the whole's: all colliders, exclusions,

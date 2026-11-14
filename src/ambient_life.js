@@ -1,5 +1,6 @@
 ﻿import * as THREE from 'three';
 import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261113a';
+import { KIT_TABLES } from './countryside.js?v=20261113a';
 
 // Asset routing (BUILD_GUIDE_FABLE §3.4, Integrator rulings R12 / R18): each
 // builder runs a layout step (its Math.random() spawn draws, in the original
@@ -69,8 +70,8 @@ export class AmbientLife {
     this.scene = scene;
     this.audio = audio;
     // The kit runtime (main.js hands it in); without one the classic builders
-    // run. Ambient life builds with its own materials: no table to scope with.
-    this.assets = scopeAssets(assets, {});
+    // run. Ambient life builds with its own materials: the shared kit tables (MAT + textures).
+    this.assets = scopeAssets(assets, KIT_TABLES);
     this.time = 0;
     this.nestPos = nestPos ? nestPos.clone() : new THREE.Vector3(-12.55, 4.9, -3.55);
     this.buildBirds();

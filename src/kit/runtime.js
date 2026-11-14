@@ -154,7 +154,7 @@ export class AssetRuntime {
     this.set = resolveSet({ chosen: this.chosen, quality, explicit: this.explicit });
     const swap = parseSwap(params.get('swap'));
     this.swaps = swap.swaps;
-    this.problems = [...swap.problems];
+    this.problems = [];             // swap problems arrive via warnOnce() below
     this.overrides = null;          // parsed kit-overrides.json
     this.defs = new Map();          // id → definition
     this.families = new Map();      // family → [ids]

@@ -52,7 +52,7 @@ function makeCanvasTexture(draw, size = 128, repeatX = 1, repeatY = 1) {
 }
 
 // Procedural PBR surface sets shared by every structure in the valley
-const TEX = {
+export const TEX = {
   plaster: plasterTextures(0xf3ebda, 1),
   plasterWarm: plasterTextures(0xe6d7ba, 2),
   woodDark: woodTextures(0x3b2819, 0x1b100a, 2),
@@ -77,7 +77,7 @@ const TEX = {
 // must keep 0..1 UVs instead of world-scaled tiling.
 function panelMaterial(mat) { mat.userData.uvPanel = true; return mat; }
 
-const MAT = {
+export const MAT = {
   grass: texturedMaterial(TEX.dirt, { color: 0x6e8a52, roughness: 0.95 }),
   ridge: texturedMaterial(TEX.dirt, { color: 0x77835a, roughness: 1 }),
   paddyMud: texturedMaterial(TEX.dirt, { color: 0x4d4634, roughness: 1 }),
@@ -121,6 +121,11 @@ const MAT = {
   birdEgg: new THREE.MeshStandardMaterial({ color: 0x9be3de, roughness: 0.4, metalness: 0.1 }),
   featherGold: new THREE.MeshStandardMaterial({ color: 0xffd042, emissive: 0xb38600, emissiveIntensity: 0.8, roughness: 0.3 })
 };
+
+// The one shared kit table every owner scopes with (gate G-F I2): kit builders
+// for Vegetation / HiddenPlaces / Particles / AmbientLife ids get the same
+// ctx.MAT and ctx.textures as Countryside's.
+export const KIT_TABLES = { MAT, textures: TEX };
 
 // MAT key of a material, so layouts name materials as plain data
 const MAT_KEY = new Map(Object.entries(MAT).map(([k, v]) => [v, k]));

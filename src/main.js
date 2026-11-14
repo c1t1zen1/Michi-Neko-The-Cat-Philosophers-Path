@@ -209,7 +209,7 @@ class Game {
     // kit, or auto. Constructed here, preloaded in init() before the valley
     // is built, and handed to every owner module as `{ assets }`. The initial
     // quality stands in for the resolved tier only to answer "is this the low
-    // tier?" (the two agree on that); applyQuality() refines it later.
+    // tier?" (the two agree on that); init() re-resolves it before the valley builds.
     this.assets = new AssetRuntime({
       THREE,
       assetSet: this.settings.values.assetSet,
@@ -220,6 +220,11 @@ class Game {
 
   /** Preload the kit (nothing on the classic set), then build the valley. */
   async init() {
+    // Gate G-F I1: merged kit statics are built once, at the tier in force
+    // when the valley builds, so resolve the real quality (discrete GPU ->
+    // high) before preload() and assembleWorld(), not the constructor's guess.
+    this.resolvedQuality = this.settings.resolveQuality();
+    this.assets.setQuality(this.resolvedQuality);
     await this.assets.preload();
     this.assembleWorld();
     this.started = true;
@@ -252,7 +257,7 @@ class Game {
     this.particles = new Particles(this.scene, { assets: this.assets });
     this.ambientLife = new AmbientLife(this.scene, this.audio, this.city.nestPos, { assets: this.assets });
     this.scent = new ScentTrail(this.scene);
-    this.player = new Player(this.scene, this.camera, this.audio, { assets: this.assets, quality: this.initialQuality });
+    this.player = new Player(this.scene, this.camera, this.audio, { assets: this.assets, quality: this.resolvedQuality });
     this.dialogue = new Dialogue();
     this.progression = new ProgressionManager(this.ui, this.player);
     this.quest = new QuestManager(this.ui, (quest) => this.progression.addXP(50, 'Quest complete'));
