@@ -518,6 +518,34 @@
       "file": "labs/machiya/js/variants.js",
       "anchor": "baseline('roof',"
     },
+    "machiya/namako-original": {
+      "lab": "machiya",
+      "selector": "namako-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('namako',"
+    },
+    "machiya/bench-original": {
+      "lab": "machiya",
+      "selector": "bench-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('bench',"
+    },
+    "machiya/door-original": {
+      "lab": "machiya",
+      "selector": "door-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('door',"
+    },
+    "machiya/lock-original": {
+      "lab": "machiya",
+      "selector": "lock-original",
+      "kind": "specimen",
+      "file": "labs/machiya/js/variants.js",
+      "anchor": "baseline('lock',"
+    },
     "machiya/lattice-original": {
       "lab": "machiya",
       "selector": "lattice-original",
@@ -678,6 +706,13 @@
       "kind": "specimen",
       "file": "labs/shrine/js/recipes.js",
       "anchor": "id: 'suzu'"
+    },
+    "shrine/saisen-bako": {
+      "lab": "shrine",
+      "selector": "saisen-bako",
+      "kind": "specimen",
+      "file": "labs/shrine/js/recipes.js",
+      "anchor": "id: 'saisen-bako'"
     },
     "shrine/game-altar": {
       "lab": "shrine",
@@ -941,6 +976,55 @@
       "kind": "specimen",
       "file": "labs/moonpool/js/recipes.js",
       "anchor": "id: 'game-lamp'"
+    },
+    "moonpool/apron-moss": {
+      "lab": "moonpool",
+      "selector": "apron-moss",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/ground.js",
+      "anchor": "id: 'apron-moss'"
+    },
+    "moonpool/rim-chisel": {
+      "lab": "moonpool",
+      "selector": "rim-chisel",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/ground.js",
+      "anchor": "id: 'rim-chisel'"
+    },
+    "moonpool/seat-slab": {
+      "lab": "moonpool",
+      "selector": "seat-slab",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/ground.js",
+      "anchor": "id: 'seat-slab'"
+    },
+    "moonpool/glade-whole": {
+      "lab": "moonpool",
+      "selector": "glade-whole",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/ground.js",
+      "anchor": "id: 'glade-whole'"
+    },
+    "moonpool/glade-litter": {
+      "lab": "moonpool",
+      "selector": "glade-litter",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/ground.js",
+      "anchor": "id: 'glade-litter'"
+    },
+    "moonpool/bamboo-nodes": {
+      "lab": "moonpool",
+      "selector": "bamboo-nodes",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/ground.js",
+      "anchor": "id: 'bamboo-nodes'"
+    },
+    "moonpool/boulder-moss": {
+      "lab": "moonpool",
+      "selector": "boulder-moss",
+      "kind": "specimen",
+      "file": "labs/moonpool/js/ground.js",
+      "anchor": "id: 'boulder-moss'"
     },
     "rocks/moss-old": {
       "lab": "rocks",
@@ -2025,8 +2109,8 @@
       ],
       "coverage": [
         {
-          "target": "machiya/original-village",
-          "level": "embedded"
+          "target": "machiya/namako-original",
+          "level": "direct"
         }
       ]
     },
@@ -2043,8 +2127,8 @@
       ],
       "coverage": [
         {
-          "target": "machiya/original-tea",
-          "level": "embedded"
+          "target": "machiya/bench-original",
+          "level": "direct"
         }
       ]
     },
@@ -2061,8 +2145,8 @@
       ],
       "coverage": [
         {
-          "target": "machiya/original-secret",
-          "level": "embedded"
+          "target": "machiya/door-original",
+          "level": "direct"
         }
       ]
     },
@@ -2079,8 +2163,8 @@
       ],
       "coverage": [
         {
-          "target": "machiya/original-secret",
-          "level": "embedded"
+          "target": "machiya/lock-original",
+          "level": "direct"
         }
       ]
     },
@@ -2402,8 +2486,8 @@
       ],
       "coverage": [
         {
-          "target": "shrine/game-hall",
-          "level": "embedded"
+          "target": "shrine/saisen-bako",
+          "level": "direct"
         }
       ]
     },
@@ -3124,8 +3208,8 @@
       ],
       "coverage": [
         {
-          "target": "moonpool/game-water",
-          "level": "embedded"
+          "target": "moonpool/apron-moss",
+          "level": "direct"
         }
       ]
     },
@@ -3178,8 +3262,8 @@
       ],
       "coverage": [
         {
-          "target": "moonpool/game-water",
-          "level": "embedded"
+          "target": "moonpool/rim-chisel",
+          "level": "direct"
         }
       ]
     },
@@ -3232,8 +3316,8 @@
       ],
       "coverage": [
         {
-          "target": "moonpool/game-water",
-          "level": "embedded"
+          "target": "moonpool/seat-slab",
+          "level": "direct"
         }
       ]
     },
@@ -3286,6 +3370,10 @@
       ],
       "coverage": [
         {
+          "target": "moonpool/glade-whole",
+          "level": "direct"
+        },
+        {
           "target": "moonpool/game-lamp",
           "level": "related",
           "note": "The original tile extracts a lantern, not the complete clearing."
@@ -3303,8 +3391,12 @@
           "anchor": "// Leaf-litter floor"
         }
       ],
-      "coverage": [],
-      "note": "No specimen extracts this leaf-litter texture or clearing floor."
+      "coverage": [
+        {
+          "target": "moonpool/glade-litter",
+          "level": "direct"
+        }
+      ]
     },
     {
       "id": "glade-bamboo",
@@ -3318,6 +3410,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "moonpool/bamboo-nodes",
+          "level": "direct"
+        },
         {
           "target": "greenery/game-grove",
           "level": "related",
@@ -3355,6 +3451,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "moonpool/boulder-moss",
+          "level": "direct"
+        },
         {
           "target": "rocks/moss-old",
           "level": "related",

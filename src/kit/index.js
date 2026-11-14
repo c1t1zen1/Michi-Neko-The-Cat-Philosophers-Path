@@ -3,16 +3,19 @@
 // AssetRuntime.preload() imports these only when the modular set can be
 // active, so the classic game never downloads the kit.
 export const KIT_TAG = '20261113a';
-export const FAMILY_NAMES = Object.freeze(['alley', 'fences', 'garden', 'greenery', 'keepsakes', 'lanterns', 'nest', 'pagoda', 'rocks', 'sky']);
+export const FAMILY_NAMES = Object.freeze(['alley', 'fences', 'garden', 'greenery', 'hidden', 'keepsakes', 'lanterns', 'machiya', 'nest', 'pagoda', 'rocks', 'shrine', 'sky']);
 export const FAMILIES = Object.freeze({
   'alley': () => import('./alley/index.js?v=20261113a'),
   'fences': () => import('./fences/index.js?v=20261113a'),
   'garden': () => import('./garden/index.js?v=20261113a'),
   'greenery': () => import('./greenery/index.js?v=20261113a'),
+  'hidden': () => import('./hidden/index.js?v=20261113a'),
   'keepsakes': () => import('./keepsakes/index.js?v=20261113a'),
   'lanterns': () => import('./lanterns/index.js?v=20261113a'),
+  'machiya': () => import('./machiya/index.js?v=20261113a'),
   'nest': () => import('./nest/index.js?v=20261113a'),
   'pagoda': () => import('./pagoda/index.js?v=20261113a'),
   'rocks': () => import('./rocks/index.js?v=20261113a'),
+  'shrine': () => import('./shrine/index.js?v=20261113a'),
   'sky': () => import('./sky/index.js?v=20261113a'),
 });
