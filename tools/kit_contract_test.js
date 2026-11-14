@@ -25,11 +25,11 @@
 // Local-space rule for builders: build with the asset's ground point at the
 // origin, +y up; the owning module places `instance.group` from the layout.
 import * as THREE from 'three';
-import { AssetRuntime, isAssetInstance } from '../src/kit/runtime.js?v=20261107a';
-import { defineAsset, partName, groupName } from '../src/kit/contract.js?v=20261107a';
-import { budgetFor, BUDGET_SOURCE } from '../src/kit/budgets.js?v=20261107a';
-import { countScene } from '../src/kit/craft.js?v=20261107a';
-import { FAMILIES } from '../src/kit/index.js?v=20261107a';
+import { AssetRuntime, isAssetInstance } from '../src/kit/runtime.js?v=20261113a';
+import { defineAsset, partName, groupName } from '../src/kit/contract.js?v=20261113a';
+import { budgetFor, BUDGET_SOURCE } from '../src/kit/budgets.js?v=20261113a';
+import { countScene } from '../src/kit/craft.js?v=20261113a';
+import { FAMILIES } from '../src/kit/index.js?v=20261113a';
 
 const q = new URLSearchParams(location.search);
 const FAMILY = q.get('family'), ASSET = q.get('asset');
@@ -182,6 +182,9 @@ async function checkAsset(rt, def, tier, list, tag = '') {
   check(`triangles ≤ ${budget.triangles} (AAA-7)`, counts.tris <= budget.triangles, `${counts.tris} tris`);
   check(`meshes ≤ ${budget.meshes} (AAA-7)`, counts.meshes <= budget.meshes, `${counts.meshes} meshes`);
 
+  const mats = new Set(); inst.group.traverse((o) => { if (o.isMesh || o.isPoints || o.isLine) [].concat(o.material || []).forEach((x) => mats.add(x)); });
+  if (budget.materials != null) check(`distinct materials ≤ ${budget.materials} (AAA-7, budgets.md)`, mats.size <= budget.materials, `${mats.size} materials`);
+
   const h1 = hashInstance(inst);
   const inst2 = rt.build(def.id, sampleLayout(def, tier), classic);
   const h2 = isAssetInstance(inst2) ? hashInstance(inst2) : null;
@@ -333,7 +336,7 @@ async function mergeCheck(rt) {
   const list = lists.merge;
   const out = { ok: true };
   try {
-    const { Countryside } = await import('../src/countryside.js?v=20261107a');
+    const { Countryside } = await import('../src/countryside.js?v=20261113a');
     const valley = new THREE.Scene();
     valley.add(new THREE.HemisphereLight(0xffffff, 0x446644, 1));
     const t0 = performance.now();

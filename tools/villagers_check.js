@@ -1,10 +1,11 @@
 // Villager defs and the modular NPC path (lane c3-villagers). Run: node tools/villagers_check.mjs
 import * as THREE from 'three';
-import { Cat } from '../src/cat.js?v=20261107a';
-import { NPC } from '../src/npc.js?v=20261107a';
-import { VILLAGER_DEFS } from '../src/characters/defs/index.js?v=20261107a';
-import { GroomingBehaviour, groomPlan } from '../src/characters/behaviour/grooming.js?v=20261107a';
-import { validateCharacterDef } from '../src/characters/character.js?v=20261107a';
+import { Cat } from '../src/cat.js?v=20261113a';
+import { NPC } from '../src/npc.js?v=20261113a';
+import { VILLAGER_DEFS } from '../src/characters/defs/index.js?v=20261113a';
+import { GroomingBehaviour, groomPlan } from '../src/characters/behaviour/grooming.js?v=20261113a';
+import { duskEyeShine } from '../src/characters/behaviour/dusk.js?v=20261113a';
+import { validateCharacterDef } from '../src/characters/character.js?v=20261113a';
 
 const results = [];
 const check = (name, fn) => { try { const r = fn(); results.push([name, r === true || (r && r.ok), r && r.d || '']); } catch (e) { results.push([name, false, String(e.stack || e)]); } };
@@ -24,7 +25,7 @@ check('three defs valid, frozen, ids luna/mochi/kuro', () => Object.entries(VILL
 for (const n of NAMES) {
   const k = n.toLowerCase(), d = VILLAGER_DEFS[k];
   check(`${n}: classic NPC cat == def cat (palette, face, scale, mesh count)`, () => {
-    const classic = mk(n, stub('classic')).cat, via = new Cat({ def: d });
+    const classic = mk(n, stub('classic')).cat, via = new Cat({ def: { ...d, accessories: d.accessories.filter((a) => a.slot !== 'head') } }); // without the dusk head part (c2's, covered below)
     const hex = (m) => m.material && m.material.color ? m.material.color.getHex() : null;
     const colours = (c) => { const a = []; walk(c.group, (x) => { if (x.isMesh) a.push(hex(x)); }); return a.join(','); };
     return { ok: meshCount(classic.group) === meshCount(via.group) && colours(classic) === colours(via), d: `${meshCount(via.group)} meshes` };
@@ -63,12 +64,33 @@ check('modular grooming runs in a real NPC update (groom pose reached)', () => {
   for (let i = 0; i < 20; i++) npc.update(1 / 60, new THREE.Vector3(30, 0, 30), null, null, null);
   return npc.cat.idleAction === 'groom';
 });
-check('eye shine: off by day, on at dusk when the cat faces the camera, modular only', () => {
-  const npc = mk('Kuro', stub('modular')), cam = new THREE.PerspectiveCamera();
-  npc.mesh.updateMatrixWorld(true);
-  cam.position.set(0, 0.5, 2); cam.lookAt(0, 0.4, 0);
-  const day = npc.eyeShine.update(cam, 12), night = npc.eyeShine.update(cam, 22);
-  return { ok: day === 0 && night >= 0 && !mk('Kuro', stub('classic')).eyeShine && npc.eyeShine.sprites.length === 2, d: `day ${day} night ${night.toFixed(2)}` };
+const upd = (npc, hour, at = new THREE.Vector3(30, 0, 30)) => npc.update(1 / 60, at, null, { dayTime: hour }, null);
+check('eye shine: the head part on modular villagers; 0 by day, >0.3 at night; none on classic', () => {
+  const npc = mk('Kuro', stub('modular'));
+  upd(npc, 12); const day = npc.cat.eyeShine;
+  upd(npc, 22); const night = npc.cat.eyeShine;
+  const slot = (npc.cat.def.accessories.find((a) => a.slot === 'head') || {}).part;
+  return { ok: day === 0 && night > 0.3 && slot === 'eye-shine' && !mk('Kuro', stub('classic')).cat.setEyeShine, d: `day ${day} night ${night.toFixed(2)}` };
+});
+check('the dusk curve is the one canonical curve (17.3-19.5 h, 4.8-6.8 h)', () =>
+  duskEyeShine(17.3) === 0 && Math.abs(duskEyeShine(19.5) - 1) < 1e-9 && duskEyeShine(12) === 0 && duskEyeShine(4.8) === 1 && duskEyeShine(6.8) === 0 && duskEyeShine(null) === 0);
+check('far villagers (beyond 60 m) run neither eye shine nor grooming', () => {
+  const npc = mk('Luna', stub('modular'));
+  npc.grooming.timer = 0; npc.grooming.rng = () => 0; npc.idleTimer = 1e9;
+  for (let i = 0; i < 20; i++) upd(npc, 22, new THREE.Vector3(200, 0, 200));
+  return npc.cat.eyeShine === 0 && npc.cat.idleAction !== 'groom';
+});
+check('grooming never starts while asleep or on a schedule override', () => {
+  const run = (setup) => {
+    const npc = mk('Luna', stub('modular'));
+    npc.grooming.timer = 0; npc.grooming.rng = () => 0; npc.idleTimer = 1e9;
+    setup(npc);
+    for (let i = 0; i < 20; i++) { setup(npc); upd(npc, 12); }
+    return npc.cat.idleAction;
+  };
+  const asleep = run((n) => { n.sleeping = true; });
+  const away = run((n) => { n.schedule = { rain: new THREE.Vector3(5, 0, 5) }; n.effHome = new THREE.Vector3(5, 0, 5); n.resolveRoutineHome = () => n.effHome; });
+  return { ok: asleep !== 'groom' && away !== 'groom', d: `asleep ${asleep}, override ${away}` };
 });
 cleanup();
 const out = results.map(([n, ok, d]) => `${ok ? 'PASS' : 'FAIL'}  ${n}${d ? '  — ' + d : ''}`).join('\n');

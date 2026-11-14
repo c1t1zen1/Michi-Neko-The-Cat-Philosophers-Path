@@ -1,12 +1,12 @@
 import * as THREE from 'three';
-import { BUILDS } from '../cat_anatomy.js?v=20261107a';
-import { makePose, copyPose, lerpPose, dampPose, smoothstep } from '../cat_motion.js?v=20261107a';
-import { TIER_POLICY, BAND_RADII } from '../kit/contract.js?v=20261107a';
-import { anatomyFor, buildSkeleton } from './rig.js?v=20261107a';
-import { coatPalette, coatMaterials, buildCoat } from './parts/coat.js?v=20261107a';
-import { faceFrame, faceMaterials, buildFace } from './parts/face.js?v=20261107a';
-import { COLLAR_PARTS } from './parts/collar.js?v=20261107a';
-import { buildShadowBlob } from './parts/shadow.js?v=20261107a';
+import { BUILDS } from '../cat_anatomy.js?v=20261113a';
+import { makePose, copyPose, lerpPose, dampPose, smoothstep } from '../cat_motion.js?v=20261113a';
+import { TIER_POLICY, BAND_RADII } from '../kit/contract.js?v=20261113a';
+import { anatomyFor, buildSkeleton } from './rig.js?v=20261113a';
+import { coatPalette, coatMaterials, buildCoat } from './parts/coat.js?v=20261113a';
+import { faceFrame, faceMaterials, buildFace } from './parts/face.js?v=20261113a';
+import { COLLAR_PARTS } from './parts/collar.js?v=20261113a';
+import { buildShadowBlob } from './parts/shadow.js?v=20261113a';
 
 /**
  * Characters (BUILD_GUIDE_FABLE.md §10, Phase 3, lane c1-rig-split).

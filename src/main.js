@@ -1,38 +1,39 @@
+import { duskEyeShine } from './characters/behaviour/dusk.js?v=20261113a';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20261107a';
-import { Player } from './player.js?v=20261107a';
-import { Countryside } from './countryside.js?v=20261107a';
-import { Sky } from './sky.js?v=20261107a';
-import { Vegetation } from './vegetation.js?v=20261107a';
-import { Particles } from './particles.js?v=20261107a';
-import { AmbientLife } from './ambient_life.js?v=20261107a';
-import { Controls } from './controls.js?v=20261107a';
-import { UI } from './ui.js?v=20261107a';
-import { NPC } from './npc.js?v=20261107a';
-import { Dialogue } from './dialogue.js?v=20261107a';
-import { QuestManager } from './quest.js?v=20261107a';
-import { AudioManager } from './audio.js?v=20261107a';
-import { ProgressionManager } from './progression.js?v=20261107a';
-import { ContextActionManager } from './context_actions.js?v=20261107a';
-import { InteriorManager } from './interior.js?v=20261107a';
-import { SaveManager } from './save.js?v=20261107a';
-import { ScentTrail } from './scent.js?v=20261107a';
-import { SettingsManager } from './settings.js?v=20261107a';
-import { isDiscreteGPU } from './settings.js?v=20261107a';
-import { MenuSystem } from './menus.js?v=20261107a';
-import { WaypointSystem, Compass } from './waypoints.js?v=20261107a';
-import { MusicDirector } from './music.js?v=20261107a';
-import { SummitManager } from './mountaintop.js?v=20261107a';
-import { catRimUniforms } from './cat.js?v=20261107a';
-import { chunkSceneInstances } from './instanced_chunks.js?v=20261107a';
-import { setFoliageDetail } from './foliage.js?v=20261107a';
-import { applyCadOverrides } from './cad_overrides.js?v=20261107a';
-import { HiddenPlaces } from './hidden_places.js?v=20261107a';
-import { AssetRuntime } from './kit/runtime.js?v=20261107a';
+import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20261113a';
+import { Player } from './player.js?v=20261113a';
+import { Countryside } from './countryside.js?v=20261113a';
+import { Sky } from './sky.js?v=20261113a';
+import { Vegetation } from './vegetation.js?v=20261113a';
+import { Particles } from './particles.js?v=20261113a';
+import { AmbientLife } from './ambient_life.js?v=20261113a';
+import { Controls } from './controls.js?v=20261113a';
+import { UI } from './ui.js?v=20261113a';
+import { NPC } from './npc.js?v=20261113a';
+import { Dialogue } from './dialogue.js?v=20261113a';
+import { QuestManager } from './quest.js?v=20261113a';
+import { AudioManager } from './audio.js?v=20261113a';
+import { ProgressionManager } from './progression.js?v=20261113a';
+import { ContextActionManager } from './context_actions.js?v=20261113a';
+import { InteriorManager } from './interior.js?v=20261113a';
+import { SaveManager } from './save.js?v=20261113a';
+import { ScentTrail } from './scent.js?v=20261113a';
+import { SettingsManager } from './settings.js?v=20261113a';
+import { isDiscreteGPU } from './settings.js?v=20261113a';
+import { MenuSystem } from './menus.js?v=20261113a';
+import { WaypointSystem, Compass } from './waypoints.js?v=20261113a';
+import { MusicDirector } from './music.js?v=20261113a';
+import { SummitManager } from './mountaintop.js?v=20261113a';
+import { catRimUniforms } from './cat.js?v=20261113a';
+import { chunkSceneInstances } from './instanced_chunks.js?v=20261113a';
+import { setFoliageDetail } from './foliage.js?v=20261113a';
+import { applyCadOverrides } from './cad_overrides.js?v=20261113a';
+import { HiddenPlaces } from './hidden_places.js?v=20261113a';
+import { AssetRuntime } from './kit/runtime.js?v=20261113a';
 
 const AUTOSTART_KEY = 'catwalk_autostart';
 
@@ -251,7 +252,7 @@ class Game {
     this.particles = new Particles(this.scene, { assets: this.assets });
     this.ambientLife = new AmbientLife(this.scene, this.audio, this.city.nestPos, { assets: this.assets });
     this.scent = new ScentTrail(this.scene);
-    this.player = new Player(this.scene, this.camera, this.audio);
+    this.player = new Player(this.scene, this.camera, this.audio, { assets: this.assets, quality: this.initialQuality });
     this.dialogue = new Dialogue();
     this.progression = new ProgressionManager(this.ui, this.player);
     this.quest = new QuestManager(this.ui, (quest) => this.progression.addXP(50, 'Quest complete'));
@@ -1368,6 +1369,9 @@ class Game {
       const onSummit = this.summit.active;
       const world = onSummit ? this.summit : this.city;
       this.player.update(dt, world.colliders, world, this.luna);
+      if (this.player.cat.setEyeShine) { // modular Michi: dusk eye shine
+        this.player.cat.setEyeShine(duskEyeShine(this.sky.dayTime));
+      }
       // Nothing in the valley applies while the cat is on the mountain: no
       // collectibles, no turtle, no NPCs, no corridor guardian, no prompts.
       const yarnFinished = !onSummit &&

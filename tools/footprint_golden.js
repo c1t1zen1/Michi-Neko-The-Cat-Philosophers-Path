@@ -54,7 +54,7 @@
 // left to countrysideOptions() below and is otherwise ignored.
 // ?systems=1 runs the systems golden instead (tools/golden/systems_digest.js, F3.3).
 
-import { systemsGolden } from './golden/systems_digest.js?v=20261107a';
+import { systemsGolden } from './golden/systems_digest.js?v=20261113a';
 
 const FORMAT = 'michi-neko-footprint-golden';
 const VERSION = 1;
@@ -1140,12 +1140,12 @@ function changeLines(diff, max) {
 async function main() {
   const tStart = realNow();
   THREE = await import('three');
-  ({ Countryside } = await import('../src/countryside.js?v=20261107a'));
-  ({ HiddenPlaces } = await import('../src/hidden_places.js?v=20261107a'));
-  ({ ContextActionManager } = await import('../src/context_actions.js?v=20261107a'));
+  ({ Countryside } = await import('../src/countryside.js?v=20261113a'));
+  ({ HiddenPlaces } = await import('../src/hidden_places.js?v=20261113a'));
+  ({ ContextActionManager } = await import('../src/context_actions.js?v=20261113a'));
   // The kit runtime (src/main.js constructs it the same way); families and
   // kit-overrides.json load only when ?assets= / ?swap= ask for the kit.
-  const { AssetRuntime } = await import('../src/kit/runtime.js?v=20261107a');
+  const { AssetRuntime } = await import('../src/kit/runtime.js?v=20261113a');
   assets = new AssetRuntime({ THREE, assetSet: 'classic', search: location.search, quality: 'high' });
   await assets.preload();
   if (params.get('systems') === '1') return systemsGolden({ realNow, setAmbient, ambient, mulberry32, countrysideOptions: () => countrysideOptions(params), r4, v3, box6, quat, matSig, toText, diffDigests, changeLines });
@@ -1214,6 +1214,9 @@ async function main() {
   $('golden').textContent = GOLDEN_URL.startsWith('/') ? GOLDEN_URL.slice(1) : 'tools/' + GOLDEN_URL.replace(/^\.\//, '');
   if (!golden.found) {
     statusEl.textContent = `no usable golden at ${GOLDEN_URL} (${golden.error}): write it with node tools/footprint_golden.mjs --write`;
+    statusEl.className = 'failed';
+  } else if (!diff) {
+    statusEl.textContent = `could not compare with ${GOLDEN_URL}: ${golden.error}`;
     statusEl.className = 'failed';
   } else if (diff.equal) {
     statusEl.textContent = `EQUAL: the build matches the golden${golden.textEqual ? ' byte for byte' : ''}`;

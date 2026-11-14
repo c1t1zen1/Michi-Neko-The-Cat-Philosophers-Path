@@ -61,7 +61,7 @@
 
 const FORMAT = 'michi-neko-systems-golden';
 const VERSION = 1;
-const TAG = '20261107a';
+const TAG = '20261113a';
 const DEFAULT_GOLDEN = 'golden/systems_classic.json';
 const SYSTEMS = ['hidden', 'interior', 'vegetation', 'particles', 'ambient'];
 // One Math.random seed per system (the page's seeded stream is reset before each).

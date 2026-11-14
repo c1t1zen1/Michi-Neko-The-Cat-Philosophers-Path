@@ -42,7 +42,7 @@ scissored viewports.
   and required control mounts.
 * `git diff --check` restricted to this change's lab/portal/bridge files.
 
-The shared game bridge follows the current `20261107a` tag in `src/main.js`.
+The shared game bridge follows the current `20261113a` tag in `src/main.js`.
 The game sources and Ground Lab are being worked on independently; those edits
 are outside this change.
 

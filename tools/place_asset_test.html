@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>placeAsset Test</title>
+  <style>
+    :root { --bg: #f6f3ec; --fg: #23211d; --dim: #6d675c; --ok: #1d6b2c; --bad: #a12a1a; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #1b1a17; --fg: #e9e4d8; --dim: #a39c8c; --ok: #7fcf8b; --bad: #ff8f7a; } }
+    html, body { background: var(--bg); color: var(--fg); }
+    body { margin: 16px; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    h1 { font-size: 16px; margin: 0 0 4px; }
+    #status { font-weight: 700; }
+    #status.pass { color: var(--ok); }
+    #status.fail { color: var(--bad); }
+    pre { white-space: pre-wrap; word-break: break-word; }
+    .dim { color: var(--dim); }
+  </style>
+  <script type="importmap">
+    {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <h1>placeAsset test</h1>
+  <p class="dim">Lane f2 (rulings R12/R18): every layout footprint equals what its classic builder registers, and a valley of fake kit
+    instances registers the same footprint as the classic valley. Flags: <code>?per=1</code> also runs one fake id at a time.</p>
+  <p id="status">building…</p>
+  <pre id="out"></pre>
+  <script>
+    window.__placeTest = { done: false };
+    window.addEventListener('error', (e) => {
+      if (window.__placeTest.done) return;
+      window.__placeTest = { done: true, ok: false, error: String((e.error && e.error.stack) || e.message || e) };
+      document.getElementById('status').textContent = 'failed: ' + window.__placeTest.error;
+    });
+  </script>
+  <script type="module" src="./place_asset_test.js"></script>
+</body>
+</html>

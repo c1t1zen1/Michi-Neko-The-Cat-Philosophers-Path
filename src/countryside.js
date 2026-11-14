@@ -4,10 +4,11 @@ import {
   plasterTextures, woodTextures, kawaraTextures, shojiTextures, tatamiTextures,
   cobbleTextures, stoneTextures, groundTextures, dirtTextures, strawTextures,
   metalTextures, namakoTextures, lacquerTextures, texturedMaterial, worldScaleBoxUVs, worldNoise
-} from './textures.js?v=20261107a';
+} from './textures.js?v=20261113a';
 import {
   createFoliageMaterial, lumpyTuftGeometry, lumpyConeGeometry, leafMassTexture, bushGeometry, buildCanopy
-} from './foliage.js?v=20261107a';
+} from './foliage.js?v=20261113a';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261113a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -121,6 +122,11 @@ const MAT = {
   featherGold: new THREE.MeshStandardMaterial({ color: 0xffd042, emissive: 0xb38600, emissiveIntensity: 0.8, roughness: 0.3 })
 };
 
+// MAT key of a material, so layouts name materials as plain data
+const MAT_KEY = new Map(Object.entries(MAT).map(([k, v]) => [v, k]));
+const matKey = (mat) => MAT_KEY.get(mat) || mat;
+const matOf = (key) => (typeof key === 'string' ? MAT[key] : key);
+
 function box(w, h, d, mat, x = 0, y = 0, z = 0) {
   const geo = new THREE.BoxGeometry(w, h, d);
   if (!(mat && mat.userData && mat.userData.uvPanel)) worldScaleBoxUVs(geo, 1);
@@ -136,11 +142,147 @@ function smoothstep(edge0, edge1, x) {
   return t * t * (3 - 2 * t);
 }
 
+// --- Asset routing (BUILD_GUIDE_FABLE.md §3.4, Integrator rulings R12/R18) ---
+//
+// Every builder below is split into layoutX() — every seeded draw, in its
+// original order, plus the footprint — and meshXClassic(layout), the original
+// meshes with no draws, joined by placeAsset(id, layout, classicFn). The asset
+// runtime arrives as `options.assets` (src/kit/runtime.js, scoped to this
+// module's MAT and textures in the constructor); without one, CLASSIC_ASSETS
+// passes every build straight to its classic function.
+
+/**
+ * A layout's footprint (R12, R18): everything the classic builder registers,
+ * as data in the classic formats, computed in the layout step with the same
+ * arithmetic the classic code uses.
+ *   colliders   Box3s for this.colliders
+ *   platforms   Box3s and platform objects for addPlatform, or descriptors
+ *               { oriented: [bounds, topY, options] } and
+ *               { sloped: [roofY, w, d, ridgeH, overhang, options] } replayed
+ *               through addOrientedPlatform / addSlopedRoofPlatforms on the
+ *               placed group (its world transform is the classic one)
+ *   exclusions  { x, z, width, depth } for this.vegetationExclusions
+ *   waterRects  [x, z, w, d] for this.waterRects
+ *   anchors     fields assigned on the Countryside (a Vector3 already there is
+ *               copied into, so held references stay live)
+ *   lists       entries appended to Countryside lists ('a.b' is this.a.b)
+ * A value may name one of the asset's own objects as { $part: 'name' } — '.'
+ * is the asset's group, 'name.prop' a property of the part — resolved from
+ * instance.parts / sockets when a kit instance is placed; `userData` and
+ * `visible: false` on the placeholder are applied to that object.
+ */
+function footprint(f) {
+  return Object.assign({ colliders: [], platforms: [], exclusions: [], waterRects: [], anchors: {}, lists: {} }, f);
+}
+const part = (name, extra) => Object.assign({ $part: name }, extra);
+
+/**
+ * A nested component (F2.4) inside a layout: its inventory id, its layout
+ * (computed in the parent's layout step, at the point the classic parent
+ * called it), the classic mesh method and how it attaches — 'scene', 'parent'
+ * (the method takes the parent group) or 'caller' (the method returns the
+ * object; it is placed at layout x/y/z/ry inside the parent).
+ */
+const component = (id, layout, mesh, attach = 'scene') => ({ id, layout, mesh, attach });
+
+// Footprint arithmetic for meshes that do not exist yet: the same compose and
+// multiply Object3D.updateMatrixWorld does (parent × T·R(XYZ)·S), and the same
+// per-geometry bounding box Box3.setFromObject reads (built once per shape).
+const _fq = new THREE.Quaternion(), _fe = new THREE.Euler(), _fv = new THREE.Vector3(), _fs = new THREE.Vector3();
+function frameOf(parent, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) {
+  const local = new THREE.Matrix4().compose(_fv.set(x, y, z), _fq.setFromEuler(_fe.set(rx, ry, rz)), _fs.set(sx, sy, sz));
+  return parent ? new THREE.Matrix4().multiplyMatrices(parent, local) : local;
+}
+const _shapeBoxes = new Map();
+/** World box of one `new THREE[kind](...args)` mesh under `matrix`. */
+function shapeBox(matrix, kind, ...args) {
+  const key = kind + ':' + args.join(',');
+  let local = _shapeBoxes.get(key);
+  if (!local) {
+    const geo = new THREE[kind](...args);
+    geo.computeBoundingBox();
+    local = geo.boundingBox.clone();
+    geo.dispose();
+    _shapeBoxes.set(key, local);
+  }
+  return local.clone().applyMatrix4(matrix);
+}
+const unionOf = (boxes) => boxes.reduce((u, b) => u.union(b), new THREE.Box3());
+
+/** addBuildingWallColliders' arithmetic: four wall boxes of a w × d plan under `matrix`, and their union. */
+function buildingWallBoxes(matrix, w, d, height, baseY = 0, thickness = 0.18) {
+  const definitions = [
+    { x: 0, z: d / 2, w, d: thickness },
+    { x: 0, z: -d / 2, w, d: thickness },
+    { x: w / 2, z: 0, w: thickness, d },
+    { x: -w / 2, z: 0, w: thickness, d }
+  ];
+  const boxes = [];
+  const aggregate = new THREE.Box3();
+  for (const wall of definitions) {
+    const local = new THREE.Box3(
+      new THREE.Vector3(wall.x - wall.w / 2, baseY, wall.z - wall.d / 2),
+      new THREE.Vector3(wall.x + wall.w / 2, baseY + height, wall.z + wall.d / 2)
+    );
+    const points = [];
+    for (const px of [local.min.x, local.max.x]) {
+      for (const py of [local.min.y, local.max.y]) {
+        for (const pz of [local.min.z, local.max.z]) {
+          points.push(new THREE.Vector3(px, py, pz).applyMatrix4(matrix));
+        }
+      }
+    }
+    const collider = new THREE.Box3().setFromPoints(points);
+    boxes.push(collider);
+    aggregate.union(collider);
+  }
+  return { boxes, aggregate };
+}
+
+/** The world boxes of createKoushi's frame and slats under `frame` (meshKoushiClassic's arithmetic). */
+function koushiBoxes(frame, w, h, count) {
+  const frameThick = 0.04;
+  const out = [
+    shapeBox(frameOf(frame, 0, h / 2, 0), 'BoxGeometry', w, frameThick, frameThick * 1.5),
+    shapeBox(frameOf(frame, 0, -h / 2, 0), 'BoxGeometry', w, frameThick, frameThick * 1.5),
+    shapeBox(frameOf(frame, -w / 2, 0, 0), 'BoxGeometry', frameThick, h, frameThick * 1.5),
+    shapeBox(frameOf(frame, w / 2, 0, 0), 'BoxGeometry', frameThick, h, frameThick * 1.5)
+  ];
+  const slatW = 0.018;
+  const spacing = (w - frameThick * 2) / (count + 1);
+  for (let i = 1; i <= count; i++) {
+    const sx = -w / 2 + frameThick + i * spacing;
+    out.push(shapeBox(frameOf(frame, sx, 0, 0), 'BoxGeometry', slatW, h - frameThick * 2, slatW * 1.2));
+  }
+  return out;
+}
+
+// A kit instance without a part its layout binds leaves that handle null
+// (and update() or gameplay may then fail on it): say so once per id and part.
+const _missingParts = new Set();
+function warnMissingPart(id, name) {
+  const key = (id || '?') + '/' + name;
+  if (_missingParts.has(key)) return;
+  _missingParts.add(key);
+  console.warn(`[kit] ${id || 'asset'}: the instance has no part '${name}' that its layout binds; that handle stays null`);
+}
+
+/** Attach a non-enumerable parent link, so layouts stay plain, serialisable data. */
+function setParent(layout, parent) {
+  Object.defineProperty(layout, 'parent', { value: parent, writable: true, configurable: true, enumerable: false });
+  return layout;
+}
+
 export class Countryside {
   constructor(scene, options = {}) {
     this.scene = scene;
     this.seed = options.seed || 20260729;
     this.rng = mulberry32(this.seed);
+    // The asset runtime (lane f1-runtime), scoped to this module's MAT and
+    // textures; a classic pass-through when none is given (review sheets,
+    // labs, the footprint golden).
+    this.assets = scopeAssets(options.assets, { MAT, textures: TEX });
+    this.assetInstances = []; // kit instances placed here (F2.5, _mergeStatics)
     this.colliders = [];
     this.lanternLightCount = 4; // quality-tier lever; sizes the light pool
     this.bambooFences = [];
@@ -210,6 +352,133 @@ export class Countryside {
   random() { return this.rng(); }
 
   /**
+   * Route one asset (BUILD_GUIDE_FABLE §3.4, rulings R12/R18). Classic:
+   * classicFn() builds and registers exactly as before. Modular (the runtime
+   * returned an AssetInstance): the instance group is placed from the layout,
+   * its footprint registered through the classic helpers in the classic
+   * order, its parts bound to the handles gameplay holds, and the layout's
+   * nested components placed into it.
+   */
+  placeAsset(id, layout, classicFn) {
+    const out = (this.assets || CLASSIC_ASSETS).build(id, layout, classicFn);
+    if (!isAssetInstance(out)) return out;
+    return this.placeInstance(id, layout, out);
+  }
+
+  /** The modular half of placeAsset. Returns the instance group. */
+  placeInstance(id, layout, inst) {
+    const g = inst.group;
+    g.position.set(layout.x || 0, layout.y || 0, layout.z || 0);
+    g.rotation.set(layout.rx || 0, layout.ry || 0, layout.rz || 0);
+    if (layout.scale) g.scale.setScalar(layout.scale);
+    if (layout.name && !g.name) g.name = layout.name;
+    g.userData.placedAsset = id;
+    const parent = layout.parent === undefined ? this.scene : layout.parent;
+    if (parent) parent.add(g);
+    this.registerFootprint(inst.footprint || layout.footprint, g, inst, id);
+    for (const [field, name] of Object.entries(layout.bind || {})) {
+      this[field] = this.resolvePart(typeof name === 'string' ? { $part: name } : name, inst, id);
+    }
+    if (!this.assetInstances) this.assetInstances = [];
+    this.assetInstances.push(inst);
+    for (const c of layout.components || []) this.placeComponent(c, g);
+    return g;
+  }
+
+  /**
+   * Place a nested component (F2.4) whose layout the parent's layout step
+   * computed. The classic parents call this at the point they used to call
+   * the nested builder; a kit parent calls it for every component after its
+   * own footprint, which is the classic registration order (parent first).
+   */
+  placeComponent(c, group) {
+    const L = c.layout;
+    if (c.attach === 'scene') return this.placeAsset(c.id, L, () => this[c.mesh](L));
+    if (c.attach === 'parent') return this.placeAsset(c.id, setParent(L, group), () => this[c.mesh](L, group));
+    // 'caller': the classic method returns the object for us to place. A kit
+    // instance is attached and positioned by placeInstance (parent = group)
+    // before its footprint registers; the lines below then change nothing.
+    const obj = this.placeAsset(c.id, setParent(L, group), () => this[c.mesh](L));
+    obj.position.set(L.x || 0, L.y || 0, L.z || 0);
+    if (L.ry) obj.rotation.y = L.ry;
+    if (obj.parent !== group) group.add(obj);
+    return obj;
+  }
+
+  /** Register a footprint the way the classic builders do: the same helpers, in the same order. */
+  registerFootprint(fp, group, inst, id) {
+    if (!fp) return;
+    for (const box of fp.colliders || []) this.colliders.push(box);
+    for (const p of fp.platforms || []) {
+      if (p.oriented) this.addOrientedPlatform(group, ...p.oriented);
+      else if (p.sloped) this.addSlopedRoofPlatforms(group, ...p.sloped);
+      else this.addPlatform(p);
+    }
+    for (const rect of fp.exclusions || []) this.vegetationExclusions.push(rect);
+    for (const rect of fp.waterRects || []) this.waterRects.push(rect);
+    for (const [field, value] of Object.entries(fp.anchors || {})) {
+      const v = this.resolvePart(value, inst, id);
+      if (this[field] && this[field].isVector3 && v && v.isVector3) this[field].copy(v);
+      else this[field] = v && v.isVector3 ? v.clone() : v;
+    }
+    for (const [path, entries] of Object.entries(fp.lists || {})) {
+      const keys = path.split('.');
+      let owner = this;
+      for (const k of keys.slice(0, -1)) owner = owner[k] || (owner[k] = {});
+      const last = keys[keys.length - 1];
+      const list = owner[last] || (owner[last] = []);
+      for (const entry of entries) list.push(this.resolvePart(entry, inst, id));
+    }
+  }
+
+  /**
+   * Resolve { $part } placeholders (see footprint()) against a kit instance.
+   * A part (or part property) the instance lacks resolves to null and is
+   * reported once per asset id and part (warnMissingPart).
+   */
+  resolvePart(v, inst, id = inst && inst.id) {
+    if (Array.isArray(v)) return v.map((x) => this.resolvePart(x, inst, id));
+    if (!v || typeof v !== 'object' || Object.getPrototypeOf(v) !== Object.prototype) return v;
+    if (typeof v.$part === 'string') {
+      const s = v.$part;
+      const base = s[0] === '.' ? '.' : s.split('.')[0];
+      const prop = s.slice(base === '.' ? 1 : base.length + 1);
+      const o = base === '.' ? inst.group : (inst.parts[base] || (inst.sockets && inst.sockets[base]) || null);
+      if (!o || (prop && (o[prop] === undefined || o[prop] === null))) {
+        warnMissingPart(id, s);
+        return null;
+      }
+      if (v.userData) Object.assign(o.userData, v.userData);
+      if (v.visible === false) o.visible = false;
+      return prop ? o[prop] : o;
+    }
+    const out = {};
+    for (const k of Object.keys(v)) out[k] = this.resolvePart(v[k], inst, id);
+    return out;
+  }
+
+  /** The next instance number of a layout kind in this valley (layout.index, seeds a kit's ctx.rng). */
+  nextIndex(kind) {
+    const counts = this._layoutCounts || (this._layoutCounts = {});
+    counts[kind] = (counts[kind] || 0) + 1;
+    return counts[kind] - 1;
+  }
+
+  /**
+   * addCollider for a routed component: from its classic meshes, or, when the
+   * kit built it or anything inside it, the classic box its layout holds.
+   */
+  addComponentCollider(obj, pad, box) {
+    let kit = false;
+    if (obj) obj.traverse((o) => { if (o.userData && o.userData.placedAsset) kit = true; });
+    if (kit) {
+      this.colliders.push(box);
+      return box;
+    }
+    return this.addCollider(obj, pad);
+  }
+
+  /**
    * Draw-call reduction: merge the valley's static architecture into one
    * mesh per material (grouped also by shadow flags and attribute layout).
    * Runtime-referenced objects — lanterns, collectibles, the sliding door,
@@ -231,9 +500,13 @@ export class Countryside {
     if (this.mistAltar) protectedRoots.add(this.mistAltar);
     if (this.windChime) protectedRoots.add(this.windChime);
     if (this.corralGuardian && this.corralGuardian.mesh) protectedRoots.add(this.corralGuardian.mesh);
+    // Kit instances (F2.5) merge like classic geometry, except what each lists
+    // as live: those keep their own meshes, children included.
+    const liveRoots = new Set();
+    for (const inst of this.assetInstances || []) for (const o of inst.live || []) if (o) liveRoots.add(o);
 
     const inProtected = (o) => {
-      for (let p = o; p; p = p.parent) if (protectedRoots.has(p)) return true;
+      for (let p = o; p; p = p.parent) if (protectedRoots.has(p) || liveRoots.has(p)) return true;
       return false;
     };
 
@@ -261,7 +534,7 @@ export class Countryside {
       const inner = [];
       const walk = (parent) => {
         for (const child of parent.children) {
-          if (protectedRoots.has(child)) continue; // individually referenced
+          if (protectedRoots.has(child) || liveRoots.has(child)) continue; // individually referenced
           if (child.isMesh) {
             const mat = child.material;
             if (matSet.has(mat) && !mat.transparent && child.geometry.index &&
@@ -328,30 +601,8 @@ export class Countryside {
 
   addBuildingWallColliders(parent, w, d, height, baseY = 0, thickness = 0.18) {
     parent.updateWorldMatrix(true, true);
-    const definitions = [
-      { x: 0, z: d / 2, w, d: thickness },
-      { x: 0, z: -d / 2, w, d: thickness },
-      { x: w / 2, z: 0, w: thickness, d },
-      { x: -w / 2, z: 0, w: thickness, d }
-    ];
-    const aggregate = new THREE.Box3();
-    for (const wall of definitions) {
-      const local = new THREE.Box3(
-        new THREE.Vector3(wall.x - wall.w / 2, baseY, wall.z - wall.d / 2),
-        new THREE.Vector3(wall.x + wall.w / 2, baseY + height, wall.z + wall.d / 2)
-      );
-      const points = [];
-      for (const px of [local.min.x, local.max.x]) {
-        for (const py of [local.min.y, local.max.y]) {
-          for (const pz of [local.min.z, local.max.z]) {
-            points.push(new THREE.Vector3(px, py, pz).applyMatrix4(parent.matrixWorld));
-          }
-        }
-      }
-      const collider = new THREE.Box3().setFromPoints(points);
-      this.colliders.push(collider);
-      aggregate.union(collider);
-    }
+    const { boxes, aggregate } = buildingWallBoxes(parent.matrixWorld, w, d, height, baseY, thickness);
+    for (const collider of boxes) this.colliders.push(collider);
     return aggregate;
   }
 
@@ -461,6 +712,19 @@ export class Countryside {
   }
 
   buildGround() {
+    const layout = this.layoutGround();
+    return this.placeAsset('valley-ground', layout, () => this.meshGroundClassic(layout));
+  }
+
+  /** The valley floor and its far slopes (one height field, no draws); the shoulders are a component. */
+  layoutGround() {
+    return {
+      index: this.nextIndex('valley-ground'), name: 'Village Ground', band: 'near', footprint: footprint(), bind: { groundMesh: '.' },
+      components: [component('path-shoulders', this.layoutPathShoulders(), 'meshPathShouldersClassic')]
+    };
+  }
+
+  meshGroundClassic(layout) {
     const size = 260;
     const geo = new THREE.PlaneGeometry(size, size, 150, 150);
     geo.rotateX(-Math.PI / 2);
@@ -545,10 +809,20 @@ export class Countryside {
 
     // Soft earthen shoulders either side of the cobbled road so the pavement
     // fades into the meadow rather than ending in a hard seam.
-    this.buildPathShoulders();
+    this.placeComponent(layout.components[0], this.scene);
   }
 
   buildPathShoulders() {
+    const layout = this.layoutPathShoulders();
+    return this.placeAsset('path-shoulders', layout, () => this.meshPathShouldersClassic(layout));
+  }
+
+  /** The earthen shoulders either side of the road: no draws, no registration. */
+  layoutPathShoulders() {
+    return { index: this.nextIndex('path-shoulders'), name: 'Earthen Shoulders', footprint: footprint() };
+  }
+
+  meshPathShouldersClassic() {
     if (!this.pathSamplesPreview) {
       const pts = [
         new THREE.Vector3(0, 0, 34), new THREE.Vector3(-2, 0, 20), new THREE.Vector3(1.5, 0, 6),
@@ -612,6 +886,18 @@ export class Countryside {
   }
 
   buildRipplePool() {
+    const layout = this.layoutRipplePool();
+    return this.placeAsset('water-ripples', layout, () => this.meshRipplePoolClassic(layout));
+  }
+
+  /** 24 shared ripple rings (parts ring_1 … ring_24) that spawnRipple() recycles. */
+  layoutRipplePool() {
+    const ripples = [];
+    for (let i = 0; i < 24; i++) ripples.push({ mesh: part(`ring_${i + 1}`), age: 0, life: 0, strength: 1 });
+    return { index: this.nextIndex('water-ripples'), count: 24, footprint: footprint({ lists: { ripples } }) };
+  }
+
+  meshRipplePoolClassic(layout) {
     const mat = new THREE.MeshBasicMaterial({
       color: 0xf2fbf7,
       transparent: true,
@@ -620,7 +906,7 @@ export class Countryside {
       side: THREE.DoubleSide
     });
     const geo = new THREE.RingGeometry(0.68, 1, 28);
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < layout.count; i++) {
       const ring = new THREE.Mesh(geo, mat.clone());
       ring.name = `Ripple Ring ${i + 1}`;
       ring.rotation.x = -Math.PI / 2;
@@ -637,12 +923,24 @@ export class Countryside {
    * never evicts the cat's and the koi's ripples from the shared pool.
    */
   buildRainRipplePool() {
+    const layout = this.layoutRainRipplePool();
+    return this.placeAsset('rain-ripples', layout, () => this.meshRainRipplePoolClassic(layout));
+  }
+
+  /** 28 small raindrop rings (parts ring_1 … ring_28) for updateRainRipples(). */
+  layoutRainRipplePool() {
+    const rainRipples = [];
+    for (let i = 0; i < 28; i++) rainRipples.push({ mesh: part(`ring_${i + 1}`), age: 0, life: 0, dur: 0.8, size: 0.4 });
+    return { index: this.nextIndex('rain-ripples'), count: 28, footprint: footprint({ lists: { rainRipples }, anchors: { rainDropAccum: 0 } }) };
+  }
+
+  meshRainRipplePoolClassic(layout) {
     const geo = new THREE.RingGeometry(0.72, 1, 18);
     const mat = new THREE.MeshBasicMaterial({
       color: 0xeef7f8, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide
     });
     this.rainRipples = [];
-    for (let i = 0; i < 28; i++) {
+    for (let i = 0; i < layout.count; i++) {
       const ring = new THREE.Mesh(geo, mat.clone());
       ring.name = `Raindrop Ring ${i + 1}`;
       ring.rotation.x = -Math.PI / 2;
@@ -767,21 +1065,49 @@ export class Countryside {
   }
 
   buildPaddies() {
+    const layout = this.layoutPaddies();
+    return this.placeAsset('paddies', layout, () => this.meshPaddiesClassic(layout));
+  }
+
+  /**
+   * Four terraced plots. The still water sheets are this builder's own mesh;
+   * each plot's bed and bunds is a 'paddy-bunds' component, and the seedlings
+   * one 'rice' component (per stalk: x, z, yaw, size — the valley draws).
+   */
+  layoutPaddies() {
     const plots = [
       // The former (-26, 8) paddy overlapped the turtle corral. Removing this
       // one plot clears its water, rice instances, and enclosing ridges only.
       [-26, 22, 14, 10],
       [14, 22, 12, 10], [28, 22, 12, 10], [26, -2, 12, 12]
     ];
-    this.waterRects = plots;
-    const riceMat = new THREE.MeshStandardMaterial({ color: 0x86b23e, roughness: 0.9 });
-    const riceGeo = new THREE.ConeGeometry(0.05, 0.5, 4);
     let riceCount = 0;
     for (const [px, pz, w, d] of plots) riceCount += Math.floor(w * d / 1.6);
-    const rice = new THREE.InstancedMesh(riceGeo, riceMat, riceCount);
-    rice.castShadow = false;
-    let ri = 0;
-    const dummy = new THREE.Object3D();
+    const stalks = [];
+    const components = [];
+    plots.forEach(([px, pz, w, d], k) => {
+      components.push(component('paddy-bunds', { index: this.nextIndex('paddy-bunds'), plot: k + 1, x: px, z: pz, w, d, footprint: footprint() }, 'meshPaddyBundsClassic'));
+      for (let i = 0; i < Math.floor(w * d / 1.6); i++) {
+        const x = px + (this.random() - 0.5) * (w - 1.2);
+        const z = pz + (this.random() - 0.5) * (d - 1.2);
+        const ry = this.random() * Math.PI;
+        stalks.push([x, z, ry, 0.7 + this.random() * 0.6]);
+      }
+    });
+    components.push(component('rice', { index: this.nextIndex('rice'), name: 'Rice Stalks', capacity: riceCount, stalks, footprint: footprint() }, 'meshRiceClassic'));
+    return {
+      index: this.nextIndex('paddies'), plots,
+      footprint: footprint({
+        waterRects: plots,
+        lists: { paddyWaterMaterials: plots.map((_, k) => ({ material: part(`water_${k + 1}.material`) })) }
+      }),
+      components
+    };
+  }
+
+  meshPaddiesClassic(layout) {
+    const plots = layout.plots;
+    this.waterRects = plots;
 
     // Still shader water, sharing the river's sun/sky uniforms: mirror-like
     // sheets that catch the sky, breathe with wind cat's-paws, and show the
@@ -797,32 +1123,44 @@ export class Countryside {
       water.rotation.x = -Math.PI / 2;
       water.position.set(px, 0.02, pz);
       this.scene.add(water);
-      // Silty paddy floor just under the sheet so the water reads as depth
-      const bed = new THREE.Mesh(new THREE.PlaneGeometry(w, d), MAT.paddyMud);
-      bed.name = `Paddy Bed ${paddyIdx}`;
-      bed.rotation.x = -Math.PI / 2;
-      bed.position.set(px, 0.008, pz);
-      bed.receiveShadow = true;
-      this.scene.add(bed);
+      this.placeComponent(layout.components[paddyIdx - 1], this.scene);
+    }
+    this.placeComponent(layout.components[plots.length], this.scene);
+  }
 
-      const ridgeH = 0.28, ridgeW = 0.5;
-      const ridgeN = box(w + ridgeW * 2, ridgeH, ridgeW, MAT.ridge, px, ridgeH / 2, pz - d / 2 - ridgeW / 2); ridgeN.name = `Paddy Ridge ${paddyIdx} N`; this.scene.add(ridgeN);
-      const ridgeS = box(w + ridgeW * 2, ridgeH, ridgeW, MAT.ridge, px, ridgeH / 2, pz + d / 2 + ridgeW / 2); ridgeS.name = `Paddy Ridge ${paddyIdx} S`; this.scene.add(ridgeS);
-      const ridgeWm = box(ridgeW, ridgeH, d, MAT.ridge, px - w / 2 - ridgeW / 2, ridgeH / 2, pz); ridgeWm.name = `Paddy Ridge ${paddyIdx} W`; this.scene.add(ridgeWm);
-      const ridgeE = box(ridgeW, ridgeH, d, MAT.ridge, px + w / 2 + ridgeW / 2, ridgeH / 2, pz); ridgeE.name = `Paddy Ridge ${paddyIdx} E`; this.scene.add(ridgeE);
+  /** One plot's silty bed and its four bunds (a component of 'paddies'). */
+  meshPaddyBundsClassic(layout) {
+    const { x: px, z: pz, w, d } = layout;
+    const paddyIdx = layout.plot;
+    // Silty paddy floor just under the sheet so the water reads as depth
+    const bed = new THREE.Mesh(new THREE.PlaneGeometry(w, d), MAT.paddyMud);
+    bed.name = `Paddy Bed ${paddyIdx}`;
+    bed.rotation.x = -Math.PI / 2;
+    bed.position.set(px, 0.008, pz);
+    bed.receiveShadow = true;
+    this.scene.add(bed);
 
-      for (let i = 0; i < Math.floor(w * d / 1.6); i++) {
-        dummy.position.set(
-          px + (this.random() - 0.5) * (w - 1.2),
-          0.26,
-          pz + (this.random() - 0.5) * (d - 1.2)
-        );
-        dummy.rotation.y = this.random() * Math.PI;
-        const s = 0.7 + this.random() * 0.6;
-        dummy.scale.set(s, s, s);
-        dummy.updateMatrix();
-        rice.setMatrixAt(ri++, dummy.matrix);
-      }
+    const ridgeH = 0.28, ridgeW = 0.5;
+    const ridgeN = box(w + ridgeW * 2, ridgeH, ridgeW, MAT.ridge, px, ridgeH / 2, pz - d / 2 - ridgeW / 2); ridgeN.name = `Paddy Ridge ${paddyIdx} N`; this.scene.add(ridgeN);
+    const ridgeS = box(w + ridgeW * 2, ridgeH, ridgeW, MAT.ridge, px, ridgeH / 2, pz + d / 2 + ridgeW / 2); ridgeS.name = `Paddy Ridge ${paddyIdx} S`; this.scene.add(ridgeS);
+    const ridgeWm = box(ridgeW, ridgeH, d, MAT.ridge, px - w / 2 - ridgeW / 2, ridgeH / 2, pz); ridgeWm.name = `Paddy Ridge ${paddyIdx} W`; this.scene.add(ridgeWm);
+    const ridgeE = box(ridgeW, ridgeH, d, MAT.ridge, px + w / 2 + ridgeW / 2, ridgeH / 2, pz); ridgeE.name = `Paddy Ridge ${paddyIdx} E`; this.scene.add(ridgeE);
+  }
+
+  /** The rice seedlings of every plot, one instanced mesh (a component of 'paddies'). */
+  meshRiceClassic(layout) {
+    const riceMat = new THREE.MeshStandardMaterial({ color: 0x86b23e, roughness: 0.9 });
+    const riceGeo = new THREE.ConeGeometry(0.05, 0.5, 4);
+    const rice = new THREE.InstancedMesh(riceGeo, riceMat, layout.capacity);
+    rice.castShadow = false;
+    let ri = 0;
+    const dummy = new THREE.Object3D();
+    for (const [x, z, ry, s] of layout.stalks) {
+      dummy.position.set(x, 0.26, z);
+      dummy.rotation.y = ry;
+      dummy.scale.set(s, s, s);
+      dummy.updateMatrix();
+      rice.setMatrixAt(ri++, dummy.matrix);
     }
     rice.count = ri;
     rice.instanceMatrix.needsUpdate = true;
@@ -831,6 +1169,12 @@ export class Countryside {
   }
 
   buildPath() {
+    const layout = this.layoutPath();
+    return this.placeAsset('path', layout, () => this.meshPathClassic(layout));
+  }
+
+  /** The cobbled road's centreline; its samples are the path the valley reads. Boulders are a component. */
+  layoutPath() {
     const pts = [
       new THREE.Vector3(0, 0, 34),
       new THREE.Vector3(-2, 0, 20),
@@ -840,6 +1184,15 @@ export class Countryside {
       new THREE.Vector3(0, 0, -30)
     ];
     const curve = new THREE.CatmullRomCurve3(pts);
+    return {
+      index: this.nextIndex('path'), name: 'Cobbled Path', points: pts.map((p) => [p.x, p.y, p.z]),
+      footprint: footprint({ anchors: { pathSamples: curve.getPoints(100) } }),
+      components: [component('path-boulders', this.layoutPathBoulders(curve), 'meshPathBouldersClassic')]
+    };
+  }
+
+  meshPathClassic(layout) {
+    const curve = new THREE.CatmullRomCurve3(layout.points.map(([x, y, z]) => new THREE.Vector3(x, y, z)));
     this.pathSamples = curve.getPoints(100);
     const steps = 80;
     const width = 3.8;
@@ -884,7 +1237,7 @@ export class Countryside {
     gravel.receiveShadow = true;
     this.scene.add(gravel);
 
-    this.buildPathBoulders(curve);
+    this.placeComponent(layout.components[0], this.scene);
   }
 
   /**
@@ -909,9 +1262,15 @@ export class Countryside {
   }
 
   buildWalkwaySlabs(curve) {
-    const slabMats = [MAT.stone, MAT.stoneDark, MAT.slabWarm];
+    const layout = this.layoutWalkwaySlabs(curve);
+    return this.placeAsset('path-slabs', layout, () => this.meshWalkwaySlabsClassic(layout));
+  }
+
+  /** Stepping slabs along a curve (not in the valley today; the catalog shows it). */
+  layoutWalkwaySlabs(curve) {
     const len = curve.getLength();
     const rows = Math.floor(len / 0.62);
+    const slabs = [];
     for (let i = 0; i < rows; i++) {
       const t = i / rows;
       const p = curve.getPoint(t);
@@ -923,24 +1282,42 @@ export class Countryside {
         const d = 0.45 + this.random() * 0.3;
         const h = 0.06 + this.random() * 0.05;
         const off = cols === 1 ? (this.random() - 0.5) * 0.3 : (c === 0 ? -0.55 - this.random() * 0.15 : 0.55 + this.random() * 0.15);
-        const slab = new THREE.Mesh(
-          new THREE.BoxGeometry(w, h, d),
-          slabMats[Math.floor(this.random() * slabMats.length)]
-        );
-        slab.position.set(p.x + side.x * off, h / 2 + 0.03, p.z + side.z * off);
-        slab.rotation.y = Math.atan2(tan.x, tan.z) + (this.random() - 0.5) * 0.35;
-        slab.receiveShadow = true;
-        slab.castShadow = true;
-        slab.name = `Path Slab ${i}-${c}`;
-        this.scene.add(slab);
+        const mat = Math.floor(this.random() * 3);
+        const position = [p.x + side.x * off, h / 2 + 0.03, p.z + side.z * off];
+        const ry = Math.atan2(tan.x, tan.z) + (this.random() - 0.5) * 0.35;
+        slabs.push({ i, c, w, d, h, mat, position, ry });
       }
+    }
+    return { index: this.nextIndex('path-slabs'), slabs, footprint: footprint() };
+  }
+
+  meshWalkwaySlabsClassic(layout) {
+    const slabMats = [MAT.stone, MAT.stoneDark, MAT.slabWarm];
+    for (const { i, c, w, d, h, mat, position, ry } of layout.slabs) {
+      const slab = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, d),
+        slabMats[mat]
+      );
+      slab.position.set(...position);
+      slab.rotation.y = ry;
+      slab.receiveShadow = true;
+      slab.castShadow = true;
+      slab.name = `Path Slab ${i}-${c}`;
+      this.scene.add(slab);
     }
   }
 
   buildPathBoulders(curve) {
-    const rockGeo = new THREE.DodecahedronGeometry(1, 0);
+    const layout = this.layoutPathBoulders(curve);
+    return this.placeAsset('path-boulders', layout, () => this.meshPathBouldersClassic(layout));
+  }
+
+  /** Boulders along both sides of the road; per rock: side, size, offset, stone, stretch, tumble. */
+  layoutPathBoulders(curve) {
     const len = curve.getLength();
     const count = Math.floor(len / 3.2);
+    const rocks = [];
+    const colliders = [];
     for (let i = 0; i < count; i++) {
       const t = (i + 0.5) / count;
       const p = curve.getPoint(t);
@@ -950,16 +1327,30 @@ export class Countryside {
       const dramatic = this.random() > 0.9;
       const s = dramatic ? 0.55 + this.random() * 0.5 : 0.18 + this.random() * 0.3;
       const off = sideSign * (2.4 + this.random() * 1.8 + s * 0.5);
-      const rock = new THREE.Mesh(rockGeo, this.random() > 0.5 ? MAT.stone : MAT.stoneDark);
-      rock.position.set(p.x + side.x * off, s * 0.45, p.z + side.z * off);
-      rock.scale.set(s * (0.8 + this.random() * 0.5), s * (0.6 + this.random() * 0.7), s * (0.8 + this.random() * 0.5));
-      rock.rotation.set(this.random() * Math.PI, this.random() * Math.PI, this.random() * Math.PI);
+      const mat = this.random() > 0.5 ? 'stone' : 'stoneDark';
+      const position = [p.x + side.x * off, s * 0.45, p.z + side.z * off];
+      const scale = [s * (0.8 + this.random() * 0.5), s * (0.6 + this.random() * 0.7), s * (0.8 + this.random() * 0.5)];
+      const rotation = [this.random() * Math.PI, this.random() * Math.PI, this.random() * Math.PI];
+      rocks.push({ s, mat, position, scale, rotation });
+      // the big ones block the cat (dodecahedron bounds, shrunk 0.05)
+      if (s > 0.5) colliders.push(shapeBox(frameOf(null, ...position, ...rotation, ...scale), 'DodecahedronGeometry', 1, 0).expandByScalar(-0.05));
+    }
+    return { index: this.nextIndex('path-boulders'), rocks, footprint: footprint({ colliders }) };
+  }
+
+  meshPathBouldersClassic(layout) {
+    const rockGeo = new THREE.DodecahedronGeometry(1, 0);
+    layout.rocks.forEach(({ s, mat, position, scale, rotation }, i) => {
+      const rock = new THREE.Mesh(rockGeo, MAT[mat]);
+      rock.position.set(...position);
+      rock.scale.set(...scale);
+      rock.rotation.set(...rotation);
       rock.castShadow = true;
       rock.receiveShadow = true;
       rock.name = `Path Boulder ${i + 1}`;
       this.scene.add(rock);
       if (s > 0.5) this.addCollider(rock, -0.05);
-    }
+    });
   }
 
   /** Dense centreline samples of the river, used to carve the bed. */
@@ -990,6 +1381,53 @@ export class Countryside {
   }
 
   buildRiverAndBridge() {
+    const layout = this.layoutRiverAndBridge();
+    return this.placeAsset('river', layout, () => this.meshRiverClassic(layout));
+  }
+
+  /**
+   * The river ribbon is this builder's own mesh (its curve and samples are
+   * what the valley's water tests read); the bridge, with its deck, railing
+   * and ramp platforms, and the River-Spirit Charm under it are components.
+   */
+  layoutRiverAndBridge() {
+    const curve = new THREE.CatmullRomCurve3(RIVER_POINTS.map(p => p.clone()));
+    const deckY = 1.0, rampLen = 2.6, bridgeTop = deckY + 0.08;
+    const bridge = {
+      index: this.nextIndex('bridge'), name: 'Kiyomizu Bridge', x: -1, z: 30.5,
+      footprint: footprint({
+        // the full deck and approaches stay clear of grass and reeds
+        exclusions: [{ x: -1, z: 30.5, width: 4.2, depth: 15.2 }],
+        anchors: {
+          bridgeDeckWaterClearance: { x: -1, z: 30.5, width: 2.7, depth: 8.5, underpassY: 0.42 },
+          bridgeRampWaterExclusions: [
+            { x: -1, z: 25.0, width: 3.0, depth: 2.95 },
+            { x: -1, z: 36.0, width: 3.0, depth: 2.95 }
+          ]
+        },
+        platforms: [
+          new THREE.Box3(new THREE.Vector3(-1 - 1.3, 0, 30.5 - 4.2), new THREE.Vector3(-1 + 1.3, deckY + 0.08, 30.5 + 4.2)),
+          ...[-1, 1].map((s) => new THREE.Box3(
+            new THREE.Vector3(-1 + s * 1.24 - 0.21, 0, 30.5 - 4.2),
+            new THREE.Vector3(-1 + s * 1.24 + 0.21, deckY + 0.66, 30.5 + 4.2)
+          )),
+          ...[-1, 1].map((sz) => this.bridgeRampPlatform(sz, rampLen, bridgeTop))
+        ]
+      })
+    };
+    const charm = {
+      index: this.nextIndex('dango'), name: 'River-Spirit Charm', x: -1, y: 0.28, z: 30.5,
+      footprint: footprint({ lists: { collectibles: [part('.', { userData: { id: 90, isCharm: true } })] } })
+    };
+    return {
+      index: this.nextIndex('river'), name: 'River', band: 'near',
+      footprint: footprint({ anchors: { riverCurve: curve, riverSamples: curve.getPoints(60) } }),
+      bind: { riverMat: 'water.material' },
+      components: [component('bridge', bridge, 'meshBridgeClassic'), component('dango', charm, 'meshRiverCharmClassic')]
+    };
+  }
+
+  meshRiverClassic(layout) {
     const riverPts = RIVER_POINTS.map(p => p.clone());
     const curve = new THREE.CatmullRomCurve3(riverPts);
     this.riverCurve = curve;
@@ -1023,6 +1461,25 @@ export class Countryside {
     river.receiveShadow = true;
     this.scene.add(river);
 
+    this.placeComponent(layout.components[0], this.scene);
+    this.placeComponent(layout.components[1], this.scene);
+  }
+
+  /** One walk-up ramp of the bridge (sz = -1 north, 1 south): a sloped platform matching the visible ramp. */
+  bridgeRampPlatform(sz, rampLen, bridgeTop) {
+    return {
+      getHeightAt: (x, z, margin = 0) => {
+        if (x < -1 - 1.3 - margin || x > -1 + 1.3 + margin) return null;
+        const outward = sz * (z - 30.5) - 4.2;
+        if (outward < -margin || outward > rampLen + margin) return null;
+        return Math.max(0.03, bridgeTop * (1 - THREE.MathUtils.clamp(outward / rampLen, 0, 1)));
+      },
+      getNormalAt: () => new THREE.Vector3(0, 1, sz * bridgeTop / rampLen).normalize()
+    };
+  }
+
+  /** The Kiyomizu bridge over the river (a component of 'river'). */
+  meshBridgeClassic() {
     // Kyoto-style river bridge: flat walkable deck, wide railings usable
     // as ledge-walk surfaces, stone abutment colliders, and a hidden
     // golden dango charm secret tucked underneath.
@@ -1099,17 +1556,12 @@ export class Countryside {
     // directions, avoiding stair seams and making walking down reliable.
     const bridgeTop = deckY + 0.08;
     for (const sz of [-1, 1]) {
-      this.addPlatform({
-        getHeightAt: (x, z, margin = 0) => {
-          if (x < -1 - 1.3 - margin || x > -1 + 1.3 + margin) return null;
-          const outward = sz * (z - 30.5) - 4.2;
-          if (outward < -margin || outward > rampLen + margin) return null;
-          return Math.max(0.03, bridgeTop * (1 - THREE.MathUtils.clamp(outward / rampLen, 0, 1)));
-        },
-        getNormalAt: () => new THREE.Vector3(0, 1, sz * bridgeTop / rampLen).normalize()
-      });
+      this.addPlatform(this.bridgeRampPlatform(sz, rampLen, bridgeTop));
     }
+  }
 
+  /** The golden dango charm hidden under the bridge (a component of 'river'). */
+  meshRiverCharmClassic() {
     // Hidden secret under the bridge: a glowing golden dango charm
     const charm = new THREE.Mesh(
       new THREE.OctahedronGeometry(0.14),
@@ -1378,6 +1830,18 @@ export class Countryside {
   // --- Kyoto Edo Period Architecture Builders ---
 
   createKoushi(w, h, count = 8, mat = MAT.timberDark) {
+    const layout = this.layoutKoushi(w, h, count, mat);
+    return this.placeAsset('koushi', layout, () => this.meshKoushiClassic(layout));
+  }
+
+  /** Koushi lattice: returned to the caller, who places it (parent null). */
+  layoutKoushi(w, h, count = 8, mat = MAT.timberDark, id = 'koushi') {
+    return setParent({ index: this.nextIndex(id), w, h, count, mat: matKey(mat), footprint: footprint() }, null);
+  }
+
+  meshKoushiClassic(layout) {
+    const { w, h, count } = layout;
+    const mat = matOf(layout.mat);
     const group = new THREE.Group();
     group.name = 'Koushi Lattice';
     const frameThick = 0.04;
@@ -1419,6 +1883,16 @@ export class Countryside {
   }
 
   createKawaraRoof(w, d, ridgeH = 1.2, overhang = 0.6) {
+    const layout = this.layoutKawaraRoof(w, d, ridgeH, overhang);
+    return this.placeAsset('kawara-roof', layout, () => this.meshKawaraRoofClassic(layout));
+  }
+
+  /** Kawara roof: returned to the caller, who places it (parent null). */
+  layoutKawaraRoof(w, d, ridgeH = 1.2, overhang = 0.6) {
+    return setParent({ index: this.nextIndex('kawara-roof'), w, d, ridgeH, overhang, footprint: footprint() }, null);
+  }
+
+  meshKawaraRoofClassic({ w, d, ridgeH, overhang }) {
     const roof = new THREE.Group();
     roof.name = 'Kawara Roof';
     const halfD = d / 2 + overhang;
@@ -1515,6 +1989,16 @@ export class Countryside {
   }
 
   createEngawa(w, d, h = 0.38) {
+    const layout = this.layoutEngawa(w, d, h);
+    return this.placeAsset('engawa', layout, () => this.meshEngawaClassic(layout));
+  }
+
+  /** Engawa veranda: returned to the caller, who places it (parent null). */
+  layoutEngawa(w, d, h = 0.38) {
+    return setParent({ index: this.nextIndex('engawa'), w, d, h, footprint: footprint() }, null);
+  }
+
+  meshEngawaClassic({ w, d, h }) {
     const engawa = new THREE.Group();
     engawa.name = 'Engawa Veranda';
     // Raised wooden deck
@@ -1532,6 +2016,21 @@ export class Countryside {
   }
 
   createChochinLantern(x, y, z, parentGroup) {
+    const layout = setParent(this.layoutChochinLantern(x, y, z), parentGroup);
+    return this.placeAsset('chochin', layout, () => this.meshChochinLanternClassic(layout, parentGroup));
+  }
+
+  /** Chochin lantern hung at (x, y, z) inside a parent group; one draw: its sway phase. */
+  layoutChochinLantern(x, y, z) {
+    const phase = this.random() * Math.PI * 2;
+    return {
+      index: this.nextIndex('chochin'), name: 'Chochin Lantern', x, y, z, phase,
+      footprint: footprint({ lists: { lanterns: [{ group: part('.'), baseY: y, phase }] } })
+    };
+  }
+
+  meshChochinLanternClassic(layout, parentGroup) {
+    const { x, y, z } = layout;
     const lantern = new THREE.Group();
     lantern.name = 'Chochin Lantern';
     // Suspension cord
@@ -1551,11 +2050,44 @@ export class Countryside {
 
     lantern.position.set(x, y, z);
     parentGroup.add(lantern);
-    this.lanterns.push({ group: lantern, baseY: y, phase: this.random() * Math.PI * 2 });
+    this.lanterns.push({ group: lantern, baseY: y, phase: layout.phase });
     return lantern;
   }
 
   createClimbCrates(x, y, z, parentGroup, rotY = 0) {
+    parentGroup.updateWorldMatrix(true, false);
+    const layout = setParent(this.layoutClimbCrates(x, y, z, rotY, parentGroup.matrixWorld), parentGroup);
+    return this.placeAsset('crates', layout, () => this.meshClimbCratesClassic(layout, parentGroup));
+  }
+
+  /**
+   * Climb crates at (x, y, z, rotY) inside a parent whose world matrix is
+   * `parentMatrix` (the platforms are world boxes, so the parent must already
+   * be placed). The sake barrel is a component of its own.
+   */
+  layoutClimbCrates(x, y, z, rotY, parentMatrix) {
+    const frame = frameOf(parentMatrix, x, y, z, 0, rotY, 0);
+    // [w, h, d, x, y, z, platform top above y] for c1…c4, as built below
+    const crates = [
+      [0.9, 0.65, 0.9, -0.5, 0.325, 0, 0.70], [0.9, 0.65, 0.9, 0.5, 0.325, 0, 0.70],
+      [0.85, 0.65, 0.85, -0.45, 0.975, 0, 1.33], [0.75, 0.65, 0.75, -0.4, 1.625, -0.3, 1.98]
+    ];
+    const platforms = crates.map(([w, h, d, cx, cy, cz, top]) => {
+      const b = shapeBox(frameOf(frame, cx, cy, cz), 'BoxGeometry', w, h, d);
+      b.min.y = y + top - 0.75;
+      b.max.y = y + top;
+      return b.expandByScalar(-0.05);
+    });
+    const barrel = { index: this.nextIndex('sake-barrel'), x: 0.5, y: 0, z: 0.9, footprint: footprint() };
+    return {
+      index: this.nextIndex('crates'), name: 'Climb Crates', x, y, z, ry: rotY,
+      footprint: footprint({ platforms }),
+      components: [component('sake-barrel', barrel, 'meshSakeBarrelClassic', 'parent')]
+    };
+  }
+
+  meshClimbCratesClassic(layout, parentGroup) {
+    const { x, y, z, ry: rotY } = layout;
     const group = new THREE.Group();
     group.name = 'Climb Crates';
     // Bottom step: 2 heavy wooden crates + 1 sake barrel
@@ -1563,11 +2095,7 @@ export class Countryside {
     const c2 = box(0.9, 0.65, 0.9, MAT.timberDark, 0.5, 0.325, 0);
     group.add(c1, c2);
 
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.34, 0.75, 10), MAT.timberMedium);
-    barrel.position.set(0.5, 0.375, 0.9);
-    barrel.castShadow = true;
-    barrel.receiveShadow = true;
-    group.add(barrel);
+    this.placeComponent(layout.components[0], group);
 
     // Mid step: 1 crate atop bottom crate
     const c3 = box(0.85, 0.65, 0.85, MAT.timberLight, -0.45, 0.975, 0);
@@ -1600,39 +2128,78 @@ export class Countryside {
     registerWorldPlat(c4, y + 1.98);
   }
 
+  /** The sake barrel beside the bottom crates (a component of 'crates'). */
+  meshSakeBarrelClassic(layout, group) {
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.34, 0.75, 10), MAT.timberMedium);
+    barrel.position.set(0.5, 0.375, 0.9);
+    barrel.castShadow = true;
+    barrel.receiveShadow = true;
+    group.add(barrel);
+    return barrel;
+  }
+
+
   // --- 1. Merchant Tea House (Chaya) with Rooftop Bird Nest ---
   buildMachiyaTeaHouse(x, z, rotY) {
+    const layout = this.layoutMachiyaTeaHouse(x, z, rotY);
+    return this.placeAsset('tea-house', layout, () => this.meshMachiyaTeaHouseClassic(layout));
+  }
+
+  layoutMachiyaTeaHouse(x, z, rotY) {
+    const H = frameOf(null, x, 0, z, 0, rotY, 0);
+    const kit = (id, layout, mesh, attach, at) => component(id, Object.assign(layout, at), mesh, attach);
+    return {
+      index: this.nextIndex('tea-house'), name: 'Machiya Tea House (Chaya)', x, z, ry: rotY,
+      footprint: footprint({
+        platforms: [
+          { oriented: [{ minX: -3.5, maxX: -0.9, minZ: 2.8, maxZ: 4.2 }, 0.5] },      // tea bench
+          { oriented: [{ minX: -4.35, maxX: 4.35, minZ: 2.55, maxZ: 3.55 }, 2.65] },  // wraparound ledge
+          { oriented: [{ minX: -4.35, maxX: 4.35, minZ: -3.55, maxZ: -2.55 }, 2.65] },
+          { oriented: [{ minX: -4.35, maxX: -3.35, minZ: -2.65, maxZ: 2.65 }, 2.65] },
+          { oriented: [{ minX: 3.35, maxX: 4.35, minZ: -2.65, maxZ: 2.65 }, 2.65] },
+          { oriented: [{ minX: 0.35, maxX: 3.45, minZ: 2.2, maxZ: 3.25 }, 3.58] },     // tutorial roof lip
+          { sloped: [4.4, 7.4, 5.2, 1.5, 0.7] }
+        ],
+        colliders: [...buildingWallBoxes(H, 7.6, 5.4, 2.4, 0).boxes, ...buildingWallBoxes(H, 6.8, 4.6, 1.9, 2.55).boxes],
+        anchors: { nestPos: new THREE.Vector3().setFromMatrixPosition(frameOf(H, 0.15, 4.9, 2.72)) }
+      }),
+      // in the order the house places them
+      components: [
+        component('timber-frame', this.layoutTimberFrame(7.8, 5.6, 0.32, [-3.7, 3.7], [-2.6, 2.6]), 'meshTimberFrameClassic', 'parent'),
+        kit('koushi', this.layoutKoushi(2.0, 1.7, 9), 'meshKoushiClassic', 'caller', { x: -2.2, y: 1.3, z: 2.72 }),
+        kit('koushi', this.layoutKoushi(2.0, 1.7, 9), 'meshKoushiClassic', 'caller', { x: 2.2, y: 1.3, z: 2.72 }),
+        component('noren', this.layoutNoren(1.9, 0.75, 0.04, MAT.norenIndigo, 0, 2.0, 2.78), 'meshNorenClassic', 'parent'),
+        component('tea-bench', { index: this.nextIndex('tea-bench'), x: -2.2, z: 3.6, footprint: footprint() }, 'meshTeaBenchClassic', 'parent'),
+        kit('upper-windows', this.layoutKoushi(3.2, 1.1, 14, MAT.timberDark, 'upper-windows'), 'meshKoushiClassic', 'caller', { x: 0, y: 3.6, z: 2.32 }),
+        kit('kawara-roof', this.layoutKawaraRoof(7.4, 5.2, 1.5, 0.7), 'meshKawaraRoofClassic', 'caller', { y: 4.4 }),
+        component('chochin', this.layoutChochinLantern(-2.5, 2.4, 3.1), 'meshChochinLanternClassic', 'parent'),
+        component('chochin', this.layoutChochinLantern(2.5, 2.4, 3.1), 'meshChochinLanternClassic', 'parent'),
+        component('nest', this.layoutBirdNest(), 'meshBirdNestClassic', 'parent'),
+        component('crates', this.layoutClimbCrates(4.65, 0, 1.45, -Math.PI / 2, H), 'meshClimbCratesClassic', 'parent')
+      ]
+    };
+  }
+
+  meshMachiyaTeaHouseClassic(layout) {
+    const { x, z, ry: rotY } = layout;
+    const [frame, latticeL, latticeR, noren, bench, upperWindows, roof, lanternL, lanternR, nest, crates] = layout.components;
     const house = new THREE.Group();
     house.name = 'Machiya Tea House (Chaya)';
 
     // Ground Floor: 7.6m wide, 5.4m deep, 2.5m high
     const groundFloor = box(7.6, 2.4, 5.4, MAT.plasterWarm, 0, 1.2, 0);
     house.add(groundFloor);
-    // Dark timber foundation sill & corner pillars (Hashira)
-    house.add(box(7.8, 0.3, 5.6, MAT.timberDark, 0, 0.15, 0));
-    house.add(box(7.8, 0.2, 5.6, MAT.timberDark, 0, 2.4, 0));
-    for (const sx of [-1, 1]) {
-      for (const sz of [-1, 1]) {
-        house.add(box(0.32, 2.5, 0.32, MAT.timberDark, sx * 3.7, 1.25, sz * 2.6));
-      }
-    }
+    this.placeComponent(frame, house);
 
     // Front Facade: Lattice sliding panels (Koushi) & Indigo Noren
-    const frontLatticeL = this.createKoushi(2.0, 1.7, 9);
-    frontLatticeL.position.set(-2.2, 1.3, 2.72);
-    const frontLatticeR = this.createKoushi(2.0, 1.7, 9);
-    frontLatticeR.position.set(2.2, 1.3, 2.72);
-    house.add(frontLatticeL, frontLatticeR);
+    this.placeComponent(latticeL, house);
+    this.placeComponent(latticeR, house);
 
     // Traditional Tea House Doorway with warm Shoji backing
     house.add(box(1.8, 2.1, 0.08, MAT.shoji, 0, 1.15, 2.71));
-    const noren = box(1.9, 0.75, 0.04, MAT.norenIndigo, 0, 2.0, 2.78);
-    house.add(noren);
+    this.placeComponent(noren, house);
 
-    // Front Chamise Tea Bench with scarlet red felt cushion (Mosen)
-    const bench = box(2.2, 0.42, 0.9, MAT.cushionRed, -2.2, 0.21, 3.6);
-    house.add(bench);
-    house.add(box(2.25, 0.06, 0.95, MAT.timberDark, -2.2, 0.03, 3.6));
+    this.placeComponent(bench, house);
 
     // Mid-level Overhanging Eaves (Hisashi) between floors
     const lowerRoof = box(8.6, 0.16, 6.6, MAT.roofTile, 0, 2.55, 0.2);
@@ -1657,14 +2224,10 @@ export class Countryside {
       }
     }
     // Upper fine vertical lattice windows (Mushiko-mado)
-    const upperLatticeF = this.createKoushi(3.2, 1.1, 14, MAT.timberDark);
-    upperLatticeF.position.set(0, 3.6, 2.32);
-    house.add(upperLatticeF);
+    this.placeComponent(upperWindows, house);
 
     // Main Gable/Kawara Upper Roof (Climbable top)
-    const mainRoof = this.createKawaraRoof(7.4, 5.2, 1.5, 0.7);
-    mainRoof.position.y = 4.4;
-    house.add(mainRoof);
+    this.placeComponent(roof, house);
 
     // Tree-side lower kawara lip: visually part of the roof, but low and broad
     // enough for the tutorial jump from the wraparound ledge. From here the cat
@@ -1674,11 +2237,11 @@ export class Countryside {
     house.add(tutorialRoofLip);
 
     // Suspended Kyoto paper lanterns under front eaves
-    this.createChochinLantern(-2.5, 2.4, 3.1, house);
-    this.createChochinLantern(2.5, 2.4, 3.1, house);
+    this.placeComponent(lanternL, house);
+    this.placeComponent(lanternR, house);
 
     // Perched Bird's Nest on roof lower eave / gable corner
-    this.buildBirdNest(house, new THREE.Vector3(x, 0, z));
+    this.placeComponent(nest, house);
 
     house.position.set(x, 0, z);
     house.rotation.y = rotY;
@@ -1692,7 +2255,7 @@ export class Countryside {
     this.addSlopedRoofPlatforms(house, 4.4, 7.4, 5.2, 1.5, 0.7);
     // Side climbable crates allowing cat to climb to roof.
     // Must run AFTER the house is placed so platform boxes resolve in world space.
-    this.createClimbCrates(4.65, 0, 1.45, house, -Math.PI / 2);
+    this.placeComponent(crates, house);
     // Visible walls are the barriers: no extra collision padding outside them.
     this.addBuildingWallColliders(house, 7.6, 5.4, 2.4, 0);
     this.addBuildingWallColliders(house, 6.8, 4.6, 1.9, 2.55);
@@ -1701,39 +2264,87 @@ export class Countryside {
     this.nestMesh.getWorldPosition(this.nestPos);
   }
 
+  /** A machiya's sill, eave beam and hashira posts (w × d plan; posts at every postX × postZ). */
+  layoutTimberFrame(w, d, post, postX, postZ) {
+    return { index: this.nextIndex('timber-frame'), w, d, post, postX, postZ, footprint: footprint() };
+  }
+
+  meshTimberFrameClassic(layout, house) {
+    const { w, d, post } = layout;
+    // Dark timber foundation sill & corner pillars (Hashira)
+    house.add(box(w, 0.3, d, MAT.timberDark, 0, 0.15, 0));
+    house.add(box(w, 0.2, d, MAT.timberDark, 0, 2.4, 0));
+    for (const px of layout.postX) {
+      for (const pz of layout.postZ) {
+        house.add(box(post, 2.5, post, MAT.timberDark, px, 1.25, pz));
+      }
+    }
+  }
+
+  meshTeaBenchClassic(layout, house) {
+    // Front Chamise Tea Bench with scarlet red felt cushion (Mosen)
+    const bench = box(2.2, 0.42, 0.9, MAT.cushionRed, -2.2, 0.21, 3.6);
+    house.add(bench);
+    house.add(box(2.25, 0.06, 0.95, MAT.timberDark, -2.2, 0.03, 3.6));
+    return bench;
+  }
+
   // --- 2. Kyoto Craftsman Machiya with Engawa & Shishi-odoshi ---
   buildMachiyaResidence(x, z, rotY) {
+    const layout = this.layoutMachiyaResidence(x, z, rotY);
+    return this.placeAsset('residence', layout, () => this.meshMachiyaResidenceClassic(layout));
+  }
+
+  layoutMachiyaResidence(x, z, rotY) {
+    const H = frameOf(null, x, 0, z, 0, rotY, 0);
+    const kit = (id, layout, mesh, attach, at) => component(id, Object.assign(layout, at), mesh, attach);
+    return {
+      index: this.nextIndex('residence'), name: 'Machiya Residence', x, z, ry: rotY,
+      footprint: footprint({
+        platforms: [
+          // the engawa deck (world box), the lower eave ring, the roof slopes
+          new THREE.Box3(new THREE.Vector3(x - 4.4, 0, z + 2.2), new THREE.Vector3(x + 4.4, 0.55, z + 4.0)),
+          { oriented: [{ minX: -4.5, maxX: 4.5, minZ: -3.1, maxZ: 3.3 }, 2.53] },
+          { sloped: [4.2, 7.6, 4.8, 1.4, 0.7] }
+        ],
+        colliders: [...buildingWallBoxes(H, 8.0, 5.0, 2.4, 0).boxes, ...buildingWallBoxes(H, 7.0, 4.2, 1.8, 2.4).boxes]
+      }),
+      // in the order the house places them
+      components: [
+        component('timber-frame', this.layoutTimberFrame(8.2, 5.2, 0.28, [-3.8, 0, 3.8], [-2.4, 2.4]), 'meshTimberFrameClassic', 'parent'),
+        kit('koushi', this.layoutKoushi(2.4, 1.8, 11), 'meshKoushiClassic', 'caller', { x: -1.8, y: 1.2, z: 2.54 }),
+        kit('koushi', this.layoutKoushi(2.4, 1.8, 11), 'meshKoushiClassic', 'caller', { x: 1.8, y: 1.2, z: 2.54 }),
+        kit('engawa', this.layoutEngawa(8.2, 1.4, 0.42), 'meshEngawaClassic', 'caller', { z: 3.1 }),
+        kit('upper-windows', this.layoutKoushi(4.0, 1.0, 16, MAT.timberDark, 'upper-windows'), 'meshKoushiClassic', 'caller', { y: 3.4, z: 2.12 }),
+        kit('kawara-roof', this.layoutKawaraRoof(7.6, 4.8, 1.4, 0.7), 'meshKawaraRoofClassic', 'caller', { y: 4.2 }),
+        component('chochin', this.layoutChochinLantern(0, 2.3, 2.9), 'meshChochinLanternClassic', 'parent'),
+        component('shishi', this.layoutShishiOdoshi(2.8, 0, 4.4), 'meshShishiOdoshiClassic', 'parent'),
+        component('crates', this.layoutClimbCrates(-5.6, 0, 0, Math.PI / 2, H), 'meshClimbCratesClassic', 'parent')
+      ]
+    };
+  }
+
+  meshMachiyaResidenceClassic(layout) {
+    const { x, z, ry: rotY } = layout;
+    const [frame, koushiL, koushiR, engawa, upperLattice, roof, lantern, shishi, crates] = layout.components;
     const house = new THREE.Group();
     house.name = 'Machiya Residence';
 
     // Ground Floor: 8.0m wide, 5.0m deep
     const groundFloor = box(8.0, 2.4, 5.0, MAT.plasterWarm, 0, 1.2, 0);
     house.add(groundFloor);
-    house.add(box(8.2, 0.3, 5.2, MAT.timberDark, 0, 0.15, 0));
-    house.add(box(8.2, 0.2, 5.2, MAT.timberDark, 0, 2.4, 0));
-
-    // Corner and mid Hashira posts
-    for (const sx of [-1, 0, 1]) {
-      for (const sz of [-1, 1]) {
-        house.add(box(0.28, 2.5, 0.28, MAT.timberDark, sx * 3.8, 1.25, sz * 2.4));
-      }
-    }
+    // Sill, eave beam, corner and mid Hashira posts
+    this.placeComponent(frame, house);
 
     // Front Sliding Shoji Lattice Doors
     house.add(box(2.4, 1.8, 0.08, MAT.shoji, -1.8, 1.2, 2.52));
-    const koushiL = this.createKoushi(2.4, 1.8, 11);
-    koushiL.position.set(-1.8, 1.2, 2.54);
-    house.add(koushiL);
+    this.placeComponent(koushiL, house);
 
     house.add(box(2.4, 1.8, 0.08, MAT.shoji, 1.8, 1.2, 2.52));
-    const koushiR = this.createKoushi(2.4, 1.8, 11);
-    koushiR.position.set(1.8, 1.2, 2.54);
-    house.add(koushiR);
+    this.placeComponent(koushiR, house);
 
     // Front Engawa Veranda wrapping the garden side
-    const frontEngawa = this.createEngawa(8.2, 1.4, 0.42);
-    frontEngawa.position.set(0, 0, 3.1);
-    house.add(frontEngawa);
+    this.placeComponent(engawa, house);
     this.addPlatform(new THREE.Box3(
       new THREE.Vector3(x - 4.4, 0, z + 2.2),
       new THREE.Vector3(x + 4.4, 0.55, z + 4.0)
@@ -1742,23 +2353,19 @@ export class Countryside {
     // Upper Floor
     const upperFloor = box(7.0, 1.8, 4.2, MAT.plaster, 0, 3.3, 0);
     house.add(upperFloor);
-    const upperLattice = this.createKoushi(4.0, 1.0, 16);
-    upperLattice.position.set(0, 3.4, 2.12);
-    house.add(upperLattice);
+    this.placeComponent(upperLattice, house);
 
     // Lower eave & Main Roof
     const lowerRoof = box(9.0, 0.16, 6.2, MAT.roofTile, 0, 2.45, 0.2);
     house.add(lowerRoof);
 
-    const mainRoof = this.createKawaraRoof(7.6, 4.8, 1.4, 0.7);
-    mainRoof.position.y = 4.2;
-    house.add(mainRoof);
+    this.placeComponent(roof, house);
 
     // Chochin lantern
-    this.createChochinLantern(0, 2.3, 2.9, house);
+    this.placeComponent(lantern, house);
 
     // Interactive Shishi-odoshi (Bamboo clacker water fountain) in front garden
-    this.buildShishiOdoshi(2.8, 0, 4.4, house);
+    this.placeComponent(shishi, house);
 
     house.position.set(x, 0, z);
     house.rotation.y = rotY;
@@ -1767,13 +2374,101 @@ export class Countryside {
     this.addSlopedRoofPlatforms(house, 4.2, 7.6, 4.8, 1.4, 0.7);
     // Side climbing crates — placed AFTER scene attach so platform boxes
     // resolve in world space (rotated parent house group).
-    this.createClimbCrates(-5.6, 0, 0, house, Math.PI / 2);
+    this.placeComponent(crates, house);
     this.addBuildingWallColliders(house, 8.0, 5.0, 2.4, 0);
     this.addBuildingWallColliders(house, 7.0, 4.2, 1.8, 2.4);
   }
 
   // --- 3. Secret Locked Kyoto Machiya (Hisomu-an) with Interior ---
   buildSecretMachiya(x, z, rotY) {
+    const layout = this.layoutSecretMachiya(x, z, rotY);
+    return this.placeAsset('secret-house', layout, () => this.meshSecretMachiyaClassic(layout));
+  }
+
+  /**
+   * Hisomu-an. Its furnishings, door, roof, lanterns and noren are components
+   * (F2.4); the house registers the colliders of the walls, the table, the
+   * tansu and the door, so its footprint holds their world boxes: the union
+   * of every mesh of the table and of the door, as Box3.setFromObject takes it.
+   */
+  layoutSecretMachiya(x, z, rotY) {
+    const H = frameOf(null, x, 0, z, 0, rotY, 0);
+    // Outer shell: left, right, back, front-left and front-right walls
+    const walls = [[0.3, 2.6, 5.2, -3.8, 1.3, 0], [0.3, 2.6, 5.2, 3.8, 1.3, 0], [7.8, 2.6, 0.3, 0, 1.3, -2.5],
+      [2.7, 2.6, 0.3, -2.55, 1.3, 2.5], [2.7, 2.6, 0.3, 2.55, 1.3, 2.5]]
+      .map(([w, h, d, px, py, pz]) => shapeBox(frameOf(H, px, py, pz), 'BoxGeometry', w, h, d));
+    const T = frameOf(H, 0, 0, -0.4), F = frameOf(T, 0.2, 0.52, 0.1);
+    const tableBox = unionOf([
+      shapeBox(frameOf(T, 0, 0.42, 0), 'BoxGeometry', 1.5, 0.08, 1.1),
+      ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => shapeBox(frameOf(T, sx * 0.65, 0.19, sz * 0.45), 'BoxGeometry', 0.1, 0.38, 0.1))),
+      shapeBox(frameOf(T, -0.35, 0.53, -0.2), 'CylinderGeometry', 0.08, 0.11, 0.14, 8),
+      shapeBox(frameOf(T, -0.18, 0.49, -0.2), 'CylinderGeometry', 0.045, 0.035, 0.06, 8),
+      shapeBox(frameOf(T, 0.2, 0.47, 0.1), 'CylinderGeometry', 0.2, 0.18, 0.025, 12),
+      shapeBox(frameOf(F, 0, 0, 0, 0, 0, 0, 1.4, 0.45, 0.55), 'SphereGeometry', 0.12, 8, 6),
+      shapeBox(frameOf(F, -0.2, 0, 0, 0, 0, Math.PI / 2), 'ConeGeometry', 0.08, 0.14, 4)
+    ]);
+    const tansuBox = shapeBox(frameOf(H, 2.6, 0.55, 0.6), 'BoxGeometry', 1.3, 1.1, 0.65);
+    const D = frameOf(H, 0, 0, 2.52), P = frameOf(D);
+    const doorBox = unionOf([
+      shapeBox(frameOf(D, 0, 1.05, 0), 'BoxGeometry', 2.35, 2.05, 0.08),
+      ...koushiBoxes(frameOf(D, 0, 0, 0.05), 2.35, 2.05, 11),
+      shapeBox(frameOf(P, 0, 1.05, 0.1), 'BoxGeometry', 0.24, 0.3, 0.06),
+      shapeBox(frameOf(P, 0, 1.2, 0.1), 'TorusGeometry', 0.09, 0.025, 6, 12, Math.PI)
+    ]);
+    // The shoji transition's door point, spawn point and heading
+    const doorWorld = new THREE.Vector3().setFromMatrixPosition(D);
+    const outDir = new THREE.Vector3(Math.sin(rotY), 0, Math.cos(rotY));
+
+    const table = {
+      index: this.nextIndex('secret-table'), name: 'Chabudai Table', z: -0.4, footprint: footprint(),
+      components: [component('secret-fish', {
+        index: this.nextIndex('secret-fish'), name: 'Grilled Fish Treat', x: 0.2, y: 0.52, z: 0.1,
+        footprint: footprint(), bind: { fishMesh: '.' }
+      }, 'meshSecretFishClassic', 'parent')]
+    };
+    const door = {
+      index: this.nextIndex('secret-door'), name: 'Secret Sliding Door', z: 2.52, footprint: footprint(), bind: { secretDoorMesh: '.' },
+      components: [
+        component('koushi', Object.assign(this.layoutKoushi(2.35, 2.05, 11), { z: 0.05 }), 'meshKoushiClassic', 'caller'),
+        component('lock-plate', {
+          index: this.nextIndex('lock-plate'), name: 'Brass Lock Plate', footprint: footprint(), bind: { lockPlate: '.' }
+        }, 'meshLockPlateClassic', 'parent')
+      ]
+    };
+    return {
+      index: this.nextIndex('secret-house'), name: 'Secret Machiya (Hisomu-an)', x, z, ry: rotY,
+      footprint: footprint({
+        platforms: [
+          // the low table, then the roof slopes
+          new THREE.Box3(new THREE.Vector3(x - 1.0, 0, z - 1.2), new THREE.Vector3(x + 1.0, 0.55, z + 0.4)),
+          { sloped: [2.45, 7.6, 4.8, 1.4, 0.7] }
+        ],
+        colliders: [...walls, tableBox, tansuBox, doorBox],
+        anchors: {
+          doorCollider: doorBox,
+          secretDoorWorldPos: doorWorld.clone(),
+          secretDoorSpawnPos: doorWorld.clone().addScaledVector(outDir, 2.5),
+          secretDoorOutHeading: Math.atan2(outDir.x, outDir.z)
+        }
+      }),
+      // in the order the house places them
+      components: [
+        component('secret-tatami', { index: this.nextIndex('secret-tatami'), name: 'Tatami Floor', footprint: footprint() }, 'meshSecretTatamiClassic', 'parent'),
+        component('secret-table', table, 'meshSecretTableClassic', 'parent'),
+        component('secret-bed', { index: this.nextIndex('secret-bed'), x: -1.8, y: 0.07, z: -0.8, footprint: footprint() }, 'meshSecretBedClassic', 'parent'),
+        component('secret-andon', { index: this.nextIndex('secret-andon'), name: 'Andon Lantern', x: 2.4, z: -1.6, footprint: footprint() }, 'meshSecretAndonClassic', 'parent'),
+        component('secret-door', door, 'meshSecretDoorClassic', 'parent'),
+        component('kawara-roof', Object.assign(this.layoutKawaraRoof(7.6, 4.8, 1.4, 0.7), { y: 2.45 }), 'meshKawaraRoofClassic', 'caller'),
+        component('chochin', this.layoutChochinLantern(-1.8, 2.45, 3.1), 'meshChochinLanternClassic', 'parent'),
+        component('chochin', this.layoutChochinLantern(1.8, 2.45, 3.1), 'meshChochinLanternClassic', 'parent'),
+        component('noren', this.layoutNoren(2.4, 0.55, 0.04, MAT.norenCrimson, 0, 2.2, 2.65), 'meshNorenClassic', 'parent')
+      ]
+    };
+  }
+
+  meshSecretMachiyaClassic(layout) {
+    const { x, z, ry: rotY } = layout;
+    const [tatami, tableC, bed, andonC, door, roof, lanternL, lanternR, noren] = layout.components;
     const house = new THREE.Group();
     house.name = 'Secret Machiya (Hisomu-an)';
 
@@ -1791,6 +2486,79 @@ export class Countryside {
 
     // --- INTERIOR DESIGN (Ghibli Cozy Tatami Room) ---
     // 1. Tatami Mat Floor (6-mat pattern)
+    this.placeComponent(tatami, house);
+
+    // 2. Low Table (Kotatsu / Chabudai) with ceramic tea set & Grilled Fish Cat Treat
+    const table = this.placeComponent(tableC, house);
+    this.addPlatform(new THREE.Box3(
+      new THREE.Vector3(x - 1.0, 0, z - 1.2),
+      new THREE.Vector3(x + 1.0, 0.55, z + 0.4)
+    ));
+
+    // 3. Cozy Velvet Cat Bed (Zabuton Nap Spot)
+    this.placeComponent(bed, house);
+
+    // 4. Traditional Wall Hanging Scroll (Kakejiku) with cat motif
+    const scroll = box(1.0, 1.8, 0.04, MAT.norenHemp, 0, 1.5, -2.32);
+    const scrollArt = box(0.65, 1.1, 0.05, MAT.timberDark, 0, 1.5, -2.31);
+    const scrollRoller = box(1.15, 0.06, 0.06, MAT.timberDark, 0, 0.58, -2.3);
+    house.add(scroll, scrollArt, scrollRoller);
+
+    // 5. Paper Andon Floor Lantern (glowing warm interior lamp)
+    this.placeComponent(andonC, house);
+
+    // 6. Antique Chest (Tansu)
+    const tansu = box(1.3, 1.1, 0.65, MAT.timberDark, 2.6, 0.55, 0.6);
+    house.add(tansu);
+
+    // --- FRONT SLIDING DOOR & ANTIQUE LOCK ---
+    const doorFrame = box(2.6, 2.2, 0.15, MAT.timberDark, 0, 1.1, 2.5);
+    house.add(doorFrame);
+
+    const slidingDoor = this.placeComponent(door, house);
+
+    // Roof & Eaves
+    this.placeComponent(roof, house);
+
+    // Front Hanging Chochin Lanterns
+    this.placeComponent(lanternL, house);
+    this.placeComponent(lanternR, house);
+
+    // Noren above doorway
+    this.placeComponent(noren, house);
+
+    house.position.set(x, 0, z);
+    house.rotation.y = rotY;
+    this.scene.add(house);
+    this.addSlopedRoofPlatforms(house, 2.45, 7.6, 4.8, 1.4, 0.7);
+
+    // Outer colliders (leaves doorway passable when opened)
+    this.addCollider(wallL, 0);
+    this.addCollider(wallR, 0);
+    this.addCollider(wallB, 0);
+    this.addCollider(wallFL, 0);
+    this.addCollider(wallFR, 0);
+    // (a table or door holding kit meshes registers the classic box from the layout)
+    this.addComponentCollider(table, 0, layout.footprint.colliders[5]);
+    this.addCollider(tansu, 0);
+
+    // Door collider — computed from actual world-space mesh bounds after
+    // house rotation so the solid wall is correctly positioned.
+    this.addComponentCollider(slidingDoor, 0, layout.footprint.colliders[7]);
+    this.doorCollider = this.colliders[this.colliders.length - 1];
+
+    // Store actual door world position and outward spawn point for the
+    // shoji transition (context_actions + InteriorManager use these).
+    const doorWorld = new THREE.Vector3();
+    slidingDoor.getWorldPosition(doorWorld);
+    this.secretDoorWorldPos = doorWorld.clone();
+    const outDir = new THREE.Vector3(Math.sin(rotY), 0, Math.cos(rotY));
+    this.secretDoorSpawnPos = doorWorld.clone().addScaledVector(outDir, 2.5);
+    this.secretDoorOutHeading = Math.atan2(outDir.x, outDir.z);
+  }
+
+  /** 1. Tatami Mat Floor (6-mat pattern), a component of 'secret-house'. */
+  meshSecretTatamiClassic(layout, house) {
     const tatamiFloor = new THREE.Group();
     tatamiFloor.name = 'Tatami Floor';
     const matW = 1.15, matL = 2.3, matH = 0.08;
@@ -1807,8 +2575,11 @@ export class Countryside {
       tatamiFloor.add(matMesh, borderMesh);
     }
     house.add(tatamiFloor);
+    return tatamiFloor;
+  }
 
-    // 2. Low Table (Kotatsu / Chabudai) with ceramic tea set & Grilled Fish Cat Treat
+  /** 2. Low Table (Chabudai) with its tea set; the fish is a component. */
+  meshSecretTableClassic(layout, house) {
     const table = new THREE.Group();
     table.name = 'Chabudai Table';
     table.add(box(1.5, 0.08, 1.1, MAT.timberEngawa, 0, 0.42, 0));
@@ -1830,6 +2601,15 @@ export class Countryside {
     plate.position.set(0.2, 0.47, 0.1);
     table.add(plate);
 
+    this.placeComponent(layout.components[0], table);
+
+    table.position.set(0, 0, -0.4);
+    house.add(table);
+    return table;
+  }
+
+  /** The grilled fish treat on the table plate (a component of 'secret-table'). */
+  meshSecretFishClassic(layout, table) {
     const fish = new THREE.Group();
     fish.name = 'Grilled Fish Treat';
     const fishBody = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), MAT.grilledFish);
@@ -1842,15 +2622,11 @@ export class Countryside {
     fish.position.set(0.2, 0.52, 0.1);
     table.add(fish);
     this.fishMesh = fish;
+    return fish;
+  }
 
-    table.position.set(0, 0, -0.4);
-    house.add(table);
-    this.addPlatform(new THREE.Box3(
-      new THREE.Vector3(x - 1.0, 0, z - 1.2),
-      new THREE.Vector3(x + 1.0, 0.55, z + 0.4)
-    ));
-
-    // 3. Cozy Velvet Cat Bed (Zabuton Nap Spot)
+  /** 3. Cozy Velvet Cat Bed (Zabuton Nap Spot), a component of 'secret-house'. */
+  meshSecretBedClassic(layout, house) {
     const cushion = box(0.75, 0.14, 0.75, MAT.cushionRed, -1.8, 0.07, -0.8);
     cushion.castShadow = true;
     house.add(cushion);
@@ -1860,14 +2636,11 @@ export class Countryside {
         cushion.add(box(0.05, 0.03, 0.05, MAT.goldAntique, sx * 0.35, 0, sz * 0.35));
       }
     }
+    return cushion;
+  }
 
-    // 4. Traditional Wall Hanging Scroll (Kakejiku) with cat motif
-    const scroll = box(1.0, 1.8, 0.04, MAT.norenHemp, 0, 1.5, -2.32);
-    const scrollArt = box(0.65, 1.1, 0.05, MAT.timberDark, 0, 1.5, -2.31);
-    const scrollRoller = box(1.15, 0.06, 0.06, MAT.timberDark, 0, 0.58, -2.3);
-    house.add(scroll, scrollArt, scrollRoller);
-
-    // 5. Paper Andon Floor Lantern (glowing warm interior lamp)
+  /** 5. Paper Andon Floor Lantern, a component of 'secret-house'. */
+  meshSecretAndonClassic(layout, house) {
     const andon = new THREE.Group();
     andon.name = 'Andon Lantern';
     andon.add(box(0.4, 0.05, 0.4, MAT.timberDark, 0, 0.025, 0));
@@ -1875,23 +2648,28 @@ export class Countryside {
     andon.add(box(0.38, 0.04, 0.38, MAT.timberDark, 0, 0.7, 0));
     andon.position.set(2.4, 0, -1.6);
     house.add(andon);
+    return andon;
+  }
 
-    // 6. Antique Chest (Tansu)
-    const tansu = box(1.3, 1.1, 0.65, MAT.timberDark, 2.6, 0.55, 0.6);
-    house.add(tansu);
-
-    // --- FRONT SLIDING DOOR & ANTIQUE LOCK ---
-    const doorFrame = box(2.6, 2.2, 0.15, MAT.timberDark, 0, 1.1, 2.5);
-    house.add(doorFrame);
-
+  /** The front sliding door: shoji, koushi (component) and the brass lock (component). */
+  meshSecretDoorClassic(layout, house) {
+    const [lattice, lock] = layout.components;
     const slidingDoor = new THREE.Group();
     slidingDoor.name = 'Secret Sliding Door';
     slidingDoor.add(box(2.35, 2.05, 0.08, MAT.shoji, 0, 1.05, 0));
-    const doorLattice = this.createKoushi(2.35, 2.05, 11);
-    doorLattice.position.z = 0.05;
-    slidingDoor.add(doorLattice);
+    this.placeComponent(lattice, slidingDoor);
 
     // Antique Brass Padlock Emblem on the door handle
+    this.placeComponent(lock, slidingDoor);
+
+    slidingDoor.position.set(0, 0, 2.52);
+    house.add(slidingDoor);
+    this.secretDoorMesh = slidingDoor;
+    return slidingDoor;
+  }
+
+  /** The brass lock plate on the sliding door (a component of 'secret-door'). */
+  meshLockPlateClassic(layout, slidingDoor) {
     this.lockPlate = new THREE.Group();
     this.lockPlate.name = 'Brass Lock Plate';
     this.lockPlate.add(box(0.24, 0.3, 0.06, MAT.goldAntique, 0, 1.05, 0.1));
@@ -1899,55 +2677,49 @@ export class Countryside {
     shackle.position.set(0, 1.2, 0.1);
     this.lockPlate.add(shackle);
     slidingDoor.add(this.lockPlate);
+    return this.lockPlate;
+  }
 
-    slidingDoor.position.set(0, 0, 2.52);
-    house.add(slidingDoor);
-    this.secretDoorMesh = slidingDoor;
+  /** A noren cloth, one box centred at (x, y, z) in its parent. */
+  layoutNoren(w, h, d, mat, x, y, z) {
+    return { index: this.nextIndex('noren'), w, h, d, mat: matKey(mat), x, y, z, footprint: footprint() };
+  }
 
-    // Roof & Eaves
-    const mainRoof = this.createKawaraRoof(7.6, 4.8, 1.4, 0.7);
-    mainRoof.position.y = 2.45;
-    house.add(mainRoof);
-
-    // Front Hanging Chochin Lanterns
-    this.createChochinLantern(-1.8, 2.45, 3.1, house);
-    this.createChochinLantern(1.8, 2.45, 3.1, house);
-
-    // Noren above doorway
-    const secretNoren = box(2.4, 0.55, 0.04, MAT.norenCrimson, 0, 2.2, 2.65);
-    house.add(secretNoren);
-
-    house.position.set(x, 0, z);
-    house.rotation.y = rotY;
-    this.scene.add(house);
-    this.addSlopedRoofPlatforms(house, 2.45, 7.6, 4.8, 1.4, 0.7);
-
-    // Outer colliders (leaves doorway passable when opened)
-    this.addCollider(wallL, 0);
-    this.addCollider(wallR, 0);
-    this.addCollider(wallB, 0);
-    this.addCollider(wallFL, 0);
-    this.addCollider(wallFR, 0);
-    this.addCollider(table, 0);
-    this.addCollider(tansu, 0);
-
-    // Door collider — computed from actual world-space mesh bounds after
-    // house rotation so the solid wall is correctly positioned.
-    this.addCollider(slidingDoor, 0);
-    this.doorCollider = this.colliders[this.colliders.length - 1];
-
-    // Store actual door world position and outward spawn point for the
-    // shoji transition (context_actions + InteriorManager use these).
-    const doorWorld = new THREE.Vector3();
-    slidingDoor.getWorldPosition(doorWorld);
-    this.secretDoorWorldPos = doorWorld.clone();
-    const outDir = new THREE.Vector3(Math.sin(rotY), 0, Math.cos(rotY));
-    this.secretDoorSpawnPos = doorWorld.clone().addScaledVector(outDir, 2.5);
-    this.secretDoorOutHeading = Math.atan2(outDir.x, outDir.z);
+  meshNorenClassic(layout, parent) {
+    const noren = box(layout.w, layout.h, layout.d, matOf(layout.mat), layout.x, layout.y, layout.z);
+    parent.add(noren);
+    return noren;
   }
 
   // --- 4. Interactive Bird Nest on Machiya Rooftop ---
   buildBirdNest(houseGroup, worldPos) {
+    const layout = setParent(this.layoutBirdNest(), houseGroup);
+    return this.placeAsset('nest', layout, () => this.meshBirdNestClassic(layout, houseGroup));
+  }
+
+  /**
+   * The rooftop nest, at its spot on the tea house's tree-side roof edge
+   * (house-local). The eggs and the Guardian's Feather are components; the
+   * eggs' tilt is three Math.random() draws (not the valley stream).
+   */
+  layoutBirdNest() {
+    const tilts = [0, 1, 2].map(() => (Math.random() - 0.5) * 0.4);
+    const eggs = { index: this.nextIndex('nest-eggs'), tilts, footprint: footprint() };
+    const feather = {
+      index: this.nextIndex('guardian-feather'), name: "Guardian's Feather", x: 0, y: 0.12, z: 0, rx: 0.3, rz: 0.4,
+      footprint: footprint(), bind: { nestFeatherMesh: '.' }
+    };
+    return {
+      index: this.nextIndex('nest'), name: "Rooftop Bird's Nest", x: 0.15, y: 4.9, z: 2.72,
+      footprint: footprint(), bind: { nestMesh: '.' },
+      components: [
+        component('nest-eggs', eggs, 'meshNestEggsClassic', 'parent'),
+        component('guardian-feather', feather, 'meshGuardianFeatherClassic', 'parent')
+      ]
+    };
+  }
+
+  meshBirdNestClassic(layout, houseGroup) {
     const nestGroup = new THREE.Group();
     nestGroup.name = "Rooftop Bird's Nest";
 
@@ -1960,17 +2732,31 @@ export class Countryside {
     nestBottom.position.y = -0.05;
     nestGroup.add(nestBottom);
 
-    // 3 Speckled blue bird eggs
+    this.placeComponent(layout.components[0], nestGroup);
+    this.placeComponent(layout.components[1], nestGroup);
+
+    // Tree-facing roof edge: visible from the wraparound ledge and reachable
+    // with one friendly jump from the eave onto the actual sloped tiles.
+    nestGroup.position.set(0.15, 4.9, 2.72);
+    houseGroup.add(nestGroup);
+    this.nestMesh = nestGroup;
+    return nestGroup;
+  }
+
+  /** 3 Speckled blue bird eggs (a component of 'nest'). */
+  meshNestEggsClassic(layout, nestGroup) {
     for (let i = 0; i < 3; i++) {
       const a = (i / 3) * Math.PI * 2;
       const egg = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), MAT.birdEgg);
       egg.scale.set(1, 1.35, 1);
       egg.position.set(Math.cos(a) * 0.14, 0.04, Math.sin(a) * 0.14);
-      egg.rotation.z = (Math.random() - 0.5) * 0.4;
+      egg.rotation.z = layout.tilts[i];
       nestGroup.add(egg);
     }
+  }
 
-    // Glowing Golden "Guardian's Feather" Trophy in the nest
+  /** Glowing Golden "Guardian's Feather" Trophy in the nest (a component of 'nest'). */
+  meshGuardianFeatherClassic(layout, nestGroup) {
     const feather = new THREE.Group();
     feather.name = "Guardian's Feather";
     const featherQuill = box(0.015, 0.35, 0.01, MAT.featherGold, 0, 0, 0);
@@ -1981,16 +2767,25 @@ export class Countryside {
     feather.position.set(0, 0.12, 0);
     nestGroup.add(feather);
     this.nestFeatherMesh = feather;
-
-    // Tree-facing roof edge: visible from the wraparound ledge and reachable
-    // with one friendly jump from the eave onto the actual sloped tiles.
-    nestGroup.position.set(0.15, 4.9, 2.72);
-    houseGroup.add(nestGroup);
-    this.nestMesh = nestGroup;
+    return feather;
   }
+
 
   // --- 5. Antique Golden Key Collectible ---
   buildSecretKey(x, y, z) {
+    const layout = this.layoutSecretKey(x, y, z);
+    return this.placeAsset('key', layout, () => this.meshSecretKeyClassic(layout));
+  }
+
+  layoutSecretKey(x, y, z) {
+    return {
+      index: this.nextIndex('key'), name: 'Secret Key', x, y, z,
+      footprint: footprint({ anchors: { secretKeyPos: new THREE.Vector3(x, y, z) } }),
+      bind: { secretKeyMesh: part('.', { userData: { isSecretKey: true, id: 999 } }) }
+    };
+  }
+
+  meshSecretKeyClassic({ x, y, z }) {
     const keyGroup = new THREE.Group();
 
     // Antique Japanese Key (Key ring, stem, bit teeth)
@@ -2020,6 +2815,23 @@ export class Countryside {
   }
 
   buildKeyHidingRock(x, z) {
+    const layout = this.layoutKeyHidingRock(x, z);
+    return this.placeAsset('key-rock', layout, () => this.meshKeyHidingRockClassic(layout));
+  }
+
+  layoutKeyHidingRock(x, z) {
+    // companion stones' yaw: one draw each
+    const stoneYaw = [0, 1].map(() => this.random() * Math.PI);
+    // collider: the main rock (dodecahedron 0.78/1, scaled, tilted), padded 0.08
+    const main = shapeBox(frameOf(frameOf(null, x, 0, z), 0, 0.58, 0, 0.12, 0.38, -0.08, 1.35, 1.0, 0.9), 'DodecahedronGeometry', 0.78, 1);
+    return {
+      index: this.nextIndex('key-rock'), name: 'Key Hiding Rock', x, z, stoneYaw,
+      footprint: footprint({ colliders: [main.expandByScalar(0.08)] })
+    };
+  }
+
+  meshKeyHidingRockClassic(layout) {
+    const { x, z } = layout;
     const rockGroup = new THREE.Group();
     rockGroup.name = 'Key Hiding Rock';
     const rockGeo = new THREE.DodecahedronGeometry(0.78, 1);
@@ -2031,12 +2843,12 @@ export class Countryside {
 
     // Small companion stones ground the cover rock and make the hiding place
     // read as a deliberate field-side rock cluster rather than a lone prop.
-    for (const [ox, oz, s] of [[-0.68, 0.28, 0.3], [0.55, 0.35, 0.24]]) {
+    [[-0.68, 0.28, 0.3], [0.55, 0.35, 0.24]].forEach(([ox, oz, s], k) => {
       const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 0), MAT.stone);
       stone.position.set(ox, s * 0.55, oz);
-      stone.rotation.set(0.18, this.random() * Math.PI, 0.1);
+      stone.rotation.set(0.18, layout.stoneYaw[k], 0.1);
       rockGroup.add(stone);
-    }
+    });
 
     rockGroup.position.set(x, 0, z);
     rockGroup.traverse((mesh) => {
@@ -2052,6 +2864,16 @@ export class Countryside {
 
   // --- 6. Interactive Shishi-Odoshi (Bamboo Clacker) ---
   buildShishiOdoshi(x, y, z, parentGroup) {
+    const layout = setParent(this.layoutShishiOdoshi(x, y, z), parentGroup);
+    return this.placeAsset('shishi', layout, () => this.meshShishiOdoshiClassic(layout, parentGroup));
+  }
+
+  /** The bamboo clacker at (x, y, z) in its parent; gameplay rocks its 'rocker' part. */
+  layoutShishiOdoshi(x, y, z) {
+    return { index: this.nextIndex('shishi'), name: 'Shishi-Odoshi', x, y, z, footprint: footprint(), bind: { shishiRocker: 'rocker' } };
+  }
+
+  meshShishiOdoshiClassic({ x, y, z }, parentGroup) {
     const shishi = new THREE.Group();
     shishi.name = 'Shishi-Odoshi';
 
@@ -2117,16 +2939,61 @@ export class Countryside {
       { x: -6.0, z: -14, r: Math.PI / 2 + 0.1 },
       { x: 5.8, z: -19, r: -Math.PI / 2 + 0.14 }
     ];
-    for (const s of spots) this.buildVillageHouse(s.x, s.z, s.r, s.x < 0 ? 'left' : 'right');
+    const layout = this.layoutVillageStreet(spots);
+    return this.placeAsset('village-street', layout, () => this.meshVillageStreetClassic(layout));
+  }
+
+  /** The street's eight townhouses, laid out in order (each draws its own choices). */
+  layoutVillageStreet(spots) {
+    return {
+      index: this.nextIndex('village-street'), footprint: footprint(),
+      components: spots.map((s) => component('street-house', this.layoutVillageHouse(s.x, s.z, s.r, s.x < 0 ? 'left' : 'right'), 'meshVillageHouseClassic'))
+    };
+  }
+
+  meshVillageStreetClassic(layout) {
+    for (const house of layout.components) this.placeComponent(house, this.scene);
   }
 
   buildVillageHouse(x, z, rot, side = null) {
+    const layout = this.layoutVillageHouse(x, z, rot, side);
+    return this.placeAsset('street-house', layout, () => this.meshVillageHouseClassic(layout));
+  }
+
+  /** A street townhouse; draws: wall plaster, width, depth, noren, lantern (and its phase). */
+  layoutVillageHouse(x, z, rot, side = null) {
     this._villageHouseCount = (this._villageHouseCount || 0) + 1;
-    const house = new THREE.Group();
-    house.name = `Machiya House ${side === 'left' ? 'W' : 'E'}${this._villageHouseCount}`;
-    const wallMat = this.random() > 0.5 ? MAT.plasterWarm : MAT.plaster;
+    const name = `Machiya House ${side === 'left' ? 'W' : 'E'}${this._villageHouseCount}`;
+    const wallMat = this.random() > 0.5 ? 'plasterWarm' : 'plaster';
     const w = 4.4 + this.random() * 1.2;   // width along street
     const d = 3.2 + this.random() * 0.6;   // depth
+    const H = frameOf(null, x, 0, z, 0, rot, 0);
+    const kit = (id, layout, mesh, attach, at) => component(id, Object.assign(layout, at), mesh, attach);
+    const components = [
+      component('namako', { index: this.nextIndex('namako'), w, d, footprint: footprint() }, 'meshNamakoClassic', 'parent'),
+      kit('koushi', this.layoutKoushi(1.7, 1.7, 8), 'meshKoushiClassic', 'caller', { x: 0, y: 1.1, z: d / 2 + 0.07 })
+    ];
+    const norenMats = [MAT.norenIndigo, MAT.norenCrimson, MAT.norenHemp];
+    components.push(component('noren', this.layoutNoren(1.6, 0.45, 0.04, norenMats[(this.random() * norenMats.length) | 0], 0, 1.85, d / 2 + 0.09), 'meshNorenClassic', 'parent'));
+    components.push(kit('kawara-roof', this.layoutKawaraRoof(w + 0.6, d + 0.4, 0.95, 0.5), 'meshKawaraRoofClassic', 'caller', { y: 2.1 }));
+    // Warm chochin lantern beside the door (not every house)
+    if (this.random() > 0.4) components.push(component('chochin', this.layoutChochinLantern(w * 0.32, 2.0, d / 2 + 0.3), 'meshChochinLanternClassic', 'parent'));
+    const walls = buildingWallBoxes(H, w, d, 2.1, 0);
+    const lists = {};
+    if (side === 'left' || side === 'right') lists['villageHouseColliders.' + side] = [walls.aggregate];
+    return {
+      index: this.nextIndex('street-house'), name, x, z, ry: rot, side, wallMat, w, d,
+      footprint: footprint({ colliders: walls.boxes, lists, platforms: [{ sloped: [2.1, w + 0.6, d + 0.4, 0.95, 0.5] }] }),
+      components
+    };
+  }
+
+  meshVillageHouseClassic(layout) {
+    const { x, z, ry: rot, side, w, d } = layout;
+    const [namako, lattice, noren, roof, lantern] = layout.components;
+    const house = new THREE.Group();
+    house.name = layout.name;
+    const wallMat = matOf(layout.wallMat);
 
     // Base volume + dark sill
     const base = box(w, 2.1, d, wallMat, 0, 1.05, 0);
@@ -2140,16 +3007,7 @@ export class Countryside {
       }
     }
 
-    // Namako-kabe skirt (slate tiles in white joints) up the lower wall — on
-    // the sides and back in full, and either side of the door on the facade.
-    const skirtH = 0.92, skirtY = 0.26 + skirtH / 2;
-    const skirtOut = 0.022;
-    house.add(box(w - 0.5, skirtH, 0.04, MAT.namako, 0, skirtY, -(d / 2 + skirtOut)));
-    for (const sx of [-1, 1]) {
-      house.add(box(0.04, skirtH, d - 0.5, MAT.namako, sx * (w / 2 + skirtOut), skirtY, 0));
-      const fw = (w - 0.5) / 2 - 0.85;
-      if (fw > 0.2) house.add(box(fw, skirtH, 0.04, MAT.namako, sx * (0.85 + fw / 2), skirtY, d / 2 + skirtOut));
-    }
+    this.placeComponent(namako, house);
     // Eave beam and a pair of wall studs break up the flat plaster above it
     house.add(box(w + 0.12, 0.1, d + 0.12, MAT.timberDark, 0, 2.03, 0));
     house.add(box(w + 0.1, 0.07, 0.06, MAT.timberDark, 0, 1.2, d / 2 + 0.025));
@@ -2159,23 +3017,17 @@ export class Countryside {
 
     // Street-facing facade: shoji panel + koushi lattice + tiny noren
     house.add(box(1.5, 1.6, 0.07, MAT.shojiOff, 0, 1.05, d / 2 + 0.03));
-    const lattice = this.createKoushi(1.7, 1.7, 8);
-    lattice.position.set(0, 1.1, d / 2 + 0.07);
-    house.add(lattice);
-    const norenMats = [MAT.norenIndigo, MAT.norenCrimson, MAT.norenHemp];
-    const noren = box(1.6, 0.45, 0.04, norenMats[(this.random() * norenMats.length) | 0], 0, 1.85, d / 2 + 0.09);
-    house.add(noren);
+    this.placeComponent(lattice, house);
+    this.placeComponent(noren, house);
 
     // Low front engawa step
     house.add(box(w * 0.8, 0.16, 0.7, MAT.timberEngawa, 0, 0.08, d / 2 + 0.35));
 
     // Tiled roof with gentle ridge
-    const roof = this.createKawaraRoof(w + 0.6, d + 0.4, 0.95, 0.5);
-    roof.position.y = 2.1;
-    house.add(roof);
+    this.placeComponent(roof, house);
 
     // Warm chochin lantern beside the door
-    if (this.random() > 0.4) this.createChochinLantern(w * 0.32, 2.0, d / 2 + 0.3, house);
+    if (lantern) this.placeComponent(lantern, house);
 
     house.position.set(x, 0, z);
     house.rotation.y = rot;
@@ -2189,16 +3041,73 @@ export class Countryside {
     this.addSlopedRoofPlatforms(house, 2.1, w + 0.6, d + 0.4, 0.95, 0.5);
   }
 
+  /** Namako-kabe skirt walls of a w × d townhouse (a component of 'street-house'). */
+  meshNamakoClassic(layout, house) {
+    const { w, d } = layout;
+    // Namako-kabe skirt (slate tiles in white joints) up the lower wall — on
+    // the sides and back in full, and either side of the door on the facade.
+    const skirtH = 0.92, skirtY = 0.26 + skirtH / 2;
+    const skirtOut = 0.022;
+    house.add(box(w - 0.5, skirtH, 0.04, MAT.namako, 0, skirtY, -(d / 2 + skirtOut)));
+    for (const sx of [-1, 1]) {
+      house.add(box(0.04, skirtH, d - 0.5, MAT.namako, sx * (w / 2 + skirtOut), skirtY, 0));
+      const fw = (w - 0.5) / 2 - 0.85;
+      if (fw > 0.2) house.add(box(fw, skirtH, 0.04, MAT.namako, sx * (0.85 + fw / 2), skirtY, d / 2 + skirtOut));
+    }
+  }
+
+
   /**
    * Street shrubs: thick multi-domed bushes painted with small leaves whose
    * outlines break up into leaf edges. They rustle when the cat brushes
    * through (the foliage shader reads the shared player position).
    */
   buildStreetBushes() {
+    const layout = this.layoutStreetBushes();
+    return this.placeAsset('street-bushes', layout, () => this.meshStreetBushesClassic(layout));
+  }
+
+  /** Up to 90 shrubs along both kerbs; per bush: keep?, x, size, z jitter, x/z stretch, yaw; then tint, lightness. */
+  layoutStreetBushes() {
+    const count = 90;
+    const bushes = [];
+    let bi = 0;
+    for (let z = 30; z > -27 && bi < count; z -= 3.2) {
+      for (const side of [-1, 1]) {
+        if (this.random() < 0.28 || bi >= count) continue;
+        const x = side * (2.6 + this.random() * 1.3);
+        const s = 0.35 + this.random() * 0.55;
+        const position = [x, s * 0.5, z + (this.random() - 0.5) * 1.6];
+        const scale = [s * (1 + this.random() * 0.5), s * 0.75, s * (1 + this.random() * 0.5)];
+        bushes.push({ position, scale, ry: this.random() * Math.PI, spot: [x, z, s] });
+        bi++;
+      }
+    }
+    // Random per-bush tint via instance colors
     const bushTints = [0x5c9040, 0x6c9e4a, 0x7cac56, 0x52833a];
+    for (const b of bushes) {
+      b.tint = bushTints[(this.random() * bushTints.length) | 0];
+      b.light = (this.random() - 0.5) * 0.06;
+    }
+    const spots = bushes.map((b) => b.spot);
+    return {
+      index: this.nextIndex('street-bushes'), name: 'Street Bushes', count, bushes,
+      footprint: footprint({
+        colliders: spots.map(([bx_, bz_, bs_]) => new THREE.Box3(
+          new THREE.Vector3(bx_ - bs_ * 0.55, 0, bz_ - bs_ * 0.55),
+          new THREE.Vector3(bx_ + bs_ * 0.55, Math.max(0.8, bs_), bz_ + bs_ * 0.55)
+        )),
+        // the rustle centres the bush shader reads
+        lists: { bushColliderSpots: spots }
+      }),
+      bind: { bushMat: 'bushes.material' }
+    };
+  }
+
+  meshStreetBushesClassic(layout) {
     const bushGeo = bushGeometry(9, { lobes: 8, detail: 2, lump: 0.34 });
     const dummy = new THREE.Object3D();
-    const count = 90;
+    const count = layout.count;
     const swayMat = createFoliageMaterial({
       sss: 0.3, wind: 0.9, rustle: 1.0, mottle: 0.2, bump: 0.45, vertexColors: true,
       massMap: leafMassTexture('leaf'), massScale: 1 / 0.55, ragged: 1
@@ -2207,18 +3116,13 @@ export class Countryside {
     this.bushMat = swayMat;
     this.bushColliderSpots = [];
     let bi = 0;
-    for (let z = 30; z > -27 && bi < count; z -= 3.2) {
-      for (const side of [-1, 1]) {
-        if (this.random() < 0.28 || bi >= count) continue;
-        const x = side * (2.6 + this.random() * 1.3);
-        const s = 0.35 + this.random() * 0.55;
-        dummy.position.set(x, s * 0.5, z + (this.random() - 0.5) * 1.6);
-        dummy.scale.set(s * (1 + this.random() * 0.5), s * 0.75, s * (1 + this.random() * 0.5));
-        dummy.rotation.y = this.random() * Math.PI;
-        dummy.updateMatrix();
-        bushes.setMatrixAt(bi++, dummy.matrix);
-        this.bushColliderSpots.push([x, z, s]);
-      }
+    for (const b of layout.bushes) {
+      dummy.position.set(...b.position);
+      dummy.scale.set(...b.scale);
+      dummy.rotation.y = b.ry;
+      dummy.updateMatrix();
+      bushes.setMatrixAt(bi++, dummy.matrix);
+      this.bushColliderSpots.push(b.spot);
     }
     for (const [bx_, bz_, bs_] of this.bushColliderSpots) {
       this.colliders.push(new THREE.Box3(
@@ -2231,7 +3135,7 @@ export class Countryside {
     // Random per-bush tint via instance colors
     const col = new THREE.Color();
     for (let i = 0; i < bi; i++) {
-      bushes.setColorAt(i, col.setHex(bushTints[(this.random() * bushTints.length) | 0]).offsetHSL(0, 0, (this.random() - 0.5) * 0.06));
+      bushes.setColorAt(i, col.setHex(layout.bushes[i].tint).offsetHSL(0, 0, layout.bushes[i].light));
     }
     if (bushes.instanceColor) bushes.instanceColor.needsUpdate = true;
     bushes.castShadow = true;
@@ -2242,29 +3146,28 @@ export class Countryside {
 
   // --- Street greenery: bushes, moss, bamboo fences & toro stone lanterns ---
   buildStreetGreenery() {
-    this.buildStreetBushes();
-    const dummy = new THREE.Object3D();
+    const layout = this.layoutStreetGreenery();
+    return this.placeAsset('roadside-moss', layout, () => this.meshStreetGreeneryClassic(layout));
+  }
 
-    // Moss / grass patches hugging the road edges
-    const mossMat = new THREE.MeshStandardMaterial({ color: 0x48682f, roughness: 1 });
-    const mossGeo = new THREE.CircleGeometry(1, 8);
-    const moss = new THREE.InstancedMesh(mossGeo, mossMat, 70);
-    let mi = 0;
-    for (let z = 32; z > -29 && mi < 70; z -= 2.6) {
+  /**
+   * The roadside moss is this builder's own mesh; the street bushes, the
+   * takegaki runs between neighbouring townhouses and the toro lanterns are
+   * components, laid out in the classic order (bushes, moss, fences, toro).
+   */
+  layoutStreetGreenery() {
+    const components = [component('street-bushes', this.layoutStreetBushes(), 'meshStreetBushesClassic')];
+
+    // Moss / grass patches hugging the road edges: keep?, x, z jitter, x/z size, yaw
+    const patches = [];
+    for (let z = 32; z > -29 && patches.length < 70; z -= 2.6) {
       for (const side of [-1, 1]) {
-        if (this.random() < 0.3 || mi >= 70) continue;
-        dummy.position.set(side * (1.9 + this.random() * 0.7), 0.045, z + (this.random() - 0.5) * 1.2);
-        dummy.scale.set(0.4 + this.random() * 0.7, 1, 0.3 + this.random() * 0.6);
-        dummy.rotation.set(-Math.PI / 2, 0, this.random() * Math.PI);
-        dummy.updateMatrix();
-        moss.setMatrixAt(mi++, dummy.matrix);
+        if (this.random() < 0.3 || patches.length >= 70) continue;
+        const position = [side * (1.9 + this.random() * 0.7), 0.045, z + (this.random() - 0.5) * 1.2];
+        const scale = [0.4 + this.random() * 0.7, 1, 0.3 + this.random() * 0.6];
+        patches.push({ position, scale, rz: this.random() * Math.PI });
       }
     }
-    moss.count = mi;
-    moss.instanceMatrix.needsUpdate = true;
-    moss.receiveShadow = true;
-    moss.name = 'Roadside Moss';
-    this.scene.add(moss);
 
     // Continuous takegaki runs bridge the exact world-space gaps between
     // neighboring townhouses. Each fence overlaps both building colliders so
@@ -2287,12 +3190,12 @@ export class Countryside {
         // Choose the street-facing edge of the houses' shared X footprint, so
         // the fence physically enters both building colliders at its ends.
         const x = sideName === 'left' ? sharedMaxX - 0.12 : sharedMinX + 0.12;
-        this.buildBambooFence(x, z, Math.PI / 2, {
+        components.push(component('bamboo-fence', this.layoutBambooFence(x, z, Math.PI / 2, {
           length,
           rotationJitter: false,
           role: 'village-gap',
           connects: [northHouse, southHouse]
-        });
+        }), 'meshBambooFenceClassic'));
       }
     }
 
@@ -2300,16 +3203,81 @@ export class Countryside {
     const toroZ = [22, 14, 4, -2, -11, -21];
     toroZ.forEach((z, i) => {
       const side = i % 2 === 0 ? -1 : 1;
-      this.buildToroLantern(side * 2.5, z);
+      components.push(component('toro', this.layoutToroLantern(side * 2.5, z), 'meshToroLanternClassic'));
     });
+    return { index: this.nextIndex('roadside-moss'), name: 'Roadside Moss', patches, footprint: footprint(), components };
+  }
+
+  meshStreetGreeneryClassic(layout) {
+    const [bushes, ...rest] = layout.components;
+    this.placeComponent(bushes, this.scene);
+    const dummy = new THREE.Object3D();
+
+    // Moss / grass patches hugging the road edges
+    const mossMat = new THREE.MeshStandardMaterial({ color: 0x48682f, roughness: 1 });
+    const mossGeo = new THREE.CircleGeometry(1, 8);
+    const moss = new THREE.InstancedMesh(mossGeo, mossMat, 70);
+    let mi = 0;
+    for (const patch of layout.patches) {
+      dummy.position.set(...patch.position);
+      dummy.scale.set(...patch.scale);
+      dummy.rotation.set(-Math.PI / 2, 0, patch.rz);
+      dummy.updateMatrix();
+      moss.setMatrixAt(mi++, dummy.matrix);
+    }
+    moss.count = mi;
+    moss.instanceMatrix.needsUpdate = true;
+    moss.receiveShadow = true;
+    moss.name = 'Roadside Moss';
+    this.scene.add(moss);
+
+    // The takegaki runs, then the toro lanterns
+    for (const c of rest) this.placeComponent(c, this.scene);
   }
 
   buildBambooFence(x, z, rot, options = {}) {
-    const fence = new THREE.Group();
-    fence.name = `Takegaki Fence ${this.bambooFences ? this.bambooFences.length + 1 : 1}`;
+    const layout = this.layoutBambooFence(x, z, rot, options);
+    return this.placeAsset('bamboo-fence', layout, () => this.meshBambooFenceClassic(layout));
+  }
+
+  /**
+   * A takegaki run; draws: its length (unless given), its yaw jitter (unless
+   * off), then one tilt per slat. The collider is the whole fence's world box
+   * (rails and slats, as setFromObject takes it), squared off to the ground.
+   */
+  layoutBambooFence(x, z, rot, options = {}) {
+    this._fenceCount = (this._fenceCount || 0) + 1;
     const len = options.length || (2.6 + this.random() * 1.6);
     const fenceHeight = options.height || 1.35;
     const rotationJitter = options.rotationJitter === false ? 0 : (this.random() - 0.5) * 0.2;
+    const n = Math.floor(len / 0.16);
+    const tilts = [];
+    for (let i = 0; i <= n; i++) tilts.push((this.random() - 0.5) * 0.06);
+    const F = frameOf(null, x, 0, z, 0, rot + rotationJitter, 0);
+    const collider = unionOf([
+      ...[0.32, 0.82].map((ry) => shapeBox(frameOf(F, 0, ry, 0, 0, 0, Math.PI / 2), 'CylinderGeometry', 0.045, 0.045, len, 6)),
+      ...tilts.map((tilt, i) => shapeBox(frameOf(F, -len / 2 + i * (len / n), fenceHeight / 2, 0, tilt), 'CylinderGeometry', 0.032, 0.032, fenceHeight, 5))
+    ]);
+    collider.min.y = 0;
+    collider.max.y = options.colliderHeight || 1.4;
+    collider.expandByVector(new THREE.Vector3(0.08, 0, 0.12));
+    return {
+      index: this.nextIndex('bamboo-fence'), name: `Takegaki Fence ${this._fenceCount}`,
+      x, z, ry: rot + rotationJitter, len, fenceHeight, tilts, colliderHeight: options.colliderHeight,
+      role: options.role || 'decorative',
+      footprint: footprint({
+        colliders: [collider],
+        platforms: [{ oriented: [{ minX: -len / 2 - 0.08, maxX: len / 2 + 0.08, minZ: -0.18, maxZ: 0.18 }, collider.max.y + 0.05, { requiredAbility: 'fenceWalk' }] }],
+        lists: { bambooFences: [{ mesh: part('.'), collider, role: options.role || 'decorative', connects: options.connects || [] }] }
+      })
+    };
+  }
+
+  meshBambooFenceClassic(layout) {
+    const { x, z, len, fenceHeight } = layout;
+    const options = { role: layout.role, colliderHeight: layout.colliderHeight, connects: layout.footprint.lists.bambooFences[0].connects };
+    const fence = new THREE.Group();
+    fence.name = layout.name;
     for (const ry of [0.32, 0.82]) {
       const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, len, 6), MAT.bambooGreen);
       rail.rotation.z = Math.PI / 2;
@@ -2321,11 +3289,11 @@ export class Countryside {
       const sx = -len / 2 + i * (len / n);
       const slat = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, fenceHeight, 5), MAT.timberMedium);
       slat.position.set(sx, fenceHeight / 2, 0);
-      slat.rotation.x = (this.random() - 0.5) * 0.06;
+      slat.rotation.x = layout.tilts[i];
       fence.add(slat);
     }
     fence.position.set(x, 0, z);
-    fence.rotation.y = rot + rotationJitter;
+    fence.rotation.y = layout.ry;
     fence.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     this.scene.add(fence);
     // A continuous, slightly thick barrier prevents tunnelling through the
@@ -2349,15 +3317,64 @@ export class Countryside {
   }
 
   buildBambooCorral(x, z) {
+    const layout = this.layoutBambooCorral(x, z);
+    return this.placeAsset('corral', layout, () => this.meshBambooCorralClassic(layout));
+  }
+
+  /**
+   * Larry's corral: the vegetation clearing is the corral's own footprint;
+   * its four fences, the warning sign, the Jade Paw and Larry are components.
+   */
+  layoutBambooCorral(x, z) {
     const width = 7.2;
     const depth = 6.2;
+    const fence = (fx, fz, rot, length) => component('bamboo-fence', this.layoutBambooFence(fx, fz, rot, { length, rotationJitter: false }), 'meshBambooFenceClassic');
+    const userData = { id: 91, isCollectible: true, isCorralReward: true, velocity: new THREE.Vector3(), batted: false };
+    return {
+      index: this.nextIndex('corral'), x, z, width, depth,
+      footprint: footprint({ exclusions: [{ x, z, width: width + 2, depth: depth + 2 }] }),
+      components: [
+        fence(x, z - depth / 2, 0, width), fence(x, z + depth / 2, 0, width),
+        fence(x - width / 2, z, Math.PI / 2, depth), fence(x + width / 2, z, Math.PI / 2, depth),
+        component('corral-sign', { index: this.nextIndex('corral-sign'), name: 'Corral Warning Sign', x, z: z - depth / 2 - 0.35, footprint: footprint() }, 'meshCorralSignClassic'),
+        component('jade-paw', {
+          index: this.nextIndex('jade-paw'), name: 'Jade Paw Reward', x, y: 0.42, z,
+          footprint: footprint({ lists: { collectibles: [part('.', { userData, visible: false })] } }),
+          bind: { corralRewardMesh: part('.', { userData, visible: false }) }
+        }, 'meshJadePawClassic'),
+        component('larry', {
+          index: this.nextIndex('larry'), name: 'Turtle Guardian (Larry)', x, z,
+          footprint: footprint({
+            anchors: {
+              corralGuardian: {
+                name: 'Larry',
+                mesh: part('.'),
+                home: new THREE.Vector3(x, 0, z),
+                // Keep enough clearance that a full contact push cannot place the cat
+                // inside or through a fence at the edge of the chase area.
+                bounds: { minX: x - width / 2 + 1.35, maxX: x + width / 2 - 1.35, minZ: z - depth / 2 + 1.35, maxZ: z + depth / 2 - 1.35 },
+                alerted: false,
+                hasBeenAlerted: false,
+                alertTimer: 0,
+                speed: 1.05,
+                radius: 0.72
+              }
+            }
+          })
+        }, 'meshLarryClassic')
+      ]
+    };
+  }
+
+  meshBambooCorralClassic(layout) {
+    const { x, z, width, depth } = layout;
     this.vegetationExclusions.push({ x, z, width: width + 2, depth: depth + 2 });
 
-    this.buildBambooFence(x, z - depth / 2, 0, { length: width, rotationJitter: false });
-    this.buildBambooFence(x, z + depth / 2, 0, { length: width, rotationJitter: false });
-    this.buildBambooFence(x - width / 2, z, Math.PI / 2, { length: depth, rotationJitter: false });
-    this.buildBambooFence(x + width / 2, z, Math.PI / 2, { length: depth, rotationJitter: false });
+    for (const c of layout.components) this.placeComponent(c, this.scene);
+  }
 
+  /** The corral's warning sign (a component of 'corral'). */
+  meshCorralSignClassic(layout) {
     const marker = new THREE.Group();
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 1.7, 7), MAT.timberDark);
     post.position.y = 0.85;
@@ -2386,11 +3403,15 @@ export class Countryside {
     signFace.position.set(0, 1.3, -0.056);
     signFace.rotation.y = Math.PI;
     marker.add(signFace);
-    marker.position.set(x, 0, z - depth / 2 - 0.35);
+    marker.position.set(layout.x, 0, layout.z); // in front of the corral's north fence
     marker.name = 'Corral Warning Sign';
     marker.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     this.scene.add(marker);
+    return marker;
+  }
 
+  /** The Jade Paw reward inside the corral (a component of 'corral'). */
+  meshJadePawClassic({ x, z }) {
     const rewardMat = new THREE.MeshStandardMaterial({
       color: 0x76c7a1,
       emissive: 0x245c48,
@@ -2414,7 +3435,13 @@ export class Countryside {
     this.scene.add(reward);
     this.collectibles.push(reward);
     this.corralRewardMesh = reward;
+    return reward;
+  }
 
+  /** Larry, the turtle guardian: the body only (his patrol stays in updateCorralGuardian). */
+  meshLarryClassic(layout) {
+    const { x, z } = layout;
+    const width = 7.2, depth = 6.2;
     const turtle = new THREE.Group();
     turtle.name = 'Turtle Guardian (Larry)';
     const shellMat = new THREE.MeshStandardMaterial({ color: 0x5f7e42, roughness: 0.78, flatShading: true });
@@ -2453,6 +3480,7 @@ export class Countryside {
       speed: 1.05,
       radius: 0.72
     };
+    return turtle;
   }
 
   updateCorralGuardian(dt, player, challengeActive = false) {
@@ -2532,9 +3560,31 @@ export class Countryside {
   }
 
   buildToroLantern(x, z) {
-    const t = new THREE.Group();
+    const layout = this.layoutToroLantern(x, z);
+    return this.placeAsset('toro', layout, () => this.meshToroLanternClassic(layout));
+  }
+
+  layoutToroLantern(x, z) {
     this._toroCount = (this._toroCount || 0) + 1;
-    t.name = `Toro Lantern ${this._toroCount}`;
+    const lists = { toroSpots: [new THREE.Vector3(x, 0.95, z)] };
+    if (this.lanternHaloTex) lists.lanternHalos = [part('halo.material')];
+    return {
+      index: this.nextIndex('toro'), name: `Toro Lantern ${this._toroCount}`, x, z,
+      footprint: footprint({
+        lists,
+        // Perchable lantern cap — first hop of the street rooftop parkour route
+        platforms: [new THREE.Box3(
+          new THREE.Vector3(x - 0.34, 0.8, z - 0.34),
+          new THREE.Vector3(x + 0.34, 1.31, z + 0.34)
+        )]
+      })
+    };
+  }
+
+  meshToroLanternClassic(layout) {
+    const { x, z } = layout;
+    const t = new THREE.Group();
+    t.name = layout.name;
     const base = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.34, 0.18, 8), MAT.stoneDark);
     base.position.y = 0.09;
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.62, 7), MAT.stone);
@@ -2575,6 +3625,25 @@ export class Countryside {
    * weather a faint foundation ring is all that remains.
    */
   buildMistAltar(x, z) {
+    const layout = this.layoutMistAltar(x, z);
+    return this.placeAsset('mist-altar', layout, () => this.meshMistAltarClassic(layout));
+  }
+
+  layoutMistAltar(x, z) {
+    return {
+      index: this.nextIndex('mist-altar'), name: 'Mist Altar', x, z,
+      footprint: footprint({
+        anchors: {
+          mistAltarPos: new THREE.Vector3(x, 0, z), mistAltarTouched: false,
+          // the fading materials: stone (plinth and slab), bell, spirit flame
+          _altarFadeMats: [part('plinth.material'), part('bell.material'), part('flame.material')]
+        }
+      }),
+      bind: { mistAltar: '.' }
+    };
+  }
+
+  meshMistAltarClassic({ x, z }) {
     const altar = new THREE.Group();
     altar.name = 'Mist Altar';
 
@@ -2633,6 +3702,19 @@ export class Countryside {
 
   /** Furin wind chime hanging from the tea house eave. */
   buildWindChime(x, y, z) {
+    const layout = this.layoutWindChime(x, y, z);
+    return this.placeAsset('wind-chime', layout, () => this.meshWindChimeClassic(layout));
+  }
+
+  layoutWindChime(x, y, z) {
+    return {
+      index: this.nextIndex('wind-chime'), name: 'Wind Chime', x, y, z,
+      footprint: footprint({ anchors: { chimePos: new THREE.Vector3(x, y - 0.6, z), chimeSway: 0 } }),
+      bind: { windChime: '.', chimeClapperMat: 'clapper.material' }
+    };
+  }
+
+  meshWindChimeClassic({ x, y, z }) {
     const chime = new THREE.Group();
     chime.name = 'Wind Chime';
 
@@ -2677,34 +3759,75 @@ export class Countryside {
       [-24, 0.45, -15],   // open field by the key rock
       [-29, 0.45, 12]     // corral fence corner
     ];
+    const layout = this.layoutOfferingBells(spots);
     this.offeringBells = [];
-    for (let i = 0; i < spots.length; i++) {
-      const [x, y, z] = spots[i];
-      const bell = new THREE.Group();
-      bell.name = `Offering Bell ${i + 1}`;
-      const mat = new THREE.MeshStandardMaterial({
-        color: 0xc9a86a, metalness: 0.8, roughness: 0.35,
-        emissive: 0x6a5426, emissiveIntensity: 0.5
-      });
-      const dome = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 8, 0, Math.PI * 2, 0, Math.PI / 1.7), mat);
-      dome.position.y = 0.06;
-      bell.add(dome);
-      const clapper = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.12, 5), mat);
-      clapper.position.y = -0.02;
-      bell.add(clapper);
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.012, 6, 14), mat);
-      ring.position.y = 0.13;
-      bell.add(ring);
-      bell.position.set(x, y, z);
-      bell.rotation.y = Math.random() * Math.PI;
-      this.scene.add(bell);
-      bell.userData = { id: 100 + i, isOfferingBell: true };
-      this.collectibles.push(bell);
-      this.offeringBells.push(bell);
-    }
+    for (const bell of layout.bells) this.placeAsset('offering-bells', bell, () => this.meshOfferingBellClassic(bell));
+  }
+
+  layoutOfferingBells(spots) {
+    return {
+      bells: spots.map(([x, y, z], i) => {
+        const userData = { id: 100 + i, isOfferingBell: true };
+        return {
+          index: this.nextIndex('offering-bells'), name: `Offering Bell ${i + 1}`, x, y, z,
+          ry: Math.random() * Math.PI, // the bell's yaw (Math.random, not the valley stream)
+          id: 100 + i,
+          footprint: footprint({ lists: { collectibles: [part('.', { userData })], offeringBells: [part('.', { userData })] } })
+        };
+      })
+    };
+  }
+
+  meshOfferingBellClassic(layout) {
+    const { x, y, z } = layout;
+    const i = layout.id - 100;
+    const bell = new THREE.Group();
+    bell.name = layout.name;
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xc9a86a, metalness: 0.8, roughness: 0.35,
+      emissive: 0x6a5426, emissiveIntensity: 0.5
+    });
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 8, 0, Math.PI * 2, 0, Math.PI / 1.7), mat);
+    dome.position.y = 0.06;
+    bell.add(dome);
+    const clapper = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.12, 5), mat);
+    clapper.position.y = -0.02;
+    bell.add(clapper);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.012, 6, 14), mat);
+    ring.position.y = 0.13;
+    bell.add(ring);
+    bell.position.set(x, y, z);
+    bell.rotation.y = layout.ry;
+    this.scene.add(bell);
+    bell.userData = { id: 100 + i, isOfferingBell: true };
+    this.collectibles.push(bell);
+    this.offeringBells.push(bell);
   }
 
   buildTorii(x, z) {
+    const layout = this.layoutTorii(x, z);
+    return this.placeAsset('torii', layout, () => this.meshToriiClassic(layout));
+  }
+
+  layoutTorii(x, z) {
+    const colliders = [-1, 1].map((s) => new THREE.Box3(
+      new THREE.Vector3(x + s * 1.8 - 0.3, 0, z - 0.3),
+      new THREE.Vector3(x + s * 1.8 + 0.3, 4.6, z + 0.3)
+    ));
+    // Late-game climbing route (City Legend rank): the three joinery pegs,
+    // then the nuki and kasagi tops
+    const platforms = [[-1.8, 1.35], [-1.8, 2.55], [1.8, 3.65]].map(([sx, sy]) => ({
+      oriented: [{ minX: sx - 0.36, maxX: sx + 0.36, minZ: -0.36, maxZ: 0.36 }, sy + 0.08, { requiredRank: 4 }]
+    }));
+    platforms.push({ oriented: [{ minX: -2.8, maxX: 2.8, minZ: -0.24, maxZ: 0.24 }, 4.91, { requiredRank: 4 }] });
+    platforms.push({ oriented: [{ minX: -3.1, maxX: 3.1, minZ: -0.28, maxZ: 0.28 }, 5.29, { requiredRank: 4 }] });
+    return {
+      index: this.nextIndex('torii'), name: 'Torii Gate', x, z,
+      footprint: footprint({ colliders, platforms, anchors: { toriiTopPos: new THREE.Vector3(x, 5.29, z) } })
+    };
+  }
+
+  meshToriiClassic({ x, z }) {
     const torii = new THREE.Group();
     torii.name = 'Torii Gate';
     const pillarGeo = new THREE.CylinderGeometry(0.22, 0.28, 4.6, 14);
@@ -2759,6 +3882,30 @@ export class Countryside {
   }
 
   buildShrine(x, z) {
+    const layout = this.layoutShrine(x, z);
+    return this.placeAsset('shrine-hall', layout, () => this.meshShrineClassic(layout));
+  }
+
+  /** The hongu; its roof, shimenawa, bell and offering box are components. */
+  layoutShrine(x, z) {
+    // collider: the sanctuary hall, padded 0.4
+    const hall = shapeBox(frameOf(frameOf(null, x, 0, z), 0, 1.75, 0), 'BoxGeometry', 2.2, 1.8, 1.8);
+    const piece = (id, mesh, at) => component(id, { index: this.nextIndex(id), ...at, footprint: footprint() }, mesh, 'parent');
+    return {
+      index: this.nextIndex('shrine-hall'), name: 'Shrine (Hongu)', x, z,
+      footprint: footprint({ colliders: [hall.expandByScalar(0.4)] }),
+      components: [
+        component('kawara-roof', Object.assign(this.layoutKawaraRoof(2.9, 2.35, 1.12, 0.78), { y: 2.62 }), 'meshKawaraRoofClassic', 'caller'),
+        piece('shimenawa', 'meshShimenawaClassic', { y: 2.42, z: 0.96 }),
+        piece('shrine-bell', 'meshShrineBellClassic', { y: 2.05, z: 0.96 }),
+        piece('offering-box', 'meshOfferingBoxClassic', { y: 0.7, z: 0.95 })
+      ]
+    };
+  }
+
+  meshShrineClassic(layout) {
+    const { x, z } = layout;
+    const [roof, rope, bell, saisen] = layout.components;
     const shrine = new THREE.Group();
     shrine.name = 'Shrine (Hongu)';
     // Stepped stone foundation (Dan)
@@ -2775,9 +3922,7 @@ export class Countryside {
     // Deep-eaved kawara gable roof. This replaces the two disconnected slabs
     // with a proper shrine silhouette: eaves, tiled slopes, gable end caps,
     // raised ridge, chigi cross-beams, and katsuogi ridge logs.
-    const roof = this.createKawaraRoof(2.9, 2.35, 1.12, 0.78);
-    roof.position.y = 2.62;
-    shrine.add(roof);
+    this.placeComponent(roof, shrine);
 
     // Dark wooden eave fascia makes the roof feel structurally supported.
     shrine.add(box(4.45, 0.16, 0.14, MAT.timberDark, 0, 2.7, 1.93));
@@ -2797,12 +3942,29 @@ export class Countryside {
       shrine.add(katsuogi);
     }
 
+    this.placeComponent(rope, shrine);
+
+    this.placeComponent(bell, shrine);
+
+    this.placeComponent(saisen, shrine);
+
+    shrine.position.set(x, 0, z);
+    this.scene.add(shrine);
+    this.addCollider(hall, 0.4);
+  }
+
+  /** The shimenawa rope across the hall front (a component of 'shrine-hall'). */
+  meshShimenawaClassic(layout, shrine) {
     // Sacred Shimenawa Straw Rope with paper Shide zigzags
     const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.8, 8), new THREE.MeshStandardMaterial({ color: 0xd6c085, roughness: 1 }));
     rope.rotation.z = Math.PI / 2;
     rope.position.set(0, 2.42, 0.96);
     shrine.add(rope);
+    return rope;
+  }
 
+  /** The suzu bell and its cords (a component of 'shrine-hall'). */
+  meshShrineBellClassic(layout, shrine) {
     // Sacred Buddha / Shrine Spiritual Bell (Suzu / Bonsho) with warm sublime bronze warmth
     const bellGroup = new THREE.Group();
     bellGroup.position.set(0, 2.05, 0.96);
@@ -2818,44 +3980,88 @@ export class Countryside {
     cord.position.set(0, -0.42, 0);
     bellGroup.add(cord);
     shrine.add(bellGroup);
+    return bellGroup;
+  }
 
+  /** The saisen-bako (a component of 'shrine-hall'). */
+  meshOfferingBoxClassic(layout, shrine) {
     // Saisen-bako wooden offering box
     const saisen = box(0.8, 0.45, 0.5, MAT.timberDark, 0, 0.925, 0.95);
     shrine.add(saisen);
-
-    shrine.position.set(x, 0, z);
-    this.scene.add(shrine);
-    this.addCollider(hall, 0.4);
+    return saisen;
   }
 
   buildLanterns() {
+    const layout = this.layoutLanterns();
+    for (const lamp of layout.lamps) this.placeAsset('street-lamps', lamp, () => this.meshStreetLampClassic(lamp));
+  }
+
+  layoutLanterns() {
     const spots = [
       [-2.6, -18], [2.6, -18], [-2.8, -26], [2.8, -26],
       [-3, -4], [3.2, 2], [-2.8, 14]
     ];
     let lampIdx = 0;
-    for (const [x, z] of spots) {
-      const l = new THREE.Group();
-      l.name = `Street Lamp ${++lampIdx}`;
-      l.add(box(0.5, 0.25, 0.5, MAT.stone, 0, 0.125, 0));
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 0.9, 8), MAT.stone);
-      post.position.y = 0.7;
-      post.castShadow = true;
-      l.add(post);
-      l.add(box(0.44, 0.14, 0.44, MAT.stone, 0, 1.22, 0));
-      l.add(box(0.3, 0.3, 0.3, MAT.lanternGlow, 0, 1.45, 0));
-      const cap = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.3, 4), MAT.stoneDark);
-      cap.position.y = 1.75;
-      cap.rotation.y = Math.PI / 4;
-      cap.castShadow = true;
-      l.add(cap);
-      l.position.set(x, 0, z);
-      this.scene.add(l);
-      this.addCollider(l.children[1], 0.15);
-    }
+    return {
+      lamps: spots.map(([x, z]) => {
+        // collider: the stone post (children[1]), padded 0.15
+        const post = shapeBox(frameOf(frameOf(null, x, 0, z), 0, 0.7, 0), 'CylinderGeometry', 0.1, 0.13, 0.9, 8);
+        return {
+          index: this.nextIndex('street-lamps'), name: `Street Lamp ${++lampIdx}`, x, z,
+          footprint: footprint({ colliders: [post.expandByScalar(0.15)] })
+        };
+      })
+    };
+  }
+
+  meshStreetLampClassic(layout) {
+    const { x, z } = layout;
+    const l = new THREE.Group();
+    l.name = layout.name;
+    l.add(box(0.5, 0.25, 0.5, MAT.stone, 0, 0.125, 0));
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 0.9, 8), MAT.stone);
+    post.position.y = 0.7;
+    post.castShadow = true;
+    l.add(post);
+    l.add(box(0.44, 0.14, 0.44, MAT.stone, 0, 1.22, 0));
+    l.add(box(0.3, 0.3, 0.3, MAT.lanternGlow, 0, 1.45, 0));
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.3, 4), MAT.stoneDark);
+    cap.position.y = 1.75;
+    cap.rotation.y = Math.PI / 4;
+    cap.castShadow = true;
+    l.add(cap);
+    l.position.set(x, 0, z);
+    this.scene.add(l);
+    this.addCollider(l.children[1], 0.15);
   }
 
   buildMountains() {
+    const layout = this.layoutMountains();
+    return this.placeAsset('mountains', layout, () => this.meshMountainsClassic(layout));
+  }
+
+  /**
+   * The far ranges (one height-field mesh whose material the sky tints) and,
+   * as components in the classic order: the edge forest, the distant pagoda,
+   * the hillside village, the mist ring and the dawn river mist.
+   */
+  layoutMountains() {
+    const components = [
+      component('edge-forest', this.layoutEdgeForest(), 'meshEdgeForestClassic'),
+      component('distant-pagoda', this.layoutDistantPagoda(12, 56), 'meshDistantPagodaClassic'),
+      component('distant-village', this.layoutVillage(), 'meshVillageClassic'),
+      component('mist-ring', this.layoutMistRing(), 'meshMistRingClassic')
+    ];
+    const dawn = this.layoutDawnMist();
+    if (dawn) components.push(component('dawn-mist', dawn, 'meshDawnMistClassic'));
+    return {
+      index: this.nextIndex('mountains'), band: 'far', footprint: footprint(),
+      bind: { matHazeFar: 'far.material', matHazeMid: 'far.material' },
+      components
+    };
+  }
+
+  meshMountainsClassic(layout) {
     // Far ring: noise-ridged mountain walls carrying the valley's height
     // field out to the horizon. Forested green at the foot, drifting to
     // dusty blue-violet with altitude and distance; the material colour is
@@ -2901,11 +4107,8 @@ export class Countryside {
     far.receiveShadow = false;
     this.scene.add(far);
 
-    this.buildEdgeForest();
-    this.buildDistantPagoda(12, 56);
-    this.buildVillage();
-    this.buildMistRing();
-    this.buildDawnMist();
+    // The edge forest, distant pagoda, village, mist ring and dawn mist
+    for (const c of layout.components) this.placeComponent(c, this.scene);
   }
 
   /**
@@ -2914,6 +4117,20 @@ export class Countryside {
    * remain readable above the canopy from the bridge and village pathways.
    */
   buildDistantPagoda(x, z) {
+    const layout = this.layoutDistantPagoda(x, z);
+    return this.placeAsset('distant-pagoda', layout, () => this.meshDistantPagodaClassic(layout));
+  }
+
+  layoutDistantPagoda(x, z) {
+    // No collision or platforms: it stands beyond the forest boundary
+    return {
+      index: this.nextIndex('distant-pagoda'), name: 'Distant Pagoda', band: 'rim',
+      x, y: Math.min(0, this.terrainHeight(x, z)), z, scale: 1.12 * 1.1,
+      footprint: footprint()
+    };
+  }
+
+  meshDistantPagodaClassic({ x, z }) {
     const pagoda = new THREE.Group();
     pagoda.name = 'Distant Pagoda';
     const roofTileDark = new THREE.MeshStandardMaterial({
@@ -3032,6 +4249,78 @@ export class Countryside {
   }
 
   buildEdgeForest() {
+    const layout = this.layoutEdgeForest();
+    return this.placeAsset('edge-forest', layout, () => this.meshEdgeForestClassic(layout));
+  }
+
+  /**
+   * The edge-forest ring: 260 trees of four canopy variants. Draws, in the
+   * classic order: each tree's variant; the four canopies (buildCanopy draws
+   * from the valley stream, so its geometry is made here and handed to the
+   * mesh step as a non-enumerable `canopies`); then per tree bearing jitter,
+   * radius, size, crown yaw, x/z stretch, trunk yaw and tint. Every trunk is a
+   * wall collider; the corridor trees behind the shrine (parts
+   * thicket_crown_N / thicket_branches_N, trunk instances of 'trunks') lean
+   * aside when the thicket opens. The undergrowth is a component.
+   */
+  layoutEdgeForest() {
+    const count = 260;
+    const variantCount = 4;
+    const forestGreens = [0x2e5a24, 0x3b6e2e, 0x4e873c, 0x67a24a];
+    const assign = [];
+    for (let i = 0; i < count; i++) assign.push(Math.floor(this.random() * variantCount));
+    const canopies = [];
+    for (let v = 0; v < variantCount; v++) {
+      canopies.push(buildCanopy(this.rng, {
+        style: 'masses', scale: 1, trunkH: 1.15, trunkR: 0.14, primaries: 5, tilt: 0.76 + v * 0.06, tiltVar: 0.22,
+        droop: -0.02, bend: 0.12, branchLen: 0.78, secondaries: 2, twigs: false, crownFill: 3,
+        colors: forestGreens, clumpR: 0.36, tuftsPerClump: [3, 3, 2], tuftFlat: 0.74, lump: 0.4, seed: 50 + v * 7
+      }));
+    }
+    const thicketSets = [0, 1, 2, 3].map((v) => ({ tufts: part(`thicket_crown_${v + 1}`), branches: part(`thicket_branches_${v + 1}`), next: 0 }));
+    const trees = [], colliders = [], thicketTrees = [];
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2 + this.random() * 0.09;
+      const r = 37 + this.random() * 7;
+      const x = Math.cos(a) * r;
+      const z = Math.sin(a) * r;
+      const s = 1.8 + this.random() * 2.4;
+      // Captured so the thicket can re-pose this instance later; the call
+      // order of the RNG is preserved exactly.
+      const rotCrown = this.random() * Math.PI * 2;
+      const sx = s * (0.9 + this.random() * 0.2);
+      const sz = s * (0.9 + this.random() * 0.2);
+      const rotTrunk = this.random() * Math.PI;
+      const tint = [0.88 + this.random() * 0.24, 0.9 + this.random() * 0.2, 0.84 + this.random() * 0.22];
+      trees.push({ a, x, z, s, rotCrown, sx, sz, rotTrunk, tint });
+      // Impassable wall collider
+      const box = new THREE.Box3(
+        new THREE.Vector3(x - s * 0.35, 0, z - s * 0.35),
+        new THREE.Vector3(x + s * 0.35, s * 2.2, z + s * 0.35)
+      );
+      colliders.push(box);
+      if (Math.abs(x) < 3.6 && z < -33) {
+        const pagodaBearing = Math.atan2(56, 12);
+        const angleDelta = Math.atan2(Math.sin(a - pagodaBearing), Math.cos(a - pagodaBearing));
+        const sightlineHeight = Math.abs(angleDelta) < 0.3 ? 0.88 * 0.9 : 1;
+        const set = thicketSets[assign[i]];
+        thicketTrees.push({
+          set, idx: set.next++, trunkIdx: i, x, z, s, sy: s * sightlineHeight,
+          sx, sz, rotCrown, rotTrunk, side: x >= 0 ? 1 : -1, box
+        });
+      }
+    }
+    const layout = {
+      index: this.nextIndex('edge-forest'), name: 'Edge Forest Trunks', band: 'rim', assign, trees,
+      footprint: footprint({ colliders, lists: { shrineThicketTrees: thicketTrees } }),
+      bind: { edgeForestTrunks: 'trunks' },
+      components: [component('edge-undergrowth', this.layoutEdgeUndergrowth(), 'meshEdgeUndergrowthClassic')]
+    };
+    Object.defineProperty(layout, 'canopies', { value: canopies, enumerable: false });
+    return layout;
+  }
+
+  meshEdgeForestClassic(layout) {
     // Dense impassable tree wall ringing the playfield just inside the
     // hard boundary radius. Four broadleaf variants are instanced around
     // the ring as painted leaf masses: scalloped crown clumps on short
@@ -3048,14 +4337,10 @@ export class Countryside {
     const barkMat = texturedMaterial(TEX.woodDark, { color: 0x6a5a48, roughness: 1 });
     const trunkGeo = new THREE.CylinderGeometry(0.12, 0.2, 1.2, 7);
 
-    // Decide each tree's variant first so every instanced mesh is sized exactly
-    const assign = [];
+    // Each tree's variant was decided first (layout) so every instanced mesh is sized exactly
+    const assign = layout.assign;
     const perVariant = new Array(variantCount).fill(0);
-    for (let i = 0; i < count; i++) {
-      const v = Math.floor(this.random() * variantCount);
-      assign.push(v);
-      perVariant[v]++;
-    }
+    for (const v of assign) perVariant[v]++;
     // Corridor trees standing behind the shrine lean aside when the tenth
     // bell opens the way to the summit (setShrineThicketOpen). They get
     // their own small instanced sets: main.js splits the wide wall sets
@@ -3064,11 +4349,7 @@ export class Countryside {
     const sets = [];
     const thicketSets = [];
     for (let v = 0; v < variantCount; v++) {
-      const built = buildCanopy(this.rng, {
-        style: 'masses', scale: 1, trunkH: 1.15, trunkR: 0.14, primaries: 5, tilt: 0.76 + v * 0.06, tiltVar: 0.22,
-        droop: -0.02, bend: 0.12, branchLen: 0.78, secondaries: 2, twigs: false, crownFill: 3,
-        colors: forestGreens, clumpR: 0.36, tuftsPerClump: [3, 3, 2], tuftFlat: 0.74, lump: 0.4, seed: 50 + v * 7
-      });
+      const built = layout.canopies[v];
       for (const [list, label] of [[sets, 'Edge Forest'], [thicketSets, 'Shrine Thicket']]) {
         const tufts = new THREE.InstancedMesh(built.tufts, forestMat, perVariant[v]);
         const branches = new THREE.InstancedMesh(built.branches, barkMat, perVariant[v]);
@@ -3085,11 +4366,7 @@ export class Countryside {
     const col = new THREE.Color();
     const pagodaBearing = Math.atan2(56, 12);
     for (let i = 0; i < count; i++) {
-      const a = (i / count) * Math.PI * 2 + this.random() * 0.09;
-      const r = 37 + this.random() * 7;
-      const x = Math.cos(a) * r;
-      const z = Math.sin(a) * r;
-      const s = 1.8 + this.random() * 2.4;
+      const { a, x, z, s, rotCrown, sx, sz, rotTrunk, tint } = layout.trees[i];
       // Lower only the tree crowns in the pagoda's sightline (12%, then a
       // further 10%) so the tower's stories clear the canopy from the
       // village. Their horizontal footprint and collision wall remain untouched.
@@ -3098,12 +4375,6 @@ export class Countryside {
       const inThicket = Math.abs(x) < 3.6 && z < -33;
       const set = (inThicket ? thicketSets : sets)[assign[i]];
       const idx = set.next++;
-      // Captured so the thicket can re-pose this instance later; the call
-      // order of the RNG is preserved exactly.
-      const rotCrown = this.random() * Math.PI * 2;
-      const sx = s * (0.9 + this.random() * 0.2);
-      const sz = s * (0.9 + this.random() * 0.2);
-      const rotTrunk = this.random() * Math.PI;
       dummy.position.set(x, 0, z);
       dummy.rotation.set(0, rotCrown, 0);
       dummy.scale.set(sx, s * sightlineHeight, sz);
@@ -3111,7 +4382,7 @@ export class Countryside {
       set.tufts.setMatrixAt(idx, dummy.matrix);
       set.branches.setMatrixAt(idx, dummy.matrix);
       // Per-tree tint rides on top of the baked crown gradient
-      col.setRGB(0.88 + this.random() * 0.24, 0.9 + this.random() * 0.2, 0.84 + this.random() * 0.22);
+      col.setRGB(...tint);
       set.tufts.setColorAt(idx, col);
       dummy.position.set(x, 0.6 * s * sightlineHeight, z);
       dummy.scale.set(s, s * sightlineHeight, s);
@@ -3145,11 +4416,56 @@ export class Countryside {
     trunks.instanceMatrix.needsUpdate = true;
     trunks.castShadow = true;
     this.scene.add(trunks);
-    this.buildEdgeUndergrowth();
+    this.placeComponent(layout.components[0], this.scene);
   }
 
   /** Undergrowth shrubs thickening the edge-forest wall between trunks. */
   buildEdgeUndergrowth() {
+    const layout = this.layoutEdgeUndergrowth();
+    return this.placeAsset('edge-undergrowth', layout, () => this.meshEdgeUndergrowthClassic(layout));
+  }
+
+  /**
+   * 160 shrubs in the edge-forest ring; per shrub: bearing, radius, size, yaw,
+   * hue, lightness. Those inside r 41 block the cat; the ones in the shrine's
+   * rear corridor (part 'thicket') part when the thicket opens.
+   */
+  layoutEdgeUndergrowth() {
+    const bushes = [], colliders = [], thicketBushes = [];
+    let nThicket = 0;
+    for (let n = 0; n < 160; n++) {
+      const a = this.random() * Math.PI * 2;
+      const r = 35.5 + this.random() * 8;
+      const s = 0.9 + this.random() * 1.6;
+      const x = Math.cos(a) * r;
+      const z = Math.sin(a) * r;
+      const rotY = this.random() * Math.PI;
+      const hue = (this.random() - 0.5) * 0.03;
+      const light = (this.random() - 0.5) * 0.08;
+      bushes.push({ r, s, x, z, rotY, hue, light });
+      const inThicket = Math.abs(x) < 9 && z < -32;
+      let box = null;
+      if (r < 41) {
+        box = new THREE.Box3(
+          new THREE.Vector3(x - s * 0.6, 0, z - s * 0.6),
+          new THREE.Vector3(x + s * 0.6, Math.max(0.9, s), z + s * 0.6)
+        );
+        colliders.push(box);
+      }
+      if (inThicket) {
+        thicketBushes.push({
+          mesh: part('thicket'), i: nThicket++, x, z, y: s * 0.5, sx: s * 1.2, sy: s * 0.8, sz: s * 1.2,
+          rotY, side: x >= 0 ? 1 : -1, box
+        });
+      }
+    }
+    return {
+      index: this.nextIndex('edge-undergrowth'), name: 'Wall Undergrowth', band: 'rim', bushes,
+      footprint: footprint({ colliders, lists: { shrineThicketBushes: thicketBushes } })
+    };
+  }
+
+  meshEdgeUndergrowthClassic(layout) {
     const dummy = new THREE.Object3D();
     const bushGeo = bushGeometry(7, { lobes: 7, detail: 1, lump: 0.36 });
     const bushMat = createFoliageMaterial({
@@ -3166,13 +4482,7 @@ export class Countryside {
     this.shrineThicketBushes = [];
     const bushCol = new THREE.Color();
     let nWall = 0, nThicket = 0;
-    for (let n = 0; n < 160; n++) {
-      const a = this.random() * Math.PI * 2;
-      const r = 35.5 + this.random() * 8;
-      const s = 0.9 + this.random() * 1.6;
-      const x = Math.cos(a) * r;
-      const z = Math.sin(a) * r;
-      const rotY = this.random() * Math.PI;
+    for (const { r, s, x, z, rotY, hue, light } of layout.bushes) {
       const inThicket = Math.abs(x) < 9 && z < -32;
       const mesh = inThicket ? thicket : bushes;
       const i = inThicket ? nThicket++ : nWall++;
@@ -3181,7 +4491,7 @@ export class Countryside {
       dummy.rotation.set(0, rotY, 0);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
-      mesh.setColorAt(i, bushCol.setHex(0x4c7c36).offsetHSL((this.random() - 0.5) * 0.03, 0, (this.random() - 0.5) * 0.08));
+      mesh.setColorAt(i, bushCol.setHex(0x4c7c36).offsetHSL(hue, 0, light));
       let box = null;
       if (r < 41) {
         box = new THREE.Box3(
@@ -3259,11 +4569,49 @@ export class Countryside {
   }
 
   buildVillage() {
-    const pastelWalls = [0xf5e6c8, 0xf2b8c6, 0xfdf3e0, 0xe8d8f0];
-    const pastelRoofs = [0x7a8aa8, 0xc87888, 0x88a890, 0x9a86b0, 0xd8a878];
+    const layout = this.layoutVillage();
+    return this.placeAsset('distant-village', layout, () => this.meshVillageClassic(layout));
+  }
+
+  /**
+   * The distant hillside village: six clusters of pastel houses. Per house:
+   * x, z, size, wall and roof colour, 1–3 windows (side, x, height each),
+   * yaw. Its window material kindles at dusk; the foothill forest is a component.
+   */
+  layoutVillage() {
     const clusters = [
       [-62, -78, 9], [18, -88, 12], [78, -70, 8], [-95, -35, 6], [95, -20, 7], [40, -96, 6]
     ];
+    const houses = [];
+    for (const [cx, cz, n] of clusters) {
+      for (let i = 0; i < n; i++) {
+        const hx = cx + (this.random() - 0.5) * 26;
+        const hz = cz + (this.random() - 0.5) * 18;
+        const s = 1.4 + this.random() * 1.6;
+        const wall = Math.floor(this.random() * 4);
+        const roof = Math.floor(this.random() * 5);
+        const winCount = 1 + Math.floor(this.random() * 3);
+        const windows = [];
+        for (let wnd = 0; wnd < winCount; wnd++) {
+          const side = this.random() < 0.5 ? 1 : -1;
+          windows.push([side, (this.random() - 0.5) * 1.8 * s, (0.6 + this.random() * 0.7) * s]);
+        }
+        houses.push({
+          name: `Distant House ${cx > 0 ? 'E' : 'W'}${i + 1}`, x: hx, y: this.terrainHeight(hx, hz) - 0.3, z: hz,
+          s, wall, roof, windows, ry: this.random() * Math.PI
+        });
+      }
+    }
+    return {
+      index: this.nextIndex('distant-village'), band: 'far', houses, footprint: footprint(),
+      bind: { villageWindowMat: 'windows.material' },
+      components: [component('foothill-forest', this.layoutFoothillForest(), 'meshFoothillForestClassic')]
+    };
+  }
+
+  meshVillageClassic(layout) {
+    const pastelWalls = [0xf5e6c8, 0xf2b8c6, 0xfdf3e0, 0xe8d8f0];
+    const pastelRoofs = [0x7a8aa8, 0xc87888, 0x88a890, 0x9a86b0, 0xd8a878];
     const wallMats = pastelWalls.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95 }));
     const roofMats = pastelRoofs.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 }));
     // Warm hearth-window glow shared by every distant house; kindles at dusk
@@ -3274,38 +4622,28 @@ export class Countryside {
       roughness: 0.6
     });
     const winGeo = new THREE.PlaneGeometry(0.34, 0.42);
-    for (const [cx, cz, n] of clusters) {
-      for (let i = 0; i < n; i++) {
-        const hx = cx + (this.random() - 0.5) * 26;
-        const hz = cz + (this.random() - 0.5) * 18;
-        const s = 1.4 + this.random() * 1.6;
-        const house = new THREE.Group();
-        const wall = box(2.6 * s, 1.6 * s, 2.0 * s, wallMats[Math.floor(this.random() * wallMats.length)], 0, 0.8 * s, 0);
-        house.add(wall);
-        const roof = new THREE.Mesh(new THREE.ConeGeometry(2.0 * s, 1.1 * s, 4), roofMats[Math.floor(this.random() * roofMats.length)]);
-        roof.position.y = 1.6 * s + 0.55 * s;
-        roof.rotation.y = Math.PI / 4;
-        house.add(roof);
-        // 1-3 warm windows on the out-facing walls of distant townhouses
-        const winCount = 1 + Math.floor(this.random() * 3);
-        for (let wnd = 0; wnd < winCount; wnd++) {
-          const win = new THREE.Mesh(winGeo, this.villageWindowMat);
-          const side = this.random() < 0.5 ? 1 : -1;
-          win.position.set(
-            (this.random() - 0.5) * 1.8 * s,
-            (0.6 + this.random() * 0.7) * s,
-            side * (1.002 * s)
-          );
-          if (side === -1) win.rotation.y = Math.PI;
-          house.add(win);
-        }
-        house.name = `Distant House ${cx > 0 ? 'E' : 'W'}${i + 1}`;
-        house.position.set(hx, this.terrainHeight(hx, hz) - 0.3, hz);
-        house.rotation.y = this.random() * Math.PI;
-        this.scene.add(house);
+    for (const h of layout.houses) {
+      const s = h.s;
+      const house = new THREE.Group();
+      const wall = box(2.6 * s, 1.6 * s, 2.0 * s, wallMats[h.wall], 0, 0.8 * s, 0);
+      house.add(wall);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(2.0 * s, 1.1 * s, 4), roofMats[h.roof]);
+      roof.position.y = 1.6 * s + 0.55 * s;
+      roof.rotation.y = Math.PI / 4;
+      house.add(roof);
+      // 1-3 warm windows on the out-facing walls of distant townhouses
+      for (const [side, wx, wy] of h.windows) {
+        const win = new THREE.Mesh(winGeo, this.villageWindowMat);
+        win.position.set(wx, wy, side * (1.002 * s));
+        if (side === -1) win.rotation.y = Math.PI;
+        house.add(win);
       }
+      house.name = h.name;
+      house.position.set(h.x, h.y, h.z);
+      house.rotation.y = h.ry;
+      this.scene.add(house);
     }
-    this.buildFoothillForest();
+    this.placeComponent(layout.components[0], this.scene);
   }
 
   /**
@@ -3316,27 +4654,18 @@ export class Countryside {
    * since they are only ever seen from across the valley.
    */
   buildFoothillForest() {
-    const cedarGeo = lumpyConeGeometry(1, 8, 0.3);
-    const cedarGeoB = lumpyConeGeometry(1, 12, 0.34);
-    const roundGeo = lumpyTuftGeometry(1, 8, 0.36);
-    const cedarMat = createFoliageMaterial({
-      sss: 0.15, wind: 0.5, mottle: 0.24, vertexColors: false, massMap: leafMassTexture('needle'), massScale: 1 / 2.4
-    });
-    const crownMat = createFoliageMaterial({
-      sss: 0.15, wind: 0.5, mottle: 0.24, vertexColors: false, massMap: leafMassTexture('leaf'), massScale: 1 / 3
-    });
+    const layout = this.layoutFoothillForest();
+    return this.placeAsset('foothill-forest', layout, () => this.meshFoothillForestClassic(layout));
+  }
+
+  /**
+   * Up to 3800 cedars and broadleaf crowns on the foothills. Per candidate:
+   * bearing, radius, open-lowland cull; then kind, size, stretch, tilt and
+   * colour — the classic draws, in order. Kinds: 0/1 cedar spires, 2 crowns.
+   */
+  layoutFoothillForest() {
     const treeCount = 3800;
-    const meshes = [
-      new THREE.InstancedMesh(cedarGeo, cedarMat, treeCount),
-      new THREE.InstancedMesh(cedarGeoB, cedarMat, treeCount),
-      new THREE.InstancedMesh(roundGeo, crownMat, treeCount)
-    ];
-    meshes[0].name = 'Foothill Forest A';
-    meshes[1].name = 'Foothill Forest B';
-    meshes[2].name = 'Foothill Forest Crowns';
-    const dummy = new THREE.Object3D();
-    const color = new THREE.Color();
-    const placed = [0, 0, 0];
+    const trees = [];
     for (let i = 0; i < treeCount; i++) {
       const a = this.random() * Math.PI * 2;
       const r = 60 + Math.pow(this.random(), 0.75) * 130;
@@ -3351,17 +4680,48 @@ export class Countryside {
       const y = this.terrainHeight(x, z);
       if (kind === 2) {
         const s = 1.1 + this.random() * 1.7;
-        dummy.position.set(x, y + s * 0.45, z);
-        dummy.scale.set(s * (0.8 + this.random() * 0.5), s * 1.1, s * (0.8 + this.random() * 0.5));
-        dummy.rotation.set(this.random() * 0.3, this.random() * Math.PI, this.random() * 0.3);
-        color.setHSL(0.24 + this.random() * 0.08, 0.32 + this.random() * 0.14, 0.17 + this.random() * 0.1);
+        const position = [x, y + s * 0.45, z];
+        const scale = [s * (0.8 + this.random() * 0.5), s * 1.1, s * (0.8 + this.random() * 0.5)];
+        const rotation = [this.random() * 0.3, this.random() * Math.PI, this.random() * 0.3];
+        trees.push({ kind, position, scale, rotation, hsl: [0.24 + this.random() * 0.08, 0.32 + this.random() * 0.14, 0.17 + this.random() * 0.1] });
       } else {
         const s = 0.9 + this.random() * 1.4;
-        dummy.position.set(x, y - 0.2, z);
-        dummy.scale.set(s * (0.85 + this.random() * 0.3), s * (1.0 + this.random() * 0.5), s * (0.85 + this.random() * 0.3));
-        dummy.rotation.set((this.random() - 0.5) * 0.12, this.random() * Math.PI, (this.random() - 0.5) * 0.12);
-        color.setHSL(0.33 + this.random() * 0.07, 0.26 + this.random() * 0.14, 0.13 + this.random() * 0.09);
+        const position = [x, y - 0.2, z];
+        const scale = [s * (0.85 + this.random() * 0.3), s * (1.0 + this.random() * 0.5), s * (0.85 + this.random() * 0.3)];
+        const rotation = [(this.random() - 0.5) * 0.12, this.random() * Math.PI, (this.random() - 0.5) * 0.12];
+        trees.push({ kind, position, scale, rotation, hsl: [0.33 + this.random() * 0.07, 0.26 + this.random() * 0.14, 0.13 + this.random() * 0.09] });
       }
+    }
+    return { index: this.nextIndex('foothill-forest'), band: 'far', count: treeCount, trees, footprint: footprint() };
+  }
+
+  meshFoothillForestClassic(layout) {
+    const cedarGeo = lumpyConeGeometry(1, 8, 0.3);
+    const cedarGeoB = lumpyConeGeometry(1, 12, 0.34);
+    const roundGeo = lumpyTuftGeometry(1, 8, 0.36);
+    const cedarMat = createFoliageMaterial({
+      sss: 0.15, wind: 0.5, mottle: 0.24, vertexColors: false, massMap: leafMassTexture('needle'), massScale: 1 / 2.4
+    });
+    const crownMat = createFoliageMaterial({
+      sss: 0.15, wind: 0.5, mottle: 0.24, vertexColors: false, massMap: leafMassTexture('leaf'), massScale: 1 / 3
+    });
+    const treeCount = layout.count;
+    const meshes = [
+      new THREE.InstancedMesh(cedarGeo, cedarMat, treeCount),
+      new THREE.InstancedMesh(cedarGeoB, cedarMat, treeCount),
+      new THREE.InstancedMesh(roundGeo, crownMat, treeCount)
+    ];
+    meshes[0].name = 'Foothill Forest A';
+    meshes[1].name = 'Foothill Forest B';
+    meshes[2].name = 'Foothill Forest Crowns';
+    const dummy = new THREE.Object3D();
+    const color = new THREE.Color();
+    const placed = [0, 0, 0];
+    for (const { kind, position, scale, rotation, hsl } of layout.trees) {
+      dummy.position.set(...position);
+      dummy.scale.set(...scale);
+      dummy.rotation.set(...rotation);
+      color.setHSL(...hsl);
       dummy.updateMatrix();
       meshes[kind].setMatrixAt(placed[kind], dummy.matrix);
       meshes[kind].setColorAt(placed[kind], color);
@@ -3390,19 +4750,40 @@ export class Countryside {
   }
 
   buildMistRing() {
-    const tex = this.mistTexture();
-    this.mists = [];
+    const layout = this.layoutMistRing();
+    return this.placeAsset('mist-ring', layout, () => this.meshMistRingClassic(layout));
+  }
+
+  /** 14 haze sprites round the rim (parts mist_1 … mist_14); per sprite: bearing, radius, height, size, drift phase, speed. */
+  layoutMistRing() {
+    const sprites = [];
     for (let i = 0; i < 14; i++) {
       const a = (i / 14) * Math.PI * 2 + this.random() * 0.3;
       const r = 58 + this.random() * 14;
-      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.75, depthWrite: false });
-      const spr = new THREE.Sprite(mat);
       const mx = Math.cos(a) * r, mz = Math.sin(a) * r;
       const baseY = this.terrainHeight(mx, mz) + 2.0 + this.random() * 4;
-      spr.position.set(mx, baseY, mz);
-      spr.scale.set(28 + this.random() * 22, 10 + this.random() * 8, 1);
+      const scale = [28 + this.random() * 22, 10 + this.random() * 8];
+      sprites.push({ x: mx, y: baseY, z: mz, scale, phase: this.random() * 6, speed: 0.03 + this.random() * 0.04 });
+    }
+    return {
+      index: this.nextIndex('mist-ring'), band: 'rim', sprites,
+      footprint: footprint({
+        lists: { mists: sprites.map((m, i) => ({ spr: part(`mist_${i + 1}`), baseX: m.x, baseY: m.y, phase: m.phase, speed: m.speed })) }
+      })
+    };
+  }
+
+  meshMistRingClassic(layout) {
+    const tex = this.mistTexture();
+    this.mists = [];
+    for (const m of layout.sprites) {
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.75, depthWrite: false });
+      const spr = new THREE.Sprite(mat);
+      const baseY = m.y;
+      spr.position.set(m.x, baseY, m.z);
+      spr.scale.set(m.scale[0], m.scale[1], 1);
       this.scene.add(spr);
-      this.mists.push({ spr, baseX: spr.position.x, baseY, phase: this.random() * 6, speed: 0.03 + this.random() * 0.04 });
+      this.mists.push({ spr, baseX: spr.position.x, baseY, phase: m.phase, speed: m.speed });
     }
   }
 
@@ -3412,21 +4793,48 @@ export class Countryside {
    * mid-morning — the "valley waking up" beat.
    */
   buildDawnMist() {
-    if (!this.riverSamples.length) return;
-    const tex = this.mistTexture();
-    this.dawnMists = [];
+    const layout = this.layoutDawnMist();
+    if (!layout) return;
+    return this.placeAsset('dawn-mist', layout, () => this.meshDawnMistClassic(layout));
+  }
+
+  /**
+   * 12 low river-mist sprites for first light (parts mist_1 … mist_12), set
+   * along the river samples. Their scatter is Math.random() (not the valley
+   * stream), drawn here in the classic order. None without a river.
+   */
+  layoutDawnMist() {
+    if (!this.riverSamples.length) return null;
     const n = 12;
+    const sprites = [];
     for (let i = 0; i < n; i++) {
       const s = this.riverSamples[Math.floor((i + 0.5) / n * (this.riverSamples.length - 1))];
+      const baseY = 0.75 + Math.random() * 0.5;
+      const x = s.x + (Math.random() - 0.5) * 3, z = s.z + (Math.random() - 0.5) * 3;
+      const scale = [15 + Math.random() * 9, 3.2 + Math.random() * 1.6];
+      sprites.push({ x, y: baseY, z, scale, phase: Math.random() * 6, speed: 0.04 + Math.random() * 0.05 });
+    }
+    return {
+      index: this.nextIndex('dawn-mist'), band: 'near', sprites,
+      footprint: footprint({
+        lists: { dawnMists: sprites.map((m, i) => ({ spr: part(`mist_${i + 1}`), baseX: m.x, baseY: m.y, phase: m.phase, speed: m.speed })) }
+      })
+    };
+  }
+
+  meshDawnMistClassic(layout) {
+    const tex = this.mistTexture();
+    this.dawnMists = [];
+    for (const m of layout.sprites) {
       const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false, color: 0xf6efe4 });
       const spr = new THREE.Sprite(mat);
-      const baseY = 0.75 + Math.random() * 0.5;
-      spr.position.set(s.x + (Math.random() - 0.5) * 3, baseY, s.z + (Math.random() - 0.5) * 3);
-      spr.scale.set(15 + Math.random() * 9, 3.2 + Math.random() * 1.6, 1);
+      const baseY = m.y;
+      spr.position.set(m.x, baseY, m.z);
+      spr.scale.set(m.scale[0], m.scale[1], 1);
       spr.visible = false;
       spr.renderOrder = 1;
       this.scene.add(spr);
-      this.dawnMists.push({ spr, baseX: spr.position.x, baseY, phase: Math.random() * 6, speed: 0.04 + Math.random() * 0.05 });
+      this.dawnMists.push({ spr, baseX: spr.position.x, baseY, phase: m.phase, speed: m.speed });
     }
   }
 
@@ -3450,31 +4858,51 @@ export class Countryside {
   }
 
   buildYarn() {
+    const layout = this.layoutYarn();
+    for (const ball of layout.balls) this.placeAsset('yarn', ball, () => this.meshYarnBallClassic(ball));
+  }
+
+  layoutYarn() {
     let id = 0;
     const yarnSpots = [
       [-20, 14], [12, 20], [24, 4], [-4, -12], [2.5, -24],
       [-10, 28], [18, -10], [-26, -2], [8, 30], [-16, -18]
     ];
-    for (const [x, z] of yarnSpots) {
-      const yarn = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), MAT.yarn);
-      yarn.name = `Yarn Ball ${String(id).padStart(2, '0')}`;
-      yarn.position.set(x, 0.35, z);
-      yarn.castShadow = true;
-      yarn.userData.id = id++;
-      yarn.userData.isCollectible = true;
-      yarn.userData.velocity = new THREE.Vector3();
-      yarn.userData.batted = false;
-
-      const wrapMat = new THREE.MeshStandardMaterial({ color: 0xf27a9f, roughness: 0.7 });
-      const wrap = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 6, 16), wrapMat);
-      wrap.rotation.x = this.random() * Math.PI;
-      wrap.rotation.y = this.random() * Math.PI;
-      yarn.add(wrap);
-
-      this.scene.add(yarn);
-      this.collectibles.push(yarn);
-    }
+    return {
+      balls: yarnSpots.map(([x, z]) => {
+        const ballId = id++;
+        // the wrap's tilt: two draws per ball
+        const wrap = [this.random() * Math.PI, this.random() * Math.PI];
+        const userData = { id: ballId, isCollectible: true, velocity: new THREE.Vector3(), batted: false };
+        return {
+          index: this.nextIndex('yarn'), name: `Yarn Ball ${String(ballId).padStart(2, '0')}`, x, y: 0.35, z, id: ballId, wrap,
+          footprint: footprint({ lists: { collectibles: [part('.', { userData })] } })
+        };
+      })
+    };
   }
+
+  meshYarnBallClassic(layout) {
+    const { x, z } = layout;
+    const yarn = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), MAT.yarn);
+    yarn.name = layout.name;
+    yarn.position.set(x, 0.35, z);
+    yarn.castShadow = true;
+    yarn.userData.id = layout.id;
+    yarn.userData.isCollectible = true;
+    yarn.userData.velocity = new THREE.Vector3();
+    yarn.userData.batted = false;
+
+    const wrapMat = new THREE.MeshStandardMaterial({ color: 0xf27a9f, roughness: 0.7 });
+    const wrap = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 6, 16), wrapMat);
+    wrap.rotation.x = layout.wrap[0];
+    wrap.rotation.y = layout.wrap[1];
+    yarn.add(wrap);
+
+    this.scene.add(yarn);
+    this.collectibles.push(yarn);
+  }
+
 
   /**
    * A small pool of real point lights hops between the lanterns nearest the

@@ -1,8 +1,11 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20261107a';
-import { VILLAGER_DEFS } from './characters/defs/index.js?v=20261107a';
-import { EyeShine } from './characters/behaviour/eyeshine.js?v=20261107a';
-import { GroomingBehaviour } from './characters/behaviour/grooming.js?v=20261107a';
+import { Cat } from './cat.js?v=20261113a';
+import { VILLAGER_DEFS } from './characters/defs/index.js?v=20261113a';
+import { duskEyeShine } from './characters/behaviour/dusk.js?v=20261113a';
+import { GroomingBehaviour } from './characters/behaviour/grooming.js?v=20261113a';
+
+/** Metres within which a modular villager runs its eye shine and grooming. */
+const NEAR_LIFE = 60;
 
 const _lookAt = new THREE.Vector3();
 
@@ -59,10 +62,8 @@ export class NPC {
     if (this.modular) {
       this.cat = new Cat({ def, audio: options.audio || null });
       this.grooming = new GroomingBehaviour(def.personality);
-      this.eyeShine = new EyeShine(this.cat, def.personality.shine);
     } else {
       this.grooming = null;
-      this.eyeShine = null;
       this.cat = new Cat({
       stripeAmount: options.stripeAmount ?? (persona ? persona.stripes : undefined),
       idleProfile: options.idleProfile ?? (persona ? persona.idle : undefined),
@@ -334,8 +335,13 @@ export class NPC {
       this.mesh.position.y += (targetY - this.mesh.position.y) * Math.min(1, dt * 2);
     }
 
-    if (this.eyeShine) this.eyeShine.update(camera, sky ? sky.dayTime : null);
-    if (this.grooming) this.grooming.update(dt, this.cat, !this.sleeping && this.moveSpeed === 0 && !this.wanderTarget && dist >= 5.0);
+    // Modular villagers only, and only near the camera (the eye-shine part is
+    // hero tier; far cats and far timers are not worth a frame).
+    if (this.modular && playerDist < NEAR_LIFE) {
+      if (this.cat.setEyeShine) this.cat.setEyeShine(duskEyeShine(sky ? sky.dayTime : null));
+      // Grooming only at the cat's own home, awake, still, with the player out of the way (never on a schedule override)
+      if (this.grooming) this.grooming.update(dt, this.cat, !this.sleeping && this.effHome === this.home && this.moveSpeed === 0 && !this.wanderTarget && dist >= 5.0);
+    }
 
     // Follow the player with the head while they're close
     if (dist < 6.0 && !this.sleeping) {

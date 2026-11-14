@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { furMaterial, FUR_PART, outlineMaterial } from '../../cat_shading.js?v=20261107a';
+import { furMaterial, FUR_PART, outlineMaterial } from '../../cat_shading.js?v=20261113a';
 
 /**
  * The coat: one continuous sculpted body skinned to the skeleton, the tail

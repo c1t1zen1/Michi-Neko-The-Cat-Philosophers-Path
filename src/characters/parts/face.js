@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { toonMat, outlineMaterial, getEarInnerTexture } from '../../cat_shading.js?v=20261107a';
+import { toonMat, outlineMaterial, getEarInnerTexture } from '../../cat_shading.js?v=20261113a';
 
 /**
  * The face: the eye frame the head shader paints the eyes into, the nose
