@@ -8,6 +8,7 @@ import {
 import {
   createFoliageMaterial, lumpyTuftGeometry, lumpyConeGeometry, leafMassTexture, bushGeometry, buildCanopy
 } from './foliage.js?v=20261107a';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261107a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -146,15 +147,9 @@ function smoothstep(edge0, edge1, x) {
 // Every builder below is split into layoutX() — every seeded draw, in its
 // original order, plus the footprint — and meshXClassic(layout), the original
 // meshes with no draws, joined by placeAsset(id, layout, classicFn). The asset
-// runtime arrives as `options.assets` (lane f1-runtime). src/kit/runtime.js is
-// not on this lane's base, so these three local stand-ins keep its contract;
-// at merge the Integrator swaps in
-//   import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=<tag>';
-const CLASSIC_ASSETS = { build: (id, layout, classicFn) => classicFn(), update() {}, instances: [] };
-function isAssetInstance(x) {
-  return !!(x && x.group && x.parts && typeof x.dispose === 'function');
-}
-const scopeAssets = (a) => a || CLASSIC_ASSETS;
+// runtime arrives as `options.assets` (src/kit/runtime.js, scoped to this
+// module's MAT and textures in the constructor); without one, CLASSIC_ASSETS
+// passes every build straight to its classic function.
 
 /**
  * A layout's footprint (R12, R18): everything the classic builder registers,
