@@ -437,3 +437,50 @@ body.nohud .mast, body.nohud .guide, body.nohud .card, body.nohud .toast, body.n
 @media (prefers-reduced-motion: reduce) {
   .card, .toast, .finale { transition: opacity 0.4s ease; transform: translate(-50%, 0); }
 }
+
+/* Portrait is the primary play frame: clear top rail and thumb-safe lower area. */
+#gl { height: 100dvh; }
+@media (orientation: portrait) and (max-width: 640px) {
+  .mast { top: max(12px, env(safe-area-inset-top)); left: 12px; }
+  .mast h1, .mast .kicker, .mast .sandbox { display: none; }
+  .mast .back { margin: 5px 0 0; padding: 9px 12px; }
+  .tools { top: max(12px, env(safe-area-inset-top)); right: 12px; gap: 3px; }
+  .tools button { width: 44px; height: 44px; }
+  .progress { top: max(68px, calc(env(safe-area-inset-top) + 56px)); bottom: auto; }
+  .card { top: max(112px, calc(env(safe-area-inset-top) + 100px)); width: calc(100vw - 36px); }
+  .card .k { font-size: 2.1rem; }
+  .card .r { font-size: .66rem; }
+  .card .t { font-size: 1.15rem; }
+  .card .n { max-width: 25rem; margin: 6px auto 0; font-size: .8rem; line-height: 1.4; }
+  .toast { bottom: 160px; max-width: calc(100vw - 32px); }
+  .pause-panel { max-width: calc(100vw - 32px); }
+}
+
+.neighbourhood-map {
+  position: fixed; z-index: 12; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); overflow: auto;
+  padding: 26px; background: #eee2c8; color: #4e493a; border: 1px solid #c4b18d;
+  box-shadow: 0 18px 70px #17161180; border-radius: 15px; font: .85rem/1.5 var(--sans);
+}
+.neighbourhood-map[hidden] { display: none; }
+.neighbourhood-map h2 { font: 400 1.8rem/1.2 var(--serif); margin: 0; }
+.neighbourhood-map p { margin: 8px 0; }
+.neighbourhood-map .map-kicker { font: .75rem var(--mincho); letter-spacing: .14em; }
+#close-map { float: right; margin: -12px -12px 0 0; width: 44px; height: 44px; border: 0; background: transparent; color: #4e493a; font: 1.8rem var(--sans); cursor: pointer; }
+#route-map { display: block; width: 100%; height: auto; margin: 18px 0; overflow: visible; }
+.map-grid { fill: none; stroke: #d4c6a8; stroke-width: 1; }
+.map-streets { fill: none; stroke: #aaa087; stroke-width: 3; stroke-linejoin: round; }
+.map-travelled { fill: none; stroke: #b65036; stroke-width: 3; stroke-linejoin: round; }
+.map-lantern { fill: #eee2c8; stroke: #817356; stroke-width: 1; }
+.map-number { font: bold 7px system-ui; text-anchor: middle; dominant-baseline: middle; fill: #4e493a; }
+.map-cat { fill: #be773a; stroke: #fff1d7; stroke-width: 1.5; }
+.map-guide { fill: #507b86; stroke: #fff1d7; stroke-width: 1.5; }
+.map-key { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: .75rem; }
+.map-key .michi-dot, .map-key .chidori-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #be773a; }
+.map-key .chidori-dot { background: #507b86; margin-left: 12px; }
+.map-districts { padding-left: 20px; columns: 2; margin: 16px 0; font-size: .78rem; }
+.map-foot { font: italic 1rem var(--serif); }
+body.nohud .neighbourhood-map { display: none; }
+@media (orientation: portrait) and (max-width: 640px) { .tools { gap: 1px; } .neighbourhood-map { padding: 22px; } }
+
+body.at-finale .touch { display: none; pointer-events: none; }
