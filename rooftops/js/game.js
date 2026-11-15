@@ -13,9 +13,10 @@ import { Autopilot } from './autopilot.js';
 import { buildWorld } from './build.js';
 import { Sky } from './sky.js';
 import { RooftopAtmosphere } from './atmosphere.js';
-import { alleyEntrance } from './alleys.js';
+import { alleyEntrance, alleyDepth } from './alleys.js';
 import { Companion } from './companion.js';
 import { neighbourhoodMap } from './neighbourhood-map.js';
+import { AssetRuntime } from '../../src/kit/runtime.js?v=20261113a';
 
 const Q = new URLSearchParams(location.search);
 const flag = (k, d = null) => (Q.has(k) ? Q.get(k) : d);
@@ -48,7 +49,13 @@ const level = buildLevel();
 const rail = level.rail;
 const runner = new Runner(level);
 const sky = new Sky(scene, renderer, { shadows, reduceMotion, lowPower, center: new THREE.Vector3(level.center.x, 0, level.center.z) });
-const world = buildWorld(level, { reduceMotion, lowPower });
+// The asset set switch (BUILD_GUIDE_FABLE §3.1), built as src/main.js builds
+// the game's: classic by default, ?assets=classic|modular|auto and ?swap= honoured,
+// the kit imported only when some id can resolve modular. Every piece is built
+// through it (build.js); with no Roof Road kit asset every piece stays classic.
+const assets = new AssetRuntime({ THREE, assetSet: 'classic', search: location.search, quality: lowPower ? 'low' : 'high' });
+await assets.preload();
+const world = buildWorld(level, { reduceMotion, lowPower, assets });
 scene.add(world.root);
 const atmosphere = new RooftopAtmosphere(scene, level, { reduceMotion, lowPower });
 
@@ -66,47 +73,42 @@ const lightPool = [0, 1, 2, 3].map(() => {
   return l;
 });
 
-/* ---------------- the cat (and a stand-in while it is sculpted) ---------------- */
+/* ---------------- the cats; revealed together after GPU warm-up ---------------- */
 
 const catRoot = new THREE.Group();
 scene.add(catRoot);
-const standIn = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.32, 4, 8), new THREE.MeshStandardMaterial({ color: 0xae8450 }));
-standIn.rotation.x = Math.PI / 2;
-standIn.position.y = 0.17;
-catRoot.add(standIn);
 let cat = null, catMod = null;
 
 const guideRoot = new THREE.Group();
 scene.add(guideRoot);
-const guideStandIn = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.26, 4, 8), new THREE.MeshStandardMaterial({ color: 0x9a9a9e }));
-guideStandIn.rotation.x = Math.PI / 2;
-guideStandIn.position.y = 0.14;
-guideRoot.add(guideStandIn);
-let guide = null;
+let guide = null, stageReady = false;
 
 async function loadCats() {
-  if (flag('cat') === '0') { hideWake(); return; }
+  if (flag('cat') === '0') return true;
   try {
     const mod = await import('../../src/cat.js?v=20261113a');
     await new Promise((r) => setTimeout(r, 60));          // let the page paint first
     cat = new mod.Cat({ fur: 0xae8450, belly: 0xeedcb8, accent: 0x5e3d26 });
     cat.group.position.y = 0.02;
-    catRoot.remove(standIn);
     catRoot.add(cat.group);
     catMod = mod;
     // Chidori: the same sculpt (cached), a smaller grey-and-white coat.
     guide = new mod.Cat({ fur: 0x8f9095, belly: 0xf3f1ec, accent: 0x55575e, eyeColor: 0x9fd0a8, stripeAmount: 0.55, ribbonColor: 0x3a6fa8 });
     guide.group.scale.setScalar(0.86);
     guide.group.position.y = 0.02;
-    guideRoot.remove(guideStandIn);
     guideRoot.add(guide.group);
     mod.catRimUniforms.uRimStrength.value = 0.35;
+    return true;
   } catch (e) {
     console.error('cat failed to load', e);
+    const wake = $('wake');
+    wake.textContent = 'The cats could not wake up. ';
+    const retry = document.createElement('button');
+    retry.textContent = 'Try again'; retry.onclick = () => location.reload();
+    wake.append(retry);
+    return false;
   }
-  hideWake();
 }
-function hideWake() { const w = $('wake'); if (w) w.classList.add('gone'); }
 
 /* ---------------- audio: a soft, procedural Kyoto soundscape ---------------- */
 
@@ -462,10 +464,12 @@ const cam = { s: 0, y: 2, dist: 8.2, water: 0, fov: 34, n: { x: 0, z: 1 }, init:
 function startAt(s, y) {
   runner.reset(s, y + 0.4);
   vis.depth = runner.depth;
+  vis.catY = runner.y; vis.stepOff = null;
   const p = rail.place(runner.s, vis.depth);
   catRoot.position.set(p.x, runner.y, p.z);
   cam.dist = 10.2;
   cam.init = false;
+  cam.boom = null;
   if (typeof companion !== 'undefined') initChidori();
 }
 
@@ -522,6 +526,40 @@ function initChidori() {
   const r = companion.runner, p = rail.place(r.s, r.depth);
   chidori.pos.set(p.x, r.y, p.z); chidori.depth = r.depth;
   guideRoot.position.copy(chidori.pos);
+  chidori.catY = r.y; chidori.stepOff = null;
+}
+function beginStepOff(r, visual) {
+  const g = r.dropIgnore;
+  if (r.alley !== null || g?.kind !== 'eave') return;
+  visual.stepOff = { t:0, top:platTop(g,r.s,time), depth:platDepth(g,r.s)+.95 };
+}
+function stepOffHeight(r, visual, dt) {
+  const step = visual.stepOff;
+  if (!step) { visual.catY=r.y; return r.y; }
+  step.t += dt;
+  if (r.grounded || step.t > .3) { visual.stepOff=null;visual.catY=r.y;return r.y; }
+  // Step sideways over the actual roof edge before descending to the lower
+  // ledge. The one-way physics drop must not draw a cat melting through tiles.
+  visual.depth=damp(visual.depth,step.depth,24,dt);
+  visual.catY=step.t < .12 ? Math.max(r.y,step.top) : damp(visual.catY,r.y,18,dt);
+  return visual.catY;
+}
+function lowHeadroom(position, r) {
+  const tangent = pathTangent(r);
+  for (const lead of [0,.6]) {
+    const from = position.clone(); from.y += .35;
+    from.x += tangent.x * r.facing * lead; from.z += tangent.z * r.facing * lead;
+    const to = from.clone(); to.y += .65;
+    if (world.obstacles.distance(from,to) < .52) return true;
+  }
+  return false;
+}
+function pathTangent(r) {
+  if (r.alley === null) return rail.tangentAt(r.s);
+  const a = level.alleys[r.alley], lo = clamp(r.s - .1,a.s0,a.s1), hi = clamp(r.s + .1,a.s0,a.s1);
+  const p = rail.place(lo,alleyDepth(a,lo)), q = rail.place(hi,alleyDepth(a,hi));
+  const length = Math.hypot(q.x-p.x,q.z-p.z) || 1;
+  return { x:(q.x-p.x)/length, z:(q.z-p.z)/length };
 }
 function updateChidori(dt) {
   const portrait = camera.aspect < 0.85;
@@ -534,10 +572,12 @@ function updateChidori(dt) {
     else r = companion.update(step, runner, time - dt + i * step, portrait);
     for (const event of r.events) events.add(event);
   }
-  chidori.depth = damp(chidori.depth, r.depth, 9, dt);
+  chidori.depth = r.alley !== null ? r.depth : damp(chidori.depth, r.depth, 9, dt);
+  if (events.has('drop')) beginStepOff(r,chidori);
+  const drawY = stepOffHeight(r,chidori,dt);
   const p = rail.place(r.s, chidori.depth);
-  chidori.pos.set(p.x, r.y, p.z);
-  const t = rail.tangentAt(r.s);
+  chidori.pos.set(p.x, drawY, p.z);
+  const t = pathTangent(r);
   const watch = Math.abs(r.vs) < 0.2;
   const want = watch ? Math.atan2(catRoot.position.x - p.x, catRoot.position.z - p.z) : Math.atan2(t.x * r.facing, t.z * r.facing);
   let turn = want - chidori.heading;
@@ -550,7 +590,7 @@ function updateChidori(dt) {
     if (events.has('land')) guide.onLand();
     if (!watch && guide.idleAction) guide.endIdleAction();
     if (watch && companion.modeTime > 0.65 && !guide.idleAction) guide.startIdleAction(companion.mood === 'prowl' ? 'groom' : companion.mood === 'feint' ? 'stretch' : 'sit', 2);
-    guide.setProwling(companion.mood === 'prowl');
+    guide.setProwling(companion.mood === 'prowl' || r.onRope || lowHeadroom(guideRoot.position, r));
     guide.update(dt, Math.abs(r.vs), r.grounded, r.sprinting, false, r.inWater, null);
     guide.setLookTarget(watch ? catRoot.position : null);
   }
@@ -711,6 +751,7 @@ function stepPhysics(inp) {
   const prevGrounded = runner.grounded;
   runner.step(STEP, inp, time);
   const ev = runner.events;
+  if (ev.includes('drop')) beginStepOff(runner,vis);
   if (ev.includes('jump')) { if (cat) cat.onJump(); }
   const bounced = ev.includes('bounce');
   if (bounced) { if (cat) cat.onJump(); audio.bounce(); burstAtRunner('futon'); }
@@ -773,14 +814,15 @@ function tick(now, draw = true) {
     const below = runner.support(runner.s, runner.y, 0, 40);
     if (below) targetD = platDepth(below, runner.s);
   }
-  vis.depth = damp(vis.depth, targetD, runner.grounded ? 10 : 5, dt);
+  vis.depth = runner.alley !== null ? targetD : damp(vis.depth, targetD, runner.grounded ? 10 : 5, dt);
+  const drawY = stepOffHeight(runner,vis,dt);
   const p = rail.place(runner.s, vis.depth);
-  catRoot.position.set(p.x, runner.y, p.z);
+  catRoot.position.set(p.x, drawY, p.z);
   // Facing: φ = 0 along +s, π along −s, turning through the camera side.
   const goal = runner.facing > 0 ? 0 : Math.PI;
   const turning = Math.abs(vis.phi - goal) > 0.3;
   vis.phi = damp(vis.phi, goal, 11, dt);
-  const t = rail.tangentAt(runner.s);
+  const t = pathTangent(runner);
   const n = { x: -t.z, z: t.x };
   const dir = { x: t.x * Math.cos(vis.phi) + n.x * Math.sin(vis.phi), z: t.z * Math.cos(vis.phi) + n.z * Math.sin(vis.phi) };
   if (finale) {
@@ -803,7 +845,7 @@ function tick(now, draw = true) {
   catRoot.rotation.x = damp(catRoot.rotation.x, 0, 10, dt);
   if (cat) {
     cat.group.rotation.x = damp(cat.group.rotation.x, pitch, 10, dt);
-    cat.setProwling(runner.onRope);
+    cat.setProwling(runner.onRope || lowHeadroom(catRoot.position, runner));
     const speed = Math.abs(runner.vs);
     cat.update(dt, speed, runner.grounded, runner.sprinting && speed > 4.5, turning && speed < 0.6, runner.inWater, null);
     const sup = runner.grounded ? null : runner.support(runner.s, runner.y, 0, 40);
@@ -867,7 +909,7 @@ function tick(now, draw = true) {
   if (draw) renderer.render(scene, camera);
 }
 
-function updateCamera(dt) {
+function updateCamera(dt, playerOnly = false) {
   const w = canvas.clientWidth, h = canvas.clientHeight;
   if (canvas.width !== Math.floor(w * renderer.getPixelRatio()) || canvas.height !== Math.floor(h * renderer.getPixelRatio())) {
     renderer.setSize(w, h, false);
@@ -891,52 +933,155 @@ function updateCamera(dt) {
     const finaleFov = camera.aspect < .85 ? 96 : 50;
     camera.fov = damp(camera.fov, finaleFov, 1.5, dt);
     camera.updateProjectionMatrix();
-    world.setView(camera, catRoot, guideRoot, runner.alley !== null || companion.runner.alley !== null ? 1 : 0);
     return;
   }
 
-  // Frame both cats inside the play area. Portrait uses a shorter companion
-  // lead and fits horizontally; the desktop camera keeps its open side view.
-  const portrait = camera.aspect < 0.85;
-  const f = level.mouths[6];
-  const vertical = smooth(f.s0 - 5, f.s0, runner.s) * (1 - smooth(f.s1 + 1, f.s1 + 5, runner.s));
-  const r = companion.runner;
-  const wantedS = (runner.s + r.s) / 2 + (portrait ? 0 : runner.facing * 0.65);
-  const rate = reduceMotion ? 4 : 6;
-  const mid = tmpL.copy(catRoot.position).add(guideRoot.position).multiplyScalar(0.5);
-  mid.y += 0.5 + vertical * 0.1;
-  if (!cam.init) { cam.s = wantedS; cam.center = mid.clone(); cam.init = true; }
-  cam.s = damp(cam.s, wantedS, rate, dt);
+  const previousPosition = camera.position.clone();
+  const portrait = camera.aspect < .85;
+  const r = companion.runner, inAlley = runner.alley !== null;
+  const alley = inAlley ? level.alleys[runner.alley] : null;
+  // A close alley view follows Michi. Chidori can explore another lane without
+  // pulling the camera back through the intervening houses.
+  cam.soloT = Math.max(0,(cam.soloT || 0)-dt);
+  const together = !inAlley && r.alley === null && !playerOnly && !cam.soloT;
+  const subjects = together ? [catRoot, guideRoot] : [catRoot];
+  cam.subjects = together ? ['player','guide'] : ['player'];
+  const vertical = smooth(level.mouths[6].s0 - 5, level.mouths[6].s0, runner.s);
+  const mid = catRoot.position.clone();
+  if (together) mid.add(guideRoot.position).multiplyScalar(.5);
+  mid.y += inAlley ? .38 : .5;
+  const rate = reduceMotion ? 4 : 7;
+  const reset = !cam.init;
+  if (reset) { cam.center = mid.clone(); cam.init = true; cam.alley = inAlley ? 1 : 0; }
   cam.center.lerp(mid, 1 - Math.exp(-rate * Math.max(dt, 1 / 120)));
-  const nrm = rail.smoothNormalAt(clamp(cam.s, 0, level.length), 3.5, cam.n);
-  camera.fov = portrait ? 43 : 35 + vertical * 4;
+  if (inAlley) { cam.center.x = mid.x; cam.center.z = mid.z; }
+  cam.alley = damp(cam.alley, inAlley ? 1 : 0, 5, dt);
+  cam.s = (runner.s + (together ? r.s : runner.s)) / 2;
+  const normal = rail.smoothNormalAt(clamp(cam.s, 0, level.length), 3.5, cam.n);
+  const side = new THREE.Vector3(normal.x, 0, normal.z);
+  const tangent = new THREE.Vector3(normal.z, 0, -normal.x);
+  const behind = tangent.clone().multiplyScalar(-runner.facing);
+  if (alley) {
+    const lo = clamp(runner.s - .35, alley.s0, alley.s1), hi = clamp(runner.s + .35, alley.s0, alley.s1);
+    const a = rail.place(lo, alleyDepth(alley, lo)), b = rail.place(hi, alleyDepth(alley, hi));
+    behind.set(a.x - b.x, 0, a.z - b.z).normalize().multiplyScalar(runner.facing);
+  }
+  // Street: see over the eaves. Alley: human head height, close behind and
+  // looking down at the paws, with a slightly wider lens in the confined space.
+  camera.fov = 40 + cam.alley * 18 + (portrait ? 3 : 0);
   camera.updateProjectionMatrix();
-  const minDist = portrait ? 10.2 : 9.8 + vertical * 1.8;
-  let distance = Math.max(minDist, damp(cam.dist, minDist, 3, dt));
-  const placeCamera = () => {
-    camera.position.set(cam.center.x + nrm.x * distance, cam.center.y + distance * (runner.alley !== null ? 0.48 : runner.inWater ? 0.32 : portrait ? 0.22 : 0.17), cam.center.z + nrm.z * distance);
+  const direction = side.clone().lerp(behind, cam.alley).normalize();
+  const baseDistance = (portrait ? 9 : 8.4) * (1 - cam.alley) + 2.5 * cam.alley;
+  const baseHeight = (4.5 + vertical * .5) * (1 - cam.alley) + 1.25 * cam.alley;
+  const point = new THREE.Vector3(), offset = new THREE.Vector3();
+  // Test the posed anatomy, including a lowered head when prowling. A
+  // fixed cube around the root overestimated the cats in covered passages.
+  const sightPoints = [], sightGroups = [];
+  for (const subject of subjects) {
+    const first = sightPoints.length;
+    subject.updateMatrixWorld(true);
+    const model = subject === catRoot ? cat : guide;
+    if (model) {
+      sightPoints.push(model.head.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,.05,0)));
+      const chest = model.chest.getWorldPosition(new THREE.Vector3());
+      for (const x of [-.09,.09]) sightPoints.push(chest.clone().addScaledVector(side,x));
+      sightPoints.push(model.hips.getWorldPosition(new THREE.Vector3()));
+    } else sightPoints.push(subject.position.clone().add(new THREE.Vector3(0,.4,0)));
+    sightGroups.push([first,sightPoints.length]);
+  }
+  const clear = position => {
+    // Thin rails can overlap an extremity without concealing the cat. Avoid
+    // throwing the camera over a roof for that normal contact during a jump.
+    for (const [first,end] of sightGroups) {
+      let visible = 0;
+      for (let i=first;i<end;i++) {
+        const point = sightPoints[i];
+        if (world.obstacles.distance(point,position) >= point.distanceTo(position)-.18) visible++;
+      }
+      if (visible < Math.ceil((end-first)*.75)) return false;
+    }
+    return true;
+  };
+  const fits = () => {
+    let overflow = 1;
+    for (const subject of subjects) for (const x of [-.42,.42]) for (const y of [0,.72]) for (const z of [-.42,.42]) {
+      point.copy(subject.position).add(offset.set(x,y,z)).project(camera);
+      if (point.z > 1) return Infinity;
+      overflow = Math.max(overflow, Math.abs(point.x) / (portrait ? .8 : .88), Math.abs(point.y) / .56);
+    }
+    return overflow;
+  };
+  const place = (distance, height, shift = 0) => {
+    camera.position.copy(cam.center).addScaledVector(direction, distance).addScaledVector(tangent, shift);
+    camera.position.y += height;
     camera.lookAt(cam.center); camera.updateMatrixWorld(true);
   };
-  // Fit a volume around each cat, including ears, paws and its turning body.
-  // This solves perspective depth as well as aspect ratio at interior turns.
-  const point = new THREE.Vector3();
-  for (let fit = 0; fit < 8; fit++) {
-    placeCamera();
-    let overflow = 1;
-    for (const subject of [catRoot, guideRoot]) for (const x of [-0.42, 0.42]) for (const y of [0, 0.72]) for (const z of [-0.42, 0.42]) {
-      point.copy(subject.position).add(tmpV.set(x, y, z)).project(camera);
-      overflow = Math.max(overflow, Math.abs(point.x) / (portrait ? 0.8 : 0.88), point.y / 0.56, -point.y / 0.56);
+  const candidate = new THREE.Vector3();
+  const sharedLimit = portrait ? 16 : 22;
+  let found = false;
+  // Try the gently returning boom first. If scenery blocks it, resolve before
+  // drawing: easing alone would spend several frames inside a wall or roof.
+  const wanted = direction.clone().multiplyScalar(baseDistance); wanted.y = baseHeight;
+  if (!cam.boom || reset) cam.boom = wanted.clone();
+  cam.boom.lerp(wanted, 1 - Math.exp(-2.5 * dt));
+  camera.position.copy(cam.center).add(cam.boom);
+  camera.lookAt(cam.center); camera.updateMatrixWorld(true);
+  if ((!together || (cam.boom.y <= baseHeight+3 && cam.boom.length() <= sharedLimit)) && fits() <= 1.001 && clear(camera.position)) { candidate.copy(camera.position); found = true; }
+  const lifts = inAlley ? [0,.35,.8,1.6,3,5,8] : together ? [0,1.2,2.8] : [0,1.2,2.8,4.8,7.5,11,16];
+  if (!found) search: for (const shift of [0, 1.4, -1.4, 3, -3]) for (const lift of lifts) {
+    let distance = baseDistance, height = baseHeight + lift;
+    for (let i = 0; i < 5; i++) {
+      place(distance, height, shift);
+      const overflow = fits();
+      if (overflow <= 1.001) break;
+      const scale = Math.min(1.7, overflow * 1.02);
+      distance *= scale; height *= scale;
     }
-    if (overflow <= 1.001) break;
-    distance *= Math.min(1.8, overflow * 1.025);
+    if ((!together || camera.position.distanceTo(cam.center) <= sharedLimit) && fits() <= 1.001 && clear(camera.position)) { candidate.copy(camera.position); found = true; break search; }
   }
-  cam.dist = distance; placeCamera();
-  world.setView(camera, catRoot, guideRoot, runner.alley !== null || companion.runner.alley !== null ? 1 : 0);
+  // In a covered passage, shortening the boom keeps it below the soffit.
+  if (!found) searchClose: for (const d of [1.8,1.2,.8]) for (const h of [1.1,.75,.45]) {
+    place(d,h);
+    if (fits() <= 1.12 && clear(camera.position)) { candidate.copy(camera.position); found = true; break searchClose; }
+  }
+  if (!found && together) {
+    cam.soloT = .8; cam.init = false;
+    updateCamera(0,true); return;
+  }
+  if (!found) {
+    // A sharp exit can leave the eased focus behind a corner. Recenter on
+    // Michi and search around the corner before falling back to a short boom.
+    cam.center.copy(mid);
+    const savedDirection = direction.clone();
+    searchAround: for (const turn of [0,.45,-.45,.9,-.9,1.57,-1.57,Math.PI]) {
+      direction.copy(savedDirection).applyAxisAngle(new THREE.Vector3(0,1,0),turn);
+      for (const height of [1.25,.85,.55,.3,.12,2,3.5,5,8,12,18]) for (const distance of [baseDistance,3.4,2.5,1.9]) {
+        place(distance,height);
+        if (fits() <= 1.001 && clear(camera.position)) {candidate.copy(camera.position);found=true;break searchAround;}
+      }
+    }
+  }
+  if (found) {
+    camera.position.copy(candidate);
+    if (!reset && dt > 0) {
+      const eased = previousPosition.lerp(candidate,1-Math.exp(-(reduceMotion?5:8)*dt));
+      camera.position.copy(eased);camera.lookAt(cam.center);camera.updateMatrixWorld(true);
+      // Ease only through a clear view. A collision correction must take
+      // effect before drawing, never leave an interpolated frame in a wall.
+      if (fits()>1.001 || !clear(eased)) camera.position.copy(candidate);
+    }
+  }
+  camera.lookAt(cam.center); camera.updateMatrixWorld(true);
+  cam.boom.subVectors(camera.position, cam.center);
+  cam.dist = cam.boom.length();
+  cam.clear = found;
+  cam.mode = inAlley ? 'alley' : 'street';
+
 }
 
 /* ---------------- start ---------------- */
 
-function start() {
+async function start() {
   initChidori();
   if (flag('finale') === '1') {
     const perch = level.platforms.find((p) => p.kind === 'perch');
@@ -955,10 +1100,22 @@ function start() {
   initChidori();
   currentMouth = mouthAt(level, runner.s, runner.y);
   seenMouths.add(currentMouth.id);
-  if (flag('nohud') !== '1') showCard(currentMouth);
   updateStrip();
+  if (!await loadCats()) return;
+  // Initialise poses, all visible scenery and lighting before compiling the
+  // complete scene. Nothing advances or accepts held input under the cover.
+  lastNow = performance.now(); tick(lastNow, false);
+  await renderer.compileAsync(scene, camera);
+  renderer.render(scene, camera);
+  await new Promise(requestAnimationFrame);
+  renderer.render(scene, camera);
+  keys.clear(); resetTouch(); press.jump = press.down = press.jumpUp = false;
+  acc = 0; lastNow = performance.now(); stageReady = true;
+  document.body.classList.remove('loading');
+  document.body.setAttribute('aria-busy', 'false');
+  $('wake').classList.add('gone');
+  if (flag('nohud') !== '1') showCard(currentMouth);
   requestAnimationFrame((t) => { lastNow = t; frame(t); });
-  loadCats();
 }
 
 // Expose a little for headless captures and the console.
@@ -975,11 +1132,11 @@ window.roofRoad = {
       }
       b.pixelsHigh = (b.top - b.bottom) * canvas.clientHeight / 2; return b;
     };
-    return { player: ndc(catRoot.position), guide: ndc(guideRoot.position), fires: sky.fires.map(f => ndc(f.center)), bounds: { player: bounds(catRoot.position), guide: bounds(guideRoot.position) }, distance: cam.dist, aspect: camera.aspect, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, mood: companion.mood };
+    return { positions:{player:catRoot.position.toArray(),guide:guideRoot.position.toArray()}, player: ndc(catRoot.position), guide: ndc(guideRoot.position), fires: sky.fires.map(f => ndc(f.center)), bounds: { player: bounds(catRoot.position), guide: bounds(guideRoot.position) }, distance: cam.dist, aspect: camera.aspect, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, mood: companion.mood, camera: { mode: cam.mode, clear: cam.clear, subjects: cam.subjects, position: camera.position.toArray(), focus: cam.center.toArray() } };
   },
   setAuto(on = true) { autopilot = on ? new Autopilot(level) : null; },
   get finale() { return finale; },
-  get catReady() { return !!cat || flag('cat') === '0'; },
+  get catReady() { return stageReady; },
   /** Stand the cat at route position s; pass y to inspect a specific layer. */
   at(s, y = null) {
     if (Number.isFinite(y)) startAt(s, y);
@@ -1019,15 +1176,16 @@ if (flag('qa') === '1') {
   };
   roofRoad.advanceForReview = seconds => {
     const n = Math.ceil(clamp(Number(seconds) || 0, 0, 450) * 60);
-    const samples = [], moods = new Set();
+    const samples = [], moods = new Set(), cameraFailures = [];
     for (let i = 0; i < n; i++) {
       tick(lastNow + 1000 / 60, false);
+      if (!finale && !cam.clear && cameraFailures.length < 80 && cameraFailures.every(f=>Math.abs(f.s-runner.s)>1 || f.alley!==runner.alley)) cameraFailures.push({s:runner.s,alley:runner.alley,y:runner.y,depth:runner.depth,ground:runner.ground?.label,positions:roofRoad.view.positions,camera:roofRoad.view.camera});
       if (i % 30 === 0 && !finale) { const v = roofRoad.view; samples.push({ s: runner.s, y: runner.y, ...v }); moods.add(companion.mood); }
     }
     // The accelerated review clock must never leak into the next real RAF.
     lastNow = performance.now(); acc = 0;
     renderer.render(scene, camera);
-    return { samples, moods: [...moods], s: runner.s, finale: !!finale, catReady: !!cat };
+    return { samples, cameraFailures, moods: [...moods], s: runner.s, finale: !!finale, catReady: stageReady };
   };
 }
 start();

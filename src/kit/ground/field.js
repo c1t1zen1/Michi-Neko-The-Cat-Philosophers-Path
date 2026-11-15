@@ -300,14 +300,19 @@ export class GroundField {
 }
 
 // Painted fields keyed by what they were painted from (pure functions of
-// their inputs): computed once, copied for every build after.
+// their inputs). The first build gets the painted field itself and keeps no
+// copy: the game builds the valley ground once, and a 512² field's snapshot is
+// ~17 MB of heap and a copy on the boot's critical path (a1-village, R66 and
+// the v-ground heap minor). A second build paints again and keeps that
+// snapshot, so every build after it (a re-tier, the contract test's warm
+// build, a lab) is a copy.
 const _snapshots = new Map();
+const _painted = new Set();
 export function cachedField(key, paint) {
-  if (!_snapshots.has(key)) {
-    const f = paint();            // the first build gets the painted field itself
-    f.upload();
-    _snapshots.set(key, f.snapshot());
-    return f;
-  }
-  return GroundField.fromSnapshot(_snapshots.get(key));
+  if (_snapshots.has(key)) return GroundField.fromSnapshot(_snapshots.get(key));
+  const f = paint();
+  f.upload();
+  if (_painted.has(key)) _snapshots.set(key, f.snapshot());
+  else _painted.add(key);
+  return f;
 }

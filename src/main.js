@@ -216,13 +216,57 @@ class Game {
       search: location.search,
       quality: this.initialQuality
     });
-    // t3-audio: today's sounds for the moments the game already voices; the rest stay silent until a dawCAT pack is installed
-    this.assets.audio?.setSink((ev) => {
-      const a = this.audio; if (!a) return;
-      if (ev === 'shrine.bell.ring') a.playBell();
-      else if (ev === 'nest.settle') a.playPurr();
-      // keepsake.collect: main.js already calls playCollect on pickup; do not double-play
-    });
+    // The one sink for every kit sound event, valley and summit (t3-audio; a1-village A.5,
+    // rulings R50/R62). Kit instances only call env.audio.play() on an edge (a clack, a
+    // strike, a kindle); the gating is here: silent in a ?shot=1 capture, on the title or
+    // pause screen, in a hidden tab, before the AudioContext runs (the autoplay lock) and
+    // when the bus is muted; fainter with distance from the cat (the summit sits 1.2 km
+    // below the valley, so neither hears the other); lantern kindles at most one per
+    // 0.15 s. Today's game sound where the game has one (shrine bell, nest purr); the rest
+    // come from the dawCAT kit pack (src/kit/sfx_pack.js), loaded on the first event, so
+    // the classic set (no kit instances, no events) never loads it.
+    // keepsake.collect: main.js already calls playCollect on pickup; do not double-play.
+    const kitAudio = this.assets.audio;
+    if (kitAudio) {
+      // what the kit hears from: the cat (read-only; kit code reads it for proximity edges)
+      Object.defineProperty(kitAudio, 'listener', { configurable: true, get: () => (this.player && this.player.mesh ? this.player.mesh.position : null) });
+      const RANGE = {
+        'garden.shishi.clack': 24, 'garden.chime.ring': 18, 'lantern.kindle': 20, 'shrine.bell.ring': 40,
+        'water.stones.flow': 12, 'water.float.bell': 20, 'water.boat.pole': 16, 'machiya.noren.brush': 8, 'nest.settle': 10
+      };
+      const AMBIENT = { 'garden.chime.ring': true, 'water.stones.flow': true };
+      const GAP = { 'lantern.kindle': 0.15 };
+      const last = {};
+      let pack = null, waiting = null;
+      const play = (ev, gain, ambient) => {
+        const a = this.audio;
+        if (ev === 'shrine.bell.ring') return a.playBell();
+        if (ev === 'nest.settle') return a.playPurr(1.6);
+        if (pack) pack.playSfx(a, ev.replace(/\./g, '-'), { gain, dest: ambient ? a.buses.ambient : a.buses.sfx });
+      };
+      kitAudio.setSink((ev, opts = {}) => {
+        const a = this.audio, v = this.settings.values;
+        if (!a || !a.initialized || !a.isRunning || !a.buses || this.capture.shot) return;
+        if (!this.menu || !this.menu.isPlaying || document.hidden || !(ev in RANGE)) return;
+        const ambient = !!AMBIENT[ev];
+        if (!(v.master > 0) || !((ambient ? v.ambient : v.sfx) > 0)) return;
+        const cat = kitAudio.listener;
+        const d = cat && opts.pos ? cat.distanceTo(opts.pos) : 0;
+        const fall = Math.max(0, 1 - d / RANGE[ev]);
+        const gain = (typeof opts.gain === 'number' ? opts.gain : 1) * fall * fall;
+        if (gain < 0.02) return;
+        const now = a.ctx.currentTime;
+        if (last[ev] !== undefined && now - last[ev] < (GAP[ev] || 0.06)) return;
+        last[ev] = now;
+        if (pack === null && ev !== 'shrine.bell.ring' && ev !== 'nest.settle') {
+          // the first pack sound loads the pack, then plays if it arrives within 0.4 s
+          if (!waiting) waiting = import('./kit/sfx_pack.js?v=20261114a').then((m) => { pack = m; }, () => { pack = false; });
+          waiting.then(() => { if (pack && a.ctx.currentTime - now < 0.4) play(ev, gain, ambient); });
+          return;
+        }
+        play(ev, gain, ambient);
+      });
+    }
   }
 
   /** Preload the kit (nothing on the classic set), then build the valley. */

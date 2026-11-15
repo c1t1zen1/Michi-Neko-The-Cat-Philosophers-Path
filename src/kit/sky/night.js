@@ -221,11 +221,39 @@ const textureCache = new Map();
  * darkening, soft seas, a bright rayed crater, earthshine on the dark side.
  * Cached by phase + seed (shared: never disposed by an instance).
  */
-export function moonTexture(phase, seed, size = 256) {
+export function moonTexture(phase, seed, size = 256, { lazy = false } = {}) {
   const key = `${phase.toFixed(3)}|${seed >>> 0}|${size}`;
-  if (textureCache.has(key)) return textureCache.get(key);
+  if (textureCache.has(key)) {
+    const tex = textureCache.get(key);
+    if (!lazy) paintMoonNow(tex);
+    return tex;
+  }
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.name = 'kit-sky:moon-' + phase.toFixed(2);
+  tex.userData.shared = true;
+  // The painting is the same pixels whenever it runs; a lazy texture is painted
+  // on the first draw that needs it (paintMoonNow from the disc's
+  // onBeforeRender), so a day boot never pays for a moon it does not show
+  // (~20 ms of the modular world build; a1-village, ruling R66).
+  tex.userData.paint = () => paintMoon(canvas, phase, seed, size);
+  textureCache.set(key, tex);
+  if (!lazy) paintMoonNow(tex);
+  return tex;
+}
+
+/** Paint a lazy moon texture now if it has not been painted (idempotent). */
+export function paintMoonNow(tex) {
+  const paint = tex && tex.userData.paint;
+  if (!paint) return;
+  tex.userData.paint = null;
+  paint();
+  tex.needsUpdate = true;
+}
+
+function paintMoon(canvas, phase, seed, size) {
   const ctx = canvas.getContext('2d');
   const img = ctx.createImageData(size, size), px = img.data;
   const R = size * 0.4375, cx = size / 2, cy = size / 2;
@@ -261,12 +289,6 @@ export function moonTexture(phase, seed, size = 256) {
     }
   }
   ctx.putImageData(img, 0, 0);
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.name = 'kit-sky:moon-' + phase.toFixed(2);
-  tex.userData.shared = true;
-  textureCache.set(key, tex);
-  return tex;
 }
 
 /** Disc radius in the painting's uv (moonTexture paints the disc at 0.4375 of the half-width). */
@@ -401,7 +423,7 @@ export function buildMoon(ctx, layout, p) {
   const lit = (1 - Math.cos(p.phase * Math.PI * 2)) / 2;
   const bright = 0.8 + 0.2 * lit;
   const uniforms = {
-    uMap: { value: moonTexture(p.phase, seed, TIER_MOON[tier] || 256) },
+    uMap: { value: moonTexture(p.phase, seed, TIER_MOON[tier] || 256, { lazy: true }) },
     uTint: { value: new T.Color(bright, bright, bright * 0.98) },
     uOpacity: { value: 0 },
     uHalf: { value: 4.2 },
@@ -419,6 +441,7 @@ export function buildMoon(ctx, layout, p) {
   const disc = new T.Mesh(new T.PlaneGeometry(1, 1), material);
   disc.renderOrder = -999.5;
   disc.frustumCulled = false;
+  disc.onBeforeRender = () => paintMoonNow(uniforms.uMap.value);   // the moon is painted the first time it is drawn
   disc.userData.noShadow = true;
   const radius = DISC_R * p.size;
   const sizeFor = (half) => disc.scale.set(2 * half * radius, 2 * half * radius, 1);

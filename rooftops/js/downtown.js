@@ -2,6 +2,7 @@
 // actual leaf paint and nodal bamboo are reused from the Greenery/shared labs.
 import * as THREE from 'three';
 import { alleyDepth } from './alleys.js';
+import { makeResident, residentMaterials } from './people.js';
 // Leaf paint adapted from labs/greenery/js/kit.js without importing its
 // workshop material registry (which would eagerly load every game builder).
 function leafTexture() {
@@ -41,6 +42,7 @@ export function downtownMaterials(M, canvasTex) {
   const clothPaint = paint('cloth');
   M.workCloth = [0xffffff, 0xd9bca3, 0x849e88, 0xcca794].map(color => new THREE.MeshStandardMaterial({ color, map: clothPaint, roughness: 1 }));
   M.skin = [0xc58e68, 0xe0ad83, 0xae7658].map(color => new THREE.MeshStandardMaterial({ color, roughness: 0.86 }));
+  residentMaterials(M, canvasTex);
   const leafPaint = leafTexture();
   M.leaves = [0x63884d, 0xa1a660, 0x406950].map(color => new THREE.MeshStandardMaterial({ map: leafPaint, color, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 1 }));
   M.wisteria = new THREE.MeshStandardMaterial({ color: 0xbda0c6, roughness: 1 });
@@ -242,23 +244,23 @@ export function installDowntown(B, H) {
     }
     for(const id of a.plats) {
       const p=ctx.platforms[id]; if(p.kind==='street') continue;
-      const mid=(p.s0+p.s1)/2, d=alleyDepth(a,mid), x=mid-sm;
+      const mid=(p.s0+p.s1)/2, d=alleyDepth(a,mid)+(p.laneOffset||0), x=mid-sm;
       if(p.kind==='rope') {
         for(let s=p.s0;s<p.s1;s+=.35) {
-          beam(g,[s-sm,p.y0-.025,alleyDepth(a,s)],[Math.min(p.s1,s+.35)-sm,p.y0-.025,alleyDepth(a,Math.min(p.s1,s+.35))],.033,M.twine);
+          beam(g,[s-sm,p.y0-.025,alleyDepth(a,s)+(p.laneOffset||0)],[Math.min(p.s1,s+.35)-sm,p.y0-.025,alleyDepth(a,Math.min(p.s1,s+.35))+(p.laneOffset||0)],.033,M.twine);
         }
-        for(const s of [p.s0,p.s1]) beam(g,[s-sm,0,alleyDepth(a,s)],[s-sm,p.y0+.2,alleyDepth(a,s)],.055,M.bamboo);
+        for(const s of [p.s0,p.s1]) beam(g,[s-sm,0,alleyDepth(a,s)+(p.laneOffset||0)],[s-sm,p.y0+.2,alleyDepth(a,s)+(p.laneOffset||0)],.055,M.bamboo);
       } else {
-        strip(p.s0,p.s1,p.y0,.7,0,p.kind==='futon'?M.cloth[0]:M.agedWood);
+        strip(p.s0,p.s1,p.y0,.7,p.laneOffset||0,p.kind==='futon'?M.cloth[0]:M.agedWood);
         for(let s=p.s0+.15;s<p.s1;s+=.55) {
-          const d=alleyDepth(a,s);
+          const d=alleyDepth(a,s)+(p.laneOffset||0);
           if(p.kind==='step') crate(g,M,s-sm,0,d,.5,p.y0-.015,.65);
           else { g.add(box(.06,p.y0,.06,M.timber,s-sm,p.y0/2,d-.26));g.add(box(.06,p.y0,.06,M.timber,s-sm,p.y0/2,d+.26)); }
           if(p.kind==='rack') { const l=cyl(.11,.28,M.lanternWhite,'y',10);l.position.set(s-sm,p.y0-.3,d-.25);g.add(l); }
         }
       }
       if(a.theme==='indigo'&&p.kind==='deck'||a.theme==='laundry'&&p.kind==='rope') {
-        for(let s=p.s0+.2;s<p.s1;s+=.6) g.add(box(.38,.6,.025,M.workCloth[0],s-sm,p.y0-.35,alleyDepth(a,s)-.2));
+        for(let s=p.s0+.2;s<p.s1;s+=.6) g.add(box(.38,.6,.025,M.workCloth[0],s-sm,p.y0-.35,alleyDepth(a,s)+(p.laneOffset||0)-.2));
       }
     }
     // A noren and beam over each entrance make the choice visible at cat height.
@@ -352,30 +354,9 @@ export function installDowntown(B, H) {
     leaves(g, M, 0, pc.pineY + 0.15, pc.d - 0.35, 48, sm, 2); ctx.add(g);
   };
   B.villager = (pc, ctx) => {
-    const { M, rail } = ctx, g = frameGroup(rail, pc.s), body = new THREE.Group();
-    body.position.set(0, pc.y, pc.d - (pc.role === 'laundry' ? 0.36 : 0)); g.add(body);
-    const cloth = M.workCloth[Math.floor(pc.look * 4) % 4], skin = M.skin[Math.floor(pc.look * 3) % 3];
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.24, 0.62, 9), cloth); torso.position.y = 0.87; body.add(torso);
-    const apron = box(0.28, 0.58, 0.045, M.cloth[0], 0, 0.65, 0.15); body.add(apron);
-    body.add(box(0.36, 0.07, 0.3, M.cloth[pc.role === 'laundry' ? 4 : 2], 0, 0.65, 0));
-    for (const side of [-1, 1]) {
-      const collar = box(0.045, 0.32, 0.035, M.cloth[0], side * 0.055, 1.02, .15);
-      collar.rotation.z = side * -.35; body.add(collar);
-    }
-    for (const x of [-0.095, 0.095]) { body.add(box(0.11, 0.43, 0.14, cloth, x, 0.3, 0)); body.add(box(0.13, 0.07, 0.25, M.dark, x, 0.065, 0.04)); }
-    const head=new THREE.Group();head.position.y=1.36;body.add(head);
-    const face=new THREE.Mesh(sphere,skin);face.scale.set(.14,.18,.13);head.add(face);
-    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.145, 10, 7, 0, TAU, 0, Math.PI * 0.64), M.dark); hair.position.set(0, .05, -.015); head.add(hair);
-    if (pc.role === 'laundry') { const bun = new THREE.Mesh(sphere, M.dark); bun.scale.setScalar(0.07); bun.position.set(0, .12, -.13); head.add(bun); }
-    else { const band = cyl(0.146, 0.055, M.cloth[0], 'y', 10); band.position.y = .07; head.add(band); }
-    for (const x of [-0.052, 0.052]) { const eye = new THREE.Mesh(sphere, M.dark); eye.scale.set(0.012, 0.014, 0.01); eye.position.set(x, .02, .117); head.add(eye); }
-    const nose = new THREE.Mesh(sphere, skin); nose.scale.set(.032, .035, .04); nose.position.set(0, -.01, .127); head.add(nose);
-    head.add(box(.048, .009, .01, M.terracotta, 0, -.075, .121));
-    const arms = [-1, 1].map(side => {
-      const pivot = new THREE.Group(); pivot.position.set(side * 0.18, 1.09, 0);
-      pivot.add(box(0.15, 0.24, 0.17, cloth, 0, -0.1, 0));
-      const hand = new THREE.Mesh(sphere, skin); hand.scale.set(0.055, 0.13, 0.055); hand.position.set(0, -0.3, 0); pivot.add(hand); body.add(pivot); return pivot;
-    });
+    const { M, rail } = ctx, g = frameGroup(rail, pc.s);
+    const { body, head, arms } = makeResident(M, pc);
+    body.position.set(0, pc.y, pc.d - (pc.role === 'laundry' ? .36 : 0)); g.add(body);
     let towel=null;
     if(pc.role==='laundry') {
       towel=box(.42,.55,.02,M.cloth[3],0,-.4,0);arms[1].add(towel);
@@ -394,7 +375,9 @@ export function installDowntown(B, H) {
       arms[0].add(box(.23,.025,.16,M.terracotta,0,-.32,.06));
     }
     const rigid=new THREE.Group();for(const child of [...body.children]) if(child!==head&&!arms.includes(child))rigid.add(child);
-    body.add(mergeParts(rigid,false));const faceSource=new THREE.Group();for(const child of [...head.children])faceSource.add(child);head.add(mergeParts(faceSource,false));
+    body.add(mergeParts(rigid,false));
+    for(const arm of arms) { const source=new THREE.Group();for(const child of [...arm.children]) source.add(child);arm.add(mergeParts(source,false)); }
+    const faceSource=new THREE.Group();for(const child of [...head.children])faceSource.add(child);head.add(mergeParts(faceSource,false));
     // Bake each rigid part while retaining just two animated shoulders. Root
     // update hides far-away workers; the whole kilometre never animates at once.
     body.rotation.y = pc.role === 'laundry' ? Math.PI * 0.12 : 0;

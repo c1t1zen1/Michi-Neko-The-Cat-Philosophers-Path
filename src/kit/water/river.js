@@ -253,6 +253,22 @@ export function buildRiver(ctx, layout, p) {
   // re-laid as obstacles in the field (wakes, eddies, pillows)
   let seen = '';
   const v = new T.Vector3();
+  // Water over the stones (a1-village A.5): while the cat is within 7 m of a post the
+  // field flows round, the nearest one is heard every 2.2 to 3.4 s (a fixed stagger, so
+  // the burbles never fall into a beat); the sink fades it with distance.
+  const wet = [];                                   // world [x, z] of every placed post in the water
+  const flow = { wait: 0, n: 0, at: new T.Vector3() };
+  const listen = (dt, env) => {
+    const audio = env && env.audio, cat = audio && audio.listener;
+    flow.wait -= dt;
+    if (!cat || !wet.length || flow.wait > 0) return;
+    let best = 49, bx = 0, bz = 0;
+    for (const [x, z] of wet) { const d = (x - cat.x) * (x - cat.x) + (z - cat.z) * (z - cat.z); if (d < best) { best = d; bx = x; bz = z; } }
+    if (best >= 49) return;
+    flow.n++;
+    flow.wait = 2.2 + ((flow.n * 0.618) % 1) * 1.2;
+    audio.play('water.stones.flow', { pos: flow.at.set(bx, group.position.y, bz), gain: 0.8 });
+  };
   return {
     group,
     parts: { water },
@@ -261,19 +277,21 @@ export function buildRiver(ctx, layout, p) {
     field,
     update(dt, t, env) {
       sky.sync(t, env);
+      listen(dt, env);
       let placed = 0;
       for (const g of sky.obstacles.keys()) if (g.parent) placed++;
       const key = sky.obstaclesVersion + ':' + placed;
       if (key === seen) return;
       seen = key;
       const posts = [];
+      wet.length = 0;
       for (const [g, list] of sky.obstacles) {
         if (!g.parent) continue;                       // built but not placed (yet)
         g.updateMatrixWorld(true);
         for (const ob of list) {
           v.set(ob.x, 0, ob.z).applyMatrix4(g.matrixWorld);
           const at = field.locate(v.x, v.z);
-          if (at) posts.push({ s: at.s, u: at.u, r: ob.r });
+          if (at) { posts.push({ s: at.s, u: at.u, r: ob.r }); wet.push([v.x, v.z]); }
         }
       }
       if (posts.length || field.obstacles.length) field.setObstacles(posts);

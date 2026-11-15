@@ -1,0 +1,1994 @@
+{
+  "version": 1,
+  "id": "rooftops-stage-2",
+  "title": "The Roof Road",
+  "capturedAt": "2026-11-15T07:13:41.932Z",
+  "width": 1200,
+  "height": 750,
+  "panorama": "assets/rooftops-stage-2-full.jpg",
+  "panoramaWidth": 56400,
+  "panoramaHeight": 750,
+  "source": {
+    "entry": "../kyoto-rooftops.html",
+    "length": 1082.0508806208338,
+    "files": {
+      "rooftops/js/level.js": "306789b259d9101d063fe57888ba9a7492191ec7698d10ccb3f81d958c9dff6d",
+      "rooftops/js/build.js": "5d10eb8d6241bea76877b9427724b37f85ada00033d73bf794733bc52c49d90e",
+      "rooftops/js/alleys.js": "59f29a6a77e7f11af64e982df1b9ea2a1caa618cfb44326003088f03752da854",
+      "rooftops/js/downtown.js": "1bbb22656ab4eba1e34499442d506088b0bdca6bb7675d1311a705d6d07515f4"
+    },
+    "lighting": "Fixed warm daytime phase 0.24",
+    "method": "Real Stage 2 geometry, orthographic elevations. Straight street panels meet at matching edges; each curved turn is a separate wider view. The winding 3D route is unfolded in travel order, so turn boundaries are intentional perspective transitions. Alley supplements use oblique overhead views to expose the courts behind street façades.",
+    "frameCount": 59
+  },
+  "districts": [
+    {
+      "id": 1,
+      "kanji": "粟田口",
+      "romaji": "Awataguchi",
+      "title": "the Mouth",
+      "note": "Sanjō Ōhashi, a hidden tunnel roji, and the first shops of rakuchū",
+      "s0": 0,
+      "s1": 100.42699081698724
+    },
+    {
+      "id": 2,
+      "kanji": "先斗町",
+      "romaji": "Pontochō",
+      "title": "the Alley Maze",
+      "note": "yuka river decks, narrow geiko zushi, vine trellises and crooked ridges",
+      "s0": 100.42699081698724,
+      "s1": 242.2809724509617
+    },
+    {
+      "id": 3,
+      "kanji": "高瀬川",
+      "romaji": "Takase",
+      "title": "the Water Maze",
+      "note": "two cargo takasebune, willow fronds, bridge culverts and cherry boughs",
+      "s0": 242.2809724509617,
+      "s1": 402.13495408493617
+    },
+    {
+      "id": 4,
+      "kanji": "錦",
+      "romaji": "Nishiki",
+      "title": "the Long Canopy",
+      "note": "Teramachi lanterns, stained-glass vaults, rafter catwalks and skylights",
+      "s0": 402.13495408493617,
+      "s1": 589.9889357189106
+    },
+    {
+      "id": 5,
+      "kanji": "物干し",
+      "romaji": "Monohoshi",
+      "title": "Laundry Sky",
+      "note": "drying decks, folks hanging yukata, tunnel lanes, futons and high cisterns",
+      "s0": 589.9889357189106,
+      "s1": 798.7699081698722
+    },
+    {
+      "id": 6,
+      "kanji": "鉾町",
+      "romaji": "Hoko-chō",
+      "title": "Festival Streets",
+      "note": "bustling yatai stalls, folding screens, a kakiyama and the great hoko float",
+      "s0": 798.7699081698722,
+      "s1": 1082.0508806208338
+    },
+    {
+      "id": 7,
+      "kanji": "送り火",
+      "romaji": "Okuribi",
+      "title": "the Sending Fires",
+      "note": "five fires on the Kyoto hills, across the roofs you ran",
+      "s0": 1028.7508806208339,
+      "s1": 1034.7508806208339,
+      "minY": 6.4
+    }
+  ],
+  "routes": [
+    {
+      "id": "main",
+      "name": "Full stage",
+      "length": 1082.0508806208338,
+      "frames": [
+        {
+          "id": "main-001",
+          "index": 0,
+          "title": "Awataguchi",
+          "district": "Awataguchi",
+          "s0": 0,
+          "s1": 32.75,
+          "kind": "street",
+          "leg": 0,
+          "image": "assets/frames/main-001.jpg",
+          "thumb": "assets/thumbs/main-001.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              16.375,
+              9,
+              30
+            ],
+            "focus": [
+              16.375,
+              6,
+              0
+            ],
+            "projection": "orthographic",
+            "span": 32.75,
+            "viewHeight": 20.46875,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-002",
+          "index": 1,
+          "title": "Awataguchi",
+          "district": "Awataguchi",
+          "s0": 32.75,
+          "s1": 65.5,
+          "kind": "street",
+          "leg": 0,
+          "image": "assets/frames/main-002.jpg",
+          "thumb": "assets/thumbs/main-002.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              49.125,
+              9,
+              30
+            ],
+            "focus": [
+              49.125,
+              6,
+              0
+            ],
+            "projection": "orthographic",
+            "span": 32.75,
+            "viewHeight": 20.46875,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-003",
+          "index": 2,
+          "title": "Street turn",
+          "district": "Awataguchi",
+          "s0": 65.5,
+          "s1": 69.42699081698724,
+          "kind": "turn",
+          "leg": null,
+          "image": "assets/frames/main-003.jpg",
+          "thumb": "assets/thumbs/main-003.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              88.48097038856285,
+              9,
+              20.48097038856273
+            ],
+            "focus": [
+              67.26776695296637,
+              6,
+              -0.732233047033636
+            ],
+            "projection": "orthographic",
+            "span": 24,
+            "viewHeight": 15,
+            "kind": "turn",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-004",
+          "index": 3,
+          "title": "Awataguchi",
+          "district": "Awataguchi",
+          "s0": 69.42699081698724,
+          "s1": 100.92699081698726,
+          "kind": "street",
+          "leg": 1,
+          "image": "assets/frames/main-004.jpg",
+          "thumb": "assets/thumbs/main-004.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              98,
+              9,
+              -18.250000000000014
+            ],
+            "focus": [
+              68,
+              6,
+              -18.250000000000014
+            ],
+            "projection": "orthographic",
+            "span": 31.500000000000014,
+            "viewHeight": 19.68750000000001,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-005",
+          "index": 4,
+          "title": "Pontochō",
+          "district": "Pontochō",
+          "s0": 100.92699081698726,
+          "s1": 132.42699081698726,
+          "kind": "street",
+          "leg": 1,
+          "image": "assets/frames/main-005.jpg",
+          "thumb": "assets/thumbs/main-005.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              98,
+              9,
+              -49.750000000000014
+            ],
+            "focus": [
+              68,
+              6,
+              -49.750000000000014
+            ],
+            "projection": "orthographic",
+            "span": 31.5,
+            "viewHeight": 19.6875,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-006",
+          "index": 5,
+          "title": "Street turn",
+          "district": "Pontochō",
+          "s0": 132.42699081698726,
+          "s1": 136.35398163397448,
+          "kind": "turn",
+          "leg": null,
+          "image": "assets/frames/main-006.jpg",
+          "thumb": "assets/thumbs/main-006.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              88.48097038856292,
+              9,
+              -88.48097038856267
+            ],
+            "focus": [
+              67.26776695296638,
+              6,
+              -67.26776695296635
+            ],
+            "projection": "orthographic",
+            "span": 24,
+            "viewHeight": 15,
+            "kind": "turn",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-007",
+          "index": 6,
+          "title": "Pontochō",
+          "district": "Pontochō",
+          "s0": 136.35398163397448,
+          "s1": 173.35398163397448,
+          "kind": "street",
+          "leg": 2,
+          "image": "assets/frames/main-007.jpg",
+          "thumb": "assets/thumbs/main-007.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              47,
+              9,
+              -98
+            ],
+            "focus": [
+              47,
+              6,
+              -68
+            ],
+            "projection": "orthographic",
+            "span": 37,
+            "viewHeight": 23.125,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-008",
+          "index": 7,
+          "title": "Street turn",
+          "district": "Pontochō",
+          "s0": 173.35398163397448,
+          "s1": 177.2809724509617,
+          "kind": "turn",
+          "leg": null,
+          "image": "assets/frames/main-008.jpg",
+          "thumb": "assets/thumbs/main-008.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              47.94543648263017,
+              9,
+              -89.94543648262996
+            ],
+            "focus": [
+              26.73223304703362,
+              6,
+              -68.73223304703365
+            ],
+            "projection": "orthographic",
+            "span": 24,
+            "viewHeight": 15,
+            "kind": "turn",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-009",
+          "index": 8,
+          "title": "Pontochō",
+          "district": "Pontochō",
+          "s0": 177.2809724509617,
+          "s1": 209.7809724509617,
+          "kind": "street",
+          "leg": 3,
+          "image": "assets/frames/main-009.jpg",
+          "thumb": "assets/thumbs/main-009.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              56,
+              9,
+              -86.75
+            ],
+            "focus": [
+              26,
+              6,
+              -86.75
+            ],
+            "projection": "orthographic",
+            "span": 32.5,
+            "viewHeight": 20.3125,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-010",
+          "index": 9,
+          "title": "Pontochō",
+          "district": "Pontochō",
+          "s0": 209.7809724509617,
+          "s1": 242.2809724509617,
+          "kind": "street",
+          "leg": 3,
+          "image": "assets/frames/main-010.jpg",
+          "thumb": "assets/thumbs/main-010.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              56,
+              9,
+              -119.25
+            ],
+            "focus": [
+              26,
+              6,
+              -119.25
+            ],
+            "projection": "orthographic",
+            "span": 32.5,
+            "viewHeight": 20.3125,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-011",
+          "index": 10,
+          "title": "Street turn",
+          "district": "Takase",
+          "s0": 242.2809724509617,
+          "s1": 246.20796326794894,
+          "kind": "turn",
+          "leg": null,
+          "image": "assets/frames/main-011.jpg",
+          "thumb": "assets/thumbs/main-011.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              46.48097038856292,
+              9,
+              -158.48097038856267
+            ],
+            "focus": [
+              25.26776695296638,
+              6,
+              -137.26776695296635
+            ],
+            "projection": "orthographic",
+            "span": 24,
+            "viewHeight": 15,
+            "kind": "turn",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-012",
+          "index": 11,
+          "title": "Takase",
+          "district": "Takase",
+          "s0": 246.20796326794894,
+          "s1": 278.7079632679489,
+          "kind": "street",
+          "leg": 4,
+          "image": "assets/frames/main-012.jpg",
+          "thumb": "assets/thumbs/main-012.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              7.250000000000028,
+              9,
+              -168
+            ],
+            "focus": [
+              7.250000000000028,
+              6,
+              -138
+            ],
+            "projection": "orthographic",
+            "span": 32.49999999999997,
+            "viewHeight": 20.312499999999982,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-013",
+          "index": 12,
+          "title": "Takase",
+          "district": "Takase",
+          "s0": 278.7079632679489,
+          "s1": 311.2079632679489,
+          "kind": "street",
+          "leg": 4,
+          "image": "assets/frames/main-013.jpg",
+          "thumb": "assets/thumbs/main-013.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -25.24999999999997,
+              9,
+              -168
+            ],
+            "focus": [
+              -25.24999999999997,
+              6,
+              -138
+            ],
+            "projection": "orthographic",
+            "span": 32.5,
+            "viewHeight": 20.3125,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-014",
+          "index": 13,
+          "title": "Street turn",
+          "district": "Takase",
+          "s0": 311.2079632679489,
+          "s1": 315.13495408493617,
+          "kind": "turn",
+          "leg": null,
+          "image": "assets/frames/main-014.jpg",
+          "thumb": "assets/thumbs/main-014.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -64.48097038856253,
+              9,
+              -158.48097038856307
+            ],
+            "focus": [
+              -43.26776695296635,
+              6,
+              -137.26776695296638
+            ],
+            "projection": "orthographic",
+            "span": 24,
+            "viewHeight": 15,
+            "kind": "turn",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-015",
+          "index": 14,
+          "title": "Takase",
+          "district": "Takase",
+          "s0": 315.13495408493617,
+          "s1": 344.13495408493617,
+          "kind": "street",
+          "leg": 5,
+          "image": "assets/frames/main-015.jpg",
+          "thumb": "assets/thumbs/main-015.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -74,
+              9,
+              -121
+            ],
+            "focus": [
+              -44,
+              6,
+              -121
+            ],
+            "projection": "orthographic",
+            "span": 29,
+            "viewHeight": 18.125,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-016",
+          "index": 15,
+          "title": "Takase",
+          "district": "Takase",
+          "s0": 344.13495408493617,
+          "s1": 373.13495408493617,
+          "kind": "street",
+          "leg": 5,
+          "image": "assets/frames/main-016.jpg",
+          "thumb": "assets/thumbs/main-016.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -74,
+              9,
+              -92
+            ],
+            "focus": [
+              -44,
+              6,
+              -92
+            ],
+            "projection": "orthographic",
+            "span": 29,
+            "viewHeight": 18.125,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-017",
+          "index": 16,
+          "title": "Takase",
+          "district": "Takase",
+          "s0": 373.13495408493617,
+          "s1": 402.13495408493617,
+          "kind": "street",
+          "leg": 5,
+          "image": "assets/frames/main-017.jpg",
+          "thumb": "assets/thumbs/main-017.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -74,
+              9,
+              -63
+            ],
+            "focus": [
+              -44,
+              6,
+              -63
+            ],
+            "projection": "orthographic",
+            "span": 29,
+            "viewHeight": 18.125,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-018",
+          "index": 17,
+          "title": "Street turn",
+          "district": "Nishiki",
+          "s0": 402.13495408493617,
+          "s1": 406.0619449019234,
+          "kind": "turn",
+          "leg": null,
+          "image": "assets/frames/main-018.jpg",
+          "thumb": "assets/thumbs/main-018.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -65.94543648262984,
+              9,
+              -67.94543648263027
+            ],
+            "focus": [
+              -44.73223304703365,
+              6,
+              -46.73223304703361
+            ],
+            "projection": "orthographic",
+            "span": 24,
+            "viewHeight": 15,
+            "kind": "turn",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-019",
+          "index": 18,
+          "title": "Nishiki",
+          "district": "Nishiki",
+          "s0": 406.0619449019234,
+          "s1": 433.5619449019234,
+          "kind": "street",
+          "leg": 6,
+          "image": "assets/frames/main-019.jpg",
+          "thumb": "assets/thumbs/main-019.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -60.25,
+              9,
+              -76
+            ],
+            "focus": [
+              -60.25,
+              6,
+              -46
+            ],
+            "projection": "orthographic",
+            "span": 27.5,
+            "viewHeight": 17.1875,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-020",
+          "index": 19,
+          "title": "Nishiki",
+          "district": "Nishiki",
+          "s0": 433.5619449019234,
+          "s1": 461.0619449019234,
+          "kind": "street",
+          "leg": 6,
+          "image": "assets/frames/main-020.jpg",
+          "thumb": "assets/thumbs/main-020.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -87.75,
+              9,
+              -76
+            ],
+            "focus": [
+              -87.75,
+              6,
+              -46
+            ],
+            "projection": "orthographic",
+            "span": 27.5,
+            "viewHeight": 17.1875,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-021",
+          "index": 20,
+          "title": "Street turn",
+          "district": "Nishiki",
+          "s0": 461.0619449019234,
+          "s1": 464.9889357189107,
+          "kind": "turn",
+          "leg": null,
+          "image": "assets/frames/main-021.jpg",
+          "thumb": "assets/thumbs/main-021.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -82.05456351737018,
+              9,
+              -67.94543648263029
+            ],
+            "focus": [
+              -103.26776695296635,
+              6,
+              -46.73223304703361
+            ],
+            "projection": "orthographic",
+            "span": 24,
+            "viewHeight": 15,
+            "kind": "turn",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-022",
+          "index": 21,
+          "title": "Nishiki",
+          "district": "Nishiki",
+          "s0": 464.9889357189107,
+          "s1": 496.2389357189107,
+          "kind": "street",
+          "leg": 7,
+          "image": "assets/frames/main-022.jpg",
+          "thumb": "assets/thumbs/main-022.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -74,
+              9,
+              -64.125
+            ],
+            "focus": [
+              -104,
+              6,
+              -64.125
+            ],
+            "projection": "orthographic",
+            "span": 31.25,
+            "viewHeight": 19.53125,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-023",
+          "index": 22,
+          "title": "Nishiki",
+          "district": "Nishiki",
+          "s0": 496.2389357189107,
+          "s1": 527.4889357189106,
+          "kind": "street",
+          "leg": 7,
+          "image": "assets/frames/main-023.jpg",
+          "thumb": "assets/thumbs/main-023.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -74,
+              9,
+              -95.37499999999994
+            ],
+            "focus": [
+              -104,
+              6,
+              -95.37499999999994
+            ],
+            "projection": "orthographic",
+            "span": 31.249999999999943,
+            "viewHeight": 19.531249999999964,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-024",
+          "index": 23,
+          "title": "Nishiki",
+          "district": "Nishiki",
+          "s0": 527.4889357189106,
+          "s1": 558.7389357189106,
+          "kind": "street",
+          "leg": 7,
+          "image": "assets/frames/main-024.jpg",
+          "thumb": "assets/thumbs/main-024.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -74,
+              9,
+              -126.62499999999994
+            ],
+            "focus": [
+              -104,
+              6,
+              -126.62499999999994
+            ],
+            "projection": "orthographic",
+            "span": 31.25,
+            "viewHeight": 19.53125,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-025",
+          "index": 24,
+          "title": "Nishiki",
+          "district": "Nishiki",
+          "s0": 558.7389357189106,
+          "s1": 589.9889357189106,
+          "kind": "street",
+          "leg": 7,
+          "image": "assets/frames/main-025.jpg",
+          "thumb": "assets/thumbs/main-025.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -74,
+              9,
+              -157.87499999999994
+            ],
+            "focus": [
+              -104,
+              6,
+              -157.87499999999994
+            ],
+            "projection": "orthographic",
+            "span": 31.25,
+            "viewHeight": 19.53125,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-026",
+          "index": 25,
+          "title": "Street turn",
+          "district": "Monohoshi",
+          "s0": 589.9889357189106,
+          "s1": 593.9159265358978,
+          "kind": "turn",
+          "leg": null,
+          "image": "assets/frames/main-026.jpg",
+          "thumb": "assets/thumbs/main-026.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -83.5190296114372,
+              9,
+              -196.48097038856278
+            ],
+            "focus": [
+              -104.73223304703363,
+              6,
+              -175.26776695296635
+            ],
+            "projection": "orthographic",
+            "span": 24,
+            "viewHeight": 15,
+            "kind": "turn",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-027",
+          "index": 26,
+          "title": "Monohoshi",
+          "district": "Monohoshi",
+          "s0": 593.9159265358978,
+          "s1": 625.4159265358978,
+          "kind": "street",
+          "leg": 8,
+          "image": "assets/frames/main-027.jpg",
+          "thumb": "assets/thumbs/main-027.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -122.25,
+              9,
+              -206
+            ],
+            "focus": [
+              -122.25,
+              6,
+              -176
+            ],
+            "projection": "orthographic",
+            "span": 31.5,
+            "viewHeight": 19.6875,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-028",
+          "index": 27,
+          "title": "Monohoshi",
+          "district": "Monohoshi",
+          "s0": 625.4159265358978,
+          "s1": 656.9159265358978,
+          "kind": "street",
+          "leg": 8,
+          "image": "assets/frames/main-028.jpg",
+          "thumb": "assets/thumbs/main-028.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -153.75,
+              9,
+              -206
+            ],
+            "focus": [
+              -153.75,
+              6,
+              -176
+            ],
+            "projection": "orthographic",
+            "span": 31.5,
+            "viewHeight": 19.6875,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-029",
+          "index": 28,
+          "title": "Street turn",
+          "district": "Monohoshi",
+          "s0": 656.9159265358978,
+          "s1": 660.842917352885,
+          "kind": "turn",
+          "leg": null,
+          "image": "assets/frames/main-029.jpg",
+          "thumb": "assets/thumbs/main-029.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -192.48097038856278,
+              9,
+              -196.4809703885628
+            ],
+            "focus": [
+              -171.26776695296635,
+              6,
+              -175.26776695296638
+            ],
+            "projection": "orthographic",
+            "span": 24,
+            "viewHeight": 15,
+            "kind": "turn",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-030",
+          "index": 29,
+          "title": "Monohoshi",
+          "district": "Monohoshi",
+          "s0": 660.842917352885,
+          "s1": 688.5095840195517,
+          "kind": "street",
+          "leg": 9,
+          "image": "assets/frames/main-030.jpg",
+          "thumb": "assets/thumbs/main-030.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -202,
+              9,
+              -159.66666666666674
+            ],
+            "focus": [
+              -172,
+              6,
+              -159.66666666666674
+            ],
+            "projection": "orthographic",
+            "span": 27.66666666666663,
+            "viewHeight": 17.291666666666643,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-031",
+          "index": 30,
+          "title": "Monohoshi",
+          "district": "Monohoshi",
+          "s0": 688.5095840195517,
+          "s1": 716.1762506862184,
+          "kind": "street",
+          "leg": 9,
+          "image": "assets/frames/main-031.jpg",
+          "thumb": "assets/thumbs/main-031.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -202,
+              9,
+              -132
+            ],
+            "focus": [
+              -172,
+              6,
+              -132
+            ],
+            "projection": "orthographic",
+            "span": 27.666666666666742,
+            "viewHeight": 17.291666666666714,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-032",
+          "index": 31,
+          "title": "Monohoshi",
+          "district": "Monohoshi",
+          "s0": 716.1762506862184,
+          "s1": 743.842917352885,
+          "kind": "street",
+          "leg": 9,
+          "image": "assets/frames/main-032.jpg",
+          "thumb": "assets/thumbs/main-032.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -202,
+              9,
+              -104.33333333333326
+            ],
+            "focus": [
+              -172,
+              6,
+              -104.33333333333326
+            ],
+            "projection": "orthographic",
+            "span": 27.66666666666663,
+            "viewHeight": 17.291666666666643,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-033",
+          "index": 32,
+          "title": "Street turn",
+          "district": "Monohoshi",
+          "s0": 743.842917352885,
+          "s1": 747.7699081698722,
+          "kind": "turn",
+          "leg": null,
+          "image": "assets/frames/main-033.jpg",
+          "thumb": "assets/thumbs/main-033.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -193.94543648263004,
+              9,
+              -109.94543648263006
+            ],
+            "focus": [
+              -172.73223304703362,
+              6,
+              -88.73223304703363
+            ],
+            "projection": "orthographic",
+            "span": 24,
+            "viewHeight": 15,
+            "kind": "turn",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-034",
+          "index": 33,
+          "title": "Monohoshi",
+          "district": "Monohoshi",
+          "s0": 747.7699081698722,
+          "s1": 773.2699081698722,
+          "kind": "street",
+          "leg": 10,
+          "image": "assets/frames/main-034.jpg",
+          "thumb": "assets/thumbs/main-034.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -187.25,
+              9,
+              -118
+            ],
+            "focus": [
+              -187.25,
+              6,
+              -88
+            ],
+            "projection": "orthographic",
+            "span": 25.5,
+            "viewHeight": 15.9375,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-035",
+          "index": 34,
+          "title": "Monohoshi",
+          "district": "Monohoshi",
+          "s0": 773.2699081698722,
+          "s1": 798.7699081698722,
+          "kind": "street",
+          "leg": 10,
+          "image": "assets/frames/main-035.jpg",
+          "thumb": "assets/thumbs/main-035.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -212.75,
+              9,
+              -118
+            ],
+            "focus": [
+              -212.75,
+              6,
+              -88
+            ],
+            "projection": "orthographic",
+            "span": 25.5,
+            "viewHeight": 15.9375,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-036",
+          "index": 35,
+          "title": "Street turn",
+          "district": "Hoko-chō",
+          "s0": 798.7699081698722,
+          "s1": 802.6968989868594,
+          "kind": "turn",
+          "leg": null,
+          "image": "assets/frames/main-036.jpg",
+          "thumb": "assets/thumbs/main-036.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -206.05456351736993,
+              9,
+              -109.94543648263006
+            ],
+            "focus": [
+              -227.26776695296635,
+              6,
+              -88.73223304703363
+            ],
+            "projection": "orthographic",
+            "span": 24,
+            "viewHeight": 15,
+            "kind": "turn",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-037",
+          "index": 36,
+          "title": "Hoko-chō",
+          "district": "Hoko-chō",
+          "s0": 802.6968989868594,
+          "s1": 837.0302323201928,
+          "kind": "street",
+          "leg": 11,
+          "image": "assets/frames/main-037.jpg",
+          "thumb": "assets/thumbs/main-037.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -198,
+              9,
+              -107.66666666666674
+            ],
+            "focus": [
+              -228,
+              6,
+              -107.66666666666674
+            ],
+            "projection": "orthographic",
+            "span": 34.33333333333337,
+            "viewHeight": 21.458333333333357,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-038",
+          "index": 37,
+          "title": "Hoko-chō",
+          "district": "Hoko-chō",
+          "s0": 837.0302323201928,
+          "s1": 871.363565653526,
+          "kind": "street",
+          "leg": 11,
+          "image": "assets/frames/main-038.jpg",
+          "thumb": "assets/thumbs/main-038.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -198,
+              9,
+              -142
+            ],
+            "focus": [
+              -228,
+              6,
+              -142
+            ],
+            "projection": "orthographic",
+            "span": 34.33333333333326,
+            "viewHeight": 21.458333333333286,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-039",
+          "index": 38,
+          "title": "Hoko-chō",
+          "district": "Hoko-chō",
+          "s0": 871.363565653526,
+          "s1": 905.6968989868594,
+          "kind": "street",
+          "leg": 11,
+          "image": "assets/frames/main-039.jpg",
+          "thumb": "assets/thumbs/main-039.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -198,
+              9,
+              -176.33333333333326
+            ],
+            "focus": [
+              -228,
+              6,
+              -176.33333333333326
+            ],
+            "projection": "orthographic",
+            "span": 34.33333333333337,
+            "viewHeight": 21.458333333333357,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-040",
+          "index": 39,
+          "title": "Street turn",
+          "district": "Hoko-chō",
+          "s0": 905.6968989868594,
+          "s1": 909.6238898038466,
+          "kind": "turn",
+          "leg": null,
+          "image": "assets/frames/main-040.jpg",
+          "thumb": "assets/thumbs/main-040.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -207.5190296114372,
+              9,
+              -216.48097038856278
+            ],
+            "focus": [
+              -228.73223304703362,
+              6,
+              -195.26776695296635
+            ],
+            "projection": "orthographic",
+            "span": 24,
+            "viewHeight": 15,
+            "kind": "turn",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-041",
+          "index": 40,
+          "title": "Hoko-chō",
+          "district": "Hoko-chō",
+          "s0": 909.6238898038466,
+          "s1": 935.1238898038466,
+          "kind": "street",
+          "leg": 12,
+          "image": "assets/frames/main-041.jpg",
+          "thumb": "assets/thumbs/main-041.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -243.25,
+              9,
+              -226
+            ],
+            "focus": [
+              -243.25,
+              6,
+              -196
+            ],
+            "projection": "orthographic",
+            "span": 25.5,
+            "viewHeight": 15.9375,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-042",
+          "index": 41,
+          "title": "Hoko-chō",
+          "district": "Hoko-chō",
+          "s0": 935.1238898038466,
+          "s1": 960.6238898038466,
+          "kind": "street",
+          "leg": 12,
+          "image": "assets/frames/main-042.jpg",
+          "thumb": "assets/thumbs/main-042.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -268.75,
+              9,
+              -226
+            ],
+            "focus": [
+              -268.75,
+              6,
+              -196
+            ],
+            "projection": "orthographic",
+            "span": 25.5,
+            "viewHeight": 15.9375,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-043",
+          "index": 42,
+          "title": "Street turn",
+          "district": "Hoko-chō",
+          "s0": 960.6238898038466,
+          "s1": 964.5508806208338,
+          "kind": "turn",
+          "leg": null,
+          "image": "assets/frames/main-043.jpg",
+          "thumb": "assets/thumbs/main-043.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -304.4809703885628,
+              9,
+              -216.4809703885628
+            ],
+            "focus": [
+              -283.2677669529664,
+              6,
+              -195.26776695296638
+            ],
+            "projection": "orthographic",
+            "span": 24,
+            "viewHeight": 15,
+            "kind": "turn",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-044",
+          "index": 43,
+          "title": "Hoko-chō",
+          "district": "Hoko-chō",
+          "s0": 964.5508806208338,
+          "s1": 993.9258806208338,
+          "kind": "street",
+          "leg": 13,
+          "image": "assets/frames/main-044.jpg",
+          "thumb": "assets/thumbs/main-044.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -314,
+              9,
+              -178.8125
+            ],
+            "focus": [
+              -284,
+              6,
+              -178.8125
+            ],
+            "projection": "orthographic",
+            "span": 29.375,
+            "viewHeight": 18.359375,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-045",
+          "index": 44,
+          "title": "Hoko-chō",
+          "district": "Hoko-chō",
+          "s0": 993.9258806208338,
+          "s1": 1023.3008806208338,
+          "kind": "street",
+          "leg": 13,
+          "image": "assets/frames/main-045.jpg",
+          "thumb": "assets/thumbs/main-045.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -314,
+              9,
+              -149.4375
+            ],
+            "focus": [
+              -284,
+              6,
+              -149.4375
+            ],
+            "projection": "orthographic",
+            "span": 29.375,
+            "viewHeight": 18.359375,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-046",
+          "index": 45,
+          "title": "Okuribi",
+          "district": "Okuribi",
+          "s0": 1023.3008806208338,
+          "s1": 1052.6758806208338,
+          "kind": "street",
+          "leg": 13,
+          "image": "assets/frames/main-046.jpg",
+          "thumb": "assets/thumbs/main-046.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -314,
+              9,
+              -120.0625
+            ],
+            "focus": [
+              -284,
+              6,
+              -120.0625
+            ],
+            "projection": "orthographic",
+            "span": 29.375,
+            "viewHeight": 18.359375,
+            "kind": "street",
+            "near": 17
+          }
+        },
+        {
+          "id": "main-047",
+          "index": 46,
+          "title": "Okuribi",
+          "district": "Okuribi",
+          "s0": 1052.6758806208338,
+          "s1": 1082.0508806208338,
+          "kind": "street",
+          "leg": 13,
+          "image": "assets/frames/main-047.jpg",
+          "thumb": "assets/thumbs/main-047.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -314,
+              9,
+              -90.6875
+            ],
+            "focus": [
+              -284,
+              6,
+              -90.6875
+            ],
+            "projection": "orthographic",
+            "span": 29.375,
+            "viewHeight": 18.359375,
+            "kind": "street",
+            "near": 17
+          }
+        }
+      ]
+    },
+    {
+      "id": "alley-0",
+      "name": "Indigo dyer’s court",
+      "length": 23,
+      "s0": 32,
+      "s1": 55,
+      "frames": [
+        {
+          "id": "alley-0-1",
+          "index": 0,
+          "title": "Indigo dyer’s court",
+          "district": "Awataguchi",
+          "s0": 32,
+          "s1": 43.5,
+          "alley": 0,
+          "kind": "alley",
+          "span": 27,
+          "image": "assets/frames/alley-0-1.jpg",
+          "thumb": "assets/thumbs/alley-0-1.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              37.75,
+              25.8,
+              8.616800000000001
+            ],
+            "focus": [
+              37.75,
+              1.8,
+              -5.3831999999999995
+            ],
+            "projection": "orthographic",
+            "span": 27,
+            "viewHeight": 16.875,
+            "kind": "alley",
+            "near": 0.1
+          }
+        },
+        {
+          "id": "alley-0-2",
+          "index": 1,
+          "title": "Indigo dyer’s court",
+          "district": "Awataguchi",
+          "s0": 43.5,
+          "s1": 55,
+          "alley": 0,
+          "kind": "alley",
+          "span": 27,
+          "image": "assets/frames/alley-0-2.jpg",
+          "thumb": "assets/thumbs/alley-0-2.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              49.25,
+              25.8,
+              9.596296296296298
+            ],
+            "focus": [
+              49.25,
+              1.8,
+              -4.403703703703703
+            ],
+            "projection": "orthographic",
+            "span": 27,
+            "viewHeight": 16.875,
+            "kind": "alley",
+            "near": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "id": "alley-1",
+      "name": "Bamboo basket lane",
+      "length": 28,
+      "s0": 141.35398163397448,
+      "s1": 169.35398163397448,
+      "frames": [
+        {
+          "id": "alley-1-1",
+          "index": 0,
+          "title": "Bamboo basket lane",
+          "district": "Pontochō",
+          "s0": 141.35398163397448,
+          "s1": 155.35398163397448,
+          "alley": 1,
+          "kind": "alley",
+          "span": 27,
+          "image": "assets/frames/alley-1-1.jpg",
+          "thumb": "assets/thumbs/alley-1-1.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              53.5,
+              25.8,
+              -75.9168
+            ],
+            "focus": [
+              53.5,
+              1.8,
+              -61.9168
+            ],
+            "projection": "orthographic",
+            "span": 27,
+            "viewHeight": 16.875,
+            "kind": "alley",
+            "near": 0.1
+          }
+        },
+        {
+          "id": "alley-1-2",
+          "index": 1,
+          "title": "Bamboo basket lane",
+          "district": "Pontochō",
+          "s0": 155.35398163397448,
+          "s1": 169.35398163397448,
+          "alley": 1,
+          "kind": "alley",
+          "span": 27,
+          "image": "assets/frames/alley-1-2.jpg",
+          "thumb": "assets/thumbs/alley-1-2.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              39.5,
+              25.8,
+              -76.94814814814815
+            ],
+            "focus": [
+              39.5,
+              1.8,
+              -62.94814814814815
+            ],
+            "projection": "orthographic",
+            "span": 27,
+            "viewHeight": 16.875,
+            "kind": "alley",
+            "near": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "id": "alley-2",
+      "name": "Tea garden passage",
+      "length": 31,
+      "s0": 418.0619449019234,
+      "s1": 449.0619449019234,
+      "frames": [
+        {
+          "id": "alley-2-1",
+          "index": 0,
+          "title": "Tea garden passage",
+          "district": "Nishiki",
+          "s0": 418.0619449019234,
+          "s1": 433.5619449019234,
+          "alley": 2,
+          "kind": "alley",
+          "span": 27,
+          "image": "assets/frames/alley-2-1.jpg",
+          "thumb": "assets/thumbs/alley-2-1.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -66.25,
+              25.8,
+              -53.7168
+            ],
+            "focus": [
+              -66.25,
+              1.8,
+              -39.7168
+            ],
+            "projection": "orthographic",
+            "span": 27,
+            "viewHeight": 16.875,
+            "kind": "alley",
+            "near": 0.1
+          }
+        },
+        {
+          "id": "alley-2-2",
+          "index": 1,
+          "title": "Tea garden passage",
+          "district": "Nishiki",
+          "s0": 433.5619449019234,
+          "s1": 449.0619449019234,
+          "alley": 2,
+          "kind": "alley",
+          "span": 27,
+          "image": "assets/frames/alley-2-2.jpg",
+          "thumb": "assets/thumbs/alley-2-2.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -81.75,
+              25.8,
+              -54.762962962962966
+            ],
+            "focus": [
+              -81.75,
+              1.8,
+              -40.762962962962966
+            ],
+            "projection": "orthographic",
+            "span": 27,
+            "viewHeight": 16.875,
+            "kind": "alley",
+            "near": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "id": "alley-3",
+      "name": "Tenugui wash lane",
+      "length": 33,
+      "s0": 603.9159265358978,
+      "s1": 636.9159265358978,
+      "frames": [
+        {
+          "id": "alley-3-1",
+          "index": 0,
+          "title": "Tenugui wash lane",
+          "district": "Monohoshi",
+          "s0": 603.9159265358978,
+          "s1": 620.4159265358978,
+          "alley": 3,
+          "kind": "alley",
+          "span": 27,
+          "image": "assets/frames/alley-3-1.jpg",
+          "thumb": "assets/thumbs/alley-3-1.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -124.75,
+              25.8,
+              -184.1168
+            ],
+            "focus": [
+              -124.75,
+              1.8,
+              -170.1168
+            ],
+            "projection": "orthographic",
+            "span": 27,
+            "viewHeight": 16.875,
+            "kind": "alley",
+            "near": 0.1
+          }
+        },
+        {
+          "id": "alley-3-2",
+          "index": 1,
+          "title": "Tenugui wash lane",
+          "district": "Monohoshi",
+          "s0": 620.4159265358978,
+          "s1": 636.9159265358978,
+          "alley": 3,
+          "kind": "alley",
+          "span": 27,
+          "image": "assets/frames/alley-3-2.jpg",
+          "thumb": "assets/thumbs/alley-3-2.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -141.25,
+              25.8,
+              -185.13333333333333
+            ],
+            "focus": [
+              -141.25,
+              1.8,
+              -171.13333333333333
+            ],
+            "projection": "orthographic",
+            "span": 27,
+            "viewHeight": 16.875,
+            "kind": "alley",
+            "near": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "id": "alley-4",
+      "name": "Moss and tile court",
+      "length": 31,
+      "s0": 754.7699081698722,
+      "s1": 785.7699081698722,
+      "frames": [
+        {
+          "id": "alley-4-1",
+          "index": 0,
+          "title": "Moss and tile court",
+          "district": "Monohoshi",
+          "s0": 754.7699081698722,
+          "s1": 770.2699081698722,
+          "alley": 4,
+          "kind": "alley",
+          "span": 27,
+          "image": "assets/frames/alley-4-1.jpg",
+          "thumb": "assets/thumbs/alley-4-1.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -189.25,
+              25.8,
+              -95.5168
+            ],
+            "focus": [
+              -189.25,
+              1.8,
+              -81.5168
+            ],
+            "projection": "orthographic",
+            "span": 27,
+            "viewHeight": 16.875,
+            "kind": "alley",
+            "near": 0.1
+          }
+        },
+        {
+          "id": "alley-4-2",
+          "index": 1,
+          "title": "Moss and tile court",
+          "district": "Monohoshi",
+          "s0": 770.2699081698722,
+          "s1": 785.7699081698722,
+          "alley": 4,
+          "kind": "alley",
+          "span": 27,
+          "image": "assets/frames/alley-4-2.jpg",
+          "thumb": "assets/thumbs/alley-4-2.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -204.75,
+              25.8,
+              -96.57777777777778
+            ],
+            "focus": [
+              -204.75,
+              1.8,
+              -82.57777777777778
+            ],
+            "projection": "orthographic",
+            "span": 27,
+            "viewHeight": 16.875,
+            "kind": "alley",
+            "near": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "id": "alley-5",
+      "name": "Lantern maker’s lane",
+      "length": 32,
+      "s0": 917.6238898038466,
+      "s1": 949.6238898038466,
+      "frames": [
+        {
+          "id": "alley-5-1",
+          "index": 0,
+          "title": "Lantern maker’s lane",
+          "district": "Hoko-chō",
+          "s0": 917.6238898038466,
+          "s1": 933.6238898038466,
+          "alley": 5,
+          "kind": "alley",
+          "span": 27,
+          "image": "assets/frames/alley-5-1.jpg",
+          "thumb": "assets/thumbs/alley-5-1.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -246.5,
+              25.8,
+              -204.4168
+            ],
+            "focus": [
+              -246.5,
+              1.8,
+              -190.4168
+            ],
+            "projection": "orthographic",
+            "span": 27,
+            "viewHeight": 16.875,
+            "kind": "alley",
+            "near": 0.1
+          }
+        },
+        {
+          "id": "alley-5-2",
+          "index": 1,
+          "title": "Lantern maker’s lane",
+          "district": "Hoko-chō",
+          "s0": 933.6238898038466,
+          "s1": 949.6238898038466,
+          "alley": 5,
+          "kind": "alley",
+          "span": 27,
+          "image": "assets/frames/alley-5-2.jpg",
+          "thumb": "assets/thumbs/alley-5-2.jpg",
+          "width": 1200,
+          "height": 750,
+          "camera": {
+            "position": [
+              -262.5,
+              25.8,
+              -205.41111111111113
+            ],
+            "focus": [
+              -262.5,
+              1.8,
+              -191.41111111111113
+            ],
+            "projection": "orthographic",
+            "span": 27,
+            "viewHeight": 16.875,
+            "kind": "alley",
+            "near": 0.1
+          }
+        }
+      ]
+    }
+  ]
+}

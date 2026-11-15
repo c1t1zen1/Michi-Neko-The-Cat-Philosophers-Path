@@ -20,7 +20,7 @@ The review sheets stay reachable at `tools/tree_preview.html?sheet=hero`. (`node
 None: the footprint is `layout.footprint` (one collider at the tree's x, z, r = 0.35 / 0.3 x scale). Golden: classic EQUAL (valley and `--systems`); with the four tree ids swapped the valley golden is still EQUAL and `--systems` differs only by the tree objects (518 / 135 colliders, 25 anchors, 249867 vegetation draws unchanged, `canopies freed 25/25`).
 
 ## Routing not wired (components)
-`tree-trunks` and `tree-canopies` are promoted and pass the contract, but Vegetation does not route to them (a tree is built whole). They exist for the labs and for s2-clearing. `?swap=tree-trunks:modular` is a no-op in the valley, so they have no compare pair.
+`tree-trunks` and `tree-canopies` are **deferred, not promoted** (fix round 1, below, and the §6 board notes): they are not kit assets, Vegetation builds a tree whole, and there is no `?swap=tree-trunks:modular` and no compare pair. Their building blocks, `buildSkeleton` and `buildCanopyOnly`, stay exported from `src/kit/trees/index.js` for the labs and a later summit promotion. (Corrected by a1-village after the G-V3 review, M2: this paragraph used to say they were promoted and passed the contract.)
 
 ## Reusable kit builders (s2-clearing: the summit's 'clumps' trees)
 ```js

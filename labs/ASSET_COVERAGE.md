@@ -1,14 +1,14 @@
 # Game asset inventory and lab coverage
 
-Reviewed 2026-11-10. Generated from [asset_inventory.json](asset_inventory.json) by [labs_coverage.mjs](../tools/labs_coverage.mjs).
+Reviewed 2026-11-14. Generated from [asset_inventory.json](asset_inventory.json) by [labs_coverage.mjs](../tools/labs_coverage.mjs).
 
 [Open the interactive Asset Library](../catalog/) — searchable originals, lab specimens, production notes, cadJS editing and AI plans.
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**. It records **186 active asset types and assemblies**, plus **4 inactive entries**. **152 of 186 (81.7%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**, and for the Roof Road prototype (`rooftops/`) **58 modules**, **10 build/create/make functions** and **48 piece types**. It records **248 active asset types and assemblies**, plus **4 inactive entries**. **152 of 248 (61.3%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
-Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.
+Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects, and in the Roof Road prototype (rooftops/, its own page; the game does not load it yet). Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
 The source inventory is manually reviewed, with an automated construction-method ledger and evidence-link checks. It is not a runtime scene census or proof that each mapped specimen renders correctly. Direct means a focused study exists, not that its result has shipped to the game.
 
@@ -28,11 +28,11 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 152 | 81.7% |
-| Review sheet | 19 | 10.2% |
-| Embedded in a specimen | 2 | 1.1% |
-| Related evidence only | 10 | 5.4% |
-| No mapped evidence | 3 | 1.6% |
+| Focused lab study | 152 | 61.3% |
+| Review sheet | 77 | 31.0% |
+| Embedded in a specimen | 6 | 2.4% |
+| Related evidence only | 10 | 4.0% |
+| No mapped evidence | 3 | 1.2% |
 
 ## Coverage by area
 
@@ -53,6 +53,7 @@ Each active row is counted once at its strongest evidence level, in the order ab
 | Interiors | 19 | 18 | 0 | 0 | 1 | 0 |
 | Sky and effects | 19 | 13 | 0 | 0 | 4 | 2 |
 | Summit | 32 | 21 | 9 | 0 | 2 | 0 |
+| Roof Road | 62 | 0 | 58 | 4 | 0 | 0 |
 
 ## Gaps requiring focused specimens
 
@@ -94,6 +95,68 @@ This list includes every active row without a focused study, including review-on
 | [Layered Kyoto Bay vista assembly](#summit-vista) | Related evidence only | The specimen builds the kit city layer; the assembly itself (layers, clouds, deferred ids) is only reviewed whole on the summit preview. |
 | [Optional summit transition video](#summit-transition) | No mapped evidence | Optional runtime transition media, outside the lab specimen set; availability is not checked. |
 | [Optional Blender Kyoto roofscape GLB](#blender-roofscape) | Review sheet | Optional runtime asset with fallback; availability is not verified by this source audit. |
+| [Roof Road street ribbons: Kamo gravel and river, canal bank, market slabs, cobbled lanes](#roof-street) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road river steps down from the bridge](#roof-river-steps) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road Sanjō bridge: riverbed, deck joinery, piers, giboshi caps, ramp](#roof-bridge) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road kido gate](#roof-kido) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road machiya (walls, roof, drying deck, lanterns, dressing)](#roof-machiya) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road kura storehouse](#roof-kura) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road corner house with hip roof and drying deck](#roof-corner-house) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road komayose rails](#roof-komayose) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road inuyarai](#roof-inuyarai) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road roji side alley (drain, tobi-ishi, tsukubai, service door)](#roof-roji) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road tsuboniwa tree over a wall](#roof-tsuboniwa) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road yuka decks and kaisho plank](#roof-yuka) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road engawa, shop awnings and alley bridges](#roof-balconies) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road lantern post with red chōchin](#roof-lantern-post) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road crates](#roof-crates) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road barrels](#roof-barrels) | Review sheet | One builder serves the barrel and komodaru piece types. |
+| [Roof Road komodaru (straw-wrapped sake casks)](#roof-komodaru) | Review sheet | One builder serves the barrel and komodaru piece types. |
+| [Roof Road zushi tunnels under bridged machiya](#roof-zushi) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road alley pockets (flags, casks, ita-bei, shed eave)](#roof-alley-pockets) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road alley routes through the downtown blocks](#roof-alley-routes) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road utility poles and wires](#roof-utility-poles) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road vine trellises](#roof-trellises) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road Takase canal water and towpath](#roof-canal) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road canal banks (stakes, drains, rain chains, greenery)](#roof-canal-banks) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road stepping stones](#roof-stepping-stones) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road canal landings](#roof-canal-landings) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road canal footbridge](#roof-footbridge) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road stone tōrō](#roof-toro) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road cherry boughs over the canal](#roof-cherry-boughs) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road takasebune (hull, bales, planks, wake)](#roof-takasebune) | Review sheet | Moves along the canal on the run; the boatman is its own row (roof-boatman). |
+| [Roof Road Nishiki glass canopy](#roof-canopy) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road canopy vents](#roof-canopy-vents) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road Nishiki market stalls](#roof-market-stalls) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road skylight bridge (market crossing)](#roof-skylight-bridge) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road laundry, tow and lantern lines](#roof-lines) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road rooftop cistern](#roof-cistern) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road chimney and rain cap](#roof-chimney) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road futon racks](#roof-futon-racks) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road canal willows](#roof-willows) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road culvert ledges](#roof-culvert-ledges) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road Tenmangū gate](#roof-tenmangu-gate) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road yatai festival stalls](#roof-yatai) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road festival lantern racks](#roof-lantern-racks) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road hoko float (wheels, brocade, roof, shingi mast, tassels)](#roof-hoko) | Review sheet | The hayashi musicians on it are their own row (roof-hayashi). |
+| [Roof Road temple gate](#roof-temple-gate) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road tsuiji temple wall](#roof-tsuiji) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road yama float](#roof-yama) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road villagers](#roof-villagers) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road kawara roofs: hira and tsuma roofs with ridge caps and onigawara](#roof-kawara-roofs) | Embedded in a specimen | Shared by several piece types; a kit roof replaces it through those pieces. Inside the machiya specimen (and the kura, kido, temple gate and hoko float); no roof specimen of its own. |
+| [Roof Road machiya façades and eave details](#roof-facades) | Embedded in a specimen | Shared by the machiya and the downtown kit. Inside the machiya specimen; no façade specimen of its own. |
+| [Roof Road ground plane under the run](#roof-ground) | Review sheet | Built by buildWorld() around the run, not from a level piece; routed through assets.build('roof-ground', extraLayout(…)). |
+| [Roof Road distant city (instanced roofscape)](#roof-distant-city) | Review sheet | Built by buildWorld() around the run; routed through assets.build('roof-distant-city', extraLayout(…)). |
+| [Roof Road skyline pagodas](#roof-skyline-pagodas) | Review sheet | Three, built by buildWorld() around the run; each routed through assets.build('roof-skyline-pagodas', extraLayout(…)). |
+| [Roof Road sky dome, clouds and moon (afternoon to festival night)](#roof-sky) | Review sheet | Driven by route progress, not a clock. |
+| [Roof Road ring of hills around the basin](#roof-hills) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road Okuribi: the five fires on the hills](#roof-okuribi) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road atmosphere: petals, chimney smoke, birds, dust, fireflies, landing bursts](#roof-atmosphere) | Review sheet | No individual focused specimen is mapped. |
+| [Roof Road clay Shōki (the seven guardians)](#roof-shoki) | Review sheet | Built by buildWorld() for each level pickup; routed through assets.build('roof-shoki', extraLayout(…)), the instance registered as the pickup. |
+| [Roof Road treats](#roof-treats) | Review sheet | Built by buildWorld() for each level pickup; routed through assets.build('roof-treats', extraLayout(…)), the instance registered as the pickup. |
+| [Chidori, the Roof Road guide cat](#roof-chidori) | Review sheet | The game’s Cat with Chidori’s coat (decision D3: no PERSONALITIES entry); no specimen of her own. |
+| [Roof Road takasebune boatman](#roof-boatman) | Embedded in a specimen | Poles the takasebune in the boat specimen; no specimen of his own. |
+| [Roof Road hayashi musicians on the hoko](#roof-hayashi) | Embedded in a specimen | Ride the hoko in the float specimen; no specimen of their own. |
 
 ## Inventory and individual evidence
 
@@ -104,9 +167,9 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | Asset ID / type | Game source | Evidence | Notes |
 |---|---|---|---|
 | <a id="michi"></a>`michi` — Michi (player cat) | [src/player.js:this.mesh.name = 'Player Character (Michi)'](../src/player.js#L32)<br>[src/cat.js:buildCoat(](../src/cat.js#L88) | [cat / anatomy](../tools/cat_preview.js#L128) (review)<br>[villagers / sleep](../labs/villagers/js/recipes.js#L60) (embedded) — The sleep specimen uses Michi’s coat/build; it is a pose study rather than a dedicated player-model lab. |  |
-| <a id="luna"></a>`luna` — Luna | [src/main.js:'Luna',](../src/main.js#L274)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / luna](../labs/villagers/js/recipes.js#L39) (direct) |  |
-| <a id="mochi"></a>`mochi` — Mochi | [src/main.js:'Mochi',](../src/main.js#L298)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / mochi](../labs/villagers/js/recipes.js#L43) (direct) |  |
-| <a id="kuro"></a>`kuro` — Kuro | [src/main.js:'Kuro',](../src/main.js#L313)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / kuro](../labs/villagers/js/recipes.js#L47) (direct) |  |
+| <a id="luna"></a>`luna` — Luna | [src/main.js:'Luna',](../src/main.js#L318)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / luna](../labs/villagers/js/recipes.js#L39) (direct) |  |
+| <a id="mochi"></a>`mochi` — Mochi | [src/main.js:'Mochi',](../src/main.js#L342)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / mochi](../labs/villagers/js/recipes.js#L43) (direct) |  |
+| <a id="kuro"></a>`kuro` — Kuro | [src/main.js:'Kuro',](../src/main.js#L357)<br>[src/npc.js:export class NPC](../src/npc.js#L28) | [villagers / kuro](../labs/villagers/js/recipes.js#L47) (direct) |  |
 | <a id="larry"></a>`larry` — Larry the turtle | [src/countryside.js:turtle.name = 'Turtle Guardian (Larry)'](../src/countryside.js#L3451) | [critters / larry](../labs/critters/js/recipes.js#L55) (direct) |  |
 | <a id="guardian-crows"></a>`guardian-crows` — Nest guardian crows | [src/ambient_life.js:buildGuardianBirds(](../src/ambient_life.js#L221) | [critters / guardian-crow](../labs/critters/js/recipes.js#L51) (direct) |  |
 | <a id="sparrows"></a>`sparrows` — Valley sparrows | [src/ambient_life.js:buildBirds(](../src/ambient_life.js#L160) | [critters / game-bird](../labs/critters/js/recipes.js#L43) (direct)<br>[critters / flock](../labs/critters/js/recipes.js#L47) (direct) |  |
@@ -360,6 +423,73 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="summit-butterflies"></a>`summit-butterflies` — Summit butterfly visitors | [src/mountaintop.js:buildAmbientWildlife(](../src/mountaintop.js#L489) | [summit / life-butterflies](../labs/summit/js/life.js#L37) (direct) |  |
 | <a id="summit-birds"></a>`summit-birds` — Summit fly-by bird palette variants | [src/mountaintop.js:buildAmbientWildlife(](../src/mountaintop.js#L489) | [summit / life-birds](../labs/summit/js/life.js#L41) (direct) |  |
 
+### Roof Road
+
+| Asset ID / type | Game source | Evidence | Notes |
+|---|---|---|---|
+| <a id="roof-street"></a>`roof-street` — Roof Road street ribbons: Kamo gravel and river, canal bank, market slabs, cobbled lanes | [rooftops/js/pieces/street.js:export const street = (pc, ctx) => {](../rooftops/js/pieces/street.js#L6) | [roofroad / street](../labs/roofroad/js/shelf.js#L25) (review) |  |
+| <a id="roof-river-steps"></a>`roof-river-steps` — Roof Road river steps down from the bridge | [rooftops/js/pieces/steps.js:export const steps = (pc, ctx) => {](../rooftops/js/pieces/steps.js#L6) | [roofroad / steps](../labs/roofroad/js/shelf.js#L26) (review) |  |
+| <a id="roof-bridge"></a>`roof-bridge` — Roof Road Sanjō bridge: riverbed, deck joinery, piers, giboshi caps, ramp | [rooftops/js/pieces/bridge.js:export const bridge = (pc, ctx) => {](../rooftops/js/pieces/bridge.js#L7) | [roofroad / bridge](../labs/roofroad/js/shelf.js#L27) (review) |  |
+| <a id="roof-kido"></a>`roof-kido` — Roof Road kido gate | [rooftops/js/pieces/kido.js:export const kido = (pc, ctx) => {](../rooftops/js/pieces/kido.js#L7) | [roofroad / kido](../labs/roofroad/js/shelf.js#L28) (review) |  |
+| <a id="roof-machiya"></a>`roof-machiya` — Roof Road machiya (walls, roof, drying deck, lanterns, dressing) | [rooftops/js/pieces/house.js:export const house = (pc, ctx) => {](../rooftops/js/pieces/house.js#L8)<br>[rooftops/js/downtown.js:decorateHouse(pc, ctx) {](../rooftops/js/downtown.js#L389) | [roofroad / house](../labs/roofroad/js/shelf.js#L29) (review) |  |
+| <a id="roof-kura"></a>`roof-kura` — Roof Road kura storehouse | [rooftops/js/pieces/kura.js:export const kura = (pc, ctx) => {](../rooftops/js/pieces/kura.js#L7) | [roofroad / kura](../labs/roofroad/js/shelf.js#L30) (review) |  |
+| <a id="roof-corner-house"></a>`roof-corner-house` — Roof Road corner house with hip roof and drying deck | [rooftops/js/pieces/corner.js:export const corner = (pc, ctx) => {](../rooftops/js/pieces/corner.js#L7) | [roofroad / corner](../labs/roofroad/js/shelf.js#L31) (review) |  |
+| <a id="roof-komayose"></a>`roof-komayose` — Roof Road komayose rails | [rooftops/js/pieces/komayose.js:export const komayose = (pc, ctx) => {](../rooftops/js/pieces/komayose.js#L6) | [roofroad / komayose](../labs/roofroad/js/shelf.js#L32) (review) |  |
+| <a id="roof-inuyarai"></a>`roof-inuyarai` — Roof Road inuyarai | [rooftops/js/pieces/inuyarai.js:export const inuyarai = (pc, ctx) => {](../rooftops/js/pieces/inuyarai.js#L7) | [roofroad / inuyarai](../labs/roofroad/js/shelf.js#L33) (review) |  |
+| <a id="roof-roji"></a>`roof-roji` — Roof Road roji side alley (drain, tobi-ishi, tsukubai, service door) | [rooftops/js/pieces/roji.js:export const roji = (pc, ctx) => {](../rooftops/js/pieces/roji.js#L7) | [roofroad / roji](../labs/roofroad/js/shelf.js#L34) (review) |  |
+| <a id="roof-tsuboniwa"></a>`roof-tsuboniwa` — Roof Road tsuboniwa tree over a wall | [rooftops/js/pieces/tsuboniwa.js:export const tsuboniwa = (pc, ctx) => {](../rooftops/js/pieces/tsuboniwa.js#L8) | [roofroad / tsuboniwa](../labs/roofroad/js/shelf.js#L35) (review) |  |
+| <a id="roof-yuka"></a>`roof-yuka` — Roof Road yuka decks and kaisho plank | [rooftops/js/pieces/deck.js:export const deck = (pc, ctx) => {](../rooftops/js/pieces/deck.js#L6) | [roofroad / deck](../labs/roofroad/js/shelf.js#L36) (review) |  |
+| <a id="roof-balconies"></a>`roof-balconies` — Roof Road engawa, shop awnings and alley bridges | [rooftops/js/pieces/balcony.js:export const balcony = (pc, ctx) => {](../rooftops/js/pieces/balcony.js#L6) | [roofroad / balcony](../labs/roofroad/js/shelf.js#L37) (review) |  |
+| <a id="roof-lantern-post"></a>`roof-lantern-post` — Roof Road lantern post with red chōchin | [rooftops/js/pieces/post.js:export const post = (pc, ctx) => {](../rooftops/js/pieces/post.js#L6) | [roofroad / post](../labs/roofroad/js/shelf.js#L38) (review) |  |
+| <a id="roof-crates"></a>`roof-crates` — Roof Road crates | [rooftops/js/downtown.js:B.crate = (pc, ctx) =>](../rooftops/js/downtown.js#L159) | [roofroad / crate](../labs/roofroad/js/shelf.js#L39) (review) |  |
+| <a id="roof-barrels"></a>`roof-barrels` — Roof Road barrels | [rooftops/js/downtown.js:B.barrel = B.komodaru = (pc, ctx) =>](../rooftops/js/downtown.js#L160) | [roofroad / barrel](../labs/roofroad/js/shelf.js#L40) (review) | One builder serves the barrel and komodaru piece types. |
+| <a id="roof-komodaru"></a>`roof-komodaru` — Roof Road komodaru (straw-wrapped sake casks) | [rooftops/js/downtown.js:B.barrel = B.komodaru = (pc, ctx) =>](../rooftops/js/downtown.js#L160) | [roofroad / komodaru](../labs/roofroad/js/shelf.js#L41) (review) | One builder serves the barrel and komodaru piece types. |
+| <a id="roof-zushi"></a>`roof-zushi` — Roof Road zushi tunnels under bridged machiya | [rooftops/js/downtown.js:B.zushiTunnel = (pc, ctx) =>](../rooftops/js/downtown.js#L163) | [roofroad / zushiTunnel](../labs/roofroad/js/shelf.js#L42) (review) |  |
+| <a id="roof-alley-pockets"></a>`roof-alley-pockets` — Roof Road alley pockets (flags, casks, ita-bei, shed eave) | [rooftops/js/downtown.js:B.alleyPocket = (pc, ctx) =>](../rooftops/js/downtown.js#L190) | [roofroad / alleyPocket](../labs/roofroad/js/shelf.js#L43) (review) |  |
+| <a id="roof-alley-routes"></a>`roof-alley-routes` — Roof Road alley routes through the downtown blocks | [rooftops/js/downtown.js:B.alleyRoute = (pc, ctx) =>](../rooftops/js/downtown.js#L204) | [roofroad / alleyRoute](../labs/roofroad/js/shelf.js#L44) (review) |  |
+| <a id="roof-utility-poles"></a>`roof-utility-poles` — Roof Road utility poles and wires | [rooftops/js/downtown.js:B.utilityPole = (pc, ctx) =>](../rooftops/js/downtown.js#L289) | [roofroad / utilityPole](../labs/roofroad/js/shelf.js#L45) (review) |  |
+| <a id="roof-trellises"></a>`roof-trellises` — Roof Road vine trellises | [rooftops/js/downtown.js:B.trellis = (pc, ctx) =>](../rooftops/js/downtown.js#L311) | [roofroad / trellis](../labs/roofroad/js/shelf.js#L46) (review) |  |
+| <a id="roof-canal"></a>`roof-canal` — Roof Road Takase canal water and towpath | [rooftops/js/pieces/water.js:export const water = (pc, ctx) => {](../rooftops/js/pieces/water.js#L6) | [roofroad / water](../labs/roofroad/js/shelf.js#L48) (review) |  |
+| <a id="roof-canal-banks"></a>`roof-canal-banks` — Roof Road canal banks (stakes, drains, rain chains, greenery) | [rooftops/js/pieces/canalQuarter.js:export const canalQuarter = (pc, ctx) => {](../rooftops/js/pieces/canalQuarter.js#L8) | [roofroad / canalQuarter](../labs/roofroad/js/shelf.js#L49) (review) |  |
+| <a id="roof-stepping-stones"></a>`roof-stepping-stones` — Roof Road stepping stones | [rooftops/js/pieces/steppingStone.js:export const steppingStone = (pc, ctx) => {](../rooftops/js/pieces/steppingStone.js#L7) | [roofroad / steppingStone](../labs/roofroad/js/shelf.js#L50) (review) |  |
+| <a id="roof-canal-landings"></a>`roof-canal-landings` — Roof Road canal landings | [rooftops/js/pieces/canalLanding.js:export const canalLanding = (pc, ctx) => {](../rooftops/js/pieces/canalLanding.js#L6) | [roofroad / canalLanding](../labs/roofroad/js/shelf.js#L51) (review) |  |
+| <a id="roof-footbridge"></a>`roof-footbridge` — Roof Road canal footbridge | [rooftops/js/pieces/canalBridge.js:export const canalBridge = (pc, ctx) => {](../rooftops/js/pieces/canalBridge.js#L6) | [roofroad / canalBridge](../labs/roofroad/js/shelf.js#L52) (review) |  |
+| <a id="roof-toro"></a>`roof-toro` — Roof Road stone tōrō | [rooftops/js/pieces/toro.js:export const toro = (pc, ctx) => {](../rooftops/js/pieces/toro.js#L7) | [roofroad / toro](../labs/roofroad/js/shelf.js#L53) (review) |  |
+| <a id="roof-cherry-boughs"></a>`roof-cherry-boughs` — Roof Road cherry boughs over the canal | [rooftops/js/pieces/cherry.js:export const cherry = (pc, ctx) => {](../rooftops/js/pieces/cherry.js#L8) | [roofroad / cherry](../labs/roofroad/js/shelf.js#L54) (review) |  |
+| <a id="roof-takasebune"></a>`roof-takasebune` — Roof Road takasebune (hull, bales, planks, wake) | [rooftops/js/pieces/boat.js:export const boat = (pc, ctx) => {](../rooftops/js/pieces/boat.js#L34) | [roofroad / boat](../labs/roofroad/js/shelf.js#L55) (review) | Moves along the canal on the run; the boatman is its own row (roof-boatman). |
+| <a id="roof-canopy"></a>`roof-canopy` — Roof Road Nishiki glass canopy | [rooftops/js/pieces/canopy.js:export const canopy = (pc, ctx) => {](../rooftops/js/pieces/canopy.js#L7) | [roofroad / canopy](../labs/roofroad/js/shelf.js#L56) (review) |  |
+| <a id="roof-canopy-vents"></a>`roof-canopy-vents` — Roof Road canopy vents | [rooftops/js/pieces/vent.js:export const vent = (pc, ctx) => {](../rooftops/js/pieces/vent.js#L6) | [roofroad / vent](../labs/roofroad/js/shelf.js#L57) (review) |  |
+| <a id="roof-market-stalls"></a>`roof-market-stalls` — Roof Road Nishiki market stalls | [rooftops/js/pieces/shopfronts.js:export const shopfronts = (pc, ctx) => {](../rooftops/js/pieces/shopfronts.js#L7) | [roofroad / shopfronts](../labs/roofroad/js/shelf.js#L58) (review) |  |
+| <a id="roof-skylight-bridge"></a>`roof-skylight-bridge` — Roof Road skylight bridge (market crossing) | [rooftops/js/pieces/marketCrossing.js:export const marketCrossing = (pc, ctx) => {](../rooftops/js/pieces/marketCrossing.js#L6) | [roofroad / marketCrossing](../labs/roofroad/js/shelf.js#L59) (review) |  |
+| <a id="roof-lines"></a>`roof-lines` — Roof Road laundry, tow and lantern lines | [rooftops/js/pieces/rope.js:export const rope = (pc, ctx) => {](../rooftops/js/pieces/rope.js#L7) | [roofroad / rope](../labs/roofroad/js/shelf.js#L60) (review) |  |
+| <a id="roof-cistern"></a>`roof-cistern` — Roof Road rooftop cistern | [rooftops/js/pieces/cistern.js:export const cistern = (pc, ctx) => {](../rooftops/js/pieces/cistern.js#L7) | [roofroad / cistern](../labs/roofroad/js/shelf.js#L61) (review) |  |
+| <a id="roof-chimney"></a>`roof-chimney` — Roof Road chimney and rain cap | [rooftops/js/pieces/chimney.js:export const chimney = (pc, ctx) => {](../rooftops/js/pieces/chimney.js#L7) | [roofroad / chimney](../labs/roofroad/js/shelf.js#L62) (review) |  |
+| <a id="roof-futon-racks"></a>`roof-futon-racks` — Roof Road futon racks | [rooftops/js/pieces/futonRack.js:export const futonRack = (pc, ctx) => {](../rooftops/js/pieces/futonRack.js#L6) | [roofroad / futonRack](../labs/roofroad/js/shelf.js#L63) (review) |  |
+| <a id="roof-willows"></a>`roof-willows` — Roof Road canal willows | [rooftops/js/downtown.js:B.willow = (pc, ctx) =>](../rooftops/js/downtown.js#L321) | [roofroad / willow](../labs/roofroad/js/shelf.js#L64) (review) |  |
+| <a id="roof-culvert-ledges"></a>`roof-culvert-ledges` — Roof Road culvert ledges | [rooftops/js/downtown.js:B.culvertLedge = (pc, ctx) =>](../rooftops/js/downtown.js#L333) | [roofroad / culvertLedge](../labs/roofroad/js/shelf.js#L65) (review) |  |
+| <a id="roof-tenmangu-gate"></a>`roof-tenmangu-gate` — Roof Road Tenmangū gate | [rooftops/js/downtown.js:B.tenmanguGate = (pc, ctx) =>](../rooftops/js/downtown.js#L338) | [roofroad / tenmanguGate](../labs/roofroad/js/shelf.js#L66) (review) |  |
+| <a id="roof-yatai"></a>`roof-yatai` — Roof Road yatai festival stalls | [rooftops/js/pieces/yatai.js:export const yatai = (pc, ctx) => {](../rooftops/js/pieces/yatai.js#L7)<br>[rooftops/js/downtown.js:decorateStall(pc, ctx) {](../rooftops/js/downtown.js#L421) | [roofroad / yatai](../labs/roofroad/js/shelf.js#L68) (review) |  |
+| <a id="roof-lantern-racks"></a>`roof-lantern-racks` — Roof Road festival lantern racks | [rooftops/js/pieces/rack.js:export const rack = (pc, ctx) => {](../rooftops/js/pieces/rack.js#L6) | [roofroad / rack](../labs/roofroad/js/shelf.js#L69) (review) |  |
+| <a id="roof-hoko"></a>`roof-hoko` — Roof Road hoko float (wheels, brocade, roof, shingi mast, tassels) | [rooftops/js/pieces/float.js:export const float = (pc, ctx) => {](../rooftops/js/pieces/float.js#L9) | [roofroad / float](../labs/roofroad/js/shelf.js#L70) (review) | The hayashi musicians on it are their own row (roof-hayashi). |
+| <a id="roof-temple-gate"></a>`roof-temple-gate` — Roof Road temple gate | [rooftops/js/pieces/gate.js:export const gate = (pc, ctx) => {](../rooftops/js/pieces/gate.js#L7) | [roofroad / gate](../labs/roofroad/js/shelf.js#L71) (review) |  |
+| <a id="roof-tsuiji"></a>`roof-tsuiji` — Roof Road tsuiji temple wall | [rooftops/js/pieces/tsuiji.js:export const tsuiji = (pc, ctx) => {](../rooftops/js/pieces/tsuiji.js#L6) | [roofroad / tsuiji](../labs/roofroad/js/shelf.js#L72) (review) |  |
+| <a id="roof-yama"></a>`roof-yama` — Roof Road yama float | [rooftops/js/downtown.js:B.yamaFloat = (pc, ctx) =>](../rooftops/js/downtown.js#L346) | [roofroad / yamaFloat](../labs/roofroad/js/shelf.js#L73) (review) |  |
+| <a id="roof-villagers"></a>`roof-villagers` — Roof Road villagers | [rooftops/js/downtown.js:B.villager = (pc, ctx) =>](../rooftops/js/downtown.js#L356)<br>[rooftops/js/downtown.js:updatePeople(people, t, playerS, lowPower, reduceMotion) {](../rooftops/js/downtown.js#L461)<br>[rooftops/js/people.js:export function makeResident(](../rooftops/js/people.js#L42) | [roofroad / villager](../labs/roofroad/js/shelf.js#L77) (review) |  |
+| <a id="roof-kawara-roofs"></a>`roof-kawara-roofs` — Roof Road kawara roofs: hira and tsuma roofs with ridge caps and onigawara | [rooftops/js/pieces/machiya.js:function hiraRoof(](../rooftops/js/pieces/machiya.js#L25)<br>[rooftops/js/pieces/machiya.js:function tsumaRoof(](../rooftops/js/pieces/machiya.js#L42)<br>[rooftops/js/pieces/machiya.js:function ridgeCap(](../rooftops/js/pieces/machiya.js#L9) | [roofroad / house](../labs/roofroad/js/shelf.js#L29) (embedded) — Inside the machiya specimen (and the kura, kido, temple gate and hoko float); no roof specimen of its own. | Shared by several piece types; a kit roof replaces it through those pieces. |
+| <a id="roof-facades"></a>`roof-facades` — Roof Road machiya façades and eave details | [rooftops/js/pieces/machiya.js:function facade(](../rooftops/js/pieces/machiya.js#L60)<br>[rooftops/js/pieces/machiya.js:function streetEaveDetails(](../rooftops/js/pieces/machiya.js#L88) | [roofroad / house](../labs/roofroad/js/shelf.js#L29) (embedded) — Inside the machiya specimen; no façade specimen of its own. | Shared by the machiya and the downtown kit. |
+| <a id="roof-ground"></a>`roof-ground` — Roof Road ground plane under the run | [rooftops/js/build.js:extra('roof-ground', extraLayout(](../rooftops/js/build.js#L175)<br>[rooftops/js/build.js:const ground = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), M.ground);](../rooftops/js/build.js#L176) | [roofroad / run](../kyoto-rooftops.html#L23) (review) | Built by buildWorld() around the run, not from a level piece; routed through assets.build('roof-ground', extraLayout(…)). |
+| <a id="roof-distant-city"></a>`roof-distant-city` — Roof Road distant city (instanced roofscape) | [rooftops/js/pieces/skyline.js:function buildDistantCity(](../rooftops/js/pieces/skyline.js#L10)<br>[rooftops/js/build.js:extra('roof-distant-city', extraLayout(](../rooftops/js/build.js#L187) | [roofroad / distant-city](../labs/roofroad/js/shelf.js#L74) (review) | Built by buildWorld() around the run; routed through assets.build('roof-distant-city', extraLayout(…)). |
+| <a id="roof-skyline-pagodas"></a>`roof-skyline-pagodas` — Roof Road skyline pagodas | [rooftops/js/pieces/skyline.js:function buildPagoda(](../rooftops/js/pieces/skyline.js#L68)<br>[rooftops/js/build.js:extra('roof-skyline-pagodas', extraLayout(](../rooftops/js/build.js#L194) | [roofroad / skyline-pagoda](../labs/roofroad/js/shelf.js#L75) (review) | Three, built by buildWorld() around the run; each routed through assets.build('roof-skyline-pagodas', extraLayout(…)). |
+| <a id="roof-sky"></a>`roof-sky` — Roof Road sky dome, clouds and moon (afternoon to festival night) | [rooftops/js/sky.js:export class Sky {](../rooftops/js/sky.js#L76)<br>[rooftops/js/sky.js:buildClouds() {](../rooftops/js/sky.js#L175) | [roofroad / run](../kyoto-rooftops.html#L23) (review)<br>[roofroad / finale](../rooftops/js/game.js#L1086) (review) | Driven by route progress, not a clock. |
+| <a id="roof-hills"></a>`roof-hills` — Roof Road ring of hills around the basin | [rooftops/js/sky.js:buildHills() {](../rooftops/js/sky.js#L143) | [roofroad / finale](../rooftops/js/game.js#L1086) (review) |  |
+| <a id="roof-okuribi"></a>`roof-okuribi` — Roof Road Okuribi: the five fires on the hills | [rooftops/js/sky.js:buildFires() {](../rooftops/js/sky.js#L212) | [roofroad / finale](../rooftops/js/game.js#L1086) (review) |  |
+| <a id="roof-atmosphere"></a>`roof-atmosphere` — Roof Road atmosphere: petals, chimney smoke, birds, dust, fireflies, landing bursts | [rooftops/js/atmosphere.js:export class RooftopAtmosphere {](../rooftops/js/atmosphere.js#L278)<br>[rooftops/js/atmosphere.js:class ImpactFX {](../rooftops/js/atmosphere.js#L131) | [roofroad / run](../kyoto-rooftops.html#L23) (review) |  |
+| <a id="roof-shoki"></a>`roof-shoki` — Roof Road clay Shōki (the seven guardians) | [rooftops/js/pieces/pickups.js:export function makeShoki(](../rooftops/js/pieces/pickups.js#L8)<br>[rooftops/js/build.js:k.kind === 'shoki' ? 'roof-shoki' : 'roof-treats'](../rooftops/js/build.js#L206) | [roofroad / shoki](../labs/roofroad/js/shelf.js#L78) (review) | Built by buildWorld() for each level pickup; routed through assets.build('roof-shoki', extraLayout(…)), the instance registered as the pickup. |
+| <a id="roof-treats"></a>`roof-treats` — Roof Road treats | [rooftops/js/pieces/pickups.js:function makeTreat(](../rooftops/js/pieces/pickups.js#L25)<br>[rooftops/js/build.js:k.kind === 'shoki' ? 'roof-shoki' : 'roof-treats'](../rooftops/js/build.js#L206) | [roofroad / treat](../labs/roofroad/js/shelf.js#L79) (review) | Built by buildWorld() for each level pickup; routed through assets.build('roof-treats', extraLayout(…)), the instance registered as the pickup. |
+| <a id="roof-chidori"></a>`roof-chidori` — Chidori, the Roof Road guide cat | [rooftops/js/game.js:guide = new mod.Cat(](../rooftops/js/game.js#L96)<br>[rooftops/js/companion.js:export class Companion {](../rooftops/js/companion.js#L18) | [roofroad / run](../kyoto-rooftops.html#L23) (review) | The game’s Cat with Chidori’s coat (decision D3: no PERSONALITIES entry); no specimen of her own. |
+| <a id="roof-boatman"></a>`roof-boatman` — Roof Road takasebune boatman | [rooftops/js/pieces/boat.js:const boatman = new THREE.Group();](../rooftops/js/pieces/boat.js#L93) | [roofroad / boat](../labs/roofroad/js/shelf.js#L55) (embedded) — Poles the takasebune in the boat specimen; no specimen of his own. |  |
+| <a id="roof-hayashi"></a>`roof-hayashi` — Roof Road hayashi musicians on the hoko | [rooftops/js/pieces/float.js:const musicians = [];](../rooftops/js/pieces/float.js#L154) | [roofroad / float](../labs/roofroad/js/shelf.js#L70) (embedded) — Ride the hoko in the float specimen; no specimen of their own. |  |
+
 ### Inactive code
 
 | Asset ID / type | Game source | Evidence | Notes |
@@ -372,6 +502,8 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 ## Source-module accounting
 
 Every current `src/*.js` module is classified. Every class method declared with a `buildX` or `createX` name has an inventory owner or an explicit helper exclusion. Nonconforming entry points (trees, grass additions, scent, cosmetics and optional GLB loading) are mapped manually. New semantic objects added inside an existing method still require human review.
+
+Every Roof Road module (`rooftops/js/*.js`, `rooftops/js/pieces/*.js`) is classified the same way. In the modules that draw, every `buildX`, `createX` or `makeX` method or function has an owner or a helper exclusion; the runner modules classified `excluded` draw nothing and are not scanned. Every piece type in the `PIECES` table (`rooftops/js/pieces/index.js`) is a row of the Roof Road group whose sources name the piece's module: that row's id is the id `buildWorld()` builds the piece under (`assets.build`).
 
 | Module | Role | Accounting |
 |---|---|---|
@@ -412,6 +544,64 @@ Every current `src/*.js` module is classified. Every class method declared with 
 | [src/ui.js](../src/ui.js) | excluded | HUD, prompts and photo/journal interface. |
 | [src/vegetation.js](../src/vegetation.js) | assets | Trees, bamboo, ground cover and dappled light. |
 | [src/waypoints.js](../src/waypoints.js) | excluded | Compass and waypoint interface. |
+| [rooftops/js/alleys.js](../rooftops/js/alleys.js) | excluded | Alley depth paths and entrances for the runner; no renderer. |
+| [rooftops/js/alley-passages.js](../rooftops/js/alley-passages.js) | support | Geometry pass that carves the open alley lanes through the built blocks; not another object. |
+| [rooftops/js/atmosphere.js](../rooftops/js/atmosphere.js) | assets | Roof Road petals, chimney smoke, birds, dust motes, fireflies and landing bursts. |
+| [rooftops/js/autopilot.js](../rooftops/js/autopilot.js) | excluded | Attract-mode input (?auto=1) and the route test; no renderer. |
+| [rooftops/js/build.js](../rooftops/js/build.js) | assets | The buildWorld facade: walks the PIECES table through assets.build, merges statics, adds the ground, skyline and pickups. |
+| [rooftops/js/camera-obstacles.js](../rooftops/js/camera-obstacles.js) | excluded | Camera occlusion BVH over the opaque scenery; no renderer. |
+| [rooftops/js/companion.js](../rooftops/js/companion.js) | support | Chidori's behaviour (intent, leash, jumps); her body is the game's Cat, built in game.js. |
+| [rooftops/js/downtown.js](../rooftops/js/downtown.js) | assets | Downtown craft kit: crates, casks, zushi tunnels, alley pockets and routes, poles, trellises, willows, culverts, the Tenmangu gate, the yama float, villagers, house and stall dressing. |
+| [rooftops/js/game.js](../rooftops/js/game.js) | assets | The Roof Road page: Michi and Chidori (the game’s Cat), camera, HUD and finale. |
+| [rooftops/js/level.js](../rooftops/js/level.js) | excluded | Gameplay data: the rail, pieces, platforms, walls, ceilings and pickups; no renderer. |
+| [rooftops/js/neighbourhood-map.js](../rooftops/js/neighbourhood-map.js) | excluded | SVG paper-map interface. |
+| [rooftops/js/people.js](../rooftops/js/people.js) | assets | Painted Kyoto residents (villagers, stallkeepers, musicians) via makeResident; shared sculpt used by downtown villagers and the hoko hayashi. |
+| [rooftops/js/physics.js](../rooftops/js/physics.js) | excluded | The runner's physics; no renderer. |
+| [rooftops/js/rail.js](../rooftops/js/rail.js) | excluded | Route maths; no renderer. |
+| [rooftops/js/reach.js](../rooftops/js/reach.js) | excluded | Jump reach and the platform graph; no renderer. |
+| [rooftops/js/sky.js](../rooftops/js/sky.js) | assets | Roof Road sky dome, clouds, moon, the ring of hills and the five Okuribi fires. |
+| [rooftops/js/street-paint.js](../rooftops/js/street-paint.js) | support | Painted street, roof and lantern surfaces; mapped with their owning pieces. |
+| [rooftops/js/pieces/common.js](../rooftops/js/pieces/common.js) | support | Geometry helpers (box, cyl, slope, frameGroup, ribbon, mergeByMaterial). |
+| [rooftops/js/pieces/index.js](../rooftops/js/pieces/index.js) | support | The PIECES table: piece type to inventory id, lane, module and classic builder. |
+| [rooftops/js/pieces/machiya.js](../rooftops/js/pieces/machiya.js) | assets | Machiya parts several pieces share: ridge caps, hira and tsuma roofs, facades and eave details. |
+| [rooftops/js/pieces/paint.js](../rooftops/js/pieces/paint.js) | support | The Roof Road's painted canvases and material set M; surfaces are mapped with their owning pieces. |
+| [rooftops/js/pieces/pickups.js](../rooftops/js/pieces/pickups.js) | assets | The clay Shōki and the treats. |
+| [rooftops/js/pieces/skyline.js](../rooftops/js/pieces/skyline.js) | assets | The distant city and the skyline pagodas. |
+| [rooftops/js/pieces/balcony.js](../rooftops/js/pieces/balcony.js) | assets | Roof Road piece 'balcony' (one classic builder). |
+| [rooftops/js/pieces/boat.js](../rooftops/js/pieces/boat.js) | assets | Roof Road piece 'boat' (one classic builder). |
+| [rooftops/js/pieces/bridge.js](../rooftops/js/pieces/bridge.js) | assets | Roof Road piece 'bridge' (one classic builder). |
+| [rooftops/js/pieces/canalBridge.js](../rooftops/js/pieces/canalBridge.js) | assets | Roof Road piece 'canalBridge' (one classic builder). |
+| [rooftops/js/pieces/canalLanding.js](../rooftops/js/pieces/canalLanding.js) | assets | Roof Road piece 'canalLanding' (one classic builder). |
+| [rooftops/js/pieces/canalQuarter.js](../rooftops/js/pieces/canalQuarter.js) | assets | Roof Road piece 'canalQuarter' (one classic builder). |
+| [rooftops/js/pieces/canopy.js](../rooftops/js/pieces/canopy.js) | assets | Roof Road piece 'canopy' (one classic builder). |
+| [rooftops/js/pieces/cherry.js](../rooftops/js/pieces/cherry.js) | assets | Roof Road piece 'cherry' (one classic builder). |
+| [rooftops/js/pieces/chimney.js](../rooftops/js/pieces/chimney.js) | assets | Roof Road piece 'chimney' (one classic builder). |
+| [rooftops/js/pieces/cistern.js](../rooftops/js/pieces/cistern.js) | assets | Roof Road piece 'cistern' (one classic builder). |
+| [rooftops/js/pieces/corner.js](../rooftops/js/pieces/corner.js) | assets | Roof Road piece 'corner' (one classic builder). |
+| [rooftops/js/pieces/deck.js](../rooftops/js/pieces/deck.js) | assets | Roof Road piece 'deck' (one classic builder). |
+| [rooftops/js/pieces/float.js](../rooftops/js/pieces/float.js) | assets | Roof Road piece 'float' (one classic builder). |
+| [rooftops/js/pieces/futonRack.js](../rooftops/js/pieces/futonRack.js) | assets | Roof Road piece 'futonRack' (one classic builder). |
+| [rooftops/js/pieces/gate.js](../rooftops/js/pieces/gate.js) | assets | Roof Road piece 'gate' (one classic builder). |
+| [rooftops/js/pieces/house.js](../rooftops/js/pieces/house.js) | assets | Roof Road piece 'house' (one classic builder). |
+| [rooftops/js/pieces/inuyarai.js](../rooftops/js/pieces/inuyarai.js) | assets | Roof Road piece 'inuyarai' (one classic builder). |
+| [rooftops/js/pieces/kido.js](../rooftops/js/pieces/kido.js) | assets | Roof Road piece 'kido' (one classic builder). |
+| [rooftops/js/pieces/komayose.js](../rooftops/js/pieces/komayose.js) | assets | Roof Road piece 'komayose' (one classic builder). |
+| [rooftops/js/pieces/kura.js](../rooftops/js/pieces/kura.js) | assets | Roof Road piece 'kura' (one classic builder). |
+| [rooftops/js/pieces/marketCrossing.js](../rooftops/js/pieces/marketCrossing.js) | assets | Roof Road piece 'marketCrossing' (one classic builder). |
+| [rooftops/js/pieces/post.js](../rooftops/js/pieces/post.js) | assets | Roof Road piece 'post' (one classic builder). |
+| [rooftops/js/pieces/rack.js](../rooftops/js/pieces/rack.js) | assets | Roof Road piece 'rack' (one classic builder). |
+| [rooftops/js/pieces/roji.js](../rooftops/js/pieces/roji.js) | assets | Roof Road piece 'roji' (one classic builder). |
+| [rooftops/js/pieces/rope.js](../rooftops/js/pieces/rope.js) | assets | Roof Road piece 'rope' (one classic builder). |
+| [rooftops/js/pieces/shopfronts.js](../rooftops/js/pieces/shopfronts.js) | assets | Roof Road piece 'shopfronts' (one classic builder). |
+| [rooftops/js/pieces/steppingStone.js](../rooftops/js/pieces/steppingStone.js) | assets | Roof Road piece 'steppingStone' (one classic builder). |
+| [rooftops/js/pieces/steps.js](../rooftops/js/pieces/steps.js) | assets | Roof Road piece 'steps' (one classic builder). |
+| [rooftops/js/pieces/street.js](../rooftops/js/pieces/street.js) | assets | Roof Road piece 'street' (one classic builder). |
+| [rooftops/js/pieces/toro.js](../rooftops/js/pieces/toro.js) | assets | Roof Road piece 'toro' (one classic builder). |
+| [rooftops/js/pieces/tsuboniwa.js](../rooftops/js/pieces/tsuboniwa.js) | assets | Roof Road piece 'tsuboniwa' (one classic builder). |
+| [rooftops/js/pieces/tsuiji.js](../rooftops/js/pieces/tsuiji.js) | assets | Roof Road piece 'tsuiji' (one classic builder). |
+| [rooftops/js/pieces/vent.js](../rooftops/js/pieces/vent.js) | assets | Roof Road piece 'vent' (one classic builder). |
+| [rooftops/js/pieces/water.js](../rooftops/js/pieces/water.js) | assets | Roof Road piece 'water' (one classic builder). |
+| [rooftops/js/pieces/yatai.js](../rooftops/js/pieces/yatai.js) | assets | Roof Road piece 'yatai' (one classic builder). |
 
 ### Explained construction helpers
 
@@ -421,14 +611,16 @@ Every current `src/*.js` module is classified. Every class method declared with 
 | [src/cat.js:buildMaterials(](../src/cat.js#L80) | Material setup for the inventoried cat; not another object. |
 | [src/countryside.js:createRiverUniforms(](../src/countryside.js#L1590) | Shader parameter state for the inventoried river/paddies, not another visible asset. |
 | [src/npc.js:createNameTag(](../src/npc.js#L212) | DOM character label; interface is outside the visible world-asset inventory. |
-| [src/main.js:buildJournalUI(](../src/main.js#L1725) | DOM journal interface; journal text rewards are not physical inventory objects. |
+| [src/main.js:buildJournalUI(](../src/main.js#L1769) | DOM journal interface; journal text rewards are not physical inventory objects. |
 | [src/menus.js:buildSettings(](../src/menus.js#L140) | DOM settings interface, outside the world-asset scope. |
 | [src/postfx.js:buildKernel(](../src/postfx.js#L176) | AO sampling-kernel data, not a second visual asset. |
+| [rooftops/js/build.js:export function buildWorld(](../rooftops/js/build.js#L109) | Roof Road assembly facade; every piece type, the ground, skyline and pickups are inventoried separately. |
+| [rooftops/js/pieces/paint.js:function makeMaterials(](../rooftops/js/pieces/paint.js#L281) | The Roof Road material set M, not another object. |
 
 ## Scope exclusions and text-only rewards
 
 - HUD, menus, dialogue text, journal-only keepsakes, audio/music, invisible colliders and simulation helpers.
-- Lab-only proposals and Roof Road (a separate prototype, not loaded by the game).
+- Lab-only proposals.
 - dawCAT, cadJS, OLD, arbitrary CAD overrides and per-instance procedural placements.
 - Every individual texture, material, triangle, animation pose and shader helper; these belong to their owning asset types.
 
@@ -436,18 +628,18 @@ Narrative-only characters and journal/progression rewards are recorded separatel
 
 | Nonvisual entry | Source | Reason |
 |---|---|---|
-| Bokuchi, the forest spirit | [src/main.js](../src/main.js#L1874) | Named in Kuro’s dialogue; no separate Bokuchi actor or mesh is constructed. |
+| Bokuchi, the forest spirit | [src/main.js](../src/main.js#L1918) | Named in Kuro’s dialogue; no separate Bokuchi actor or mesh is constructed. |
 | Mist Charm | [src/context_actions.js](../src/context_actions.js#L690) | Journal/progression reward from touching the altar; no collectible mesh. |
-| Bokuchi’s Blessing | [src/main.js](../src/main.js#L1945) | Journal/progression reward for the offering-bell quest; no separate item mesh. |
+| Bokuchi’s Blessing | [src/main.js](../src/main.js#L1989) | Journal/progression reward for the offering-bell quest; no separate item mesh. |
 | The valley became home | [src/context_actions.js](../src/context_actions.js#L762) | Journal memory from a quiet moment; no physical item. |
 
-Optional media and dormant code are recorded without claiming that a download succeeded or an unused builder is part of the current playable scene. The Roof Road retains its own prototype review and reachability checks.
+Optional media and dormant code are recorded without claiming that a download succeeded or an unused builder is part of the current playable scene. The Roof Road rows describe its own prototype page, which the game does not load yet; its run keeps its reachability checks (`node tools/rooftop_test.mjs`) and its numeric golden (`node tools/rooftop_golden.mjs`).
 
 ## Keeping the claim current
 
 1. Add or update an asset row when an authored visual type changes. Use a game-source declaration or unique construction anchor.
 2. Map its actual specimen/bench/review definition. Keep invisible objects and analogous techniques at `related`; record missing coverage with an explanation.
-3. Classify new source modules and account for new `buildX`/`createX` methods. Keep retired assets marked `inactive`.
+3. Classify new source modules and account for new `buildX`/`createX` methods (and new Roof Road `makeX` functions and `PIECES` types). Keep retired assets marked `inactive`.
 4. Run `node tools/labs_coverage.mjs --write`, then `node tools/labs_coverage.mjs` and `node --test tools/labs_coverage_test.mjs`.
 
 The checker validates source anchors, named specimen selectors (including the catalog’s dynamic IDs), target references, unique IDs, method accounting, classifications and report freshness. It does not render the specimens, prove geometric fidelity or verify game integration. Use the browser construction review for visual evidence.

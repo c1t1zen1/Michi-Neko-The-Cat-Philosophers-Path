@@ -72,12 +72,12 @@ export function buildNestBowl(ctx, layout, p) {
   } else {
     const prof = [[0.001, BASE_Y], [0.25, BASE_Y], [0.42, 0.0], [0.51, 0.1], [0.5, 0.17], [0.4, 0.14], [0.001, 0.0]];
     const geo = lathe(prof, 10, 0x6a4a2c, 0.3, r);
-    bag.geos.push(indexed(geo.index ? geo : geo));
+    bag.geos.push(indexed(geo));
   }
   const twigs = bag.mesh(mat, 'twigs');
   group.add(twigs); parts.twigs = twigs;
   if (T.n) {
-    const lc = (tier === 'hero' ? 0x3c4a22 : 0x3c4a22);
+    const lc = 0x48482e;   // dry moss and down: muted, so the lining no longer glows green at noon (was 0x3c4a22; a1-village)
     const prof = [[0.001, -0.045], [0.14, -0.04], [0.28, 0.03], [0.35, 0.1], [0.38, 0.12], [0.34, 0.12], [0.3, 0.07], [0.15, -0.0], [0.001, 0.0]];
     const lining = new THREE.Mesh(indexed(lathe(prof, tier === 'hero' ? 24 : 10, lc, 0.35, r)), mat);
     lining.name = 'lining'; group.add(lining); parts.lining = lining;
@@ -90,7 +90,9 @@ export function buildNestBowl(ctx, layout, p) {
 export function buildEggs(ctx, layout, p) {
   const { tier, kitMaterials: km } = ctx;
   const r = ctx.rng;
-  const mat = km.shared('matte');   // = km.bag({ rough: 0.9, brush: 0.1 }) (KIT_SHARED.matte)
+  // the classic eggs' gloss (MAT.birdEgg: roughness 0.4, metalness 0.1) on a vertex-coloured kit bag, so the
+  // speckles stay; one small merged draw, as the classic eggs' own material was (a1-village, v-nest minor)
+  const mat = km.bag({ rough: 0.4, metal: 0.1 });
   const [ws, hs] = tier === 'hero' ? [14, 10] : tier === 'mid' ? [9, 6] : [6, 4];
   const bag = new Bag();
   const tilts = layout.tilts || [0, 0.1, -0.1];
@@ -130,7 +132,7 @@ export function buildFeather(ctx, layout, p) {
   const pos = [], idx = [], n = rows + 1;
   const w = (t) => 0.065 * L * Math.sin(Math.min(1, t * 1.15 + 0.1) * Math.PI * 0.92) * (1 - 0.3 * t);
   for (const side of [1, -1]) for (let i = 0; i <= rows; i++) {
-    const t = i / rows, c = spine(lerp(v0 / y0 === 0 ? 0 : (v0 - y0) / (y1 - y0), 1, t)), ww = w(t);
+    const t = i / rows, c = spine(lerp((v0 - y0) / (y1 - y0), 1, t)), ww = w(t);
     const notch = tier === 'hero' && i % 2 ? 0.93 : 1;
     pos.push(c.x + side * ww * notch, c.y, -0.006 * (ww / (0.065 * L)));
     pos.push(c.x, c.y, 0.003);
@@ -147,5 +149,14 @@ export function buildFeather(ctx, layout, p) {
   geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(pos.length / 3 * 2), 2));
   const vane = new THREE.Mesh(geo, mat); vane.name = 'vane'; group.add(vane); parts.vane = vane;
   shadows(group, tier !== 'far', false);
-  return { group, parts, sockets: {}, live: [], dispose() { if (!shared) mat.dispose(); } }; // featherGold is the game's shared one
+  // The quest hides this group when the cat takes the feather (nestFeatherMesh):
+  // that is the moment the cat settles into the nest (a1-village A.5, 'nest.settle').
+  let shown = null;
+  const at = new THREE.Vector3();
+  const update = (dt, t, env) => {
+    const audio = env && env.audio;
+    if (shown === true && !group.visible && audio) audio.play('nest.settle', { pos: group.getWorldPosition(at) });
+    shown = group.visible;
+  };
+  return { group, parts, sockets: {}, live: [], update, dispose() { if (!shared) mat.dispose(); } }; // featherGold is the game's shared one
 }

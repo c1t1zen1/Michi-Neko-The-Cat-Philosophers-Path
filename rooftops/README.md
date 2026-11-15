@@ -12,8 +12,13 @@ safe and the level's reach graph checks a way back to the finale from every
 platform. Chidori saunters, dashes, waits, prowls, feints backwards and chooses
 alternate surfaces; his decisions and action lengths vary with the place and Michi’s pace. He sometimes peeks into an alley and doubles back when ignored. He uses the same jump and landing physics as Michi.
 
-The camera fits both cats in portrait and gives desktop more space to either
-side. Foreground architecture opens around obscured cats. An optional paper
+The street camera rises over opaque architecture and adjusts its boom around
+obstructions, framing both cats when they share a clear view. In the alleys it
+zooms in behind Michi at about human head height; a guide exploring another
+lane cannot pull it through a house. Alleys have permanent doorways through the
+blocks and their raised agility structures sit beside the clear paving lane.
+There is no view-dependent cutaway or X-ray shader. The scene and controls
+appear together after both cats have been sculpted, posed and rendered. An optional paper
 map shows both cats, the winding route and the lantern checkpoints. On touch,
 drag the left pad (farther to sprint), hold **jump** for height and use **drop**
 for lower routes. Desktop: arrows / A D, Space, Shift and ↓. R returns to the
@@ -55,7 +60,8 @@ PLAYWRIGHT_MODULE=/path/to/playwright node tools/rooftop_browser_test.mjs
 
 Set `ROOFTOP_URL` for another server, `ROOFTOP_QA_DIR` for the report/capture
 folder. It runs the actual game loop through the finale at 360×780, 390×844,
-844×390 touch and 1440×900 desktop, checks cat bounds throughout the chase,
+844×390 touch and 1440×900 desktop, checks focused cat bounds and opaque camera clearance throughout the chase,
+verifies delayed loading stays covered and the bridge mesh matches paw collision,
 exercises simultaneous touch movement/jump, buffered presses between physics
 ticks, both directions through every alley, local boat/worker visibility, map
 and pause, and checks for

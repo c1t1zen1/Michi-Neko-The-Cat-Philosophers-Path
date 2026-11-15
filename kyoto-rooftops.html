@@ -14,7 +14,7 @@
     {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
   </script>
 </head>
-<body>
+<body class="loading" aria-busy="true">
   <!--
     Entry point for the Roof Road prototype (sandbox). It loads the lab in
     rooftops/ and shares nothing with the main game's index.html; the game
@@ -22,7 +22,7 @@
   -->
   <canvas id="gl" aria-label="The Roof Road: follow Chidori through Kyoto roofs and alleys"></canvas>
 
-  <p class="wake" id="wake">Michi is waking up…</p>
+  <div class="wake" id="wake" role="status"><span>屋根道</span><p>Michi and Chidori are waking up…</p></div>
 
   <header class="mast">
     <a class="back" href="index.html" title="Back to the main game">← valley</a>

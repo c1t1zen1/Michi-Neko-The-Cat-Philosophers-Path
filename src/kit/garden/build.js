@@ -55,7 +55,7 @@ export function buildShishi(ctx, layout, p) {
 
   // feeder: a bamboo pipe sloping down to a tip over the mouth, on a stake
   const a = V3(-0.62, 1.08, 0), b = FEED_TIP.clone().add(V3(0.0, 0.0, 0)), d = b.clone().sub(a), L = d.length();
-  const pipe = new THREE.CylinderGeometry(0.032, 0.034, L, seg(tier, 12, 8, 6)).rotateZ(-Math.atan2(d.x, d.y) * 0 + 0);
+  const pipe = new THREE.CylinderGeometry(0.032, 0.034, L, seg(tier, 12, 8, 6));
   pipe.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(V3(0, 1, 0), d.clone().normalize()));
   pipe.translate((a.x + b.x) / 2, (a.y + b.y) / 2, 0);
   add('feed', tinted(merge([pipe, new THREE.CylinderGeometry(0.03, 0.03, 0.04, 8).translate(a.x, a.y, 0)])), stem);
@@ -117,9 +117,10 @@ export function buildShishi(ctx, layout, p) {
   };
   const up = V3(0, 1, 0), mouth = V3(), top = V3(), bot = V3(), dir = V3();
   let mine = rocker.rotation.z, ext = false, prev = REST_TILT, cool = 0;
+  const at = V3();   // the clack's world position, for env.audio
   const inst = {
     group: g, parts, live, onClack: null,
-    update(dt, t) {
+    update(dt, t, env) {
       if (Math.abs(rocker.rotation.z - mine) > 1e-6) ext = true;
       if (!ext) { // standalone (catalog, lab): the same cycle the game runs
         const c = (t * 0.4) % (Math.PI * 2);
@@ -130,7 +131,13 @@ export function buildShishi(ctx, layout, p) {
       // the mouth in group space; the pour follows it as it dips
       mouth.set(-ARM_MOUTH * Math.sin(th), ARM_MOUTH * Math.cos(th), 0).add(PIVOT);
       cool -= dt;
-      if (prev > 0.08 && tilt <= 0.08 && cool <= 0) { cool = 0.6; if (typeof inst.onClack === 'function') inst.onClack(); if (typeof layout.onClack === 'function') layout.onClack(); }
+      if (prev > 0.08 && tilt <= 0.08 && cool <= 0) {
+        cool = 0.6;
+        if (typeof inst.onClack === 'function') inst.onClack();
+        if (typeof layout.onClack === 'function') layout.onClack();
+        const audio = env && env.audio;   // the knock on the anvil stone (a1-village A.5)
+        if (audio) audio.play('garden.shishi.clack', { pos: g.getWorldPosition(at) });
+      }
       if (stream) {
         const under = Math.abs(mouth.x - FEED_TIP.x) < 0.1 && mouth.y < FEED_TIP.y;
         place(0, top.copy(FEED_TIP), bot.set(FEED_TIP.x, under ? mouth.y + TUBE_R * 0.6 : WATER_Y, 0), true);
@@ -162,6 +169,7 @@ function washiStrokes(km) {
   for (let i = 0; i < 160; i++) { x.strokeStyle = `rgba(255,252,240,${0.2 + r() * 0.3})`; x.lineWidth = 1; x.beginPath(); const x0 = r() * 256, y0 = r() * 256; x.moveTo(x0, y0); x.lineTo(x0 + (r() - 0.5) * 30, y0 + (r() - 0.5) * 30); x.stroke(); }
   x.fillStyle = 'rgba(190,60,50,0.55)'; x.fillRect(100, 20, 22, 60); // a vermilion inked mark
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  tex.userData.kit = true;   // shared by every chime of this kit set (the kit's convention: never disposed by an instance)
   stripTex.set(km, tex);
   return tex;
 }
@@ -195,6 +203,10 @@ export function buildWindChime(ctx, layout, p) {
   const clapper = mesh(geo, paper, 'clapper', false); g.add(clapper); parts.clapper = clapper;
   const pos = geo.attributes.position, base = pos.array.slice();
   const S = { a: 0, va: 0, s: 0, vs: 0 };
+  // A strike (a1-village A.5): the clapper turns at the end of a swing that travelled
+  // more than the gap to the glass since its last turn; at the game's rest wind
+  // (env.wind 1) that is one ring every ~2 s (0.9 to 3.3 s), none in a calm.
+  const ring = { turn: 0, prevVa: 0, cool: 0, at: new THREE.Vector3() };
   return {
     group: g, parts, live: [bell, clapper],
     update(dt, t, env) {
@@ -204,6 +216,17 @@ export function buildWindChime(ctx, layout, p) {
       S.va += (f - S.a * 22 - S.va * 2.5) * dt; S.a += S.va * dt;
       S.vs += ((f * 0.7 - S.s * 36 - S.vs * 4) + S.va * 2) * dt; S.s += S.vs * dt;
       const ca = Math.max(-0.5, Math.min(0.5, S.a * 1.4)), sa = Math.max(-0.9, Math.min(0.9, S.s * 1.3 + S.a * 0.5));
+      ring.cool -= dt;
+      if (ring.prevVa !== 0 && Math.sign(S.va) !== Math.sign(ring.prevVa)) {
+        const swing = Math.abs(ca - ring.turn);
+        const audio = env && env.audio;
+        if (audio && swing > 0.1 && ring.cool <= 0) {
+          ring.cool = 0.8;
+          audio.play('garden.chime.ring', { pos: g.getWorldPosition(ring.at), gain: Math.min(1, swing * 6) });
+        }
+        ring.turn = ca;
+      }
+      ring.prevVa = S.va;
       const arr = pos.array;
       for (let i = 0; i < pos.count; i++) {
         const y = base[i * 3 + 1]; let dx = 0;

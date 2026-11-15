@@ -74,12 +74,19 @@ function causticTexture(km, L) {
   }
   return shared(km, 'caustic:' + sites.length + ':' + sites[0][0].toFixed(5), () => {
     const N = 64, [c, x] = canvas2d(N, N), img = x.createImageData(N, N);
+    // every wrapped copy of every site, in the order the cell search visits them
+    const px = [], py = [];
+    for (const [sx, sy] of sites) for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) { px.push(sx + ox); py.push(sy + oy); }
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
       const u = (i + 0.5) / N, v = (j + 0.5) / N;
-      let f1 = 9, f2 = 9;
-      for (const [sx, sy] of sites) for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
-        const d = Math.hypot(sx + ox - u, sy + oy - v);
-        if (d < f1) { f2 = f1; f1 = d; } else if (d < f2) f2 = d;
+      let f1 = 9, f2 = 9, lim = 81 * (1 + 1e-9);
+      for (let s = 0; s < px.length; s++) {
+        // a copy farther than f2 (squared, with a margin over rounding) changes nothing:
+        // skip it before the exact distance (a1-village, R66: the same bytes, ~3x faster)
+        const dx = px[s] - u, dy = py[s] - v;
+        if (dx * dx + dy * dy >= lim) continue;
+        const d = Math.hypot(dx, dy);
+        if (d < f1) { f2 = f1; f1 = d; lim = f2 * f2 * (1 + 1e-9); } else if (d < f2) { f2 = d; lim = f2 * f2 * (1 + 1e-9); }
       }
       const k = Math.max(0, 1 - (f2 - f1) * 46), a = k * k * k;     // thin bright cell edges, soft shoulders
       const o = (j * N + i) * 4;
@@ -285,9 +292,18 @@ function lotusGeometry(tier, flower, rng, p) {
   });
   if (tier !== 'far') parts.push(tint(new THREE.CylinderGeometry(0.036, 0.03, 0.03, 8).translate(0, top + 0.04, 0), 0xd6c866));
   if (tier === 'hero') {                                             // the standing leaf: lotus raises its leaves, lilies do not
+    // a1-village (v-hidden minor: it read as a pale disc on a thread): the glaucous blue-green of a
+    // lotus leaf, darker toward the rim with a pale navel where the stalk meets it, eleven soft
+    // waves in the rim, and a stalk thick enough to hold it up (same rng draws as before)
     const a = rng() * TAU, lx = Math.cos(a) * 0.36, lz = Math.sin(a) * 0.36, lh = 0.12 + rng() * 0.06;
-    const dish = polarDisc(0.2, 3, 18, { y: (rn) => 0.07 * Math.pow(rn, 1.6), color: (rn) => { const k = 0.9 + 0.5 * rn; return [0.22 * k, 0.42 * k, 0.2 * k]; } }).rotateZ(0.22).rotateY(a).translate(lx, lh, lz);
-    parts.push(dish, tint(new THREE.CylinderGeometry(0.008, 0.011, lh + 0.08, 4, 1, true).translate(lx, (lh - 0.08) / 2, lz), 0x5f8a4a));
+    const dish = polarDisc(0.2, 4, 33, {
+      y: (rn, t) => 0.07 * Math.pow(rn, 1.6) + 0.014 * Math.pow(rn, 3) * Math.sin(t * 11),
+      color: (rn, t) => {
+        const navel = 1 - sstep(0, 0.18, rn), k = 0.8 + 0.25 * sstep(0.2, 0.9, rn) + 0.05 * Math.sin(t * 22) * rn;
+        return [0.2 * k + 0.32 * navel, 0.38 * k + 0.3 * navel, 0.26 * k + 0.12 * navel];
+      }
+    }).rotateZ(0.22).rotateY(a).translate(lx, lh, lz);
+    parts.push(dish, tint(new THREE.CylinderGeometry(0.012, 0.016, lh + 0.08, 6, 1, true).translate(lx, (lh - 0.08) / 2, lz), 0x55804a));
   }
   const geo = indexed(merge(parts));
   for (const g of parts) g.dispose();
