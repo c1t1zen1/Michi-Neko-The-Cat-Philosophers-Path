@@ -139,7 +139,24 @@ function buildNoren(ctx, layout, p) {
   }
   if (p.crest) bag.add(new THREE.CylinderGeometry(0.1, 0.1, 0.006, seg(tier, 20, 10, 6)).rotateX(Math.PI / 2), { y: 0, z: 0.02, color: 0xe9e1cf });
   const inst = assemble({ cloth: mesh, trim: meshOf(bag.geometry(), bagMat(km)) });
-  inst.update = (dt, t, env) => { SWAY.uTime.value = t; SWAY.uWind.value = env && typeof env.wind === 'number' ? env.wind : 1; };
+  // The cloth brushing the cat (a1-village A.5): an edge when the cat's body (0.25 m
+  // above its paws) comes within 0.35 m of the cloth plane, inside its width and
+  // between the hem (less 0.3 m) and the pole; at most once a second.
+  const brush = { inside: false, cool: 0, p: new THREE.Vector3(), at: new THREE.Vector3() };
+  const hem = top - 0.04 - hang - 0.3;
+  inst.update = (dt, t, env) => {
+    SWAY.uTime.value = t; SWAY.uWind.value = env && typeof env.wind === 'number' ? env.wind : 1;
+    const audio = env && env.audio, cat = audio && audio.listener;
+    brush.cool -= dt;
+    if (!cat) return;
+    const q = inst.group.worldToLocal(brush.p.set(cat.x, cat.y + 0.25, cat.z));
+    const inside = Math.abs(q.z) < 0.35 && Math.abs(q.x) < w / 2 && q.y > hem && q.y < top;
+    if (inside && !brush.inside && brush.cool <= 0) {
+      brush.cool = 1;
+      audio.play('machiya.noren.brush', { pos: inst.group.getWorldPosition(brush.at) });
+    }
+    brush.inside = inside;
+  };
   return inst;
 }
 

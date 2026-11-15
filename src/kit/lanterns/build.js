@@ -50,7 +50,7 @@ export function buildStoneLantern(ctx, layout, p, { kind, height, kasaR, halo = 
   }
   shadows(group, true, true);
   lamp.castShadow = false;
-  const step = lampUpdate({ lit, halo: sprite, ownHalo: ownHalo && !!sprite, index: layout.index, base, gain, always });
+  const step = lampUpdate({ lit, halo: sprite, ownHalo: ownHalo && !!sprite, index: layout.index, base, gain, always, at: group });
   return {
     group, parts, live,
     update: step,
@@ -93,7 +93,7 @@ export function buildChochin(ctx, layout, p) {
     parts.cap.geometry = indexed(merge([parts.cord.geometry, parts.cap.geometry, parts.foot.geometry.clone().translate(0, -0.48, 0), ...tass.map((t) => t.translate(0, -0.5, 0))]));
     for (const k of ['cord', 'foot']) { g.remove(parts[k]); delete parts[k]; }
   } else add('tassel', merge(tass), red, -0.5);
-  const step = lampUpdate({ lit, index: layout.index, base: 0.4, gain: 1.9, always: 0 });
+  const step = lampUpdate({ lit, index: layout.index, base: 0.4, gain: 1.9, always: 0, at: g });
   return { group: g, parts, live: lit ? [paper] : [], update: step, dispose() { freePrivate([lit]); } };
 }
 
@@ -126,6 +126,6 @@ export function buildAndon(ctx, layout, p) {
   g.add(f, paper);
   // the paper is centred on its own flame so the glow falls off from the middle
   paper.geometry.translate(0, -(y0 + y1) / 2, 0); paper.position.y = (y0 + y1) / 2;
-  const step = lampUpdate({ lit, index: layout.index, base: 0.22, gain: 0.55, always: 0 });
+  const step = lampUpdate({ lit, index: layout.index, base: 0.22, gain: 0.55, always: 0, at: g });
   return { group: g, parts: { frame: f, paper }, live: lit ? [paper] : [], update: step, dispose() { freePrivate([lit]); } };
 }

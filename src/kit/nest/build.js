@@ -147,5 +147,14 @@ export function buildFeather(ctx, layout, p) {
   geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(pos.length / 3 * 2), 2));
   const vane = new THREE.Mesh(geo, mat); vane.name = 'vane'; group.add(vane); parts.vane = vane;
   shadows(group, tier !== 'far', false);
-  return { group, parts, sockets: {}, live: [], dispose() { if (!shared) mat.dispose(); } }; // featherGold is the game's shared one
+  // The quest hides this group when the cat takes the feather (nestFeatherMesh):
+  // that is the moment the cat settles into the nest (a1-village A.5, 'nest.settle').
+  let shown = null;
+  const at = new THREE.Vector3();
+  const update = (dt, t, env) => {
+    const audio = env && env.audio;
+    if (shown === true && !group.visible && audio) audio.play('nest.settle', { pos: group.getWorldPosition(at) });
+    shown = group.visible;
+  };
+  return { group, parts, sockets: {}, live: [], update, dispose() { if (!shared) mat.dispose(); } }; // featherGold is the game's shared one
 }

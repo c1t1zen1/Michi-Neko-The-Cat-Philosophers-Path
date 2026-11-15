@@ -48,15 +48,23 @@ export function freePrivate(list) {
   for (const m of list) if (m && !m.userData.kit) m.dispose();
 }
 
+/** Kindle level at which a lantern is heard catching (env.audio 'lantern.kindle'). */
+export const KINDLE_SOUND_AT = 0.08;
+
 /**
  * The update() of a lantern: kindles its private lit material (hero) and,
  * unless the owner drives it, its halo.
  *   lit     private lit-washi material or null
  *   halo    sprite or null; `ownHalo` says this update writes its opacity
  *   gain    emissive dial at full night; base at noon
+ *   at      the lantern's object (its world position is where the kindle is heard), or null
+ * The kindle sound is an edge: once, when k rises through KINDLE_SOUND_AT while
+ * the game runs (never on the first update, so a boot at night is silent).
  */
-export function lampUpdate({ lit = null, halo = null, ownHalo = false, index = 0, base = 0.12, gain = 1.7, always = 0 }) {
+export function lampUpdate({ lit = null, halo = null, ownHalo = false, index = 0, base = 0.12, gain = 1.7, always = 0, at = null }) {
   const onset = onsetFor(index);
+  let prev = -1;
+  const where = at ? new THREE.Vector3() : null;
   return function update(dt, t, env) {
     const night = nightnessAt(env && typeof env.hour === 'number' ? env.hour : 12);
     let k = kindle(night, onset);
@@ -64,5 +72,9 @@ export function lampUpdate({ lit = null, halo = null, ownHalo = false, index = 0
     const fl = flickerAt(t, index);
     if (lit) lit.userData.u.uGlow.value = always + base + k * gain * (0.94 + 0.06 * fl);
     if (halo && ownHalo) halo.material.opacity = k * 0.55 * fl;
+    if (prev >= 0 && prev < KINDLE_SOUND_AT && k >= KINDLE_SOUND_AT && at && env && env.audio) {
+      env.audio.play('lantern.kindle', { pos: at.getWorldPosition(where), gain: 0.6 });
+    }
+    prev = k;
   };
 }
