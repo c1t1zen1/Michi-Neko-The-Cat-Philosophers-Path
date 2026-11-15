@@ -234,8 +234,19 @@ after merging that work's other files (`game.js`, `level.js`, `physics.js`,
    `<base>` is the commit X branched from. Keep this checkout's `build.js`
    (the facade) in the merge (`git checkout --ours rooftops/js/build.js` on
    conflict); the hunks are applied below, not merged.
-2. **Find each hunk's home.** The hunk header names the old function
-   (`@@ … @@ B.bridge = (pc, ctx) => {` or `function hiraRoof(`). Map it:
+2. **Find each hunk's home.** Do not trust the hunk header's function
+   name: git prints the last declaration *above* the hunk, so a hunk that
+   edits `B.bridge` can be headed `@@ … @@ B.corner`. Locate the target
+   instead by either
+   - the first `B.<type> =` (or `function <name>(`) line inside the hunk's
+     own context or removed lines, when it shows one; or
+   - the hunk's old line range (`@@ -<start>,<n>`) against the base file's
+     declarations: `git show <base>:rooftops/js/build.js | grep -nE
+     '^(B\.[A-Za-z]+ = |(export )?function |const [A-Za-z]+ = )'` lists where
+     each block starts, and the hunk belongs to the last block that starts
+     at or before `<start>`.
+
+   Then map that old declaration to its new module:
 
    | Old `build.js` code | Now in |
    |---|---|
@@ -256,7 +267,10 @@ after merging that work's other files (`game.js`, `level.js`, `physics.js`,
    there: rewrite the hunk's `---`/`+++` paths to the new module and run
    `git apply --recount` (it finds the shifted lines by their context), or
    apply it by hand. A hunk whose context includes the head line needs that
-   line edited first.
+   line edited first. The safety net: `git apply --recount` rejects a hunk
+   sent to the wrong file, because its context lines are not there; a
+   rejected hunk means the home was misread, so locate it again rather than
+   forcing it (`--reject`, `--3way` or hand-editing the context).
 3. **New things.**
    - A new piece type (a new `B.x` or a new `installDowntown` builder that
      the level uses): add a `pieces/<x>.js` (or keep it in `downtown.js`),
