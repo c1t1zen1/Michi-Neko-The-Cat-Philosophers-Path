@@ -36,3 +36,5 @@ Rechecked: kit_check 451 OK, contract 560/0, rooftop_golden classic EQUAL, swap 
 ## Concerns
 1. pieces/common.js mergeByMaterial drops the vertex-colour attribute, so any km.bag piece renders black on the Roof Road (found in a first capture). Worked around by using ctx.MAT. r2/r4/r5 must do the same or the Integrator fixes common.js (handoff 2).
 2. Stepping-stone bounds differ ~0.1 m from classic (digest only); no collider.
+
+Review r1: header comment corrected (ctx.MAT). Turtle-head sphere removed: the classic steppingStone builder has no head at all, so this restores classic parity (the 'turtle' shape stays the same stone and moss cap).

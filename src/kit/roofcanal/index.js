@@ -4,8 +4,8 @@
 // z toward the camera at depth d), exactly where the classic builder in
 // rooftops/js/pieces/<type>.js draws it, from `layout.piece` (the level record,
 // read-only: heights and depths are gameplay). No collision is registered here:
-// platforms belong to level.js. Static, plain merged geometry on ONE shared kit
-// material (km.bag, vertex colour) so the facade merges every instance.
+// platforms belong to level.js. Static, plain merged geometry on the Roof Road's own
+// ctx.MAT entries (no new material), so the facade merges every instance.
 import * as THREE from 'three';
 import { defineAsset } from '../contract.js?v=20261114a';
 import { Bag } from '../craft.js?v=20261114a';
@@ -75,9 +75,6 @@ function buildSteppingStone(ctx, layout, p) {
   if (ctx.tier !== 'far') bag.add(new THREE.CircleGeometry(0.34 + look * 0.12, seg(ctx.tier, 9)).rotateX(-Math.PI / 2), {
     sx: 1.25, x: 0.08, y: pc.y + 0.015, z: pc.d - 0.04, m: 'pine'
   });
-  if (pc.shape === 'turtle' && ctx.tier !== 'far') {
-    bag.add(new THREE.SphereGeometry(0.1, seg(ctx.tier, 8), 5), { sx: 1.2, sz: 1.5, x: w * 0.42, y: pc.y - 0.02, z: pc.d + 0.05, m: 'wetStone' });
-  }
   return finish(ctx, bag);
 }
 
