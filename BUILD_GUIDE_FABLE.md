@@ -651,7 +651,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 2.2 | `v-pagoda` | Distant pagoda (lab 08) | G-V1 | [x] |
 | 2.2 | `v-hidden` | Moon Pool and Lantern Glade (lab 07) | G-V1 | [x] |
 | 2.2 | `v-interiors` | Tea house and secret house interiors (lab 21) | G-V1 | [x] |
-| 2.3 | `v-ground` | Ground, path, shoulders (lab 01) | G-V2 | [ ] |
+| 2.3 | `v-ground` | Ground, path, shoulders (lab 01) | G-V2 | [x] |
 | 2.3 | `v-water` | River, bridge, paddies (lab 02) | G-V2 | [x] |
 | 2.3 | `v-ranges` | Forest wall, mountains, mist (lab 03) | G-V2 | [x] |
 | 2.3 | `v-sky` | Sky, clouds, cloud shadows, post (lab 05) | G-V2 | [x] |
@@ -684,7 +684,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 
 ### Board notes (G-V2 and G-C chores, 2026-11-14)
 
-- Wave 2.2 and the merged wave 2.3 lanes (`v-ranges`, `v-sky`, `v-weather`, `v-trees`, `v-critters`) are ticked. `v-ground` and `v-water` stay open (in flight), as do `s3-vista` and `r1-roof-split`.
+- Wave 2.2 and wave 2.3 is complete: all its lanes (`v-ranges`, `v-sky`, `v-weather`, `v-trees`, `v-critters`, `v-water`, `v-ground`) are merged and ticked. `s3-vista` and `r1-roof-split` stay open (G-V3 is ticked by the gate chores, not here).
 - `edge-forest` is pinned to classic by the committed `kit-overrides.json` (`"edge-forest": { "variant": "classic" }`, R49), so `?assets=modular` and the setting-driven path keep the classic forest wall while the rest of `ranges` is modular.
 - Deferred ids, with reasons: `village-street` (no geometry of its own; parent of eight street-house components); `tree-trunks`, `tree-canopies` (no routing or consumer; `buildSkeleton` / `buildCanopyOnly` stay exported for s2); `scent`, `splash`, `landing-dust` (specimens exist, but `scent.js`, `player.js`, `context_actions.js` have no `placeAsset` seam); `summit-wildlife` (umbrella row; classic builds nothing of its own); v-sky `sky-dome`, `sky-light`, `god-rays` (kit-only), `ao`, `atmosphere`, `grade` (palette reconciliation or no study); c2-michi `bow` (no nape mount in the contract), cat shadow upgrade; offering bells (v-shrine ruling).
 - Material rule: R52 everywhere (no fixed cap; `tools/kit_material_census.mjs` reports "+N merged materials"). Contract sample for `bamboo-fence` is the real 11 m run (R51 exception exercised).
@@ -1444,6 +1444,7 @@ created in Phase 1 and marked *(new)*.
 | | `node tools/labs_check.mjs` | Labs syntax, cache tags, registry, coverage report (regenerate after editing `main.js`/`countryside.js`) |
 | | `git diff --check` | No whitespace damage |
 | **G2** every gate | `tools/footprint_golden.html` | Classic layout, colliders, anchors unchanged |
+| | `node tools/ground_wear_test.mjs` (needs `PLAYWRIGHT_MODULE`) | Ground live wear: classic mask untouched by walking; modular paws thin the meadow only near walked lines, lawns never change, regrowth restores the baked mask byte for byte; 14 checks, ~12 s on Metal |
 | | `node tools/kit_contract_test.mjs` (`tools/kit_contract_test.html`) | AAA-2, 3, 7, 8, 9 + footprint for every asset and tier; `0 assets` passes; self-test; draw-call merge count |
 | | `node tools/game_shot.mjs --query "…&shot=1&assets=classic"` vs `…modular` | Same frame on both sets where nothing is swapped (`--diff` at `maxDelta 0`); two boots of one set identical |
 | | `tools/labs_geometry_test.html` | Lab construction checks (32 today) |
