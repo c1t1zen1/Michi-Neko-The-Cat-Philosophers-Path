@@ -118,6 +118,40 @@ R1.4, final tree (after R1.5 and R1.1):
   bridge tile.
 - `git diff --check origin/fable/integration...HEAD` → clean.
 
+### Fix round 1 (review r1)
+
+- Important 1 fixed: the ground, distant city, three skyline pagodas, Shōki
+  and treats now go through `assets.build(id, extraLayout(…), classic)` in
+  `build.js`; a kit one is placed unmerged on the root where the classic one
+  stands, a kit pickup registered as the pickup. `node
+  tools/rooftop_golden.mjs` → `EQUAL`, byte-identical; `--query
+  "assets=modular"` → EQUAL; `--query "swap=roof-machiya:modular,
+  roof-bridge:modular,roof-skyline-pagodas:modular,roof-shoki:modular,
+  roof-ground:modular"` → EQUAL. Routing self-test extended (stand-in boat
+  with a `dynamic` record, 3 pagodas, 7 Shōki): `routing ok: stand-ins on 9
+  pieces (kido, rack, boat; legs +x -z -x +z) and 10 extras (pagodas, Shōki);
+  35/35 checks`. Fault injection in scratch copies: the pre-fix build.js →
+  `ROUTING FAILED` (3 checks: 0 extras); `placePiece` ignoring `dynamic` →
+  `ROUTING FAILED` (2 boat checks); extras merged instead of rooted →
+  `ROUTING FAILED` (5 checks).
+- `node tools/rooftop_test.mjs` → `40 passed, 0 failed`; companion 7/7; alley
+  PASS; `?auto=1` (`?qa=1`, `advanceForReview`) → `finale: true` at s =
+  1031.6 on classic, `&assets=modular` and
+  `&swap=roof-skyline-pagodas:modular,roof-shoki:modular,roof-ground:modular,roof-bridge:modular`
+  (7 Shōki, 14 treats registered; errors `[]`).
+- Minors: 1 fixed (one PIECES reader, `readPieces` in labs_coverage, used by
+  the swap matrix; it counts `piece(` calls and fails on any entry it cannot
+  read; new test, 17/17); 2 fixed (the facade's error names the PIECES
+  table); 3 fixed (the `dynamic` branch is now in the routing self-test); 5
+  fixed (the hub blurb says the card opens the shelf and the run is one click
+  on). 4 left (see notes).
+- Re-run on the fixed tree: check_syntax 162 OK; verify `All checks passed`;
+  kit_check 422 OK; labs_check OK; labs_coverage OK (anchors of the five
+  extras moved to their `extra(...)` calls; ASSET_COVERAGE.md regenerated);
+  swap matrix OK (unchanged); catalog_check OK, catalog tests 50/50;
+  footprint golden EQUAL; lab 52/52 tiles, errors `[]`; `git diff --check`
+  clean.
+
 ## Deferred assets and why
 
 All 62 Roof Road rows stay classic: this serial lane splits and routes, it
@@ -138,7 +172,7 @@ None (no kit asset; the footprint golden is EQUAL).
   4c82f6c). In a scratch export of that tree the facade builds all 829
   pieces (0 empty, routing self-test 27/27); the golden reads DIFFERENT as it
   must (the level changed) and `rooftop_test` is 38/2, the same two failures
-  17c9cae has on its own. Rewrite the golden after that merge (handoff 5).
+  17c9cae has on its own. Rewrite the golden after that merge (handoff 6).
 - R1.5 was committed before R1.1 because the inventory's Roof Road evidence
   targets anchor into the lab's shelf (`labs/roofroad/js/shelf.js`).
 - The lab is a registry extra (as `trees` is), so `labs_check`'s "22 labs"
@@ -146,3 +180,14 @@ None (no kit asset; the footprint golden is EQUAL).
 - Integrator patches in the handoff: AGENTS.md (rooftops row, cache-tag
   files, rooftop golden, coverage regeneration), `catalog/js/links.mjs`
   (Roof Road context link, t1's file), an optional verify cache-tag check.
+- Review minor 4 (not fixed): `?assets=modular` on the Roof Road page
+  preloads every valley kit family. Kept on purpose: the r2-r5 cards reuse
+  valley families (machiya, lanterns, alley, water, trees, pagoda, ranges),
+  so the page needs the kit index. A family filter (AssetRuntime already
+  takes `loadFamilies`) belongs to the first lane that adds a Roof Road
+  family; the cost is load time under the explicit flag only.
+- Ruling R65: the operator's live Roof Road edits (old single-file
+  `build.js`, `game.js`, `level.js`, `physics.js`, `downtown.js`,
+  `alleys.js`, deleted `cutaway.js`, new modules) must be ported into
+  `pieces/` after they land on main: handoff section 5 is the procedure. Not
+  read or touched by this lane.

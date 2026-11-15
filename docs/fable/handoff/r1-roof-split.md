@@ -11,9 +11,11 @@ to build Roof Road kit pieces. The lane was granted `rooftops/js/build.js`,
 
 ## 1. What changed
 
-- `rooftops/js/build.js` (2022 lines at 8702cc7) is a 238-line facade.
-  `buildWorld(level, opts)` keeps its signature and return value; it walks
-  `level.pieces` and builds each through the `PIECES` table.
+- `rooftops/js/build.js` (2022 lines at 8702cc7) is a facade of about 280
+  lines. `buildWorld(level, opts)` keeps its signature and return value; it
+  walks `level.pieces` and builds each through the `PIECES` table, then builds
+  the ground, the distant city, the three skyline pagodas and the pickups
+  through the same contract (`extraLayout`, fix round 1).
 - `rooftops/js/pieces/`: one module per piece type (35 files, code moved
   verbatim; only each builder's first line changed from `B.x = (pc, ctx) => {`
   to `export const x = (pc, ctx) => {`), `paint.js` (canvases, material set
@@ -52,23 +54,41 @@ if the matrix lane differs from the table's.
 | r4-festival | yatai `roof-yatai` (+ downtown `decorateStall`), rack `roof-lantern-racks`, float `roof-hoko`, gate `roof-temple-gate`, tsuiji `roof-tsuiji`, yamaFloat `roof-yama` |
 | r5-roof-cast | villager `roof-villagers` |
 
-Rows that are not piece types (built by `buildWorld()` or inside a piece, so
-not routed on their own today):
+Things `buildWorld()` adds around the run, not from a level piece, are routed
+too (fix round 1). Each goes through `assets.build(id, extraLayout(…), classic)`,
+and a kit instance is placed **unmerged on the root** where the classic one
+stands (`placePiece(…, { merge: false })`). No `build.js` edit is needed to
+swap them:
+
+| Lane | Inventory id | Instances | `extraLayout` (world coordinates) |
+|---|---|---|---|
+| r2 | `roof-ground` | 1 | x 0, y −0.7, z 0, ry 0, band `near`, `size` 1400 (the classic plane's side) |
+| r4 | `roof-distant-city` | 1 | x 0, y 0, z 0, band `far`, `bounds` (level bounds), `route` (the rail every 2 m as [x, z]; keep roofs off it) |
+| r4 | `roof-skyline-pagodas` | 3 (index 0 east, 1 south, 2 west) | x, z of the classic pagoda, band `far`, `scale` (buildPagoda's 1.35 / 1.6 / 1.1) |
+| r5 | `roof-shoki` | 7, one per Shōki pickup | x, y, z and ry of the classic Shōki (rail point at `pickup.s`, `pickup.d`; y `pickup.y`; facing the camera then `pickup.face`), band `near`, `s`, `scale` 1.6, `pickup` (the level record) |
+| r5 | `roof-treats` | one per treat | as the Shōki, `scale` 1.4 |
+
+The facade does not scale a kit group: `scale` says how large the classic one
+reads (build at that size). A kit pickup's group is registered as the pickup
+itself (`userData.pickup` = the level record, pushed to `dynamic.shoki` /
+`dynamic.treats`), so `game.js` greets it: on a greeting it sets the material
+of each of the group's direct children (the Shōki) or hides the group (a
+treat), and `world.update()` turns a Shōki's first child a little.
+
+Rows still built where they are, not routed on their own:
 
 | Lane | Inventory ids | Where they are built |
 |---|---|---|
-| r2 | `roof-kawara-roofs`, `roof-facades` | `pieces/machiya.js`, inside house, kura, kido, gate, float and the downtown kit |
-| r2 | `roof-ground` | `build.js` (the 1400 m gravel plane) |
-| r4 | `roof-distant-city`, `roof-skyline-pagodas` | `pieces/skyline.js`, called from `buildWorld()` |
+| r2 | `roof-kawara-roofs`, `roof-facades` | `pieces/machiya.js`, inside house, kura, kido, gate, float and the downtown kit (replace them through those pieces) |
 | r4 | `roof-sky`, `roof-hills`, `roof-okuribi` | `sky.js` (`Sky`, `buildHills`, `buildFires`) |
 | r4 | `roof-atmosphere` | `atmosphere.js` |
-| r5 | `roof-shoki`, `roof-treats` | `pieces/pickups.js`, called from `buildWorld()` |
 | r5 | `roof-chidori` | `game.js` (the game's `Cat` with her coat) + `companion.js` |
-| r5 | `roof-boatman`, `roof-hayashi` | inside `pieces/boat.js` and `pieces/float.js` |
+| r5 | `roof-boatman`, `roof-hayashi` | inside `pieces/boat.js` and `pieces/float.js` (replace them through the boat and float) |
 
-A lane that wants to swap one of these separately adds an `assets.build` call
-where it is built (the facade for the ground, skyline and pickups is
-`build.js`, a hot file: send the patch through your handoff).
+`sky.js`, `atmosphere.js` and `game.js` are not `build.js`: a lane that swaps
+the sky, hills, fires or atmosphere adds its `assets.build` call there
+(`game.js` is hot; `sky.js` and `atmosphere.js` are Roof Road modules no lane
+owns yet, so ask the Integrator).
 
 ## 3. How a Roof Road kit piece registers
 
@@ -102,7 +122,10 @@ where it is built (the facade for the ground, skyline and pickups is
      over the run's night and `env.lanternOn` past half-night.
 4. Register no collision: platforms, walls and ceilings belong to
    `level.js`. Draw the surfaces the level record names, at its heights.
-5. Prove it: `node tools/rooftop_golden.mjs` must stay EQUAL on classic
+5. A thing from the table of extras above builds from `extraLayout` instead
+   (world coordinates, its own origin at the classic spot), and its whole
+   group goes on the root, unmerged.
+6. Prove it: `node tools/rooftop_golden.mjs` must stay EQUAL on classic
    (nothing you add changes the classic build); `node tools/rooftop_golden.mjs
    --query "swap=<id>:modular"` shows exactly your piece's entries changing;
    `node tools/rooftop_test.mjs` 40/40; open
@@ -196,7 +219,75 @@ master board. Note for the guide's R1.4 line: the Phase 0 mouth captures are
 not pixel-repeatable (P0 note), so the gate is the numeric golden, and the
 rooftop test count is 40, not 38.
 
-## 5. Merging the operator's stage-2 route (feat/rooftops-stage2, 17c9cae)
+## 5. Porting outside `build.js` edits
+
+Any branch cut before this split (the operator's live Roof Road work under
+ruling R65, `feat/rooftops-stage2`, `rooftops-agility`, `rooftops-downtown`)
+edits the old single-file `build.js`. git cannot carry those hunks over: the
+code they touch now lives in `pieces/`. Port them by hand, one hunk at a time,
+after merging that work's other files (`game.js`, `level.js`, `physics.js`,
+`downtown.js`, new modules) normally.
+
+1. **Get the diff against the split's base.** With the outside work on a
+   commit X whose `build.js` descends from 8702cc7's (or 676506f's):
+   `git diff <base> X -- rooftops/js/build.js > /tmp/outside.diff`, where
+   `<base>` is the commit X branched from. Keep this checkout's `build.js`
+   (the facade) in the merge (`git checkout --ours rooftops/js/build.js` on
+   conflict); the hunks are applied below, not merged.
+2. **Find each hunk's home.** The hunk header names the old function
+   (`@@ … @@ B.bridge = (pc, ctx) => {` or `function hiraRoof(`). Map it:
+
+   | Old `build.js` code | Now in |
+   |---|---|
+   | `B.<type> = (pc, ctx) => {` (35 types) | `pieces/<type>.js`, `export const <type> = …` (`PIECES[type].file` names the file) |
+   | canvases, `windMaterial`, `flowWaterMaterial`, `makeMaterials` (the material set `M`) | `pieces/paint.js` |
+   | `UP`, `TAU`, `box`, `cyl`, `slope`, `triangle`, `frameGroup`, `ribbon`, `mergeByMaterial`, `paperCapMaterial` | `pieces/common.js` |
+   | `ridgeCap`, `hiraRoof`, `tsumaRoof`, `facade`, `streetEaveDetails` | `pieces/machiya.js` |
+   | `makeShoki`, `makeTreat` | `pieces/pickups.js` |
+   | `buildDistantCity`, `buildPagoda` | `pieces/skyline.js` |
+   | `boatHullGeometry` | `pieces/boat.js` |
+   | `installDowntown(B, …)` call, the downtown dressing (`decorateHouse`/`decorateStall`) | `pieces/index.js` (`DT`, the `decorate` column) |
+   | `buildWorld`: imports, ctx, the piece loop, merging, ground, city, pagodas, pickups, `update()` | `build.js` (the facade; the ground, city, pagodas and pickups now sit inside `assets.build(…)` classic callbacks, `update()` is unchanged apart from a `children[0]` guard on the Shōki wobble) |
+   | the file's import lines | the importing module: a new import from `three`, `src/textures.js?v=…` or a sibling module goes into the piece file that uses it |
+
+   Because the piece bodies were moved verbatim, a hunk's context lines
+   match its new file exactly, apart from the head line
+   (`B.x = (pc, ctx) => {` → `export const x = (pc, ctx) => {`). Apply it
+   there: rewrite the hunk's `---`/`+++` paths to the new module and run
+   `git apply --recount` (it finds the shifted lines by their context), or
+   apply it by hand. A hunk whose context includes the head line needs that
+   line edited first.
+3. **New things.**
+   - A new piece type (a new `B.x` or a new `installDowntown` builder that
+     the level uses): add a `pieces/<x>.js` (or keep it in `downtown.js`),
+     a `PIECES` entry `x: piece('roof-<id>', '<lane>', '<file>', builder)`
+     in the same one-line form, an inventory row (group `Roof Road`, sources
+     naming the module), a shelf line in `labs/roofroad/js/shelf.js`, a
+     target `roofroad/<x>`, and a swap-matrix lane row. `labs_coverage` and
+     the matrix fail until all of these agree.
+   - A new imported helper module (the reviewer saw `people.js` with
+     `makeResident`, `alley-passages.js`, `camera-obstacles.js`): classify it
+     in `labs/asset_inventory.json` `sourceFiles` and give every
+     `build/create/make` function it declares an owner row or an
+     `ignoredBuilders` entry (`makeResident`: probably the
+     `roof-villagers` / `roof-hayashi` rows, which then list it as a source).
+   - A deleted module (`cutaway.js`): drop its `sourceFiles` entry and its
+     `ignoredBuilders` entry (`makeCutaway`), and the import from `build.js`.
+4. **Re-check, then re-write the golden.** Run `node tools/rooftop_test.mjs`
+   (all pass), then `node tools/rooftop_golden.mjs`: it will read DIFFERENT
+   wherever the outside work changed meshes. Confirm that the changed entries
+   are exactly the ported pieces (the summary names the first piece that
+   changed; `--json` lists all of them), then
+   `node tools/rooftop_golden.mjs --write` with the reason in the commit
+   ("port <work> into pieces/"). Re-run it plain (EQUAL) and with
+   `--query "assets=modular"` (EQUAL, routing self-test passing).
+5. **Regenerate.** `node tools/labs_coverage.mjs --write` (anchors moved),
+   `node tools/fable_swap_matrix.mjs --write` if rows changed, then
+   `node tools/labs_check.mjs`, `node --test tools/labs_coverage_test.mjs`,
+   and open `/labs/roofroad/` (every tile builds) and
+   `/kyoto-rooftops.html?qa=1&auto=1` (the autopilot reaches the finale).
+
+## 6. Merging the operator's stage-2 route (feat/rooftops-stage2, 17c9cae)
 
 Probed without touching that branch (`git merge-tree --write-tree` of this
 branch and 17c9cae): **no conflict** (exit 0, tree 4c82f6c). That tree,
