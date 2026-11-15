@@ -115,15 +115,13 @@ export function buildRack(ctx, layout, p) {
     b.box(x1 - x0, 0.06, 0.12, { m: 'timber', part: 'beam', x: (x0 + x1) / 2, y: ty - 0.03, z: d });
     for (const x of [x0 + 0.04, x1 - 0.04]) b.box(0.07, ty, 0.07, { m: 'timber', part: 'posts', x, y: ty / 2, z: d });
     if (!far) {
-      b.box(x1 - x0 - 0.1, 0.035, 0.07, { m: 'timberMed', part: 'beam', x: (x0 + x1) / 2, y: ty - 0.4, z: d });   // a lower lantern rail
+      b.box(x1 - x0 - 0.1, 0.035, 0.07, { m: 'timber', part: 'beam', x: (x0 + x1) / 2, y: ty - 0.4, z: d });   // a lower lantern rail
       for (const x of [x0 + 0.04, x1 - 0.04]) b.beam([x, ty * 0.35, d], [x + (x < (x0 + x1) / 2 ? 0.34 : -0.34), ty - 0.4, d], 0.022, { m: 'timber', part: 'posts' });
     }
     const step = far ? 0.6 : 0.3;
     for (let x = x0 + 0.18; x < x1 - 0.1; x += step) {
       b.lantern(0.11, 0.3, { m: 'lanternWhite', part: 'lamps', seg: seg(t, 10), rims: !far, x, y: ty - 0.28, z: d + 0.02 });
-      if (hero) { b.cyl(0.006, 0.1, { m: 'dark', part: 'lamps', seg: 4, x, y: ty - 0.1, z: d + 0.02 }); b.cyl(0.02, 0.08, { m: 'lanternRed', part: 'lamps', seg: 5, r2: 0.005, x, y: ty - 0.5, z: d + 0.02 }); }
     }
-    if (hero) for (const x of [x0 + 0.04, x1 - 0.04]) b.sphere(0.045, { m: 'gold', part: 'posts', x, y: ty - 0.04, z: d });
   }
   const out = b.finish();
   const light = new ctx.THREE.Object3D();
@@ -142,13 +140,14 @@ export function buildTsuiji(ctx, layout, p) {
   b.slope('roof', { x: 0, y: 1.42, z: d + 0.6 }, 0.16, 0.5, w + 0.2, 0, 0.08);
   b.slope('roof', { x: 0, y: 1.42, z: d - 0.6 }, 0.16, 0.5, w + 0.2, Math.PI, 0.08);
   if (!far) {
-    // stone footing and the dark ground-line, a timber post every few metres, the dark eave boards under the roof edge
-    b.box(w + 0.04, 0.16, 0.76, { m: 'dark', part: 'footing', y: 0.08, z: d });
-    for (const s of [-1, 1]) b.box(w + 0.18, 0.05, 0.05, { m: 'ridge', part: 'eave', y: 1.4, z: d + s * 0.6 });
-    const n = Math.max(1, Math.round(w / 2.4));
-    for (let i = 0; i <= n; i++) for (const s of [-1, 1]) b.box(0.1, 1.4, 0.04, { m: 'timber', part: 'posts', x: -w / 2 + 0.05 + (w - 0.1) * (i / n), y: 0.72, z: d + s * 0.36 });
+    // footing under the wall and dark eave boards under the roof edges (same two materials as the classic wall)
+    b.box(w + 0.04, 0.16, 0.76, { m: 'sujibei', part: 'footing', y: 0.08, z: d });
+    for (const s of [-1, 1]) b.box(w + 0.18, 0.05, 0.05, { m: 'roof', part: 'eave', y: 1.4, z: d + s * 0.6 });
   }
-  if (hero) for (let i = 0; i < Math.round(w); i++) for (const s of [-1, 1]) b.box(0.012, 0.05, 0.05, { m: 'dark', part: 'eave', x: -w / 2 + (i + 0.5) * (w / Math.round(w)), y: 1.37, z: d + s * 0.64 });
+  if (hero) {   // a timber post pair every 12 m (a 660 m wall: spacing keeps the hero tier near the classic's size)
+    const n = Math.max(1, Math.round(w / 12));
+    for (let i = 0; i <= n; i++) for (const s of [-1, 1]) b.box(0.1, 1.4, 0.04, { m: 'sujibei', part: 'posts', x: -w / 2 + 0.05 + (w - 0.1) * (i / n), y: 0.72, z: d + s * 0.36 });
+  }
   return b.finish();
 }
 
@@ -160,7 +159,7 @@ export function buildGate(ctx, layout, p) {
   const x0 = pc.s0 - sm, x1 = pc.s1 - sm, zF = pc.dFront, zB = zF - pc.depth, zm = (zF + zB) / 2, foot = pc.foot;
   for (const x of [x0 + 0.3, x0 + 2.2, x1 - 2.2, x1 - 0.3]) for (const z of [zF - 0.3, zB + 0.3]) {
     b.box(0.36, foot, 0.36, { m: 'timber', part: 'posts', x, y: foot / 2, z });
-    if (!far) b.box(0.48, 0.14, 0.48, { m: 'dark', part: 'posts', x, y: 0.07, z });          // plinth stone under each post
+    if (!far) b.box(0.48, 0.14, 0.48, { m: 'timberMed', part: 'posts', x, y: 0.07, z });          // plinth stone under each post
     if (hero) b.box(0.44, 0.1, 0.44, { m: 'timberMed', part: 'posts', x, y: foot - 0.55, z });   // the daiwa bracket block
   }
   b.box(x1 - x0, 0.4, pc.depth, { m: 'timber', part: 'floor', y: foot - 0.2, z: zm });
@@ -172,7 +171,7 @@ export function buildGate(ctx, layout, p) {
     }
     b.box(2.3, 0.08, 0.04, { m: 'timber', part: 'doors', y: 2.6, z: zm + 0.07 });
     b.box(2.3, 0.08, 0.04, { m: 'timber', part: 'doors', y: 0.7, z: zm + 0.07 });
-    for (const x of [-0.18, 0.18]) b.sphere(0.07, { m: 'bronze', part: 'doors', x, y: 1.5, z: zm + 0.09, seg: 6 });
+    for (const x of [-0.18, 0.18]) b.sphere(0.07, { m: 'timberMed', part: 'doors', x, y: 1.5, z: zm + 0.09, seg: 6 });
   }
   // tsuma-iri roof (rooftops/js/pieces/machiya.js tsumaRoof, ported), gable to the street
   const oh = 0.6, eave = foot, ridge = pc.ridge - 0.06, xm = (x0 + x1) / 2, half = (x1 - x0) / 2 + oh, width = zF - zB + 1.1;

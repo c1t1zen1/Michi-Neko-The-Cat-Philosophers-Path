@@ -27,3 +27,8 @@ The Roof Road page has no free camera, so each pair is the game camera with the 
 - temple gate, yama: pass (more joinery; pine cloud a little sparser than classic).
 - tsuiji: the camera at s=1052 frames the wall poorly; the wall itself matches the classic and adds footing and posts; marginal AAA-1.
 - skyline pagodas: the play camera never frames them (rooftops from s=748 and s=132 show roofs only), so those 6 pairs are not framed on the piece and are not an AAA judgment. Reported as a concern; geometry judged by bounds only (36.5/43.2/29.7 m vs classic 36/42.7/29.4 m).
+
+## Fix round 1 (review r1)
+- budgets.js: exception rows now state measured classic vs modular meshes/tris/materials and page draw calls; tsuiji row dropped (kit hero 1,416 tris / 2 materials vs classic 36 / 2 after thinning the posts); materials reduced to the classic set; modular draws <= classic at mouth 6, mouth 7, the gate and the finale.
+- hoko keeps the classic hayashi (R75); the kit musicians are gone; hoko pairs re-shot (day, dusk, night) plus the finale pair; brocade curtains shortened so the musicians read.
+- Re-run (load 2.8-6): contract 0 failed; kit_check 466 OK; golden classic EQUAL, swap only piece/root/batch changes (+1 glass batch, +1 matte material); rooftop_test 38/2 baseline; `?auto=1` swapped s=1232.1749 (cf 3); finale fires lit in order on both sets; cadJS `npm run check` 16/16.
