@@ -40,12 +40,11 @@ export function buildSnow(ctx, layout, p) {
   for (let i = 0; i < n; i++) { seeds[i * 3] = r() * 100; seeds[i * 3 + 1] = 0.55 + r() * 0.7; seeds[i * 3 + 2] = 0.6 + r() * 0.9; }
   const pts = cloud.points, mat = cloud.material, pos = pts.geometry.attributes.position;
   pts.visible = false;
-  let first = true;
+  const first = false; // ramps in from nothing like the classic (a2-hilltop: no snap on entry)
   const inst = cloudInstance(cloud, {
     update(dt, t, env) {
       const target = ((env && env.snow) || 0) * 0.82;
       mat.opacity = first ? target : ease(mat.opacity, target, dt * 1.4);
-      first = false;
       pts.visible = mat.opacity > 0.012;
       if (!pts.visible) return;
       const m = motion() * dt, k = Math.min(n, active(pts.geometry, n));
@@ -73,7 +72,7 @@ export function buildSummitRain(ctx, layout, p) {
   const lines = built.parts.lines, mat = lines.material, pos = lines.geometry.attributes.position;
   const seeds = new Float32Array(n * 2);
   for (let i = 0; i < n; i++) { seeds[i * 2] = 14 + r() * 11; seeds[i * 2 + 1] = r() * 100; }
-  let first = true;
+  const first = false; mat.opacity = 0; // ramps in like the classic (a2-hilltop)
   const place = (i, x, y, z, vx, vy) => {
     const len = p.length / Math.hypot(vx, vy);
     pos.setXYZ(i * 2, x, y, z);
@@ -87,7 +86,6 @@ export function buildSummitRain(ctx, layout, p) {
       const amt = (env && env.wet) || 0;
       const target = amt * 0.62;
       mat.opacity = first ? target : ease(mat.opacity, target, dt * 2.1);
-      first = false;
       lines.visible = mat.opacity > 0.01;
       if (!lines.visible) return;
       const calm = motion(), wind = 2.2 + amt * 2.8;
@@ -113,7 +111,24 @@ export function buildPollen(ctx, layout, p) {
     additive: true, blink: p.blink, rate: 1.4
   });
   cloud.material.color.set(0xfff3c8);
-  const inst = cloudInstance(cloud);
+  // The facade moves pollen at full speed whatever the comfort setting (it runs after the kit update; R55). On
+  // reduce-motion the kit keeps a snapshot from its own last step and takes only CALM of what the facade moved since;
+  // a wrap or clamp (a jump of several metres) is accepted as it is.
+  const pos = cloud.points.geometry.attributes.position, snap = new Float32Array(pos.array.length);
+  let have = false;
+  const inst = cloudInstance(cloud, {
+    update() {
+      const a = pos.array;
+      if (reducedMotion() && have) {
+        for (let i = 0; i < a.length; i++) {
+          const d = a[i] - snap[i];
+          if (Math.abs(d) < 3) a[i] = snap[i] + d * CALM;
+        }
+        pos.needsUpdate = true;
+      }
+      snap.set(a); have = true;
+    }
+  });
   inst.parts = { pollen: cloud.points };
   return inst;
 }
