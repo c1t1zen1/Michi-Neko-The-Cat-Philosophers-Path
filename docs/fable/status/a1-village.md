@@ -396,6 +396,8 @@ At the lane head (9d85011 + the budgets/status commit), 2026-11-15 13:02–13:06
 - **Modular deterministic:** two `?assets=modular` boots at the river stop: `maxDelta 0, pixelsOver8 0`
 - Boots: every A.1/A.7 boot ran without page errors (only the optional `/cad-overrides.json` 404); kit `problems: 0`, 261 instances
 
+**After merging origin/fable/integration (d676da4, which already holds 9d85011 via the operator's main merge, R69)** at 32bc1f2, 13:06–13:07, load 2.3–2.9: check_syntax `All 171 modules OK`; verify `All checks passed`; kit_check 446 passed; labs_check OK; cad_overrides 27/0; `git diff --check` clean; footprint golden EQUAL, `--systems` EQUAL; cat golden EQUAL; rooftop golden EQUAL; classic `game_shot` street noon, d676da4 against the merged lane: `maxDelta 0, pixelsOver8 0`. `node tools/rooftop_test.mjs` → `38 passed, 2 failed` (`every piece sits on one straight leg`, `autopilot reaches the perch`): **the same 2 fail on d676da4 itself** (a scratch worktree there: `38 passed, 2 failed`); this lane changes nothing under rooftops/.
+
 ## Remaining issues, ranked
 
 1. **R66 world build is not closed by this lane alone** (lane: 1.43 × medium,
