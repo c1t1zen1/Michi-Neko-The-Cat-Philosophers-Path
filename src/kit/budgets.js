@@ -51,17 +51,17 @@ export const KIT_LIMITS = Object.freeze({
 export const BUDGET_EXCEPTIONS = Object.freeze({
   // the contract samples the real 11 m run (G-V1 I1); ruling R51
   'bamboo-fence': {
-    hero: { buildMs: 14 }, mid: { triangles: 13000, buildMs: 14 },
-    why: 'the contract samples the real 11 m valley run: 22,638 / 12,660 / 568 tris (hero/mid/far), 71 culms + 138 knots warm-build 8-11 ms under load; ruling R51; a1-village lightens the mid tier and removes this'
+    mid: { triangles: 13000 },
+    why: 'the contract samples the real 11 m valley run: 22,638 / 12,660 / 568 tris (hero/mid/far); ruling R51. a1-village kept the mid triangles: on medium every near-band instance (the whole village) is built at mid and seen at cat height, so the mid fence keeps its knots and nodes. The buildMs part is gone: the bake writes merged arrays now, warm 0.9-1.0 / 0.4-0.5 ms (3 full contract runs, load 1.9-4.7, 2026-11-15)'
   },
   'tea-interior': { hero: { meshes: 34, materials: 12, buildMs: 9 }, mid: { triangles: 9500, meshes: 34, materials: 12, buildMs: 6 }, far: { triangles: 3000, meshes: 24, materials: 11, buildMs: 5 }, why: 'the whole room as one asset (every classic sub-part plus courtyard, andon and toro); far is not a real LOD, the room is only seen from inside' },
   // whole buildings (ruling R52); measured with kit_contract_test --family machiya
   'tea-house': {
-    hero: { materials: 8, buildMs: 12 }, mid: { materials: 5 },
+    hero: { materials: 8 }, mid: { materials: 5 },   // buildMs 12 dropped (a1-village): warm hero 0.5-0.9 ms once the fence bake got faster
     why: 'a whole building: plaster x2, roof tile, shoji, namako skirt, kit bag, reused bamboo-fence (8 hero / 5 mid); classic is 5 box materials in ~40 meshes'
   },
   'residence': {
-    hero: { materials: 8, buildMs: 12 }, mid: { materials: 5 },
+    hero: { materials: 8 }, mid: { materials: 5 },   // buildMs 12 dropped (a1-village): warm hero 0.5-0.9 ms once the fence bake got faster
     why: 'a whole building: plaster x2, roof tile, shoji, namako skirt, kit bag, reused bamboo-fence (8 hero / 5 mid); classic is 5 box materials'
   },
   // 'tea-house': { hero: { triangles: 40000, meshes: 40 }, why: 'a whole building with interior-facing walls' }
