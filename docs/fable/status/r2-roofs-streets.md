@@ -38,3 +38,12 @@ and golden bounds. AAA-5 night/day close-ups not done. Honest gap.
 
 ## Auto-run
 `?auto=1&swap=...` browser stall check NOT completed (headless run exceeded its time budget); gameplay safety rests on the golden (platforms, walls, lights identical) and rooftop_test baseline parity.
+
+## Fix round 1 (coordinator scope completion; supersedes the older Compare and Auto-run lines above)
+State:              r2-a done (7 props); r2-b deferred (see below)
+- L6: 42 pairs, `<type>-<near|mid>-<day|dusk|night>-<classic|modular>.jpg` (hours 0.5 / 0.75 / 0.98), all <= 90 KB, none byte-identical (cmp). Looked at crate, barrel, komodaru, deck, post, utility pole, trellis. AAA-1/5: barrel, komodaru (classic has no crest, removed mine), deck, lantern post (M.lanternRed glows), pole match classic closely at all three hours; crates have shallower slat gaps (minor); trellis close, bark curls and smooth wisteria are lower fidelity.
+- Trellis: leaf cards (M.leaves, 2 tris, same counts as classic at hero), 80-tri wisteria beads; s=160 page triangles classic 200990 vs modular 186926.
+- ?qa=1&auto=1 advanceForReview(450) after the merge: classic s=1232.1749 finale false; 7 ids swapped s=1232.2124 finale false (same stall, 0.04 m later; baseline 1232.17). An earlier real-time ?auto=1 run with the ids swapped stalled at 1232.1749.
+- Draw calls classic/modular after the merge: s=24 223/223, s=110 133/133, s=160 213/213; triangles 185041/180637, 144345/144705, 200990/186926.
+- After the merge: kit_check 459 OK (kit_index run locally, index not committed), contract 438 checks 0 failed, rooftop_golden classic EQUAL, swap changes only the 210 pieces of the 7 types, rooftop_test 38/2 baseline names, check_syntax 173, verify, labs_check OK, git diff --check clean. uptime load 2.6-3.5.
+- Vertex colours: not adopted (classic materials via ctx.MAT already match; piece rails (B) not needed).

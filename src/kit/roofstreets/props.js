@@ -114,8 +114,6 @@ function cask(bag, tier, x, z, h, rad, mats, strawBound, wear) {
     const rr = rad * (f === 0.44 ? 1.06 : 0.98);
     bag.add(new THREE.TorusGeometry(rr, 0.018 * (1 + 0.4 * wear), 5, seg * 2).rotateX(Math.PI / 2), { x, y: h * f / 0.82, z, m: 'straw' });   // barrel hoops are twine, as classic
   }
-  if (tier === 'hero' && strawBound)    // straw rope bands plus a red crest, as a komodaru wears
-    bag.add(new THREE.CylinderGeometry(0.08, 0.08, 0.02, 14).rotateX(Math.PI / 2), { x, y: h * 0.5, z: z + rad * 1.05, m: 'red' });
 }
 
 export function buildBarrel(ctx, layout, p) {
