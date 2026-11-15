@@ -10,10 +10,10 @@
 // family-shared bronze material with the classic warm emissive, so the quest
 // bells still glint at dusk (classic: 3 meshes each, 15 draws -> 5).
 import * as THREE from 'three';
-import { Bag } from '../craft.js?v=20261113a';
-import { defineAsset } from '../contract.js?v=20261113a';
-import { haloTexture } from '../lanterns/light.js?v=20261113a';
-import { castMesh, byTier, sharedPrivate, tint } from './util.js?v=20261113a';
+import { Bag } from '../craft.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261114a';
+import { haloTexture } from '../lanterns/light.js?v=20261114a';
+import { castMesh, byTier, sharedPrivate, tint } from './util.js?v=20261114a';
 
 /* ------------------------------------------------------------- mist altar --- */
 

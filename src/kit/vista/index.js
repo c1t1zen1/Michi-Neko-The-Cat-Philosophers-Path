@@ -10,12 +10,12 @@
 //   deferred (classic): summit-clouds (the sky kit is not merged),
 //             (blender-roofscape is a media GLB with a fallback, not a kit asset)
 //   reuse: pagoda (measured Yasaka-no-to builder), ranges (ridgeRingGeometry)
-import { defineAsset } from '../contract.js?v=20261113a';
-import { mulberry32 } from '../../summit/common.js?v=20261113a';
-import { buildVistaAssembly, buildVistaTerrain, buildKyotoCity } from './city.js?v=20261113a';
-import { buildSummitPagoda } from './landmark.js?v=20261113a';
-import { buildSummitBay, buildHarbour, buildBayBridge, buildFerrisWheel } from './sea.js?v=20261113a';
-import { buildHorizon } from './horizon.js?v=20261113a';
+import { defineAsset } from '../contract.js?v=20261114a';
+import { mulberry32 } from '../../summit/common.js?v=20261114a';
+import { buildVistaAssembly, buildVistaTerrain, buildKyotoCity } from './city.js?v=20261114a';
+import { buildSummitPagoda } from './landmark.js?v=20261114a';
+import { buildSummitBay, buildHarbour, buildBayBridge, buildFerrisWheel } from './sea.js?v=20261114a';
+import { buildHorizon } from './horizon.js?v=20261114a';
 
 const num = (def, min, max, step, label) => ({ type: 'number', default: def, min, max, step, label });
 const FP = { colliders: [], platforms: [], exclusions: [], anchors: {} };

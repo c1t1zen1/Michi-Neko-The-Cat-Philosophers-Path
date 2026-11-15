@@ -2,9 +2,9 @@
 // street lamps, courtyard and pool toro), hanging chochin and the andon.
 // Meshes are named parts; the lit paper and the halo are the `live` ones.
 import * as THREE from 'three';
-import { merge, indexed, shadows, lerp } from '../craft.js?v=20261113a';
-import { stoneLantern, fitStoneLantern } from './stone.js?v=20261113a';
-import { litWashi, washiTexture, haloSprite, ownerGlow, freePrivate, lampUpdate } from './light.js?v=20261113a';
+import { merge, indexed, shadows, lerp } from '../craft.js?v=20261114a';
+import { stoneLantern, fitStoneLantern } from './stone.js?v=20261114a';
+import { litWashi, washiTexture, haloSprite, ownerGlow, freePrivate, lampUpdate } from './light.js?v=20261114a';
 
 const flameColor = (w) => new THREE.Color().setRGB(1, lerp(0.42, 0.72, w), lerp(0.15, 0.4, w));
 const paperTint = (w) => new THREE.Color(0xfff6e8).lerp(new THREE.Color(0xffd9a0), w).getHex();

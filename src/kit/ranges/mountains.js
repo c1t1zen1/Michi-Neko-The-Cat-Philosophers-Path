@@ -3,7 +3,7 @@
 // part `far`). Its listed components (edge-forest, distant-village, mist-ring,
 // dawn-mist and the pagoda) are placed by the Countryside, never built here.
 import * as THREE from 'three';
-import { ridgeRingGeometry, terrainHeight, valleyRangeColors } from './landform.js?v=20261113a';
+import { ridgeRingGeometry, terrainHeight, valleyRangeColors } from './landform.js?v=20261114a';
 
 // [around, rings] per tier; the game builds `far` (band far), the lab shows all three
 export const RING_GRID = Object.freeze({ hero: [288, 120], mid: [224, 96], far: [192, 80] });

@@ -6,8 +6,8 @@
 // Layout (countryside.js layoutBambooFence): x, z, ry, len, fenceHeight,
 // tilts[n + 1], colliderHeight, role, footprint. The footprint and the
 // bambooFences list entry are the layout's own; nothing here changes them.
-import { defineAsset } from '../contract.js?v=20261113a';
-import { culmGeometry, knotGeometry, bake, FINISHES } from './culm.js?v=20261113a';
+import { defineAsset } from '../contract.js?v=20261114a';
+import { culmGeometry, knotGeometry, bake, FINISHES } from './culm.js?v=20261114a';
 
 const RAILS = [0.32, 0.82];
 

@@ -4,8 +4,8 @@
 // the rain has depth instead of 1,100 equal hairs. Rings: 28 soft double rings.
 // Nothing here reads Math.random or Date.now.
 import * as THREE from 'three';
-import { canvas2d, canvasTexture } from '../craft.js?v=20261113a';
-import { sharedTexture } from './sprites.js?v=20261113a';
+import { canvas2d, canvasTexture } from '../craft.js?v=20261114a';
+import { sharedTexture } from './sprites.js?v=20261114a';
 
 /**
  * Rain streaks. `layout.positions` holds two vertices per streak (lower then

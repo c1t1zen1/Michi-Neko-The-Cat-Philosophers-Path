@@ -7,8 +7,8 @@
 // holds). Snow and rain ramp in from nothing on entry, like the classic.
 //
 // Nothing reads Math.random or Date.now: every draw is ctx.rng.
-import { weatherCloud, cloudInstance, petalTexture, flakeTexture, glowTexture, reducedMotion, CALM } from '../weather/sprites.js?v=20261113a';
-import { buildRain } from '../weather/rain.js?v=20261113a';
+import { weatherCloud, cloudInstance, petalTexture, flakeTexture, glowTexture, reducedMotion, CALM } from '../weather/sprites.js?v=20261114a';
+import { buildRain } from '../weather/rain.js?v=20261114a';
 
 const PETAL_TINTS = [0xffcad8, 0xffd2de, 0xf8c2d2, 0xffdbe5, 0xfdbfd0];
 const ease = (a, b, k) => a + (b - a) * Math.min(1, k);

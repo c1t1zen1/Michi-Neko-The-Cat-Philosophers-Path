@@ -10,7 +10,7 @@
 // Reusable (s3-vista imports this for the summit horizon): `ridgeRingGeometry`
 // takes any height function, ring radii, grid density and colour function.
 import * as THREE from 'three';
-import { worldNoise } from '../../textures.js?v=20261113a';
+import { worldNoise } from '../../textures.js?v=20261114a';
 
 export const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 

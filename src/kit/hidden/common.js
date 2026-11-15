@@ -5,8 +5,8 @@
 //
 // Nothing here reads Math.random or Date.now.
 import * as THREE from 'three';
-import { TAU, sstep, canvas2d, canvasTexture, indexed } from '../craft.js?v=20261113a';
-import { nightnessAt } from '../lanterns/light.js?v=20261113a';
+import { TAU, sstep, canvas2d, canvasTexture, indexed } from '../craft.js?v=20261114a';
+import { nightnessAt } from '../lanterns/light.js?v=20261114a';
 
 export { nightnessAt, TAU, sstep };
 

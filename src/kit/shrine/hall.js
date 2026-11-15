@@ -7,9 +7,9 @@
 // layout registers), stepped dan 3.8 x 3.0 and 3.2 x 2.4. Every static piece
 // sits on merge-able materials so the valley's _mergeStatics folds it in.
 import * as THREE from 'three';
-import { Bag, V3, merge, indexed } from '../craft.js?v=20261113a';
-import { defineAsset } from '../contract.js?v=20261113a';
-import { box, bake, castMesh, byTier, gameMat, bagMat, tint } from './util.js?v=20261113a';
+import { Bag, V3, merge, indexed } from '../craft.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261114a';
+import { box, bake, castMesh, byTier, gameMat, bagMat, tint } from './util.js?v=20261114a';
 
 const DARK = 0x3b2a1c, BOARD = [0x8a6a46, 0x7d5f3e, 0x94744d], LIGHT = 0xd6c29a, RED = 0xa83a26, STONE_UP = 0x8e8e86;
 

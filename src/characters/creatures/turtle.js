@@ -7,7 +7,7 @@
 // gait here is read from the group's own displacement, so a patrol, a chase and
 // the idle breathing all animate the legs without the patrol code knowing.
 import * as THREE from 'three';
-import { Bag, UNIT } from '../../kit/craft.js?v=20261113a';
+import { Bag, UNIT } from '../../kit/craft.js?v=20261114a';
 
 const _mats = new Map();
 const shared = (g) => { g.userData.sharedGeometry = true; return g; };

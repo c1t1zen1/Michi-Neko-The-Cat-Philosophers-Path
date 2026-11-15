@@ -6,8 +6,8 @@
 // `this` = the manager, so the code reads exactly as it did in the class.
 
 import * as THREE from 'three';
-import { glowTexture } from '../textures.js?v=20261113a';
-import { summitWeatherAmount, summitFootprint, pointsPosition } from './common.js?v=20261113a';
+import { glowTexture } from '../textures.js?v=20261114a';
+import { summitWeatherAmount, summitFootprint, pointsPosition } from './common.js?v=20261114a';
 
 export const weatherMethods = {
   // Each build*() is the §3.4 split: a layout step (every this.rng() draw, in

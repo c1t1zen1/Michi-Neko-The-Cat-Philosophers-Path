@@ -35,8 +35,8 @@
 // Materials: the valley's own MAT set (timberEngawa planks as the classic
 // deck, timberDark / timberMedium wood, stoneDark stone, spiritualBellBronze
 // caps), so every mesh merges with the classic statics: no new material.
-import { Parts } from './parts.js?v=20261113a';
-import { waterShared } from './sky.js?v=20261113a';
+import { Parts } from './parts.js?v=20261114a';
+import { waterShared } from './sky.js?v=20261114a';
 
 export const BRIDGE = Object.freeze({
   top: 1.08, halfL: 4.2, halfW: 1.3, railX: 1.24, railTop: 1.66, railHalf: 0.21, ramp: 2.6,

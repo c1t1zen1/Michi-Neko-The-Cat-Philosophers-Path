@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { makeCollarTexture } from '../../cat_shading.js?v=20261113a';
-import { buildCollarCord, collarMaterials } from './collar.js?v=20261113a';
+import { makeCollarTexture } from '../../cat_shading.js?v=20261114a';
+import { buildCollarCord, collarMaterials } from './collar.js?v=20261114a';
 
 /**
  * Parts only the modular Michi wears (lane c2-michi).

@@ -7,7 +7,7 @@
 // The koushi lattice in front of the door is its own asset (placed by the house).
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { Bag, bagMat, matOr, meshOf, assemble, seg, tint, worldUV, merge } from './common.js?v=20261113a';
+import { Bag, bagMat, matOr, meshOf, assemble, seg, tint, worldUV, merge } from './common.js?v=20261114a';
 
 function buildSecretDoor(ctx, layout, p) {
   const { tier, kitMaterials: km } = ctx;

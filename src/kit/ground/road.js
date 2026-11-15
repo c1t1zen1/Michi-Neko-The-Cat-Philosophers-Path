@@ -17,11 +17,11 @@
 // y 0.012) lower than the classic ribbons (0.03 / 0.018), the road still over
 // the strip, so the contract's 2 cm bearing check (AAA-2) holds.
 import * as THREE from 'three';
-import { GroundField, cachedField, PAVE, sstep, CH } from './field.js?v=20261113a';
-import { groundLayers } from './layers.js?v=20261113a';
-import { createGroundMaterial, sunDirAt, GroundWeather } from './material.js?v=20261113a';
-import { currentValleyGround } from './valley.js?v=20261113a';
-import { worldNoise } from '../../textures.js?v=20261113a';
+import { GroundField, cachedField, PAVE, sstep, CH } from './field.js?v=20261114a';
+import { groundLayers } from './layers.js?v=20261114a';
+import { createGroundMaterial, sunDirAt, GroundWeather } from './material.js?v=20261114a';
+import { currentValleyGround } from './valley.js?v=20261114a';
+import { worldNoise } from '../../textures.js?v=20261114a';
 
 /**
  * The road's centreline. Mirrors countryside.js layoutPath() (the path layout

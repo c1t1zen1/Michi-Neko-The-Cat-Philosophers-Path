@@ -20,8 +20,8 @@
 // shafts through gaps; mid = lit deck, 1-tap shade; far = flat deck, no
 // shade (quality low never reaches the kit).
 import * as THREE from 'three';
-import { cloudField, CLOUD_GLSL, densityFromRaw, deckDistance } from './field.js?v=20261113a';
-import { makeSkyState, readSky } from './state.js?v=20261113a';
+import { cloudField, CLOUD_GLSL, densityFromRaw, deckDistance } from './field.js?v=20261114a';
+import { makeSkyState, readSky } from './state.js?v=20261114a';
 
 /** Metres of valley per field tile: a 256² tile spans ~720 m, so a wata-gumo is 60–150 m across. */
 export const CLOUD_SPAN = 720;

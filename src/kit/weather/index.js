@@ -9,10 +9,10 @@
 // Reusable (s4-summit-life): every cloud builder reads only `layout.positions`
 // (+ `count`) and sizes by `params`, so a lane can hand it any spawn volume
 // (see boxVolume() in sprites.js) and drive the position buffer itself.
-import { defineAsset } from '../contract.js?v=20261113a';
-import { weatherCloud, cloudInstance, petalTexture, flakeTexture, glowTexture, boxVolume } from './sprites.js?v=20261113a';
-import { buildRain, buildRainRipples } from './rain.js?v=20261113a';
-import { buildDappledLight } from './light.js?v=20261113a';
+import { defineAsset } from '../contract.js?v=20261114a';
+import { weatherCloud, cloudInstance, petalTexture, flakeTexture, glowTexture, boxVolume } from './sprites.js?v=20261114a';
+import { buildRain, buildRainRipples } from './rain.js?v=20261114a';
+import { buildDappledLight } from './light.js?v=20261114a';
 
 const PETAL_TINTS = [0xfff2f5, 0xffe3ea, 0xffd2de, 0xf8c2d2, 0xffeaf0];
 const num = (def, min, max, step, label) => ({ type: 'number', default: def, min, max, step, label });

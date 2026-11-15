@@ -16,7 +16,7 @@
 // vistaRiverMat and vistaRoadMat.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { terrainY, riverX, clamp01, pick, seedOf, glowSprite, lumpGeometry, disposeAll } from './ground.js?v=20261113a';
+import { terrainY, riverX, clamp01, pick, seedOf, glowSprite, lumpGeometry, disposeAll } from './ground.js?v=20261114a';
 
 const dummy = new THREE.Object3D();
 const mk = (geo, mat, name) => { const m = new THREE.Mesh(geo, mat); m.name = name; m.castShadow = m.receiveShadow = false; return m; };

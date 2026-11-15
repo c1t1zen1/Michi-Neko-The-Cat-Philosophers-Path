@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { getCatAnatomy, BUILDS, GROUND } from '../cat_anatomy.js?v=20261113a';
-import { makeLegRig, solveLeg } from '../cat_motion.js?v=20261113a';
+import { getCatAnatomy, BUILDS, GROUND } from '../cat_anatomy.js?v=20261114a';
+import { makeLegRig, solveLeg } from '../cat_motion.js?v=20261114a';
 
 /**
  * The cat rig: the sculpt for a body type, the feline skeleton built from its

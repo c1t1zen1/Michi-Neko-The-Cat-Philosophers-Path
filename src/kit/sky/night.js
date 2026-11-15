@@ -20,8 +20,8 @@
 // The Sky Lab builds its night studies from this module (through
 // labs/shared/game.js), so the lab and the game share one copy of the code.
 import * as THREE from 'three';
-import { makeSkyState, readSky } from './state.js?v=20261113a';
-import { CLOUD_GLSL } from './field.js?v=20261113a';
+import { makeSkyState, readSky } from './state.js?v=20261114a';
+import { CLOUD_GLSL } from './field.js?v=20261114a';
 
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 

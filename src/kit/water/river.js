@@ -17,10 +17,10 @@
 // scene; the analytic sky is the lab's own cheap default) and the Kuwahara
 // painterly pass (post-processing, v-sky's lane). The river does not receive
 // shadows (neither does the classic one).
-import { HASH, NOISE } from '../materials.js?v=20261113a';
-import { RiverField, riverFrames, WATER_Y } from './field.js?v=20261113a';
-import { waterShared, WATER_GLSL, FOG_PREMULT } from './sky.js?v=20261113a';
-import { rippleNormals, foamTexture } from './textures.js?v=20261113a';
+import { HASH, NOISE } from '../materials.js?v=20261114a';
+import { RiverField, riverFrames, WATER_Y } from './field.js?v=20261114a';
+import { waterShared, WATER_GLSL, FOG_PREMULT } from './sky.js?v=20261114a';
+import { rippleNormals, foamTexture } from './textures.js?v=20261114a';
 
 export const HALF_W = 3.4;
 

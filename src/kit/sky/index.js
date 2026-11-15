@@ -9,9 +9,9 @@
 //
 // Params read only by update() (coverage, altitude, drift, shade) declare
 // `visual: false`: they drive per-frame uniforms, not the built geometry.
-import { defineAsset } from '../contract.js?v=20261113a';
-import { buildClouds } from './clouds.js?v=20261113a';
-import { buildStars, buildMoon } from './night.js?v=20261113a';
+import { defineAsset } from '../contract.js?v=20261114a';
+import { buildClouds } from './clouds.js?v=20261114a';
+import { buildStars, buildMoon } from './night.js?v=20261114a';
 
 const SKY_FOOTPRINT = { colliders: [], exclusions: [], anchors: {} };
 const sample = (name) => ({ index: 0, name, band: 'near', x: 0, y: 0, z: 0, footprint: SKY_FOOTPRINT });

@@ -5,7 +5,7 @@
 // valley's _mergeStatics folds them per material (ruling R36).
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { Bag, merge, bagMat, matOr, meshOf, assemble, seg, tint, uvBox } from './common.js?v=20261113a';
+import { Bag, merge, bagMat, matOr, meshOf, assemble, seg, tint, uvBox } from './common.js?v=20261114a';
 
 /* ------------------------------------------------------------ timber-frame --- */
 

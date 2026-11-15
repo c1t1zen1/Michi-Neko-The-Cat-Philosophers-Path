@@ -4,10 +4,10 @@
 // pectoral pivots (tail, pectoral_l, pectoral_r) through the classic records,
 // the butterfly swarm through its own update(). The guardian crows are NOT here
 // (lab study only; lane c4-creatures promotes them).
-import { defineAsset } from '../contract.js?v=20261113a';
-import { buildSparrow } from './birds.js?v=20261113a';
-import { buildKoi } from './koi.js?v=20261113a';
-import { buildButterflies } from './butterflies.js?v=20261113a';
+import { defineAsset } from '../contract.js?v=20261114a';
+import { buildSparrow } from './birds.js?v=20261114a';
+import { buildKoi } from './koi.js?v=20261114a';
+import { buildButterflies } from './butterflies.js?v=20261114a';
 
 const sparrowSample = () => ({
   index: 0, name: 'Sparrow 1', x: 3, y: 12, z: -4, floating: true,

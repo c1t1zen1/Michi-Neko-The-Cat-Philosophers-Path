@@ -9,12 +9,12 @@
 // General builders for the summit horizon (s3-vista): landform.js
 // (`ridgeRingGeometry`, `valleyRangeColors`, `terrainHeight`) and forest.js
 // (`canopySet`, `flaredTrunk`).
-import { defineAsset } from '../contract.js?v=20261113a';
-import { terrainHeight, terrainSector } from './landform.js?v=20261113a';
-import { buildMountains } from './mountains.js?v=20261113a';
-import { buildEdgeForest, buildEdgeUndergrowth, buildFoothillForest } from './forest.js?v=20261113a';
-import { buildDistantVillage } from './village.js?v=20261113a';
-import { buildMistRing, buildDawnMist } from './mist.js?v=20261113a';
+import { defineAsset } from '../contract.js?v=20261114a';
+import { terrainHeight, terrainSector } from './landform.js?v=20261114a';
+import { buildMountains } from './mountains.js?v=20261114a';
+import { buildEdgeForest, buildEdgeUndergrowth, buildFoothillForest } from './forest.js?v=20261114a';
+import { buildDistantVillage } from './village.js?v=20261114a';
+import { buildMistRing, buildDawnMist } from './mist.js?v=20261114a';
 
 const rngOf = (seed) => { let a = seed; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
 

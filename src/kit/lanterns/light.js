@@ -8,7 +8,7 @@ import * as THREE from 'three';
 // nightnessAt, washiTexture, haloTexture and litWashi were promoted to
 // src/kit/materials.js at gate G-V1 (v-lanterns handoff); re-exported here
 // unchanged, so `../lanterns/light.js` imports keep working.
-import { nightnessAt, washiTexture, haloTexture, litWashi } from '../materials.js?v=20261113a';
+import { nightnessAt, washiTexture, haloTexture, litWashi } from '../materials.js?v=20261114a';
 
 export { nightnessAt, washiTexture, haloTexture, litWashi };
 

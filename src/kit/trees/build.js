@@ -13,7 +13,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   buildCanopy, createFoliageMaterial, createFoliageDepthMaterial, createBranchMaterial,
   leafSprayTexture, leafMassTexture, leafCardTexture
-} from '../../foliage.js?v=20261113a';
+} from '../../foliage.js?v=20261114a';
 
 // One wind strength for every hero canopy: twig and leaf materials must share it.
 export const TREE_WIND = 1.1;

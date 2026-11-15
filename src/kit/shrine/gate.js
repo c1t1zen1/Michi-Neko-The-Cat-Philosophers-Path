@@ -10,10 +10,10 @@
 // registers (late-game route); the three joinery pegs stay at +-span/2.
 // Geometry is merged per material: lacquer frame, black kasagi/sleeves, stone.
 import * as THREE from 'three';
-import { V3, sweep, ringRect, tube, lerp } from '../craft.js?v=20261113a';
-import { defineAsset } from '../contract.js?v=20261113a';
-import { SORI, curveOf, solveGate, postTopY } from './solve.js?v=20261113a';
-import { bake, castMesh, byTier, gameMat } from './util.js?v=20261113a';
+import { V3, sweep, ringRect, tube, lerp } from '../craft.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261114a';
+import { SORI, curveOf, solveGate, postTopY } from './solve.js?v=20261114a';
+import { bake, castMesh, byTier, gameMat } from './util.js?v=20261114a';
 
 export { SORI, curveOf, solveGate };
 const DEFAULT_PAINT = 0xd8482c;

@@ -6,7 +6,7 @@
 // The game's runtime clamps or ignores a bad published param, so a stray value
 // cannot break it. cadJS is stricter: it rejects an out-of-range, unknown or
 // mistyped value before anything is applied or written.
-import { coerceParam, defaultParams, ID_RE } from '../../src/kit/contract.js?v=20261113a';
+import { coerceParam, defaultParams, ID_RE } from '../../src/kit/contract.js?v=20261114a';
 import { KIT_OVERRIDES_FORMAT, emptyOverrides, setEntry, validateOverrides } from '../../catalog/js/kit-overrides.mjs';
 
 export { KIT_OVERRIDES_FORMAT };

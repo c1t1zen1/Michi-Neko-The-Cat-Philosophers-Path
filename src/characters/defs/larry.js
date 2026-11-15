@@ -1,4 +1,4 @@
-import { defineCreature } from '../creature.js?v=20261113a';
+import { defineCreature } from '../creature.js?v=20261114a';
 
 /** Larry, the corral's turtle guardian. Patrol and the Jade Paw challenge stay in countryside.js. */
 export const LARRY = defineCreature({

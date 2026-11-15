@@ -4,7 +4,7 @@
 // the family builders can merge it on the game's shared materials.
 // Everything is seeded; nothing reads Math.random.
 import * as THREE from 'three';
-import { Bag, V3, TAU, rng, tube, merge } from '../craft.js?v=20261113a';
+import { Bag, V3, TAU, rng, tube, merge } from '../craft.js?v=20261114a';
 
 /** Planar uv (xy) so a textured material can sample a merged mesh that had none. */
 export function planarUv(geo, k = 2) {

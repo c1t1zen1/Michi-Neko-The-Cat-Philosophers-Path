@@ -4,7 +4,7 @@
 // timber / plaster / stone detail shares (km.bag with the alley's args, so the
 // kit holds a single material for it and _mergeStatics folds every instance).
 import * as THREE from 'three';
-import { Bag, merge, indexed } from '../craft.js?v=20261113a';
+import { Bag, merge, indexed } from '../craft.js?v=20261114a';
 
 export { Bag, merge, indexed };
 

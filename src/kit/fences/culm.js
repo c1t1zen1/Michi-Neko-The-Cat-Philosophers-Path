@@ -3,7 +3,7 @@
 // src/kit/craft.js at gate G-V1 (v-fences handoff) and are re-exported here
 // unchanged, so `./culm.js` and `../fences/culm.js` imports keep working.
 // The finishes and the baker below stay with the family.
-import { culmGeometry, knotGeometry } from '../craft.js?v=20261113a';
+import { culmGeometry, knotGeometry } from '../craft.js?v=20261114a';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export { culmGeometry, knotGeometry };

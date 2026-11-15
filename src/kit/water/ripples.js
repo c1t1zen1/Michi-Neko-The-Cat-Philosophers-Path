@@ -9,8 +9,8 @@
 // ring_1…ring_N, each its own material (update() writes each ring's opacity),
 // laid flat at y = 0.045 in world space (the group stays at the origin),
 // hidden until spawned, outer radius 1 × scale, render order 2.
-import { ringTexture } from './textures.js?v=20261113a';
-import { waterShared } from './sky.js?v=20261113a';
+import { ringTexture } from './textures.js?v=20261114a';
+import { waterShared } from './sky.js?v=20261114a';
 
 export function buildRipples(ctx, layout, p) {
   const { THREE: T, kitMaterials: km } = ctx;

@@ -12,8 +12,8 @@
 // futanoki rafters, koran rails, full sorin, fūtaku), mid (shelf brackets,
 // painted soffit), far (silhouette: roofs, dark eave band, needle sorin).
 import * as THREE from 'three';
-import { UNIT, clamp, V3, CBag } from '../craft.js?v=20261113a';   // CBag: the flat-array accumulator, promoted to craft.js at G-V1
-import { PAINTS, byKey } from './presets.js?v=20261113a';
+import { UNIT, clamp, V3, CBag } from '../craft.js?v=20261114a';   // CBag: the flat-array accumulator, promoted to craft.js at G-V1
+import { PAINTS, byKey } from './presets.js?v=20261114a';
 
 export const DEFAULTS = {
   preset: 'valley', storeys: 5, roof: 'tile', brackets: 'mitesaki', rafters: 'futanoki',

@@ -11,15 +11,15 @@
 // clearances), the water sits at y = 0.02, and the bound parts are kept
 // (`water` → riverMat, `water_1…4` → paddyWaterMaterials, `ring_1…24` →
 // ripples). See docs/fable/status/v-water.md.
-import { defineAsset } from '../contract.js?v=20261113a';
-import { buildRiver, RIVER_POINTS } from './river.js?v=20261113a';
-import { buildBridge, BRIDGE, rampHeight } from './bridge.js?v=20261113a';
-import { buildPaddies, buildBunds, buildRice, SEASONS } from './paddies.js?v=20261113a';
-import { buildRipples } from './ripples.js?v=20261113a';
-import { mulberry32 } from '../rng.js?v=20261113a';
+import { defineAsset } from '../contract.js?v=20261114a';
+import { buildRiver, RIVER_POINTS } from './river.js?v=20261114a';
+import { buildBridge, BRIDGE, rampHeight } from './bridge.js?v=20261114a';
+import { buildPaddies, buildBunds, buildRice, SEASONS } from './paddies.js?v=20261114a';
+import { buildRipples } from './ripples.js?v=20261114a';
+import { mulberry32 } from '../rng.js?v=20261114a';
 import * as THREE from 'three';
 
-export { RiverField, riverFrames, bedDepth } from './field.js?v=20261113a';
+export { RiverField, riverFrames, bedDepth } from './field.js?v=20261114a';
 export { BRIDGE, rampHeight, SEASONS };
 
 /* --------------------------------------------------------------- samples --- */

@@ -5,8 +5,8 @@
 // `sail` and `clapper` are empty anchors: the summit binds them, the chime
 // already moves its own.
 import * as THREE from 'three';
-import { buildWindChime } from '../garden/build.js?v=20261113a';
-import { castMesh } from '../shrine/util.js?v=20261113a';
+import { buildWindChime } from '../garden/build.js?v=20261114a';
+import { castMesh } from '../shrine/util.js?v=20261114a';
 
 const SCALE = 2.4;      // the classic fūrin is a 0.39 m bell; the garden chime's is 0.185 m
 

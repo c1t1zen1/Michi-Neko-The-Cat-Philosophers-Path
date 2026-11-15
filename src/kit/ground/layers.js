@@ -12,8 +12,8 @@
 // The pair is painted once per KitMaterials set (the kit's shared state) and
 // never disposed by an instance (userData.kit, like the lanterns' washi).
 import * as THREE from 'three';
-import { groundTextures } from '../../textures.js?v=20261113a';
-import { rng } from '../craft.js?v=20261113a';
+import { groundTextures } from '../../textures.js?v=20261114a';
+import { rng } from '../craft.js?v=20261114a';
 
 const N = 256;
 

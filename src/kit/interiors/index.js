@@ -7,14 +7,14 @@
 // andon and courtyard-toro belong to the lanterns family; interior-fish and the
 // gravel/wall are the room parent's. Static parts are plain merged geometry on
 // the interior's own MAT entries and km.bag, so the room merges to a handful of draws.
-import { defineAsset } from '../contract.js?v=20261113a';
-import { solo } from './common.js?v=20261113a';
-import { buildTatami, buildFrame, buildDoor, buildTokonoma, buildScroll, buildChabudai, EARTHS } from './room.js?v=20261113a';
-import { buildZabuton, buildBonsai, buildTeaware, buildKnickKnacks, CUSHIONS, FOLIAGE, GLAZES } from './small.js?v=20261113a';
-import { buildTeaInterior } from './tea.js?v=20261113a';
-import { buildGravel, buildCourtWall } from './court.js?v=20261113a';
-import { buildSecretTatami, buildSecretTable, buildSecretBed, buildSecretAndon, FUTONS } from './secret.js?v=20261113a';
-import { paperMat, shojiLight } from './common.js?v=20261113a';
+import { defineAsset } from '../contract.js?v=20261114a';
+import { solo } from './common.js?v=20261114a';
+import { buildTatami, buildFrame, buildDoor, buildTokonoma, buildScroll, buildChabudai, EARTHS } from './room.js?v=20261114a';
+import { buildZabuton, buildBonsai, buildTeaware, buildKnickKnacks, CUSHIONS, FOLIAGE, GLAZES } from './small.js?v=20261114a';
+import { buildTeaInterior } from './tea.js?v=20261114a';
+import { buildGravel, buildCourtWall } from './court.js?v=20261114a';
+import { buildSecretTatami, buildSecretTable, buildSecretBed, buildSecretAndon, FUTONS } from './secret.js?v=20261114a';
+import { paperMat, shojiLight } from './common.js?v=20261114a';
 
 const enumOf = (obj, def, label) => ({ type: 'enum', default: def, options: Object.keys(obj), label });
 

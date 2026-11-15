@@ -3,11 +3,11 @@
 // their own simple rigs (src/characters/creatures/). Only the bodies are
 // swapped: Larry's patrol and the Jade Paw challenge stay in countryside.js
 // (updateCorralGuardian), the crows' circling and swoops in ambient_life.js.
-import { defineAsset } from '../contract.js?v=20261113a';
-import { LARRY } from '../../characters/defs/larry.js?v=20261113a';
-import { GUARDIAN_CROW } from '../../characters/defs/crows.js?v=20261113a';
-import { buildTurtle } from '../../characters/creatures/turtle.js?v=20261113a';
-import { buildCrow } from '../../characters/creatures/crow.js?v=20261113a';
+import { defineAsset } from '../contract.js?v=20261114a';
+import { LARRY } from '../../characters/defs/larry.js?v=20261114a';
+import { GUARDIAN_CROW } from '../../characters/defs/crows.js?v=20261114a';
+import { buildTurtle } from '../../characters/creatures/turtle.js?v=20261114a';
+import { buildCrow } from '../../characters/creatures/crow.js?v=20261114a';
 
 const larrySample = () => {
   const x = 0, z = 0, width = 7.2, depth = 6.2;

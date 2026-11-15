@@ -21,11 +21,11 @@
 // villagers' paws wear the field, regrows it, and thins the grass BiomeMask
 // where they wore it (lawns never). Unbound, nothing reads the player.
 import * as THREE from 'three';
-import { Countryside } from '../../countryside.js?v=20261113a';
-import { worldNoise } from '../../textures.js?v=20261113a';
-import { GroundField, cachedField, sstep } from './field.js?v=20261113a';
-import { groundLayers } from './layers.js?v=20261113a';
-import { createGroundMaterial, setGroundTier, sunDirAt, GroundWeather } from './material.js?v=20261113a';
+import { Countryside } from '../../countryside.js?v=20261114a';
+import { worldNoise } from '../../textures.js?v=20261114a';
+import { GroundField, cachedField, sstep } from './field.js?v=20261114a';
+import { groundLayers } from './layers.js?v=20261114a';
+import { createGroundMaterial, setGroundTier, sunDirAt, GroundWeather } from './material.js?v=20261114a';
 
 export const VALLEY_FIELD = Object.freeze({ x0: -64, z0: -64, w: 128, d: 128, k: 4 });
 const SIZE = 260;                                   // the classic plane

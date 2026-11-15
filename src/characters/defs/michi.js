@@ -1,5 +1,5 @@
-import { defineCharacter, registerCharacterPart, characterPart } from '../character.js?v=20261113a';
-import { MICHI_EXTRA_PARTS } from '../parts/michi_extras.js?v=20261113a';
+import { defineCharacter, registerCharacterPart, characterPart } from '../character.js?v=20261114a';
+import { MICHI_EXTRA_PARTS } from '../parts/michi_extras.js?v=20261114a';
 
 /**
  * The modular Michi: the player cat as swappable parts (lane c2-michi).

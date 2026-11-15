@@ -7,9 +7,9 @@
 // unchanged; the surface adds a lit crest and a pale ridge line against the
 // sky.
 import * as THREE from 'three';
-import { worldNoise } from '../../textures.js?v=20261113a';
-import { ridgeRingGeometry } from '../ranges/landform.js?v=20261113a';
-import { clamp01, pick, disposeAll } from './ground.js?v=20261113a';
+import { worldNoise } from '../../textures.js?v=20261114a';
+import { ridgeRingGeometry } from '../ranges/landform.js?v=20261114a';
+import { clamp01, pick, disposeAll } from './ground.js?v=20261114a';
 
 // [r0, r1] cover the classic slab's depth on the +z axis; the rest is its definition
 const RANGES = [

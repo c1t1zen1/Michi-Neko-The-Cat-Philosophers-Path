@@ -3,7 +3,7 @@
 // Koushi and the window are static bag geometry (one kit draw for the whole
 // street); the noren cloth is static too: a shared shader-swayed material.
 import * as THREE from 'three';
-import { Bag, bagMat, meshOf, assemble, seg, tint } from './common.js?v=20261113a';
+import { Bag, bagMat, meshOf, assemble, seg, tint } from './common.js?v=20261114a';
 
 const FINISH = { dark: 0x41302a, bengara: 0x7a2f22, natural: 0x9a7650 };
 

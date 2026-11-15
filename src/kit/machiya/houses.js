@@ -15,9 +15,9 @@
 // Materials: the game's MAT entries (plaster, roof tile, shoji, namako) and the
 // shared vertex-coloured kit bag; far folds everything into the bag.
 import * as THREE from 'three';
-import { defaultParams } from '../contract.js?v=20261113a';
-import { bambooFence } from '../fences/fence.js?v=20261113a';
-import { Bag, merge, bagMat, matOr, meshOf, assemble, seg, tint, uvBox, worldUV } from './common.js?v=20261113a';
+import { defaultParams } from '../contract.js?v=20261114a';
+import { bambooFence } from '../fences/fence.js?v=20261114a';
+import { Bag, merge, bagMat, matOr, meshOf, assemble, seg, tint, uvBox, worldUV } from './common.js?v=20261114a';
 
 const DARK = 0x41302a, RIDGE = 0x3a4149, TILE = 0x4a5058, WARM = 0xe0cfa8, PLASTER = 0xeadfc8, SHOJI = 0xf0d9a8, ENGAWA = 0x7a5a3c;
 

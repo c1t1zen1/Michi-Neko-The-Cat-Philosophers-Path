@@ -4,14 +4,14 @@
 // lanterns family's pool toro) for a kit whole. Positions are local to the
 // part's own origin: the owner places the group at the layout's x, y, z.
 import * as THREE from 'three';
-import { TAU, sstep, canvas2d, canvasTexture, merge, indexed, rockGeometry, withUv } from '../craft.js?v=20261113a';
-import { fitRock, variantRock, placed, bake, DETAIL, rockMaterials } from '../rocks/stone.js?v=20261113a';
-import { assets as lanternAssets } from '../lanterns/index.js?v=20261113a';
-import { defaultParams } from '../contract.js?v=20261113a';
+import { TAU, sstep, canvas2d, canvasTexture, merge, indexed, rockGeometry, withUv } from '../craft.js?v=20261114a';
+import { fitRock, variantRock, placed, bake, DETAIL, rockMaterials } from '../rocks/stone.js?v=20261114a';
+import { assets as lanternAssets } from '../lanterns/index.js?v=20261114a';
+import { defaultParams } from '../contract.js?v=20261114a';
 import {
   nightnessAt, dayLightAt, calmAt, hourOf, shared, glowTexture, leafMaterial, freePrivate,
   polarDisc, bakeAt, tint, glowPoints, compose, single
-} from './common.js?v=20261113a';
+} from './common.js?v=20261114a';
 
 const TIER = (t, hero, mid, far) => (t === 'hero' ? hero : t === 'mid' ? mid : far);
 

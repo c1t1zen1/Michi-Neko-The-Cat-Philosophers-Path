@@ -4,8 +4,8 @@
 // chisel (rockGeometry fitted to a box), so the classic stone's volume and
 // footprint carry over. Everything seeded from ctx.rng.
 import * as THREE from 'three';
-import { variantRock, weatherOpts, placed, bake, DETAIL } from '../rocks/stone.js?v=20261113a';
-import { castMesh } from '../shrine/util.js?v=20261113a';
+import { variantRock, weatherOpts, placed, bake, DETAIL } from '../rocks/stone.js?v=20261114a';
+import { castMesh } from '../shrine/util.js?v=20261114a';
 
 const seedOf = (r) => 1 + Math.floor(r() * 9000);
 

@@ -1,7 +1,7 @@
 // The lanterns family: stone toro, street lamps, courtyard and pool toro, the
 // hanging chochin and the andon. Lab: labs/lanterns (lab 11).
-import { defineAsset } from '../contract.js?v=20261113a';
-import { buildStoneLantern, buildChochin, buildAndon } from './build.js?v=20261113a';
+import { defineAsset } from '../contract.js?v=20261114a';
+import { buildStoneLantern, buildChochin, buildAndon } from './build.js?v=20261114a';
 
 const flame = { type: 'number', default: 0.5, min: 0, max: 1, step: 0.05, label: 'Flame warmth' };
 const girth = { type: 'number', default: 1, min: 0.85, max: 1.1, step: 0.01, label: 'Girth' };

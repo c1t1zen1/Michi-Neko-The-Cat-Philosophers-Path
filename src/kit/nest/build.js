@@ -4,7 +4,7 @@
 // Everything static is vertex-coloured geometry on ONE kit material (km.bag), so
 // the valley's _mergeStatics folds every instance into a single draw.
 import * as THREE from 'three';
-import { Bag, tube, lerp, TAU, V3, paintVerts, merge, indexed, shadows, rng as seeded } from '../craft.js?v=20261113a';
+import { Bag, tube, lerp, TAU, V3, paintVerts, merge, indexed, shadows, rng as seeded } from '../craft.js?v=20261114a';
 
 export const NEST_R = 0.43; // twig-ring radius; outer rim ~0.52 like the classic torus (0.38 + 0.14)
 

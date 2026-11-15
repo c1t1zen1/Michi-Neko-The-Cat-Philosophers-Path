@@ -1,11 +1,11 @@
 // Builds the summit twice (classic, then the real modular kit) and records colliders, platforms, the next summit rng draw,
 // the bound handles, the lantern heights and runtime problems. window.__parity = { classic, modular }.
 import * as THREE from 'three';
-import { SummitManager } from '../src/mountaintop.js?v=20261113a';
-import { Sky } from '../src/sky.js?v=20261113a';
-import { Player } from '../src/player.js?v=20261113a';
-import { LANDING_Z1, LOWER_STEP_RUN } from '../src/summit/common.js?v=20261113a';
-import { AssetRuntime } from '../src/kit/runtime.js?v=20261113a';
+import { SummitManager } from '../src/mountaintop.js?v=20261114a';
+import { Sky } from '../src/sky.js?v=20261114a';
+import { Player } from '../src/player.js?v=20261114a';
+import { LANDING_Z1, LOWER_STEP_RUN } from '../src/summit/common.js?v=20261114a';
+import { AssetRuntime } from '../src/kit/runtime.js?v=20261114a';
 
 async function digest(set) {
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera();

@@ -11,9 +11,9 @@
 // fields it does not own untouched.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { Bag } from '../craft.js?v=20261113a';
-import { canvas2d, canvasTexture, rng as seeded } from '../craft.js?v=20261113a';
-import { pick, seedOf, glowSprite, lumpGeometry, disposeAll } from './ground.js?v=20261113a';
+import { Bag } from '../craft.js?v=20261114a';
+import { canvas2d, canvasTexture, rng as seeded } from '../craft.js?v=20261114a';
+import { pick, seedOf, glowSprite, lumpGeometry, disposeAll } from './ground.js?v=20261114a';
 
 const fp = (layout, anchors) => ({ colliders: layout.footprint?.colliders || [], platforms: layout.footprint?.platforms || [], exclusions: [], anchors });
 

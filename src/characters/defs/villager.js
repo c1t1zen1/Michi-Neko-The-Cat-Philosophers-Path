@@ -1,5 +1,5 @@
-import { defineCharacter, registerCharacterPart, characterPart } from '../character.js?v=20261113a';
-import { MICHI_EXTRA_PARTS } from '../parts/michi_extras.js?v=20261113a';
+import { defineCharacter, registerCharacterPart, characterPart } from '../character.js?v=20261114a';
+import { MICHI_EXTRA_PARTS } from '../parts/michi_extras.js?v=20261114a';
 
 // the dusk `eye-shine` head part is c2's; register it once if Michi's def has not
 for (const p of MICHI_EXTRA_PARTS) if (!characterPart(p.id)) registerCharacterPart(p);

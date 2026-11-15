@@ -10,7 +10,7 @@
 // shared kit bag). All static and plain, so _mergeStatics folds every roof in
 // the valley into those three draws. Params stay general for the Roof Road.
 import * as THREE from 'three';
-import { Bag, merge, bagMat, matOr, meshOf, assemble, seg, tint, uvBox, worldUV } from './common.js?v=20261113a';
+import { Bag, merge, bagMat, matOr, meshOf, assemble, seg, tint, uvBox, worldUV } from './common.js?v=20261114a';
 
 const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
