@@ -301,3 +301,98 @@ at the four spots modular draw calls are ≤ classic per tier
 triangles and a 14 ms first build (hero and mid), and the contract sample is
 now the 11.0 m run, so both are tested on what players see (G-V2 chores).
 The scene budgets hold with it (`perf_gv1.md`).
+
+**Ruling R53 (v-machiya-b), measured at G-V3.** The lane reported +3 medium
+and +9 high draw calls for its four buildings alone (`?swap=` tea-house,
+residence, secret-house, street-house; one loaded boot). Re-measured with a
+deterministic boot (`?shot=1&hour=10.5`, the perf_spots street spot) that
+lists every object the main camera and the sun's shadow camera draw, classic
+against the four-building swap, diffed by (mesh, material, colour):
+
+| Quality | Main pass | Shadow pass | What the diff is |
+|---|---|---|---|
+| medium (houses build `mid`) | 370 → 371 | 363 → 364 | one baked mesh on the kit `bag` material (vertex-coloured timber: fascia, rafter tails, hashira) |
+| high (houses build `hero`) | 371 → 374 | 363 → 366 | the same `bag` mesh, plus one baked `bamboo` (culms) and one baked `cord` (knots) mesh |
+
+So the medium delta is +1 draw and +1 shadow draw (amortised +1.5 calls a
+frame, +2 on a shadow-refresh frame; the reported +3 was that plus the boot
+noise of one loaded boot). The skirt and the inuyarai are hero-only, so they
+are not in it; the skirt sits on `MAT.namako` and joins the classic namako
+mesh. At high the two inuyarai (tea house, residence) **merge across the two
+instances**: one baked `bamboo` and one baked `cord` mesh carry both.
+They are new draws in that partial swap only because the valley fences are
+still classic there. With the whole kit on (`?assets=modular`, high), no
+`culms` or `knots` mesh is left unmerged anywhere, and switching the tea
+house and residence back to classic leaves the baked `bamboo` (3 main / 4
+shadow) and `cord` (1 / 1) counts unchanged: the inuyarai fold into the
+fence family's baked meshes and cost 0 draws, and the four kit houses draw one
+call fewer than the classic ones (296 against 297 in that boot). Nothing to
+drop at hero. Raw lists: `michi-wt/_scratch/gate-v3-chores/r53_*.json`.
+
+## 5. Known over-budget build times (G-V3 quiet re-check, 2026-11-14)
+
+The warm-build check of the contract test (`warm build ≤ N ms`, AAA-7) is the
+only load-sensitive check in it. Waves 2.2 and 2.3 saw it fail under load
+(load average 5 to 9) on assets nobody had changed, so ruling R54 forbade
+raising a cap from a loaded run and sent the re-measure here.
+
+**Method.** `node tools/kit_contract_test.mjs` (all 24 families: 140 assets,
+420 asset × tier builds, 11,894 checks) on `fable/integration` at `ca3a6b0`,
+Apple M5 Max, Metal, with the swarm paused (one read-only reviewer left)
+and the Integrator's other agents held. Two gate runs, then four more runs
+that dump every warm-build number (scratch script
+`michi-wt/_scratch/gate-v3-chores/kct_warm.mjs`, outside the repo).
+
+| Run | Load 1-min (start → end) | Wall time | Failed |
+|---|---|---:|---|
+| 1 (gate) | 2.04 → 2.51 | 9.4 s | 0 |
+| 2 (gate) | 2.34 → 2.99 | 17.6 s | 20, all warm-build (the page ran at half speed: another process took the CPU for those seconds) |
+| 3 | 2.66 → 2.72 | 9.4 s | 0 |
+| 4 | 2.72 → 2.67 | 9.8 s | 0 |
+| 5 | 2.67 → 2.56 | 9.9 s | 1: `summit-pagoda` hero 6.1 / 6 ms |
+| 6 | 2.56 → 2.55 | 10.3 s | 0 |
+
+**Result: no warm-build failure reproduces on both gate runs, and no asset
+is over its cap on the quiet machine.** Nothing is listed as over budget and
+no cap was changed. Every other check (geometry, triangles, meshes,
+materials, determinism, dispose, footprint) passed on all six runs.
+
+The flakes reported under load, re-measured (runs 3 to 6, warm ms):
+
+| Asset [tier] | Family | Under load | Quiet (min–max) | Cap |
+|---|---|---:|---:|---:|
+| `summit-pagoda` [hero] | vista | 6.9 | 4.7–6.1 | 6 |
+| `horizon` [mid] | vista | 3.1 | 2.3–3.0 | 3 |
+| `kawara-roof` [hero] | machiya | 7.2 | 3.2–3.7 | 6 |
+| `kawara-roof` [mid] | machiya | 3.8 | 2.1–2.5 | 3 |
+| `timber-frame` [mid] | machiya | 3.1 | 1.3–1.5 | 3 |
+| `sakura` [hero] | trees | 10.6 | 4.3–5.0 | 6 |
+
+**Watch list: at or above 85 % of the cap on the quiet machine.** These are
+in budget, but a slower machine will fail them first; trimming them belongs
+to the polish lane that owns the area (`a1-village` for the valley ids;
+the vista ids are summit, last polished by `a2-hilltop`):
+
+| Asset [tier] | Family | Quiet warm ms (min–max) | Cap | Max / cap |
+|---|---|---:|---:|---:|
+| `summit-pagoda` [hero] | vista | 4.7–6.1 | 6 | 1.02 |
+| `horizon` [mid] | vista | 2.3–3.0 | 3 | 1.00 |
+| `horizon` [hero] | vista | 4.7–5.5 | 6 | 0.92 |
+| `valley-ground` [far] | ground | 1.2–1.8 | 2 | 0.90 |
+| `distant-pagoda` [hero] | pagoda | 4.4–5.3 | 6 | 0.88 |
+| `horizon` [far] | vista | 1.1–1.3 | 1.5 | 0.87 |
+
+(`rice` [hero], water, read 0.8 to 1.7 ms in three runs and 5.2 ms once: a
+single stall, not the asset.)
+
+**Exceptions that the quiet numbers no longer need** (proposals for the
+Integrator, not applied; R54 forbids loosening, and tightening is a ruling
+too):
+
+| Asset [tier] | `buildMs` exception | Quiet warm ms (min–max) | Default cap | Proposal |
+|---|---:|---:|---:|---|
+| `tea-house` [hero] | 12 | 2.9–3.4 | 6 | drop `buildMs` (keep `materials: 8`) |
+| `residence` [hero] | 12 | 2.5–3.5 | 6 | drop `buildMs` (keep `materials: 8`) |
+| `tea-interior` [hero / mid / far] | 9 / 6 / 5 | 4.2–4.5 / 2.7–3.3 / 0.9–1.2 | 6 / 3 / 1.5 | drop hero and far; mid stays (3.3 > 3), 4 would do |
+| `bamboo-fence` [hero / mid] | 14 / 14 | 6.1–7.9 / 5.6–6.8 | 6 / 3 | real overrun (R51); 10 would still hold |
+| `mountains` [all] | 30 | 0.2–0.5 | 6 / 3 / 1.5 | drop (the cached ring builds in under 1 ms warm) |
