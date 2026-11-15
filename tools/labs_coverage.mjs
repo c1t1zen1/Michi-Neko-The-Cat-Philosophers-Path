@@ -12,8 +12,34 @@ const REPORT = 'labs/ASSET_COVERAGE.md';
 const LEVELS = ['direct', 'review', 'embedded', 'related', 'missing'];
 const LABELS = { direct: 'Focused lab study', review: 'Review sheet', embedded: 'Embedded in a specimen', related: 'Related evidence only', missing: 'No mapped evidence' };
 const METHOD = /^  ((?:build|create)[A-Z]\w*)\(/gm;
+// The Roof Road (rooftops/js/, its own prototype page) is inventoried too
+// (BUILD_GUIDE_FABLE.md §12 R1.1). Its builders are also top-level
+// functions (buildPagoda, makeShoki), so its modules are scanned with a wider
+// pattern; its piece builders are accounted through the PIECES table.
+const ROOF_METHOD = /^(?:  |(?:export )?(?:async )?function )((?:build|create|make)[A-Z]\w*)\(/gm;
+const ROOF_DIRS = ['rooftops/js', 'rooftops/js/pieces'];
+const PIECES_FILE = 'rooftops/js/pieces/index.js';
+// One PIECES entry: `  type: piece('inventory-id', 'r2', 'pieces/type.js', builder…`
+const PIECE_ENTRY = /^\s+(\w+): piece\('([^']+)', '([^']+)', '([^']+)'/gm;
+const ROOF_GROUP = 'Roof Road';
 const read = (file) => readFileSync(resolve(ROOT, file), 'utf8').replace(/^\uFEFF/, '');
 const sourceFiles = () => readdirSync(resolve(ROOT, 'src')).filter((f) => f.endsWith('.js')).sort().map((f) => 'src/' + f);
+const roofSourceFiles = () => ROOF_DIRS.flatMap((dir) => readdirSync(resolve(ROOT, dir)).filter((f) => f.endsWith('.js')).sort().map((f) => dir + '/' + f));
+const isRoof = (file) => file.startsWith('rooftops/');
+
+/**
+ * The PIECES table as data, read as text (it imports three.js): `pieces` is
+ * [{ type, id, lane, file }]; `calls` counts every `piece(` call, so an entry
+ * written another way (a quoted key, double quotes, a wrapped line) shows up
+ * as calls > pieces.length instead of silently dropping out of the checks.
+ * tools/fable_swap_matrix.mjs reads the table through this too.
+ */
+export function readPieces(readText = read) {
+  const text = readText(PIECES_FILE);
+  const pieces = [...text.matchAll(PIECE_ENTRY)].map(([, type, id, lane, file]) => ({ type, id, lane, file: 'rooftops/js/' + file }));
+  return { pieces, calls: (text.match(/\bpiece\(/g) || []).length };
+}
+export const roofPieces = (readText = read) => readPieces(readText).pieces;
 const strongest = (asset) => LEVELS.find((level) => asset.coverage.some((c) => c.level === level)) || 'missing';
 const pct = (n, total) => total ? (100 * n / total).toFixed(1) + '%' : '0.0%';
 const esc = (value) => String(value).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
@@ -42,9 +68,10 @@ function specimenSelectorMatches(target, readText) {
 }
 
 // Injection lets the regression checks simulate source drift without editing src/.
-export function validateInventory(data, { readText = read, files = sourceFiles() } = {}) {
+export function validateInventory(data, { readText = read, files = sourceFiles(), roofFiles = roofSourceFiles() } = {}) {
   const errors = [], sources = new Map(), targetKeys = new Set(), assetIds = new Set();
-  const labs = new Set([...LABS.map((lab) => lab.slug), 'grass', 'cat', 'tree', 'summit-review']);
+  // 'roofroad' is the Roof Road's piece shelf (labs/roofroad/, a registry extra).
+  const labs = new Set([...LABS.map((lab) => lab.slug), 'grass', 'cat', 'tree', 'summit-review', 'roofroad']);
   const check = (condition, message) => { if (!condition) errors.push(message); };
   check(data.schemaVersion === 1, 'unsupported inventory schema');
   check(/^\d{4}-\d{2}-\d{2}$/.test(data.reviewedAt), 'reviewedAt must be a calendar date');
@@ -70,7 +97,8 @@ export function validateInventory(data, { readText = read, files = sourceFiles()
     check(Boolean(entry.reason?.trim()), 'source classification needs a reason: ' + entry.file);
   }
   for (const file of files) check(sources.has(file), 'unclassified src module: ' + file);
-  for (const file of sources.keys()) check(files.includes(file), 'source module removed/renamed: ' + file);
+  for (const file of roofFiles) check(sources.has(file), 'unclassified Roof Road module: ' + file);
+  for (const file of sources.keys()) check(files.includes(file) || roofFiles.includes(file), 'source module removed/renamed: ' + file);
   for (const [key, target] of Object.entries(data.targets)) {
     targetKeys.add(key);
     reference(target, 'target ' + key);
@@ -89,7 +117,7 @@ export function validateInventory(data, { readText = read, files = sourceFiles()
     if (!ref?.file || !ref?.anchor) return;
     // Anchors must name declarations. A call to another builder cannot account
     // for that builder's source; unrelated files cannot silently close a gap.
-    for (const match of ref.anchor.matchAll(new RegExp(METHOD.source, 'gm'))) {
+    for (const match of ref.anchor.matchAll(new RegExp((isRoof(ref.file) ? ROOF_METHOD : METHOD).source, 'gm'))) {
       const key = ref.file + ':' + match[1];
       const owners = ownership.get(key) || [];
       ownership.set(key, [...owners, owner]);
@@ -143,7 +171,31 @@ export function validateInventory(data, { readText = read, files = sourceFiles()
       check(ownership.has(file + ':' + match[1]), 'unaccounted construction method: ' + file + ':' + match[1]);
     }
   }
-  return { errors, builderCount, moduleCount: files.length, readText: text };
+  // The Roof Road: every module that draws (role assets or support) has its
+  // build/create/make functions owned; the runner modules it classifies as
+  // excluded (level, rail, physics, reach, autopilot…) draw nothing.
+  let roofBuilderCount = 0;
+  for (const file of roofFiles.filter((f) => sources.get(f)?.role !== 'excluded')) {
+    for (const match of text(file).matchAll(new RegExp(ROOF_METHOD.source, 'gm'))) {
+      roofBuilderCount++;
+      check(ownership.has(file + ':' + match[1]), 'unaccounted Roof Road construction function: ' + file + ':' + match[1]);
+    }
+  }
+  // Every piece type buildWorld() routes through assets.build(id, …) is an
+  // inventory row of the Roof Road group whose sources name the piece's module.
+  const { pieces, calls } = readPieces(text), pieceIds = new Map();
+  check(pieces.length > 0, 'no PIECES entries found in ' + PIECES_FILE);
+  check(pieces.length === calls, `${PIECES_FILE} has ${calls} piece() calls but ${pieces.length} read as  type: piece('id', 'lane', 'file', …)  (write every entry that way)`);
+  for (const piece of pieces) {
+    const asset = data.assets.find((a) => a.id === piece.id);
+    check(!pieceIds.has(piece.id), `Roof Road inventory id used by two piece types: ${piece.id} (${pieceIds.get(piece.id)} and ${piece.type})`);
+    pieceIds.set(piece.id, piece.type);
+    check(Boolean(asset), `unaccounted Roof Road piece type: ${piece.type} (${piece.id})`);
+    if (!asset) continue;
+    check(asset.group === ROOF_GROUP, `Roof Road piece row is not in the ${ROOF_GROUP} group: ${piece.id}`);
+    check(asset.sources.some((ref) => ref.file === piece.file), `Roof Road piece row does not name its module ${piece.file}: ${piece.id}`);
+  }
+  return { errors, builderCount, moduleCount: files.length, roofBuilderCount, roofModuleCount: roofFiles.length, pieceCount: pieces.length, readText: text };
 }
 
 export function renderReport(data, audit) {
@@ -161,7 +213,7 @@ export function renderReport(data, audit) {
     `Reviewed ${data.reviewedAt}. Generated from [asset_inventory.json](asset_inventory.json) by [labs_coverage.mjs](../tools/labs_coverage.mjs).`, '',
     '[Open the interactive Asset Library](../catalog/) — searchable originals, lab specimens, production notes, cadJS editing and AI plans.', '',
     '## What can be claimed', '',
-    `The inventory accounts for **${audit.moduleCount} core source modules** and **${audit.builderCount} build/create construction methods**. It records **${active.length} active asset types and assemblies**, plus **${inactive.length} inactive entries**. **${counts.direct} of ${active.length} (${pct(counts.direct, active.length)}) have a focused lab study.** Full individual specimen coverage is incomplete.`, '',
+    `The inventory accounts for **${audit.moduleCount} core source modules** and **${audit.builderCount} build/create construction methods**, and for the Roof Road prototype (\`rooftops/\`) **${audit.roofModuleCount} modules**, **${audit.roofBuilderCount} build/create/make functions** and **${audit.pieceCount} piece types**. It records **${active.length} active asset types and assemblies**, plus **${inactive.length} inactive entries**. **${counts.direct} of ${active.length} (${pct(counts.direct, active.length)}) have a focused lab study.** Full individual specimen coverage is incomplete.`, '',
     data.scope, '',
     data.claimLimit, '',
     'Assemblies and recognizable subcomponents overlap by design. The denominator counts catalog rows, not unique meshes or every object instance. A variant count (including the 381 shelf captures in the construction review) cannot establish an asset coverage percentage.', '',
@@ -200,6 +252,7 @@ export function renderReport(data, audit) {
   }
   out.push('## Source-module accounting', '',
     'Every current `src/*.js` module is classified. Every class method declared with a `buildX` or `createX` name has an inventory owner or an explicit helper exclusion. Nonconforming entry points (trees, grass additions, scent, cosmetics and optional GLB loading) are mapped manually. New semantic objects added inside an existing method still require human review.', '',
+    `Every Roof Road module (\`rooftops/js/*.js\`, \`rooftops/js/pieces/*.js\`) is classified the same way. In the modules that draw, every \`buildX\`, \`createX\` or \`makeX\` method or function has an owner or a helper exclusion; the runner modules classified \`excluded\` draw nothing and are not scanned. Every piece type in the \`PIECES\` table (\`${PIECES_FILE}\`) is a row of the ${ROOF_GROUP} group whose sources name the piece's module: that row's id is the id \`buildWorld()\` builds the piece under (\`assets.build\`).`, '',
     '| Module | Role | Accounting |', '|---|---|---|',
     ...data.sourceFiles.map((f) => `| [${f.file}](../${f.file}) | ${f.role} | ${esc(f.reason)} |`), '',
     '### Explained construction helpers', '', '| Source | Reason |', '|---|---|',
@@ -208,11 +261,11 @@ export function renderReport(data, audit) {
     'Narrative-only characters and journal/progression rewards are recorded separately below, outside the visual-asset denominator. The Guardian’s Feather, Golden Dango and Jade Paw have actual meshes and are inventoried above.', '',
     '| Nonvisual entry | Source | Reason |', '|---|---|---|',
     ...(data.nonVisualEntries || []).map((e) => `| ${esc(e.label)} | ${e.sources.map((s) => link(s, s.file)).join('<br>')} | ${esc(e.reason)} |`), '',
-    'Optional media and dormant code are recorded without claiming that a download succeeded or an unused builder is part of the current playable scene. The Roof Road retains its own prototype review and reachability checks.', '',
+    'Optional media and dormant code are recorded without claiming that a download succeeded or an unused builder is part of the current playable scene. The Roof Road rows describe its own prototype page, which the game does not load yet; its run keeps its reachability checks (`node tools/rooftop_test.mjs`) and its numeric golden (`node tools/rooftop_golden.mjs`).', '',
     '## Keeping the claim current', '',
     '1. Add or update an asset row when an authored visual type changes. Use a game-source declaration or unique construction anchor.',
     '2. Map its actual specimen/bench/review definition. Keep invisible objects and analogous techniques at `related`; record missing coverage with an explanation.',
-    '3. Classify new source modules and account for new `buildX`/`createX` methods. Keep retired assets marked `inactive`.',
+    '3. Classify new source modules and account for new `buildX`/`createX` methods (and new Roof Road `makeX` functions and `PIECES` types). Keep retired assets marked `inactive`.',
     '4. Run `node tools/labs_coverage.mjs --write`, then `node tools/labs_coverage.mjs` and `node --test tools/labs_coverage_test.mjs`.', '',
     'The checker validates source anchors, named specimen selectors (including the catalog’s dynamic IDs), target references, unique IDs, method accounting, classifications and report freshness. It does not render the specimens, prove geometric fidelity or verify game integration. Use the browser construction review for visual evidence.', ''
   );
@@ -243,7 +296,7 @@ function main() {
     }
   }
   const active = data.assets.filter((a) => a.lifecycle === 'active');
-  console.log(`OK ${audit.moduleCount} source modules, ${audit.builderCount} construction methods, ${data.assets.length} inventory rows, ${Object.keys(data.targets).length} evidence targets`);
+  console.log(`OK ${audit.moduleCount} source modules, ${audit.builderCount} construction methods, ${audit.roofModuleCount} Roof Road modules, ${audit.roofBuilderCount} Roof Road construction functions, ${audit.pieceCount} Roof Road piece types, ${data.assets.length} inventory rows, ${Object.keys(data.targets).length} evidence targets`);
   console.log('Active coverage: ' + LEVELS.map((l) => `${l}=${active.filter((a) => strongest(a) === l).length}`).join(', '));
 }
 

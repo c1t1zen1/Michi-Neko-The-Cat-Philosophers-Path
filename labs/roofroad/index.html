@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>The Roof Road · Every piece of the run — Michi-Neko</title>
+  <meta name="description" content="A shelf of every piece type the Roof Road is built from, each one the run's own builder on the real level: bridge, machiya, canal, canopy, festival float, the people and the Shōki.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⛩️%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@400;500;600&family=Shippori+Mincho:wght@500;700&display=swap">
+  <link rel="stylesheet" href="../shared/lab.css"><link rel="stylesheet" href="../shared/workshop.css"><link rel="stylesheet" href="style.css">
+  <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <canvas id="gl" aria-hidden="true"></canvas>
+  <main class="page">
+    <header class="mast">
+      <p class="kicker">Michi-Neko · The Roof Road <span class="jp">屋根道</span></p>
+      <h1>A kilometre of roofs,<br><em>one piece at a time.</em></h1>
+      <p class="lede">The Roof Road is built from a few dozen kinds of piece, laid along the route by arc length. Each tile below is the run’s own builder on the real level, so what you see here is what the cat runs over.</p>
+      <nav class="jump" aria-label="Sections"><a href="#walk" class="go">Where it stands ↓</a><a href="#families">The shelves</a><a href="#game">Into the kit</a><a href="#sources">The notebook</a></nav>
+      <div class="field-note"><span class="mark">屋根 / yane</span><p>A prototype page of its own, not yet in the valley. Every piece here goes through the asset contract, so a kit asset can replace it without moving a platform.</p><span class="stamp">Three.js<br>r160</span></div>
+    </header>
+  </main>
+
+  <section class="hero" id="walk" aria-labelledby="walk-title">
+    <div class="hero-head">
+      <p class="kicker">01 / On the run</p>
+      <h2 id="walk-title">Where it <em>stands</em></h2>
+      <p class="sentence">Pick a tile and this says where its first piece is on the route. Open the run there, or start at a mouth.</p>
+    </div>
+    <div class="pick page">
+      <div class="pick-card">
+        <h3 id="pick-name">&nbsp;</h3>
+        <p id="pick-where" class="pick-where">&nbsp;</p>
+        <p id="pick-id" class="pick-id">&nbsp;</p>
+        <p><a id="pick-play" class="pick-play" href="../../kyoto-rooftops.html">Play from here ↗</a></p>
+        <p class="wake" id="wake">Laying out the run…</p>
+      </div>
+      <div class="pick-card">
+        <h3>The mouths</h3>
+        <ol id="mouths" class="mouths"></ol>
+      </div>
+    </div>
+    <div class="hero-foot"><p class="perf" id="perf" aria-live="off">warming up…</p></div>
+  </section>
+
+  <main class="page">
+    <section class="section" id="families">
+      <p class="kicker">02 / The specimen shelves</p>
+      <h2>Every piece. <em>As it is.</em></h2>
+      <p class="fam-sub">One shelf per Phase 5 lane, one tile per piece type: the first piece of that type on the route, turned so the street side faces you. Drag a tile to turn it; open its recipe for the builder that drew it.</p>
+      <div class="shelf-tools">
+        <label>Find a piece<input type="search" id="recipe-search" placeholder="Try bridge, canal, float…"></label>
+        <label>Show<select id="family-filter"><option value="all">Every shelf</option><option value="original">What the Roof Road has now</option></select></label>
+        <span id="recipe-count" role="status"></span>
+      </div>
+      <div id="shelf-bar"></div>
+      <p id="empty-search" hidden>Nothing matches. Try another word, or show every shelf.</p>
+    </section>
+    <div id="shelves"></div>
+
+    <section class="section" id="game">
+      <div class="fam-head"><span class="fam-num">03</span><h2>Into <em>the kit</em></h2><p class="fam-sub">How a piece here becomes a production asset.</p></div>
+      <ul class="game-list">
+        <li><em>One id per piece type.</em> <code>rooftops/js/pieces/index.js</code> maps every type to an inventory id and an owner lane. <code>buildWorld()</code> builds each piece through <code>assets.build(id, layout, classic)</code>, so the classic builder runs until a kit asset registers that id.</li>
+        <li><em>The geometry is gameplay.</em> Platforms, walls and ceilings come from <code>level.js</code>, never from a mesh. A kit piece draws the surfaces its level record names, at those heights.</li>
+        <li><em>Built in the rail frame.</em> A kit piece is placed where the classic one stands: local x along the rail, z toward the camera, ground at y = 0. Sockets named <code>light…</code> become lantern lights.</li>
+        <li><em>Classic stays the default.</em> The run page builds its own asset runtime: <code>?assets=modular</code> or <code>?swap=roof-bridge:modular</code> switch pieces; with no Roof Road kit asset, every piece is classic.</li>
+      </ul>
+    </section>
+
+    <section class="sources" id="sources">
+      <p class="kicker">04 / The notebook</p>
+      <h2>Built from <em>the run itself.</em></h2>
+      <p class="src-note">This shelf is a review of what exists: no new recipes yet. The design, research and pass notes are below; the full notes are in the <a href="research.md">research notebook ↗</a>.</p>
+      <details><summary>All sources</summary><ul id="srcList"></ul></details>
+    </section>
+  </main>
+  <footer class="foot"><p>The Roof Road · <span class="jp">屋根道</span> · a prototype page, built with Three.js r160 · painted at load time</p></footer>
+
+  <script>
+    if (location.protocol === 'file:') {
+      document.getElementById('wake').textContent = 'Serve the repository over HTTP: python3 -m http.server 8000, then open localhost:8000/labs/roofroad/.';
+    } else {
+      const s = document.createElement('script'); s.type = 'module'; s.src = 'js/main.js'; document.body.append(s);
+      s.addEventListener('error', () => { document.getElementById('wake').textContent = 'The lab could not load. Check your connection to the Three.js CDN and reload.'; });
+    }
+  </script>
+</body>
+</html>
