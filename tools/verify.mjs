@@ -7,7 +7,7 @@
 //   2. static wiring checks (the call sites main.js must make, summit + kit)
 //   3. the headless summit state-machine suite (tools/summit_test.mjs)
 //   4. an HTML/CSS sanity pass over index.html
-//   5. the kit: tools/kit_check.mjs and the node --test suite tools/kit_test.mjs
+//   5. the kit: tools/kit_check.mjs and the node --test suites tools/kit_test.mjs and tools/a1_village_test.mjs
 import { readFileSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -181,6 +181,13 @@ step(5, 'kit static checks + unit tests', () => {
   const summary = tests.split(/\r?\n/).filter((l) => /^ℹ (tests|pass|fail) /.test(l)).map((l) => l.slice(2).trim());
   console.log('  kit_test: ' + (summary.join(', ') || 'no summary (see output above)'));
   if (!/^ℹ fail 0$/m.test(tests)) failures++;
+  // a1-village (Phase 7): the R66 same-output speedups and the A.5 kindle edge, against their oracles
+  let a1;
+  try { a1 = execFileSync(process.execPath, ['--test', 'tools/a1_village_test.mjs'], { cwd: ROOT, encoding: 'utf8' }); }
+  catch (e) { failures++; a1 = String(e.stdout || '') + String(e.stderr || ''); }
+  const a1summary = a1.split(/\r?\n/).filter((l) => /^ℹ (tests|pass|fail) /.test(l)).map((l) => l.slice(2).trim());
+  console.log('  a1_village_test: ' + (a1summary.join(', ') || 'no summary (see output above)'));
+  if (!/^ℹ fail 0$/m.test(a1)) failures++;
 });
 
 console.log(failures

@@ -262,19 +262,29 @@ export class AssetRuntime {
       this.overrides = await this._loadOverrides();
     }
     if (!this.needsKit()) return;
+    // Every family (and the kit materials) is requested at once, so their module
+    // graphs download side by side instead of one waterfall after another
+    // (a1-village, ruling R66: ~100 ms of the modular world build was waiting);
+    // they are registered in the generated order afterwards, so the registry,
+    // the first-registered rule and the warnings are exactly as before.
+    const materials = this.kitMaterials ? null : Promise.resolve().then(() => (this._createMaterials ? this._createMaterials() : defaultMaterials()));
+    if (materials) materials.catch(() => {});        // awaited below; never an unhandled rejection meanwhile
     const families = await (this._loadFamilies ? this._loadFamilies() : defaultFamilies());
-    for (const [family, load] of Object.entries(families || {})) {
+    const entries = Object.entries(families || {});
+    const loaded = await Promise.all(entries.map(([, load]) => Promise.resolve().then(load).then((mod) => ({ mod }), (error) => ({ error }))));
+    entries.forEach(([family], i) => {
       try {
-        const mod = await load();
+        if (loaded[i].error) throw loaded[i].error;
+        const mod = loaded[i].mod;
         const list = mod && mod.assets;
         if (!Array.isArray(list)) throw new Error('index.js must export `assets` (an array of defineAsset records)');
         for (const def of list) this.register(def, family);
       } catch (error) {
         this.warnOnce('family:' + family, `family '${family}' failed to load, its assets stay classic: ${error && error.message || error}`);
       }
-    }
+    });
     if (!this.kitMaterials) {
-      this.kitMaterials = await (this._createMaterials ? this._createMaterials() : defaultMaterials());
+      this.kitMaterials = await materials;
       this._bindMaterials();
     }
     this.loaded = true;
