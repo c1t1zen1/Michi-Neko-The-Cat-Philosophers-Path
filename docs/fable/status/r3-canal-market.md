@@ -20,8 +20,18 @@ Size rule: ~10 ids per PR, so the most-seen small pieces went first.
 - rooftop_test: 38 passed, 2 failed = the baseline pair (autopilot reaches the perch: stops after drama school ridge @1221.6, s=1232.17; every piece on one straight leg). Level is untouched by the kit; rooftop_companion_test crashes on its baseline assertion (finale), unchanged.
 - ?auto=1 not run (physics/level independent of kit meshes; autopilot test above runs the real physics, same stop s=1232.17 on classic).
 
-## L6 (docs/fable/status/r3-canal-market/*.jpg: canal s262, footbridge s273, toro s307, laundry s692, vent s486; classic vs swap, hour 0.2 only; 4 hours and cat height not done)
-Captures are not pixel repeatable; judged by eye: modular reads as the classic one (same silhouettes, same materials) with small hero additions (bridge giboshi caps, plank seams, finial). AAA-1: parity, not an upgrade; AAA-5 ok at the rail camera. Cistern is not framed in a shot (s 671/707) and the nine other hours are not compared.
+## L6 (docs/fable/status/r3-canal-market/<id>-<d|k|c>-<classic|modular>.jpg, 48 JPGs, all <= 84 KB, no pair byte-identical by cmp)
+ids by frame: stones s262, landing s255, footbridge s273, toro s307, cistern s707, chimney s717, futon s696, vent s486. d = hour 0.5 (cat=0), k = hour 0.2 (cat=0), c = hour 0.8 with the cat in frame (the page camera follows the cat, so c is the cat-height view; there is no free camera flag). Captures are not pixel repeatable (time loops); judged by eye. I opened cistern-d, toro-k, futon-c, vent-d (modular) plus the earlier canal/footbridge/laundry shots; the rest were checked for non-identity only.
+AAA-1: parity with small hero gains (plank seams, bridge caps, finial, futon stripes, down-pipe); not a leap, because the classic pieces are already painted with the same MAT. AAA-5: legible at the cat view and at night; the cistern hoops/ladder and chimney cap read in both. The vent is seen from below at s486 and matches the classic.
+
+## ?auto=1 (qa=1, advanceForReview(450) twice)
+classic: s=1232.2124, swap of all 8 ids: s=1232.2124 (identical; baseline stall s~1232). uptime load 2.2 to 3.4.
+
+## Stepping-stone bounds (resolved, no waiver needed)
+Digest bounds use Box3.setFromObject on a rotated mesh, which transforms the geometry's AABB (conservative); the kit bakes the transform into the vertices, so its box is tight. Measured on a dodecahedron r0.55 scaled 1.25,0.3,0.9 rotated 0.4: +-0.773 vs +-0.660. The geometry is the same; no collider involved.
+
+## After merge of fable/integration f8eabc9
+Rechecked: kit_check 451 OK, contract 560/0, rooftop_golden classic EQUAL, swap changes only the 42 pieces (+1 root group), rooftop_test 38/2 baseline, footprint EQUAL, syntax 172, verify, labs OK, diff --check clean. Pieces stay on ctx.MAT (no vertex colours); not switched, because alley passages strip colours and parity with classic is the goal.
 
 ## Concerns
 1. pieces/common.js mergeByMaterial drops the vertex-colour attribute, so any km.bag piece renders black on the Roof Road (found in a first capture). Worked around by using ctx.MAT. r2/r4/r5 must do the same or the Integrator fixes common.js (handoff 2).
