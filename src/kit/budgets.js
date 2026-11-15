@@ -144,6 +144,20 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
     hero: { triangles: 7000 }, mid: { triangles: 3800 }, far: { triangles: 1800, materials: 3 },
     why: 'three range rings (one material each, the summit hazes them by layer), each only the arc the seat looks over; classic 3 x 1,760 = 5.3k tris, modular 6,600 / 3,504 / ~1.6k (hero/mid/far)'
   },
+  // r4-festival (Roof Road mouths 6-7): whole festival pieces in the Roof Road's own painterly set (ctx.MAT, R52: no new material).
+  // Each bucket is a part; after the facade's mergeByMaterial every instance folds into one draw per material, so the mesh and
+  // material counts here are parts, not draws. Measured with kit_contract_test --family rooffestival (hero/mid/far).
+  'roof-yatai': {
+    hero: { meshes: 24, materials: 15 }, mid: { meshes: 22, materials: 14 },
+    why: 'awning cloth, timbers, counter, three noren panels, the fare (up to five goods colours), lantern paper, sign and decorateStall dressing: 23 / 21 / 3 meshes, 15 / 14 / 2 materials; classic is ~40 meshes in 12 materials'
+  },
+  'roof-hoko': {
+    hero: { meshes: 52, materials: 18 }, mid: { triangles: 7500, meshes: 50, materials: 18 },
+    why: 'the great float: spoked wheels, brocade panels, lacquer deck, gold trim, roof, mast, 6 live tassels and 3 live hayashi; 51 / 48 meshes, 18 materials, mid 7,112 tris; classic is ~150 meshes in 14 materials. Far is 2 materials, 3 meshes'
+  },
+  'roof-temple-gate': { hero: { materials: 7 }, mid: { meshes: 11, materials: 7 }, why: 'timber, dark plinths, doors, roof tile, ridge, plaster gable and bronze studs: 7 materials, 11 mid meshes' },
+  'roof-tsuiji': { mid: { materials: 5 }, why: 'sujibei wall, roof tile, dark footing, ridge-grey eave boards and timber posts: 5 materials' },
+  'roof-yama': { hero: { materials: 10 }, mid: { meshes: 13, materials: 10 }, why: 'kakiyama float: timber, tapestry, gold, steel, bark and three leaf materials, pine pads: 10 materials, 13 mid meshes' },
 });
 
 /** The budget row for one asset and tier, with exceptions applied. */
