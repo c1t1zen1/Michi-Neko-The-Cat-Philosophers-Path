@@ -332,6 +332,13 @@ class Game {
     // Grass LOD rings follow the camera's gaze; its physics reads the cat's
     // paws and the villagers walking through it.
     this.vegetation.grassContext = { renderer: this.renderer, camera: this.camera, player: this.player, npcs: this.npcs };
+    // v-ground: the kit valley ground (modular set only) wears where the cat and the
+    // villagers walk and thins the meadow there; the classic set has no such instance.
+    for (const inst of this.city.assetInstances || []) {
+      if (inst.id === 'valley-ground' && typeof inst.bindWorld === 'function') {
+        inst.bindWorld({ grass: this.vegetation.grass, player: this.player, npcs: this.npcs });
+      }
+    }
 
     this.contextActions = new ContextActionManager(
       this.player,
