@@ -37,7 +37,7 @@ export const BUDGETS = Object.freeze({
 
 /** Kit-wide limits from budgets.md section 3 (binding: high tier, shrine spot). */
 export const KIT_LIMITS = Object.freeze({
-  newMergedMaterials: 11,
+  mergedMaterialsBaseline: 11, // informational: merged materials after wave 2.1 + pagoda; the cap was replaced by ruling R52
   repeatBuildMs: 0.1,
   liveMeshes: Object.freeze({ hero: 2, mid: 0, far: 0 }),
   handover: Object.freeze({ heroBelow: 12, farFrom: 45 })
@@ -49,10 +49,10 @@ export const KIT_LIMITS = Object.freeze({
  * fields it names and must cite why. Added by the owning lane in its PR.
  */
 export const BUDGET_EXCEPTIONS = Object.freeze({
-  // 11 m valley runs build 12,660 mid tris (contract sample 3.4 m); ruling R51
+  // the contract samples the real 11 m run (G-V1 I1); ruling R51
   'bamboo-fence': {
-    mid: { triangles: 13000 },
-    why: '11 m valley runs build 12,660 mid tris (contract sample 3.4 m); ruling R51; a1-village lightens the mid tier and removes this'
+    hero: { buildMs: 14 }, mid: { triangles: 13000, buildMs: 14 },
+    why: 'the contract samples the real 11 m valley run: 22,638 / 12,660 / 568 tris (hero/mid/far), 71 culms + 138 knots warm-build 8-11 ms under load; ruling R51; a1-village lightens the mid tier and removes this'
   },
   'tea-interior': { hero: { meshes: 34, materials: 12, buildMs: 9 }, mid: { triangles: 9500, meshes: 34, materials: 12, buildMs: 6 }, far: { triangles: 3000, meshes: 24, materials: 11, buildMs: 5 }, why: 'the whole room as one asset (every classic sub-part plus courtyard, andon and toro); far is not a real LOD, the room is only seen from inside' },
   // whole buildings (ruling R52); measured with kit_contract_test --family machiya
@@ -100,6 +100,15 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
     hero: { triangles: 92000 }, mid: { triangles: 13000 }, far: { triangles: 5000 },
     why: 'a grove is 40-78 culms with 72 leaf cards each; classic is 82k (r=7); modular hero ~90k, mid/far far below classic'
   },
+  // v-water: whole-system water assets whose mesh/material count is bound by gameplay (layout.bind / footprint lists), not by detail
+  'paddies': {
+    far: { meshes: 4, materials: 4 },
+    why: 'four plot sheets bound one-to-one to paddyWaterMaterials (parts water_1..4, a material each); classic 4 meshes / 4 materials / 8 tris; modular 4 / 4 / 8 at every tier'
+  },
+  'water-ripples': {
+    hero: { materials: 24 }, mid: { materials: 24 }, far: { materials: 24 },
+    why: 'the 24-ring pool: Countryside.update() writes each ring\'s own material opacity (parts ring_1..24); classic 24 meshes / 24 materials, hidden until spawned; modular the same (0 visible meshes, 0 tris at build)'
+  },
   // Countryside.updateRainRipples() sets opacity per ring, so each of the 28 rings owns a material (as classic does); the texture is shared
   'rain-ripples': {
     hero: { materials: 28 }, mid: { materials: 28 }, far: { materials: 28 },
@@ -110,6 +119,25 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
   'shrine-rays': {
     hero: { meshes: 11, materials: 11 }, mid: { meshes: 11, materials: 11 }, far: { meshes: 11, materials: 11 },
     why: 'nine shafts, a bloom and a ground pool: the facade pulses each one through its own material.opacity (as classic), so 11 materials, each a single additive draw'
+  },
+  // s3-vista: the summit vista is whole districts seen from 0.5-5 km. Classic (game quality): city 920 houses
+  // (walls 12 + roof 8 + eave 12 tris) + 360 garden blobs = ~58k tris, pagoda 992, bay 5.4k + 7 boats (2 meshes each),
+  // harbour 864 + islands 4 x 320, horizon 3 x 1,760. Modular numbers are in each `why` (kit_contract_test --family vista).
+  'kyoto-city': {
+    hero: { triangles: 58000 }, mid: { triangles: 18500 }, far: { triangles: 12000, materials: 4 },
+    why: '920 instanced houses with eaves and 360 garden blobs (classic ~58k hero tris, modular 56,400); mid 700 houses (17,800), far 460 houses (11,480); far keeps walls, roofs, gardens and the lights as four materials'
+  },
+  'summit-pagoda': {
+    far: { meshes: 4 },
+    why: 'the pagoda family measured Yasaka tower (hero build 9 ms warm; far 4 meshes: tower, sorin, podium and the lanterns)'
+  },
+  'summit-bay': {
+    mid: { meshes: 9 }, far: { triangles: 1400, meshes: 9, materials: 3 },
+    why: 'water, glints and seven boats the summit sails by group (one mesh each; classic is 2 meshes a boat); classic water 5.4k tris, modular 5.8k / 3.1k / 1,276'
+  },
+  'horizon': {
+    hero: { triangles: 7000 }, mid: { triangles: 3800 }, far: { triangles: 1800, materials: 3 },
+    why: 'three range rings (one material each, the summit hazes them by layer), each only the arc the seat looks over; classic 3 x 1,760 = 5.3k tris, modular 6,600 / 3,504 / ~1.6k (hero/mid/far)'
   },
 });
 

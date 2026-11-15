@@ -28,7 +28,7 @@ export const bambooFence = defineAsset({
     lashing: { type: 'boolean', default: true, label: 'Cord lashings' }
   },
   sample: () => {
-    const len = 3.4, n = Math.floor(len / 0.16);
+    const len = 11.0, n = Math.floor(len / 0.16); // the largest real run (valley village gaps), R51
     return {
       name: 'Takegaki Fence 1', len, fenceHeight: 1.35, role: 'decorative',
       tilts: Array.from({ length: n + 1 }, (_, i) => Math.sin(i * 12.9898) * 0.03),

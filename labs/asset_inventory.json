@@ -1173,6 +1173,41 @@
       "file": "labs/interiors/js/specimens.js",
       "anchor": "  knockables: {"
     },
+    "interiors/courtyard-wall": {
+      "lab": "interiors",
+      "selector": "courtyard-wall",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens_b.js",
+      "anchor": "  'courtyard-wall': {"
+    },
+    "interiors/secret-tatami": {
+      "lab": "interiors",
+      "selector": "secret-tatami",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens_b.js",
+      "anchor": "  'secret-tatami': {"
+    },
+    "interiors/secret-table": {
+      "lab": "interiors",
+      "selector": "secret-table",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens_b.js",
+      "anchor": "  'secret-table': {"
+    },
+    "interiors/secret-bed": {
+      "lab": "interiors",
+      "selector": "secret-bed",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens_b.js",
+      "anchor": "  'secret-bed': {"
+    },
+    "interiors/secret-andon": {
+      "lab": "interiors",
+      "selector": "secret-andon",
+      "kind": "bench",
+      "file": "labs/interiors/js/specimens_b.js",
+      "anchor": "  'secret-andon': {"
+    },
     "interiors/pottery": {
       "lab": "interiors",
       "selector": "pottery",
@@ -1418,6 +1453,118 @@
       "kind": "specimen",
       "file": "labs/summit/js/recipes.js",
       "anchor": "id: 'c-path'"
+    },
+    "sky/night-stars": {
+      "lab": "sky",
+      "selector": "night-stars",
+      "kind": "specimen",
+      "file": "labs/sky/js/data.js",
+      "anchor": "study('night-stars'"
+    },
+    "sky/night-moon": {
+      "lab": "sky",
+      "selector": "night-moon",
+      "kind": "specimen",
+      "file": "labs/sky/js/data.js",
+      "anchor": "study('night-moon'"
+    },
+    "sky/cloud-field": {
+      "lab": "sky",
+      "selector": "cloud-field",
+      "kind": "specimen",
+      "file": "labs/sky/js/data.js",
+      "anchor": "study('cloud-field'"
+    },
+    "water/b-sanjo": {
+      "lab": "water",
+      "selector": "b-sanjo",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'b-sanjo'"
+    },
+    "water/p-taue": {
+      "lab": "water",
+      "selector": "p-taue",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'p-taue'"
+    },
+    "water/p-winter": {
+      "lab": "water",
+      "selector": "p-winter",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'p-winter'"
+    },
+    "water/p-aze": {
+      "lab": "water",
+      "selector": "p-aze",
+      "kind": "specimen",
+      "file": "labs/water/js/variants.js",
+      "anchor": "id: 'p-aze'"
+    },
+    "summit/v-city": {
+      "lab": "summit",
+      "selector": "v-city",
+      "kind": "specimen",
+      "file": "labs/summit/js/vista.js",
+      "anchor": "id: 'v-city'"
+    },
+    "summit/v-city-lit": {
+      "lab": "summit",
+      "selector": "v-city-lit",
+      "kind": "specimen",
+      "file": "labs/summit/js/vista.js",
+      "anchor": "id: 'v-city-lit'"
+    },
+    "summit/v-ribbons": {
+      "lab": "summit",
+      "selector": "v-ribbons",
+      "kind": "specimen",
+      "file": "labs/summit/js/vista.js",
+      "anchor": "id: 'v-ribbons'"
+    },
+    "summit/v-pagoda": {
+      "lab": "summit",
+      "selector": "v-pagoda",
+      "kind": "specimen",
+      "file": "labs/summit/js/vista.js",
+      "anchor": "id: 'v-pagoda'"
+    },
+    "summit/v-bay": {
+      "lab": "summit",
+      "selector": "v-bay",
+      "kind": "specimen",
+      "file": "labs/summit/js/vista.js",
+      "anchor": "id: 'v-bay'"
+    },
+    "summit/v-harbour": {
+      "lab": "summit",
+      "selector": "v-harbour",
+      "kind": "specimen",
+      "file": "labs/summit/js/vista.js",
+      "anchor": "id: 'v-harbour'"
+    },
+    "summit/v-bridge": {
+      "lab": "summit",
+      "selector": "v-bridge",
+      "kind": "specimen",
+      "file": "labs/summit/js/vista.js",
+      "anchor": "id: 'v-bridge'"
+    },
+    "summit/v-wheel": {
+      "lab": "summit",
+      "selector": "v-wheel",
+      "kind": "specimen",
+      "file": "labs/summit/js/vista.js",
+      "anchor": "id: 'v-wheel'"
+    },
+    "summit/v-horizon": {
+      "lab": "summit",
+      "selector": "v-horizon",
+      "kind": "specimen",
+      "file": "labs/summit/js/vista.js",
+      "anchor": "id: 'v-horizon'"
     }
   },
   "assets": [
@@ -1869,6 +2016,11 @@
         {
           "target": "water/b-game",
           "level": "direct"
+        },
+        {
+          "target": "water/b-sanjo",
+          "level": "direct",
+          "note": "Promoted as the kit bridge on the classic platforms (src/kit/water/bridge.js)."
         }
       ]
     },
@@ -1895,6 +2047,22 @@
         {
           "target": "water/p-mirror",
           "level": "direct"
+        },
+        {
+          "target": "water/p-taue",
+          "level": "direct"
+        },
+        {
+          "target": "water/p-summer",
+          "level": "direct"
+        },
+        {
+          "target": "water/p-autumn",
+          "level": "direct"
+        },
+        {
+          "target": "water/p-winter",
+          "level": "direct"
         }
       ]
     },
@@ -1910,6 +2078,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "water/p-aze",
+          "level": "direct"
+        },
         {
           "target": "water/p-game",
           "level": "embedded"
@@ -1934,6 +2106,10 @@
         },
         {
           "target": "water/p-autumn",
+          "level": "direct"
+        },
+        {
+          "target": "water/p-taue",
           "level": "direct"
         }
       ]
@@ -3958,8 +4134,8 @@
       ],
       "coverage": [
         {
-          "target": "interiors/garden",
-          "level": "embedded"
+          "target": "interiors/courtyard-wall",
+          "level": "direct"
         }
       ]
     },
@@ -4004,6 +4180,10 @@
       ],
       "coverage": [
         {
+          "target": "interiors/secret-tatami",
+          "level": "direct"
+        },
+        {
           "target": "machiya/original-secret",
           "level": "embedded"
         }
@@ -4021,6 +4201,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "interiors/secret-table",
+          "level": "direct"
+        },
         {
           "target": "machiya/original-secret",
           "level": "embedded"
@@ -4040,6 +4224,10 @@
       ],
       "coverage": [
         {
+          "target": "interiors/secret-bed",
+          "level": "direct"
+        },
+        {
           "target": "machiya/original-secret",
           "level": "embedded"
         }
@@ -4057,6 +4245,10 @@
         }
       ],
       "coverage": [
+        {
+          "target": "interiors/secret-andon",
+          "level": "direct"
+        },
         {
           "target": "machiya/original-secret",
           "level": "embedded"
@@ -4100,6 +4292,11 @@
         {
           "target": "sky/cloud-game",
           "level": "direct"
+        },
+        {
+          "target": "sky/cloud-field",
+          "level": "direct",
+          "note": "The kit deck promotes this thickness painting (slab slices, four-genus field) and the shade-soft projection."
         }
       ]
     },
@@ -4118,6 +4315,10 @@
         {
           "target": "sky/sky-night",
           "level": "embedded"
+        },
+        {
+          "target": "sky/night-stars",
+          "level": "direct"
         }
       ]
     },
@@ -4136,6 +4337,10 @@
         {
           "target": "sky/sky-night",
           "level": "embedded"
+        },
+        {
+          "target": "sky/night-moon",
+          "level": "direct"
         }
       ]
     },
@@ -4594,11 +4799,11 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/v-ribbons",
+          "level": "direct"
         }
-      ]
+      ],
+      "production": "vista"
     },
     {
       "id": "summit-pagoda",
@@ -4613,16 +4818,11 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
-        },
-        {
-          "target": "summit/game-city",
-          "level": "embedded",
-          "note": "buildKyotoCity() calls buildKyotoPagoda(); the tower is inside the original city tile. Its evening-light material starts at zero opacity."
+          "target": "summit/v-pagoda",
+          "level": "direct"
         }
-      ]
+      ],
+      "production": "vista"
     },
     {
       "id": "summit-bay",
@@ -4637,11 +4837,11 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/v-bay",
+          "level": "direct"
         }
-      ]
+      ],
+      "production": "vista"
     },
     {
       "id": "harbour",
@@ -4656,11 +4856,11 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/v-harbour",
+          "level": "direct"
         }
-      ]
+      ],
+      "production": "vista"
     },
     {
       "id": "horizon",
@@ -4675,11 +4875,11 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review",
-          "note": "The real summit can be reviewed on the preview page; no individual Summit Lab specimen for this asset."
+          "target": "summit/v-horizon",
+          "level": "direct"
         }
-      ]
+      ],
+      "production": "vista"
     },
     {
       "id": "slope-forest",
@@ -4887,10 +5087,12 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review"
+          "target": "summit/v-city",
+          "level": "related",
+          "note": "The specimen builds the kit city layer; the assembly itself (layers, clouds, deferred ids) is only reviewed whole on the summit preview."
         }
-      ]
+      ],
+      "production": "vista"
     },
     {
       "id": "kyoto-city",
@@ -4909,10 +5111,19 @@
           "level": "direct"
         },
         {
+          "target": "summit/v-city",
+          "level": "direct"
+        },
+        {
+          "target": "summit/v-city-lit",
+          "level": "direct"
+        },
+        {
           "target": "summit/night",
           "level": "direct"
         }
-      ]
+      ],
+      "production": "vista"
     },
     {
       "id": "summit-transition",
@@ -5034,10 +5245,11 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review"
+          "target": "summit/v-bridge",
+          "level": "direct"
         }
-      ]
+      ],
+      "production": "vista"
     },
     {
       "id": "ferris-wheel",
@@ -5052,10 +5264,11 @@
       ],
       "coverage": [
         {
-          "target": "summit-review/whole-scene",
-          "level": "review"
+          "target": "summit/v-wheel",
+          "level": "direct"
         }
-      ]
+      ],
+      "production": "vista"
     },
     {
       "id": "summit-butterflies",

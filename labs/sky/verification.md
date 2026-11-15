@@ -60,3 +60,14 @@ post-process. Thin-cloud star visibility uses the original star system with a
 global cloud-cover fade. Reflection intensity follows the light, while the
 shared cat walker's small environment map is not a freshly integrated physical
 atmosphere. These distinctions are also visible in the recipes and research.
+
+## Night studies — 2026-11-13 (lane v-sky)
+
+Headless Chromium on Metal (Apple M5 Max), `node tools/headless.mjs`:
+`/labs/sky/?night=both&sky=night&hour=22&cloud=cirrus&shape=cirrus&coverage=0.25&shot=1&nohud=1&cat=0`
+with the camera aimed at the moon: the page reported no errors or
+warnings, the painted crescent, glow and stars rendered, and `night=game`
+shows the original stars and moon again. `node tools/labs_check.mjs` covers
+the new module's syntax. The 22° ring and the Amanogawa are faint by design;
+they were checked in the game captures of lane v-sky
+(`docs/fable/status/v-sky/`), not measured here.

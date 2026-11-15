@@ -620,9 +620,9 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 - [x] **G-P0** Baseline recorded, decisions D1–D8 answered
 - [x] **G-F** Foundation merged; classic output proven unchanged (→ may merge to `main`)
 - [x] **G-V1** Village wave 1 (props) merged; G1–G3 green, budgets hold on modular (`docs/fable/baseline/perf_gv1.md`), kit materials at the cap (budgets.md section 4)
-- [ ] **G-V2** Village wave 2 (landmarks) merged
+- [x] **G-V2** Village wave 2 (landmarks) merged; G1–G3 green, headless full-game boot clean on `?assets=modular` and `?assets=classic` (`reports/gate-v2-chores-report.md`)
 - [ ] **G-V3** Village wave 3 (systems, life) merged (→ may merge to `main`)
-- [ ] **G-C** Characters merged
+- [x] **G-C** Characters merged; cat golden EQUAL, systems golden EQUAL, G1–G4 green, a save made on `main` loads on `?assets=classic` and `?assets=modular` (`reports/gate-v2-chores-report.md`)
 - [ ] **G-S** Hilltop merged
 - [ ] **G-R** Roof Road merged and wired (→ may merge to `main`)
 - [x] **G-T** Tooling merged; cadJS param edit (key-rock size 1.5, Push to game) changed the ?assets=modular shot (maxDelta 166), restoring kit-overrides.json reverted it (maxDelta 0); catalog 49/49, cadJS 16/16 pass
@@ -650,21 +650,21 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 2.2 | `v-machiya` | Machiya, components, street (lab 04) | G-V1 | [x] |
 | 2.2 | `v-pagoda` | Distant pagoda (lab 08) | G-V1 | [x] |
 | 2.2 | `v-hidden` | Moon Pool and Lantern Glade (lab 07) | G-V1 | [x] |
-| 2.2 | `v-interiors` | Tea house and secret house interiors (lab 21) | G-V1 | [ ] |
+| 2.2 | `v-interiors` | Tea house and secret house interiors (lab 21) | G-V1 | [x] |
 | 2.3 | `v-ground` | Ground, path, shoulders (lab 01) | G-V2 | [ ] |
-| 2.3 | `v-water` | River, bridge, paddies (lab 02) | G-V2 | [ ] |
+| 2.3 | `v-water` | River, bridge, paddies (lab 02) | G-V2 | [x] |
 | 2.3 | `v-ranges` | Forest wall, mountains, mist (lab 03) | G-V2 | [x] |
-| 2.3 | `v-sky` | Sky, clouds, cloud shadows, post (lab 05) | G-V2 | [ ] |
+| 2.3 | `v-sky` | Sky, clouds, cloud shadows, post (lab 05) | G-V2 | [x] |
 | 2.3 | `v-weather` | Petals, rain, snow, motes, komorebi (labs 20, 22) | G-V2 | [x] |
 | 2.3 | `v-trees` | Sakura, maple, pine, rim trees (new lab) | G-V2 | [x] |
 | 2.3 | `v-critters` | Koi, birds, butterflies, crows (lab 18) | G-V2 | [x] |
 | 3 | `c1-rig-split` | `Cat` split into rig, parts, behaviour (serial) | G-F | [x] |
-| 3 | `c2-michi` | Player cat parts, collar, master bells | c1 | [ ] |
-| 3 | `c3-villagers` | Luna, Mochi, Kuro (lab 19) | c1 | [ ] |
+| 3 | `c2-michi` | Player cat parts, collar, master bells | c1 | [x] |
+| 3 | `c3-villagers` | Luna, Mochi, Kuro (lab 19) | c1 | [x] |
 | 3 | `c4-creatures` | Larry the turtle, guardian crows | c1 | [x] |
 | 4 | `s1-summit-split` | `mountaintop.js` split behind the facade (serial) | G-F, D2 | [x] |
 | 4 | `s2-clearing` | Meadow, stone, ensō, fūrin, torii, path, trees | s1, G-V2 | [x] |
-| 4 | `s3-vista` | City, pagoda, bay, harbour, ranges, clouds | s1, `v-pagoda`, `v-ranges` | [ ] |
+| 4 | `s3-vista` | City, pagoda, bay, harbour, ranges, clouds | s1, `v-pagoda`, `v-ranges` | [x] |
 | 4 | `s4-summit-life` | Summit weather, pollen, petals, butterflies, birds | s1, `v-weather` | [x] |
 | 5 | `r1-roof-split` | `build.js` split into pieces + inventory (serial) | G-F | [ ] |
 | 5 | `r2-roofs-streets` | Mouths 1–2: bridge gate, machiya roofs, Pontochō | r1, `v-machiya` | [ ] |
@@ -681,6 +681,13 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 8 | `h1-hero` | Hero capture tool and shots | G-A | [ ] |
 | 8 | `h2-readme` | README and docs rewrite | h1 | [ ] |
 | 9 | `z-final` | Fable review and test | G-H | [ ] |
+
+### Board notes (G-V2 and G-C chores, 2026-11-14)
+
+- Wave 2.2 and the merged wave 2.3 lanes (`v-ranges`, `v-sky`, `v-weather`, `v-trees`, `v-critters`) are ticked. `v-ground` and `v-water` stay open (in flight), as do `s3-vista` and `r1-roof-split`.
+- `edge-forest` is pinned to classic by the committed `kit-overrides.json` (`"edge-forest": { "variant": "classic" }`, R49), so `?assets=modular` and the setting-driven path keep the classic forest wall while the rest of `ranges` is modular.
+- Deferred ids, with reasons: `village-street` (no geometry of its own; parent of eight street-house components); `tree-trunks`, `tree-canopies` (no routing or consumer; `buildSkeleton` / `buildCanopyOnly` stay exported for s2); `scent`, `splash`, `landing-dust` (specimens exist, but `scent.js`, `player.js`, `context_actions.js` have no `placeAsset` seam); `summit-wildlife` (umbrella row; classic builds nothing of its own); v-sky `sky-dome`, `sky-light`, `god-rays` (kit-only), `ao`, `atmosphere`, `grade` (palette reconciliation or no study); c2-michi `bow` (no nape mount in the contract), cat shadow upgrade; offering bells (v-shrine ruling).
+- Material rule: R52 everywhere (no fixed cap; `tools/kit_material_census.mjs` reports "+N merged materials"). Contract sample for `bamboo-fence` is the real 11 m run (R51 exception exercised).
 
 ### Suggested allocation for three workers
 
@@ -884,7 +891,8 @@ specifics.
       and the draw delta is measured and recorded (R36); reuse a kit
       material before adding one: `ctx.kitMaterials.shared(name)` with your
       colour in vertex or instance colour, or a `ctx.MAT` material (§3.3
-      rule 8; the kit has no material left to add without a ruling); the
+      rule 8; R52: no fixed cap, a new merged material is justified in the handoff with its draw
+      cost, and modular draw calls stay ≤ classic per spot and tier); the
       asset's contract `sample` is the LARGEST real layout the game builds
       (the longest fence, the biggest grove), so AAA-7 is tested on what
       players see; a real layout over the cap needs a `BUDGET_EXCEPTIONS`
@@ -1448,6 +1456,7 @@ created in Phase 1 and marked *(new)*.
 | | `cd cadJS && npm run check` | cadJS server modules and tests |
 | | `cd dawCAT && npm test` | Audio studio |
 | | `node tools/interiors_test.mjs`, `node tools/ranges_test.mjs` | Lab-specific suites |
+| | Optional: `node tools/kit_material_census.mjs [--tier high] [--out f.json]` | Boots the modular game on an instrumented copy and lists every kit material: creating family, reusers, draws (baked / instanced / plain), triangles. Use it to report "+N merged materials" in a handoff (R52) without a perf run |
 | **G4** full game | `/__boot.html` headless, on `?assets=classic` and `?assets=modular` | The only check that exercises `main.js` wiring. 15–20 minutes under SwiftShader |
 | | Review sheets: `tools/cat_preview.html`, `tree_`, `town_`, `hidden_` | Seeded, repeatable renders against the Phase 0 captures (`node tools/capture_baseline.mjs --compare`; the cat sheets also have `node tools/cat_golden.mjs`) |
 | | `summit_`, `grass_preview.html` and the Roof Road sheets | **Not pixel-repeatable** (time-driven loops, unseeded `Math.random`; see `docs/fable/baseline/captures.md`). Their gates are the numeric goldens and tests: `node tools/summit_test.mjs`, `node tools/rooftop_test.mjs`, the footprint and systems goldens |

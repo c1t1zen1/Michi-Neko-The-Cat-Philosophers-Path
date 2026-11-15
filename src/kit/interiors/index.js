@@ -12,6 +12,8 @@ import { solo } from './common.js?v=20261113a';
 import { buildTatami, buildFrame, buildDoor, buildTokonoma, buildScroll, buildChabudai, EARTHS } from './room.js?v=20261113a';
 import { buildZabuton, buildBonsai, buildTeaware, buildKnickKnacks, CUSHIONS, FOLIAGE, GLAZES } from './small.js?v=20261113a';
 import { buildTeaInterior } from './tea.js?v=20261113a';
+import { buildGravel, buildCourtWall } from './court.js?v=20261113a';
+import { buildSecretTatami, buildSecretTable, buildSecretBed, buildSecretAndon, FUTONS } from './secret.js?v=20261113a';
 import { paperMat, shojiLight } from './common.js?v=20261113a';
 
 const enumOf = (obj, def, label) => ({ type: 'enum', default: def, options: Object.keys(obj), label });
@@ -36,6 +38,16 @@ const ROOM = {
   courtyardWall: { index: 0, footprint: {} },
   door: { index: 0, x: 0, y: 0, z: 3.6, footprint: {} }
 };
+
+// wave 2.2b: the courtyard surfaces and the secret house's furnishings (layouts from countryside.js layoutSecretMachiya)
+const GRAVEL = { index: 0, x: 7.2, y: 0, z: 0, size: [4.0, 0.1, 6.0], footprint: {} };
+const SECRET = {
+  tatami: { index: 0, x: 0, y: 0, z: 0, name: 'Tatami Floor', footprint: {} },
+  table: { index: 0, x: 0, y: 0, z: -0.4, name: 'Chabudai Table', footprint: {} },
+  bed: { index: 0, x: -1.8, y: 0.07, z: -0.8, footprint: {} },
+  andon: { index: 0, x: 2.4, y: 0, z: -1.6, name: 'Andon Lantern', footprint: {} }
+};
+const flame = { type: 'number', default: 0.5, min: 0, max: 1, step: 0.05, label: 'Flame warmth' };
 
 const standalone = (build) => (ctx, layout, p) => {
   const g = build(ctx, layout, ctx.tier, p);
@@ -65,6 +77,8 @@ const knockBuild = (ctx, layout) => {
   const footprint = { colliders: [], exclusions: [], anchors: {}, knockables: items.map((d) => ({ part: d.part, rest: d.at, floorY: FLOOR_Y })) };
   return { group, parts, sockets: {}, live: [], footprint };
 };
+
+const standaloneL = (build) => (ctx, layout, p) => solo(build(ctx, layout, ctx.tier, p));
 
 export const assets = [
   defineAsset({
@@ -102,5 +116,18 @@ export const assets = [
     id: 'knockables', family: 'interiors', lab: 'interiors/knockables', label: 'Table knick-knacks', legacyName: 'Table Knick-knacks',
     params: {}, floating: ['cup', 'bowl', 'ball'], sample: { index: 0, x: 0, y: 0, z: 0, footprint: { knockables: [] } }, build: knockBuild,
     footprintWaiver: 'the knick-knacks rest and settle in room-group space (table top 0.49, floor 0.08) instead of the classic origin-doubled numbers that hang them 100 m up (f3 handoff §3)'
-  })
+  }),
+  defineAsset({
+    id: 'courtyard-gravel', family: 'interiors', lab: 'rocks/rake', label: 'Courtyard rock garden', legacyName: 'Courtyard Gravel',
+    params: { rakes: { type: 'number', default: 24, min: 6, max: 40, step: 2, label: 'Rake lines' } },
+    sample: GRAVEL, build: (ctx, layout, p) => solo(buildGravel(ctx, layout, ctx.tier, p))
+  }),
+  defineAsset({ id: 'courtyard-wall', family: 'interiors', lab: 'interiors/courtyard-wall', label: 'Courtyard timber wall', legacyName: 'Courtyard Wall', params: {}, sample: { index: 0, x: 0, y: 0, z: 0, footprint: {} }, build: standaloneL(buildCourtWall) }),
+  defineAsset({ id: 'secret-tatami', family: 'interiors', lab: 'interiors/secret-tatami', label: 'Secret-house tatami', legacyName: 'Tatami Floor', params: {}, sample: SECRET.tatami, build: standaloneL(buildSecretTatami) }),
+  defineAsset({ id: 'secret-table', family: 'interiors', lab: 'interiors/secret-table', label: 'Secret-house chabudai', legacyName: 'Chabudai Table', params: {}, sample: SECRET.table, build: standaloneL(buildSecretTable) }),
+  defineAsset({
+    id: 'secret-bed', family: 'interiors', lab: 'interiors/secret-bed', label: 'Secret-house futon', legacyName: 'Nap Cushion',
+    params: { cloth: enumOf(FUTONS, 'indigo', 'Futon cloth') }, sample: SECRET.bed, build: standaloneL(buildSecretBed)
+  }),
+  defineAsset({ id: 'secret-andon', family: 'interiors', lab: 'interiors/secret-andon', label: 'Secret-house andon', legacyName: 'Andon Lantern', params: { flame }, sample: SECRET.andon, build: (ctx, layout, p) => buildSecretAndon(ctx, layout, p) })
 ];

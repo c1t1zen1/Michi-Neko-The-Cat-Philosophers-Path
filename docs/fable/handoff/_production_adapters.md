@@ -47,3 +47,7 @@ For s3-vista and r4-festival (import with the current `?v=` tag):
 | c4-creatures | larry, guardian-crows | src/kit/creatures/index.js assets (production: "creatures") |
 | s4-summit-life | summitlife/summit-snow, summit-rain, summit-pollen, summit-petals, summit-butterflies, summit-birds, shrine-rays, summit-light | `src/kit/summitlife/index.js` `assets` |
 | s2-clearing | meditation-stone, summit-enso, summit-furin, summit-entry, summit-path | `src/kit/clearing/index.js` `assets` (production: "clearing") |
+| v-sky | clouds, stars, moon | src/kit/sky/index.js assets (production: "sky") |
+| v-interiors-b | interiors/courtyard-gravel, courtyard-wall, secret-tatami, secret-table, secret-bed, secret-andon | src/kit/interiors/index.js assets (production: "interiors/<id>") |
+| v-water | water (river, bridge, paddies, paddy-bunds, rice, water-ripples) | `src/kit/water/index.js` `assets` |
+| s3-vista | vista/summit-vista, vista-terrain, kyoto-city, summit-pagoda, summit-bay, harbour, bay-bridge, ferris-wheel, horizon | src/kit/vista/index.js assets (production: "vista") |

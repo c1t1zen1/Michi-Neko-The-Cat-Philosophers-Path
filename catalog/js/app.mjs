@@ -1,6 +1,6 @@
 import { COVERAGE, STATUSES, PRIORITIES, emptyWorkspace, validateWorkspace, createRecords, searchAssets, parseQuery, summarize, updateAssets, mergeWorkspaces, exportCSV, makeSlug } from './model.mjs';
 import { getAssetCapabilities, getKitIndex } from './asset-loader.mjs';
-import { resolveTargetLink, sourceLink, originalContextLink } from './links.mjs';
+import { resolveTargetLink, sourceLink, originalContextLink, registerKnownTargets } from './links.mjs';
 import { icon, mountIcons, groupIcon } from './icons.mjs';
 import { PROVIDERS, normalizeSettings, builtinPlan, buildContext, callProvider, parsePlan, probeProvider, validatePlan } from './assistant.mjs';
 
@@ -422,7 +422,7 @@ async function init() {
   mountIcons(); $('#results').innerHTML = '<div class="loading-shell" style="grid-column:1/-1"><div></div><div></div><div></div></div>';
   if (location.protocol === 'file:') throw new Error('Serve the repository over HTTP: node cadJS/server.mjs, then open http://127.0.0.1:4173/catalog/.');
   const [inventory, thumbs, base] = await Promise.all([getJSON('../labs/asset_inventory.json'), getJSON('thumbnails.json').catch(() => ({ assets: {}, targets: {} })), getJSON('metadata.json').catch(() => emptyWorkspace())]);
-  state.inventory = inventory; state.thumbnails = thumbs; const ids = inventory.assets.map((a) => a.id);
+  registerKnownTargets(inventory.targets); state.inventory = inventory; state.thumbnails = thumbs; const ids = inventory.assets.map((a) => a.id);
   state.workspace = validateWorkspace(base, ids);
   const draft = loadJSON(localStorage, DRAFT_KEY, null);
   if (draft) { try { state.workspace = validateWorkspace(draft, ids); state.dirty = true; state.conflict = draft.revision !== base.revision; } catch { toast('An older browser draft could not be loaded. The audited catalog is available.'); } }

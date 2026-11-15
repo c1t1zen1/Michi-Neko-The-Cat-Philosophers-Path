@@ -3,6 +3,7 @@ import { Sky as AnalyticSky } from 'three/addons/objects/Sky.js';
 import { FIELD_GLSL, volumeNoise, clamp } from './field.js';
 import { OriginalSky } from './original.js';
 import { SHADOW_MODES } from './shadows.js';
+import { NightSky } from './night.js';
 
 const VS=/*glsl*/`
 varying vec3 vSkyWorld;
@@ -171,6 +172,7 @@ export class SkySystem {
     this.sun=new THREE.DirectionalLight(0xffe6bb,2.5);this.sun.castShadow=!thumbnail;this.sun.shadow.mapSize.set(2048,2048);Object.assign(this.sun.shadow.camera,{left:-32,right:32,top:32,bottom:-32,near:1,far:180});this.sun.shadow.bias=-.0003;this.sun.shadow.normalBias=.035;
     this.hemi=new THREE.HemisphereLight(0xc3d9e7,0x6c6b4b,1.2);this.moon=new THREE.DirectionalLight(0x95b0df,.1);this.moon.position.set(-30,40,20);
     scene.add(this.sun,this.sun.target,this.hemi,this.moon);this.lastBake='';this.bakeMs=0;
+    this.night=new NightSky(scene,{thumbnail});
   }
   collectEnvironmentMaterials(){
     const materials=new Set();this.scene.traverse(o=>{for(const m of [].concat(o.material||[]))if(m.isMeshStandardMaterial)materials.add(m);});
@@ -204,6 +206,7 @@ export class SkySystem {
       game.starMat.uniforms.uOpacity.value=(1-daylight)*(1-state.coverage*.75);
       game.moonMat.opacity=(1-daylight)*.95*(1-state.coverage*.45);
     }
+    this.night.update(baseline?{...state,night:'game'}:state,time,game);
     this.sun.position.copy(this.sunDir).multiplyScalar(100);
     this.sun.intensity=baseline?game.sun.intensity:Math.pow(Math.max(0,this.sunDir.y),.45)*2.8;
     this.sun.color.copy(baseline?game.sun.color:this.colors.crown);

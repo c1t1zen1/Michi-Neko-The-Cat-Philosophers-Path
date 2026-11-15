@@ -240,7 +240,7 @@ class Game {
 
   /** Everything the original constructor built after the renderer, in the same order. */
   assembleWorld() {
-    this.sky = new Sky(this.scene);
+    this.sky = new Sky(this.scene, { assets: this.assets });
     this.sky.attachRenderer(this.renderer);
     this.city = new Countryside(this.scene, { assets: this.assets });
     // Hidden valley places register their clearings with the world before the
@@ -595,6 +595,15 @@ class Game {
     env.snow = this.sky.weatherAmount('snow');
     env.lanternOn = !!this.city._lanternsLit;
     env.audio = (this.assets && this.assets.audio) || null;   // kit sound hook (src/kit/audio.js); classic has none
+    // The sun and the sky colours, read through the Sky's public API (sunDir,
+    // resolvePalette(), the same values Countryside.update() gives the classic
+    // river) and copied into env-owned objects, so no kit code can write into
+    // the Sky's per-frame buffers. Kit water reads these (src/kit/water/sky.js).
+    if (!env.sunDir) env.sunDir = new THREE.Vector3();
+    if (!env.palette) env.palette = { sun: new THREE.Color(), horizon: new THREE.Color(), top: new THREE.Color(), warm: new THREE.Color() };
+    env.sunDir.copy(this.sky.sunDir);
+    const p = this.sky.resolvePalette();
+    env.palette.sun.copy(p.sun); env.palette.horizon.copy(p.horizon); env.palette.top.copy(p.top); env.palette.warm.copy(p.warm);
     return env;
   }
 

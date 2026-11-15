@@ -127,3 +127,8 @@ export const SPECIMENS = {
 
 /** CRAFTS-shaped records for the bench (craft.js spreads these in). */
 export const SPECIMEN_CRAFTS = Object.fromEntries(Object.entries(SPECIMENS).map(([k, s]) => [k, { jp: s.jp, title: s.title, description: s.description, slider: s.slider, finish: s.finish, options: s.options, key: s.key, code: s.code, specimen: true }]));
+
+// v-interiors-b: courtyard wall and secret-house furnishings (appended so the line anchors above do not move)
+import { SPECIMENS_B, SPECIMEN_CRAFTS_B } from './specimens_b.js';
+Object.assign(SPECIMENS, SPECIMENS_B);
+Object.assign(SPECIMEN_CRAFTS, SPECIMEN_CRAFTS_B);
