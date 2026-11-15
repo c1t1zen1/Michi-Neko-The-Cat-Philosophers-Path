@@ -112,6 +112,29 @@ function ribbon(rail, s0, s1, dA, dB, y, mat, uv = 1) {
 /*  Merging                                                             */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Vertex colours survive the merge only where the material reads them
+ * (vertexColors true: KitMaterials' bag(), bamboo({ vcol: true })). Every
+ * geometry in such a bucket gets a Float32 `color` of one item size, white
+ * (alpha 1) where it had none, so mergeGeometries() accepts the set.
+ * Elsewhere `color` is stripped as before: no classic Roof Road material
+ * reads it, yet the downtown bamboo culms (labs/shared/bamboo.js) carry one
+ * under M.bamboo, so the classic batches stay byte-identical.
+ */
+function unifyColors(geos) {
+  if (!geos.some((g) => g.attributes.color)) return;
+  const size = geos.some((g) => g.attributes.color && g.attributes.color.itemSize === 4) ? 4 : 3;
+  for (const g of geos) {
+    const src = g.attributes.color, n = g.attributes.position.count;
+    const arr = new Float32Array(n * size).fill(1);
+    if (src) for (let i = 0; i < n; i++) {
+      arr[i * size] = src.getX(i); arr[i * size + 1] = src.getY(i); arr[i * size + 2] = src.getZ(i);
+      if (size === 4 && src.itemSize === 4) arr[i * size + 3] = src.getW(i);
+    }
+    g.setAttribute('color', new THREE.Float32BufferAttribute(arr, size));
+  }
+}
+
 function mergeByMaterial(group, castShadow = true) {
   group.updateMatrixWorld(true);
   const buckets = new Map();
@@ -122,7 +145,8 @@ function mergeByMaterial(group, castShadow = true) {
     if (geo.index) geo = geo.toNonIndexed();
     if (!geo.attributes.normal) geo.computeVertexNormals();
     if (!geo.attributes.uv) geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array((geo.attributes.position.count) * 2), 2));
-    for (const k of Object.keys(geo.attributes)) if (!['position', 'normal', 'uv'].includes(k)) geo.deleteAttribute(k);
+    const keep = o.material.vertexColors === true ? ['position', 'normal', 'uv', 'color'] : ['position', 'normal', 'uv'];
+    for (const k of Object.keys(geo.attributes)) if (!keep.includes(k)) geo.deleteAttribute(k);
     geo.computeBoundingBox();
     const center = geo.boundingBox.getCenter(new THREE.Vector3());
     // Spatial material batches keep a kilometre of streets out of each draw.
@@ -132,6 +156,7 @@ function mergeByMaterial(group, castShadow = true) {
   });
   const out = new THREE.Group();
   for (const { mat, geos } of buckets.values()) {
+    if (mat.vertexColors === true) unifyColors(geos);
     const merged = mergeGeometries(geos, false);
     if (!merged) continue;
     const m = new THREE.Mesh(merged, mat);

@@ -97,18 +97,42 @@ owns yet, so ask the Integrator).
    run `node tools/kit_index.mjs`. `kit_check` already accepts every id above
    (they are inventory rows).
 2. `layout` is `pieceLayout(pc, index, rail)` (`rooftops/js/build.js`):
-   `{ index, type, piece, s, x, y: 0, z, ry, band: 'near', footprint: { colliders: [], exclusions: [], anchors: {} } }`.
-   `piece` is the level record (read-only: its `s0`/`s1`, `y`, `d`, heights
-   and platform ids are gameplay). Build in the **rail frame at the piece's
-   middle**: local x along the rail (x = s − layout.s), y up with the street at
-   y = 0, z toward the camera (depth `d`). Every piece sits on one straight leg
-   or is a corner (`rooftop_test` checks it), so the frame is exact within a
-   piece. This is the frame `frameGroup(rail, s)` gives the classic builders.
+   `{ index, type, piece, s, x, y: 0, z, ry, rail, band: 'near', footprint: { colliders: [], exclusions: [], anchors: {} } }`.
+
+   | Field | What it is |
+   |---|---|
+   | `index` | the piece's index among pieces of its type (build order) |
+   | `type`, `piece` | the level type and record (read-only: its `s0`/`s1`, `y`, `d`, heights and platform ids are gameplay) |
+   | `s`; `x`, `y` 0, `z`; `ry` | the frame: rail point at `piece.s` or the middle of [s0, s1], and the heading `atan2(−t.z, t.x)` |
+   | `rail` | the route under the piece, `null` without [s0, s1] (today every piece has one): `{ s0, s1, step: 0.5, points: [{ s, x, z, tx, tz }] }`, world XZ with the unit tangent, sampled exactly as `ribbon()` (`pieces/common.js`) samples: n = max(1, ceil((s1 − s0) / 0.5)) equal steps, n + 1 points (Integrator patch, r3 handoff §3) |
+   | `band`, `footprint` | `'near'`; empty (no collision, see 4.) |
+
+   Build in the **rail frame at the piece's middle**: local x along the rail
+   (x = s − layout.s), y up with the street at y = 0, z toward the camera
+   (depth `d`). This is the frame `frameGroup(rail, s)` gives the classic
+   builders, exact on a straight leg. What follows the route instead (the
+   canal and its towpath, the canal banks, the lines, the street ribbons, and
+   any piece across a fillet: 55 of the 829 today, 34 of them flagged by
+   `rooftop_test`'s "one straight leg" check) builds from `layout.rail`: the
+   point at depth `d` is `(x − tz·d, z + tx·d)` (`rail.place(s, d)`); into the
+   layout's frame, with `c = cos ry`, `sn = sin ry`, `dx = x − layout.x`,
+   `dz = z − layout.z`: local x = `dx·c − dz·sn`, local z = `dx·sn + dz·c`, and
+   the same rotation turns `(tx, tz)`. Two points per sample at depths dA, dB,
+   indexed as `ribbon()` does, give the classic ribbon's vertices (the routing
+   self-test proves it for every piece). A sub-range such as the canal foam
+   over [s0 + 0.2, s1 − 0.2] samples on its own in `ribbon()`: interpolate.
 3. Return the contract's instance: `{ group, parts, sockets, live, footprint }`
    plus, when the piece moves, `dynamic`. The facade then:
    - places `group` at `(layout.x, 0, layout.z)`, rotation y = `layout.ry`;
    - merges it with the static batches unless `group` itself is in `live`;
-     other `live` objects are re-parented to the world root, unmerged;
+     other `live` objects are re-parented to the world root, unmerged.
+     The merge (`mergeByMaterial`, `pieces/common.js`) keeps a mesh's
+     `color` attribute when its material has `vertexColors: true`
+     (`km.bag()`, `km.bamboo({ vcol: true })`); a geometry without one in
+     the same batch turns white. Under any other material `color` is
+     dropped, as before (Integrator patch, r3 handoff §2). A mesh an alley
+     passage cuts (`alley-passages.js` rebuilds it from position, normal
+     and uv) loses its colours there;
    - turns every socket whose name starts with `light` into a lantern light
      (the run's light list, as `ctx.light` does);
    - appends `dynamic` entries to the world's moving pieces (`boats`,
