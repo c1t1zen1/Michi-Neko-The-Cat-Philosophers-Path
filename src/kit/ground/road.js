@@ -11,8 +11,11 @@
 // part so gameplay and the contract see a named asset.
 //
 // Swapped alone (the ground classic), each builds what the classic built: a
-// ribbon (road) or a fading strip (shoulders) at the classic heights, shaded
-// by the same ground material over a small field of its own.
+// ribbon (road) or a fading strip (shoulders) with the classic plan, width,
+// wobble and bridge gap, shaded by the same ground material over a small
+// field of its own. They sit 1 cm (road, y 0.02) and 0.6 cm (shoulders,
+// y 0.012) lower than the classic ribbons (0.03 / 0.018), the road still over
+// the strip, so the contract's 2 cm bearing check (AAA-2) holds.
 import * as THREE from 'three';
 import { GroundField, cachedField, PAVE, sstep, CH } from './field.js?v=20261113a';
 import { groundLayers } from './layers.js?v=20261113a';
@@ -85,13 +88,15 @@ function roadFrame(field, points) {
 export function paintRoad(field, points, { width = 3.8, style = 'nobedan', moss = 0.2 } = {}) {
   const sid = PAVE[style] ?? PAVE.setts, half = width / 2, F = roadFrame(field, points);
   for (let c = 0; c < F.idx.length; c++) {
+    // the style is written over the whole frame (REACH m, well past the road's edge): the shader reads it
+    // bilinearly, so a style written only under the stones would step through other styles in the fringe
+    field.style[F.idx[c]] = sid;
     if (F.gap[c]) continue;
     const rag = (F.n71[c] - 0.5) * 0.22;
     const a = 1 - sstep(half - 0.14 + rag, half + 0.08 + rag, Math.abs(F.s[c] + roadWobble(F.t[c])));
     if (a <= 0.01) continue;
     const idx = F.idx[c];
     field.setAt(idx, { paving: 1, moss }, a);
-    if (a > 0.2) field.style[idx] = sid;
     field.snow[idx] = Math.min(field.snow[idx], 1 - 0.3 * a);       // trodden stone holds less snow
   }
   field.touch();

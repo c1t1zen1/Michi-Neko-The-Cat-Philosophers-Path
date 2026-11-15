@@ -33,16 +33,19 @@ file, "Live wear".
 
 ```js
 'valley-ground': {
-  hero: { triangles: 45000 }, mid: { triangles: 45000, buildMs: 5 }, far: { triangles: 5000, buildMs: 4 },
-  why: '… classic is 45,000 tris … modular keeps every classic vertex at hero/mid (45,000) and every third at far (5,000) …'
+  hero: { triangles: 45000 }, mid: { triangles: 45000 }, far: { triangles: 5000, buildMs: 2 },
+  why: '… classic is 45,000 tris … modular keeps every classic vertex at hero/mid (45,000) and every third at far (5,000) …
+        warm builds with their 1-min loads … far exceeds the default 1.5 ms below load 3, hence far 2 ms … G-V3 (R54) …'
 }
 ```
 
-Measured: classic 45,000 tris (150 x 150 plane); modular 45,000 / 45,000 / 5,000. Warm builds 2-3 ms; first build in
-the game ~390 ms (classic ground ~35-43 ms warm, plus the same `groundTextures(6)` both sets generate once).
+Measured: classic 45,000 tris (150 x 150 plane); modular 45,000 / 45,000 / 5,000. First build in the game 197 ms
+(`?assets=modular`, 1-min load 2.7) and 165 ms (swap of the four ids, load 2.6), paid once at load.
 
-Warm-build allowances: hero the default 6 ms, mid 5 ms, far 4 ms (2-3 ms on a quiet machine). Per ruling R54 they were
-not raised for a loaded-machine reading; warm-build timing is re-measured on a quiet machine at G-V3.
+Warm-build allowances (fix round 1, ruling R54): hero and mid keep the defaults (6 / 3 ms); far is 2 ms. Contract-page
+warm builds at 1-min load 1.5-1.6: hero 3.2-3.5, mid 1.6-1.8, far 1.4 / 1.7 / 1.6 ms; at load 2.7-3.0: far 1.5 / 1.5 /
+1.6 ms. Far exceeds the default 1.5 ms below load 3, so it keeps an allowance; no cap was set from a loaded-machine
+reading. Warm-build timing is re-measured on a quiet machine at G-V3.
 
 ## 3. Materials (ruling R52): one new kit material, net -2 draws — ACCEPTED at pre-review
 
@@ -112,4 +115,11 @@ cache tag.
 ## 9. Integrator chores
 
 - `node tools/kit_index.mjs` (already committed here; regenerate at merge).
-- `node tools/labs_coverage.mjs --write` is not needed (no change to main.js/countryside.js in this PR).
+- `node tools/labs_coverage.mjs --write` at merge: this PR changes `src/main.js` (§1), which moves its line anchors
+  (the branch's `labs/ASSET_COVERAGE.md` is regenerated on the current base).
+
+## 10. New check for Appendix C: `tools/ground_wear_test.mjs` (granted in fix round 1)
+
+| Check | Command | What it proves | Time |
+|---|---|---|---|
+| Ground live wear (BiomeMask contract) | `node tools/ground_wear_test.mjs` (needs `PLAYWRIGHT_MODULE`) | boots `?assets=classic&shot=1` and `?assets=modular&shot=1` through `tools/headless.mjs`: classic has no kit ground and walking leaves the grass mask byte-identical; modular is bound by main.js, at rest its mask equals the classic mask, paws thin the meadow only near the walked lines, no lawn texel (baked meadow 0) ever changes, and after regrowth the mask is the baked mask again byte for byte; 14 checks, exit 1 on any failure | ~12 s on Metal |

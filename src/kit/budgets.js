@@ -122,8 +122,8 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
   },
   // lane v-ground (in-lane grant): the whole 260 m valley height field, one mesh
   'valley-ground': {
-    hero: { triangles: 45000 }, mid: { triangles: 45000, buildMs: 5 }, far: { triangles: 5000, buildMs: 4 },
-    why: 'the whole valley height field, not a prop: classic is 45,000 tris (150 x 150 plane, one mesh); modular keeps every classic vertex at hero/mid (45,000) and every third at far (5,000). Warm builds copy the cached heights and a 262k-texel field: 2-3 ms on a quiet machine (hero within the default 6 ms; mid/far allowances 5 / 4 ms); warm-build timing is re-measured on a quiet machine at gate G-V3 (ruling R54). The first build in a boot is ~200 ms on a quiet page (layers ~115, heights ~50, field ~30; the classic ground also pays its groundTextures(6)) and replaces the classic ground, road and shoulders (3 draws -> 1)'
+    hero: { triangles: 45000 }, mid: { triangles: 45000 }, far: { triangles: 5000, buildMs: 2 },
+    why: 'the whole valley height field, not a prop: classic is 45,000 tris (150 x 150 plane, one mesh); modular keeps every classic vertex at hero/mid (45,000) and every third at far (5,000). Warm builds copy the cached heights and a 262k-texel field. Contract page warm builds, 2026-11-14: at 1-min load 1.5-1.6, hero 3.2-3.5 ms, mid 1.6-1.8 ms (inside the default 6 / 3 ms), far 1.4 / 1.7 / 1.6 ms; at load 2.7-3.0, far 1.5 / 1.5 / 1.6 ms. Far exceeds the default 1.5 ms below load 3, hence far 2 ms. Warm-build timing is re-measured on a quiet machine at gate G-V3 (ruling R54). First build in the game: 197 ms (?assets=modular, load 2.7) and 165 ms (swap of the four ground ids, load 2.6), paid once at load; it replaces the classic ground, road and shoulders (3 draws -> 1)'
   },
   // s3-vista: the summit vista is whole districts seen from 0.5-5 km. Classic (game quality): city 920 houses
   // (walls 12 + roof 8 + eave 12 tris) + 360 garden blobs = ~58k tris, pagoda 992, bay 5.4k + 7 boats (2 meshes each),

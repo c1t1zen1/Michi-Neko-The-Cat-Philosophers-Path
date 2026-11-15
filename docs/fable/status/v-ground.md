@@ -52,7 +52,8 @@ Tobi-ishi follow the lab's Rikyū-to-Enshū heights inside the classic slab size
   wetness, low-first puddles with rain rings (hero), snow cover, the komorebi warm fringe and cool shade (the lab's
   shadow-term capture). The classic vertex tint is kept on the meadow floor, so open meadow reads as before.
 - **Road and shoulders are paint** when the ground is modular (one draw for all three); swapped alone they build
-  ribbons at the classic heights on the same material over a small field of their own.
+  ribbons with the classic plan (width, wobble, bridge gap) on the same material over a small field of their own,
+  1 cm (road, y 0.02) and 0.6 cm (shoulders, y 0.012) under the classic ribbons so AAA-2's 2 cm bearing check holds.
 - **Weather from `update(env)`**: `env.wet` (rain amount) drives the lab's schedule (wet, wetSpec, water level),
   `env.snow` the snow cover, `env.mist` (when sent) a dew film; the sun from `env.hour` (Sky's sun path). A valley
   entered in rain starts wet.
@@ -121,9 +122,10 @@ only where needed, 3 macro noises, 3-tap paving slopes) before `perf2`.
   modular valley-ground 388 ms under sibling load, down from 575 before the speed pass (layers ~115 incl. the
   `groundTextures(6)` map the classic ground also generates, heights ~50, field ~30), shoulders 22 ms, road 2 ms.
   Net boot cost of the modular ground ~+0.3 s on the dev Mac. Exception `BUDGET_EXCEPTIONS['valley-ground']`
-  (hero 45k / mid 45k + 5 ms / far 5k + 4 ms) carries these numbers in its `why`.
+  (final, fix round 1: hero 45k / mid 45k / far 5k + 2 ms warm build; hero and mid keep the default 6 / 3 ms) carries
+  the load-recorded numbers in its `why`.
 
-### Live wear (the handoff's main.js line, in a scratch eval: `_scratch/v-ground/wear_eval.js`)
+### Live wear (the handoff's main.js line; first a scratch eval, now `node tools/ground_wear_test.mjs`, fix round 1)
 `bindWorld({ grass, player, npcs })` → `true`; 60 laps along a meadow line and across the shrine's west lawn:
 meadow texel wear 0.694 and mask meadow `255 → 0`; lawn texel wear 0.737 but lawn `g 255 → 255` (lawns stay); after
 regrowth (T 60 s, 400 s): wear 0, mask meadow back to 255, `maskTexelsDifferentFromBaked: 0`, `live: null`.
@@ -161,9 +163,11 @@ pass with `autoClear = false`; ctx has no renderer; field wear is the paw trace 
 None.
 
 ## Notes for the Integrator
-- Apply handoff §1 (one guarded loop in main.js) to turn on live wear; everything else works without it.
+- Handoff §1 (the one guarded loop in main.js that turns on live wear) is already applied in this branch (pre-review
+  grant); nothing to apply. List `tools/ground_wear_test.mjs` in Appendix C (handoff §10).
 - One new material (R52): `kit-ground`, net **-2 draws** at every spot (table above).
-- `src/kit/budgets.js`: `BUDGET_EXCEPTIONS['valley-ground']` added in-lane (grant).
+- `src/kit/budgets.js`: `BUDGET_EXCEPTIONS['valley-ground']` added in-lane (grant); final values: triangles 45,000 /
+  45,000 / 5,000 and far warm build 2 ms (fix round 1).
 - PR size: ~2,000 added lines in `src/kit/ground/` (≈ 900 of them the lab's shader, field and painter ported) plus
   64 small JPGs; over the ~1,500-line guide, but one system that does not split cleanly (the four ids share the field
   and material).
@@ -187,14 +191,14 @@ None.
 - Contract under sibling load (load average 7-9): valley-ground hero warm build read 7.1 ms once and path-slabs hero
   6.1-6.7 ms twice. Fixes: the slabs cache their superellipse outlines per segment count (kept, no exception). The
   valley-ground warm allowance raised here to hero 10 / mid 8 / far 6 ms was **reverted** under ruling R54 (see the next
-  section): it is back to hero default 6 / mid 5 / far 4 ms.
+  two sections): final values are hero and mid at the defaults (6 / 3 ms) and far 2 ms.
 
 ## Pre-review fix (R54) + integration merge (2026-11-14)
 
 - **R54 (binding): budgets are never loosened from loaded-machine timings.** `e035f5f` restores
   `BUDGET_EXCEPTIONS['valley-ground']` buildMs to the values before 21c95bf: hero no key (default 6 ms), mid 5 ms, far
-  4 ms; triangle allowances unchanged (45,000 / 45,000 / 5,000). The `why` now states the quiet-machine warm numbers
-  (2-3 ms) and that warm-build timing is re-measured on a quiet machine at G-V3 (R54); no loaded-machine numbers. The
+  4 ms; triangle allowances unchanged (45,000 / 45,000 / 5,000). (Superseded in fix round 1: mid back to the default,
+  far 2 ms, the `why` carries load-recorded numbers.) The
   path-slabs outline cache from 21c95bf stays (a real optimisation).
 - **Merged `origin/fable/integration` (2f78865: v-water, s3-vista, G-V2/G-C chores)** in `df8da72`: `budgets.js` kept
   both sides (valley-ground + the s3-vista entries), `src/kit/index.js` regenerated (24 families), `labs/ASSET_COVERAGE.md`
@@ -223,3 +227,37 @@ None.
     (valley-ground, path-shoulders, path), `problems: []`; all three `warnings: []`, the only error the pre-existing
     optional `/cad-overrides.json` 404
   - `git diff --check origin/fable/integration...HEAD` → clean
+
+## Fix round 1 (review r1, 2026-11-14)
+
+- **Important 1 (R54 evidence), `src/kit/budgets.js`:** `valley-ground` mid `buildMs` dropped (default 3 ms applies);
+  far kept at **2 ms** (was 4) because it exceeds the default 1.5 ms below load 3: contract-page warm builds at 1-min
+  load 1.5-1.6 read hero 3.2 / 3.2 / 3.5, mid 1.6 / 1.7 / 1.8, far 1.4 / **1.7 / 1.6** ms; at load 2.95 → 2.72 far read
+  1.5 / 1.5 / **1.6** (the default failed once); at load 3.2-3.4 far 1.4-1.5. Triangle allowances unchanged. The `why`
+  now carries these numbers with their loads, the first build in the game with its load (197 ms `?assets=modular` at
+  1-min load 2.7, 165 ms swap at 2.6) and the G-V3 (R54) re-measure; no "quiet" claim without a load.
+- **Minor 7 (stale docs):** handoff §2 (final entry and numbers) and §9 (`labs_coverage --write` IS needed: main.js
+  changed); status "Notes for the Integrator" (§1 already applied), budget lines, the standalone ribbon heights;
+  `road.js` header now says the ribbons sit 1 cm (road, y 0.02) and 0.6 cm (shoulders, y 0.012) under the classic
+  0.03 / 0.018. (Trying the classic heights made AAA-2 fail: the contract's bearing epsilon is 2 cm, so the heights stay.)
+- **Minor 8 (wear regression test, granted):** `tools/ground_wear_test.mjs` (14 checks, two headless boots through
+  `tools/headless.mjs`, ~12 s on Metal), row in handoff §10 for Appendix C. Output:
+  `ground wear: 14 passed, 0 failed` (classic mask hash `785d5d95:262144` unchanged after 90 walked frames; modular rest
+  mask = classic hash; meadow r 255 → 0; 18 texels changed, 0 away from the lines; lawn wear 0.737 with g 255 → 255;
+  0 lawn texels changed; healed: wear 0, live null, 0 bytes differ).
+- **Minor 1 (style flips at the road edges), fixed in `src/kit/ground/road.js`:** `paintRoad` writes the paving style
+  over the whole road frame (REACH 4.8 m from the centreline) instead of only where paving weight > 0.2, so the
+  bilinear style lookup no longer steps nobedan → slabs → setts in the fringe. Before/after at
+  `cam=3.2,1.3,9.5,1.6,0,6.2,55`, hour 12, `?assets=modular`: `--diff` maxDelta 132, 5,030 pixels over 8, all on the two
+  road edges; before shows rectangular slabs in the fringe, after nobedan stones fading out (scratch
+  `_scratch/v-ground/edge_before.png` / `edge_after.png`). The L6 JPGs predate this fix (fringe only).
+- Minors 2-6 and 9: deferred to a1-village (review r1).
+- Checks after the fixes: `node tools/kit_contract_test.mjs --family ground` twice: run 1 (load 1.75 → 1.69) and run 2
+  (load 1.69) both `4 assets, 12 asset×tier builds, 433 checks, 0 failed`, `self-test: OK`, `merge: OK — valley 237
+  calls; +48 kit meshes → 285; after _mergeInto → 240`, `PASS: kit contract`. Goldens (load 1.96): classic EQUAL,
+  `--systems` EQUAL, swap `DIFFERENT (4 changed, 3 added, 0 removed)` (same 3 replaced objects, 518 colliders, rng
+  49233), swap `--systems` EQUAL. check_syntax `All 170 modules OK`; verify `kit_test 36/36`, `All checks passed`;
+  kit_check `446 passed`; kit_index in sync (24 families); labs_check OK; labs_coverage_test pass 11 / fail 0;
+  `git diff --check origin/fable/integration...HEAD` clean. Boots: `?assets=classic` `{"kit":0,"problems":[]}`;
+  `?assets=modular` `{"kit":261,"city":160,"problems":[]}`; swap of my 4 ids `{"kit":3,"problems":[]}`; all
+  `warnings: []`, only the optional `/cad-overrides.json` 404.
