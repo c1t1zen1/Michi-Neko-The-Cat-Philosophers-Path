@@ -37,16 +37,29 @@ export function starColor(bv, out = new THREE.Color()) {
   return out.setRGB(a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t);
 }
 
-/** The Amanogawa's plane: arcs high across the sky from the shrine canyon toward the open south. */
-export const BAND_NORMAL = new THREE.Vector3(0.62, 0.42, -0.66).normalize();
-const BAND_A = new THREE.Vector3().crossVectors(BAND_NORMAL, new THREE.Vector3(0, 1, 0)).normalize();
-const BAND_B = new THREE.Vector3().crossVectors(BAND_NORMAL, BAND_A).normalize();
+/**
+ * The Amanogawa's plane: arcs high across the sky from the shrine canyon toward
+ * the open south. `normal` is the plane's normal; `a` and `b` span the band's
+ * great circle. Worked out on first use, not at module load: a kit module does
+ * no THREE work until a build (cadJS reads the params schemas in Node).
+ */
+let _band = null;
+export function bandAxes() {
+  if (!_band) {
+    const normal = new THREE.Vector3(0.62, 0.42, -0.66).normalize();
+    const a = new THREE.Vector3().crossVectors(normal, new THREE.Vector3(0, 1, 0)).normalize();
+    const b = new THREE.Vector3().crossVectors(normal, a).normalize();
+    _band = { normal, a, b };
+  }
+  return _band;
+}
 const STAR_R = 225;
 
 /** Star directions, brightness (10^(−0.4 m)), colour and twinkle phase from `rng`. */
 export function starField(rng, count, { warmth = 0, bandShare = 0.32 } = {}) {
   const pos = new Float32Array(count * 3), bright = new Float32Array(count), phase = new Float32Array(count), color = new Float32Array(count * 3);
   const c = new THREE.Color(), dir = new THREE.Vector3();
+  const { normal: BAND_NORMAL, a: BAND_A, b: BAND_B } = bandAxes();
   const minY = Math.sin(THREE.MathUtils.degToRad(3));
   const span = Math.pow(10, 0.45 * 6.2) - 1;
   let n = 0;
@@ -124,6 +137,7 @@ void main() {
 export function bandGeometry(strength, { segments = 96, rows = 6, halfWidth = 0.42 } = {}) {
   const verts = [], uvs = [], cols = [], index = [];
   const dir = new THREE.Vector3(), core = new THREE.Color(1.0, 0.93, 0.84), arm = new THREE.Color(0.78, 0.84, 1.0), c = new THREE.Color();
+  const { normal: BAND_NORMAL, a: BAND_A, b: BAND_B } = bandAxes();
   for (let i = 0; i <= segments; i++) {
     const u = i / segments, th = u * Math.PI * 2;
     // the bright bulge (Sagittarius) sits on one side of the circle

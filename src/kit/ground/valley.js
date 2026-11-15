@@ -21,11 +21,16 @@
 // villagers' paws wear the field, regrows it, and thins the grass BiomeMask
 // where they wore it (lawns never). Unbound, nothing reads the player.
 import * as THREE from 'three';
-import { Countryside } from '../../countryside.js?v=20261114a';
 import { worldNoise } from '../../textures.js?v=20261114a';
 import { GroundField, cachedField, sstep } from './field.js?v=20261114a';
 import { groundLayers } from './layers.js?v=20261114a';
 import { createGroundMaterial, setGroundTier, sunDirAt, GroundWeather } from './material.js?v=20261114a';
+
+// countryside.js paints its materials' canvases when it loads, so it needs a
+// DOM. It is imported only where there is one (the game, where it is already
+// loaded, the contract page, the labs); Node loads this module to read the
+// params schemas (cadJS) and never builds the valley ground.
+const { Countryside = null } = typeof document === 'undefined' ? {} : await import('../../countryside.js?v=20261114a');
 
 export const VALLEY_FIELD = Object.freeze({ x0: -64, z0: -64, w: 128, d: 128, k: 4 });
 const SIZE = 260;                                   // the classic plane
@@ -33,7 +38,13 @@ export const SEGMENTS = { hero: 150, mid: 150, far: 50 };   // far: every third 
 
 // A bare Countryside: the valley's own terrain code, no valley built.
 let _terrain = null;
-const terrain = () => _terrain || (_terrain = Object.create(Countryside.prototype));
+const terrain = () => {
+  if (!_terrain) {
+    if (!Countryside) throw new Error('valley-ground builds need a DOM (countryside.js paints canvases when it loads)');
+    _terrain = Object.create(Countryside.prototype);
+  }
+  return _terrain;
+};
 
 /* ------------------------------------------------------------ the mesh --- */
 

@@ -258,7 +258,9 @@ const FRAG_SURFACE = /* glsl */`
 // the sun's shadow term, captured for the fringe and the cool shade
 const SHADOW_SRC = 'directLight.color *= ( directLight.visible && receiveShadow ) ? getShadow( directionalShadowMap[ i ], directionalLightShadow.shadowMapSize, directionalLightShadow.shadowBias, directionalLightShadow.shadowRadius, vDirectionalShadowCoord[ i ] ) : 1.0;';
 const SHADOW_DST = 'float gShI = ( directLight.visible && receiveShadow ) ? getShadow( directionalShadowMap[ i ], directionalLightShadow.shadowMapSize, directionalLightShadow.shadowBias, directionalLightShadow.shadowRadius, vDirectionalShadowCoord[ i ] ) : 1.0;\n\t\tif ( UNROLLED_LOOP_INDEX == 0 ) gSun = gShI;\n\t\tdirectLight.color *= gShI;';
-const LIGHTS_BEGIN = THREE.ShaderChunk.lights_fragment_begin.replace(SHADOW_SRC, SHADOW_DST);
+// read from three's chunk on the first compile, not at module load (a kit module does no THREE work until a build)
+let _lightsBegin = null;
+const lightsBegin = () => _lightsBegin || (_lightsBegin = THREE.ShaderChunk.lights_fragment_begin.replace(SHADOW_SRC, SHADOW_DST));
 
 const FRAG_FINISH = /* glsl */`
 #if FRINGE
@@ -310,7 +312,7 @@ export function createGroundMaterial(field, layers, { tier = 'hero', hexCell = 1
       .replace('#include <map_fragment>', FRAG_SURFACE)
       .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = gRough;')
       .replace('#include <normal_fragment_maps>', 'normal = normalize((viewMatrix * vec4(gN, 0.)).xyz);')
-      .replace('#include <lights_fragment_begin>', LIGHTS_BEGIN)
+      .replace('#include <lights_fragment_begin>', lightsBegin())
       .replace('#include <aomap_fragment>', '#include <aomap_fragment>\nreflectedLight.indirectDiffuse *= gAO;\nreflectedLight.indirectSpecular *= mix(1., gAO, .7);\nreflectedLight.directDiffuse *= mix(1., gAO, .35);')
       .replace('#include <opaque_fragment>', FRAG_FINISH);
   };
