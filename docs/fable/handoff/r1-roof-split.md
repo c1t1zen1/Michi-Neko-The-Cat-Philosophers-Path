@@ -108,7 +108,14 @@ owns yet, so ask the Integrator).
    plus, when the piece moves, `dynamic`. The facade then:
    - places `group` at `(layout.x, 0, layout.z)`, rotation y = `layout.ry`;
    - merges it with the static batches unless `group` itself is in `live`;
-     other `live` objects are re-parented to the world root, unmerged;
+     other `live` objects are re-parented to the world root, unmerged.
+     The merge (`mergeByMaterial`, `pieces/common.js`) keeps a mesh's
+     `color` attribute when its material has `vertexColors: true`
+     (`km.bag()`, `km.bamboo({ vcol: true })`); a geometry without one in
+     the same batch turns white. Under any other material `color` is
+     dropped, as before (Integrator patch, r3 handoff §2). A mesh an alley
+     passage cuts (`alley-passages.js` rebuilds it from position, normal
+     and uv) loses its colours there;
    - turns every socket whose name starts with `light` into a lantern light
      (the run's light list, as `ctx.light` does);
    - appends `dynamic` entries to the world's moving pieces (`boats`,

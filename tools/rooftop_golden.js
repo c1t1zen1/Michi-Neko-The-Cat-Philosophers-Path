@@ -39,7 +39,10 @@
 // It checks that every kido and rack piece came from a stand-in, at the hero
 // tier, placed in the classic piece's rail frame (its post stands where the
 // frame puts it, its `light…` socket lands on the classic lantern light),
-// that each `live` part was kept out of the merge; that world.update() moves
+// that each `live` part was kept out of the merge, that a vertex-coloured
+// stand-in mesh keeps its colours through the merge (and an uncoloured one in
+// the same vertexColors material turns white) while no batch whose material
+// ignores vertex colours keeps a colour attribute; that world.update() moves
 // the kit boats exactly as the classic ones; that the pagodas and Shōki stand
 // where the classic ones stand, on the root, the Shōki registered as the
 // pickups; and that every other piece, root child, the treats, the lights and
@@ -392,19 +395,33 @@ async function routingTest(mods, classic) {
   // The classic kido lights its lantern at (sMid, 1.9, d + 0.5), the rack at (sMid, 1.6, d + 0.3).
   const STANDINS = [{ id: 'roof-kido', type: 'kido', light: [1.9, 0.5] }, { id: 'roof-lantern-racks', type: 'rack', light: [1.6, 0.3] }];
   const built = [];
+  // Vertex colours through the merge (common.js mergeByMaterial): each stand-in
+  // also carries a TINT-coloured box and an uncoloured box under one
+  // vertexColors material (as KitMaterials' bag()), and a colour attribute on
+  // its post, whose material (M.timber) does not read it.
+  const TINT = [0.9, 0.3, 0.1];
+  const vcMat = new THREE.MeshStandardMaterial({ vertexColors: true });
+  const colourBox = (w, h, rgb) => {
+    const geo = new THREE.BoxGeometry(w, h, w);
+    if (rgb) geo.setAttribute('color', new THREE.Float32BufferAttribute(new Array(geo.attributes.position.count).fill(rgb).flat(), 3));
+    return geo;
+  };
   for (const sd of STANDINS) {
     runtime.register(defineAsset({
       id: sd.id, family: 'roof-routing-test', tiers: ['hero', 'mid'],
       build(ctx, layout) {
         const d = layout.piece.d;
         const g = new ctx.THREE.Group();
-        const post = new ctx.THREE.Mesh(new ctx.THREE.BoxGeometry(0.2, 2.2, 0.2), ctx.MAT.timber);
+        const post = new ctx.THREE.Mesh(colourBox(0.2, 2.2, TINT), ctx.MAT.timber);
         post.position.set(0, 1.1, d);
         const lamp = new ctx.THREE.Object3D();
         lamp.position.set(0, sd.light[0], d + sd.light[1]);
         const flag = new ctx.THREE.Mesh(new ctx.THREE.PlaneGeometry(0.4, 0.3), ctx.MAT.noren.indigo);
         flag.position.set(0, 2.0, d + 0.3);
-        g.add(post, lamp, flag);
+        const tint = new ctx.THREE.Mesh(colourBox(0.3, 0.3, TINT), vcMat), plain = new ctx.THREE.Mesh(colourBox(0.2, 0.2, null), vcMat);
+        tint.position.set(0, 0.4, d + 0.4);
+        plain.position.set(0, 0.8, d + 0.4);
+        g.add(post, lamp, flag, tint, plain);
         built.push({ sd, layout, tier: ctx.tier, post, flag, mat: ctx.MAT });
         return { group: g, parts: { post, flag }, sockets: { light_lamp: lamp }, live: [flag], footprint: layout.footprint };
       }
@@ -468,6 +485,32 @@ async function routingTest(mods, classic) {
     check(`${pc.type} ${index}: the live part is a root child, out of the merge`, flag.parent === root && !flag.userData.spatialBatch);
   }
   check('the stand-ins were placed on three or more leg directions', legs.size >= 3, [...legs].join(' '));
+
+  // Vertex colours: the vertexColors batches keep the kit colours (white where
+  // a geometry had none); no other batch carries a colour attribute.
+  const allBatches = [];
+  root.traverse((o) => { if (o.isMesh && o.userData && o.userData.spatialBatch) allBatches.push(o); });
+  const vcBatches = allBatches.filter((o) => o.material === vcMat);
+  const tally = { tint: 0, white: 0, other: 0, verts: 0 };
+  const near = (a, b) => Math.abs(a - b) < 1e-6;
+  for (const o of vcBatches) {
+    const c = o.geometry.attributes.color;
+    tally.verts += o.geometry.attributes.position.count;
+    if (!c || c.itemSize !== 3 || !(c.array instanceof Float32Array)) { tally.other += o.geometry.attributes.position.count; continue; }
+    for (let i = 0; i < c.count; i++) {
+      const rgb = [c.getX(i), c.getY(i), c.getZ(i)];
+      if (rgb.every((v, k) => near(v, TINT[k]))) tally.tint++;
+      else if (rgb.every((v) => near(v, 1))) tally.white++;
+      else tally.other++;
+    }
+  }
+  // A box is 36 vertices once non-indexed; every stand-in adds one TINT and one plain box.
+  check('vertex-coloured kit meshes keep their colours through the merge (white where a geometry had none)', vcBatches.length > 0 &&
+    tally.tint === built.length * 36 && tally.white === built.length * 36 && tally.other === 0 && tally.verts === built.length * 72,
+    `${vcBatches.length} batches, ${tally.tint} TINT + ${tally.white} white + ${tally.other} other of ${tally.verts} vertices, ${built.length} stand-ins`);
+  const stray = allBatches.filter((o) => o.material.vertexColors !== true && o.geometry.attributes.color).map((o) => matKey(o.material));
+  check('no batch whose material ignores vertex colours keeps a colour attribute (the stand-in posts, the bamboo culms)', stray.length === 0,
+    [...new Set(stray)].slice(0, 5).join(', '));
   check('the light sockets land on the classic lantern lights (lights identical)', JSON.stringify(d.lights) === JSON.stringify(classic.lights),
     `${d.lights.length} vs ${classic.lights.length}`);
 
