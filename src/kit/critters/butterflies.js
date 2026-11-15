@@ -71,18 +71,19 @@ export function buildButterflies(ctx, layout, p) {
   const geo = geometry(tier, W); // one swarm: this mesh owns its geometry (the per-instance phase lives on it)
   const tex = (S.tex ||= wingTexture());
   const n = layout.count;
-  const u = { uT: { value: 0 }, uRate: { value: p.flutter } };
+  const u = { uT: { value: 0 }, uRate: { value: p.flutter }, uGlow: { value: 1 } };
   const mat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.45, side: THREE.DoubleSide, name: 'critters:butterfly@' + p.flutter });
   mat.onBeforeCompile = (s) => {
-    s.uniforms.uT = u.uT; s.uniforms.uRate = u.uRate;
+    s.uniforms.uT = u.uT; s.uniforms.uRate = u.uRate; s.uniforms.uGlow = u.uGlow;
     s.vertexShader = s.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute float aPhase; uniform float uT; uniform float uRate;')
+      .replace('#include <common>', '#include <common>\nattribute float aPhase; uniform float uT; uniform float uRate; uniform float uGlow;')
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         float fl = pow(abs(sin(uT * uRate + aPhase)), 0.7);
         float a = sign(position.x) * mix(-0.25, 1.0, fl);
         float ca = cos(a), sa = sin(a);
         transformed = vec3(position.x * ca - position.y * sa, position.x * sa + position.y * ca, position.z);`);
-    s.fragmentShader = s.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * 0.5; // thin wings glow with the light through them');
+    s.fragmentShader = 'uniform float uGlow;\n' + s.fragmentShader;
+    s.fragmentShader = s.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * 0.5 * uGlow; // thin wings glow with the light through them');
   };
   mat.customProgramCacheKey = () => 'critters-butterfly';
   const mesh = new THREE.InstancedMesh(geo, mat, n);
@@ -107,8 +108,10 @@ export function buildButterflies(ctx, layout, p) {
     dummy.updateMatrix();
     mesh.setMatrixAt(i, dummy.matrix);
   };
-  const update = (dt, t) => {
+  const update = (dt, t, env) => {
     u.uT.value = t;
+    // thin wings glow with the light through them: no light, no glow (the summit shows them after dark)
+    if (env && env.sunDir) u.uGlow.value = Math.min(1, 0.1 + Math.max(0, env.sunDir.y) * 3);
     const sky = layout.sky, pp = layout.playerPos;
     const sunUp = sky ? Math.max(0, sky.sunDir.y) : 1;
     const day = sunUp > 0.2 && !(sky && sky.weather === 'rain');

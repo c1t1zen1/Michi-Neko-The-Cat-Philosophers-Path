@@ -623,7 +623,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 - [x] **G-V2** Village wave 2 (landmarks) merged; G1–G3 green, headless full-game boot clean on `?assets=modular` and `?assets=classic` (`reports/gate-v2-chores-report.md`)
 - [ ] **G-V3** Village wave 3 (systems, life) merged (→ may merge to `main`)
 - [x] **G-C** Characters merged; cat golden EQUAL, systems golden EQUAL, G1–G4 green, a save made on `main` loads on `?assets=classic` and `?assets=modular` (`reports/gate-v2-chores-report.md`)
-- [ ] **G-S** Hilltop merged
+- [x] **G-S** Hilltop merged; summit_test 83/0, summit golden EQUAL, summit_kit_parity EQUAL, verify + G1 pass, classic+modular boots clean; meditation view accepted PROVISIONALLY (R59, operator may overturn) (`docs/fable/status/a2-hilltop.md`)
 - [ ] **G-R** Roof Road merged and wired (→ may merge to `main`)
 - [x] **G-T** Tooling merged; cadJS param edit (key-rock size 1.5, Push to game) changed the ?assets=modular shot (maxDelta 166), restoring kit-overrides.json reverted it (maxDelta 0); catalog 49/49, cadJS 16/16 pass
 - [ ] **G-A** Area polish accepted for all three areas

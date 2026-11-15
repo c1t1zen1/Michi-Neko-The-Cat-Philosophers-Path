@@ -179,14 +179,14 @@ export function buildKyotoCity(ctx, layout, p) {
   lightGeo.setAttribute('aWave', new THREE.BufferAttribute(new Float32Array(wave), 1));
   const glow = glowSprite('255,205,112', 64);
   const lightMat = new THREE.PointsMaterial({
-    map: glow, color: new THREE.Color().setRGB(1, 0.77 + 0.1 * p.lamp, 0.44 + 0.3 * p.lamp), size: 0.8, transparent: true, opacity: 0,
+    map: glow, color: new THREE.Color().setRGB(1, 0.77 + 0.1 * p.lamp, 0.44 + 0.3 * p.lamp), size: 0.95, transparent: true, opacity: 0,
     depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true, fog: false
   });
   lightMat.customProgramCacheKey = () => 'vista-city-lights';
   lightMat.onBeforeCompile = (sh) => {
     sh.vertexShader = sh.vertexShader.replace('void main() {', 'attribute float aWave;\nvarying float vWave;\nvoid main() {\n  vWave = aWave;');
     sh.fragmentShader = sh.fragmentShader.replace('void main() {', 'varying float vWave;\nvoid main() {')
-      .replace('#include <map_particle_fragment>', '#include <map_particle_fragment>\n  diffuseColor.a *= smoothstep(vWave * 0.5, vWave * 0.5 + 0.3, opacity * 1.4);');
+      .replace('#include <map_particle_fragment>', '#include <map_particle_fragment>\n  diffuseColor.a *= smoothstep(vWave * 0.5, vWave * 0.5 + 0.16, opacity * 1.4);');
   };
   const cityLights = new THREE.Points(lightGeo, lightMat);
   cityLights.name = 'lights'; cityLights.visible = false; cityLights.renderOrder = 2;

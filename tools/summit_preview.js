@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Sky } from '../src/sky.js?v=20261113a';
 import { Player } from '../src/player.js?v=20261113a';
 import { SummitManager } from '../src/mountaintop.js?v=20261113a';
+import { AssetRuntime } from '../src/kit/runtime.js?v=20261113a';
 
 const canvas = document.getElementById('preview');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -42,7 +43,15 @@ sky.cycleSpeed *= cycleMultiplier;
 sky.weather = sky.previousWeather = sky.targetWeather = previewWeather;
 sky.weatherBlend = 1;
 if (query.has('weather')) sky.weatherTimer = sky.weatherDurations[previewWeather];
-document.title = `Summit ${previewView} — ${previewWeather}, ${previewTime.toFixed(2)}h, ${cycleMultiplier}×`;
+document.title = `Summit ${previewView} — ${previewWeather}, ${previewTime.toFixed(2)}h, ${cycleMultiplier}×${query.has('assets') ? ', ' + query.get('assets') : ''}`;
+// `?assets=classic|modular|auto` and `?swap=id:variant,...` pick the asset set exactly as the game does (src/kit/runtime.js);
+// without either flag the page stays on the classic builders, as before. `&quality=low|medium|high` sets the kit tier.
+let assets = null;
+if (query.has('assets') || query.has('swap')) {
+  assets = new AssetRuntime({ THREE, search: location.search, quality: query.get('quality') || 'high' });
+  await assets.preload();
+}
+window.previewAssets = assets;
 const player = new Player(scene, camera, null);
 
 // The summit grows its own grass (src/grass.js); no valley needed.
@@ -55,7 +64,7 @@ const game = {
     hideAllGuidance() {}, showToast() {},
     setSummitMode() {}, setScenicView() {}
   },
-  audio: null, city: null, waypoints: null, progression: null,
+  audio: null, assets, city: null, waypoints: null, progression: null,
   discover() {}, saveGame() {}, refreshCompassPois() {}
 };
 window.game = game;

@@ -23,7 +23,7 @@ const TORII = gateAssets.find((a) => a.id === 'torii');
 const TORII_SCALE = 0.56;
 
 /** Warm dressed stone for the stairs: the stone texture, sun-bleached; the family's one new merged stone. */
-const warmStone = (km) => km.stone({ tint: 0xb4aa92, seed: 6 });
+const warmStone = (km) => km.stone({ tint: 0xa8a28e, seed: 6 });
 
 /** A slab with its top edge hand-cut: the top face's corners nudged so no two treads are quite level. */
 function slab(w, h, d, x, y, z, rnd, ry = 0) {
