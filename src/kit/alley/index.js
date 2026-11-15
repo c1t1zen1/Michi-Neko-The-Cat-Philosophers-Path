@@ -49,9 +49,10 @@ function addCrate(bag, w, h, d, ox, oy, oz, cols, tier, r, wear) {
     bag.box(w / m - 0.012, 0.03, d - 0.01, { x: bx, y: oy + h / 2 - 0.015, z: oz, color: tint(cols[i % 3], (r() - 0.5) * 0.06) });
   }
   bag.box(w - 0.04, 0.03, d - 0.04, { x: ox, y: y0 + 0.015, z: oz, color: cols[0] });
-  // corner posts stop 4 mm under the lid, so their tops are never coplanar with the boards (no z-fight)
+  // corner posts stop 4 mm under the lid (their tops never coplanar with the boards) and stand 1 mm proud of
+  // the slats on their outer faces (never coplanar with the slat faces and ends): no z-fight either way
   for (const sx of [-1, 1]) for (const sz of [-1, 1])
-    bag.box(0.045, h - 0.004, 0.045, { x: ox + sx * (w / 2 - 0.0225), y: oy - 0.002, z: oz + sz * (d / 2 - 0.0225), color: tint(cols[0], -0.08) });
+    bag.box(0.047, h - 0.004, 0.047, { x: ox + sx * (w / 2 - 0.0225), y: oy - 0.002, z: oz + sz * (d / 2 - 0.0225), color: tint(cols[0], -0.08) });
   if (tier === 'hero') for (const s of [-1, 1])    // a couple of rope-bound battens
     bag.box(w + 0.01, 0.03, 0.012, { x: ox, y: oy + h * 0.1, z: oz + s * (d / 2 + 0.002), color: 0x8a7248 });
 }

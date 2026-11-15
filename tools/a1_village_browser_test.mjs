@@ -8,6 +8,7 @@
 //   2. the kit sound sink (src/main.js): a pack sound plays for a near event,
 //      not for one 300 m away, not twice within its gap, lantern kindles at
 //      most one per 0.15 s, nothing while paused, nothing on a ?shot=1 boot;
+//      the shishi clacks on its own cycle and not on a cat-batted tip (the game voices that);
 //   3. the kit prefetch (src/bootstrap.js): saved settings modular + high
 //      start the kit download before the runtime's preload fetches
 //      kit-overrides.json; classic and a saved low quality download no family.
@@ -120,6 +121,26 @@ const fire = (page, events, waitMs = 450) => page.evaluate(async ({ events, wait
     check('nothing while paused', paused === 0, `${paused} nodes`);
     const unknown = await fire(page, [['not.an.event', 2, 0]]);
     check('an unknown event is ignored', unknown === 0);
+    // the shishi-odoshi clack edge: its own fill-and-pour cycle clacks; a cat-batted tip (the game voices it) does not
+    const shishi = await page.evaluate(() => {
+      const inst = game.assets.instances.find((i) => i.id === 'shishi');
+      const rocker = inst.parts.rocker, heard = [];
+      const env = { audio: { play: (ev) => heard.push(ev) } };
+      const swing = (peakTilt) => {
+        const n0 = heard.length;
+        for (let f = 0; f <= 60; f++) {                       // up to the peak and back down past 0.08
+          const t = f / 60, tilt = peakTilt * Math.sin(Math.PI * t);
+          rocker.rotation.z = Math.PI / 2 + tilt;
+          inst.update(1 / 60, 0, env);
+        }
+        for (let f = 0; f < 60; f++) inst.update(1 / 60, 0, env);   // rest past the cooldown
+        return heard.length - n0;
+      };
+      rocker.rotation.z = Math.PI / 2;                        // settle at rest first (the live cycle left it mid-swing)
+      for (let f = 0; f < 60; f++) inst.update(1 / 60, 0, { audio: { play() {} } });
+      return { natural: swing(0.83), batted: swing(1.4), again: swing(0.8) };
+    });
+    check('shishi: its own cycle clacks once, a batted tip is left to the game', shishi.natural === 1 && shishi.batted === 0 && shishi.again === 1, JSON.stringify(shishi));
     check('no page errors (modular boot)', s.errors.length === 0, s.errors.slice(0, 2).join(' | '));
   } finally { await s.close(); }
 }

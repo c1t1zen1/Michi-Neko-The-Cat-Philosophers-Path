@@ -116,7 +116,7 @@ export function buildShishi(ctx, layout, p) {
     stream.geometry.attributes.position.needsUpdate = true;
   };
   const up = V3(0, 1, 0), mouth = V3(), top = V3(), bot = V3(), dir = V3();
-  let mine = rocker.rotation.z, ext = false, prev = REST_TILT, cool = 0;
+  let mine = rocker.rotation.z, ext = false, prev = REST_TILT, cool = 0, peak = 0;
   const at = V3();   // the clack's world position, for env.audio
   const inst = {
     group: g, parts, live, onClack: null,
@@ -131,12 +131,16 @@ export function buildShishi(ctx, layout, p) {
       // the mouth in group space; the pour follows it as it dips
       mouth.set(-ARM_MOUTH * Math.sin(th), ARM_MOUTH * Math.cos(th), 0).add(PIVOT);
       cool -= dt;
+      if (tilt > peak) peak = tilt;
       if (prev > 0.08 && tilt <= 0.08 && cool <= 0) {
         cool = 0.6;
         if (typeof inst.onClack === 'function') inst.onClack();
         if (typeof layout.onClack === 'function') layout.onClack();
-        const audio = env && env.audio;   // the knock on the anvil stone (a1-village A.5)
-        if (audio) audio.play('garden.shishi.clack', { pos: g.getWorldPosition(at) });
+        // the knock on the anvil stone (a1-village A.5). A swing past the fill-and-pour peak (0.83) was the
+        // cat batting the tube: the game voices that one itself (ContextActionManager.tipClacker), so no second clack.
+        const audio = env && env.audio;
+        if (audio && peak <= 0.9) audio.play('garden.shishi.clack', { pos: g.getWorldPosition(at) });
+        peak = 0;
       }
       if (stream) {
         const under = Math.abs(mouth.x - FEED_TIP.x) < 0.1 && mouth.y < FEED_TIP.y;
