@@ -1,0 +1,70 @@
+{
+  "generator": "Blender 5.2.2 LTS",
+  "assets": [
+    {
+      "name": "coach_shell",
+      "meshes": 5,
+      "triangles": 4920
+    },
+    {
+      "name": "coach_roof",
+      "meshes": 3,
+      "triangles": 408
+    },
+    {
+      "name": "nose",
+      "meshes": 4,
+      "triangles": 744
+    },
+    {
+      "name": "seat_pair",
+      "meshes": 4,
+      "triangles": 1212
+    },
+    {
+      "name": "cafe_counter",
+      "meshes": 5,
+      "triangles": 1536
+    },
+    {
+      "name": "tea_set",
+      "meshes": 2,
+      "triangles": 332
+    },
+    {
+      "name": "cottage",
+      "meshes": 5,
+      "triangles": 396
+    },
+    {
+      "name": "tree",
+      "meshes": 3,
+      "triangles": 1080
+    },
+    {
+      "name": "sakura",
+      "meshes": 3,
+      "triangles": 1080
+    },
+    {
+      "name": "tunnel_ring",
+      "meshes": 2,
+      "triangles": 464
+    },
+    {
+      "name": "viaduct",
+      "meshes": 3,
+      "triangles": 1476
+    },
+    {
+      "name": "fuji",
+      "meshes": 1,
+      "triangles": 2880
+    },
+    {
+      "name": "tokyo_tower",
+      "meshes": 2,
+      "triangles": 2736
+    }
+  ]
+}

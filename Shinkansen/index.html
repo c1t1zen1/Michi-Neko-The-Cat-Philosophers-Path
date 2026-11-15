@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#1c393b">
+  <title>Eastbound · Michi-Neko · Stage 03</title>
+  <meta name="description" content="A small cat. A very fast train. A painterly, forgiving Kyoto-to-Tokyo adventure above the clouds and inside the Cloud Café.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='85'%3E🚄%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css?v=20261114a">
+  <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <canvas id="scene" aria-label="Michi-Neko on the eastbound bullet train. Move with WASD, Space to jump, C to crouch, E to interact, and drag to look around." tabindex="0"></canvas>
+  <div class="wash" aria-hidden="true"></div>
+  <header id="mast" class="mast">
+    <a href="../index.html" class="brand" aria-label="Return to Kyoto Valley">michi-neko <span>旅</span></a>
+    <div class="stage-label"><span class="tiny">A LITTLE CAT, A LONG WAY HOME</span><span>STAGE 03 <i>—</i> EASTBOUND</span></div>
+    <button id="menu-button" class="icon-button" aria-label="Pause and open travel journal" title="Pause / journal (Esc)">☰</button>
+  </header>
+
+  <section id="welcome" class="overlay welcome" aria-labelledby="title">
+    <div class="ticket">
+      <p class="eyebrow">京都から東京へ &nbsp; / &nbsp; A MICHI-NEKO ADVENTURE</p>
+      <h1 id="title">Eastbound<span>風に乗る、小さな旅。</span></h1>
+      <p class="intro">A small cat.<br>A very fast train.<br>A whole country in between.</p>
+      <div class="ticket-route"><span>KYOTO <small>京都</small></span><b aria-hidden="true">━━━━━━━━ ◇ ━━━━━━━━</b><span>TOKYO <small>東京</small></span></div>
+      <p class="welcome-note">Leap from the old bridge. Find your paws on the roof.<br>Follow the tea-scented breeze inside, then chase the city lights.</p>
+      <div class="start-actions"><button id="start" class="primary" disabled>Preparing the journey…</button><button id="continue" class="text-button" hidden>Continue your journey ↗</button></div>
+      <p id="load-status" class="fine" role="status">Opening the sketchbook…</p>
+      <p class="fine travel-time">Around 30 minutes · no falls, no hurry · progress saved locally</p>
+    </div>
+    <div class="boarding-pass" aria-hidden="true"><span>乗車券</span><b>KYŌTO → TŌKYŌ</b><span>ONE CAT / ANY SEAT</span><strong>03</strong></div>
+  </section>
+
+  <aside id="chapter-card" class="chapter-card" aria-live="polite" hidden>
+    <p id="chapter-jp" class="eyebrow"></p><h2 id="chapter-name"></h2><p id="chapter-message"></p>
+  </aside>
+  <div id="speed" class="speed" hidden><span id="speed-number">0</span><small>km/h <i>風</i></small></div>
+  <div id="wind-warning" class="wind-warning" aria-live="polite" hidden>↓ LOW HOOP APPROACHING · HOLD C TO DUCK</div>
+  <p id="toast" class="toast" role="status"></p>
+  <div id="prompt" class="prompt" hidden><kbd>E</kbd><span id="prompt-text"></span></div>
+
+  <footer id="hud" class="hud" hidden>
+    <div class="route-line"><span>京都</span><div class="rail-progress"><div id="progress-fill"></div><span id="train-marker">◆</span></div><span>東京</span></div>
+    <div class="hud-bottom"><div><span id="place">Kyoto</span><small id="objective">Leap onto the train</small></div><button id="journal-button" class="postcard-button" aria-label="Open postcard journal">旅 <span id="postcard-count">0 / 8</span></button><span id="car-label">OVERPASS</span></div>
+    <p id="desktop-hint" class="controls"><kbd>W A S D</kbd> move &nbsp; <kbd>Space</kbd> jump &nbsp; <kbd>C</kbd> duck &nbsp; <kbd>E</kbd> interact &nbsp; drag to look · scroll to zoom &nbsp; <kbd>F</kbd> next view</p>
+  </footer>
+
+  <div id="touch" class="touch" hidden aria-label="Touch game controls">
+    <div id="move-pad" class="move-pad" role="group" aria-label="Drag to move; push farther to run"><div class="pad-circle"><span id="thumb"></span></div></div>
+    <button id="touch-duck" aria-label="Hold to crouch">↓<small>duck</small></button><button id="touch-jump" aria-label="Jump">↑<small>jump</small></button><button id="touch-use" aria-label="Interact">E<small>use</small></button>
+  </div>
+
+  <section id="journal" class="overlay journal" role="dialog" aria-modal="true" aria-labelledby="journal-title" hidden>
+    <div class="journal-paper">
+      <button id="close-journal" class="close" aria-label="Close journal">×</button>
+      <p class="eyebrow">旅のしおり / THE TRAVELLING SKETCHBOOK</p><h2 id="journal-title">Little things, along the way.</h2>
+      <p>A postcard at each brass seal. A country through the windows. Take your time.</p>
+      <div id="postcards" class="postcards"></div>
+      <details><summary>The route & controls</summary><ol id="chapters"></ol><p>WASD / arrows to move · Shift to run · Space to jump · C or Ctrl to duck · E to use a hatch, greet a friend or take a postcard · drag to orbit · wheel to zoom · Q to recenter · F to settle in and ride to the next view · R to return to a safe roof · M for sound · Esc to pause. Controller: left stick, A jump, B crouch, X use, right stick look.</p></details>
+      <div class="preferences"><label><input type="checkbox" id="sound"> Train sounds</label><label><input type="checkbox" id="motion"> Gentle camera</label><label><input type="checkbox" id="guidance" checked> Travel notes</label></div>
+      <div class="journal-actions"><button id="resume" class="primary">Back to the breeze</button><button id="next-view" class="text-button">Settle in · ride to the next view ↗</button></div>
+      <p class="fine">The train keeps your place while paused. Riding to the next view is optional and keeps your postcards and exploration.</p>
+    </div>
+  </section>
+
+  <section id="arrival" class="overlay arrival" role="dialog" aria-modal="true" aria-labelledby="arrival-title" hidden>
+    <div class="arrival-paper"><p class="eyebrow">東京に着きました / YOU MADE IT</p><h2 id="arrival-title">A long way<br>for little paws.</h2><p>The hills, the river, the mountain, the sea.<br>And now, a million windows saying welcome.</p><p id="arrival-note"></p><div class="arrival-buttons"><button id="stay" class="primary">Stay with the city lights</button><button id="again" class="text-button">Take the journey again</button><a href="../index.html">Return to Kyoto Valley ↗</a></div></div>
+  </section>
+  <noscript>This adventure needs JavaScript. Serve the repository root and open /Shinkansen/.</noscript>
+  <script type="module" src="js/game.js?v=20261114a"></script>
+</body>
+</html>
