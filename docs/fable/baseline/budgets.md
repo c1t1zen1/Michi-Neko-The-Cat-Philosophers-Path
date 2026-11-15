@@ -96,6 +96,18 @@ Classic and `low` are unaffected (the kit is not loaded). Owner of the fix:
 `a1-village` with the owning families; the merge to `main` needs an
 Integrator ruling on it.
 
+**Ruling R66 (Integrator, 2026-11-15; operator may overturn):** this rule
+applies to the modular set only. Classic is the default players run, and it
+is unchanged, so the failure blocks the default flip (G-FINAL), not G-V3,
+whose merge ships classic. G-V3 is ticked with this item open.
+
+- [ ] **Open: modular world build ≤ 1.25 × classic and boot total ≤ classic
+  + 1,000 ms on medium and high** (G-V3: 1.72 × / 1.74 ×, +1.2 s). Owner:
+  `a1-village`, with the owning families. The first builds take about 420 ms
+  on medium, led by `valley-ground` and `clouds`, then `moon-pool`,
+  `corral-sign`, `street-bushes` and `moon`. It must close before G-FINAL
+  (the default flip).
+
 ## 3. Per-asset budgets for the contract test (AAA-7)
 
 ### Detail tiers
