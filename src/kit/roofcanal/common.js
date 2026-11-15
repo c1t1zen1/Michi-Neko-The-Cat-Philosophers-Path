@@ -52,6 +52,13 @@ export class PBag {
     if (axis === 'x') g.rotateZ(Math.PI / 2); else if (axis === 'z') g.rotateX(Math.PI / 2);
     this._bag(m).add(g, o); g.dispose(); return this;
   }
+  /** The classic paper lantern (cyl() on a paper material): a lathe belly with two dark caps. */
+  lantern(r, len, seg, { m = 'lanternWhite', y = 0, caps = true, ...o } = {}) {
+    const g = new THREE.LatheGeometry([[-0.5, 0.7], [-0.42, 0.94], [-0.25, 1], [0.25, 1], [0.42, 0.94], [0.5, 0.7]].map(([yy, w]) => new THREE.Vector2(r * w, len * yy)), seg);
+    this._bag(m).add(g, { y, ...o }); g.dispose();
+    if (caps) for (const sign of [-1, 1]) this.cyl(r * 0.74, len * 0.065, seg, { m: 'dark', ...o, y: y + sign * len * 0.5 });
+    return this;
+  }
   torus(r, t, rs, ts, { m = 'stone', ...o } = {}) { const g = new THREE.TorusGeometry(r, t, rs, ts); this._bag(m).add(g, o); g.dispose(); return this; }
   sphere(r, { m = 'stone', ...o } = {}) { this._bag(m).sphere(r, o); return this; }
 }

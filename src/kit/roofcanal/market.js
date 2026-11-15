@@ -5,7 +5,7 @@
 // builders in rooftops/js/pieces/, nothing registered for collision.
 import { defineAsset } from '../contract.js?v=20261114a';
 import { Bag } from '../craft.js?v=20261114a';
-import { THREE, seg, PBag, PARAMS, sample, finish, ribbonGeo, placeLocal, frameGroupAt, lightSocket } from './common.js?v=20261114a';
+import { THREE, matFor, seg, PBag, PARAMS, sample, finish, ribbonGeo, placeLocal, frameGroupAt, lightSocket } from './common.js?v=20261114a';
 
 const rep = (tier, far, mid, hero) => (tier === 'far' ? far : tier === 'mid' ? mid : hero);
 
@@ -88,7 +88,7 @@ function buildLines(ctx, layout, p) {
   } else {
     bag.cyl(0.02, w + 0.3, 5, { axis: 'x', rz: p.tilt, y: pc.y - 0.03, z: pc.d, m: 'dark' });
     for (let x = -w / 2 + 0.3, i = 0; x < w / 2 - 0.2; x += 0.55, i++)
-      bag.cyl(0.11, 0.26, seg(t, 10), { x, y: pc.y - 0.28, z: pc.d, m: i % 3 === 1 ? 'lanternWhite' : 'lanternRed' });
+      bag.lantern(0.11, 0.26, seg(t, 10), { x, y: pc.y - 0.28, z: pc.d, m: i % 3 === 1 ? 'lanternWhite' : 'lanternRed' });
     out = finish(ctx, bag);
     const o = new ctx.THREE.Object3D(); o.position.set(0, pc.y - 0.3, pc.d); out.group.add(o); sockets.light_lines = o;
   }
@@ -107,7 +107,7 @@ function buildSkylightBridge(ctx, layout, p) {
   const crossZ = pc.d - toward * 1.65;
   bag.box(0.13, 0.1, 4.3, { y: pc.y + 1.05, z: crossZ, m: 'steel' });
   if (t !== 'far') for (const z of [-1, 0, 1]) bag.box(0.42, 0.52, 0.018, { ry: 0.04 * z, y: pc.y + 0.72, z: crossZ + z * 0.82, m: t === 'mid' ? 'steel' : `goods#${(z + 3)}` });
-  if (t !== 'far') bag.cyl(0.13, 0.34, seg(t, 10), { y: pc.y + 0.42, z: pc.d + toward * 0.8, m: 'lanternWhite' });
+  if (t !== 'far') bag.lantern(0.13, 0.34, seg(t, 10), { caps: t === 'hero', y: pc.y + 0.42, z: pc.d + toward * 0.8, m: 'lanternWhite' });
   const out = finish(ctx, bag);
   const o = new ctx.THREE.Object3D(); o.position.set(0, pc.y + 0.42, pc.d + toward * 0.8); out.group.add(o);
   out.sockets = { light_lamp: o };
@@ -218,7 +218,7 @@ function buildBoat(ctx, layout, p) {
   if (t !== 'far') {
     for (const z of [-0.78, 0.78]) {
       bag.box(len - 0.4, 0.045, 0.035, { y: 0.16, z, m: 'hullBand' });
-      if (t === 'hero') for (let x = -len / 2 + 0.5; x < len / 2 - 0.2; x += 0.5) bag.sphere(0.014, { x, y: 0.32, z: z + 0.02 * Math.sign(z), m: 'steel' });
+      if (t === 'hero') for (let x = -len / 2 + 0.5; x < len / 2 - 0.2; x += 0.5) bag.add(new THREE.SphereGeometry(0.014, 5, 4), { x, y: 0.32, z: z + 0.02 * Math.sign(z), m: 'steel' });
     }
     for (let j = 0; j < (t === 'hero' ? 4 : 2); j++) bag.torus(0.13 + j * 0.025, 0.012, 5, 18, { rx: Math.PI / 2, x: -len * 0.35, y: 0.33, z: 0.22, m: 'twine' });
     bag.add(new THREE.CylinderGeometry(0.13, 0.10, 0.22, 9, 1, true), { x: len * 0.36, y: 0.4, z: 0.35, m: 'agedWood' });
@@ -238,6 +238,18 @@ function buildBoat(ctx, layout, p) {
   // and tilts it) with `pole` (the pole pivot, child of the boatman) inside it. Both are empty here.
   const boatman = new ctx.THREE.Group(); boatman.position.set(1.55, 0.28, -0.24);
   const pole = new ctx.THREE.Group(); pole.position.set(0.04, 0.66, 0); boatman.add(pole); group.add(boatman);
+  // R75: until r5 lands the kit boat carries the CLASSIC boatman and pole (same meshes, sizes and places as pieces/boat.js)
+  // inside these two groups; r5 replaces them through the sockets. Not at the far tier (never chosen on the Roof Road).
+  if (t !== 'far') {
+    const mk = (geo, name, x, y) => { const m = new THREE.Mesh(geo, matFor(ctx, name)); m.position.set(x, y, 0); m.castShadow = true; return m; };
+    const hs = t === 'hero' ? 1 : 0.6;
+    boatman.add(mk(new THREE.BoxGeometry(0.24, 0.32, 0.2), 'goods#1', 0, 0.16),
+      mk(new THREE.CylinderGeometry(0.1, 0.15, 0.42, Math.max(5, Math.round(8 * hs))), 'bengara', 0, 0.5),
+      mk(new THREE.SphereGeometry(0.105, Math.max(6, Math.round(10 * hs)), Math.max(4, Math.round(7 * hs))), 'plasterWarm', 0, 0.79),
+      mk(new THREE.ConeGeometry(0.27, 0.13, Math.max(8, Math.round(16 * hs))), 'straw', 0, 0.91));
+    const pm = new THREE.Mesh(new THREE.CylinderGeometry(0.027, 0.027, 3.8, 6), matFor(ctx, 'bamboo')); pm.position.y = -0.25; pm.castShadow = true;
+    pole.add(pm);
+  }
   // the V wake and bow ring are ONE live mesh (the update scales/hides the `wake` group, M.wake's opacity follows speed)
   const wake = new ctx.THREE.Group(), wmat = (ctx.MAT && ctx.MAT.wake) || ctx.kitMaterials.plain(0xe8f2f0, { rough: 0.9 });
   const wb = new Bag();
@@ -264,7 +276,7 @@ export const assetsB = [
   def('roof-canal', 'Takase canal water', buildCanal, { s0: -35, s1: 35, y: 0, d: 0 }, { params: LEVEL, floating: ['body_water', 'body_foam'] }),
   def('roof-canal-banks', 'Canal banks', buildBanks, { s0: -37, s1: 37, y: 0, d: 0 }),
   def('roof-lines', 'Laundry, tow and lantern lines', buildLines, { s0: -2.5, s1: 2.5, y: 4.2, d: 0, style: 'laundry' }, { params: TILT, floating: ['body_bamboo', 'body_cloth_0', 'body_cloth_1', 'body_cloth_2', 'body_cloth_3', 'body_cloth_4', 'body_cloth_5', 'body_cloth_6', 'body_agedwood', 'body_dark', 'body_lanternwhite', 'body_lanternred'] }),
-  def('roof-skylight-bridge', 'Skylight bridge', buildSkylightBridge, { s0: -1.15, s1: 1.15, y: 0.12, d: 0, side: 'near' }, { floating: ['body_lanternwhite'] }),
+  def('roof-skylight-bridge', 'Skylight bridge', buildSkylightBridge, { s0: -1.15, s1: 1.15, y: 0.12, d: 0, side: 'near' }, { floating: ['body_lanternwhite', 'body_dark'] }),
   def('roof-market-stalls', 'Market stalls', buildStalls, { s0: -51.5, s1: 51.5, d: 0, gaps: [[-30, -26], [-2, 2], [24, 28]] }),
   def('roof-cherry-boughs', 'Cherry bough', buildCherry, { s0: -3, s1: 3, y: 0, d: 0, bough: { s0: -2.6, s1: 2.2, y: 1.8 }, bank: 'near' }, { params: { ...PARAMS, ...bloom }, floating: ['body_blossompale', 'body_blossom', 'body_blossomrose', 'body_bark'] }),
   def('roof-canopy', 'Nishiki canopy', buildCanopy, { s0: -51.5, s1: 51.5, y: 5.0, d: 1.2, gaps: [[-30, -26], [-2, 2], [24, 28]] }, { floating: ['body_glass', 'body_steel', 'body_goods_0', 'body_goods_1', 'body_goods_2', 'body_goods_3', 'body_goods_4', 'body_goods_5'] }),
