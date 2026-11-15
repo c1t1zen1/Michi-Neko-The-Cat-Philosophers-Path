@@ -29,21 +29,46 @@ function hash3(x, y, z, seed) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-/** Periodic value noise on a cells × cellsY lattice (the tile meets itself at its edges). */
-function noise(x, y, cells, cellsY, seed, z = 0) {
+// The field is built from small periodic lattices (at most 64 × 64 points), so
+// each lattice's hashes are computed once per field into a table: the same
+// numbers hash3() returns, read instead of recomputed for every texel (the
+// field was ~60 ms of the modular world build; a1-village, ruling R66).
+
+/** hash3 over a cells × cellsY lattice at one z, row-major (index y * cells + x). */
+function lattice(cells, cellsY, seed, z) {
+  const t = new Float64Array(cells * cellsY);
+  for (let y = 0; y < cellsY; y++) for (let x = 0; x < cells; x++) t[y * cells + x] = hash3(x, y, z, seed);
+  return t;
+}
+
+/**
+ * Periodic value noise on a cells × cellsY lattice (the tile meets itself at
+ * its edges); `t` = lattice(cells, cellsY, seed, z). Every lattice here is a
+ * power of two on each side, so the wrap is a mask (the same integers as
+ * ((i % n) + n) % n).
+ */
+function noiseT(x, y, cells, cellsY, t) {
   const ix = Math.floor(x), iy = Math.floor(y);
   const fx = smooth(x - ix), fy = smooth(y - iy);
-  const x0 = ((ix % cells) + cells) % cells, x1 = (x0 + 1) % cells;
-  const y0 = ((iy % cellsY) + cellsY) % cellsY, y1 = (y0 + 1) % cellsY;
-  const a = hash3(x0, y0, z, seed), b = hash3(x1, y0, z, seed);
-  const c = hash3(x0, y1, z, seed), d = hash3(x1, y1, z, seed);
+  const mx = cells - 1, my = cellsY - 1;
+  const x0 = ix & mx, x1 = (x0 + 1) & mx;
+  const y0 = (iy & my) * cells, y1 = (((iy & my) + 1) & my) * cells;
+  const a = t[y0 + x0], b = t[y0 + x1];
+  const c = t[y1 + x0], d = t[y1 + x1];
   return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
 }
 
-function fbm(u, v, seed, octaves, base = 4) {
+/** fbm's lattices for one seed: octave o uses base · 2^o cells and z = o + 1. */
+function fbmTables(seed, octaves, base) {
+  const out = [];
+  for (let o = 0, cells = base; o < octaves; o++, cells *= 2) out.push(lattice(cells, cells, seed, o + 1));
+  return out;
+}
+
+function fbm(u, v, tables, base) {
   let s = 0, amp = 0.55, total = 0, cells = base;
-  for (let o = 0; o < octaves; o++) {
-    s += amp * noise(u * cells, v * cells, cells, cells, seed, o + 1);
+  for (let o = 0; o < tables.length; o++) {
+    s += amp * noiseT(u * cells, v * cells, cells, cells, tables[o]);
     total += amp;
     amp *= 0.52;
     cells *= 2;
@@ -51,21 +76,44 @@ function fbm(u, v, seed, octaves, base = 4) {
   return s / total;
 }
 
-/** Nearest jittered cell centre (periodic, n cells per side): [distance, that cell's hash]. */
-function cells(u, v, n, seed) {
-  const x = u * n, y = v * n, ix = Math.floor(x), iy = Math.floor(y);
-  let d = 4, id = 0;
+/**
+ * Jittered cell centres for cells(): per cell its x and y jitter and its id
+ * (hash3 at z 7, 11, 13), stored with a two-cell wrapped border so a lookup
+ * at cell (a, b), -2 <= a, b < n + 2, needs no modulo.
+ */
+function cellTable(n, seed) {
+  const w = n + 4, jx = new Float64Array(w * w), jy = new Float64Array(w * w), id = new Float64Array(w * w);
+  for (let b = -2; b < n + 2; b++) for (let a = -2; a < n + 2; a++) {
+    const wa = ((a % n) + n) % n, wb = ((b % n) + n) % n, k = (b + 2) * w + (a + 2);
+    jx[k] = (hash3(wa, wb, 7, seed) - 0.5) * 0.7;
+    jy[k] = (hash3(wa, wb, 11, seed) - 0.5) * 0.7;
+    id[k] = hash3(wa, wb, 13, seed);
+  }
+  return { n, w, jx, jy, id };
+}
+
+// cells() writes its answer here (no array per texel)
+let cellD = 4, cellId = 0;
+/**
+ * Nearest jittered cell centre (periodic, n cells per side): sets cellD
+ * (distance) and cellId (that cell's hash). Callers pass u, v within
+ * [-1/n, 1 + 1/n) (the warp moves u, v by at most 0.035).
+ */
+function cells(u, v, T) {
+  const n = T.n, w = T.w, x = u * n, y = v * n, ix = Math.floor(x), iy = Math.floor(y);
+  const JX = T.jx, JY = T.jy;
+  let best = Infinity, bx = 0, by = 0, bk = 0;
   for (let j = -1; j <= 1; j++) {
+    const b = iy + j, row = (b + 2) * w + 2;
     for (let i = -1; i <= 1; i++) {
-      const a = ix + i, b = iy + j;
-      const wa = ((a % n) + n) % n, wb = ((b % n) + n) % n;
-      const px = a + 0.5 + (hash3(wa, wb, 7, seed) - 0.5) * 0.7;
-      const py = b + 0.5 + (hash3(wa, wb, 11, seed) - 0.5) * 0.7;
-      const dd = Math.hypot(px - x, py - y);
-      if (dd < d) { d = dd; id = hash3(wa, wb, 13, seed); }
+      const a = ix + i, k = row + a;
+      const dx = a + 0.5 + JX[k] - x, dy = b + 0.5 + JY[k] - y;
+      const q = dx * dx + dy * dy;
+      if (q < best) { best = q; bx = dx; by = dy; bk = k; }
     }
   }
-  return [d, id];
+  cellD = Math.min(4, Math.hypot(bx, by));
+  cellId = best < 16 ? T.id[bk] : 0;
 }
 
 /**
@@ -100,31 +148,36 @@ export function cloudField(seed) {
   if (cache.has(key)) return cache.get(key);
   const N = FIELD_SIZE, raw = new Float32Array(N * N * 4);
   const s1 = key ^ 0x51ed27, s2 = key ^ 0x2c1b3c6d, s3 = key ^ 0x297a2d39, s4 = key ^ 0x6b43a9b5;
+  const warpU = lattice(4, 4, s1, 9), warpV = lattice(4, 4, s1, 10);
+  const big6 = cellTable(6, s1), small14 = cellTable(14, s1 ^ 0x3a), alto10 = cellTable(10, s3);
+  const lobesT = fbmTables(s1, 4, 8), regionT = fbmTables(s1 ^ 0x77, 2, 2);
+  const bendT = lattice(2, 2, s2, 3), fibre1 = lattice(2, 32, s2, 1), fibre2 = lattice(4, 64, s2, 2);
+  const altoT = fbmTables(s3, 3, 8), altoHaze = fbmTables(s3 ^ 0x5, 2, 4), stratusT = fbmTables(s4, 3, 2);
   for (let y = 0; y < N; y++) {
     const v = y / N;
     for (let x = 0; x < N; x++) {
       const u = x / N, k = (y * N + x) * 4;
       // R: cumulus — separate puffs of different sizes (one per jittered cell), lobed by
       // finer fbm, in cloudier and clearer regions: wata-gumo, not one smoke sheet
-      const wu = u + (noise(u * 4, v * 4, 4, 4, s1, 9) - 0.5) * 0.07;
-      const wv = v + (noise(u * 4, v * 4, 4, 4, s1, 10) - 0.5) * 0.07;
-      const [cd, cid] = cells(wu, wv, 6, s1);
-      const [sd, sid] = cells(wu, wv, 14, s1 ^ 0x3a);
+      const wu = u + (noiseT(u * 4, v * 4, 4, 4, warpU) - 0.5) * 0.07;
+      const wv = v + (noiseT(u * 4, v * 4, 4, 4, warpV) - 0.5) * 0.07;
+      cells(wu, wv, big6); const cd = cellD, cid = cellId;
+      cells(wu, wv, small14); const sd = cellD, sid = cellId;
       const big = Math.sqrt(Math.max(0, 1 - cd / (0.2 + 0.42 * cid)));
       // satellite puffs crowd the big ones (cauliflower clusters), a few drift alone
       const small = Math.sqrt(Math.max(0, 1 - sd / (0.18 + 0.3 * sid))) * (0.45 + 0.55 * Math.min(1, big * 2.2));
       const body = Math.max(big, small * 0.82);
-      const lobes = fbm(wu, wv, s1, 4, 8) - 0.5;
-      const region = fbm(u, v, s1 ^ 0x77, 2, 2);
+      const lobes = fbm(wu, wv, lobesT, 8) - 0.5;
+      const region = fbm(u, v, regionT, 2);
       raw[k] = body * (0.7 + 0.4 * region) + lobes * 0.75 * (0.35 + body) + region * 0.18;
       // G: cirrus — long fibres along u (the wind), bent by a slow wave
-      const bend = Math.sin(u * Math.PI * 4 + noise(u * 2, v * 2, 2, 2, s2, 3) * 3) * 1.2;
-      raw[k + 1] = noise(u * 2, v * 32 + bend, 2, 32, s2, 1) * 0.68 + noise(u * 4, v * 64 + bend * 2, 4, 64, s2, 2) * 0.32;
+      const bend = Math.sin(u * Math.PI * 4 + noiseT(u * 2, v * 2, 2, 2, bendT) * 3) * 1.2;
+      raw[k + 1] = noiseT(u * 2, v * 32 + bend, 2, 32, fibre1) * 0.68 + noiseT(u * 4, v * 64 + bend * 2, 4, 64, fibre2) * 0.32;
       // B: altocumulus — rounded cells in loose rows, a little irregularity in every one
-      const [ad] = cells(u, v, 10, s3);
-      raw[k + 2] = Math.sqrt(Math.max(0, 1 - ad * 1.85)) * (0.62 + 0.38 * fbm(u, v, s3, 3, 8)) + fbm(u, v, s3 ^ 0x5, 2, 4) * 0.12;
+      cells(u, v, alto10); const ad = cellD;
+      raw[k + 2] = Math.sqrt(Math.max(0, 1 - ad * 1.85)) * (0.62 + 0.38 * fbm(u, v, altoT, 8)) + fbm(u, v, altoHaze, 4) * 0.12;
       // A: stratus — three low octaves, soft and broad
-      raw[k + 3] = fbm(u, v, s4, 3, 2);
+      raw[k + 3] = fbm(u, v, stratusT, 2);
     }
   }
   const data = equalize(raw);
