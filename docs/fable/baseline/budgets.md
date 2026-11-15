@@ -107,6 +107,17 @@ whose merge ships classic. G-V3 is ticked with this item open.
   on medium, led by `valley-ground` and `clouds`, then `moon-pool`,
   `corral-sign`, `street-bushes` and `moon`. It must close before G-FINAL
   (the default flip).
+- **a1-village re-measure (fix round 1, 2026-11-15 13:35–13:39, still OPEN).**
+  The same build command (`perf_spots.mjs --tiers medium,high --spots street
+  --rounds 1 --frames 20 --warmup 200`), `--boots 3`, two runs, at the lane head
+  with its family speedups and the runtime/bootstrap patches applied in-lane
+  (R71): build **1.26 × / 1.28 ×** on medium, **1.42 × / 1.40 ×** on high, boot
+  total **+327 / +297 ms** and **+461 / +445 ms** (the boot rule holds). Load at
+  the boot starts was 3.39 to 4.54 (run 1) and 2.75 to 3.50 (run 2), so these are
+  load-affected numbers for the gate's quiet pass. Beside G-V3's 1.72 × / 1.74 ×
+  and +1.2 s: the classic world now builds in ~950 ms on this machine, and the
+  modular overhead is ~270 ms (medium) / ~380 ms (high); the build rule needs it
+  under ~240 ms. Levers left: `docs/fable/handoff/a1-village.md` §2c.
 
 ## 3. Per-asset budgets for the contract test (AAA-7)
 

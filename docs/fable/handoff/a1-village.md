@@ -148,6 +148,21 @@ later) or a low/auto saved quality, so the low promise holds:
    its kit content in idle time after the first frame (mountaintop.js).
 3. The first frame (shader compiles) is 140 to 200 ms longer on modular; it
    counts in world ready and boot total, not world build.
+4. **The ground's painted layer tiles and their pack loop (~55 ms, family
+   `ground`).** `groundLayers()` paints earth, moss and gravel on Canvas2D and
+   packs albedo, height, slope and cavity per texel (`src/kit/ground/layers.js`
+   `paintLayers`, the hottest kit-own function at ~21 ms self); the classic
+   ground paints only its meadow tile. Exact speedups (index tables instead of
+   modulo in the cavity blur, row fills for the flat layers) or painting the
+   tiles while the kit modules download would cut it without a visible change.
+5. **The hero trees' leaf sprays (~50 ms on high, family `trees`).** `sakura`
+   was 52 ms in a profiled high boot (13:36): `buildCanopy` leaf-spray placement
+   through the shared foliage code; medium builds the mid tier and is cheaper.
+
+(Fix round 1 re-measure, both patches in-lane: build 1.26/1.28 × medium,
+1.42/1.40 × high, boot +297 to +461 ms, load 2.7 to 4.5; the modular overhead
+is ~270 / ~380 ms and needs to come under ~240 ms. Items 1, 4 and 5 together
+are about 150 ms.)
 
 ## 3. Requests and rulings (fix round 1)
 
@@ -170,4 +185,10 @@ later) or a low/auto saved quality, so the low promise holds:
    in budgets.js).
 4. **Appendix C.** Add to G1: `node --test tools/a1_village_test.mjs` (verify.mjs
    step 5 runs it already); to G2: `node tools/a1_village_browser_test.mjs`
-   (needs `PLAYWRIGHT_MODULE`, ~1 min on Metal; 16 checks).
+   (needs `PLAYWRIGHT_MODULE`, ~1 min on Metal; 15 checks).
+5. **Shishi-odoshi voiced twice when the cat bats it** (open; the fix-round-1
+   rule was reverted in fix round 2, ruling R74). For a later lane: treat a
+   one-frame tilt jump (the bat adds ~+0.7 in one frame; the natural rise is at
+   most ~0.006 a frame) as the bat, mute only a clack within ~1.5 s of it, and
+   test with the game's real cycle plus `clackerBoost`
+   (`src/countryside.js` 5068–5086), not a synthetic swing.

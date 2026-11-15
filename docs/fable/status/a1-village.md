@@ -84,17 +84,17 @@ checked with a classic frame at the same camera):
 
 | Frame | What breaks | Set | Owner / ranked |
 |---|---|---|---|
-| s1_6 (dawn, bridge deck) | the dawn river mist is a white wall across the frame with a hard lower edge; the deck below it reads normally | both (classic `s1_6` shows the same) | ranges `dawn-mist` / classic layout; issue 3 |
-| interior_secret_12 | meadow grass grows through the tatami and between the mats inside the secret machiya | both | Vegetation exclusions (hot) or a floor under the kit tatami; issue 2 |
-| m6_12 (rim forest edge) | past the rim trees the foothills read as low-poly cones and faceted boulders on a flat lawn, a white box house | modular (edge-forest pinned classic, R49) | ranges; issue 4 |
-| r6_12 (Moon Pool rim) | the rim rocks at 0.5 m show texture seams (dashed lines along faces) | modular | rocks (`pool-rim`); issue 10 |
-| r6_12 | the hero lotus standing leaf now has a wavy rim and stalk but still reads lighter than the pads in sun | modular | hidden; issue 11 |
-| s1_12, interior_tea_12 | plank grain bands strongly at grazing angles (bridge deck, tea-room floor strip) | both | issue 12 |
-| m4_12_snow | snow caps the boulder and seat; the meadow grass stays green and tall | both | grass (no snow response); issue 13 |
-| r1_12 | the aze bund is a smooth, untextured green slab at cat height (no crest grass, no earth texture) | both (classic: a smooth unlit dark slab, worse) | water `paddy-bunds`; issue 18 |
-| r1_12, r3_12, r4_12 | at noon the river reads as an opaque beige-grey sheet: no depth, no reflection of the banks; it is route R2's main subject | both (classic: an opaque pale cyan sheet) | water `river`; issue 19 |
-| r4_22 | at night the distant range glows pale through hard-edged gaps in a black tree line, brighter than the sky | both | ranges (night fog on the far range) and the rim trees (edge-forest pinned classic, R49); issue 20 |
-| s3_18.5 | the dusk paving carries a heavy orange outline on every stone joint (the ground's sun fringe) | modular | ground; issue 21 |
+| s1_6 (dawn, bridge deck) | the dawn river mist is a white wall across the frame with a hard lower edge; the deck below it reads normally | both (classic `s1_6` shows the same) | ranges `dawn-mist` / classic layout; issue 4 |
+| interior_secret_12 | meadow grass grows through the tatami and between the mats inside the secret machiya | both | Vegetation exclusions (hot) or a floor under the kit tatami; issue 3 |
+| m6_12 (rim forest edge) | past the rim trees the foothills read as low-poly cones and faceted boulders on a flat lawn, a white box house | modular (edge-forest pinned classic, R49) | ranges; issue 7 |
+| r6_12 (Moon Pool rim) | the rim rocks at 0.5 m show texture seams (dashed lines along faces) | modular | rocks (`pool-rim`); issue 11 |
+| r6_12 | the hero lotus standing leaf now has a wavy rim and stalk but still reads lighter than the pads in sun | modular | hidden; issue 12 |
+| s1_12, interior_tea_12 | plank grain bands strongly at grazing angles (bridge deck, tea-room floor strip) | both | issue 13 |
+| m4_12_snow | snow caps the boulder and seat; the meadow grass stays green and tall | both | grass (no snow response); issue 14 |
+| r1_12 | the aze bund is a smooth, untextured green slab at cat height (no crest grass, no earth texture) | both (classic: a smooth unlit dark slab, worse) | water `paddy-bunds`; issue 6 |
+| r1_12, r3_12, r4_12 | at noon the river reads as an opaque beige-grey sheet: no depth, no reflection of the banks; it is route R2's main subject | both (classic: an opaque pale cyan sheet) | water `river`; issue 2 |
+| r4_22 | at night the distant range glows pale through hard-edged gaps in a black tree line, brighter than the sky | both | ranges (night fog on the far range) and the rim trees (edge-forest pinned classic, R49); issue 5 |
+| s3_18.5 | the dusk paving carries a heavy orange outline on every stone joint (the ground's sun fringe) | modular | ground; issue 10 |
 | first r1 frame (30, 0.5, 26.5) | the camera stood inside a bush: re-placed (route table) | camera | none |
 
 (Fix round 1, from the review: the four rows above the camera row were missed in
@@ -244,7 +244,7 @@ reading the player.
 
 | Event | Family, file | Edge |
 |---|---|---|
-| `garden.shishi.clack` | garden, `build.js` | the existing clack edge (onClack); the tube's world position |
+| `garden.shishi.clack` | garden, `build.js` | the existing clack edge (onClack); the tube's world position (a cat-batted tip is voiced twice: issue 19) |
 | `garden.chime.ring` | garden, `build.js` (valley fūrin and the summit's `summit-furin`) | the clapper turns after a swing of more than 0.1 (the gap to the glass), 0.8 s cooldown; at the game's rest wind (env.wind 1) one ring every ~2.2 s (0.9 to 3.3 s), none in a calm; gain from the swing |
 | `lantern.kindle` | lanterns, `light.js` `lampUpdate` (toro, street lamps, chōchin, andon, courtyard and pool tōrō, the summit toro); hidden, `glade.js` (each glade lantern) | kindle rises through 0.08 once per dusk; never on the first update (a boot at night is silent) |
 | `water.stones.flow` | water, `river.js` | while the cat is within 7 m of a bridge post standing in the river, the nearest is heard every 2.2 to 3.4 s (golden-ratio stagger) |
@@ -283,17 +283,17 @@ plus the summit's.
 | nest: eggs lost MAT.birdEgg gloss; lining saturated at noon; dead code | eggs on `km.bag({ rough: 0.4, metal: 0.1 })` (the classic gloss, speckles kept; one small merged draw, as classic's own egg material); lining 0x3c4a22 → 0x48482e; three dead expressions removed | nest contract 226/0; `nest_before/after` |
 | pagoda: valley first roof still too wide | valley preset overhang 0.42 → 0.32: first-roof span W1·(1 + 2·ov) = 3.80 × 1.64 = 6.2 m against the classic's (4.55 + 0.72) × 1.232 = 6.5 m (x), 5.8 m (z); 0.42 gave 7.0 m | pagoda contract 171/0 (warm-build flake at load 3.3, also on the base, below) |
 | hidden: lotus leaf a pale disc on a thin stalk | blue-green leaf, pale navel, eleven-wave rim, 4 × 33 grid, stalk 12–16 mm (same rng draws) | hidden contract 1232/0; `lotus_after` |
-| hidden: glade lantern 3 cm bob dropped | **not done** (ranked issue 7): the paper, rings and string are in two meshes, one merged; a bob needs both in one live mesh | |
+| hidden: glade lantern 3 cm bob dropped | **not done** (ranked issue 17): the paper, rings and string are in two meshes, one merged; a bob needs both in one live mesh | |
 | keepsakes: glint texture never disposed; dango larger than the classic charm | glint texture per KitMaterials set (the kit's shared-texture convention); dango `size` default 1 → 0.8 (the three dumplings 0.28 m, the classic charm's height; the tassel clears the ground) | keepsakes contract 504/0 |
 | garden: washi texture not disposed; dead expression | strip texture marked `userData.kit` (shared per kit set, the convention); `rotateZ(-atan2(..) * 0 + 0)` removed | garden contract 184/0 |
 | fences: mid tier 12.66k on 11 m runs (R51 exception) | **exception kept, with the reason**: on medium every near-band instance (the whole village, r < 39 m) is built at the mid tier and seen at cat height, so the mid fence is the medium player's close-up fence; dropping knots or nodes there is a visible loss. The bake is now ~7x faster (below), so its `buildMs` part of the exception can go: see A.6 | |
-| trees: maple taller/narrower | **not done** (ranked issue 5): the fix is a wider primary tilt (1.02 → ~1.18), but `SPECIES.maple.canopy` must stay equal to the lab's table (`labs/trees/drift_check.mjs` failed when I changed only the kit), and labs/trees is not this lane's | |
+| trees: maple taller/narrower | **not done** (ranked issue 9): the fix is a wider primary tilt (1.02 → ~1.18), but `SPECIES.maple.canopy` must stay equal to the lab's table (`labs/trees/drift_check.mjs` failed when I changed only the kit), and labs/trees is not this lane's | |
 | trees: wind-motion pixel proof | see A.4 | |
 | critters: butterflies too bright at night | already fixed by a2-hilltop (`cb48fe8`: wing glow follows the sun, 0.1 at night) | read the code |
 | greenery: medium peak-call margin thin | no longer thin at G-V3: medium shadow-refresh frames 557–570 calls against classic high 763 (perf_gv3.md) | |
 | machiya: noren hem band 1.5–4 cm detach | the hem band is a strip inside the swaying cloth mesh (same vertex shader, aSway 1 like the hem), in the panel's darker colour; the static box is gone from the trim | machiya contract 1131/0 |
 | v-ground: ~35 MB heap; upload churn after a walk | the first build keeps no 17 MB snapshot (`cachedField`); regrowth-only re-uploads every 4 s instead of every second for the whole regrowth (paws still upload within 0.25 s) | ground contract 433/0; ground_wear_test 14/0 |
-| v-ground: palette verbatim copy; duplicated sun path; wearGrassMask mixed interpolation | not done (no cost, no visible effect; ranked issue 15) | |
+| v-ground: palette verbatim copy; duplicated sun path; wearGrassMask mixed interpolation | not done (no cost, no visible effect; ranked issue 27) | |
 | G-V3 M1: modular paving lavender at dusk | nobedan stones take the classic street's noon colour ratio (× .81/.70/.55), paving roughness .62 → .8 with half the foot polish, the cool shade tint spares paving | paving mean RGB (cam 1.0,0.45,10 → 0.5,1.1,-22): dusk 74/64/82 → 68/52/54 (classic 63/48/48); noon 190/175/153 → 184/161/126 (classic 169/147/112); `m1-paving-18-modular-before/after.jpg` |
 | G-V3 M2: v-trees handoff says tree-trunks/canopies promoted | corrected (deferred, building blocks only) | docs |
 
@@ -308,12 +308,12 @@ plus the summit's.
   bridge has none between the bridge and the shrine grove (r4_22, r5_22 read
   near black but for the villagers' eye shine and fireflies): a deliberate
   dark stretch on the way to a hidden place, or one tōrō at the bend; for the
-  operator (issue 9).
+  operator (issue 16).
 - **Clutter.** Street edges carry bushes, fences, grass tufts and lanterns
   without crowding the path; the meadow lawns (r5, m1) are sparse by design.
 - **What closes each view:** the torii (street), the shrine hall (sandō),
   the bridge (river), the bamboo ring (glade), the rim forest (meadow) where
-  the foothills beyond read low-poly (issue 4).
+  the foothills beyond read low-poly (issue 7).
 
 ## A.3 Light
 
@@ -323,7 +323,7 @@ plus the summit's.
 - Lanterns kindle at dusk and light the paving and walls around them (s3_22);
   falloff ends within a few metres, so the street reads in pools of light.
 - Wetness and snow respond (r3_12_rain: wet path, dark river; m4_12_snow:
-  snow on stone and seat); the grass ignores snow (issue 13, both sets).
+  snow on stone and seat); the grass ignores snow (issue 14, both sets).
 - Nothing in the frames ignores fog or the hour: dawn and dusk tint every
   asset; the interiors keep their own light (interior_tea_12).
 
@@ -373,7 +373,7 @@ Against G-V3 (perf_gv3.md) the modular counts are unchanged within a few calls
 (street medium 434 vs 442, high 585 vs 583; triangles within 0.03 M): the egg
 gloss (one small merged material) and the lotus leaf cost nothing visible.
 
-**Cheap frame-time win, proposed, not applied** (issue 16): the ground
+**Cheap frame-time win, proposed, not applied** (issue 24): the ground
 material is the largest modular GPU cost and medium builds the whole village
 at its mid tier (3-tap hex sampler, macro noise, fringe). Giving medium the
 far tier's 2-tap sampler, or dropping the macro noise there, is a one-line
@@ -423,7 +423,7 @@ modular fov30:  body "large-text high-contrast reduce-motion", camera fov 40.0, 
 
 (only the optional `/cad-overrides.json` 404 was ignored). Reduce-motion:
 the kit weather and the summit pollen damp themselves (body class); the noren
-sway (1.5 cm at rest wind) and the fūrin clapper do not read the flag (issue 14).
+sway (1.5 cm at rest wind) and the fūrin clapper do not read the flag (issue 18).
 
 ## Checks run (command → real result)
 
@@ -445,9 +445,11 @@ At the lane head (9d85011 + the budgets/status commit), 2026-11-15 13:02–13:06
 - **Modular deterministic:** two `?assets=modular` boots at the river stop: `maxDelta 0, pixelsOver8 0`
 - Boots: every A.1/A.7 boot ran without page errors (only the optional `/cad-overrides.json` 404); kit `problems: 0`, 261 instances
 
+**Fix round 2 (ruling R74), 13:47–13:49, load 2.8–4.2:** the shishi rule and its synthetic-swing check reverted (issue 19 records the double voice and the reviewer's approach for later). `node --test tools/a1_village_test.mjs` → pass 6, fail 0; `node tools/a1_village_browser_test.mjs` → `15 passed, 0 failed`; garden contract `184 checks, 0 failed`; check_syntax 171 OK; verify `All checks passed` (kit_test 36/36, a1_village_test 6/6); kit_check 446; labs_check OK; diff-check clean; cadJS `modules: ok`, 15/15, 16/16; catalog 50/0; footprint, systems, cat, summit, rooftop goldens EQUAL; summit parity EQUAL; classic `game_shot` 80ddf98 against the head at the street (noon), the glade (night) and the residence garden with the shishi (noon): `maxDelta 0` each. budgets.md §2 carries the fix-round R66 numbers (R66 OPEN); handoff §2c the two new levers.
+
 **Fix round 1 (after merging origin/fable/integration 80ddf98), 13:22–13:41, load 2.6–4.9:**
-- New tests: `node --test tools/a1_village_test.mjs` → `pass 6, fail 0` (cloud field byte-equal to its oracle on 9 seeds + frozen hash on the game seeds; pool caustics byte-equal on 12 site sets; lampUpdate kindle edge; runtime side-by-side imports and registration order; a failing materials import still fails preload); `verify.mjs` runs it (`a1_village_test: tests 6, pass 6, fail 0`). `node tools/a1_village_browser_test.mjs` → `16 passed, 0 failed` (fence bake equal to the original baker on 36 cases up to 600 copies; sink: near plays, 300 m silent, kindles 50 ms apart once, 220 ms apart twice, other events 100 ms apart twice, paused silent, unknown ignored, shishi batted tip silent, `?shot=1` silent and no pack; prefetch: index + 24/24 families before kit-overrides.json on saved modular + high, none on classic or saved low; no page errors).
-- **Each test fails when its behaviour breaks** (scratch worktree at 96ca23f, the shishi one at c95b8a7; each restored): cloud cell jitter 0.7 → 0.71 → `fail 2`; caustic pruning bound halved → `fail 1`; lampUpdate without its first-update guard → `fail 1`; runtime back to sequential imports (98c3a61) → `fail 1`; bake without the normal transform → `FAIL fence bake …`; sink kindle gap 0.15 → 0.01 → `FAIL two kindles 50 ms apart …`; prefetch with its gates removed → `FAIL classic default …` and `FAIL saved modular + low …`; the shishi rule removed → `FAIL shishi …` (`batted: 1`). Restored: all pass.
+- New tests: `node --test tools/a1_village_test.mjs` → `pass 6, fail 0` (cloud field byte-equal to its oracle on 9 seeds + frozen hash on the game seeds; pool caustics byte-equal on 12 site sets; lampUpdate kindle edge; runtime side-by-side imports and registration order; a failing materials import still fails preload); `verify.mjs` runs it (`a1_village_test: tests 6, pass 6, fail 0`). `node tools/a1_village_browser_test.mjs` → `16 passed, 0 failed; 15 after fix round 2 removed the shishi case` (fence bake equal to the original baker on 36 cases up to 600 copies; sink: near plays, 300 m silent, kindles 50 ms apart once, 220 ms apart twice, other events 100 ms apart twice, paused silent, unknown ignored, shishi batted tip silent, `?shot=1` silent and no pack; prefetch: index + 24/24 families before kit-overrides.json on saved modular + high, none on classic or saved low; no page errors).
+- **Each test fails when its behaviour breaks** (scratch worktree at 96ca23f, the shishi one at c95b8a7; each restored): cloud cell jitter 0.7 → 0.71 → `fail 2`; caustic pruning bound halved → `fail 1`; lampUpdate without its first-update guard → `fail 1`; runtime back to sequential imports (98c3a61) → `fail 1`; bake without the normal transform → `FAIL fence bake …`; sink kindle gap 0.15 → 0.01 → `FAIL two kindles 50 ms apart …`; prefetch with its gates removed → `FAIL classic default …` and `FAIL saved modular + low …`; the shishi rule removed → `FAIL shishi …` (`batted: 1`). Restored: all pass. (The shishi rule and its check were reverted in fix round 2, ruling R74: the rule silenced natural clacks after a late bat.)
 - G1: check_syntax `All 171 modules OK`; verify `All checks passed`; kit_check 446; labs_check OK; cad_overrides 27/0; diff-check clean. cadJS `modules: ok`, 15/15, 16/16; catalog 50/0.
 - Contracts (touched families): garden 184/0, alley 153/0, machiya 1131/0, hidden 1232/0, fences 300/0, sky 325/0, lanterns 483/0.
 - Goldens: footprint EQUAL, `--systems` EQUAL, cat EQUAL, summit EQUAL, summit parity EQUAL, rooftop golden EQUAL; summit_test 83/0; ground wear 14/0.
@@ -459,81 +461,92 @@ At the lane head (9d85011 + the budgets/status commit), 2026-11-15 13:02–13:06
 
 ## Remaining issues, ranked
 
-1. **R66 world build is not closed by this lane alone** (lane: 1.43 × medium,
-   1.57 × high; boot +689 / +953 ms). With handoff §2a (runtime: families
-   imported side by side) and §2b (bootstrap: the kit's downloads start with
-   main.js) it holds on the same run's medians: 1.24 × / 1.22 ×, boot +325 /
-   +392 ms. Integrator: apply both, re-measure on a quiet machine; §2c if
-   medium needs margin.
-2. **Grass grows through the secret machiya's floor** (both sets,
+(Re-ranked by severity in fix round 2: what a player sees at cat height first,
+then sound, motion and comfort, then bookkeeping.)
+
+1. **R66 world build is not closed.** §2a and §2b are now in-lane (R71). The
+   re-measure (3 boots, two runs, load 2.7–4.5, so load-affected) gives
+   1.26 / 1.28 × on medium and 1.42 / 1.40 × on high; the boot rule holds
+   (+297 to +461 ms). The classic world now builds in ~950 ms, so the ~270 ms
+   (medium) / ~380 ms (high) modular overhead has to lose ~30 / ~140 ms more:
+   handoff §2c lists the levers. Needs the gate's quiet pass.
+2. **The noon river is an opaque beige-grey sheet** (`r1_12`, `r3_12`, `r4_12`;
+   classic a pale cyan sheet): the shader reflects a sky gradient only, so
+   from 0.5 m it shows no banks, trees or depth. A capped Fresnel and darker
+   bank band barely changed it (`r4_12_vA`). Needs bank/tree reflections
+   (planar or screen-space) and a look study. Owner: water (`river`).
+3. **Grass grows through the secret machiya's floor** (both sets,
    `interior_secret_12`): meadow tufts inside the room and between the tatami.
    Vegetation's exclusion for the rotated house (hot) or a solid floor under
    the kit tatami.
-3. **Dawn mist on the bridge deck is a white wall with a hard lower edge**
+4. **Dawn mist on the bridge deck is a white wall with a hard lower edge**
    (both sets, `s1_6`). The camera at the cat's eye on the deck sits inside the
    12 mist sprites' band; a near-camera fade in `ranges/mist.js` would fix the
    modular set.
-4. **Beyond the rim forest the foothills read low-poly** (cones, faceted
+5. **At night the far range glows through hard-edged gaps in the tree line**
+   (`r4_22`, both sets): the night fog on the far range is brighter than the
+   sky. Owner: ranges / fog (and the rim trees, pinned classic by R49).
+6. **Paddy aze bunds read as smooth slabs** (`r1_12`, both sets): they need
+   crest grass (a tuft strip or the game grass on the crest) and an earth
+   texture, new geometry with a draw-count check, not a parameter. Owner:
+   water (`paddy-bunds`).
+7. **Beyond the rim forest the foothills read low-poly** (cones, faceted
    boulders, a white box house; `m6_12`). Ranges family; edge-forest is pinned
    classic (R49).
-5. **Maple crown taller and narrower than the classic** (v-trees minor): the
+8. **Summit kit sounds silent at the summit** until handoff §1 (one line in
+   `mountaintop.js`) passes `env.audio` (R62).
+9. **Maple crown taller and narrower than the classic** (v-trees minor): the
    fix is a wider primary tilt (1.02 → ~1.18) in both `labs/trees` and
    `src/kit/trees/build.js` SPECIES (the lab drift check compares them), so it
    needs the lab owner.
-6. **Summit kit sounds silent at the summit** until handoff §1 (one line in
-   `mountaintop.js`) passes `env.audio` (R62).
-7. **Glade lantern 3 cm bob** (v-hidden minor) not restored: the paper and its
-   rings are in two meshes (one merged), so a bob needs them in one live mesh.
-8. **`env.wind` never changes** (`Game.assetEnv()` sets 1 once), so every
-   kit wind response (fūrin, noren, foliage via the classic uniform excepted)
-   runs at rest wind; main.js `assetEnv` (hot) could pass the sky's wind.
-9. **No lantern on the river path between the bridge and the shrine grove**
-   (`r4_22`, `r5_22` near black): operator's call (a dark stretch to a hidden
-   place, or one tōrō at the bend).
-10. **Moon Pool rim rocks show texture seams at cat height** (`r6_12`).
-11. **Hero lotus standing leaf still reads lighter than the pads in sun**
-    (better shaped now; `r6_12`).
-12. **Plank grain bands at grazing angles** (bridge deck `s1_12`, tea-room floor
-    strip), both sets.
-13. **Grass ignores snow** (`m4_12_snow`), both sets.
-14. **Reduce-motion**: the noren sway and the fūrin clapper do not read the
-    comfort flag (the kit weather and the summit pollen do).
-15. v-ground leftovers with no visible effect: palette copy, duplicated sun
-    path, wearGrassMask interpolation.
-16. Frame time (A.6): the ground material is the largest modular GPU cost at
-    medium; proposal below, not applied.
-17. `bamboo-fence` mid triangles exception (R51) kept, with its reason
-    (medium builds the whole village at mid and sees it at cat height).
-18. **Paddy aze bunds read as smooth slabs** (`r1_12`, both sets): they need
-    crest grass (a tuft strip or the game grass on the crest) and an earth
-    texture, new geometry with a draw-count check, not a parameter. Owner:
-    water (`paddy-bunds`).
-19. **The noon river is an opaque beige-grey sheet** (`r1_12`, `r3_12`, `r4_12`;
-    classic a pale cyan sheet): the shader reflects a sky gradient only, so
-    from 0.5 m it shows no banks, trees or depth. A capped Fresnel and darker
-    bank band barely changed it (`r4_12_vA`). Needs bank/tree reflections
-    (planar or screen-space) and a look study. Owner: water (`river`).
-20. **At night the far range glows through hard-edged gaps in the tree line**
-    (`r4_22`, both sets): the night fog on the far range is brighter than the
-    sky. Owner: ranges / fog (and the rim trees, pinned classic by R49).
-21. **Dusk paving joints carry a heavy orange outline** (`s3_18.5`): the ground's
+10. **Dusk paving joints carry a heavy orange outline** (`s3_18.5`): the ground's
     sun fringe at the joints. Owner: ground (`FRINGE` strength at low sun);
     an art call, left for the operator's eye.
-22. **The noon frame-time win in A.6 was not measured** (issue 16 stays a
-    proposal): a before/after needs a quiet machine and an L6 pair.
-23. **`distant-pagoda` hero warm build flakes over its 6 ms cap under load**
-    (budgets.md §5 watch list; 6.3–6.6 ms in 2 of 4 runs at load 3.3, the base
-    too): not trimmed; it needs a profile of the pagoda build.
-24. **The nest's egg material is a second nest-owned merged material** (R26:
-    ≤ 1 per family without a request): recorded in the handoff §3 as the
-    request (`KIT_SHARED` lives in materials.js, a hot file).
-25. **`water.stones.flow` is a proximity-paced sound** (one burble every 2.2–3.4 s
+11. **Moon Pool rim rocks show texture seams at cat height** (`r6_12`).
+12. **Hero lotus standing leaf still reads lighter than the pads in sun**
+    (better shaped now; `r6_12`).
+13. **Plank grain bands at grazing angles** (bridge deck `s1_12`, tea-room floor
+    strip), both sets.
+14. **Grass ignores snow** (`m4_12_snow`), both sets.
+15. **`env.wind` never changes** (`Game.assetEnv()` sets 1 once), so every
+    kit wind response (fūrin, noren, foliage via the classic uniform excepted)
+    runs at rest wind; main.js `assetEnv` (hot) could pass the sky's wind.
+16. **No lantern on the river path between the bridge and the shrine grove**
+    (`r4_22`, `r5_22` near black): operator's call (a dark stretch to a hidden
+    place, or one tōrō at the bend).
+17. **Glade lantern 3 cm bob** (v-hidden minor) not restored: the paper and its
+    rings are in two meshes (one merged), so a bob needs them in one live mesh.
+18. **Reduce-motion**: the noren sway and the fūrin clapper do not read the
+    comfort flag (the kit weather and the summit pollen do).
+19. **The shishi-odoshi is voiced twice when the cat bats it** (fix-round-1
+    attempt reverted, ruling R74): `ContextActionManager.tipClacker` plays a
+    splash and a bell, and the kit's clack edge sounds when the tube settles.
+    A peak-height rule silenced the next natural clack after a late bat. For
+    later: treat a one-frame tilt jump (the bat adds ~+0.7 in one frame; the
+    natural rise is ≤ ~0.006 a frame) as the bat, mute only a clack within
+    ~1.5 s of it, and test with the game's real cycle plus `clackerBoost`
+    (countryside.js:5068–5086). Owner: garden (kit) / this lane's successor.
+20. **`water.stones.flow` is a proximity-paced sound** (one burble every 2.2–3.4 s
     within 7 m), not a single edge; reasonable for flowing water. Integrator
     ruling on R50 requested (handoff §3).
-26. **The lazy moon moves its cost, it does not remove it**: the 16–20 ms paint
+21. **The lazy moon moves its cost, it does not remove it**: the 16–20 ms paint
     runs on the first frame that draws the moon (the first dusk, or frame 1 of
     a night boot, inside "ready"). "None on a day boot" holds because the
     runtime updates instances before the first render (the moon's update
     hides the disc by day).
+22. **The nest's egg material is a second nest-owned merged material** (R26:
+    ≤ 1 per family without a request): recorded in the handoff §3 as the
+    request (`KIT_SHARED` lives in materials.js, a hot file).
+23. **`distant-pagoda` hero warm build flakes over its 6 ms cap under load**
+    (budgets.md §5 watch list; 6.3–6.6 ms in 2 of 4 runs at load 3.3, the base
+    too): not trimmed; it needs a profile of the pagoda build.
+24. Frame time (A.6): the ground material is the largest modular GPU cost at
+    medium; proposal below, not applied.
+25. **The noon frame-time win in A.6 was not measured** (issue 24 stays a
+    proposal): a before/after needs a quiet machine and an L6 pair.
+26. `bamboo-fence` mid triangles exception (R51) kept, with its reason
+    (medium builds the whole village at mid and sees it at cat height).
+27. v-ground leftovers with no visible effect: palette copy, duplicated sun
+    path, wearGrassMask interpolation.
 
 ## Notes for the Integrator
