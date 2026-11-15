@@ -93,7 +93,9 @@ async function loadCats() {
     catRoot.add(cat.group);
     catMod = mod;
     // Chidori: the same sculpt (cached), a smaller grey-and-white coat.
-    guide = new mod.Cat({ fur: 0x8f9095, belly: 0xf3f1ec, accent: 0x55575e, eyeColor: 0x9fd0a8, stripeAmount: 0.55, ribbonColor: 0x3a6fa8 });
+    const chidoriModular = assets.setFor('roof-chidori') === 'modular' && !lowPower;
+    const chidoriDef = chidoriModular ? (await import('../../src/characters/defs/chidori.js?v=20261114a')).CHIDORI : null;
+    guide = new mod.Cat(chidoriDef ? { def: chidoriDef, quality: 'high' } : { fur: 0x8f9095, belly: 0xf3f1ec, accent: 0x55575e, eyeColor: 0x9fd0a8, stripeAmount: 0.55, ribbonColor: 0x3a6fa8 });
     guide.group.scale.setScalar(0.86);
     guide.group.position.y = 0.02;
     guideRoot.add(guide.group);

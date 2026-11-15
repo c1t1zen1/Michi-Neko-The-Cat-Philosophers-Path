@@ -54,3 +54,4 @@ For s3-vista and r4-festival (import with the current `?v=` tag):
 | v-water | water (river, bridge, paddies, paddy-bunds, rice, water-ripples) | `src/kit/water/index.js` `assets` |
 | s3-vista | vista/summit-vista, vista-terrain, kyoto-city, summit-pagoda, summit-bay, harbour, bay-bridge, ferris-wheel, horizon | src/kit/vista/index.js assets (production: "vista") |
 | v-ground | ground (valley-ground, path, path-shoulders, path-slabs) | `src/kit/ground/index.js` `assets` (production: "ground") |
+| r5-roof-cast | roofcast (roof-shoki, roof-treats, roof-villagers; part of 6 ids) | src/kit/roofcast/index.js assets |

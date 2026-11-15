@@ -625,25 +625,35 @@ async function routingTest(mods, classic, mainAssets) {
   check('the treats stay classic (an id not swapped)', JSON.stringify(dyn.treats.map((o) => [at(o), plain(o.userData.pickup)])) === JSON.stringify(classic.dynamic.treats));
   const kitRoots = new Set([...boats.map((b) => b.rec.group), ...extras.map((e) => e.group)]);
   const isBatchGroup = (c) => c.children.some((o) => o.userData && o.userData.spatialBatch);
-  const otherRoots = aligned.filter((c) => !kitRoots.has(c) && !isBatchGroup(c));
-  const rootDiffer = otherRoots.filter((c) => JSON.stringify(d.root[root.children.indexOf(c)].slice(1)) !== JSON.stringify(classic.root[at(c)].slice(1))).map(at);
-  check('every other root child (ground, distant city, float, people, treats) is identical to the classic build', otherRoots.length > 0 && rootDiffer.length === 0,
-    `${otherRoots.length} compared; differ: ${rootDiffer.slice(0, 5).join(', ')}`);
-
-  const routedIdx = new Set([...routed, ...boatPieces].map(([, i]) => i));
   // Piece types a REGISTERED kit family provides, resolved modular in the main
   // run: they are real kit pieces there, so they may differ from this
   // stand-in build. Every other piece must still be identical.
   const { PIECES } = await import('../rooftops/js/pieces/index.js');
   const realKit = new Set(Object.keys(PIECES).filter((t) => mainAssets && mainAssets.has(PIECES[t].id) && mainAssets.setFor(PIECES[t].id) === 'modular'));
+  // Root children those pieces add (live kit groups in the main run; e.g. roof-villagers): exempt.
+  const realKitRoots = new Set();
+  B.level.pieces.forEach((pc, i) => { if (realKit.has(pc.type)) for (const { parent, child } of (B.per[i] || [])) if (parent === root) realKitRoots.add(child); });
+  // Likewise the treats, when roof-treats is a registered family id resolved modular in the main run.
+  if (mainAssets && mainAssets.has('roof-treats') && mainAssets.setFor('roof-treats') === 'modular') for (const o of dyn.treats || []) realKitRoots.add(o);
+  const otherRoots = aligned.filter((c) => !kitRoots.has(c) && !realKitRoots.has(c) && !isBatchGroup(c));
+  const rootDiffer = otherRoots.filter((c) => JSON.stringify(d.root[root.children.indexOf(c)].slice(1)) !== JSON.stringify(classic.root[at(c)].slice(1))).map(at);
+  check('every other root child (ground, distant city, float, people, treats) is identical to the classic build', otherRoots.length > 0 && rootDiffer.length === 0,
+    `${otherRoots.length} compared; differ: ${rootDiffer.slice(0, 5).join(', ')}`);
+
+  const routedIdx = new Set([...routed, ...boatPieces].map(([, i]) => i));
   const others = d.pieces.filter((row) => !routedIdx.has(row[0]) && !realKit.has(row[1]));
   const othersClassic = classic.pieces.filter((row) => !routedIdx.has(row[0]) && !realKit.has(row[1]));
   const differ = others.filter((row, i) => JSON.stringify(row) !== JSON.stringify(othersClassic[i])).map((row) => `#${row[0]} ${row[1]}`);
   check('every other piece is identical to the classic build', differ.length === 0, differ.slice(0, 5).join(', '));
   check('the routed pieces did change', [...routed, ...boatPieces].every(([, i]) => JSON.stringify(d.pieces[i]) !== JSON.stringify(classic.pieces[i])));
-  for (const sec of ['platforms', 'walls', 'ceilings', 'pickups', 'materials']) {
+  for (const sec of ['platforms', 'walls', 'ceilings', 'pickups']) {
     check(`${sec} identical to the classic build`, JSON.stringify(d[sec]) === JSON.stringify(classic[sec]));
   }
+  // A registered modular piece type may bring a material of its own (km.bag for the villagers):
+  // the main run may hold extra materials then, and every material of this build must be identical there.
+  const matSame = Object.keys(d.materials).every((k) => JSON.stringify(d.materials[k]) === JSON.stringify(classic.materials[k])) &&
+    (realKit.size > 0 || Object.keys(d.materials).length === Object.keys(classic.materials).length);
+  check('materials identical to the classic build', matSame);
   check('an unregistered ?swap id builds classic (roof-bridge)', runtime.setFor('roof-bridge') === 'modular' && !runtime.has('roof-bridge') &&
     !built.some((b) => b.layout.type === 'bridge') && !runtime.instances.some((x) => x.id === 'roof-bridge'));
   check('no kit warning while routing', warnings.length === 0, warnings.join('; '));

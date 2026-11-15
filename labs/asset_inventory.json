@@ -7195,7 +7195,8 @@
      "level": "review"
     }
    ],
-   "note": "The game’s Cat with Chidori’s coat (decision D3: no PERSONALITIES entry); no specimen of her own."
+   "note": "The game’s Cat with Chidori’s coat (decision D3: no PERSONALITIES entry); no specimen of her own.",
+   "production": "src/characters/defs/chidori.js"
   },
   {
    "id": "roof-boatman",
