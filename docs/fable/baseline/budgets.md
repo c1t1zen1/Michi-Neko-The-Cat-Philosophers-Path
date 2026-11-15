@@ -87,6 +87,15 @@ world ready; prefer the same-session comparison here too.)
 | **medium** | ≤ 1.25 × classic medium = **1,573 ms** | ≤ 1.25 × = 1,120 ms | ≤ classic + 1,000 ms = **2,930 ms** | +25 % is about +0.22 s behind the boot screen. Since f1-runtime, `Game.init()` awaits `assets.preload()` (the kit's module downloads) after the constructor starts and before the world builds, so world build and world ready include it; on the local test server that is small, on a real network it is not, hence the absolute +1 s on boot total |
 | **high** | ≤ 1.25 × classic high = **1,539 ms** | ≤ 1.25 × = 1,113 ms | ≤ classic + 1,000 ms = **2,877 ms** | same |
 
+**Status at G-V3 (`perf_gv3.md`): this rule fails on modular.** With all 24
+families on, same session, modular world build is 1.72 × classic on medium
+and 1.74 × on high (ready 1.63 ×; boot total +1.2 s), against 1.19 × at G-V1.
+The six slowest first builds (`valley-ground`, `clouds`, `moon-pool`,
+`corral-sign`, `street-bushes`, `moon`) take about 420 ms of it on medium.
+Classic and `low` are unaffected (the kit is not loaded). Owner of the fix:
+`a1-village` with the owning families; the merge to `main` needs an
+Integrator ruling on it.
+
 ## 3. Per-asset budgets for the contract test (AAA-7)
 
 ### Detail tiers
