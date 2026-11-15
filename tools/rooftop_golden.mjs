@@ -16,7 +16,9 @@
 //
 // The page also runs the routing self-test (R1.3): stand-in kit assets for
 // roof-kido and roof-lantern-racks must replace exactly the kido and rack
-// pieces, in the classic rail frame on every leg direction; a stand-in
+// pieces, in the classic rail frame on every leg direction, their
+// vertex-coloured meshes keeping their colours through the merge and their
+// strips drawn from layout.rail lying on ribbon(); a stand-in
 // roof-takasebune must join the world's boats and move as the classic ones;
 // stand-ins for roof-skyline-pagodas and roof-shoki must stand where the
 // classic ones stand; everything else unchanged. It is part of the verdict:
@@ -144,7 +146,7 @@ function printSummary(r, run, v, { out, goldenFile, max }) {
     `kit ${a.loaded ? 'loaded' : 'not loaded'}, ${a.assets.length} kit ids, ${a.instances} instances${a.problems.length ? ' · problems: ' + a.problems.join('; ') : ''}`);
   const g = r.routing;
   if (g && g.ran) lines.push(`  routing  ${g.ok ? 'ok' : 'FAILED'}: stand-ins on ${g.routed} pieces (kido, rack, boat; legs ${g.legs.join(' ')}) and ${g.extras} extras (pagodas, Shōki); ` +
-    `${g.checks.filter((c) => c[1]).length}/${g.checks.length} checks (frame, light sockets, live parts, moving pieces, extras, other pieces, lights, level, unregistered swap)`);
+    `${g.checks.filter((c) => c[1]).length}/${g.checks.length} checks (frame, light sockets, live parts, vertex colours, layout.rail, moving pieces, extras, other pieces, lights, level, unregistered swap)`);
   else lines.push(`  routing  not run${g ? ': ' + g.problems.join('; ') : ''}`);
   lines.push(`  random   ${r.ambient.draws} Math.random draws (three.js UUIDs; seeded)`);
   lines.push(`  time     build ${r.timing.buildMs.join(' + ')} ms · page ${secs(r.timing.totalMs)} · run ${secs(run.ms)}`);

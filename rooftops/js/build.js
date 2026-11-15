@@ -49,6 +49,12 @@ export { PIECES } from './pieces/index.js';
  * gameplay, level.js). The facade registers no collision: every surface, wall
  * and ceiling belongs to level.js, so the footprint is empty and a kit piece
  * must draw the surfaces its `piece` names.
+ *
+ * `rail` is the route under a piece that spans [s0, s1] (null otherwise), for
+ * what follows the rail rather than the middle frame: the canal, its banks,
+ * the lines, and any piece across a fillet. railSamples() samples it exactly
+ * as ribbon() (pieces/common.js) does, so a kit ribbon lands on the classic
+ * one's vertices.
  */
 export function pieceLayout(pc, index, rail) {
   const s = pc.s ?? (pc.s0 !== undefined ? (pc.s0 + (pc.s1 ?? pc.s0)) / 2 : 0);
@@ -56,9 +62,33 @@ export function pieceLayout(pc, index, rail) {
   return {
     index, type: pc.type, piece: pc, s,
     x: p.x, y: 0, z: p.z, ry: Math.atan2(-t.z, t.x),
+    rail: Number.isFinite(pc.s0) && Number.isFinite(pc.s1) ? railSamples(rail, pc.s0, pc.s1) : null,
     band: 'near',
     footprint: { colliders: [], exclusions: [], anchors: {} }
   };
+}
+
+/** ribbon()'s sample spacing along the rail (pieces/common.js). */
+const RIBBON_STEP = 0.5;
+
+/**
+ * The rail over [s0, s1] as plain data, sampled the way ribbon() samples it:
+ * n = max(1, ceil((s1 − s0) / 0.5)) equal steps, n + 1 points
+ * { s, x, z, tx, tz } in world XZ, with the unit tangent t. The point at depth
+ * d is (x − tz·d, z + tx·d), which is rail.place(s, d). Into the layout's
+ * frame (c = cos ry, sn = sin ry, dx = x − layout.x, dz = z − layout.z):
+ * local x = dx·c − dz·sn, local z = dx·sn + dz·c, and the same rotation turns
+ * the tangent.
+ */
+function railSamples(rail, s0, s1) {
+  const n = Math.max(1, Math.ceil((s1 - s0) / RIBBON_STEP));
+  const points = [];
+  for (let i = 0; i <= n; i++) {
+    const s = s0 + ((s1 - s0) * i) / n;
+    const p = rail.pointAt(s), t = rail.tangentAt(s);
+    points.push({ s, x: p.x, z: p.z, tx: t.x, tz: t.z });
+  }
+  return { s0, s1, step: RIBBON_STEP, points };
 }
 
 /**
