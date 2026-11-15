@@ -18,7 +18,7 @@ export const assets = [
     sample: at({ type: 'barrel', s0: 0, s1: 0.64, y: 0.82, y0: 0.82, d: 2.1 }), build: buildBarrel }),
   defineAsset({ id: 'roof-komodaru', family: 'roofstreets', label: 'Roof Road komodaru', params: wear, tiers: T,
     sample: at({ type: 'komodaru', s0: 0, s1: 0.84, y: 1.05, y0: 1.05, d: 1.95 }), build: buildKomodaru }),
-  defineAsset({ id: 'roof-lantern-post', family: 'roofstreets', label: 'Lantern post', tiers: T, floating: ['post_timber', 'post_steel', 'post_red'],
+  defineAsset({ id: 'roof-lantern-post', family: 'roofstreets', label: 'Lantern post', tiers: T, floating: ['post_timber', 'post_steel', 'post_red', 'post_lamp'],
     sample: at({ type: 'post', s0: 0, s1: 0.36, y: 2.05, y0: 2.05, d: 2.7 }), build: buildLanternPost }),
   defineAsset({ id: 'roof-yuka', family: 'roofstreets', label: 'Yuka deck', tiers: T,
     sample: at({ type: 'deck', style: 'yuka', s0: 0, s1: 7.4, y: 1.4, d: 2.4 }), build: buildYuka }),

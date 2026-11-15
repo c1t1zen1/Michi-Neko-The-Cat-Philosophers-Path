@@ -22,6 +22,8 @@ import { worldScaleBoxUVs } from '../../textures.js?v=20261114a';
 const MATS = {
   wood: ['agedWood', (km) => km.wood({ base: 0x8f6c42, dark: 0x5a3e26 })],
   timber: ['timber', (km) => km.wood({ base: 0x5a3e26, dark: 0x2c1b12 })],
+  timberMed: ['timberMed', (km) => km.wood({ base: 0x6e4c30, dark: 0x34210f })],
+  lamp: ['lanternRed', (km) => km.plain(0xc8402a, { rough: 0.8 })],
   dark: ['dark', (km) => km.plain(0x2a1d14, { rough: 0.9 })],
   steel: ['steel', (km) => km.plain(0x5d6168, { rough: 0.5, metal: 0.6 })],
   red: ['lacquer', (km) => km.plain(0xc8402a, { rough: 0.7 })],
@@ -31,7 +33,12 @@ const MATS = {
   straw: ['twine', (km) => km.straw({ color: 0xb59a62 })],
   cream: ['enamel', (km) => km.plain(0xe8e0cc, { rough: 0.6 })]
 };
-const material = (ctx, key) => (ctx.MAT && ctx.MAT[MATS[key][0]]) || MATS[key][1](ctx.kitMaterials);
+const material = (ctx, key) => {
+  if (key === 'goods3') return (ctx.MAT && ctx.MAT.goods && ctx.MAT.goods[3]) || ctx.kitMaterials.plain(0xb84a52, { rough: 0.9 });   // the classic cushions
+  const leaf = /^leaf([0-2])$/.exec(key);   // the Roof Road's three alpha-cut vine leaf materials (M.leaves[i])
+  if (leaf) return (ctx.MAT && ctx.MAT.leaves && ctx.MAT.leaves[+leaf[1]]) || ctx.kitMaterials.plain([0x63884d, 0xa1a660, 0x406950][+leaf[1]], { rough: 1, side: THREE.DoubleSide });
+  return (ctx.MAT && ctx.MAT[MATS[key][0]]) || MATS[key][1](ctx.kitMaterials);
+};
 
 /** Per-material Bags; add(geo, { …, m: 'wood' }) routes into the right one. */
 class Multi {
@@ -48,17 +55,19 @@ class Multi {
 }
 
 const SEG = { hero: 20, mid: 12, far: 7 };
-const LEAF = new THREE.IcosahedronGeometry(1, 0);   // 20 triangles: a leaf clump
+const TAU = Math.PI * 2;
+const LEAF_CARD = new THREE.PlaneGeometry(1, 1);
+const LEAF = new THREE.SphereGeometry(1, 8, 6);   // 80 triangles: a wisteria bead (hero only)
 const blob = (bag, r, o) => bag.add(LEAF, { ...o, sx: r, sy: r * (o.sy || 1), sz: r });
 
 function finish(ctx, multi, name, extra = {}) {
   const group = new THREE.Group(), parts = {};
   for (const [key, bag] of multi.bags) {
-    const mesh = bag.mesh(material(ctx, key), `${name}_${key}`);
+    const mesh = bag.mesh(material(ctx, key), `${name}_${key.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase())}`);
     if (!mesh) continue;
     mesh.castShadow = mesh.receiveShadow = true;
     group.add(mesh);
-    parts[`${name}_${key}`] = mesh;
+    parts[`${name}_${key.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase())}`] = mesh;
   }
   return { group, parts, sockets: {}, live: [], ...extra };
 }
@@ -83,7 +92,7 @@ function addCrate(bag, w, h, d, x, z, tier, r, wear) {
   for (const a of [-1, 1]) for (const b of [-1, 1]) bag.box(0.06, h, 0.06, { x: x + a * w * 0.43, y: h / 2, z: z + b * d * 0.43, m: 'timber' });
   // top slats: the landing surface, flush at exactly h
   const m = tier === 'hero' ? 4 : 3;
-  for (let k = 0; k < m; k++) bag.box(w / m - 0.01, 0.045, d, { x: x - w / 2 + (k + 0.5) * (w / m), y: h - 0.0225, z, m: 'wood' });
+  for (let k = 0; k < m; k++) bag.box(w / m - 0.035, 0.045, d, { x: x - w / 2 + (k + 0.5) * (w / m), y: h - 0.0225, z, m: 'wood' });
 }
 
 export function buildCrate(ctx, layout, p) {
@@ -103,7 +112,7 @@ function cask(bag, tier, x, z, h, rad, mats, strawBound, wear) {
   if (tier === 'far') return;
   for (const f of [0.1, 0.44, 0.75]) {
     const rr = rad * (f === 0.44 ? 1.06 : 0.98);
-    bag.add(new THREE.TorusGeometry(rr, 0.018 * (1 + 0.4 * wear), 5, seg * 2).rotateX(Math.PI / 2), { x, y: h * f / 0.82, z, m: strawBound ? 'timber' : 'steel' });
+    bag.add(new THREE.TorusGeometry(rr, 0.018 * (1 + 0.4 * wear), 5, seg * 2).rotateX(Math.PI / 2), { x, y: h * f / 0.82, z, m: 'straw' });   // barrel hoops are twine, as classic
   }
   if (tier === 'hero' && strawBound)    // straw rope bands plus a red crest, as a komodaru wears
     bag.add(new THREE.CylinderGeometry(0.08, 0.08, 0.02, 14).rotateX(Math.PI / 2), { x, y: h * 0.5, z: z + rad * 1.05, m: 'red' });
@@ -116,7 +125,7 @@ export function buildBarrel(ctx, layout, p) {
 }
 export function buildKomodaru(ctx, layout, p) {
   const pc = layout.piece, bag = new Multi();
-  cask(bag, ctx.tier, 0, pc.d, pc.y, (pc.s1 - pc.s0) / 2, ['straw', 'straw'], true, p.wear);
+  cask(bag, ctx.tier, 0, pc.d, pc.y, (pc.s1 - pc.s0) / 2, ['wood', 'wood'], true, p.wear);
   return finish(ctx, bag, 'cask');
 }
 
@@ -130,7 +139,7 @@ export function buildLanternPost(ctx, layout) {
     for (const yy of [y - 0.12, 1.5]) bag.box(0.13, 0.055, 0.13, { y: yy, z: d, m: 'steel' });
     for (const s of [-1, 1]) bag.box(0.035, 0.38, 0.04, { x: s * 0.1, y: y - 0.18, z: d, rz: s * -0.48, m: 'timber' });
   }
-  bag.cyl(0.16, 0.4, { y: y - 0.35, z: d + 0.25, m: 'red' });
+  bag.cyl(0.16, 0.4, { y: y - 0.35, z: d + 0.25, m: 'lamp' });
   const out = finish(ctx, bag, 'post');
   const lamp = new THREE.Object3D();
   lamp.position.set(0, y - 0.35, d + 0.3);
@@ -144,16 +153,16 @@ export function buildLanternPost(ctx, layout) {
 export function buildYuka(ctx, layout) {
   const pc = layout.piece, w = pc.s1 - pc.s0, { y, d } = pc, bag = new Multi(), tier = ctx.tier;
   if (pc.style === 'plank') {
-    bag.box(w, 0.08, 0.5, { y: y - 0.04, z: d, m: 'timber' });
+    bag.box(w, 0.08, 0.5, { y: y - 0.04, z: d, m: 'timberMed' });
     if (tier !== 'far') for (const z of [-0.26, 0.26]) bag.box(w, 0.05, 0.05, { y: y + 0.55, z: d + z, m: 'red' });
     return finish(ctx, bag, 'plank');
   }
-  bag.box(w, 0.12, 2.6, { y: y - 0.06, z: d, m: 'timber' });
+  bag.box(w, 0.12, 2.6, { y: y - 0.06, z: d, m: 'timberMed' });
   for (let x = -w / 2 + 0.2; x <= w / 2 - 0.15; x += 1.6) for (const z of [d - 1.2, d + 1.2]) bag.box(0.12, y, 0.12, { x, y: y / 2, z, m: 'timber' });
   bag.box(w, 0.06, 0.06, { y: y + 0.55, z: d + 1.28, m: 'timber' });
   if (tier !== 'far') for (let x = -w / 2 + 1.2; x < w / 2 - 0.8; x += 2.4) {
     bag.box(0.9, 0.3, 0.55, { x, y: y + 0.15, z: d - 0.2, m: 'dark' });
-    for (const dx of [-0.6, 0.6]) bag.box(0.4, 0.06, 0.4, { x: x + dx, y: y + 0.03, z: d - 0.2, m: 'red' });
+    for (const dx of [-0.6, 0.6]) bag.box(0.4, 0.06, 0.4, { x: x + dx, y: y + 0.03, z: d - 0.2, m: 'goods3' });
   }
   return finish(ctx, bag, 'deck');
 }
@@ -162,16 +171,15 @@ export function buildYuka(ctx, layout) {
 
 export function buildUtilityPole(ctx, layout) {
   const pc = layout.piece, { d, lowY, highY } = pc, h = highY + 0.7, tier = ctx.tier, bag = new Multi();
-  const wood = 0x5a3e26;
-  bag.add(new THREE.CylinderGeometry(0.075, 0.115, h, tier === 'far' ? 5 : 9), { y: h / 2, z: d, m: 'timber' });
+    bag.add(new THREE.CylinderGeometry(0.075, 0.115, h, tier === 'far' ? 5 : 9), { y: h / 2, z: d, m: 'wood' });
   for (const [y, w] of [[lowY, 0.9], [highY, 1.04]]) {
-    bag.box(w, 0.09, 0.11, { y: y - 0.045, z: d, m: 'timber' });
+    bag.box(w, 0.09, 0.11, { y: y - 0.045, z: d, m: 'wood' });
     if (tier !== 'far') for (const s of [-1, 1]) bag.cyl(0.07, 0.18, { x: s * w * 0.4, y: y + 0.1, z: d, m: 'cream' });
   }
   if (tier !== 'far') {
     bag.box(0.3, 0.18, 0.3, { y: 0.09, z: d, m: 'steel' });
     for (const y of [0.45, lowY - 0.18, highY - 0.18]) bag.cyl(0.12, 0.05, { y, z: d, m: 'steel' });
-    for (const y of [lowY, highY]) for (const s of [-1, 1]) bag.box(0.025, 0.5, 0.025, { x: s * 0.185, y: y - 0.27, z: d, rz: s * -0.7, m: 'timber' });
+    for (const y of [lowY, highY]) for (const s of [-1, 1]) bag.box(0.025, 0.5, 0.025, { x: s * 0.185, y: y - 0.27, z: d, rz: s * -0.7, m: 'wood' });
     if (tier === 'hero') {
       bag.box(0.16, 0.28, 0.018, { x: 0.02, y: 1.45, z: d + 0.116, rz: 0.04, m: 'straw' });
       for (let y = 0.7; y < lowY; y += 0.6) bag.box(0.3, 0.025, 0.045, { x: 0.12, y, z: d, m: 'steel' });
@@ -194,13 +202,25 @@ export function buildTrellis(ctx, layout) {
   const step = tier === 'far' ? 0.7 : 0.35;
   for (let x = -w / 2; x <= w / 2; x += step) bag.box(0.045, 0.05, 1.5, { x, y: y - 0.025, z: d, m: 'bamboo' });
   if (tier !== 'far') {
-    const wist = pc.flower === 'wisteria';
-    for (const [z, off] of [[d - 0.4, 0], [d + 0.6, 3]]) for (let x = -w / 2; x < w / 2; x += tier === 'hero' ? 0.43 : 0.7) {
-      const yy = y + 0.1 + Math.sin(x * 1.7 + off) * 0.12, drop = 0.2 + r() * 0.42;
-      bag.box(0.03, drop, 0.03, { x: x + 0.1, y: yy - drop / 2, z: z + 0.1, m: 'timber' });
-      blob(bag, 0.085, { x: x + 0.1, y: yy - drop, z: z + 0.1, sy: 0.7, m: 'leaf' });
-      blob(bag, 0.1, { x, y: yy, z, sy: 0.6, m: 'leaf' });
-      if (wist && r() > 0.6) for (let j = 0; j < 4; j++) blob(bag, 0.06 - j * 0.008, { x, y: yy - 0.16 - j * 0.1, z, sy: 1.2, m: 'wist' });
+    const wist = pc.flower === 'wisteria', cards = tier === 'hero' ? 1 : 0.55;
+    // Leaf cards (alpha-cut, as the classic vine): 2 triangles each, many of them.
+    const leaves = (x, y, z, n, k) => {
+      for (let i = 0; i < Math.round(n * cards); i++) {
+        const a = r() * TAU, rad = r() * 0.55 * k;
+        bag.add(LEAF_CARD, { x: x + Math.cos(a) * rad, y: y + Math.sin(i * 2.1) * 0.23 * k, z: z + Math.sin(a) * rad,
+          sx: 0.18 * k, sy: 0.35 * k, rx: -0.4 + r() * 1.2, ry: a, rz: Math.sin(a) * 0.7, order: 'YXZ', m: 'leaf' + (i % (tier === 'hero' ? 3 : 2)) });   // mid: two leaf materials, to stay inside the 4-material budget
+      }
+    };
+    for (const [z, off] of [[d - 0.4, 0], [d + 0.6, 3]]) for (let x = -w / 2; x < w / 2; x += 0.43) {
+      const yy = y + 0.1 + Math.sin(x * 1.7 + off) * 0.12;
+      bag.box(0.46, 0.018, 0.018, { x: x + 0.23, y: yy + 0.035, z: z + 0.02, rz: 0.15, m: 'timber' });
+      for (const side of [-1, 1]) {
+        const drop = 0.2 + r() * 0.42, ex = x + 0.12 + r() * 0.2, ez = z + side * 0.18;
+        bag.box(0.012, drop, 0.012, { x: (x + ex) / 2, y: yy - drop / 2, z: (z + ez) / 2, m: 'timber' });
+        leaves(ex, yy - drop, ez, 4, 1.05);
+      }
+      leaves(x, yy, z, 3, 1.2);
+      if (wist && tier === 'hero' && r() > 0.6) for (let j = 0; j < 4; j++) blob(bag, 0.06 - j * 0.008, { x, y: yy - 0.16 - j * 0.1, z, sy: 1.2, m: 'wist' });
     }
   }
   return finish(ctx, bag, 'trellis');
