@@ -12,6 +12,7 @@
 | v-keepsakes | keepsakes (yarn, key, dango, jade-paw, secret-fish, interior-fish) | `src/kit/keepsakes/index.js` `assets` |
 | v-pagoda | distant-pagoda (podium, storey_1..5, tower, sorin) | `src/kit/pagoda/index.js` `assets` |
 | r3-canal-market | roofcanal (roof-stepping-stones, roof-canal-landings, roof-footbridge, roof-toro, roof-cistern, roof-chimney, roof-futon-racks, roof-canopy-vents; part a, 8 of 19 ids) | `src/kit/roofcanal/index.js` `assets` |
+| r2-roofs-streets | roofstreets (roof-crates, roof-barrels, roof-komodaru, roof-lantern-post, roof-yuka, roof-utility-poles, roof-trellises; part a, 7 ids) | `src/kit/roofstreets/index.js` `assets` |
 
 ## Pending helper moves
 
