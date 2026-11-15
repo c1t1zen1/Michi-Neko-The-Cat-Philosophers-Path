@@ -24,10 +24,15 @@ const mesh = (geo, mat, cast = true) => { const m = new THREE.Mesh(geo, mat); m.
 const sized = (geo, s) => { if (s !== 1) geo.scale(s, s, s); return geo; };
 const matOr = (ctx, name, make) => (ctx.MAT && ctx.MAT[name]) || make();
 
-/** A soft sparkle sprite texture (radial bloom plus a four-point cross), built once. */
-let glintMap = null;
-function glintTexture() {
-  if (glintMap) return glintMap;
+/**
+ * A soft sparkle sprite texture (radial bloom plus a four-point cross), one per
+ * KitMaterials set like every shared kit texture (it used to be one module-wide
+ * texture that outlived every kit set; a1-village, v-keepsakes minor).
+ */
+const glints = new WeakMap(), solo = {};
+function glintTexture(km) {
+  const owner = km && typeof km === 'object' ? km : solo;
+  if (glints.has(owner)) return glints.get(owner);
   const [c, x] = canvas2d(128, 128);
   const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
   g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.18, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
@@ -39,13 +44,14 @@ function glintTexture() {
     gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
     x.strokeStyle = gr; x.lineWidth = 3; x.beginPath(); x.moveTo(-64, 0); x.lineTo(64, 0); x.stroke(); x.restore();
   }
-  glintMap = canvasTexture(c);
-  glintMap.userData.kit = true;
-  return glintMap;
+  const map = canvasTexture(c);
+  map.userData.kit = true;
+  glints.set(owner, map);
+  return map;
 }
-const glintSprite = (color, strength = 1) => {
+const glintSprite = (km, color, strength = 1) => {
   const c = new THREE.Color(color).multiplyScalar(0.4 + 0.6 * strength);
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glintTexture(), color: c, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.2 }));
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glintTexture(km), color: c, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.2 }));
   s.renderOrder = 10;
   return s;
 };
@@ -79,7 +85,7 @@ function buildKey(ctx, layout, p) {
   const key = mesh(sized(keyGeometry(det), p.size), gold);
   group.add(key);
   const parts = { key }, live = [];
-  const glint = glintSprite(0xffe9a0, p.glint);
+  const glint = glintSprite(ctx.kitMaterials, 0xffe9a0, p.glint);
   glint.position.set(0.05, 0.36 * p.size, 0.04);
   group.add(glint); parts.glint = glint; live.push(glint);
   const phase = (layout.index || 0) * 1.3;
@@ -107,7 +113,7 @@ function buildDango(ctx, layout, p) {
   const trim = mesh(sized(dangoTrim(det), p.size), km.bag({ rough: 0.75, brush: 0.05 }));
   group.add(balls, trim);
   group.material = goldMat; // the collectible loop pulses this when the cat is near
-  const glow = glintSprite(0xffd37a, p.glow);
+  const glow = glintSprite(ctx.kitMaterials, 0xffd37a, p.glow);
   glow.scale.setScalar(0.5 * p.size);
   group.add(glow);
   const parts = { balls, trim, glow };
@@ -179,7 +185,8 @@ export const assets = [
   }),
   defineAsset({
     id: 'dango', family: 'keepsakes', lab: 'keepsakes/dango', label: 'River-Spirit Charm', legacyName: 'River-Spirit Charm',
-    params: { size: num(1, 0.8, 1.3, 0.05, 'Size'), glow: num(0.6, 0, 1, 0.1, 'Glow') },
+    // size 0.8: the three dumplings stand 0.28 m, the classic charm's height, and the tassel clears the ground (a1-village)
+    params: { size: num(0.8, 0.8, 1.3, 0.05, 'Size'), glow: num(0.6, 0, 1, 0.1, 'Glow') },
     sample: { index: 0, name: 'River-Spirit Charm', x: 0, y: 0.28, z: 0 }, build: buildDango
   }),
   defineAsset({

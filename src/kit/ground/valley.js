@@ -183,7 +183,7 @@ export function buildValleyGround(ctx, layout, p) {
 
   const U = material.userData.u;
   const weather = new GroundWeather();
-  const state = { field, material, U, time: 0, clocks: { upload: 0, regrow: 0, mask: 0 }, world: null, mask: null, maskBox: null, last: new Map() };
+  const state = { field, material, U, time: 0, clocks: { upload: 0, regrow: 0, mask: 0 }, world: null, mask: null, maskBox: null, last: new Map(), stepped: false };
 
   const inst = {
     group, parts: { terrain: mesh }, sockets: {}, live: [],
@@ -216,7 +216,10 @@ export function buildValleyGround(ctx, layout, p) {
       if (state.world) wearUpdate(state, dt);
       const c = state.clocks;
       c.upload += dt;
-      if (c.upload > 0.25 && (field.dirty.s || field.dirty.f || field.dirty.h)) { field.upload(); c.upload = 0; }
+      // paws show within a quarter second; regrowth alone (minutes long) re-uploads every 4 s, not every
+      // second for the whole regrow (a1-village, v-ground minor: the upload churn after one walk)
+      const wait = state.stepped ? 0.25 : 4;
+      if (c.upload > wait && (field.dirty.s || field.dirty.f || field.dirty.h)) { field.upload(); c.upload = 0; state.stepped = false; }
     },
     setTier(next) { if (next && next !== inst.tier) setGroundTier(material, next); },
     dispose() {
@@ -253,6 +256,7 @@ function wearUpdate(state, dt) {
     if (d > 3) { prev.set(q.x, 0, q.z); continue; }                // a teleport, not a walk
     if (d < 0.3) continue;
     field.step(q.x, q.z, 0.14, weight * Math.min(2, d / 0.3));
+    state.stepped = true;
     prev.set(q.x, 0, q.z);
   }
   c.regrow += dt;

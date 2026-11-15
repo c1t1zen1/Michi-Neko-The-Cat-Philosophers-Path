@@ -33,8 +33,8 @@ const tint = (hex, k) => {
 /** One slatted crate of outer size w x h x d centred on (ox, oy, oz). */
 function addCrate(bag, w, h, d, ox, oy, oz, cols, tier, r, wear) {
   const n = COURSES[tier] || 3, t = 0.035, y0 = oy - h / 2;
+  if (n === 1) { bag.box(w, h, d, { x: ox, y: oy, z: oz, color: cols[0] }); return; }   // far: one box (no hidden core inside it)
   bag.box(w - 0.02, h - 0.02, d - 0.02, { x: ox, y: oy, z: oz, color: 0x2a1d12 });   // dark core: light between slats
-  if (n === 1) { bag.box(w, h, d, { x: ox, y: oy, z: oz, color: cols[0] }); return; }
   const sh = h / n;
   for (let i = 0; i < n; i++) {
     const cy = y0 + sh * (i + 0.5), sz = sh * (0.9 - 0.04 * wear * r());
@@ -49,8 +49,9 @@ function addCrate(bag, w, h, d, ox, oy, oz, cols, tier, r, wear) {
     bag.box(w / m - 0.012, 0.03, d - 0.01, { x: bx, y: oy + h / 2 - 0.015, z: oz, color: tint(cols[i % 3], (r() - 0.5) * 0.06) });
   }
   bag.box(w - 0.04, 0.03, d - 0.04, { x: ox, y: y0 + 0.015, z: oz, color: cols[0] });
+  // corner posts stop 4 mm under the lid, so their tops are never coplanar with the boards (no z-fight)
   for (const sx of [-1, 1]) for (const sz of [-1, 1])
-    bag.box(0.045, h, 0.045, { x: ox + sx * (w / 2 - 0.0225), y: oy, z: oz + sz * (d / 2 - 0.0225), color: tint(cols[0], -0.08) });
+    bag.box(0.045, h - 0.004, 0.045, { x: ox + sx * (w / 2 - 0.0225), y: oy - 0.002, z: oz + sz * (d / 2 - 0.0225), color: tint(cols[0], -0.08) });
   if (tier === 'hero') for (const s of [-1, 1])    // a couple of rope-bound battens
     bag.box(w + 0.01, 0.03, 0.012, { x: ox, y: oy + h * 0.1, z: oz + s * (d / 2 + 0.002), color: 0x8a7248 });
 }

@@ -55,7 +55,7 @@ export function buildShishi(ctx, layout, p) {
 
   // feeder: a bamboo pipe sloping down to a tip over the mouth, on a stake
   const a = V3(-0.62, 1.08, 0), b = FEED_TIP.clone().add(V3(0.0, 0.0, 0)), d = b.clone().sub(a), L = d.length();
-  const pipe = new THREE.CylinderGeometry(0.032, 0.034, L, seg(tier, 12, 8, 6)).rotateZ(-Math.atan2(d.x, d.y) * 0 + 0);
+  const pipe = new THREE.CylinderGeometry(0.032, 0.034, L, seg(tier, 12, 8, 6));
   pipe.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(V3(0, 1, 0), d.clone().normalize()));
   pipe.translate((a.x + b.x) / 2, (a.y + b.y) / 2, 0);
   add('feed', tinted(merge([pipe, new THREE.CylinderGeometry(0.03, 0.03, 0.04, 8).translate(a.x, a.y, 0)])), stem);
@@ -169,6 +169,7 @@ function washiStrokes(km) {
   for (let i = 0; i < 160; i++) { x.strokeStyle = `rgba(255,252,240,${0.2 + r() * 0.3})`; x.lineWidth = 1; x.beginPath(); const x0 = r() * 256, y0 = r() * 256; x.moveTo(x0, y0); x.lineTo(x0 + (r() - 0.5) * 30, y0 + (r() - 0.5) * 30); x.stroke(); }
   x.fillStyle = 'rgba(190,60,50,0.55)'; x.fillRect(100, 20, 22, 60); // a vermilion inked mark
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  tex.userData.kit = true;   // shared by every chime of this kit set (the kit's convention: never disposed by an instance)
   stripTex.set(km, tex);
   return tex;
 }
