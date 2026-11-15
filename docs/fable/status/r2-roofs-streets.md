@@ -37,4 +37,4 @@ tuned smaller). Crates, barrels, komodaru, decks and poles were not framed by th
 and golden bounds. AAA-5 night/day close-ups not done. Honest gap.
 
 ## Auto-run
-see handoff section 4.
+`?auto=1&swap=...` browser stall check NOT completed (headless run exceeded its time budget); gameplay safety rests on the golden (platforms, walls, lights identical) and rooftop_test baseline parity.

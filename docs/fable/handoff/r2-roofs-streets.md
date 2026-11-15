@@ -19,7 +19,7 @@ at y 1.4, as classic), `deck_*`/`plank_*`, `pole_*`, `trellis_*`. Footprint: non
 Waiver: trellis bounds differ from classic (no hanging foliage past the lattice); the lattice top stays at `piece.y`.
 
 ## 4. Gameplay check
-Platform tops, widths, positions unchanged (golden: levels/lights identical with swaps). `?auto=1&swap=...` result: see status.
+Platform tops, widths, positions unchanged (golden: levels/lights identical with swaps). `?auto=1&swap=...` stall check not completed (see status).
 Deferred ids: status file.
 
 ## 5. Tool note
