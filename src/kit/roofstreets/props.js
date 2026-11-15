@@ -4,11 +4,10 @@
 // camera at depth piece.d) from the level record `layout.piece`, with the
 // classic piece's exact outer sizes so the platform tops stay where level.js
 // put them (gameplay is geometry). Static plain merged geometry, one mesh per
-// material. The Roof Road's own merge (pieces/common.js mergeByMaterial) keeps
-// position/normal/uv only and drops vertex colours, so the shared vertex-coloured
-// kit materials render black here: every colour is a real material instead
-// (km.wood/plain/straw/bamboo, memoised, so every prop shares them; each is
-// merged once across the run). See the handoff for the colour-attribute patch.
+// material, taken from the Roof Road's own ctx.MAT where it has one (so props land
+// in the classic merge batches, no extra draws) with memoised km.* fallbacks.
+// Vertex colours are deliberately not used: they would only survive
+// mergeByMaterial on vertexColors materials, and alley-cut meshes drop them.
 import * as THREE from 'three';
 import { Bag } from '../craft.js?v=20261114a';
 import { worldScaleBoxUVs } from '../../textures.js?v=20261114a';
@@ -82,7 +81,7 @@ function addCrate(bag, w, h, d, x, z, tier, r, wear) {
   bag.box(w - 0.02, h - 0.02, d - 0.02, { x, y: h / 2, z, m: 'dark' });
   const sh = h / n;
   for (let i = 0; i < n; i++) {
-    const cy = sh * (i + 0.5), sz = sh * (0.92 - 0.04 * wear * r());
+    const cy = sh * (i + 0.5), sz = sh * (0.85 - 0.04 * wear * r());
     for (const a of [-1, 1]) {
       bag.box(w, sz, t, { x, y: cy, z: z + a * d / 2, m: 'wood' });
       bag.box(t, sz, d, { x: x + a * w / 2, y: cy, z, m: 'wood' });
@@ -169,7 +168,7 @@ export function buildYuka(ctx, layout) {
 
 export function buildUtilityPole(ctx, layout) {
   const pc = layout.piece, { d, lowY, highY } = pc, h = highY + 0.7, tier = ctx.tier, bag = new Multi();
-    bag.add(new THREE.CylinderGeometry(0.075, 0.115, h, tier === 'far' ? 5 : 9), { y: h / 2, z: d, m: 'wood' });
+  bag.add(new THREE.CylinderGeometry(0.075, 0.115, h, tier === 'far' ? 5 : 9), { y: h / 2, z: d, m: 'wood' });
   for (const [y, w] of [[lowY, 0.9], [highY, 1.04]]) {
     bag.box(w, 0.09, 0.11, { y: y - 0.045, z: d, m: 'wood' });
     if (tier !== 'far') for (const s of [-1, 1]) bag.cyl(0.07, 0.18, { x: s * w * 0.4, y: y + 0.1, z: d, m: 'cream' });

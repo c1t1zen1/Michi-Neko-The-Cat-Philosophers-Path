@@ -30,14 +30,7 @@ roof-crates, roof-barrels, roof-komodaru, roof-lantern-post, roof-yuka, roof-uti
   Modular draws <= classic (R52): kit props use the page's own `ctx.MAT` (agedWood, timber, steel, lacquer, foliage,
   bamboo, twine, wisteria, enamel, dark), so they merge into the classic batches.
 
-## Compare (L6)
-`at110-*.jpg`, `at160-*.jpg` (default Roof Road camera; mouth captures are not pixel-repeatable). Only the trellis is in
-frame at s=160: bamboo and lattice match the classic; leaves are chunky low-poly clumps, not alpha cards (AAA-1 so-so,
-tuned smaller). Crates, barrels, komodaru, decks and poles were not framed by this camera; judged only by contract
-and golden bounds. AAA-5 night/day close-ups not done. Honest gap.
-
-## Auto-run
-`?auto=1&swap=...` browser stall check NOT completed (headless run exceeded its time budget); gameplay safety rests on the golden (platforms, walls, lights identical) and rooftop_test baseline parity.
+## Compare (L6) and Auto-run: superseded by Fix round 1 below
 
 ## Fix round 1 (coordinator scope completion; supersedes the older Compare and Auto-run lines above)
 State:              r2-a done (7 props); r2-b deferred (see below)
