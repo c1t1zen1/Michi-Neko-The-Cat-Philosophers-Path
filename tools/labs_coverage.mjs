@@ -27,10 +27,19 @@ const sourceFiles = () => readdirSync(resolve(ROOT, 'src')).filter((f) => f.ends
 const roofSourceFiles = () => ROOF_DIRS.flatMap((dir) => readdirSync(resolve(ROOT, dir)).filter((f) => f.endsWith('.js')).sort().map((f) => dir + '/' + f));
 const isRoof = (file) => file.startsWith('rooftops/');
 
-/** The PIECES table as data: [{ type, id, lane, file }], read as text (it imports three.js). */
-export function roofPieces(readText = read) {
-  return [...readText(PIECES_FILE).matchAll(PIECE_ENTRY)].map(([, type, id, lane, file]) => ({ type, id, lane, file: 'rooftops/js/' + file }));
+/**
+ * The PIECES table as data, read as text (it imports three.js): `pieces` is
+ * [{ type, id, lane, file }]; `calls` counts every `piece(` call, so an entry
+ * written another way (a quoted key, double quotes, a wrapped line) shows up
+ * as calls > pieces.length instead of silently dropping out of the checks.
+ * tools/fable_swap_matrix.mjs reads the table through this too.
+ */
+export function readPieces(readText = read) {
+  const text = readText(PIECES_FILE);
+  const pieces = [...text.matchAll(PIECE_ENTRY)].map(([, type, id, lane, file]) => ({ type, id, lane, file: 'rooftops/js/' + file }));
+  return { pieces, calls: (text.match(/\bpiece\(/g) || []).length };
 }
+export const roofPieces = (readText = read) => readPieces(readText).pieces;
 const strongest = (asset) => LEVELS.find((level) => asset.coverage.some((c) => c.level === level)) || 'missing';
 const pct = (n, total) => total ? (100 * n / total).toFixed(1) + '%' : '0.0%';
 const esc = (value) => String(value).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
@@ -174,8 +183,9 @@ export function validateInventory(data, { readText = read, files = sourceFiles()
   }
   // Every piece type buildWorld() routes through assets.build(id, …) is an
   // inventory row of the Roof Road group whose sources name the piece's module.
-  const pieces = roofPieces(text), pieceIds = new Map();
+  const { pieces, calls } = readPieces(text), pieceIds = new Map();
   check(pieces.length > 0, 'no PIECES entries found in ' + PIECES_FILE);
+  check(pieces.length === calls, `${PIECES_FILE} has ${calls} piece() calls but ${pieces.length} read as  type: piece('id', 'lane', 'file', …)  (write every entry that way)`);
   for (const piece of pieces) {
     const asset = data.assets.find((a) => a.id === piece.id);
     check(!pieceIds.has(piece.id), `Roof Road inventory id used by two piece types: ${piece.id} (${pieceIds.get(piece.id)} and ${piece.type})`);

@@ -18,6 +18,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { getAssetCapabilities } from '../catalog/js/asset-loader.mjs';
+import { readPieces } from './labs_coverage.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const INVENTORY = 'labs/asset_inventory.json';
@@ -28,9 +29,9 @@ const read = (file) => readFileSync(resolve(ROOT, file), 'utf8').replace(/^﻿/,
 // Same order and rule as tools/labs_coverage.mjs: each row counts once, at its strongest evidence.
 const LEVELS = ['direct', 'review', 'embedded', 'related', 'missing'];
 const BASES = ['ruling', 'card', 'appendix-d', 'pieces', 'judgement'];
-// The Roof Road's PIECES table, read as text (it imports three.js): type → inventory id and lane.
+// The Roof Road's PIECES table (type → inventory id and lane), read by the same
+// reader tools/labs_coverage.mjs checks it with.
 const PIECES_FILE = 'rooftops/js/pieces/index.js';
-const roofPieces = () => [...read(PIECES_FILE).matchAll(/^\s+(\w+): piece\('([^']+)', '([^']+)', '([^']+)'/gm)].map(([, type, id, lane]) => ({ type, id, lane }));
 const strongest = (asset) => LEVELS.find((level) => asset.coverage.some((c) => c.level === level)) || 'missing';
 
 // ---------------------------------------------------------------------------
@@ -242,8 +243,9 @@ function load() {
   }
   // Every Roof Road piece type sits in the lane its PIECES entry names (r2 → r2-roofs-streets, …),
   // and a row marked `pieces` must be a piece type.
-  const pieces = roofPieces();
+  const { pieces, calls } = readPieces(read);
   if (!pieces.length) errors.push(`no PIECES entries found in ${PIECES_FILE}`);
+  if (pieces.length !== calls) errors.push(`${PIECES_FILE} has ${calls} piece() calls but ${pieces.length} entries this reader understands`);
   for (const p of pieces) {
     const mine = owner.get(p.id);
     if (mine && !mine.startsWith(p.lane + '-')) errors.push(`Roof Road piece ${p.type} (${p.id}): PIECES says lane ${p.lane}, this matrix says ${mine}`);

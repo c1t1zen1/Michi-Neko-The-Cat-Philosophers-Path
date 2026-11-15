@@ -143,6 +143,12 @@ test('a new Roof Road module or make/build function cannot escape the inventory'
   }).errors, []);
 });
 
+test('a PIECES entry written another way cannot drop out of the checks', () => {
+  hasError(inventory(), /has 49 piece\(\) calls but 48 read as/, {
+    readText: withPiece('  "lantern": piece("roof-new-lantern", "r4", "pieces/lantern.js", lantern),')
+  });
+});
+
 test('the Roof Road shelf is review evidence, not a focused study', () => {
   const data = inventory();
   assert.equal(data.targets['roofroad/bridge'].kind, 'review');
