@@ -31,15 +31,20 @@
 //               samples: boats, float, people, culled batches, lantern glow
 //
 // Routing self-test (R1.3, not part of the digest): the world is built a
-// third time with stand-in kit assets registered for two piece ids
-// (roof-kido on an x leg, roof-lantern-racks on x, −z and +z legs; both
-// swapped modular) and an unregistered swap (roof-bridge). It checks that
-// every kido and rack piece came from a stand-in, at the hero tier, placed in
-// the classic piece's rail frame (its post stands where the frame puts it, its
-// `light…` socket lands on the classic lantern light), that each `live` part
-// was kept out of the merge, and that every other piece, the lights and the
-// level are identical to the classic build. Exit 1 when it fails, 2 when it
-// did not run.
+// third time with stand-in kit assets registered and swapped modular for two
+// static piece ids (roof-kido on an x leg, roof-lantern-racks on x, −z and +z
+// legs), a moving one (roof-takasebune, whose `dynamic` boat record joins the
+// world's boats), two things buildWorld() adds around the run
+// (roof-skyline-pagodas, roof-shoki), and an unregistered swap (roof-bridge).
+// It checks that every kido and rack piece came from a stand-in, at the hero
+// tier, placed in the classic piece's rail frame (its post stands where the
+// frame puts it, its `light…` socket lands on the classic lantern light),
+// that each `live` part was kept out of the merge; that world.update() moves
+// the kit boats exactly as the classic ones; that the pagodas and Shōki stand
+// where the classic ones stand, on the root, the Shōki registered as the
+// pickups; and that every other piece, root child, the treats, the lights and
+// the level are identical to the classic build. Exit 1 when it fails, 2 when
+// it did not run.
 //
 // Numbers are rounded to 1e-4; one entry per line so git diffs stay readable.
 // Math.random is seeded before any module loads (three.js draws it for UUIDs
@@ -378,7 +383,8 @@ async function routingTest(mods, classic) {
   const { defineAsset } = await import('../src/kit/contract.js?v=20261113a');
   const warnings = [];
   const runtime = new mods.runtime.AssetRuntime({
-    THREE, assetSet: 'classic', search: '?swap=roof-kido:modular,roof-lantern-racks:modular,roof-bridge:modular', quality: 'high',
+    THREE, assetSet: 'classic', quality: 'high',
+    search: '?swap=roof-kido:modular,roof-lantern-racks:modular,roof-takasebune:modular,roof-skyline-pagodas:modular,roof-shoki:modular,roof-bridge:modular',
     loadFamilies: async () => ({}), fetchOverrides: async () => null,
     createMaterials: async () => ({ bind() { return this; }, setEnv() {}, list: () => [] }),
     logger: { warn: (m) => warnings.push(m) }
@@ -404,13 +410,48 @@ async function routingTest(mods, classic) {
       }
     }));
   }
+  // A moving piece: a stand-in takasebune whose `dynamic` record joins the
+  // world's boats (the record shape pieces/boat.js registers), its group live.
+  const boats = [];
+  runtime.register(defineAsset({
+    id: 'roof-takasebune', family: 'roof-routing-test', tiers: ['hero', 'mid'],
+    build(ctx, layout) {
+      const g = new ctx.THREE.Group();
+      const hull = new ctx.THREE.Mesh(new ctx.THREE.BoxGeometry(4.8, 0.4, 1.5), ctx.MAT.timber);
+      const boatman = new ctx.THREE.Object3D(), pole = new ctx.THREE.Object3D(), wake = new ctx.THREE.Object3D(), bowRing = new ctx.THREE.Object3D();
+      g.add(hull, boatman, wake);
+      boatman.add(pole);
+      const rec = { group: g, plat: layout.piece.plat, d: layout.piece.d, boatman, pole, wake, bowRing, lastS: null, dir: 1, standIn: true };
+      boats.push({ rec, layout });
+      return { group: g, parts: { hull, boatman }, sockets: {}, live: [g], footprint: layout.footprint, dynamic: { boats: [rec], boat: rec } };
+    }
+  }));
+  // Things buildWorld() adds around the run: the skyline pagodas (far band) and the Shōki (pickups).
+  const extras = [];
+  for (const id of ['roof-skyline-pagodas', 'roof-shoki']) {
+    runtime.register(defineAsset({
+      id, family: 'roof-routing-test', tiers: ['hero', 'mid', 'far'],
+      build(ctx, layout) {
+        const g = new ctx.THREE.Group();
+        const body = new ctx.THREE.Mesh(new ctx.THREE.BoxGeometry(1, 2, 1), ctx.MAT.timber);
+        g.add(body);
+        extras.push({ id, layout, group: g, tier: ctx.tier });
+        return { group: g, parts: { body }, sockets: {}, live: [], footprint: layout.footprint };
+      }
+    }));
+  }
   const B = await instrumentedBuild(mods, runtime);
   out.ran = true;
   const d = digestBuild(mods, B);
+  const root = B.world.root, dyn = B.world.dynamic;
   const routed = B.level.pieces.map((pc, i) => [pc, i]).filter(([pc]) => STANDINS.some((sd) => sd.type === pc.type));
+  const boatPieces = B.level.pieces.map((pc, i) => [pc, i]).filter(([pc]) => pc.type === 'boat');
+  const shokiPickups = B.level.pickups.filter((k) => k.kind === 'shoki');
   const legs = new Set();
-  check('every kido and rack piece came from a stand-in kit asset', built.length === routed.length && routed.length > 0 &&
-    runtime.instances.length === routed.length, `${built.length} built, ${runtime.instances.length} instances, ${routed.length} kido and rack pieces`);
+  check('every kido and rack piece came from a stand-in kit asset', built.length === routed.length && routed.length > 0,
+    `${built.length} built, ${routed.length} kido and rack pieces`);
+  check('every routed piece and extra is a kit instance', runtime.instances.length === routed.length + boatPieces.length + extras.length &&
+    extras.length === 3 + shokiPickups.length, `${runtime.instances.length} instances; ${extras.length} extras`);
   check('the stand-ins got the Roof Road material set and the hero tier', built.every((b) => b.mat === B.world.M && b.tier === 'hero'),
     [...new Set(built.map((b) => b.tier))].join(','));
   const seen = {};
@@ -424,25 +465,66 @@ async function routingTest(mods, classic) {
     check(`${pc.type} ${index}: ${sd.id} layout ${layout.index}, post stands in the classic frame`, pc.type === sd.type && layout.index === index &&
       Math.abs(w.x - p.x) < 1e-6 && Math.abs(w.y - 1.1) < 1e-6 && Math.abs(w.z - p.z) < 1e-6,
       `post ${w.toArray().map(r4)}, frame ${[p.x, 1.1, p.z].map(r4)}`);
-    check(`${pc.type} ${index}: the live part is a root child, out of the merge`, flag.parent === B.world.root && !flag.userData.spatialBatch);
+    check(`${pc.type} ${index}: the live part is a root child, out of the merge`, flag.parent === root && !flag.userData.spatialBatch);
   }
   check('the stand-ins were placed on three or more leg directions', legs.size >= 3, [...legs].join(' '));
   check('the light sockets land on the classic lantern lights (lights identical)', JSON.stringify(d.lights) === JSON.stringify(classic.lights),
     `${d.lights.length} vs ${classic.lights.length}`);
-  const routedIdx = new Set(routed.map(([, i]) => i));
+
+  // The moving piece: its record joined the boats and world.update() moves it as the classic boat.
+  check('the kit boats are the world\'s boats (dynamic records appended, the boat slot filled)', boats.length === boatPieces.length && boats.length > 0 &&
+    dyn.boats.length === boats.length && dyn.boats.every((bt, i) => bt === boats[i].rec && bt.standIn) && dyn.boat === boats[0].rec &&
+    boats.every(({ rec }) => rec.group.parent === root), `${boats.length} kit boats, ${dyn.boats.length} world boats`);
+  const boatMotion = (dd) => dd.update.filter((row) => row[1] === 'boat').map((row) => [row[0], row[2], row[3], row[4], row[5], row[6], row[9]]);
+  check('world.update() moves the kit boats exactly as the classic ones (visibility, transform, wake, heading)',
+    JSON.stringify(boatMotion(d)) === JSON.stringify(boatMotion(classic)) && boatMotion(d).length > 0, `${boatMotion(d).length} samples`);
+
+  // The extras: built through the contract, placed where the classic ones stand, unmerged on the root.
+  const pagodas = extras.filter((e) => e.id === 'roof-skyline-pagodas');
+  check('three skyline pagodas, at their classic spots and scales, far band', pagodas.length === 3 && pagodas.every((e, i) => e.layout.index === i &&
+    e.layout.band === 'far' && e.tier === 'far' && e.group.parent === root && Math.abs(e.group.position.y) < 1e-9 &&
+    e.group.position.x === e.layout.x && e.group.position.z === e.layout.z) &&
+    JSON.stringify(pagodas.map((e) => [e.layout.x, e.layout.z, e.layout.scale])) === JSON.stringify([[150, -78, 1.35], [-40, 150, 1.6], [-170, -30, 1.1]]),
+    pagodas.map((e) => `${e.layout.x},${e.layout.z}×${e.layout.scale}@${e.tier}`).join(' '));
+  // The routed root also holds the stand-ins' live flags; without them it lines up with the classic root.
+  const flags = new Set(built.map((b) => b.flag));
+  const aligned = root.children.filter((c) => !flags.has(c));
+  const at = (o) => aligned.indexOf(o);
+  const centre = (row) => row[7] ? [(row[7][0] + row[7][3]) / 2, (row[7][2] + row[7][5]) / 2] : null;
+  check('each kit pagoda takes the classic pagoda\'s place among the root children', aligned.length === classic.root.length && pagodas.every((e) => {
+    const c = centre(classic.root[at(e.group)] || []);
+    return c && Math.abs(c[0] - e.layout.x) < 1e-3 && Math.abs(c[1] - e.layout.z) < 1e-3;
+  }));
+  const shoki = extras.filter((e) => e.id === 'roof-shoki');
+  check('every Shōki is a kit instance at the classic spot and heading, registered as the pickup', shoki.length === shokiPickups.length && shoki.every((e, i) => {
+    const k = shokiPickups[i], p = B.level.rail.place(k.s, k.d), t = B.level.rail.tangentAt(k.s);
+    return e.layout.pickup === k && e.layout.index === i && e.group.parent === root && e.group.userData.pickup === k && dyn.shoki[i] === e.group &&
+      Math.abs(e.group.position.x - p.x) < 1e-9 && Math.abs(e.group.position.y - k.y) < 1e-9 && Math.abs(e.group.position.z - p.z) < 1e-9 &&
+      Math.abs(e.group.rotation.y - (Math.atan2(-t.z, t.x) + (k.face || 0))) < 1e-9;
+  }) && JSON.stringify(dyn.shoki.map((o) => [at(o), plain(o.userData.pickup)])) === JSON.stringify(classic.dynamic.shoki), `${shoki.length} kit Shōki, ${shokiPickups.length} pickups`);
+  check('the treats stay classic (an id not swapped)', JSON.stringify(dyn.treats.map((o) => [at(o), plain(o.userData.pickup)])) === JSON.stringify(classic.dynamic.treats));
+  const kitRoots = new Set([...boats.map((b) => b.rec.group), ...extras.map((e) => e.group)]);
+  const isBatchGroup = (c) => c.children.some((o) => o.userData && o.userData.spatialBatch);
+  const otherRoots = aligned.filter((c) => !kitRoots.has(c) && !isBatchGroup(c));
+  const rootDiffer = otherRoots.filter((c) => JSON.stringify(d.root[root.children.indexOf(c)].slice(1)) !== JSON.stringify(classic.root[at(c)].slice(1))).map(at);
+  check('every other root child (ground, distant city, float, people, treats) is identical to the classic build', otherRoots.length > 0 && rootDiffer.length === 0,
+    `${otherRoots.length} compared; differ: ${rootDiffer.slice(0, 5).join(', ')}`);
+
+  const routedIdx = new Set([...routed, ...boatPieces].map(([, i]) => i));
   const others = d.pieces.filter((row) => !routedIdx.has(row[0]));
   const othersClassic = classic.pieces.filter((row) => !routedIdx.has(row[0]));
   const differ = others.filter((row, i) => JSON.stringify(row) !== JSON.stringify(othersClassic[i])).map((row) => `#${row[0]} ${row[1]}`);
   check('every other piece is identical to the classic build', differ.length === 0, differ.slice(0, 5).join(', '));
-  check('the routed pieces did change', routed.every(([, i]) => JSON.stringify(d.pieces[i]) !== JSON.stringify(classic.pieces[i])));
+  check('the routed pieces did change', [...routed, ...boatPieces].every(([, i]) => JSON.stringify(d.pieces[i]) !== JSON.stringify(classic.pieces[i])));
   for (const sec of ['platforms', 'walls', 'ceilings', 'pickups', 'materials']) {
     check(`${sec} identical to the classic build`, JSON.stringify(d[sec]) === JSON.stringify(classic[sec]));
   }
   check('an unregistered ?swap id builds classic (roof-bridge)', runtime.setFor('roof-bridge') === 'modular' && !runtime.has('roof-bridge') &&
-    routed.length === runtime.instances.length && !built.some((b) => b.layout.type === 'bridge'));
+    !built.some((b) => b.layout.type === 'bridge') && !runtime.instances.some((x) => x.id === 'roof-bridge'));
   check('no kit warning while routing', warnings.length === 0, warnings.join('; '));
   out.ok = out.problems.length === 0;
-  out.routed = routed.length;
+  out.routed = routed.length + boatPieces.length;
+  out.extras = extras.length;
   out.legs = [...legs];
   return out;
 }

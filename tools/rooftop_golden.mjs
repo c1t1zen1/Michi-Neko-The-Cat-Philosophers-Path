@@ -16,8 +16,11 @@
 //
 // The page also runs the routing self-test (R1.3): stand-in kit assets for
 // roof-kido and roof-lantern-racks must replace exactly the kido and rack
-// pieces, in the classic rail frame on every leg direction, with everything
-// else unchanged. It is part of the verdict: failed → exit 1, not run → exit 2.
+// pieces, in the classic rail frame on every leg direction; a stand-in
+// roof-takasebune must join the world's boats and move as the classic ones;
+// stand-ins for roof-skyline-pagodas and roof-shoki must stand where the
+// classic ones stand; everything else unchanged. It is part of the verdict:
+// failed → exit 1, not run → exit 2.
 //
 // Needs Playwright outside the repo (PLAYWRIGHT_MODULE, see tools/headless.mjs)
 // and network for three.js from unpkg. No GPU work: the page never renders.
@@ -140,8 +143,8 @@ function printSummary(r, run, v, { out, goldenFile, max }) {
   lines.push(`  assets   set ${a.set} (chosen ${a.chosen}${a.explicit ? ', from ?assets=' : ''}, quality ${a.quality}) · swaps ${JSON.stringify(a.swaps)} · ` +
     `kit ${a.loaded ? 'loaded' : 'not loaded'}, ${a.assets.length} kit ids, ${a.instances} instances${a.problems.length ? ' · problems: ' + a.problems.join('; ') : ''}`);
   const g = r.routing;
-  if (g && g.ran) lines.push(`  routing  ${g.ok ? 'ok' : 'FAILED'}: stand-ins for roof-kido and roof-lantern-racks on ${g.routed} pieces (legs ${g.legs.join(' ')}); ` +
-    `${g.checks.filter((c) => c[1]).length}/${g.checks.length} checks (frame, light sockets, live parts, other pieces, lights, level, unregistered swap)`);
+  if (g && g.ran) lines.push(`  routing  ${g.ok ? 'ok' : 'FAILED'}: stand-ins on ${g.routed} pieces (kido, rack, boat; legs ${g.legs.join(' ')}) and ${g.extras} extras (pagodas, Shōki); ` +
+    `${g.checks.filter((c) => c[1]).length}/${g.checks.length} checks (frame, light sockets, live parts, moving pieces, extras, other pieces, lights, level, unregistered swap)`);
   else lines.push(`  routing  not run${g ? ': ' + g.problems.join('; ') : ''}`);
   lines.push(`  random   ${r.ambient.draws} Math.random draws (three.js UUIDs; seeded)`);
   lines.push(`  time     build ${r.timing.buildMs.join(' + ')} ms · page ${secs(r.timing.totalMs)} · run ${secs(run.ms)}`);

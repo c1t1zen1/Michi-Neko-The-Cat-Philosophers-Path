@@ -34,7 +34,7 @@ const specimens = entries.map((e) => ({
   tag: `${e.id} · ${e.count ? `${e.count} on the run, first at s = ${e.s.toFixed(1)} m, ${where(e)}` : where(e)}`,
   how: [
     `Inventory id ${e.id}; owner lane ${e.lane}.`,
-    e.piece ? `buildWorld() builds it through assets.build('${e.id}', pieceLayout(piece), classic): classic until a kit asset registers that id.` : 'Built by buildWorld() around the run, not from a level piece.',
+    e.piece ? `buildWorld() builds it through assets.build('${e.id}', pieceLayout(piece), classic): classic until a kit asset registers that id.` : `buildWorld() builds it around the run, not from a level piece, through assets.build('${e.id}', extraLayout(…), classic).`,
     `Source: rooftops/js/${e.file}.`
   ],
   use: e.piece ? `the ${e.count} ${e.key} pieces of the Roof Road` : 'the Roof Road around the route',

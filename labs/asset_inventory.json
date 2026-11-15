@@ -6973,6 +6973,10 @@
       "sources": [
         {
           "file": "rooftops/js/build.js",
+          "anchor": "extra('roof-ground', extraLayout("
+        },
+        {
+          "file": "rooftops/js/build.js",
           "anchor": "const ground = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), M.ground);"
         }
       ],
@@ -6982,7 +6986,7 @@
           "level": "review"
         }
       ],
-      "note": "Built by buildWorld(), not from a level piece."
+      "note": "Built by buildWorld() around the run, not from a level piece; routed through assets.build('roof-ground', extraLayout(…))."
     },
     {
       "id": "roof-distant-city",
@@ -6993,6 +6997,10 @@
         {
           "file": "rooftops/js/pieces/skyline.js",
           "anchor": "function buildDistantCity("
+        },
+        {
+          "file": "rooftops/js/build.js",
+          "anchor": "extra('roof-distant-city', extraLayout("
         }
       ],
       "coverage": [
@@ -7000,7 +7008,8 @@
           "target": "roofroad/distant-city",
           "level": "review"
         }
-      ]
+      ],
+      "note": "Built by buildWorld() around the run; routed through assets.build('roof-distant-city', extraLayout(…))."
     },
     {
       "id": "roof-skyline-pagodas",
@@ -7014,7 +7023,7 @@
         },
         {
           "file": "rooftops/js/build.js",
-          "anchor": "root.add(buildPagoda(M, 150, -78, 1.35));"
+          "anchor": "extra('roof-skyline-pagodas', extraLayout("
         }
       ],
       "coverage": [
@@ -7022,7 +7031,8 @@
           "target": "roofroad/skyline-pagoda",
           "level": "review"
         }
-      ]
+      ],
+      "note": "Three, built by buildWorld() around the run; each routed through assets.build('roof-skyline-pagodas', extraLayout(…))."
     },
     {
       "id": "roof-sky",
@@ -7118,6 +7128,10 @@
         {
           "file": "rooftops/js/pieces/pickups.js",
           "anchor": "export function makeShoki("
+        },
+        {
+          "file": "rooftops/js/build.js",
+          "anchor": "k.kind === 'shoki' ? 'roof-shoki' : 'roof-treats'"
         }
       ],
       "coverage": [
@@ -7125,7 +7139,8 @@
           "target": "roofroad/shoki",
           "level": "review"
         }
-      ]
+      ],
+      "note": "Built by buildWorld() for each level pickup; routed through assets.build('roof-shoki', extraLayout(…)), the instance registered as the pickup."
     },
     {
       "id": "roof-treats",
@@ -7136,6 +7151,10 @@
         {
           "file": "rooftops/js/pieces/pickups.js",
           "anchor": "function makeTreat("
+        },
+        {
+          "file": "rooftops/js/build.js",
+          "anchor": "k.kind === 'shoki' ? 'roof-shoki' : 'roof-treats'"
         }
       ],
       "coverage": [
@@ -7143,7 +7162,8 @@
           "target": "roofroad/treat",
           "level": "review"
         }
-      ]
+      ],
+      "note": "Built by buildWorld() for each level pickup; routed through assets.build('roof-treats', extraLayout(…)), the instance registered as the pickup."
     },
     {
       "id": "roof-chidori",
