@@ -40,7 +40,7 @@ rooftops src tools` is empty.
 - [x] R1.1 Inventory group "Roof Road", coverage tool and test, swap matrix lanes (3baa445; after R1.5, whose shelf it maps)
 - [x] R1.5 Roof Road lab registered with a shelf of the piece types (0e4b43f)
 - [x] R1.4 Proof: rooftop tests, companion test, golden, checks (results below, on the tree after a0b5d43's merge of integration 2f78865)
-- [x] Handoff (`docs/fable/handoff/r1-roof-split.md`), report, PR
+- [x] Handoff (`docs/fable/handoff/r1-roof-split.md`), report, PR #44 (https://github.com/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path/pull/44)
 
 ## Checks run (command → real result)
 
