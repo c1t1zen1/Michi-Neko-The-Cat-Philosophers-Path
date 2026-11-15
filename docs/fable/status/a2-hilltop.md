@@ -25,7 +25,6 @@
 ## G-S (Ruling R59): meditation view accepted PROVISIONALLY from the four-time seat pairs; operator may overturn.
 
 ## Remaining issues, ranked
-1. A.1 route walks and A.7 comfort boots not run.
 2. s2 stone slightly light/yellow at noon (not touched).
 3. s3: night lit-city wave weak from the seat; pagoda proxy lighting in rain/storm; kyoto-city far tier only fewer houses.
 4. Butterfly still faintly visible at night (lit by the sky fill), minor.
@@ -37,7 +36,7 @@ Times T = 6.5, 12, 18, 23 (dawn, noon, dusk, night); files `rN_<pos>_<T>.jpg` in
 - R2 clearing -> meditation seat: (0,0.7,6) and (0,0.7,2) looking to (0,0.9,-3)/(0,0.9,-6); the seat itself is `seat_<T>_<set>.jpg` (the vista view).
 - R3 brow walk along the shoulder at z=-6: x = -8, -3, +3, +8, eye 0.7 m, looking along the brow.
 - Weather: `seat_12_rain.jpg`, `seat_12_snow.jpg` (modular). 56 JPGs total, all under 150 KB.
-Frames that break the bar (by eye): none from the assets themselves. Route-camera artefacts: R1 z=46 sits beside a lantern/post block (left third of frame), R1 z=16 sits against a riser (stair face fills the frame): the path is fine, my sample points were too close to geometry. Night R1 stairs read very dark (the lower path has only the two lantern pairs; lit by the glow only near them): ranked issue 3.
+Frames that break the bar (by eye): none from the assets themselves. Route-camera artefacts: R1 z=46 sits beside a lantern/post block (left third of frame), R1 z=26/16 stops were re-shot (fix round 1) from higher and further back so the stair no longer fills the frame. Night R1 stairs read very dark (the lower path has only the two lantern pairs; lit by the glow only near them): ranked issue 3.
 
 ## A.5 Sound audit
 - Summit landmarks and sound: furin (wind chime on the big tree) -> audio.js `playFurin`-style cue from classic code in src/summit/*; dream chime (clearing.js:748 `audio.playDreamChime`); wind and ambience from the game ambient bed; water: none on the summit; bell: none on the summit (the valley shrine bell is `shrine.bell.ring`).
@@ -57,7 +56,7 @@ Frame ms is pinned at the 60 Hz vsync (16.6), so it shows no difference; draws d
 
 ## A.7 Comfort
 Booted `/index.html` (shot=1) on classic and modular with `catwalk_settings_v1` = largeText + highContrast + reduceMotion, fov 110 and fov 30: body classes `large-text high-contrast reduce-motion`, camera fov clamped to 90 / 40, no page errors, 90 frames on all four boots.
-Pollen damping proven at runtime (summit_preview, `summit.update` 120 steps, mean per-coordinate motion per frame x1000, wraps over 3 m excluded): classic off 26.7, on 28.1 (ratio 1.05, unchanged by design, R55); modular off 26.7, on 15.6 (ratio 0.59). It is damped but not to the full 0.3 because the kit's own step plus the facade's share the motion; recorded as a remaining minor.
+Pollen damping proven at runtime (summit_preview, `summit.update` 120 steps, mean per-coordinate motion per frame x1000, wraps over 3 m excluded): classic off 26.7, on 28.1 (ratio 1.05, unchanged by design, R55); modular (fix round 1: damping moved to the points' onBeforeRender, after the facade) off 26.9, on 8.0 (ratio 0.297 = CALM), measured with a render per step.
 
 ## A.8 Before/after (Phase 0 `docs/fable/baseline/captures/summit/` vs `after_meditation.jpg`, `after_arrival.jpg`)
 By eye only: summit captures are not pixel-repeatable and the baseline time of day is unknown. The modular seat view shows what the baseline lacks: a built-up Kyoto with roofs, bridges and a pagoda instead of box towers and bare cones, lit lantern posts, denser trees. Same composition, torii and fūrin placement; the perch sightline holds.
@@ -76,5 +75,4 @@ By eye only: summit captures are not pixel-repeatable and the baseline time of d
 4. Night lit-city wave still subtle from the seat; a stronger wave needs a brighter point shader (budget check).
 5. kyoto-city far tier is only fewer houses.
 6. Night butterfly visits match the classic timing.
-7. Kit pollen reduce-motion ratio 0.59 rather than 0.3.
 8. summit-trees / slope-forest still deferred (no cheap study).
