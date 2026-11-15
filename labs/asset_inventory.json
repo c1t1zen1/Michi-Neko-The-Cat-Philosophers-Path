@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "reviewedAt": "2026-11-10",
-  "scope": "Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects. Assemblies and separately recognizable parts are separate rows; procedural instances are not.",
+  "reviewedAt": "2026-11-14",
+  "scope": "Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects, and in the Roof Road prototype (rooftops/, its own page; the game does not load it yet). Assemblies and separately recognizable parts are separate rows; procedural instances are not.",
   "exclusions": [
     "HUD, menus, dialogue text, journal-only keepsakes, audio/music, invisible colliders and simulation helpers.",
-    "Lab-only proposals and Roof Road (a separate prototype, not loaded by the game).",
+    "Lab-only proposals.",
     "dawCAT, cadJS, OLD, arbitrary CAD overrides and per-instance procedural placements.",
     "Every individual texture, material, triangle, animation pose and shader helper; these belong to their owning asset types."
   ],
@@ -194,6 +194,286 @@
       "file": "src/waypoints.js",
       "role": "excluded",
       "reason": "Compass and waypoint interface."
+    },
+    {
+      "file": "rooftops/js/alleys.js",
+      "role": "excluded",
+      "reason": "Alley depth paths and entrances for the runner; no renderer."
+    },
+    {
+      "file": "rooftops/js/atmosphere.js",
+      "role": "assets",
+      "reason": "Roof Road petals, chimney smoke, birds, dust motes, fireflies and landing bursts."
+    },
+    {
+      "file": "rooftops/js/autopilot.js",
+      "role": "excluded",
+      "reason": "Attract-mode input (?auto=1) and the route test; no renderer."
+    },
+    {
+      "file": "rooftops/js/build.js",
+      "role": "assets",
+      "reason": "The buildWorld facade: walks the PIECES table through assets.build, merges statics, adds the ground, skyline and pickups."
+    },
+    {
+      "file": "rooftops/js/companion.js",
+      "role": "support",
+      "reason": "Chidori's behaviour (intent, leash, jumps); her body is the game's Cat, built in game.js."
+    },
+    {
+      "file": "rooftops/js/cutaway.js",
+      "role": "support",
+      "reason": "Dollhouse cut-away shader hook on foreground materials; not another object."
+    },
+    {
+      "file": "rooftops/js/downtown.js",
+      "role": "assets",
+      "reason": "Downtown craft kit: crates, casks, zushi tunnels, alley pockets and routes, poles, trellises, willows, culverts, the Tenmangu gate, the yama float, villagers, house and stall dressing."
+    },
+    {
+      "file": "rooftops/js/game.js",
+      "role": "assets",
+      "reason": "The Roof Road page: Michi and Chidori (the game’s Cat), camera, HUD and finale."
+    },
+    {
+      "file": "rooftops/js/level.js",
+      "role": "excluded",
+      "reason": "Gameplay data: the rail, pieces, platforms, walls, ceilings and pickups; no renderer."
+    },
+    {
+      "file": "rooftops/js/neighbourhood-map.js",
+      "role": "excluded",
+      "reason": "SVG paper-map interface."
+    },
+    {
+      "file": "rooftops/js/physics.js",
+      "role": "excluded",
+      "reason": "The runner's physics; no renderer."
+    },
+    {
+      "file": "rooftops/js/rail.js",
+      "role": "excluded",
+      "reason": "Route maths; no renderer."
+    },
+    {
+      "file": "rooftops/js/reach.js",
+      "role": "excluded",
+      "reason": "Jump reach and the platform graph; no renderer."
+    },
+    {
+      "file": "rooftops/js/sky.js",
+      "role": "assets",
+      "reason": "Roof Road sky dome, clouds, moon, the ring of hills and the five Okuribi fires."
+    },
+    {
+      "file": "rooftops/js/street-paint.js",
+      "role": "support",
+      "reason": "Painted street, roof and lantern surfaces; mapped with their owning pieces."
+    },
+    {
+      "file": "rooftops/js/pieces/common.js",
+      "role": "support",
+      "reason": "Geometry helpers (box, cyl, slope, frameGroup, ribbon, mergeByMaterial)."
+    },
+    {
+      "file": "rooftops/js/pieces/index.js",
+      "role": "support",
+      "reason": "The PIECES table: piece type to inventory id, lane, module and classic builder."
+    },
+    {
+      "file": "rooftops/js/pieces/machiya.js",
+      "role": "assets",
+      "reason": "Machiya parts several pieces share: ridge caps, hira and tsuma roofs, facades and eave details."
+    },
+    {
+      "file": "rooftops/js/pieces/paint.js",
+      "role": "support",
+      "reason": "The Roof Road's painted canvases and material set M; surfaces are mapped with their owning pieces."
+    },
+    {
+      "file": "rooftops/js/pieces/pickups.js",
+      "role": "assets",
+      "reason": "The clay Shōki and the treats."
+    },
+    {
+      "file": "rooftops/js/pieces/skyline.js",
+      "role": "assets",
+      "reason": "The distant city and the skyline pagodas."
+    },
+    {
+      "file": "rooftops/js/pieces/balcony.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'balcony' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/boat.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'boat' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/bridge.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'bridge' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/canalBridge.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'canalBridge' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/canalLanding.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'canalLanding' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/canalQuarter.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'canalQuarter' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/canopy.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'canopy' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/cherry.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'cherry' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/chimney.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'chimney' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/cistern.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'cistern' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/corner.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'corner' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/deck.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'deck' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/float.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'float' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/futonRack.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'futonRack' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/gate.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'gate' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/house.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'house' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/inuyarai.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'inuyarai' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/kido.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'kido' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/komayose.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'komayose' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/kura.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'kura' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/marketCrossing.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'marketCrossing' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/post.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'post' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/rack.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'rack' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/roji.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'roji' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/rope.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'rope' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/shopfronts.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'shopfronts' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/steppingStone.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'steppingStone' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/steps.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'steps' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/street.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'street' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/toro.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'toro' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/tsuboniwa.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'tsuboniwa' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/tsuiji.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'tsuiji' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/vent.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'vent' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/water.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'water' (one classic builder)."
+    },
+    {
+      "file": "rooftops/js/pieces/yatai.js",
+      "role": "assets",
+      "reason": "Roof Road piece 'yatai' (one classic builder)."
     }
   ],
   "ignoredBuilders": [
@@ -231,6 +511,21 @@
       "file": "src/postfx.js",
       "anchor": "  buildKernel(",
       "reason": "AO sampling-kernel data, not a second visual asset."
+    },
+    {
+      "file": "rooftops/js/build.js",
+      "anchor": "export function buildWorld(",
+      "reason": "Roof Road assembly facade; every piece type, the ground, skyline and pickups are inventoried separately."
+    },
+    {
+      "file": "rooftops/js/pieces/paint.js",
+      "anchor": "function makeMaterials(",
+      "reason": "The Roof Road material set M, not another object."
+    },
+    {
+      "file": "rooftops/js/cutaway.js",
+      "anchor": "export function makeCutaway(",
+      "reason": "Cut-away shader uniforms for foreground materials, not another object."
     }
   ],
   "targets": {
@@ -1565,6 +1860,438 @@
       "kind": "specimen",
       "file": "labs/summit/js/vista.js",
       "anchor": "id: 'v-horizon'"
+    },
+    "roofroad/street": {
+      "lab": "roofroad",
+      "selector": "street",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  street: [",
+      "url": "labs/roofroad/index.html?specimen=street#specimen-street"
+    },
+    "roofroad/steps": {
+      "lab": "roofroad",
+      "selector": "steps",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  steps: [",
+      "url": "labs/roofroad/index.html?specimen=steps#specimen-steps"
+    },
+    "roofroad/bridge": {
+      "lab": "roofroad",
+      "selector": "bridge",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  bridge: [",
+      "url": "labs/roofroad/index.html?specimen=bridge#specimen-bridge"
+    },
+    "roofroad/kido": {
+      "lab": "roofroad",
+      "selector": "kido",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  kido: [",
+      "url": "labs/roofroad/index.html?specimen=kido#specimen-kido"
+    },
+    "roofroad/house": {
+      "lab": "roofroad",
+      "selector": "house",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  house: [",
+      "url": "labs/roofroad/index.html?specimen=house#specimen-house"
+    },
+    "roofroad/kura": {
+      "lab": "roofroad",
+      "selector": "kura",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  kura: [",
+      "url": "labs/roofroad/index.html?specimen=kura#specimen-kura"
+    },
+    "roofroad/corner": {
+      "lab": "roofroad",
+      "selector": "corner",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  corner: [",
+      "url": "labs/roofroad/index.html?specimen=corner#specimen-corner"
+    },
+    "roofroad/komayose": {
+      "lab": "roofroad",
+      "selector": "komayose",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  komayose: [",
+      "url": "labs/roofroad/index.html?specimen=komayose#specimen-komayose"
+    },
+    "roofroad/inuyarai": {
+      "lab": "roofroad",
+      "selector": "inuyarai",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  inuyarai: [",
+      "url": "labs/roofroad/index.html?specimen=inuyarai#specimen-inuyarai"
+    },
+    "roofroad/roji": {
+      "lab": "roofroad",
+      "selector": "roji",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  roji: [",
+      "url": "labs/roofroad/index.html?specimen=roji#specimen-roji"
+    },
+    "roofroad/tsuboniwa": {
+      "lab": "roofroad",
+      "selector": "tsuboniwa",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  tsuboniwa: [",
+      "url": "labs/roofroad/index.html?specimen=tsuboniwa#specimen-tsuboniwa"
+    },
+    "roofroad/deck": {
+      "lab": "roofroad",
+      "selector": "deck",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  deck: [",
+      "url": "labs/roofroad/index.html?specimen=deck#specimen-deck"
+    },
+    "roofroad/balcony": {
+      "lab": "roofroad",
+      "selector": "balcony",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  balcony: [",
+      "url": "labs/roofroad/index.html?specimen=balcony#specimen-balcony"
+    },
+    "roofroad/post": {
+      "lab": "roofroad",
+      "selector": "post",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  post: [",
+      "url": "labs/roofroad/index.html?specimen=post#specimen-post"
+    },
+    "roofroad/crate": {
+      "lab": "roofroad",
+      "selector": "crate",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  crate: [",
+      "url": "labs/roofroad/index.html?specimen=crate#specimen-crate"
+    },
+    "roofroad/barrel": {
+      "lab": "roofroad",
+      "selector": "barrel",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  barrel: [",
+      "url": "labs/roofroad/index.html?specimen=barrel#specimen-barrel"
+    },
+    "roofroad/komodaru": {
+      "lab": "roofroad",
+      "selector": "komodaru",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  komodaru: [",
+      "url": "labs/roofroad/index.html?specimen=komodaru#specimen-komodaru"
+    },
+    "roofroad/zushiTunnel": {
+      "lab": "roofroad",
+      "selector": "zushiTunnel",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  zushiTunnel: [",
+      "url": "labs/roofroad/index.html?specimen=zushiTunnel#specimen-zushiTunnel"
+    },
+    "roofroad/alleyPocket": {
+      "lab": "roofroad",
+      "selector": "alleyPocket",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  alleyPocket: [",
+      "url": "labs/roofroad/index.html?specimen=alleyPocket#specimen-alleyPocket"
+    },
+    "roofroad/alleyRoute": {
+      "lab": "roofroad",
+      "selector": "alleyRoute",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  alleyRoute: [",
+      "url": "labs/roofroad/index.html?specimen=alleyRoute#specimen-alleyRoute"
+    },
+    "roofroad/utilityPole": {
+      "lab": "roofroad",
+      "selector": "utilityPole",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  utilityPole: [",
+      "url": "labs/roofroad/index.html?specimen=utilityPole#specimen-utilityPole"
+    },
+    "roofroad/trellis": {
+      "lab": "roofroad",
+      "selector": "trellis",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  trellis: [",
+      "url": "labs/roofroad/index.html?specimen=trellis#specimen-trellis"
+    },
+    "roofroad/water": {
+      "lab": "roofroad",
+      "selector": "water",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  water: [",
+      "url": "labs/roofroad/index.html?specimen=water#specimen-water"
+    },
+    "roofroad/canalQuarter": {
+      "lab": "roofroad",
+      "selector": "canalQuarter",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  canalQuarter: [",
+      "url": "labs/roofroad/index.html?specimen=canalQuarter#specimen-canalQuarter"
+    },
+    "roofroad/steppingStone": {
+      "lab": "roofroad",
+      "selector": "steppingStone",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  steppingStone: [",
+      "url": "labs/roofroad/index.html?specimen=steppingStone#specimen-steppingStone"
+    },
+    "roofroad/canalLanding": {
+      "lab": "roofroad",
+      "selector": "canalLanding",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  canalLanding: [",
+      "url": "labs/roofroad/index.html?specimen=canalLanding#specimen-canalLanding"
+    },
+    "roofroad/canalBridge": {
+      "lab": "roofroad",
+      "selector": "canalBridge",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  canalBridge: [",
+      "url": "labs/roofroad/index.html?specimen=canalBridge#specimen-canalBridge"
+    },
+    "roofroad/toro": {
+      "lab": "roofroad",
+      "selector": "toro",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  toro: [",
+      "url": "labs/roofroad/index.html?specimen=toro#specimen-toro"
+    },
+    "roofroad/cherry": {
+      "lab": "roofroad",
+      "selector": "cherry",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  cherry: [",
+      "url": "labs/roofroad/index.html?specimen=cherry#specimen-cherry"
+    },
+    "roofroad/boat": {
+      "lab": "roofroad",
+      "selector": "boat",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  boat: [",
+      "url": "labs/roofroad/index.html?specimen=boat#specimen-boat"
+    },
+    "roofroad/canopy": {
+      "lab": "roofroad",
+      "selector": "canopy",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  canopy: [",
+      "url": "labs/roofroad/index.html?specimen=canopy#specimen-canopy"
+    },
+    "roofroad/vent": {
+      "lab": "roofroad",
+      "selector": "vent",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  vent: [",
+      "url": "labs/roofroad/index.html?specimen=vent#specimen-vent"
+    },
+    "roofroad/shopfronts": {
+      "lab": "roofroad",
+      "selector": "shopfronts",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  shopfronts: [",
+      "url": "labs/roofroad/index.html?specimen=shopfronts#specimen-shopfronts"
+    },
+    "roofroad/marketCrossing": {
+      "lab": "roofroad",
+      "selector": "marketCrossing",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  marketCrossing: [",
+      "url": "labs/roofroad/index.html?specimen=marketCrossing#specimen-marketCrossing"
+    },
+    "roofroad/rope": {
+      "lab": "roofroad",
+      "selector": "rope",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  rope: [",
+      "url": "labs/roofroad/index.html?specimen=rope#specimen-rope"
+    },
+    "roofroad/cistern": {
+      "lab": "roofroad",
+      "selector": "cistern",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  cistern: [",
+      "url": "labs/roofroad/index.html?specimen=cistern#specimen-cistern"
+    },
+    "roofroad/chimney": {
+      "lab": "roofroad",
+      "selector": "chimney",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  chimney: [",
+      "url": "labs/roofroad/index.html?specimen=chimney#specimen-chimney"
+    },
+    "roofroad/futonRack": {
+      "lab": "roofroad",
+      "selector": "futonRack",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  futonRack: [",
+      "url": "labs/roofroad/index.html?specimen=futonRack#specimen-futonRack"
+    },
+    "roofroad/willow": {
+      "lab": "roofroad",
+      "selector": "willow",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  willow: [",
+      "url": "labs/roofroad/index.html?specimen=willow#specimen-willow"
+    },
+    "roofroad/culvertLedge": {
+      "lab": "roofroad",
+      "selector": "culvertLedge",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  culvertLedge: [",
+      "url": "labs/roofroad/index.html?specimen=culvertLedge#specimen-culvertLedge"
+    },
+    "roofroad/tenmanguGate": {
+      "lab": "roofroad",
+      "selector": "tenmanguGate",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  tenmanguGate: [",
+      "url": "labs/roofroad/index.html?specimen=tenmanguGate#specimen-tenmanguGate"
+    },
+    "roofroad/yatai": {
+      "lab": "roofroad",
+      "selector": "yatai",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  yatai: [",
+      "url": "labs/roofroad/index.html?specimen=yatai#specimen-yatai"
+    },
+    "roofroad/rack": {
+      "lab": "roofroad",
+      "selector": "rack",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  rack: [",
+      "url": "labs/roofroad/index.html?specimen=rack#specimen-rack"
+    },
+    "roofroad/float": {
+      "lab": "roofroad",
+      "selector": "float",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  float: [",
+      "url": "labs/roofroad/index.html?specimen=float#specimen-float"
+    },
+    "roofroad/gate": {
+      "lab": "roofroad",
+      "selector": "gate",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  gate: [",
+      "url": "labs/roofroad/index.html?specimen=gate#specimen-gate"
+    },
+    "roofroad/tsuiji": {
+      "lab": "roofroad",
+      "selector": "tsuiji",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  tsuiji: [",
+      "url": "labs/roofroad/index.html?specimen=tsuiji#specimen-tsuiji"
+    },
+    "roofroad/yamaFloat": {
+      "lab": "roofroad",
+      "selector": "yamaFloat",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  yamaFloat: [",
+      "url": "labs/roofroad/index.html?specimen=yamaFloat#specimen-yamaFloat"
+    },
+    "roofroad/distant-city": {
+      "lab": "roofroad",
+      "selector": "distant-city",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  'distant-city': [",
+      "url": "labs/roofroad/index.html?specimen=distant-city#specimen-distant-city"
+    },
+    "roofroad/skyline-pagoda": {
+      "lab": "roofroad",
+      "selector": "skyline-pagoda",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  'skyline-pagoda': [",
+      "url": "labs/roofroad/index.html?specimen=skyline-pagoda#specimen-skyline-pagoda"
+    },
+    "roofroad/villager": {
+      "lab": "roofroad",
+      "selector": "villager",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  villager: [",
+      "url": "labs/roofroad/index.html?specimen=villager#specimen-villager"
+    },
+    "roofroad/shoki": {
+      "lab": "roofroad",
+      "selector": "shoki",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  shoki: [",
+      "url": "labs/roofroad/index.html?specimen=shoki#specimen-shoki"
+    },
+    "roofroad/treat": {
+      "lab": "roofroad",
+      "selector": "treat",
+      "kind": "review",
+      "file": "labs/roofroad/js/shelf.js",
+      "anchor": "  treat: [",
+      "url": "labs/roofroad/index.html?specimen=treat#specimen-treat"
+    },
+    "roofroad/run": {
+      "lab": "roofroad",
+      "selector": "run",
+      "kind": "review",
+      "file": "kyoto-rooftops.html",
+      "anchor": "<canvas id=\"gl\"",
+      "url": "kyoto-rooftops.html"
+    },
+    "roofroad/finale": {
+      "lab": "roofroad",
+      "selector": "finale",
+      "kind": "review",
+      "file": "rooftops/js/game.js",
+      "anchor": "flag('finale') === '1'",
+      "url": "kyoto-rooftops.html?finale=1"
     }
   },
   "assets": [
@@ -5303,6 +6030,1179 @@
         {
           "target": "summit/life-birds",
           "level": "direct"
+        }
+      ]
+    },
+    {
+      "id": "roof-street",
+      "label": "Roof Road street ribbons: Kamo gravel and river, canal bank, market slabs, cobbled lanes",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/street.js",
+          "anchor": "export const street = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/street",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-river-steps",
+      "label": "Roof Road river steps down from the bridge",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/steps.js",
+          "anchor": "export const steps = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/steps",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-bridge",
+      "label": "Roof Road Sanjō bridge: riverbed, deck joinery, piers, giboshi caps, ramp",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/bridge.js",
+          "anchor": "export const bridge = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/bridge",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-kido",
+      "label": "Roof Road kido gate",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/kido.js",
+          "anchor": "export const kido = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/kido",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-machiya",
+      "label": "Roof Road machiya (walls, roof, drying deck, lanterns, dressing)",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/house.js",
+          "anchor": "export const house = (pc, ctx) => {"
+        },
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "    decorateHouse(pc, ctx) {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/house",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-kura",
+      "label": "Roof Road kura storehouse",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/kura.js",
+          "anchor": "export const kura = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/kura",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-corner-house",
+      "label": "Roof Road corner house with hip roof and drying deck",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/corner.js",
+          "anchor": "export const corner = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/corner",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-komayose",
+      "label": "Roof Road komayose rails",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/komayose.js",
+          "anchor": "export const komayose = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/komayose",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-inuyarai",
+      "label": "Roof Road inuyarai",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/inuyarai.js",
+          "anchor": "export const inuyarai = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/inuyarai",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-roji",
+      "label": "Roof Road roji side alley (drain, tobi-ishi, tsukubai, service door)",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/roji.js",
+          "anchor": "export const roji = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/roji",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-tsuboniwa",
+      "label": "Roof Road tsuboniwa tree over a wall",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/tsuboniwa.js",
+          "anchor": "export const tsuboniwa = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/tsuboniwa",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-yuka",
+      "label": "Roof Road yuka decks and kaisho plank",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/deck.js",
+          "anchor": "export const deck = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/deck",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-balconies",
+      "label": "Roof Road engawa, shop awnings and alley bridges",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/balcony.js",
+          "anchor": "export const balcony = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/balcony",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-lantern-post",
+      "label": "Roof Road lantern post with red chōchin",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/post.js",
+          "anchor": "export const post = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/post",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-crates",
+      "label": "Roof Road crates",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "  B.crate = (pc, ctx) =>"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/crate",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-barrels",
+      "label": "Roof Road barrels",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "  B.barrel = B.komodaru = (pc, ctx) =>"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/barrel",
+          "level": "review"
+        }
+      ],
+      "note": "One builder serves the barrel and komodaru piece types."
+    },
+    {
+      "id": "roof-komodaru",
+      "label": "Roof Road komodaru (straw-wrapped sake casks)",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "  B.barrel = B.komodaru = (pc, ctx) =>"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/komodaru",
+          "level": "review"
+        }
+      ],
+      "note": "One builder serves the barrel and komodaru piece types."
+    },
+    {
+      "id": "roof-zushi",
+      "label": "Roof Road zushi tunnels under bridged machiya",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "  B.zushiTunnel = (pc, ctx) =>"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/zushiTunnel",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-alley-pockets",
+      "label": "Roof Road alley pockets (flags, casks, ita-bei, shed eave)",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "  B.alleyPocket = (pc, ctx) =>"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/alleyPocket",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-alley-routes",
+      "label": "Roof Road alley routes through the downtown blocks",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "  B.alleyRoute = (pc, ctx) =>"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/alleyRoute",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-utility-poles",
+      "label": "Roof Road utility poles and wires",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "  B.utilityPole = (pc, ctx) =>"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/utilityPole",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-trellises",
+      "label": "Roof Road vine trellises",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "  B.trellis = (pc, ctx) =>"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/trellis",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-canal",
+      "label": "Roof Road Takase canal water and towpath",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/water.js",
+          "anchor": "export const water = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/water",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-canal-banks",
+      "label": "Roof Road canal banks (stakes, drains, rain chains, greenery)",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/canalQuarter.js",
+          "anchor": "export const canalQuarter = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/canalQuarter",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-stepping-stones",
+      "label": "Roof Road stepping stones",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/steppingStone.js",
+          "anchor": "export const steppingStone = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/steppingStone",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-canal-landings",
+      "label": "Roof Road canal landings",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/canalLanding.js",
+          "anchor": "export const canalLanding = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/canalLanding",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-footbridge",
+      "label": "Roof Road canal footbridge",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/canalBridge.js",
+          "anchor": "export const canalBridge = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/canalBridge",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-toro",
+      "label": "Roof Road stone tōrō",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/toro.js",
+          "anchor": "export const toro = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/toro",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-cherry-boughs",
+      "label": "Roof Road cherry boughs over the canal",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/cherry.js",
+          "anchor": "export const cherry = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/cherry",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-takasebune",
+      "label": "Roof Road takasebune (hull, bales, planks, wake)",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/boat.js",
+          "anchor": "export const boat = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/boat",
+          "level": "review"
+        }
+      ],
+      "note": "Moves along the canal on the run; the boatman is its own row (roof-boatman)."
+    },
+    {
+      "id": "roof-canopy",
+      "label": "Roof Road Nishiki glass canopy",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/canopy.js",
+          "anchor": "export const canopy = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/canopy",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-canopy-vents",
+      "label": "Roof Road canopy vents",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/vent.js",
+          "anchor": "export const vent = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/vent",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-market-stalls",
+      "label": "Roof Road Nishiki market stalls",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/shopfronts.js",
+          "anchor": "export const shopfronts = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/shopfronts",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-skylight-bridge",
+      "label": "Roof Road skylight bridge (market crossing)",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/marketCrossing.js",
+          "anchor": "export const marketCrossing = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/marketCrossing",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-lines",
+      "label": "Roof Road laundry, tow and lantern lines",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/rope.js",
+          "anchor": "export const rope = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/rope",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-cistern",
+      "label": "Roof Road rooftop cistern",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/cistern.js",
+          "anchor": "export const cistern = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/cistern",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-chimney",
+      "label": "Roof Road chimney and rain cap",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/chimney.js",
+          "anchor": "export const chimney = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/chimney",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-futon-racks",
+      "label": "Roof Road futon racks",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/futonRack.js",
+          "anchor": "export const futonRack = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/futonRack",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-willows",
+      "label": "Roof Road canal willows",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "  B.willow = (pc, ctx) =>"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/willow",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-culvert-ledges",
+      "label": "Roof Road culvert ledges",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "  B.culvertLedge = (pc, ctx) =>"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/culvertLedge",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-tenmangu-gate",
+      "label": "Roof Road Tenmangū gate",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "  B.tenmanguGate = (pc, ctx) =>"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/tenmanguGate",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-yatai",
+      "label": "Roof Road yatai festival stalls",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/yatai.js",
+          "anchor": "export const yatai = (pc, ctx) => {"
+        },
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "    decorateStall(pc, ctx) {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/yatai",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-lantern-racks",
+      "label": "Roof Road festival lantern racks",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/rack.js",
+          "anchor": "export const rack = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/rack",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-hoko",
+      "label": "Roof Road hoko float (wheels, brocade, roof, shingi mast, tassels)",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/float.js",
+          "anchor": "export const float = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/float",
+          "level": "review"
+        }
+      ],
+      "note": "The hayashi musicians on it are their own row (roof-hayashi)."
+    },
+    {
+      "id": "roof-temple-gate",
+      "label": "Roof Road temple gate",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/gate.js",
+          "anchor": "export const gate = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/gate",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-tsuiji",
+      "label": "Roof Road tsuiji temple wall",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/tsuiji.js",
+          "anchor": "export const tsuiji = (pc, ctx) => {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/tsuiji",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-yama",
+      "label": "Roof Road yama float",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "  B.yamaFloat = (pc, ctx) =>"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/yamaFloat",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-villagers",
+      "label": "Roof Road villagers",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "  B.villager = (pc, ctx) =>"
+        },
+        {
+          "file": "rooftops/js/downtown.js",
+          "anchor": "    updatePeople(people, t, playerS, lowPower, reduceMotion) {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/villager",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-kawara-roofs",
+      "label": "Roof Road kawara roofs: hira and tsuma roofs with ridge caps and onigawara",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/machiya.js",
+          "anchor": "function hiraRoof("
+        },
+        {
+          "file": "rooftops/js/pieces/machiya.js",
+          "anchor": "function tsumaRoof("
+        },
+        {
+          "file": "rooftops/js/pieces/machiya.js",
+          "anchor": "function ridgeCap("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/house",
+          "level": "embedded",
+          "note": "Inside the machiya specimen (and the kura, kido, temple gate and hoko float); no roof specimen of its own."
+        }
+      ],
+      "note": "Shared by several piece types; a kit roof replaces it through those pieces."
+    },
+    {
+      "id": "roof-facades",
+      "label": "Roof Road machiya façades and eave details",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/machiya.js",
+          "anchor": "function facade("
+        },
+        {
+          "file": "rooftops/js/pieces/machiya.js",
+          "anchor": "function streetEaveDetails("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/house",
+          "level": "embedded",
+          "note": "Inside the machiya specimen; no façade specimen of its own."
+        }
+      ],
+      "note": "Shared by the machiya and the downtown kit."
+    },
+    {
+      "id": "roof-ground",
+      "label": "Roof Road ground plane under the run",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/build.js",
+          "anchor": "const ground = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), M.ground);"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/run",
+          "level": "review"
+        }
+      ],
+      "note": "Built by buildWorld(), not from a level piece."
+    },
+    {
+      "id": "roof-distant-city",
+      "label": "Roof Road distant city (instanced roofscape)",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/skyline.js",
+          "anchor": "function buildDistantCity("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/distant-city",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-skyline-pagodas",
+      "label": "Roof Road skyline pagodas",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/skyline.js",
+          "anchor": "function buildPagoda("
+        },
+        {
+          "file": "rooftops/js/build.js",
+          "anchor": "root.add(buildPagoda(M, 150, -78, 1.35));"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/skyline-pagoda",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-sky",
+      "label": "Roof Road sky dome, clouds and moon (afternoon to festival night)",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/sky.js",
+          "anchor": "export class Sky {"
+        },
+        {
+          "file": "rooftops/js/sky.js",
+          "anchor": "  buildClouds() {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/run",
+          "level": "review"
+        },
+        {
+          "target": "roofroad/finale",
+          "level": "review"
+        }
+      ],
+      "note": "Driven by route progress, not a clock."
+    },
+    {
+      "id": "roof-hills",
+      "label": "Roof Road ring of hills around the basin",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/sky.js",
+          "anchor": "  buildHills() {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/finale",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-okuribi",
+      "label": "Roof Road Okuribi: the five fires on the hills",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/sky.js",
+          "anchor": "  buildFires() {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/finale",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-atmosphere",
+      "label": "Roof Road atmosphere: petals, chimney smoke, birds, dust, fireflies, landing bursts",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/atmosphere.js",
+          "anchor": "export class RooftopAtmosphere {"
+        },
+        {
+          "file": "rooftops/js/atmosphere.js",
+          "anchor": "class ImpactFX {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/run",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-shoki",
+      "label": "Roof Road clay Shōki (the seven guardians)",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/pickups.js",
+          "anchor": "export function makeShoki("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/shoki",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-treats",
+      "label": "Roof Road treats",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/pickups.js",
+          "anchor": "function makeTreat("
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/treat",
+          "level": "review"
+        }
+      ]
+    },
+    {
+      "id": "roof-chidori",
+      "label": "Chidori, the Roof Road guide cat",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/game.js",
+          "anchor": "guide = new mod.Cat("
+        },
+        {
+          "file": "rooftops/js/companion.js",
+          "anchor": "export class Companion {"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/run",
+          "level": "review"
+        }
+      ],
+      "note": "The game’s Cat with Chidori’s coat (decision D3: no PERSONALITIES entry); no specimen of her own."
+    },
+    {
+      "id": "roof-boatman",
+      "label": "Roof Road takasebune boatman",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/boat.js",
+          "anchor": "  const boatman = new THREE.Group();"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/boat",
+          "level": "embedded",
+          "note": "Poles the takasebune in the boat specimen; no specimen of his own."
+        }
+      ]
+    },
+    {
+      "id": "roof-hayashi",
+      "label": "Roof Road hayashi musicians on the hoko",
+      "group": "Roof Road",
+      "lifecycle": "active",
+      "sources": [
+        {
+          "file": "rooftops/js/pieces/float.js",
+          "anchor": "  const musicians = [];"
+        }
+      ],
+      "coverage": [
+        {
+          "target": "roofroad/float",
+          "level": "embedded",
+          "note": "Ride the hoko in the float specimen; no specimen of their own."
         }
       ]
     }

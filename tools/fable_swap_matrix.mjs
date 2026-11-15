@@ -27,6 +27,10 @@ const read = (file) => readFileSync(resolve(ROOT, file), 'utf8').replace(/^﻿/,
 
 // Same order and rule as tools/labs_coverage.mjs: each row counts once, at its strongest evidence.
 const LEVELS = ['direct', 'review', 'embedded', 'related', 'missing'];
+const BASES = ['ruling', 'card', 'appendix-d', 'pieces', 'judgement'];
+// The Roof Road's PIECES table, read as text (it imports three.js): type → inventory id and lane.
+const PIECES_FILE = 'rooftops/js/pieces/index.js';
+const roofPieces = () => [...read(PIECES_FILE).matchAll(/^\s+(\w+): piece\('([^']+)', '([^']+)', '([^']+)'/gm)].map(([, type, id, lane]) => ({ type, id, lane }));
 const strongest = (asset) => LEVELS.find((level) => asset.coverage.some((c) => c.level === level)) || 'missing';
 
 // ---------------------------------------------------------------------------
@@ -34,6 +38,9 @@ const strongest = (asset) => LEVELS.find((level) => asset.coverage.some((c) => c
 //   ruling      named in an Integrator ruling (Phase 0 briefs and their correction)
 //   card        named by the guide's lane card (sections 9 to 12) or by the lane's source module
 //   appendix-d  listed for that lane in guide Appendix D (the gap list)
+//   pieces      a Roof Road piece type whose lane the PIECES table names
+//               (rooftops/js/pieces/index.js, written by lane r1-roof-split); the
+//               generator checks every piece row's lane against that table
 //   judgement   not named by any of the above; placed from the row's source builder and lab
 //               study. The third element is the reason. The Integrator should confirm these.
 // ---------------------------------------------------------------------------
@@ -136,6 +143,31 @@ const LANES = [
     ['meadow-system', 'ruling'], ['grass-near', 'ruling'], ['grass-mid', 'ruling'], ['grass-far', 'ruling'], ['grass-thicket', 'ruling'],
     ['grass-flowers', 'ruling'], ['grass-susuki', 'ruling'], ['grass-mown', 'ruling'], ['grass-lantern', 'ruling'], ['grass-sumi', 'ruling'],
     ['grass-yarn', 'ruling'], ['grass-shell', 'ruling'], ['grass-moss', 'ruling'], ['grass-fireflies', 'ruling']]),
+  // Phase 5: the Roof Road (the section 12 mouth table; piece lanes as in the PIECES table)
+  lane('r2-roofs-streets', '5', 'Roof Road (`src/kit/`, the lane\'s family; reuses machiya, lanterns, alley, water)', '`labs/roofroad/` (review shelf)', [
+    ['roof-bridge', 'card'], ['roof-kido', 'card'], ['roof-machiya', 'card'], ['roof-kawara-roofs', 'card'], ['roof-facades', 'card'],
+    ['roof-roji', 'card'], ['roof-yuka', 'card'],
+    ['roof-street', 'pieces'], ['roof-river-steps', 'pieces'], ['roof-kura', 'pieces'], ['roof-corner-house', 'pieces'], ['roof-komayose', 'pieces'],
+    ['roof-inuyarai', 'pieces'], ['roof-tsuboniwa', 'pieces'], ['roof-balconies', 'pieces'], ['roof-lantern-post', 'pieces'], ['roof-crates', 'pieces'],
+    ['roof-barrels', 'pieces'], ['roof-komodaru', 'pieces'], ['roof-zushi', 'pieces'], ['roof-alley-pockets', 'pieces'], ['roof-alley-routes', 'pieces'],
+    ['roof-utility-poles', 'pieces'], ['roof-trellises', 'pieces'],
+    ['roof-ground', 'judgement', 'the ground plane under every street; `buildWorld` builds it, and r2 owns the streets it lies under']]),
+  lane('r3-canal-market', '5', 'Roof Road (`src/kit/`, the lane\'s family; reuses water, trees, alley)', '`labs/roofroad/` (review shelf)', [
+    ['roof-canal', 'card'], ['roof-canal-banks', 'card'], ['roof-stepping-stones', 'card'], ['roof-footbridge', 'card'], ['roof-takasebune', 'card'],
+    ['roof-cherry-boughs', 'card'], ['roof-canopy', 'card'], ['roof-skylight-bridge', 'card'], ['roof-market-stalls', 'card'], ['roof-lines', 'card'],
+    ['roof-cistern', 'card'], ['roof-chimney', 'card'],
+    ['roof-canal-landings', 'pieces'], ['roof-toro', 'pieces'], ['roof-canopy-vents', 'pieces'], ['roof-futon-racks', 'pieces'], ['roof-willows', 'pieces'],
+    ['roof-culvert-ledges', 'pieces'], ['roof-tenmangu-gate', 'pieces']]),
+  lane('r4-festival', '5', 'Roof Road (`src/kit/`, the lane\'s family; reuses pagoda, ranges, lanterns)', '`labs/roofroad/` (review shelf)', [
+    ['roof-yatai', 'card'], ['roof-lantern-racks', 'card'], ['roof-hoko', 'card'], ['roof-temple-gate', 'card'], ['roof-distant-city', 'card'],
+    ['roof-skyline-pagodas', 'card'], ['roof-hills', 'card'], ['roof-okuribi', 'card'],
+    ['roof-tsuiji', 'pieces'], ['roof-yama', 'pieces'],
+    ['roof-sky', 'judgement', 'the sky the five fires burn in; `rooftops/js/sky.js` builds it with the hills and the fires r4 owns'],
+    ['roof-atmosphere', 'judgement', '`rooftops/js/atmosphere.js` is one module of scene-wide effects; it sits with the sky and the finale night it lights']]),
+  lane('r5-roof-cast', '5', 'characters (`src/characters/`)', '`labs/roofroad/` (review shelf); the run for Chidori', [
+    ['roof-chidori', 'card'], ['roof-shoki', 'card'], ['roof-boatman', 'card'], ['roof-hayashi', 'card'],
+    ['roof-villagers', 'pieces'],
+    ['roof-treats', 'judgement', 'built beside the Shōki in `rooftops/js/pieces/pickups.js` and greeted the same way']]),
   lane('media', '-', '-', '-', [
     ['summit-transition', 'ruling'], ['blender-roofscape', 'ruling']])
 ];
@@ -144,7 +176,7 @@ const LANE_TITLES = {
   'at-standard': 'already at standard (`src/grass.js`, not rebuilt; guide section 9 wave 2.3)',
   media: 'media, not a kit asset (optional runtime media with fallbacks)'
 };
-const PHASE_TITLES = { '2.1': 'Phase 2 wave 2.1, props the cat walks past', '2.2': 'Phase 2 wave 2.2, landmarks where players stop', '2.3': 'Phase 2 wave 2.3, systems and life', 3: 'Phase 3, modular characters', 4: 'Phase 4, meditation hilltop' };
+const PHASE_TITLES = { '2.1': 'Phase 2 wave 2.1, props the cat walks past', '2.2': 'Phase 2 wave 2.2, landmarks where players stop', '2.3': 'Phase 2 wave 2.3, systems and life', 3: 'Phase 3, modular characters', 4: 'Phase 4, meditation hilltop', 5: 'Phase 5, the Roof Road' };
 
 // Guide Appendix D (2026-11-11), copied as data so the drift report below can be computed.
 // "mist altar" is the guide's wording; the inventory id is mist-altar.
@@ -170,6 +202,7 @@ const BASIS_TEXT = {
   ruling: 'named in an Integrator ruling',
   card: 'named by the guide lane card (sections 9 to 12), or the row is built in the lane\'s source module',
   'appendix-d': 'listed for the lane in guide Appendix D',
+  pieces: 'a Roof Road piece type whose lane the `PIECES` table in `rooftops/js/pieces/index.js` names (lane r1-roof-split); the generator checks every piece row against it',
   judgement: 'not named anywhere; placed from the source builder and lab study, to be confirmed'
 };
 const LEVEL_TEXT = {
@@ -200,13 +233,23 @@ function load() {
       if (asset.lifecycle !== 'active') errors.push(`lane ${l.id} names an inactive row: ${id}`);
       if (owner.has(id)) errors.push(`id assigned twice: ${id} (${owner.get(id)} and ${l.id})`);
       owner.set(id, l.id);
-      if (!['ruling', 'card', 'appendix-d', 'judgement'].includes(basis)) errors.push(`bad basis for ${id}: ${basis}`);
+      if (!BASES.includes(basis)) errors.push(`bad basis for ${id}: ${basis}`);
       if (basis === 'judgement' && !reason) errors.push(`judgement row needs a reason: ${id}`);
     }
   }
   for (const a of assets.filter((x) => x.lifecycle === 'active')) {
     if (!owner.has(a.id)) errors.push(`active inventory row has no lane: ${a.id}`);
   }
+  // Every Roof Road piece type sits in the lane its PIECES entry names (r2 → r2-roofs-streets, …),
+  // and a row marked `pieces` must be a piece type.
+  const pieces = roofPieces();
+  if (!pieces.length) errors.push(`no PIECES entries found in ${PIECES_FILE}`);
+  for (const p of pieces) {
+    const mine = owner.get(p.id);
+    if (mine && !mine.startsWith(p.lane + '-')) errors.push(`Roof Road piece ${p.type} (${p.id}): PIECES says lane ${p.lane}, this matrix says ${mine}`);
+  }
+  const pieceIds = new Set(pieces.map((p) => p.id));
+  for (const l of LANES) for (const [id, basis] of l.rows) if (basis === 'pieces' && !pieceIds.has(id)) errors.push(`basis pieces on a row that is not a PIECES type: ${id}`);
 
   const rows = [];
   for (const l of LANES) {
@@ -316,7 +359,7 @@ function render({ inventory, assets, rows }) {
   }
   w(`| **All lanes** | | | | **${rows.length}** | ${LEVELS.map((x) => `**${count(rows, x)}**`).join(' | ')} | **${rows.length - count(rows, 'direct')}** | **${labCount(rows)}** | **${origCount(rows)}** |`);
   w();
-  w('Roof Road lanes `r1` to `r5` have no rows here: the Roof Road is listed under `exclusions` in the inventory and r1 adds roughly forty rows (guide section 12, R1.1).');
+  w('Roof Road rows (inventory group `Roof Road`, added by lane r1-roof-split, guide section 12 R1.1) go to r2 to r5 by the section 12 mouth table. Every piece type sits in the lane the `PIECES` table in `rooftops/js/pieces/index.js` names for it, and the generator checks they agree. Lane r1 owns no row: it split `rooftops/js/build.js` and routed every piece through `assets.build`.');
   w();
 
   // ---- gap list (Appendix D regenerated) ----
@@ -351,10 +394,12 @@ function render({ inventory, assets, rows }) {
     }
   }
   const summitReview = rows.filter((r) => ['s2-clearing', 's3-vista', 's4-summit-life'].includes(r.lane) && r.level !== 'direct').length;
-  const unlisted = rows.filter((r) => r.level !== 'direct' && !inD.has(r.id) && !['s2-clearing', 's3-vista', 's4-summit-life', 'media'].includes(r.lane));
+  const roofLanes = LANES.filter((l) => l.phase === '5').map((l) => l.id);
+  const unlisted = rows.filter((r) => r.level !== 'direct' && !inD.has(r.id) && !['s2-clearing', 's3-vista', 's4-summit-life', 'media', ...roofLanes].includes(r.lane));
   w(`- Moved by a ruling: ${moved.length ? [...new Set(moved)].join('; ') : 'none'}.`);
   w(`- Listed in Appendix D but not a gap in the inventory: ${notGap.length ? notGap.join('; ') : 'none'}.`);
-  w(`- Gaps in the inventory that Appendix D does not list (outside the summit and media rows): ${unlisted.length ? unlisted.map((r) => `\`${r.id}\` (${r.level}, ${r.lane})`).join(', ') : 'none'}.`);
+  w(`- Gaps in the inventory that Appendix D does not list (outside the summit, Roof Road and media rows): ${unlisted.length ? unlisted.map((r) => `\`${r.id}\` (${r.level}, ${r.lane})`).join(', ') : 'none'}.`);
+  w(`- Appendix D predates the Roof Road rows: all ${rows.filter((r) => roofLanes.includes(r.lane) && r.level !== 'direct').length} of them (r2 to r5) are gaps, with the \`labs/roofroad/\` review shelf or the run itself as their evidence.`);
   w(`- Appendix D says "31 summit rows with review-sheet evidence only" for s2 to s4. In the inventory that is ${summitReview} kit rows assigned to s2, s3 and s4 plus the media row \`blender-roofscape\` (review) = ${summitReview + 1}${summitReview + 1 === 31 ? ', which matches' : ', which does NOT match'}; \`kyoto-city\` is \`direct\`.`);
   w();
 
