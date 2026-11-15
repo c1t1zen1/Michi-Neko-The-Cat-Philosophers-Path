@@ -668,7 +668,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 4 | `s4-summit-life` | Summit weather, pollen, petals, butterflies, birds | s1, `v-weather` | [x] |
 | 5 | `r1-roof-split` | `build.js` split into pieces + inventory (serial); merged to main by the operator (R69) | G-F | [x] |
 | 5 | `r2-roofs-streets` | Mouths 1–2: bridge gate, machiya roofs, Pontochō | r1, `v-machiya` | [ ] |
-| 5 | `r3-canal-market` | Mouths 3–5: Takase canal, boat, Nishiki canopy, laundry sky | r1 | [ ] |
+| 5 | `r3-canal-market` | Mouths 3–5: Takase canal, boat, Nishiki canopy, laundry sky | r1 | [x] r3-canal-market (part a: 8/19 ids; 11 deferred → r3-b) |
 | 5 | `r4-festival` | Mouths 6–7: yatai, hoko float, temple gate, Okuribi | r1 | [ ] |
 | 5 | `r5-roof-cast` | Chidori, Shōki, boatman, hayashi musicians | r1, c1 | [ ] |
 | 5 | `r6-game-wiring` | `RooftopManager`, unlock, save, music (serial) | r2–r5, D3 | [ ] |
@@ -698,6 +698,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 - For `a1-village`: frame-time cost of modular at street is mostly `ground` (≈1 ms GPU), `water` (≈0.6) and `fences` (≈0.6, R51 hero runs); warm-build watch list and unneeded `buildMs` exceptions in budgets.md section 5; R53 answered in budgets.md section 4 (inuyarai merge, 0 extra draws with the whole kit).
 - Roof Road integration patches: common.js colour kept (r3 §2). c612ad7: `mergeByMaterial` keeps `color` where the material has `vertexColors: true` (white where a geometry has none); gated on the material because the classic bamboo culms carry `color` under `M.bamboo`. Rooftop golden EQUAL, routing self-test 37/37 with a vertex-coloured stand-in.
 - Roof Road integration patches: pieceLayout rail (r3 §3). 3049037: every piece layout carries `rail` = { s0, s1, step 0.5, points [{ s, x, z, tx, tz }] }, sampled as `ribbon()` samples (829 pieces, 55 across a fillet); r1 handoff §3 has the table. Rooftop golden EQUAL, routing self-test 40/40, rooftop_test 38/2 unchanged.
+- r3-canal-market merged (part a: roofcanal, 8 piece types / 8 of 19 ids; 11 deferred to r3-b: roof-canal, roof-canal-banks, roof-lines, roof-cherry-boughs, roof-canopy, roof-skylight-bridge, roof-market-stalls, roof-takasebune (r5 coupling), roof-willows, roof-culvert-ledges, roof-tenmangu-gate). Handoff §2 and §3 were already applied. **Pending (G-R chores): §4, the Roof Road family filter so `?assets=modular` loads only the Roof Road families.** `tools/rooftop_golden.js` routing self-test now excludes from its "every other piece identical" rule only piece types a registered kit family provides and the run resolves modular (real roofcanal pieces); all else must stay identical (perturbing an unregistered type still fails routing).
 
 ### Suggested allocation for three workers
 

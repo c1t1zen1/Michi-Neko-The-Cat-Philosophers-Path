@@ -383,7 +383,7 @@ function digestBuild(mods, b) {
 }
 
 // ----------------------------------------------------------------- routing ---
-async function routingTest(mods, classic) {
+async function routingTest(mods, classic, mainAssets) {
   const { THREE } = mods;
   const out = { ran: false, ok: false, checks: [], problems: [] };
   const check = (name, ok, detail = '') => { out.checks.push([name, !!ok, detail]); if (!ok) out.problems.push(name + (detail ? ': ' + detail : '')); };
@@ -631,8 +631,13 @@ async function routingTest(mods, classic) {
     `${otherRoots.length} compared; differ: ${rootDiffer.slice(0, 5).join(', ')}`);
 
   const routedIdx = new Set([...routed, ...boatPieces].map(([, i]) => i));
-  const others = d.pieces.filter((row) => !routedIdx.has(row[0]));
-  const othersClassic = classic.pieces.filter((row) => !routedIdx.has(row[0]));
+  // Piece types a REGISTERED kit family provides, resolved modular in the main
+  // run: they are real kit pieces there, so they may differ from this
+  // stand-in build. Every other piece must still be identical.
+  const { PIECES } = await import('../rooftops/js/pieces/index.js');
+  const realKit = new Set(Object.keys(PIECES).filter((t) => mainAssets && mainAssets.has(PIECES[t].id) && mainAssets.setFor(PIECES[t].id) === 'modular'));
+  const others = d.pieces.filter((row) => !routedIdx.has(row[0]) && !realKit.has(row[1]));
+  const othersClassic = classic.pieces.filter((row) => !routedIdx.has(row[0]) && !realKit.has(row[1]));
   const differ = others.filter((row, i) => JSON.stringify(row) !== JSON.stringify(othersClassic[i])).map((row) => `#${row[0]} ${row[1]}`);
   check('every other piece is identical to the classic build', differ.length === 0, differ.slice(0, 5).join(', '));
   check('the routed pieces did change', [...routed, ...boatPieces].every(([, i]) => JSON.stringify(d.pieces[i]) !== JSON.stringify(classic.pieces[i])));
@@ -744,7 +749,7 @@ async function main() {
     vertices: dA.batches.reduce((n, b) => n + b[3], 0)
   };
   result.assets = A.assets.summary();
-  try { result.routing = await routingTest(mods, dA); }
+  try { result.routing = await routingTest(mods, dA, A.assets); }
   catch (error) { result.routing = { ran: false, ok: false, checks: [], problems: ['routing test threw: ' + String(error && error.stack || error).split('\n').slice(0, 3).join(' | ')] }; }
   result.ambient = { draws: ambient.draws };
   result.timing = { buildMs: [A.buildMs, B.buildMs], totalMs: 0 };
