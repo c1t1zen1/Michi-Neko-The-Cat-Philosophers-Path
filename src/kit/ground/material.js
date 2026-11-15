@@ -71,7 +71,7 @@ varying vec3 vTint;
 varying float vEdge;
 #endif
 vec3 gN = vec3(0., 1., 0.);
-float gRough = 1., gAO = 1., gSun = 1., gSpark = 0.;
+float gRough = 1., gAO = 1., gSun = 1., gSpark = 0., gStone = 0.;
 `;
 
 const FRAG_SURFACE = /* glsl */`
@@ -186,10 +186,11 @@ const FRAG_SURFACE = /* glsl */`
   for (int i = 0; i < 8; i++) {
     float k = b[i] / bs;
     col += lc[i] * k; sl += ls[i] * k; hgt += lh[i] * k; cav += lcav[i] * k;
-    rough += (i < 7 ? uRoughL[i] : .62) * k; por += (i < 7 ? uPorL[i] : .12) * k;
+    rough += (i < 7 ? uRoughL[i] : .8) * k; por += (i < 7 ? uPorL[i] : .12) * k;
   }
   float bSand = b[4] / bs, bEarth = b[0] / bs, bStone = (b[7] + b[5] * .7) / bs, bMeadow = b[1] / bs;
-  rough -= (bEarth * .18 + bStone * .25) * G;                                         // feet polish what they cross
+  gStone = b[7] / bs;
+  rough -= (bEarth * .18 + bStone * .12) * G;                                         // feet polish what they cross
   col *= 1. + bStone * G * .06;
 
 #if MACRO
@@ -268,7 +269,7 @@ const FRAG_FINISH = /* glsl */`
   float sunUp = sat(uSunDir.y * 3.);
   float fr = gSun * (1. - gSun) * 4.;
   outgoingLight += diffuseColor.rgb * uSunCol * fr * uFringe * sunUp * vec3(1., .58, .22) * .55;
-  outgoingLight *= mix(vec3(1.), uShadowTint, (1. - gSun) * sunUp * uCool);
+  outgoingLight *= mix(vec3(1.), uShadowTint, (1. - gSun) * sunUp * uCool * (1. - .8 * gStone));   // warm paving keeps its warmth in the shade (G-V3 M1)
 }
 #endif
 outgoingLight += gSpark * uSunCol * gSun;

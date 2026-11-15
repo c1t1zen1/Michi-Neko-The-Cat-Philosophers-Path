@@ -6,7 +6,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { TAU, sstep, canvas2d, canvasTexture, merge, indexed, rockGeometry } from '../craft.js?v=20261114a';
 import { fitRock, rockMaterials } from '../rocks/stone.js?v=20261114a';
 import { culmGeometry, bladeGeometry } from '../greenery/bamboo.js?v=20261114a';
-import { washiTexture, haloTexture, kindle } from '../lanterns/light.js?v=20261114a';
+import { washiTexture, haloTexture, kindle, KINDLE_SOUND_AT } from '../lanterns/light.js?v=20261114a';
 import {
   nightnessAt, hourOf, shared, glowTexture, leafMaterial, freePrivate, polarDisc, tint, strut,
   glowPoints, billboardSet, compose, single
@@ -159,13 +159,22 @@ export function buildLanternSet(ctx, entries, p) {
   const aK = paperGeo.attributes.aK;
   const group = new THREE.Group();
   group.add(frame, paper, halos.mesh);
+  // each lantern is heard catching once as it kindles (a1-village A.5; the
+  // lanterns family's KINDLE_SOUND_AT edge), never on the first update
+  const lastK = new Float32Array(entries.length).fill(-1), heard = new THREE.Vector3();
   return {
     group, parts: { frame, paper, halos: halos.mesh }, live: [paper, halos.mesh],
     update(dt, t, env) {
       const night = nightnessAt(hourOf(env));
+      const audio = env && env.audio;
       for (let i = 0; i < entries.length; i++) {
         const L = entries[i].L;
         const k = kindle(night, L.onset), fl = 0.9 + Math.sin(t * 6.3 + L.phase) * 0.06 + Math.sin(t * 17 + L.phase) * 0.04;
+        if (audio && lastK[i] >= 0 && lastK[i] < KINDLE_SOUND_AT && k >= KINDLE_SOUND_AT) {
+          const o = entries[i].o;
+          audio.play('lantern.kindle', { pos: group.localToWorld(heard.set(o[0], o[1], o[2])), gain: 0.5 });
+        }
+        lastK[i] = k;
         const val = 0.1 + k * 1.5 * fl;
         for (let v = ranges[i][0]; v < ranges[i][0] + ranges[i][1]; v++) aK.array[v] = val;
         halos.set(i, k * 0.6 * fl);
