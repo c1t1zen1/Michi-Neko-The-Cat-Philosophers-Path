@@ -689,6 +689,11 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 - Deferred ids, with reasons: `village-street` (no geometry of its own; parent of eight street-house components); `tree-trunks`, `tree-canopies` (no routing or consumer; `buildSkeleton` / `buildCanopyOnly` stay exported for s2); `scent`, `splash`, `landing-dust` (specimens exist, but `scent.js`, `player.js`, `context_actions.js` have no `placeAsset` seam); `summit-wildlife` (umbrella row; classic builds nothing of its own); v-sky `sky-dome`, `sky-light`, `god-rays` (kit-only), `ao`, `atmosphere`, `grade` (palette reconciliation or no study); c2-michi `bow` (no nape mount in the contract), cat shadow upgrade; offering bells (v-shrine ruling).
 - Material rule: R52 everywhere (no fixed cap; `tools/kit_material_census.mjs` reports "+N merged materials"). Contract sample for `bamboo-fence` is the real 11 m run (R51 exception exercised).
 
+### Board notes (G-V3 chores, 2026-11-14)
+
+- Village lanes, rows 2.1 to 2.3: all twenty merged and ticked (`v-machiya` and `v-interiors` as their a/b halves). Nothing in the village is deferred at lane level; the id-level deferrals are the ones listed under the G-V2 notes above (`village-street`, `tree-trunks`, `tree-canopies`, `scent`, `splash`, `landing-dust`, `summit-wildlife`, the six v-sky ids, c2 `bow` and the cat shadow, offering bells) and `edge-forest` stays pinned to classic (R49). Lab features not promoted by choice are listed in each lane status file (v-ground: GPU paw prints, rake grooves, eave dry rects; v-water: mirror, painterly post, kame-ishi, the other seven bridges).
+- Since the G-V2 notes: `s3-vista` has merged (Phase 4 row ticked); `r1-roof-split` is still open and is not part of this gate. `main` (a3221d4, Shinkansen only) was merged into `fable/integration` first, so `main` can fast-forward.
+
 ### Suggested allocation for three workers
 
 | Step | Worker A | Worker B | Worker C | Integrator |
