@@ -58,7 +58,7 @@ console.log('level');
 const L = buildLevel();
 const P = L.platforms;
 ok('level has a rail and platforms', L.rail && P.length > 60, P.length);
-ok('seven mouths', L.mouths.length === 7);
+ok('thirteen mouths', L.mouths.length === 13);
 ok('every platform has s0 < s1 and finite heights',
   P.every((p) => p.s1 > p.s0 && Number.isFinite(p.y0) && Number.isFinite(p.y1) && Number.isFinite(p.d)),
   P.filter((p) => !(p.s1 > p.s0)).map((p) => p.id + ':' + p.label).join(', '));
@@ -91,9 +91,9 @@ ok('every platform has s0 < s1 and finite heights',
   });
   ok('every lantern checkpoint sits in its own mouth, on a surface', L.checkpoints.length === 7 && bad.length === 0,
     bad.map((c) => `#${c.mouth}@${c.s.toFixed(1)} in ${mouthAt(L, c.s, c.y).id}`).join(', '));
-  const mids = L.mouths.slice(0, 6);
-  ok('the six street mouths tile the rail end to end',
-    mids[0].s0 === 0 && mids.every((m, i) => i === 0 || Math.abs(m.s0 - mids[i - 1].s1) < 1e-9) && Math.abs(mids[5].s1 - L.length) < 1e-9);
+  const mids = L.mouths.slice(0, 12);
+  ok('the twelve street mouths tile the rail end to end',
+    mids[0].s0 === 0 && mids.every((m, i) => i === 0 || Math.abs(m.s0 - mids[i - 1].s1) < 1e-9) && Math.abs(mids[11].s1 - L.length) < 1e-9);
 }
 {
   const pieces = (type, m = null) => L.pieces.filter((pc) => pc.type === type && (!m || (pc.s1 ?? pc.s0) >= m.s0 && (pc.s0 ?? pc.s1) <= m.s1));
