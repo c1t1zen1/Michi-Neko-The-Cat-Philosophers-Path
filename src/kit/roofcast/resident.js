@@ -12,7 +12,7 @@ import * as THREE from 'three';
 
 const TAU = Math.PI * 2;
 const SEG = { hero: 20, mid: 10, far: 8 };
-const BALLS = { hero: new THREE.SphereGeometry(1, 14, 10), mid: new THREE.SphereGeometry(1, 8, 5), far: new THREE.SphereGeometry(1, 6, 4) };
+const BALLS = { hero: new THREE.SphereGeometry(1, 16, 12), mid: new THREE.SphereGeometry(1, 10, 7), far: new THREE.SphereGeometry(1, 6, 4) };
 const FALLBACK = {
   hair: 0x302c30, terracotta: 0xa8553a, agedWood: 0x6e4c30, dark: 0x1e1915, bamboo: 0x8f9a52, straw: 0xc8a96a,
   steel: 0x5d6168, enamel: 0xe8e4da
@@ -21,7 +21,8 @@ const FALLBACK = {
 export function residentMats(ctx) {
   const M = ctx.MAT || {}, km = ctx.kitMaterials;
   const hex = (m, fb) => (m && m.color ? m.color.getHex() : fb);
-  const one = (name) => ({ hex: hex(M[name], FALLBACK[name] ?? 0x888888) });
+  // a textured material's own colour is its tint (often white), so the painted ones use the fallback colour
+  const one = (name) => ({ hex: M[name] && M[name].map ? (FALLBACK[name] ?? 0x888888) : hex(M[name], FALLBACK[name] ?? 0x888888) });
   const list = (name, colours) => (Array.isArray(M[name]) && M[name].length ? M[name] : colours.map((c) => km.plain(c, { rough: 0.95 })));
   const marks = (arr) => arr.map((m) => ({ hex: hex(m, 0x888888) }));
   const skin = list('skin', [0xe8c4a0, 0xd9a981, 0xc99068]);
@@ -155,10 +156,11 @@ export function buildResident(ctx, pc) {
 
   // head: painted oval face (tapered jaw), ears, hair, headband
   head.position.set(0, 1.425, 0.012);
-  const faceGeo = (hero ? BALLS.hero : ball).clone(), fp = faceGeo.attributes.position;
+  const faceGeo = hero ? new THREE.SphereGeometry(1, 24, 16) : ball.clone(), fp = faceGeo.attributes.position;
   for (let i = 0; i < fp.count; i++) if (fp.getY(i) < -0.1) fp.setX(i, fp.getX(i) * (0.86 + 0.14 * (fp.getY(i) + 1) / 0.9));
   faceGeo.computeVertexNormals();
-  const face = mk(faceGeo, faceMat); face.scale.set(0.136, 0.187, 0.13); (hero ? head : faceSrc).add(face);
+  faceGeo.scale(0.136, 0.187, 0.13); faceGeo.computeVertexNormals();   // the scale baked in, so the head is plain unscaled meshes
+  const face = mk(faceGeo, faceMat); (hero ? head : faceSrc).add(face);
   oval(faceSrc, skin, 0, -0.018, 0.126, 0.016, 0.025, 0.022);
   if (!far) for (const side of [-1, 1]) {
     oval(faceSrc, mats.cloth[0], side * 0.049, 0.024, 0.118, 0.025, 0.011, 0.009);
@@ -171,7 +173,7 @@ export function buildResident(ctx, pc) {
   }
   if (hero) {
     const smile = new THREE.CatmullRomCurve3([new THREE.Vector3(-0.021, -0.070, 0.117), new THREE.Vector3(0, -0.075, 0.122), new THREE.Vector3(0.023, -0.067, 0.116)]);
-    faceSrc.add(mk(new THREE.TubeGeometry(smile, 10, 0.0028, 4, false), mats.terracotta));
+    faceSrc.add(mk(new THREE.TubeGeometry(smile, 10, 0.0028, 4, false), { hex: 0x8a5147 }));
   }
   const hair = mk(new THREE.SphereGeometry(1, hero ? 18 : far ? 6 : 10, hero ? 12 : far ? 3 : 6, 0, TAU, 0, Math.PI * 0.62), mats.hair);
   hair.scale.set(0.145, 0.19, 0.143); hair.position.set(0, 0.025, -0.015); faceSrc.add(hair);
@@ -181,7 +183,7 @@ export function buildResident(ctx, pc) {
   }
   if (role === 'laundry') oval(faceSrc, mats.hair, 0.025, 0.085, -0.14, 0.079, 0.084, 0.06);
   else if (!far) {
-    const band = mk(new THREE.CylinderGeometry(0.146, 0.145, 0.035, hero ? 20 : 12, 1, true), mats.cloth[0]);
+    const band = mk(new THREE.CylinderGeometry(0.146, 0.145, 0.035, hero ? 20 : 12, 1, true), { hex: 0xe3d7b6 });
     band.scale.z = 0.94; band.position.y = 0.085; faceSrc.add(band);
     oval(faceSrc, mats.cloth[0], -0.13, 0.07, -0.07, 0.04, 0.025, 0.025);
   }

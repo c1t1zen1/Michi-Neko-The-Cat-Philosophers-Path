@@ -15,7 +15,7 @@
 // downtown.js does.
 import * as THREE from 'three';
 import { defineAsset } from '../contract.js?v=20261114a';
-import { Bag } from '../craft.js?v=20261114a';
+import { Bag, UNIT } from '../craft.js?v=20261114a';
 import { buildResident } from './resident.js?v=20261114a';
 
 const TAU = Math.PI * 2;
@@ -23,6 +23,8 @@ const SEG = { hero: 1, mid: 0.65, far: 0.4 };
 const seg = (tier, n) => Math.max(4, Math.round(n * (SEG[tier] || 0.65)));
 const FALLBACK = { clay: 0x6b6863, steel: 0x8d9298, plaster: 0xe0cfae };
 const mat = (ctx, name) => (ctx.MAT && ctx.MAT[name]) || ctx.kitMaterials.plain(FALLBACK[name], { rough: 0.8 });
+// Bag.sphere() overrides sx/sy/sz with r: an ellipsoid goes through UNIT.sphere
+const ell = (bag, rx, ry, rz, o) => bag.add(UNIT.sphere, { ...o, sx: rx, sy: ry, sz: rz });
 const solid = (geo, m, name) => { const mesh = new THREE.Mesh(geo, m); mesh.name = name; mesh.castShadow = mesh.receiveShadow = true; return mesh; };
 
 /* ------------------------------------------------------------------ shoki --- */
@@ -37,23 +39,23 @@ function shokiGeometries(tier) {
   const n = seg(tier, 14);
   body.add(new THREE.CylinderGeometry(0.115, 0.125, 0.03, n), { y: 0.015 });                       // plinth
   body.add(lathe([[0.062, 0.03], [0.118, 0.032], [0.12, 0.08], [0.1, 0.15], [0.075, 0.2], [0.05, 0.235], [0.036, 0.25]], n));   // robe
-  body.sphere(0.067, { y: 0.31, sz: 0.95 });                                                          // head
+  ell(body, 0.067, 0.067, 0.064, { y: 0.31 });                                                          // head
   body.add(new THREE.CylinderGeometry(0.038, 0.052, 0.085, seg(tier, 10)), { y: 0.39 });               // hat crown
   body.box(0.17, 0.012, 0.034, { y: 0.352 });                                                          // brim
   if (!far) {
     body.add(new THREE.TorusGeometry(0.087, 0.012, 5, n).rotateX(Math.PI / 2), { y: 0.135 });          // sash
-    body.add(new THREE.ConeGeometry(0.03, 0.09, 6), { y: 0.255, z: 0.075, rx: Math.PI });               // the beard
+    body.add(new THREE.ConeGeometry(0.03, 0.075, 6), { y: 0.242, z: 0.03, rx: Math.PI, sz: 0.7 });          // the beard, under the chin
     for (const s of [-1, 1]) {
-      body.sphere(0.045, { x: s * 0.085, y: 0.2, z: 0.012, sx: 0.8, sy: 1.1 });                        // sleeves
+      ell(body, 0.036, 0.05, 0.045, { x: s * 0.085, y: 0.2, z: 0.012 });                        // sleeves
       body.box(0.034, 0.012, 0.012, { x: s * 0.025, y: 0.339, z: 0.058, rz: s * -0.35 });              // scowling brows
-      body.add(new THREE.ConeGeometry(0.012, 0.045, 5), { x: s * 0.038, y: 0.282, z: 0.075, rz: s * -Math.PI / 2 });   // moustache
+      body.add(new THREE.ConeGeometry(0.012, 0.045, 5), { x: s * 0.034, y: 0.281, z: 0.062, rz: s * -Math.PI / 2, sz: 0.7 });   // moustache
     }
-    body.add(new THREE.ConeGeometry(0.012, 0.03, 5), { y: 0.305, z: 0.073, rx: Math.PI / 2 });          // nose
+    body.add(new THREE.ConeGeometry(0.011, 0.022, 5), { y: 0.302, z: 0.068, rx: Math.PI / 2 });         // nose
     body.box(0.03, 0.15, 0.012, { y: 0.4, z: -0.052, rx: 0.4 });                                       // hat tail
   }
   if (hero) {
     body.sphere(0.02, { x: 0.092, y: 0.255, z: 0.02 });                                                // fist
-    for (const s of [-1, 1]) body.sphere(0.012, { x: s * 0.028, y: 0.318, z: 0.058, sy: 0.6 });        // glare of the eyes
+    for (const s of [-1, 1]) ell(body, 0.012, 0.007, 0.01, { x: s * 0.028, y: 0.318, z: 0.058 });        // glare of the eyes
   }
   // the sword, point up, in the raised right hand (classic: 0.012 x 0.22 box, tilted -0.4)
   const tip = new THREE.ConeGeometry(0.0085, 0.03, 4);
@@ -80,10 +82,10 @@ function buildTreat(ctx, layout, p) {
   const dishBag = new Bag(), fishBag = new Bag();
   dishBag.add(new THREE.CylinderGeometry(0.11, 0.08, 0.03, n), { y: 0.015 });
   if (t !== 'far') dishBag.add(new THREE.TorusGeometry(0.105, 0.007, 4, n).rotateX(Math.PI / 2), { y: 0.031 });   // a lip
-  fishBag.sphere(0.05, { y: 0.054, sx: 1.8, sy: 0.5, sz: 0.6 });
+  ell(fishBag, 0.07, 0.024, 0.03, { x: 0.015, y: 0.054 });
   if (t !== 'far') {
-    fishBag.add(new THREE.ConeGeometry(0.035, 0.07, 4), { x: -0.105, y: 0.054, rz: Math.PI / 2, sz: 0.4 });  // tail
-    fishBag.sphere(0.008, { x: 0.075, y: 0.068, z: 0.026 });                                                // eye
+    fishBag.add(new THREE.ConeGeometry(0.03, 0.045, 4), { x: -0.085, y: 0.054, rz: -Math.PI / 2, sz: 0.4 });  // tail fan (apex at the body)
+    fishBag.sphere(0.008, { x: 0.052, y: 0.063, z: 0.02 });                                                // eye
   }
   const dg = dishBag.geometry(), fg = fishBag.geometry();
   dg.scale(k, k, k); fg.scale(k, k, k);
