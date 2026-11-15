@@ -180,7 +180,7 @@ const def = (id, label, build, piece, extra = {}) => defineAsset({
 });
 
 export const assets = [
-  def('roof-stepping-stones', 'Stepping stone', buildSteppingStone, { s0: -0.6, s1: 0.65, y: 0.2, d: 3, shape: 'turtle' }),
+  def('roof-stepping-stones', 'Stepping stone', buildSteppingStone, { s0: -0.6, s1: 0.65, y: 0.2, d: 3, shape: 'turtle' }, { floating: ['body_pine'] }),
   def('roof-canal-landings', 'Canal landing', buildCanalLanding, { s0: -1.4, s1: 1.4, y: 0.7, d: 1.5 }),
   def('roof-footbridge', 'Canal footbridge', buildFootbridge, { s0: -1.6, s1: 1.6, y: 0.2, d: 3 }, { floating: ['body_indigo'] }),
   def('roof-toro', 'Stone lantern', buildToro, { s0: -0.22, s1: 0.22, y: 1.45, d: 2.35 }),
