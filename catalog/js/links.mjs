@@ -3,6 +3,15 @@
 const LABS = new Set(['ground', 'water', 'ranges', 'machiya', 'sky', 'shrine', 'moonpool', 'pagoda', 'summit', 'nest', 'lanterns', 'fences', 'rocks', 'garden', 'greenery', 'alley', 'keepsakes', 'critters', 'villagers', 'weather', 'interiors', 'komorebi', 'grass']);
 const REPO = 'https://github.com/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path/blob/main/';
 
+// Bench and interaction ids are an allowlist derived from the audited inventory
+// (labs/asset_inventory.json `targets`), not hard-coded here: the app, tools and
+// tests register the inventory's targets once. Until they do, benches fail closed.
+let KNOWN = new Map();
+export function registerKnownTargets(targets) {
+  KNOWN = new Map(Object.values(targets || {}).map((t) => [`${t.lab}/${t.kind}/${t.selector}`, t]));
+}
+const known = (lab, kind, id) => KNOWN.has(`${lab}/${kind}/${id}`);
+
 function projectPath(value) {
   const path = String(value || '');
   if (!path || path.startsWith('/') || path.includes('\\') || /[\u0000-\u0020]/.test(path)) throw new Error('Expected a project-relative path');
@@ -41,14 +50,14 @@ export function resolveTargetLink(target, { rootUrl } = {}) {
   let path;
   if (target.lab === 'ranges') {
     const anchors = { stack: 'stack', 'wall-mass': 'wall', edge: 'edge', foothills: 'stage', air: 'air', 'foothill-stands': 'life', village: 'life', mists: 'life' };
-    if (!anchors[id]) throw new Error('Unknown ranges bench: ' + id);
-    path = `labs/ranges/${id === 'wall-mass' ? '?wall4=mass' : ''}#${anchors[id]}`;
+    if (!known('ranges', 'bench', id)) throw new Error('Unknown ranges bench: ' + id);
+    path = `labs/ranges/${id === 'wall-mass' ? '?wall4=mass' : ''}#${anchors[id] || id}`;
   } else if (target.lab === 'interiors') {
     if (target.kind === 'bench') {
-      if (!['tatami', 'shoji', 'pottery', 'frame', 'tokonoma', 'scroll', 'chabudai', 'zabuton', 'bonsai', 'knockables', 'courtyard-wall', 'secret-tatami', 'secret-table', 'secret-bed', 'secret-andon'].includes(id)) throw new Error('Unknown interiors craft: ' + id);
+      if (!known('interiors', 'bench', id)) throw new Error('Unknown interiors craft: ' + id);
       path = `labs/interiors/?craft=${id}#craft`;
     } else if (target.kind === 'interaction') {
-      if (id !== 'bat-cup') throw new Error('Unknown interiors interaction: ' + id);
+      if (!known('interiors', 'interaction', id) || id !== 'bat-cup') throw new Error('Unknown interiors interaction: ' + id);
       path = 'labs/interiors/?room=garden#house';
     } else path = `labs/interiors/?room=${encodeURIComponent(id)}&specimen=${encodeURIComponent(id)}#specimen-${encodeURIComponent(id)}`;
   } else {

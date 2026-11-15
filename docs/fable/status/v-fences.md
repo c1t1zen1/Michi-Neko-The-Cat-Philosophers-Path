@@ -49,3 +49,6 @@ See docs/fable/handoff/v-fences.md (inventory row for corral-sign, kit_test fixt
 
 ## Fix round 1
 Fences/corral posts/sign lashings baked into plain merged geometry (no InstancedMesh); merged fable/integration. perf_spots draw calls 763->751 (street), 735->706 (meadow); triangles +4.8% / +4.4%. corral-sign JPGs re-shot from a real sign-framed camera. Hero end posts no longer 4 cm taller. Far sign dark wood is documented in the handoff. See the report's Fix round 1 section.
+
+## Note (G-V1 review M4, G-V2 chores)
+The corral-sign board stays on classic `MAT.timberLight` (R39 dedupe), so it does not get kit wetness or snow; only its 7 cm rim shows it in rain. Accepted; v-weather need not chase it.
