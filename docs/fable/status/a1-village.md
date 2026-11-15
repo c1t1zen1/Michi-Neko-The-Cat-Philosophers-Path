@@ -4,7 +4,7 @@
 - Claimed:            2026-11-15 00:18 PST
 - Branch:             fable/a1-village
 - Base commit:        98c3a61 (fable/integration, G-V3 ticked, tag 20261114a)
-- State:              ready for review (R66 open: needs the two hot-file patches in the handoff)
+- State:              ready for review (fix round 1 done; R66 still open: see the re-measure)
 
 Phase 7 area polish for the Kyoto village (valley). Brief:
 `.superpowers/sdd/BUILD_GUIDE_FABLE/briefs/a1-village.md` (scope ruling R58;
@@ -12,7 +12,7 @@ Integrator additions after G-V3: R66 world build, R62 summit audio, R67).
 
 ## Steps
 - [x] A.1 Walk it at cat height: three routes, 18 stops, 50 frames + 2 interiors (below)
-- [ ] R66 World build: **open**. Lane family changes 1.52/1.73 → 1.43/1.57 ×; with handoff §2a + §2b 1.24/1.22 × (holds); the Integrator applies the hot-file patches and re-measures
+- [ ] R66 World build: **open**. §2a/§2b now in-lane (R71). Re-measure (3 boots, load 2.7–4.5): build 1.26–1.28 × medium, 1.40–1.42 × high; boot +297–461 ms (holds). See the fix round 1 table
 - [x] A.5 Sound: the one env.audio sink in `src/main.js` (R50, R62) + family call sites; summit `env.audio` is handoff §1
 - [x] Deferred minors (ledger) + G-V3 M1/M2: done or ranked with the reason (table below)
 - [x] A.2 Composition
@@ -91,12 +91,27 @@ checked with a classic frame at the same camera):
 | r6_12 | the hero lotus standing leaf now has a wavy rim and stalk but still reads lighter than the pads in sun | modular | hidden; issue 11 |
 | s1_12, interior_tea_12 | plank grain bands strongly at grazing angles (bridge deck, tea-room floor strip) | both | issue 12 |
 | m4_12_snow | snow caps the boulder and seat; the meadow grass stays green and tall | both | grass (no snow response); issue 13 |
+| r1_12 | the aze bund is a smooth, untextured green slab at cat height (no crest grass, no earth texture) | both (classic: a smooth unlit dark slab, worse) | water `paddy-bunds`; issue 18 |
+| r1_12, r3_12, r4_12 | at noon the river reads as an opaque beige-grey sheet: no depth, no reflection of the banks; it is route R2's main subject | both (classic: an opaque pale cyan sheet) | water `river`; issue 19 |
+| r4_22 | at night the distant range glows pale through hard-edged gaps in a black tree line, brighter than the sky | both | ranges (night fog on the far range) and the rim trees (edge-forest pinned classic, R49); issue 20 |
+| s3_18.5 | the dusk paving carries a heavy orange outline on every stone joint (the ground's sun fringe) | modular | ground; issue 21 |
 | first r1 frame (30, 0.5, 26.5) | the camera stood inside a bush: re-placed (route table) | camera | none |
 
-Everything else holds at cat height: the street (s2–s6) closes on the torii
-and the shrine hall, lanterns line it at night and warm the paving (s3_22),
-the corral sign and fence read cleanly (m2), the glade's lanterns and
-fireflies carry the night (m4_22), rain wets the river path (r3_12_rain).
+(Fix round 1, from the review: the four rows above the camera row were missed in
+the first pass, and an "everything else holds" line overclaimed. Each was checked
+against a classic frame at the same camera, `r1_12/r3_12/r4_12/r4_22_classic` in
+scratch. A small fix was tried on the river (Fresnel capped at 0.78, reflections
+cooled and darkened toward the banks, `r4_12_vA`): it barely moves the sheet,
+because the look comes from reflecting a sky gradient only, under the valley
+haze; it was reverted. None of the four is a small change; each is ranked with
+its owner and the reason.)
+
+What holds at cat height: the street (s2–s6) closes on the torii and the shrine
+hall, lanterns line it at night and warm the paving (s3_22), the corral sign and
+fence read cleanly (m2), the glade's lanterns and fireflies carry the night
+(m4_22), rain wets the river path (r3_12_rain). The river route (r1–r6), the
+Moon Pool rim, the rim forest edge, dawn on the bridge and the secret room do
+not meet the bar (rows above and the ranked issues).
 
 ## R66 World build (modular ≤ 1.25 × classic, boot ≤ classic + 1.0 s)
 
@@ -172,6 +187,40 @@ main.js does, instead of inside the world build. **To close R66 the
 Integrator applies handoff §2a and §2b and re-measures on a quiet machine**;
 §2c lists what is left if medium needs more margin (KitMaterials textures
 painted at first compile, the summit's kit built after the first frame).
+
+### R66 after fix round 1 (ruling R71: §2a and §2b applied in-lane)
+
+The perf_gv3 build command, `--boots 3`, at the lane head with both patches, two
+runs (scratch `r66/run1.json`, `run2.json`; per-boot load in the logs):
+
+| Run (load at boot starts) | Tier | Classic build / ready / boot ms (median of 3) | Modular build / ready / boot ms | Build ratio | Ready ratio | Boot Δ |
+|---|---|---|---|---:|---:|---:|
+| 1 (3.39 → 4.54) | medium | 981 / 1,364 / 2,019 | 1,233 / 1,672 / 2,346 | 1.26 | 1.23 | +327 |
+| 1 | high | 968 / 1,347 / 1,991 | 1,372 / 1,808 / 2,452 | 1.42 | 1.34 | +461 |
+| 2 (2.75 → 3.50 → 2.89) | medium | 956 / 1,318 / 2,019 | 1,228 / 1,656 / 2,317 | 1.28 | 1.26 | +297 |
+| 2 | high | 953 / 1,320 / 1,964 | 1,331 / 1,762 / 2,409 | 1.40 | 1.33 | +445 |
+
+**Not closed.** Most boots started at load ≥ 3, so by R71 these are
+load-affected numbers for the gate's quiet pass. They also show why the
+earlier A/B looked closer: the classic world builds in ~950 ms on the
+machine now (1,400–1,500 ms in the 01:05 A/B), while the modular overhead
+stays ~270 ms (medium) and ~380 ms (high), so the ratio rises as the machine
+gets faster. The boot rule (≤ classic + 1,000 ms) holds everywhere; the
+1.25 × build rule needs the overhead under ~240 ms, ~30 ms more off medium and
+~140 ms off high. Where it is (profiled high boot, 13:36, load 3.8):
+`valley-ground` 141 ms (its three painted layer tiles and their packing loop,
+~55 ms, are the part classic does not pay), the hero trees' leaf sprays
+(`sakura` 52), `KitMaterials` texture painting (stone, wood, lacquer, ~45 ms,
+hot file), `kawara-roof` 31, the foliage leaf-mass textures for `street-bushes`
+and `foothill-forest` (~20 ms more than classic paints). The next levers are in
+handoff §2c (materials painted at first compile; the summit's kit after the
+first frame) plus the ground pack loop.
+
+**Proof the patches change no output:** the `?assets=modular` footprint digest
+of the lane head equals 80ddf98's (unpatched) except for the noren cloth (the
+hem's back strip, fix round 1, intended); modular `game_shot` pairs, 80ddf98
+against the lane head, at the corral fences, the Moon Pool and the glade at
+night: `maxDelta 0` each.
 
 ## A.5 Sound (rulings R50, R62)
 
@@ -396,6 +445,16 @@ At the lane head (9d85011 + the budgets/status commit), 2026-11-15 13:02–13:06
 - **Modular deterministic:** two `?assets=modular` boots at the river stop: `maxDelta 0, pixelsOver8 0`
 - Boots: every A.1/A.7 boot ran without page errors (only the optional `/cad-overrides.json` 404); kit `problems: 0`, 261 instances
 
+**Fix round 1 (after merging origin/fable/integration 80ddf98), 13:22–13:41, load 2.6–4.9:**
+- New tests: `node --test tools/a1_village_test.mjs` → `pass 6, fail 0` (cloud field byte-equal to its oracle on 9 seeds + frozen hash on the game seeds; pool caustics byte-equal on 12 site sets; lampUpdate kindle edge; runtime side-by-side imports and registration order; a failing materials import still fails preload); `verify.mjs` runs it (`a1_village_test: tests 6, pass 6, fail 0`). `node tools/a1_village_browser_test.mjs` → `16 passed, 0 failed` (fence bake equal to the original baker on 36 cases up to 600 copies; sink: near plays, 300 m silent, kindles 50 ms apart once, 220 ms apart twice, other events 100 ms apart twice, paused silent, unknown ignored, shishi batted tip silent, `?shot=1` silent and no pack; prefetch: index + 24/24 families before kit-overrides.json on saved modular + high, none on classic or saved low; no page errors).
+- **Each test fails when its behaviour breaks** (scratch worktree at 96ca23f/9e then restored): cloud cell jitter 0.7 → 0.71 → `fail 2`; caustic pruning bound halved → `fail 1`; lampUpdate without its first-update guard → `fail 1`; runtime back to sequential imports (98c3a61) → `fail 1`; bake without the normal transform → `FAIL fence bake …`; sink kindle gap 0.15 → 0.01 → `FAIL two kindles 50 ms apart …`; prefetch with its gates removed → `FAIL classic default …` and `FAIL saved modular + low …`; the shishi rule removed → `FAIL shishi …` (`batted: 1`). Restored: all pass.
+- G1: check_syntax `All 171 modules OK`; verify `All checks passed`; kit_check 446; labs_check OK; cad_overrides 27/0; diff-check clean. cadJS `modules: ok`, 15/15, 16/16; catalog 50/0.
+- Contracts (touched families): garden 184/0, alley 153/0, machiya 1131/0, hidden 1232/0, fences 300/0, sky 325/0, lanterns 483/0.
+- Goldens: footprint EQUAL, `--systems` EQUAL, cat EQUAL, summit EQUAL, summit parity EQUAL, rooftop golden EQUAL; summit_test 83/0; ground wear 14/0.
+- Classic `game_shot` 80ddf98 against the lane head: street noon and glade night `maxDelta 0`. Modular 80ddf98 against the lane head (corral, Moon Pool, glade night) `maxDelta 0`.
+- Boots: `?assets=classic` (0 instances) and `?assets=modular` (261 instances, 0 problems) with `--fail-on-error`: `errors: []`.
+- `rooftop_test` 38 passed / 2 failed on 80ddf98 itself too (not this lane).
+
 **After merging origin/fable/integration (d676da4, which already holds 9d85011 via the operator's main merge, R69)** at 32bc1f2, 13:06–13:07, load 2.3–2.9: check_syntax `All 171 modules OK`; verify `All checks passed`; kit_check 446 passed; labs_check OK; cad_overrides 27/0; `git diff --check` clean; footprint golden EQUAL, `--systems` EQUAL; cat golden EQUAL; rooftop golden EQUAL; classic `game_shot` street noon, d676da4 against the merged lane: `maxDelta 0, pixelsOver8 0`. `node tools/rooftop_test.mjs` → `38 passed, 2 failed` (`every piece sits on one straight leg`, `autopilot reaches the perch`): **the same 2 fail on d676da4 itself** (a scratch worktree there: `38 passed, 2 failed`); this lane changes nothing under rooftops/.
 
 ## Remaining issues, ranked
@@ -445,5 +504,36 @@ At the lane head (9d85011 + the budgets/status commit), 2026-11-15 13:02–13:06
     medium; proposal below, not applied.
 17. `bamboo-fence` mid triangles exception (R51) kept, with its reason
     (medium builds the whole village at mid and sees it at cat height).
+18. **Paddy aze bunds read as smooth slabs** (`r1_12`, both sets): they need
+    crest grass (a tuft strip or the game grass on the crest) and an earth
+    texture, new geometry with a draw-count check, not a parameter. Owner:
+    water (`paddy-bunds`).
+19. **The noon river is an opaque beige-grey sheet** (`r1_12`, `r3_12`, `r4_12`;
+    classic a pale cyan sheet): the shader reflects a sky gradient only, so
+    from 0.5 m it shows no banks, trees or depth. A capped Fresnel and darker
+    bank band barely changed it (`r4_12_vA`). Needs bank/tree reflections
+    (planar or screen-space) and a look study. Owner: water (`river`).
+20. **At night the far range glows through hard-edged gaps in the tree line**
+    (`r4_22`, both sets): the night fog on the far range is brighter than the
+    sky. Owner: ranges / fog (and the rim trees, pinned classic by R49).
+21. **Dusk paving joints carry a heavy orange outline** (`s3_18.5`): the ground's
+    sun fringe at the joints. Owner: ground (`FRINGE` strength at low sun);
+    an art call, left for the operator's eye.
+22. **The noon frame-time win in A.6 was not measured** (issue 16 stays a
+    proposal): a before/after needs a quiet machine and an L6 pair.
+23. **`distant-pagoda` hero warm build flakes over its 6 ms cap under load**
+    (budgets.md §5 watch list; 6.3–6.6 ms in 2 of 4 runs at load 3.3, the base
+    too): not trimmed; it needs a profile of the pagoda build.
+24. **The nest's egg material is a second nest-owned merged material** (R26:
+    ≤ 1 per family without a request): recorded in the handoff §3 as the
+    request (`KIT_SHARED` lives in materials.js, a hot file).
+25. **`water.stones.flow` is a proximity-paced sound** (one burble every 2.2–3.4 s
+    within 7 m), not a single edge; reasonable for flowing water. Integrator
+    ruling on R50 requested (handoff §3).
+26. **The lazy moon moves its cost, it does not remove it**: the 16–20 ms paint
+    runs on the first frame that draws the moon (the first dusk, or frame 1 of
+    a night boot, inside "ready"). "None on a day boot" holds because the
+    runtime updates instances before the first render (the moon's update
+    hides the disc by day).
 
 ## Notes for the Integrator
