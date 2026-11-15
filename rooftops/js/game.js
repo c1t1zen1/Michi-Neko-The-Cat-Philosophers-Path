@@ -16,7 +16,7 @@ import { RooftopAtmosphere } from './atmosphere.js';
 import { alleyEntrance, alleyDepth } from './alleys.js';
 import { Companion } from './companion.js';
 import { neighbourhoodMap } from './neighbourhood-map.js';
-import { AssetRuntime } from '../../src/kit/runtime.js?v=20261113a';
+import { AssetRuntime } from '../../src/kit/runtime.js?v=20261114a';
 
 const Q = new URLSearchParams(location.search);
 const flag = (k, d = null) => (Q.has(k) ? Q.get(k) : d);
@@ -86,7 +86,7 @@ let guide = null, stageReady = false;
 async function loadCats() {
   if (flag('cat') === '0') return true;
   try {
-    const mod = await import('../../src/cat.js?v=20261113a');
+    const mod = await import('../../src/cat.js?v=20261114a');
     await new Promise((r) => setTimeout(r, 60));          // let the page paint first
     cat = new mod.Cat({ fur: 0xae8450, belly: 0xeedcb8, accent: 0x5e3d26 });
     cat.group.position.y = 0.02;
