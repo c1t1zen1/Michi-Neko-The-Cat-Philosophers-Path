@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {loadCatModule,loadSkyModule} from '../../labs/shared/game.js';
 import {loadKit} from './assets.js';
+import {loadSceneryModules} from './scenery.js';
 import {World} from './world.js';
 import {Input} from './input.js';
 import {CatMotor} from './physics.js';
@@ -138,7 +139,7 @@ async function boot(){
   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.shadowMap.enabled=!low&&Q.get('shadows')!=='0';renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   scene=new THREE.Scene();scene.background=new THREE.Color(0xc6d8ce);camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.08,1600);resize();
   ui.loading('Unpacking the Blender-built train and scenery…');
-  const [kit,catModule,skyModule]=await Promise.all([loadKit(),loadCatModule(),loadSkyModule()]);
+  const [kit,catModule,skyModule,scenery]=await Promise.all([loadKit(),loadCatModule(),loadSkyModule(),loadSceneryModules()]);
   sky=new skyModule.Sky(scene);sky.dayTime=9.3;sky.cycleSpeed=0;sky.weatherPool=['clear'];
   // Keep the valley's painted sky rig, with a clear travel-day palette.
   sky.paletteOverride={phases:{
@@ -149,7 +150,7 @@ async function boot(){
   if(sky.sun.shadow){sky.sun.shadow.mapSize.set(low?512:1024,low?512:1024);sky.sun.shadow.camera.left=-18;sky.sun.shadow.camera.right=18;sky.sun.shadow.camera.top=18;sky.sun.shadow.camera.bottom=-18;}
   const pmrem=new THREE.PMREMGenerator(renderer),env=pmrem.fromScene(new RoomEnvironment(),.04);scene.environment=env.texture;pmrem.dispose();
   ui.loading('Painting the windows, tea fields, and faraway hills…');
-  world=new World(scene,kit,{low});
+  world=new World(scene,kit,{low,scenery,sky});
   ui.loading('Michi is finding his paws…');await new Promise(r=>setTimeout(r,30));
   cat=new catModule.Cat();scene.add(cat.group);
   catModule.catRimUniforms.uRimStrength.value=.24;catModule.catRimUniforms.uRimColor.value.set(0xffe0ab);
