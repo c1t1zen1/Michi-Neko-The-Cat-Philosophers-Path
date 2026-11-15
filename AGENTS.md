@@ -22,7 +22,7 @@ companion apps. Last reviewed 2026-10-24.
 | `labs/ground/` | Lab 01, Ground, path & shoulders (土と道): a 16 × 12 m Kyoto corner (machiya frontage with amaochi and inuyarai, ishidatami street, tamajari sandō, a rutted lane with a ditch, a moss roji with tobi-ishi and tsukubai, a raked karesansui) on a CPU `GroundField` (`js/field.js`: eight splat weights, the Helbing wear field G/G0, wetness, snow, paving style, relief) that writes the game grass's `BiomeMask` live, so grass thins where paws pass. One `onBeforeCompile` ground material (`js/ground.js`: height blend, hex-tiling, six procedural pavings + POM, Lagarde wetness, low-first puddles, rain rings, snow, prints, rake/broom grooves, komorebi fringe). The village cats wear *kemonomichi* (`js/walkers.js`); "Let a season pass" fast-forwards them; trails pave as sō/gyō/shin. Uses the game's `Sky`, `GrassSystem`, canopies and cat through `labs/shared/game.js`. 31 core-sample variants, 12 steps. Page flags: `?hour=`, `?season=`, `?sky=clear\|drops\|rain\|after\|snow`, `?view=orbit\|eye\|plan`, `?step=1..12`, `?compare=game\|blend\|tile\|wear\|paint`, `?tool=`, `?village=1`, `?ff=1`, `?paint=`, `?cam=px,py,pz,tx,ty,tz[,fov]`, `?nohud=1`, `?shot=1`; console `__ground`. Mark buffers must render with `renderer.autoClear = false` |
 | `labs/water/` | Lab 02, River, bridge & paddies (川と田んぼ): a 30 × 22 m stage where a CPU water field (bed, flow round every pier and stone, foam) drives eleven water shader styles, eight Kyoto bridges (`js/bridges.js`: giboshi kōran, taikobashi, yatsuhashi, ippon-bashi, a nagare-bashi that floats in a flood, Uji's san-no-ma), kame-ishi, terraced paddies through the seasons, and the real cat wading, swimming, shaking dry and jumping off the bridge (`js/cat.js`, game jump constants). 28 live variant cubes, 12 build-it-up steps, a Kuwahara painterly pass. Page flags: `?hour=`, `?season=spring\|early\|summer\|autumn\|winter`, `?bridge=`, `?water=<variant id>`, `?paddy=`, `?level=`, `?step=1..12`, `?compare=game\|depth\|phase\|mirror\|paint`, `?leap=1`, `?view=eye`, `?nohud=1`, `?shot=1`; console `__water` |
 | `labs/pagoda/` | Lab 08, Distant pagoda (五重塔): a parametric gojū-no-tō in real metres (`js/pagoda.js` `buildPagoda(opts, { detail })`) solved from measured proportions (H ÷ W₁, teigen, eave 2.2 → 3.0, sōrin share) with Yamahata et al.'s measured roof curves, mitesaki kumimono, futanoki/fan rafters, swept hongawara, kōran, fūtaku pendulums, the full sōrin, and hero / mid / far tiers plus a 16-view impostor (`js/impostor.js`). Eight recorded towers and a game-fit `valley` preset (`js/presets.js`). The viewing platform (`js/hero.js`, `js/world.js`): a Higashiyama-like town with Michi on a perch wall, a 5 m–2 km distance dial with a pixel ladder, Bayer crossfades, ring / shake (snake dance) / raise / frame / labels, seasons, and a split compare against the real `buildDistantPagoda` (run read-only through `js/original.js`). Eight post finishes (`js/finish.js`). 65 live specimens in `js/variants.js` + `js/tiles.js`. Page flags: `?preset=`, `?view=perch\|street\|valley\|orbit\|kite`, `?finish=`, `?hour=`, `?season=`, `?dist=`, `?tier=`, `?frame=1`, `?labels=1`, `?compare=1`, `?quake=1`, `?opts={json}`, `?cat=0`, `?shot=1&nohud=1`; console `__pagoda` |
-| `rooftops/` | The Roof Road (屋根道): a side-scrolling run over old-Kyoto roofs past the valley bridge, through seven "mouths" from the bridge to the top of a Gion Matsuri float, with the five Okuribi fires as the finale. **A lab, not yet wired into the game** (the unlock and pocket scene are designed in §8.2 of the spec). Pure modules, no three.js: `js/rail.js` (route polyline + fillets, arc length `s`), `level.js` (pieces → platforms, walls, pickups), `physics.js` (the game's jump constants + mantle/futon/rope/canopy), `reach.js` (jump reach + platform graph), `autopilot.js`. Meshes in `build.js`, sky and fires in `sky.js`, the loop in `game.js`. Its entry point is the root page `kyoto-rooftops.html` (a sandbox the main game does not link to; `rooftops/index.html` forwards there with its `?flags`), so open `/kyoto-rooftops.html` from the served repo root. Design `docs/superpowers/specs/2026-10-24-rooftop-road-design.md`, research `docs/ROOFTOPS_RESEARCH_2026-10-24.md`. Its `../../src/cat.js?v=` and `../../src/textures.js?v=` imports carry the cache tag (bump them with the others); its own modules are untagged; `rooftops/package.json` only marks them as ES modules for Node |
+| `rooftops/` | The Roof Road (屋根道): a side-scrolling run over old-Kyoto roofs past the valley bridge, through seven "mouths" from the bridge to the top of a Gion Matsuri float, with the five Okuribi fires as the finale. **A lab, not yet wired into the game** (the unlock and pocket scene are designed in §8.2 of the spec). Pure modules, no three.js: `js/rail.js` (route polyline + fillets, arc length `s`), `level.js` (pieces → platforms, walls, pickups), `physics.js` (the game's jump constants + mantle/futon/rope/canopy), `reach.js` (jump reach + platform graph), `autopilot.js`. Meshes in `build.js` (the `buildWorld` facade) and `pieces/` (one module per piece type; the `PIECES` table in `pieces/index.js` maps each type to its inventory id and lane, and `buildWorld` builds every piece through its own `AssetRuntime`: classic by default, `?assets=` / `?swap=` honoured). Its piece shelf is `labs/roofroad/`. Sky and fires in `sky.js`, the loop in `game.js`. Its entry point is the root page `kyoto-rooftops.html` (a sandbox the main game does not link to; `rooftops/index.html` forwards there with its `?flags`), so open `/kyoto-rooftops.html` from the served repo root. Design `docs/superpowers/specs/2026-10-24-rooftop-road-design.md`, research `docs/ROOFTOPS_RESEARCH_2026-10-24.md`. Its tagged imports (`game.js`: `src/cat.js`, `src/kit/runtime.js`; `build.js`: `src/kit/runtime.js`; `pieces/paint.js` and `pieces/common.js`: `src/textures.js`) carry the cache tag (bump them with the others), as do `tools/rooftop_golden.js` and its page; its own modules are untagged; `rooftops/package.json` only marks them as ES modules for Node |
 | `Skretch/` | Stage 2 review board (sketch + notes over the whole Roof Road): `index.html`/`app.js`/`styles.css` — a mobile-first horizontal strip of the captured frames; tap a shot to zoom and ink it, 📌 pins notes. `server.mjs` (zero-dep; `node Skretch/server.mjs`, `--host 0.0.0.0` for phones) serves the repo plus `GET/PUT /Skretch/api/review` (revision-checked atomic saves → `data/review.json`, `data/review.md`, `data/history/`) and `GET /Skretch/api/report`. `js/model.js` is the shared review schema (strokes/notes/merge/markdown). `tools/capture.html`+`capture-scene.js`+`capture.mjs` re-shoot the 47 main + 12 alley frames into `assets/` (orthographic elevations off the real level; needs `PLAYWRIGHT_MODULE` and `SHARP_MODULE`). Tests: `cd Skretch && npm test`, `npm run test:browser`. README has the details. |
 | `assets/` | Optional runtime media (summit vista GLB, transition mp4); every slot has a fallback |
 | `docs/` | Reviews, the build guide, checklists, social posts, README artwork |
@@ -63,8 +63,9 @@ from `src/main.js`, and `node tools/kit_index.mjs` regenerates
 
 Companion apps (`dawCAT/`, `cadJS/`) import their own files without tags. The
 labs import game modules *with* tags, and the one-liner below only rewrites
-`src/**/*.js` and `index.html`: bump `rooftops/js/game.js`, `rooftops/js/build.js`
-and `labs/shared/game.js` by hand.
+`src/**/*.js` and `index.html`: bump `rooftops/js/game.js`, `rooftops/js/build.js`,
+`rooftops/js/pieces/paint.js`, `rooftops/js/pieces/common.js`,
+`tools/rooftop_golden.js` and `labs/shared/game.js` by hand.
 
 On Windows do NOT bulk-rewrite with PowerShell `Get-Content`/`Set-Content` —
 it re-encodes and corrupts em-dashes/Japanese text. Use Node (byte-safe):
@@ -85,8 +86,10 @@ for f in src/*.js; do node --input-type=module --check < "$f" >/dev/null || echo
 
 Labs: `node tools/labs_check.mjs` (syntax, cache tags, registry, and the
 coverage report — `labs/ASSET_COVERAGE.md` embeds source line anchors, so
-after editing `src/main.js` or `src/countryside.js` regenerate it with
-`node tools/labs_coverage.mjs --write`).
+after editing `src/main.js`, `src/countryside.js` or any anchored
+`rooftops/js/` module (`build.js`, `game.js`, `downtown.js`, `sky.js`,
+`atmosphere.js`, `pieces/*.js`) or `labs/roofroad/js/shelf.js`, regenerate it
+with `node tools/labs_coverage.mjs --write`).
 
 Kit (`src/kit/`, BUILD_GUIDE_FABLE §3): `node tools/kit_check.mjs` (static
 rules: ids in the inventory and unique, family `index.js` exports `assets`,
@@ -115,7 +118,7 @@ URL flags only when present: `?hour=<0-24>` (time of day held),
 `?swap=torii:modular,toro:classic`. Two boots with the same flags diff at
 `maxDelta 0` on the Metal backend (about 8 s per shot on the dev Mac).
 
-Roof Road: `node tools/rooftop_test.mjs` (38 checks, a few seconds). It proves
+Roof Road: `node tools/rooftop_test.mjs` (40 checks, a few seconds). It proves
 the rail is continuous, the finale is reachable from the start and from every
 platform (no soft-locks), every metre of street has a climb-back within 12 m,
 route links fit 80 % of the running jump, and the autopilot runs the whole
@@ -125,6 +128,14 @@ route on the real physics without touching the street. Change a height in
 `?hour=0..1`, `?cat=0`, `?shadows=0`, `?shot=1&nohud=1` for captures; console
 hooks `roofRoad.at(s)`, `roofRoad.skipFinale()`. A headless capture takes about
 4 min per shot under SwiftShader on the dev laptop.
+`node tools/rooftop_golden.mjs` (the numeric golden of the built world:
+every piece's meshes and bounds, lights, merged batches, moving pieces,
+materials, update samples, plus the level's platforms, walls and ceilings;
+EQUAL is the gate for any change to `build.js` or `pieces/`; it also runs a
+routing self-test with stand-in kit pieces). `--query "assets=modular"` and
+`--query "swap=<id>:modular"` build the same world on the other sets.
+After a deliberate level or mesh change, `--write` with the reason in the
+commit.
 
 Cat model review: `tools/cat_preview.html?sheet=<name>` renders posed cats
 from fixed angles (sheets: anatomy, face, gait, stride, poses, sleep,

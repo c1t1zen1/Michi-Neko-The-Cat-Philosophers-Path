@@ -102,6 +102,9 @@ export function originalContextLink(asset, { rootUrl } = {}) {
     const street = ['tea-house', 'residence', 'secret-house', 'street-house', 'village-street', 'kawara-roof', 'koushi', 'engawa', 'timber-frame', 'upper-windows', 'noren', 'namako', 'tea-bench'];
     path = 'tools/town_preview.html?sheet=' + (landmarks.includes(id) ? 'landmarks' : street.includes(id) ? 'street' : 'props'); label = 'Town game review';
     note = 'A fixed scene sheet built from the original Countryside. Its cameras may not frame this individual asset; use the isolated catalog viewer for exact inspection.';
+  } else if (/(^| )rooftops\//.test(files)) {
+    path = 'kyoto-rooftops.html'; label = 'The Roof Road page';
+    note = 'The Roof Road prototype page (not yet in the game). Its piece shelf is labs/roofroad/; ?mouth=1..7 starts at a mouth.';
   }
   const href = fromProject(path, rootUrl);
   return { href, url: href, label, note, wholeScene: true };

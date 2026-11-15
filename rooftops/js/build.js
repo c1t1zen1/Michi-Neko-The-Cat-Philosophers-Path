@@ -31,7 +31,7 @@ import { mergeByMaterial } from './pieces/common.js';
 import { PIECES, downtown } from './pieces/index.js';
 import { makeShoki, makeTreat } from './pieces/pickups.js';
 import { buildDistantCity, buildPagoda } from './pieces/skyline.js';
-import { scopeAssets, isAssetInstance } from '../../src/kit/runtime.js?v=20261113a';
+import { scopeAssets, isAssetInstance } from '../../src/kit/runtime.js?v=20261114a';
 
 /* ------------------------------------------------------------------ */
 /*  Assembly                                                            */

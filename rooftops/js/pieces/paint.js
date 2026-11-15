@@ -10,7 +10,7 @@ import {
   kawaraTextures, plasterTextures, woodTextures, namakoTextures, shojiTextures,
   cobbleTextures, stoneTextures, strawTextures, metalTextures, lacquerTextures,
   dirtTextures, texturedMaterial
-} from '../../../src/textures.js?v=20261113a';
+} from '../../../src/textures.js?v=20261114a';
 import { downtownMaterials } from '../downtown.js';
 import { streetPaint } from '../street-paint.js';
 import { TAU } from './common.js';
