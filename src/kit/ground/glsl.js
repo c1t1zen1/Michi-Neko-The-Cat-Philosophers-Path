@@ -180,7 +180,7 @@ float paving(vec2 p, int style, float pix, out vec4 col) {
     h = m * (.65 + .3 * hash2i(id + ivec2(5, 11)).x) * (1. - .3 * v.x * v.x);
     vec2 hh = hash2i(id + ivec2(13, 7));
     vec3 c = hh.x < .3 ? vec3(.47, .43, .38) : hh.x < .6 ? graniteCol(id, grain) : vec3(.60, .55, .47);
-    c *= vec3(1.07, 1., .84);   // a1-village (G-V3 M1): the warm sandy stone of the classic street, so dusk does not turn it lavender
+    c *= vec3(.81, .7, .55);   // a1-village (G-V3 M1): the warm sandy stone of the classic street (its noon ratio), so dusk does not turn it lavender
     col = vec4(c * (.82 + .3 * hh.y) * (.92 + grain * .16), m);
   } else if (style == 3) {
     // arare-koboshi: hailstone pebbles set close in mortar
