@@ -8,6 +8,7 @@ if (!r.ok) { console.error('could not run:', r.error, r.errors.slice(0, 3)); pro
 const { classic: c, modular: m } = JSON.parse(r.value);
 const bad = [];
 for (const k of ['colliders', 'platforms', 'nextRng', 'toriiAt', 'furinXZ', 'lanternY', 'binds']) if (JSON.stringify(c[k]) !== JSON.stringify(m[k])) bad.push(`${k}: ${JSON.stringify(c[k])} vs ${JSON.stringify(m[k])}`);
+for (const [n, d] of [['classic', c], ['modular', m]]) if (d.lanternY.some((y) => y === null)) bad.push(n + ': no toro found at the lower-path lantern spot (lanternY not measured)');
 if (m.problems.length) bad.push('modular problems: ' + m.problems.join('; '));
 if (c.instances.length) bad.push('classic built kit instances');
 console.log(`classic: ${c.colliders} colliders, ${c.platforms} platforms, rng ${c.nextRng}`);
