@@ -49,6 +49,12 @@ export const KIT_LIMITS = Object.freeze({
  * fields it names and must cite why. Added by the owning lane in its PR.
  */
 export const BUDGET_EXCEPTIONS = Object.freeze({
+  // Phase 5 r3b (roofcanal part b): the Roof Road's real runs (70 m canal, 74 m banks, 103 m canopy and stalls) and the hull
+  // carry the classic piece's own material count at hero (the painterly MAT set); mid and far remap down to the standard caps
+  'roof-canal-banks': { hero: { materials: 14 }, why: 'classic canalQuarter: wet stone, slab, stone, timber, posts, twine, steel, bronze, foliage, clay, dark, water; mid/far remap to 4/2' },
+  'roof-market-stalls': { hero: { materials: 12 }, why: 'plaster x2, timber, six goods colours, three noren; mid 4 / far 1 by remap' },
+  'roof-canopy': { hero: { materials: 8 }, why: 'glass, steel and six banner colours on a 103 m run; mid 3 / far 2' },
+  'roof-takasebune': { hero: { materials: 10 }, why: 'hull, hull band, timber x2, aged wood, straw, hemp, twine, steel and the wake; mid 3 / far 2' },
   // the contract samples the real 11 m run (G-V1 I1); ruling R51
   'bamboo-fence': {
     mid: { triangles: 13000 },

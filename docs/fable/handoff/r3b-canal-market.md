@@ -1,0 +1,12 @@
+# Handoff: r3b-canal-market (roofcanal part b)
+## 1. Ids (family roofcanal, src/kit/roofcanal/market.js)
+Promoted (8): roof-canal, roof-canal-banks, roof-lines, roof-skylight-bridge, roof-market-stalls, roof-cherry-boughs, roof-canopy, roof-takasebune (hull only). Part names `asset:<id>/body_<material>`; takasebune also `wake` (one live mesh in a group the update scales/hides) and `boatman` (the empty boatman group).
+Deferred (3): roof-willows, roof-culvert-ledges, roof-tenmangu-gate. They DO have PIECES entries (`willow`, `culvertLedge`, `tenmanguGate` in rooftops/js/pieces/index.js, built by `DT.*` in downtown.js, so r1's handoff already covers how they route); their classic builders live in downtown.js (read-only for this lane) and are large downtown pieces, so they go to a later pass. No patch is needed to add them.
+## 2. For r5 (boatman)
+The takasebune kit piece returns the boat record `{ group, plat, d, boatman, pole, wake, bowRing, lastS, dir }` in `dynamic: { boats, boat }` with `live: [group]`, exactly the classic shape. Attach node: `sockets.attach_boatman` is the boat-local group at the classic boatman's place (1.55, 0.28, -0.24); `world.update()` rotates it (y flip with direction, z tilt) so put the boatman inside it. `sockets.attach_pole` (child of it, at 0.04, 0.66, 0) is the pole pivot the update swings (rotation.z). The hull piece ships these two groups EMPTY: on `?swap=roof-takasebune:modular` the boat has no boatman until r5's roof-boatman fills them (classic shows him).
+## 3. Budget exceptions (src/kit/budgets.js, added in this PR as the file says lanes do)
+roof-canal-banks hero materials 14, roof-market-stalls hero 12, roof-canopy hero 8, roof-takasebune hero 10; every mid and far tier is remapped to the standard caps. Samples are the real runs (canal 70 m, banks 74 m, canopy and stalls 103 m with 3 gaps).
+## 4. Glass and water
+The canopy vault uses ctx.MAT.glass, so the facade's own glass pass (build.js) still moves it to the transparent batch. The canal's water/foam ribbons are `M.water`/`M.foam` in the static batch of the kit group (classic added them through `ctx.addGlass`, a separate transparent group): they sort as transparent either way; judged by eye in the L6 pairs.
+## 5. Notes
+Ribbons are built from `layout.rail` (the canal in the layout frame; foam sub-ranges interpolate). Wake merges into one mesh (classic: 3 meshes) to meet the far mesh cap; its group is animated as before.
