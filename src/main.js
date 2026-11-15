@@ -223,7 +223,7 @@ class Game {
     // when the bus is muted; fainter with distance from the cat (the summit sits 1.2 km
     // below the valley, so neither hears the other); lantern kindles at most one per
     // 0.15 s. Today's game sound where the game has one (shrine bell, nest purr); the rest
-    // come from the dawCAT kit pack (src/kit_sfx_pack.js), loaded on the first event, so
+    // come from the dawCAT kit pack (src/kit/sfx_pack.js), loaded on the first event, so
     // the classic set (no kit instances, no events) never loads it.
     // keepsake.collect: main.js already calls playCollect on pickup; do not double-play.
     const kitAudio = this.assets.audio;
@@ -260,7 +260,7 @@ class Game {
         last[ev] = now;
         if (pack === null && ev !== 'shrine.bell.ring' && ev !== 'nest.settle') {
           // the first pack sound loads the pack, then plays if it arrives within 0.4 s
-          if (!waiting) waiting = import('./kit_sfx_pack.js?v=20261114a').then((m) => { pack = m; }, () => { pack = false; });
+          if (!waiting) waiting = import('./kit/sfx_pack.js?v=20261114a').then((m) => { pack = m; }, () => { pack = false; });
           waiting.then(() => { if (pack && a.ctx.currentTime - now < 0.4) play(ev, gain, ambient); });
           return;
         }

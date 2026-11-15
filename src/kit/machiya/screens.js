@@ -124,9 +124,14 @@ function buildNoren(ctx, layout, p) {
   const rows = seg(tier, 8, 4, 1), cols = tier === 'hero' ? 3 : 1;
   const geos = [];
   for (let i = 0; i < n; i++) geos.push(new THREE.PlaneGeometry(pw, hang, cols, rows).translate(-w / 2 + pw / 2 + i * (pw + gap), top - 0.04 - hang / 2, 0));
+  // the hem band is sewn to the cloth, so it is part of the swaying mesh (it used to be a static box in the
+  // trim and stood 1.5 to 4 cm off the swinging hem; a1-village, v-machiya-a minor): a strip 4 mm proud of
+  // each panel's foot, in the panel's own darker colour, swaying with the hem
+  const clothVerts = geos.reduce((a, g) => a + g.attributes.position.count, 0);
+  if (tier !== 'far') for (let i = 0; i < n; i++) geos.push(new THREE.PlaneGeometry(pw, 0.05).translate(-w / 2 + pw / 2 + i * (pw + gap), -top + 0.03, 0.004));
   const merged = mergePlanes(geos);
-  const pos = merged.attributes.position, sway = new Float32Array(pos.count), col = new Float32Array(pos.count * 3), c = new THREE.Color(base);
-  for (let i = 0; i < pos.count; i++) { sway[i] = Math.min(1, Math.max(0, (top - 0.04 - pos.getY(i)) / hang)); col.set([c.r, c.g, c.b], i * 3); }
+  const pos = merged.attributes.position, sway = new Float32Array(pos.count), col = new Float32Array(pos.count * 3), c = new THREE.Color(base), hemC = new THREE.Color(tint(base, -0.06));
+  for (let i = 0; i < pos.count; i++) { sway[i] = Math.min(1, Math.max(0, (top - 0.04 - pos.getY(i)) / hang)); const k = i < clothVerts ? c : hemC; col.set([k.r, k.g, k.b], i * 3); }
   merged.setAttribute('aSway', new THREE.BufferAttribute(sway, 1));
   merged.setAttribute('color', new THREE.BufferAttribute(col, 3));
   const mesh = new THREE.Mesh(merged, cloth);
@@ -135,7 +140,6 @@ function buildNoren(ctx, layout, p) {
   bag.cyl(0.018, w + 0.16, { rz: Math.PI / 2, y: top + 0.01, color: 0x3a2a1d });             // the hanging pole
   if (tier !== 'far') {
     for (const sx of [-1, 1]) bag.sphere(0.03, { x: sx * (w / 2 + 0.09), y: top + 0.01, color: 0x2a1d14 });
-    for (let i = 0; i < n; i++) bag.box(pw, 0.05, 0.012, { x: -w / 2 + pw / 2 + i * (pw + gap), y: -top + 0.03, z: 0.004, color: tint(base, -0.06) });  // hem band
   }
   if (p.crest) bag.add(new THREE.CylinderGeometry(0.1, 0.1, 0.006, seg(tier, 20, 10, 6)).rotateX(Math.PI / 2), { y: 0, z: 0.02, color: 0xe9e1cf });
   const inst = assemble({ cloth: mesh, trim: meshOf(bag.geometry(), bagMat(km)) });
