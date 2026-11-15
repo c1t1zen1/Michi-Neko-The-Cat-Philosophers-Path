@@ -113,7 +113,17 @@ Shared, read-only game/Labs resources:
 - The game `Sky`, with a stage-specific daylight palette and the existing sunset.
 - Labs `M` and `paintify()` with the game's procedural timber, plaster, metal and
   painted surfaces (256 px); `craft.js` seeded random and paper-lantern recipes.
-- All game imports go through `labs/shared/game.js`, retaining `20261107a`.
+- **Lab-swapped scenery** (`js/scenery.js`): the corridor trees, sakura and
+  bamboo are the game's own foliage builders (`src/foliage.js` canopies, bamboo
+  culms from `labs/shared/bamboo.js`); the mountains are the ranges lab's
+  frieze walls with treed-slope shading, foot mist, cloud shadows and drifting
+  kasumi bands; the houses, torii, shrine hall and stone lanterns are the real
+  `Countryside` builders and the lanterns lab's tōrō; the river crossing wears
+  a vermilion taiko-bashi from the water lab; the hilltop pagoda is the pagoda
+  lab's parametric Yasaka-no-tō; rivers, sea and paddies run a fresnel/glitter
+  water shader; butterflies come from the critters lab. The Blender cottages
+  and cone trees remain in the kit as the no-labs fallback.
+- All game imports go through `labs/shared/game.js`, retaining `20261113a`.
 
 ## Code
 
@@ -122,6 +132,7 @@ Shared, read-only game/Labs resources:
 | `js/route.js` | Chapters, timing, train dimensions, hatches, postcards |
 | `js/physics.js` | Pure bounded motor, jump buffering, gap catches, duck/setbacks |
 | `js/assets.js` | Blender kit loader, shared material conversion and instancing |
+| `js/scenery.js` | Lab-swap builders: canopy forests, ranges, machiya, torii, bamboo, pagoda, taiko-bashi, water, butterflies |
 | `js/world.js` | Train, interior dressing, scenery, tunnels, river/ocean, landmarks |
 | `js/game.js` | Fixed-step loop, camera, real cats/sky, saves and chapter flow |
 | `js/input.js` | Keyboard, orbit, multitouch and gamepad |
