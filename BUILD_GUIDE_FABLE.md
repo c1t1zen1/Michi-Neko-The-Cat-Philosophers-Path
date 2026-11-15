@@ -675,7 +675,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 6 | `t1-catalog` | `production` variant, swap board, thumbnails | G-V1 | [x] |
 | 6 | `t2-cadjs` | Param panel, AI action, package schema 2 | G-V1 | [x] |
 | 6 | `t3-audio` | dawCAT sound hooks for new assets | G-V2 | [x] |
-| 7 | `a1-village` | Village area pass | G-V3, G-C | [ ] |
+| 7 | `a1-village` | Village area pass | G-V3, G-C | [x] |
 | 7 | `a2-hilltop` | Hilltop area pass | G-S | [x] |
 | 7 | `a3-rooftops` | Roof Road area pass | G-R | [ ] |
 | 8 | `h1-hero` | Hero capture tool and shots | G-A | [ ] |

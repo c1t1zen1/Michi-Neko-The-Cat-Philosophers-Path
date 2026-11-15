@@ -364,6 +364,8 @@ export class SummitManager {
     env.snow = summitWeatherAmount(sky, 'snow');
     // The summit's lanterns glow with the same nightness updateVistaEnvironment() uses.
     env.lanternOn = 1 - Math.max(0, sunY) * 5 > 0.5;
+    // the kit sound hook (src/kit/audio.js): the summit's fūrin and toro play through the game's one sink (a1-village, R62)
+    env.audio = (this.assets && this.assets.runtime && this.assets.runtime.audio) || null;
     return env;
   }
 
