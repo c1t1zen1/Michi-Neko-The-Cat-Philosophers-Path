@@ -1,0 +1,9 @@
+:root { --accent: #9a3b2a; --accent2: #3e5f86; --wash: rgba(154, 59, 42, 0.14); --code-bg: #f7f1ea; --ink: #241c18; --muted: #66574c; --soft: #9a8b7e; }
+.pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 18px 40px; margin-top: 8px; }
+.pick-card h3 { font-family: var(--serif); font-weight: 500; font-size: 1.6rem; margin: 0 0 6px; }
+.pick-where { color: var(--ink); margin: 4px 0; }
+.pick-id { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); margin: 4px 0 14px; overflow-wrap: anywhere; }
+.pick-play, .mouths a { color: var(--accent); text-decoration: none; background: linear-gradient(transparent 82%, var(--wash) 82%); }
+.pick-play:hover, .mouths a:hover { background: var(--wash); }
+.mouths { margin: 0; padding-left: 1.2em; line-height: 1.95; }
+.mouths small { color: var(--soft); margin-left: 6px; }
