@@ -144,6 +144,24 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
     hero: { triangles: 7000 }, mid: { triangles: 3800 }, far: { triangles: 1800, materials: 3 },
     why: 'three range rings (one material each, the summit hazes them by layer), each only the arc the seat looks over; classic 3 x 1,760 = 5.3k tris, modular 6,600 / 3,504 / ~1.6k (hero/mid/far)'
   },
+  // r4-festival (Roof Road mouths 6-7): whole festival pieces built in the Roof Road's own painterly set (ctx.MAT; R52). Each bucket
+  // is a PART; the facade's mergeByMaterial folds every instance into one draw per material and 32 m cell. Measured on the Roof Road
+  // page (build of the real level pieces, classic builder vs kit builder; tools: headless eval, 2026-11-15, uptime load 2.8-3.0).
+  // Page draw calls (one render, shadows included), classic vs all 7 ids swapped: mouth 6 yama 789 / 787, yatai 783 / 781; mouth 7
+  // hoko 617 / 610, gate 492 / 491; finale 454 / 448: modular is at or under classic everywhere.
+  'roof-yatai': {
+    hero: { meshes: 24, materials: 16 }, mid: { meshes: 22, materials: 14 },
+    why: 'largest of 19 stalls incl. decorateStall dressing. Classic 62 meshes / 2,450 tris / 17 materials; modular hero 24 / 1,680 / 16, mid 21 (22 on the contract sample, a masks stall) / 1,222 / 14, far 2 / 278 / 2. Materials are the stall\'s own (awning cloth, timbers, noren, fare goods, lantern paper, sign, twine, enamel, glass): none new, 1 fewer than classic, so merged draws are not above classic'
+  },
+  'roof-hoko': {
+    hero: { triangles: 41000, meshes: 90, materials: 30 }, mid: { triangles: 37500, meshes: 90, materials: 30 },
+    why: 'the one great float, with the CLASSIC hayashi kept (ruling R75: 3 makeResident musicians, ~30k tris). Classic 204 meshes / 38,558 tris / 31 materials; modular hero 89 / 40,670 / 29, mid 86 / 37,158 / 29, far 2 / 908 / 2. Mid is under classic high (budget rule). Materials 2 fewer than classic, no new merged material; draws 617 -> 610 at the hoko, 454 -> 448 at the finale. The contract page has no resident materials, so it builds the float without the musicians'
+  },
+  'roof-temple-gate': { mid: { meshes: 10, materials: 5 }, why: 'one gate. Classic 21 meshes / 250 tris / 5 materials; modular hero 10 / 610 / 5, mid 10 / 514 / 5, far 2 / 250 / 2. Same five materials as classic: 0 added' },
+  'roof-yama': {
+    hero: { materials: 7 }, mid: { meshes: 11, materials: 7 },
+    why: 'one kakiyama float. Classic 58 meshes / 488 tris / 7 materials; modular hero 11 / 1,504 / 7, mid 11 / 672 / 7, far 2 / 352 / 2. Same seven materials as classic (timber, timberMed, tapestry, bark, three leaves): 0 added'
+  }
 });
 
 /** The budget row for one asset and tier, with exceptions applied. */
