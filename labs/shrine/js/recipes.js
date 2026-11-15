@@ -448,6 +448,26 @@ export const SPECIMENS = [
       const s = buildSuzu({ cord: 0.32 }); s.scale.setScalar(0.5); s.position.y = 0.34; g.add(s);
       return { group: g, update: (t) => { s.rotation.z = Math.sin(t * 2.1) * 0.08; } };
     }
+  },
+  {
+    id: 'saisen-bako', family: 'hall', name: 'Saisen-bako', jp: '賽銭箱', tag: 'The offering box, up close', plinth: 'wood', animatedShadow: false,
+    blurb: 'A focused study of the box the coin goes into: a dark core behind vertical front slats, a tilted grating on top (the coin slot), a rope strap and a few coins resting on the bars. It is the game\u2019s offering-box, 0.8 m wide.',
+    how: ['Boards are thin boxes baked into one vertex-coloured mesh: no textures, one draw.', 'The top bars tilt a little toward the front so coins slide into the gaps.', 'The kit asset offering-box in src/kit/shrine builds exactly this, in three tiers.'],
+    use: 'Stands on the upper dan at the foot of the hall; the cat\u2019s eye line sees the front slats and the coins.',
+    sources: ['lathe'],
+    build(k) {
+      const g = new k.THREE.Group(), b = new k.Bag(), sl = [0x5a3a24, 0x4d3220, 0x65432a], r = rng(5);
+      b.box(0.78, 0.42, 0.48, { y: 0.21, color: 0x22160d });
+      for (let i = 0; i < 9; i++) b.box(0.72 / 9 - 0.012, 0.36, 0.02, { x: -0.36 + i * 0.09, y: 0.2, z: 0.245, color: sl[i % 3] });
+      for (const sx of [-1, 1]) b.box(0.02, 0.36, 0.44, { x: sx * 0.39, y: 0.2, color: sl[1] });
+      b.box(0.8, 0.05, 0.5, { y: 0.025, color: 0x47301d });
+      b.box(0.82, 0.04, 0.52, { y: 0.43, color: 0x694630 });
+      for (let i = 0; i < 9; i++) b.box(0.74, 0.03, 0.03, { y: 0.465, z: -0.19 + i * 0.0475, rx: -0.12, color: sl[(i + 1) % 3] });
+      b.box(0.82, 0.03, 0.012, { y: 0.3, z: 0.262, color: 0xcdb077 });
+      for (let i = 0; i < 4; i++) b.cyl(0.016, 0.004, { x: -0.25 + r() * 0.5, y: 0.485, z: -0.12 + r() * 0.3, rx: -0.12, color: i % 2 ? 0xc9a86a : 0xbfc2c4 });
+      g.add(b.mesh(k.M.bag({ rough: 0.65 })));
+      return g;
+    }
   }
 ];
 

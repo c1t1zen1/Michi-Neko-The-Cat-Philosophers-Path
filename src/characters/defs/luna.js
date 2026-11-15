@@ -1,4 +1,4 @@
-import { villagerDef } from './villager.js?v=20261113a';
+import { villagerDef } from './villager.js?v=20261114a';
 
 /** Luna: silver smoke-grey, slender, dignified and tidy. Grooms and sits, greets with a slow blink. */
 export const LUNA = villagerDef({

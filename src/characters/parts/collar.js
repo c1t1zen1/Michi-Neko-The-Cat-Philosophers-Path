@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { toonMat, outlineMaterial, makeCollarTexture, makeBellTexture } from '../../cat_shading.js?v=20261113a';
+import { toonMat, outlineMaterial, makeCollarTexture, makeBellTexture } from '../../cat_shading.js?v=20261114a';
 
 /**
  * The collar and its bell, as accessory parts for the `collar` and `bell`

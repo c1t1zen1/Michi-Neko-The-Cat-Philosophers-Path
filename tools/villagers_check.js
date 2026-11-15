@@ -1,11 +1,11 @@
 // Villager defs and the modular NPC path (lane c3-villagers). Run: node tools/villagers_check.mjs
 import * as THREE from 'three';
-import { Cat } from '../src/cat.js?v=20261113a';
-import { NPC } from '../src/npc.js?v=20261113a';
-import { VILLAGER_DEFS } from '../src/characters/defs/index.js?v=20261113a';
-import { GroomingBehaviour, groomPlan } from '../src/characters/behaviour/grooming.js?v=20261113a';
-import { duskEyeShine } from '../src/characters/behaviour/dusk.js?v=20261113a';
-import { validateCharacterDef } from '../src/characters/character.js?v=20261113a';
+import { Cat } from '../src/cat.js?v=20261114a';
+import { NPC } from '../src/npc.js?v=20261114a';
+import { VILLAGER_DEFS } from '../src/characters/defs/index.js?v=20261114a';
+import { GroomingBehaviour, groomPlan } from '../src/characters/behaviour/grooming.js?v=20261114a';
+import { duskEyeShine } from '../src/characters/behaviour/dusk.js?v=20261114a';
+import { validateCharacterDef } from '../src/characters/character.js?v=20261114a';
 
 const results = [];
 const check = (name, fn) => { try { const r = fn(); results.push([name, r === true || (r && r.ok), r && r.d || '']); } catch (e) { results.push([name, false, String(e.stack || e)]); } };

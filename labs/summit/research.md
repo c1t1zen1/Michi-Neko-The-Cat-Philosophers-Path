@@ -31,4 +31,15 @@ by rejecting placements, garden trees, and a separately built pagoda.
 
 ## Not done
 
-The lab does not attempt the steps, the gate, or the summit clearing, which are the summit effort's.
+The lab does not attempt the summit's landform, grass, meadow or the sun pool (they stay with the classic builders; see docs/fable/handoff/s2-clearing.md).
+
+## The clearing, as modular assets (lane s2-clearing)
+
+Five specimens (`c-stone`, `c-enso`, `c-furin`, `c-entry`, `c-path`) build the game's `src/kit/clearing` assets through the real `AssetRuntime`, so each tile is exactly what `?assets=modular` puts on the hilltop:
+
+* **meditation-stone**: the rocks family's chisel (icosphere cut by planes and displaced), fitted to the classic lump's box; five path stones merged into one mesh and sunk a hand deep.
+* **summit-enso**: one brush stroke as a flat ribbon with vertex width and alpha, lifted onto the stone's face (the classic ring is centred inside the stone).
+* **summit-furin**: the garden family's glass chime at 2.4x, hung on a thread, pivoting on the hook.
+* **summit-entry** and **summit-path**: the stairs as merged slabs, the shrine kit's torii (pegs off, 0.56 scale) and the lanterns kit's toro.
+
+Not promoted (and why): see the handoff. The seat view stays the judge: nothing was added above the horizon line from the meditation seat.

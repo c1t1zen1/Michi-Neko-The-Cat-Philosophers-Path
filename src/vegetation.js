@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { barkTextures, texturedMaterial } from './textures.js?v=20261113a';
+import { barkTextures, texturedMaterial } from './textures.js?v=20261114a';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, createBranchMaterial, leafSprayTexture, leafMassTexture,
   buildCanopy, updateFoliage
-} from './foliage.js?v=20261113a';
-import { GrassSystem, BiomeMask } from './grass.js?v=20261113a';
-import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261113a';
+} from './foliage.js?v=20261114a';
+import { GrassSystem, BiomeMask } from './grass.js?v=20261114a';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261114a';
+import { KIT_TABLES } from './countryside.js?v=20261114a';
 
 // Trees past this radius stand in or behind the edge-forest wall and are
 // built as textured leaf masses; inside it they are hero trees with
@@ -42,8 +43,8 @@ export class Vegetation {
     this.scene = scene;
     this.colliders = colliders;
     // The kit runtime (main.js hands it in); without one the classic builders
-    // run. Vegetation builds with its own materials: no table to scope with.
-    this.assets = scopeAssets(options.assets, {});
+    // run. Vegetation scopes with the shared kit tables (MAT + textures).
+    this.assets = scopeAssets(options.assets, KIT_TABLES);
     this.rng = mulberry32(options.seed || 77);
     this.time = 0;
     this.swayables = [];
@@ -212,6 +213,15 @@ export class Vegetation {
     const id = layout.rim ? 'rim-trees' : (TREE_IDS[layout.kind] || layout.kind);
     const out = this.placeAsset(id, layout, () => this.meshTreeClassic(layout));
     if (!isAssetInstance(out)) return out;
+    if (layout.bake && out.bake && out.bake.length) {
+      out.group.updateMatrixWorld(true);
+      for (const key of out.bake) {
+        const m = out.parts[key];
+        if (!m || !m.geometry) continue;
+        this._bakeStatic(m.geometry.clone(), m.matrixWorld, m.material, m.customDepthMaterial || null, key === 'leaves' ? 'Canopy Leaves' : layout.rim ? 'Trunks & Canopy' : 'Canopy Limbs');
+        m.parent.remove(m);
+      }
+    }
     // A kit tree never uses the classic canopy built in the layout step (only
     // its draws had to happen): free it here, once, rather than in every kit
     // tree, and drop it from the layout the runtime keeps on the instance.

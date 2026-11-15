@@ -2,8 +2,31 @@
 // One loader per kit family (src/kit/<family>/index.js exports `assets`).
 // AssetRuntime.preload() imports these only when the modular set can be
 // active, so the classic game never downloads the kit.
-export const KIT_TAG = '20261113a';
-export const FAMILY_NAMES = Object.freeze(['rocks']);
+export const KIT_TAG = '20261114a';
+export const FAMILY_NAMES = Object.freeze(['alley', 'clearing', 'creatures', 'critters', 'fences', 'garden', 'greenery', 'ground', 'hidden', 'interiors', 'keepsakes', 'lanterns', 'machiya', 'nest', 'pagoda', 'ranges', 'rocks', 'shrine', 'sky', 'summitlife', 'trees', 'vista', 'water', 'weather']);
 export const FAMILIES = Object.freeze({
-  'rocks': () => import('./rocks/index.js?v=20261113a'),
+  'alley': () => import('./alley/index.js?v=20261114a'),
+  'clearing': () => import('./clearing/index.js?v=20261114a'),
+  'creatures': () => import('./creatures/index.js?v=20261114a'),
+  'critters': () => import('./critters/index.js?v=20261114a'),
+  'fences': () => import('./fences/index.js?v=20261114a'),
+  'garden': () => import('./garden/index.js?v=20261114a'),
+  'greenery': () => import('./greenery/index.js?v=20261114a'),
+  'ground': () => import('./ground/index.js?v=20261114a'),
+  'hidden': () => import('./hidden/index.js?v=20261114a'),
+  'interiors': () => import('./interiors/index.js?v=20261114a'),
+  'keepsakes': () => import('./keepsakes/index.js?v=20261114a'),
+  'lanterns': () => import('./lanterns/index.js?v=20261114a'),
+  'machiya': () => import('./machiya/index.js?v=20261114a'),
+  'nest': () => import('./nest/index.js?v=20261114a'),
+  'pagoda': () => import('./pagoda/index.js?v=20261114a'),
+  'ranges': () => import('./ranges/index.js?v=20261114a'),
+  'rocks': () => import('./rocks/index.js?v=20261114a'),
+  'shrine': () => import('./shrine/index.js?v=20261114a'),
+  'sky': () => import('./sky/index.js?v=20261114a'),
+  'summitlife': () => import('./summitlife/index.js?v=20261114a'),
+  'trees': () => import('./trees/index.js?v=20261114a'),
+  'vista': () => import('./vista/index.js?v=20261114a'),
+  'water': () => import('./water/index.js?v=20261114a'),
+  'weather': () => import('./weather/index.js?v=20261114a'),
 });

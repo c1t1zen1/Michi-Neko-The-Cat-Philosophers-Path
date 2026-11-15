@@ -69,7 +69,7 @@ function setView(v){
 function apply(values,{cameraChange=true}={}){
   const previousView=S.view;
   for(const key of ['hour','azimuth','coverage','wind','shade','painter'])if(Number.isFinite(+values[key]))S[key]=clamp(+values[key],key==='hour'?0:key==='azimuth'?-180:0,key==='hour'?23.95:key==='azimuth'?180:key==='wind'?2:1);
-  for(const key of ['sky','cloud','shadow','air'])if(OPTIONS[key].some(([v])=>v===values[key]))S[key]=values[key];
+  for(const key of ['sky','cloud','shadow','air','night'])if(OPTIONS[key].some(([v])=>v===values[key]))S[key]=values[key];
   if(['auto','eco','study'].includes(values.quality))S.quality=values.quality;
   if(['valley','roof','eye','sun'].includes(values.view))S.view=values.view;
   if(['cumulus','cirrus','scales','sheep','storm','veil'].includes(values.shape))S.shape=values.shape;

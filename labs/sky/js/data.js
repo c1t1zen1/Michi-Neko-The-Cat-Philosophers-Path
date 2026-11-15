@@ -17,7 +17,7 @@ export const SOURCES = {
   names: { title: 'JMA Meteorological Research Institute · sky watching', url: 'https://www.mri-jma.go.jp/Dep/typ/araki/sorawatch.html', note: 'Cloud identification, halo, rainbow and sunset references. These presets are art direction, not weather forecasts.' }
 };
 
-export const BASE = { sky: 'pigment', cloud: 'painted', shadow: 'soft', air: 'game', hour: 15.5, azimuth: -35, coverage: .52, wind: .65, shade: .75, painter: .5, shape: 'cumulus', quality: 'auto', view: 'valley' };
+export const BASE = { sky: 'pigment', cloud: 'painted', shadow: 'soft', air: 'game', night: 'game', hour: 15.5, azimuth: -35, coverage: .52, wind: .65, shade: .75, painter: .5, shape: 'cumulus', quality: 'auto', view: 'valley' };
 export const POSTCARDS = [
   { id:'summer', name:'A summer daydream', jp:'夏の雲', swatch:'linear-gradient(#508dc1,#e4eff0 60%,#b8b89b)', state:{...BASE} },
   { id:'autumn', name:'Autumn, looking up', jp:'秋高し', swatch:'linear-gradient(#4382bb,#d1e9ed 60%,#bd916b)', state:{...BASE,hour:10.5,cloud:'scales',shape:'scales',coverage:.58,air:'game',sky:'pigment'} },
@@ -60,6 +60,10 @@ export const FAMILIES = [
     study('air-rays','A gap in the clouds','光芒','Sky-space crepuscular rays','Sample the field along angular paths toward the sun. A few soft rays emerge where clouds let light through.',{air:'rays',hour:17.8,coverage:.6},'12 extra field reads / sky pixel',`for (int i=0;i<12;i++) {\n  vec3 toward = normalize(mix(viewRay,sun,float(i)/14.0));\n  shafts += (1.0-cloudAlong(toward))*decay;\n  decay *= 0.88;\n}`,['rays'],'Sky only: roofs occlude the rendered sky, but do not cast volumetric shafts. Not a depth-buffer post-process.'),
     study('air-halo','A ring in thin ice','暈','A restrained 22° halo','A faint angular ring around the sun. Best in a thin veil; intentionally kept below the cloud colour.',{air:'halo',cloud:'cirrus',shape:'cirrus',coverage:.32,hour:11},'Angular distance · 1 analytic ring',`float angle = acos(clamp(dot(view,sun),-1.0,1.0));\nfloat halo = exp(-pow((angle-radians(22.0))/.012,2.0));\nsky += halo*vec3(.18,.14,.10)*daylight;`,['names'],'Analytic artistic ring, not ice-crystal path tracing.'),
     study('air-rainbow','The shower moves on','虹','Opposite the sun · 42°','A subtle rainbow only appears away from the sun. Choose Sun-eye to face the light, then orbit to find the anti-solar arc.',{air:'rainbow',cloud:'tower',shape:'storm',hour:16.8,coverage:.64},'Anti-solar angular band',`float angle = acos(clamp(dot(view,-sun),-1.0,1.0));\nfloat band = exp(-pow((angle-radians(42.0))/.025,2.0));\n// Only above the horizon, while the sun is up.`,['names'],'A rain-shower postcard accent, not a droplet-optics renderer.')
+  ]},
+  {id:'night',title:'After the lanterns go out.',subtitle:'Two night studies for the game kit: stars that differ from one another, and a moon with a face. Drifting cloud covers both.',variants:[
+    study('night-stars','A sky full of names','星月夜','Magnitudes · colour · Amanogawa','Faint stars outnumber bright ones and each keeps its own colour. Low stars redden and twinkle harder; the river of heaven runs overhead with a dark rift.',{sky:'night',hour:22,night:'stars',cloud:'cirrus',shape:'cirrus',coverage:.3,shadow:'game',air:'game'},'1 point draw (1,600 stars) + 1 band strip',`// N(<m) ∝ 10^(0.45 m): many faint, few bright\nconst m = Math.log10(1 + rng()*span) / 0.45;\nbright = 10 ** (-0.4*m);\ncolour = starColor(bv);   // B−V: blue-white … orange\n// in the vertex shader: low stars redden and twinkle harder\nalpha *= mix(0.22, 1.0, smoothstep(0.02, 0.4, dir.y));`,['game','names'],'A stylised magnitude distribution and a hand-placed band, not a star catalogue.','night.js'),
+    study('night-moon','The moon with a face','月の兎','Phase · seas · halo','A painted disc lit by its phase, the rabbit’s seas, earthshine on the dark limb and a soft glow. In a thin veil, the 22° tsukigasa appears.',{sky:'night',hour:22,night:'moon',cloud:'cirrus',shape:'cirrus',coverage:.45,shadow:'game',air:'game'},'1 billboard draw · one 256² painting per phase',`// light from the phase: 0.5 is full, 0.25 the first quarter\nconst a = (phase - 0.5) * 2 * Math.PI;\nconst lit = smooth(dot(normal, [sin(-a), 0, cos(a)]));\nvalue = albedo * (lit + 0.07 * (1 - lit));   // earthshine\nalbedo -= 0.2 * exp(-d*d*1.8);   // each sea of the rabbit`,['names'],'The phase is a parameter, not an ephemeris; the halo ring is an artistic accent.','night.js')
   ]}
 ];
 export const VARIANTS = FAMILIES.flatMap(f=>f.variants);
@@ -67,7 +71,8 @@ export const OPTIONS = {
   sky: [['game','Our game'],['pigment','Poster-colour blue'],['preetham','Analytic daylight'],['haze','Spring haze'],['night','Quiet night']],
   cloud: [['game','Our 26 sprites'],['field','Thickness field'],['paper','Cut paper'],['painted','Painted impostor'],['volume','Volume study'],['cirrus','Suji · cirrus'],['scales','Uroko · scales'],['sheep','Hitsuji · sheep'],['tower','Nyūdō · towers']],
   shadow: [['game','Our game · off'],['hard','Projected cut-out'],['soft','Soft penumbra'],['beer','Beer transmittance'],['map','Field diagnostic']],
-  air: [['game','Our familiar air'],['mist','Kasumi mist'],['rays','Sky-space rays'],['halo','22° halo'],['rainbow','After-rain arc']]
+  air: [['game','Our familiar air'],['mist','Kasumi mist'],['rays','Sky-space rays'],['halo','22° halo'],['rainbow','After-rain arc']],
+  night: [['game','Our stars & moon'],['stars','Named stars + Amanogawa'],['moon','Painted moon'],['both','Stars + moon']]
 };
 export const STEPS = [
   {title:'The sky we have',body:'The exact game dome, sprites and fog. Look at the grass: clouds do not shade it yet.',code:`{ sky:'game', cloud:'game', shadow:'game', air:'game' }`,state:{...BASE,sky:'game',cloud:'game',shadow:'game',air:'game'}},

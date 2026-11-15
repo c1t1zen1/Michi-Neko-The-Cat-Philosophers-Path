@@ -21,7 +21,7 @@
         <p class="kicker">Michi-Neko · Lab 03 · <span lang="ja">山並み</span></p>
         <h1>How painters stack<br><em>a ridge into distance.</em></h1>
         <p class="lede">Kyoto sits in a basin walled on three sides — Higashiyama, Kitayama, Arashiyama — and opens only to the south. So does Michi's valley. Pull the backdrop apart here: the forest wall in four techniques, the ranges in three, the mist in three styles, and the air that glues them.</p>
-        <nav class="jump" aria-label="Sections"><a href="#valley" class="go">Walk to the edge ↘</a><a href="#stack">The stack</a><a href="#wall">The wall</a><a href="#edge">The edge</a><a href="#air">The air</a><a href="#draw">Draw a ridge</a><a href="#time">Time of day</a><a href="#research">Field notes</a></nav>
+        <nav class="jump" aria-label="Sections"><a href="#valley" class="go">Walk to the edge ↘</a><a href="#stack">The stack</a><a href="#wall">The wall</a><a href="#edge">The edge</a><a href="#air">The air</a><a href="#draw">Draw a ridge</a><a href="#time">Time of day</a><a href="#life">Distant life</a><a href="#research">Field notes</a></nav>
       </div>
       <aside class="mast-note"><span class="jp" lang="ja">山並み</span><span>The ranges<br>yamanami</span><small>Kyoto basin, painted<br>three walls · one opening</small></aside>
     </header>
@@ -127,14 +127,38 @@
       </div>
     </section>
 
+    <section class="section" id="life" aria-labelledby="life-heading">
+      <div class="section-title"><p class="eyebrow">08 / THE DISTANT LIFE</p><h2 id="life-heading">What lives <em>in the far air.</em></h2><p>Three things the game paints far beyond the meadow: the cedar and crown stands on the slopes, the hillside village whose hearths kindle at dusk, and the two mists &mdash; a ring of haze round the rim, and river ribbons that rise with first light and burn off by mid-morning.</p></div>
+      <div class="bench">
+        <div class="stage bench-stage" id="footStage"><div class="hud stage-label"><span class="live-dot"></span> FOOTHILL STANDS</div></div>
+        <div class="bench-bar"><div class="ctl"><span class="ctl-l">Season</span><span class="seg" id="seg-foot"></span></div><p class="hint">Sugi spires on the steeps, broadleaf crowns below, clearings where rock keeps the slope open.</p></div>
+      </div>
+      <div class="bench">
+        <div class="stage bench-stage" id="villageStage"><div class="hud stage-label"><span class="live-dot"></span> DISTANT VILLAGE</div></div>
+        <div class="bench-bar">
+          <div class="ctl"><span class="ctl-l">Houses</span><span class="seg" id="seg-village"></span></div>
+          <label class="ctl"><span class="ctl-l">Hour</span><input id="villageHour" class="range" type="range" min="5" max="23" step="0.1" value="17" aria-label="Hour"><span class="ctl-v" id="villageHour-out">17:00</span></label>
+          <p class="wall-stats" id="villageStats"></p>
+        </div>
+      </div>
+      <div class="bench">
+        <div class="stage bench-stage" id="mistStage"><div class="hud stage-label"><span class="live-dot"></span> MIST RING &amp; DAWN MIST</div></div>
+        <div class="bench-bar">
+          <label class="ctl"><span class="ctl-l">Hour</span><input id="mistHour" class="range" type="range" min="4" max="12" step="0.05" value="6.25" aria-label="Hour"><span class="ctl-v" id="mistHour-out">06:15</span></label>
+          <div class="ctl"><span class="ctl-l">Weather</span><span class="seg" id="seg-mistWeather"></span></div>
+          <p class="wall-stats" id="mistStats"></p>
+        </div>
+      </div>
+    </section>
+
     <section class="section" id="learn" aria-labelledby="learn-heading">
-      <div class="section-title"><p class="eyebrow">08 / LEARN BY BUILDING</p><h2 id="learn-heading">From a field to <em>a basin in the air.</em></h2><p>Eight passes, applied live to the valley at the top. Choose a step — the controls up there follow along.</p></div>
+      <div class="section-title"><p class="eyebrow">09 / LEARN BY BUILDING</p><h2 id="learn-heading">From a field to <em>a basin in the air.</em></h2><p>Eight passes, applied live to the valley at the top. Choose a step — the controls up there follow along.</p></div>
       <div id="steps-mount"></div>
       <a class="return-link" href="#valley">Look at the valley ↑</a>
     </section>
 
     <section class="section field-notes" id="research" aria-labelledby="research-heading">
-      <div class="section-title"><p class="eyebrow">09 / NOTES FROM THE WORKBENCH</p><h2 id="research-heading">Built for <em>Michi’s Kyoto.</em></h2></div>
+      <div class="section-title"><p class="eyebrow">10 / NOTES FROM THE WORKBENCH</p><h2 id="research-heading">Built for <em>Michi’s Kyoto.</em></h2></div>
       <div class="notes-grid">
         <article><h3>The basin is the composition.</h3><p>Kyoto is walled on three sides — Higashiyama east, Kitayama and Atago north-west, Arashiyama west — and opens south. The game’s <code>terrainSector</code> is exactly that mask; the lab builds each side as its own layer so the opening can breathe.</p></article>
         <article><h3>The veil is exponential, not linear.</h3><p>Gurney’s wedding veils: each farther plane carries more sky light, geometrically. Linear fades flatten the far range into the sky; <code>1 − e^(−dβ)</code> keeps a distant ridge readable at 300 m and lets a low sun light the whole veil at once.</p></article>

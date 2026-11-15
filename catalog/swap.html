@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#171b1d"><title>Swap board · Michi-Neko</title><link rel="icon" href="icon.svg"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="swap.css">
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script></head>
+<body class="swap-page"><header class="viewer-header"><a href="./"><img src="icon.svg" width="25" height="25" alt="">ASSET LIBRARY</a><span>SWAP BOARD · kit-overrides.json</span><span id="swap-state" role="status">Loading the kit registry…</span></header>
+<main class="swap-main"><p class="swap-intro">Choose, per asset, whether the game builds the <b>classic</b> original or the <b>modular</b> kit version, and tune the kit parameters. The game reads <code>kit-overrides.json</code> at boot when the modular set is active (<code>?assets=modular</code>). Only registered kit assets appear here.</p>
+<div class="swap-actions"><button class="button primary" id="swap-save">Save to repository</button><button class="button" id="swap-download">Download kit-overrides.json</button><button class="button quiet" id="swap-reload">Reload</button></div><div id="swap-board" class="swap-board"></div></main>
+<script type="module" src="js/swap.mjs"></script></body></html>

@@ -1,5 +1,6 @@
 ﻿import * as THREE from 'three';
-import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261113a';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261114a';
+import { KIT_TABLES } from './countryside.js?v=20261114a';
 
 // Asset routing (BUILD_GUIDE_FABLE §3.4, Integrator rulings R12 / R18): each
 // builder runs a layout step (its Math.random() spawn draws, in the original
@@ -69,8 +70,8 @@ export class AmbientLife {
     this.scene = scene;
     this.audio = audio;
     // The kit runtime (main.js hands it in); without one the classic builders
-    // run. Ambient life builds with its own materials: no table to scope with.
-    this.assets = scopeAssets(assets, {});
+    // run. Ambient life builds with its own materials: the shared kit tables (MAT + textures).
+    this.assets = scopeAssets(assets, KIT_TABLES);
     this.time = 0;
     this.nestPos = nestPos ? nestPos.clone() : new THREE.Vector3(-12.55, 4.9, -3.55);
     this.buildBirds();
@@ -415,6 +416,7 @@ export class AmbientLife {
     const layout = this.layoutButterflies();
     // The spawn seeds are layout data: the classic drift reads them (a kit swarm may too)
     this.bflySeeds = layout.seeds;
+    this._bflyLayout = layout; // a kit swarm reads the player and the sky off this (set each frame below)
     return this.placeAsset('butterflies', layout, () => this.meshButterfliesClassic(layout));
   }
 
@@ -766,7 +768,10 @@ export class AmbientLife {
   }
 
   updateButterflies(dt, t, sky, playerPos) {
-    if (!this.butterflies) return; // a kit swarm animates itself
+    if (!this.butterflies) { // a kit swarm animates itself; hand it what the classic drift reads
+      if (this._bflyLayout) { this._bflyLayout.playerPos = playerPos; this._bflyLayout.sky = sky; }
+      return;
+    }
     const sunUp = sky ? Math.max(0, sky.sunDir.y) : 1;
     const raining = sky && sky.weather === 'rain';
     const day = sunUp > 0.2 && !raining;

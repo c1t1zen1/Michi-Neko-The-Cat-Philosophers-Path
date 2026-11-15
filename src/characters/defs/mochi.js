@@ -1,4 +1,4 @@
-import { villagerDef } from './villager.js?v=20261113a';
+import { villagerDef } from './villager.js?v=20261114a';
 
 /** Mochi: round and golden, bouncy. Stretches, yawns, bounds up to say hello; short fidgety washes. */
 export const MOCHI = villagerDef({

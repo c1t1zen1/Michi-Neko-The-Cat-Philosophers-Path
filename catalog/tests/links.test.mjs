@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { resolveTargetLink, sourceLink, originalContextLink } from '../js/links.mjs';
+import { resolveTargetLink, sourceLink, originalContextLink, registerKnownTargets } from '../js/links.mjs';
 import { requestedSpecimen, mountSpecimenLinks } from '../../labs/shared/specimen-link.js';
 
 const inventory = JSON.parse(readFileSync(new URL('../../labs/asset_inventory.json', import.meta.url), 'utf8'));
+registerKnownTargets(inventory.targets);
 const target = (key) => inventory.targets[key];
 
 test('every inventoried target resolves beneath the repository URL prefix', () => {
@@ -35,6 +36,11 @@ test('review evidence uses the real review URL rather than a fictitious lab', ()
   assert.equal(resolveTargetLink(target('tree/hero')), '../tools/tree_preview.html?sheet=hero');
   assert.equal(resolveTargetLink(target('cat/face')), '../tools/cat_preview.html?sheet=face');
   assert.equal(resolveTargetLink(target('summit-review/whole-scene')), '../tools/summit_preview.html?view=meditation');
+});
+
+test('benches outside the inventory are rejected (allowlist derived from the inventory)', () => {
+  assert.throws(() => resolveTargetLink({ lab: 'interiors', kind: 'bench', selector: 'not-a-craft' }), /Unknown interiors craft/);
+  assert.throws(() => resolveTargetLink({ lab: 'ranges', kind: 'bench', selector: 'not-a-bench' }), /Unknown ranges bench/);
 });
 
 test('external URLs, traversal and fabricated selectors are rejected', () => {

@@ -295,3 +295,8 @@ export const ASSEMBLY = {
     return { group: g, setPhase: set, update(t, dt) { w.update(dt, t); if (phase >= 1 && (c -= dt) < 0) { c = 1.1; const a = Math.sin(t * 1.9) * k.TAU, r = 0.4 + Math.abs(Math.sin(t * 5.3)) * 1.7; w.drop(Math.cos(a) * r, Math.sin(a) * r, 0.12, 4); } } };
   }
 };
+
+/* ground, stone and grove specimens (promoted into src/kit/hidden/) */
+import { GROUND_FAMILIES, GROUND_SPECIMENS } from './ground.js';
+FAMILIES.push(...GROUND_FAMILIES);
+SPECIMENS.push(...GROUND_SPECIMENS);

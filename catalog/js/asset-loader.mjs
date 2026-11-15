@@ -402,11 +402,68 @@ function editableMaterialsAndGeometry(group) {
   return () => { for (const value of geometry.values()) value.dispose(); for (const value of materials.values()) value.dispose(); };
 }
 
-export async function loadCatalogAsset(assetId, { variant = 'original', targetId = null, renderer = null } = {}) {
-  if (!['original', 'lab'].includes(variant)) throw new Error('Choose an original game asset or a lab study.');
+/* ------------------------------------------------------------ production --- */
+// The modular kit, read through labs/shared/game.js. The allowlist is the set of
+// asset ids the registered families export; nothing is ever evaluated from text.
+let kitPromise;
+export function getKitIndex({ force = false } = {}) {
+  if (force) kitPromise = null;
+  return kitPromise ||= (async () => {
+    const { loadKitIndexModule } = await import('../../labs/shared/game.js');
+    const { FAMILIES } = await loadKitIndexModule();
+    const assets = new Map(), errors = [];
+    await Promise.all(Object.entries(FAMILIES).map(async ([family, load]) => {
+      try { for (const def of (await load()).assets || []) assets.set(def.id, def); }
+      catch (error) { errors.push(`${family}: ${error.message}`); }
+    }));
+    return { assets, families: Object.keys(FAMILIES), errors };
+  })().catch((error) => { kitPromise = null; throw error; });
+}
+/** Summary rows for UIs: id, family, label, tiers and the param schema. */
+export async function listKitAssets() {
+  const { assets } = await getKitIndex();
+  return [...assets.values()].map((d) => ({ id: d.id, family: d.family, label: d.label, tiers: d.tiers, params: d.params || {} })).sort((a, b) => a.id.localeCompare(b.id));
+}
+
+let kitRuntime, kitWarnings = [];
+async function productionRuntime(THREE) {
+  if (kitRuntime) return kitRuntime;
+  const game = await import('../../labs/shared/game.js'), { FAMILIES } = await game.loadKitIndexModule(), { AssetRuntime } = await game.loadKitRuntimeModule();
+  const logger = { warn: (...a) => kitWarnings.push(a.join(' ')), log() {}, error: (...a) => kitWarnings.push(a.join(' ')) };
+  const runtime = new AssetRuntime({ THREE, quality: 'high', search: '?assets=modular', loadFamilies: async () => FAMILIES, fetchOverrides: async () => null, logger });
+  await runtime.preload();
+  return kitRuntime = runtime;
+}
+
+async function buildProduction(assetId, { tier = 'mid', params = {} } = {}, THREE) {
+  const runtime = await productionRuntime(THREE);
+  const def = runtime.defs.get(assetId);
+  if (!def) throw new Error('This asset has no kit version yet: classic only.');
+  kitWarnings = [];
+  const sample = typeof def.sample === 'function' ? def.sample() : { ...(def.sample || {}) };
+  const layout = { ...sample, tier: def.tiers.includes(tier) ? tier : def.tiers[0], params };
+  const instance = runtime.build(assetId, layout, () => { throw new Error(`The kit builder failed${kitWarnings.length ? ': ' + kitWarnings.join('; ') : '.'}`); });
+  return {
+    group: instance.group, instance, runtime, def,
+    update: (dt, time) => runtime.update(dt, time, undefined, [instance]),
+    disposeExtra() { try { instance.dispose(); } catch { /* already disposed */ } },
+    source: { file: `src/kit/${def.family}/index.js`, symbol: def.id },
+    caption: `${def.label}: modular kit asset (${def.family}) at ${instance.tier} tier. ${Object.keys(def.params || {}).length} parameters.`
+  };
+}
+
+export async function loadCatalogAsset(assetId, { variant = 'original', targetId = null, renderer = null, tier = 'mid', params = {} } = {}) {
+  if (!['original', 'lab', 'production'].includes(variant)) throw new Error('Choose an original game asset or a lab study, or the production kit version.');
   const data = await inventory(); const asset = data.assets.find(item => item.id === assetId);
   if (!asset) throw new Error('Unknown asset ID. Choose an asset from the catalog.');
   const caps = getAssetCapabilities(asset);
+  if (variant === 'production') {
+    const THREE = await import('three'), built = await buildProduction(assetId, { tier, params }, THREE);
+    built.update?.(0.016, 0);
+    const disposeResources = editableMaterialsAndGeometry(built.group);
+    built.group.userData = { ...built.group.userData, catalogAssetId: assetId, catalogVariant: 'production', catalogTarget: null };
+    return { group: built.group, update: built.update, dispose() { disposeResources(); built.disposeExtra(); }, source: built.source, caption: built.caption, fidelity: 'production', def: built.def, instance: built.instance };
+  }
   if (!caps[variant]) throw new Error(caps.reason || 'This asset has no isolated editing adapter.');
   // Reject foreign target IDs before loading any rendering dependency.
   let descriptor;

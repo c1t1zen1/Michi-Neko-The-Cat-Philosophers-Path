@@ -187,6 +187,35 @@ export const SFX_TEMPLATES = {
   unlock: {
     label: 'Unlock chime', category: 'Magic',
     patch: () => ({ fx: { reverb: 0.25, reverbTime: 1.5 }, layers: [tone({ freq: 660, gain: 0.35, env: env(0.003, 0, 0.45) }), tone({ freq: 990, start: 0.02, gain: 0.3, env: env(0.003, 0, 0.45) }), tone({ freq: 1320, start: 0.12, gain: 0.2, env: env(0.003, 0, 0.6) })] })
+  },
+  /* Kit asset moments (T3.2): see kit-events.js for the event table. */
+  'bamboo-clack': {
+    label: 'Shishi-odoshi clack', category: 'Objects',
+    patch: () => ({ variation: { pitch: 60, time: 0.1, gain: 0.15 }, fx: { reverb: 0.2, reverbTime: 1 }, layers: [tone({ freq: 310, freqEnd: 260, gain: 0.5, env: env(0.001, 0, 0.22) }), tone({ freq: 740, gain: 0.18, env: env(0.001, 0, 0.1) }), noiseL({ gain: 0.25, filter: { type: 'bandpass', freq: 1800, q: 1.2 }, env: env(0.0005, 0, 0.02) })] })
+  },
+  'furin-glass': {
+    label: 'Furin glass bell', category: 'Objects',
+    patch: () => ({ variation: { pitch: 90, time: 0.2, gain: 0.2 }, fx: { reverb: 0.3, reverbTime: 2 }, layers: [tone({ freq: 2350, gain: 0.3, env: env(0.001, 0, 1.4) }), tone({ freq: 3780, start: 0.002, gain: 0.12, env: env(0.001, 0, 0.7) }), tone({ freq: 2350, start: 0.35, gain: 0.14, env: env(0.001, 0, 0.9) })] })
+  },
+  'lantern-kindle': {
+    label: 'Lantern kindle', category: 'Objects',
+    patch: () => ({ variation: { pitch: 60, time: 0.2, gain: 0.2 }, layers: [noiseL({ noiseColor: 'pink', gain: 0.22, filter: { type: 'bandpass', freq: 900, freqEnd: 2400, q: 0.9 }, env: env(0.02, 0.03, 0.22) }), noiseL({ gain: 0.18, start: 0.1, repeat: { count: 3, interval: 0.07 }, filter: { type: 'highpass', freq: 3500, q: 0.7 }, env: env(0.0005, 0, 0.01) }), tone({ freq: 180, gain: 0.1, env: env(0.05, 0.05, 0.3) })] })
+  },
+  'stream-over-stones': {
+    label: 'Water over stones', category: 'Nature',
+    patch: () => ({ variation: { pitch: 150, time: 0.3, gain: 0.3 }, fx: { reverb: 0.15, reverbTime: 0.8 }, layers: [noiseL({ noiseColor: 'pink', gain: 0.18, filter: { type: 'bandpass', freq: 1500, q: 0.6 }, env: env(0.08, 0.15, 0.5) }), tone({ freq: 1100, freqEnd: 600, sweepTime: 0.05, gain: 0.2, repeat: { count: 5, interval: 0.09 }, env: env(0.001, 0, 0.05) })] })
+  },
+  'float-bell': {
+    label: 'Float bell', category: 'Objects',
+    patch: () => ({ variation: { pitch: 110, time: 0.2, gain: 0.2 }, fx: { reverb: 0.35, reverbTime: 1.6 }, layers: [tone({ freq: 880, gain: 0.28, env: env(0.002, 0, 0.9) }), tone({ freq: 1320, start: 0.01, gain: 0.14, env: env(0.002, 0, 0.5) }), tone({ freq: 880, start: 0.28, gain: 0.12, env: env(0.002, 0, 0.7) })] })
+  },
+  'pole-plant': {
+    label: 'Boat pole', category: 'Objects',
+    patch: () => ({ variation: { pitch: 80, time: 0.15, gain: 0.2 }, fx: { reverb: 0.15, reverbTime: 0.8 }, layers: [tone({ freq: 140, freqEnd: 95, gain: 0.4, env: env(0.002, 0, 0.14) }), noiseL({ noiseColor: 'brown', gain: 0.3, start: 0.06, filter: { type: 'lowpass', freq: 700, q: 0.7 }, env: env(0.03, 0.05, 0.25) })] })
+  },
+  'noren-brush': {
+    label: 'Noren brush', category: 'Objects',
+    patch: () => ({ variation: { pitch: 100, time: 0.2, gain: 0.25 }, layers: [noiseL({ noiseColor: 'pink', gain: 0.22, filter: { type: 'bandpass', freq: 1400, freqEnd: 800, q: 0.5 }, env: env(0.05, 0.05, 0.3) })] })
   }
 };
 

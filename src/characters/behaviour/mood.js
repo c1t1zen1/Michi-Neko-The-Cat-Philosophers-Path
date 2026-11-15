@@ -1,4 +1,4 @@
-import { clamp } from '../../cat_motion.js?v=20261113a';
+import { clamp } from '../../cat_motion.js?v=20261114a';
 
 /**
  * Mood: the seven moods (calm, curious, playful, sleepy, startled, alert,

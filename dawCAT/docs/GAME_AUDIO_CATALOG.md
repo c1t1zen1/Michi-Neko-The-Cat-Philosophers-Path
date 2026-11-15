@@ -36,3 +36,20 @@ Reviewed 2026-11-08. Generated from the shipped game sources; game files were re
 Footsteps have grass, wood, stone and water branches; water delegates to `playLap`. `startLapping` repeats `playLap` every 430 ms. Unlock chimes are a direct-to-destination audio-enable confirmation. Pool drops, bamboo knocks and leaf breaths are synthesized in `hidden_places.js`, outside `AudioManager`. Music has dawn/day/dusk/night definitions, scene moods (Overworld, Tea House, Summit), pad/pluck layers, echo and occasional bowl calls.
 
 The source purr comment says approximately 27.5 Hz, but the actual multiplier is `55 * 2π`: its amplitude modulation runs at **55 Hz**. The new breathing purr uses 26 Hz. `playPurr`/`playSingingBowl` take duration arguments, so one rendered audition is not the whole API contract. `playFootstep` throttles at 0.28 s. These behaviours must be preserved in a future integration.
+
+## Kit asset sound moments (Fable)
+
+Kit files never import `src/audio.js`; they call `env.audio?.play(event, { pos, gain })` (`src/kit/audio.js`). dawCAT maps each event to a synthesized template and exports them through the usual zero-file `sfx-pack.js` (`kitPackModule()` in `src/sfx/kit-events.js`). Events with no shipped sound today are silent until the game installs a sink (see `docs/fable/handoff/t3-audio.md`).
+
+| Event | Kit id | Moment | Today's game sound | dawCAT template | Audition |
+|---|---|---|---|---|---|
+| `garden.shishi.clack` | shishi | Bamboo tube tips back and knocks the anvil stone | none | `bamboo-clack` | bamboo-knock |
+| `garden.chime.ring` | wind-chime | Clapper strikes the glass bell in a gust (furin) | AudioManager.startWindChimes (ambient wind chimes, no per-prop hook) | `furin-glass` | bell-furin |
+| `lantern.kindle` | lanterns (all) | A lantern lights as dusk falls (per-lantern onset) | none | `lantern-kindle` | fire-lantern |
+| `shrine.bell.ring` | offering-bells / shrine bells | Cat reaches an offering bell; ringBell | AudioManager.playCollect + playBell (src/main.js collectible pickup) | `bell` | bell-suzu |
+| `water.stones.flow` | river stones / weirs | Water passes over stones and kame-ishi (looped bed at distance) | none per prop (river ambience in AudioManager) | `stream-over-stones` | river-bed |
+| `water.float.bell` | float bells | A river float bell rocks on the current | none | `float-bell` | bell-collar |
+| `water.boat.pole` | boat pole | Pole is planted in the bed | none | `pole-plant` | water-lap |
+| `machiya.noren.brush` | noren | Cloth parts as the cat passes through | none | `noren-brush` | cloth-rustle |
+| `keepsake.collect` | keepsakes | A keepsake is picked up | AudioManager.playCollect | `collect` | collect-koto |
+| `nest.settle` | nest | Cat settles into the nest | AudioManager.playPurr (rest spots) | `purr` | cat-purr |

@@ -11,7 +11,9 @@ test('all audited entries are represented without treating dormant builders as a
   assert.equal(stats.total, inventory.assets.length);
   assert.equal(stats.active + stats.inactive, stats.total);
   assert.equal(stats.focused + stats.gaps, stats.active);
-  assert.equal(rows.find((a) => a.id === 'jade-paw').coverageLevel, 'related');
+  // jade-paw gained a direct lab-17 study at v-keepsakes (cb8ff3f); its related evidence stays, the best level is direct
+  assert.equal(rows.find((a) => a.id === 'jade-paw').coverageLevel, 'direct');
+  assert.deepEqual(rows.find((a) => a.id === 'jade-paw').coverage.map((c) => c.level), ['direct', 'related']);
 });
 test('field filters, quoted phrases, exclusions and alternatives combine precisely', () => {
   const rows = records();

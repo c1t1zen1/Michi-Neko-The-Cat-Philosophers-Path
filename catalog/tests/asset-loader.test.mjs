@@ -85,3 +85,32 @@ test('editable material copies retain game shader defines, callbacks and live sh
   assert.equal(copy.customProgramCacheKey, cacheKey); assert.equal(copy.uniforms, original.uniforms);
   original.uniforms.uTime.value = 3; assert.equal(copy.uniforms.uTime.value, 3);
 });
+
+test('the production variant is an accepted variant and unknown variants are still refused', async () => {
+  await assert.rejects(loadCatalogAsset('torii', { variant: 'nonsense' }), /production kit/);
+});
+
+test('catalog modules reach the kit only through labs/shared/game.js', () => {
+  const loader = read('catalog/js/asset-loader.mjs');
+  assert.doesNotMatch(loader, /(?:from\s*|import\s*\(\s*)['"](?:(?:\.\.\/)+|\/)src\//);
+  const game = read('labs/shared/game.js');
+  for (const name of ['loadKitIndexModule', 'loadKitRuntimeModule', 'loadKitContractModule', 'loadKitMaterialsModule']) assert.match(game, new RegExp('export const ' + name));
+  assert.match(loader, /loadKitIndexModule/); assert.match(loader, /FAMILIES/);
+});
+
+test('the production variant builds from the registry, not from a hand-kept id list', () => {
+  const loader = read('catalog/js/asset-loader.mjs');
+  assert.doesNotMatch(loader, /PRODUCTION\s*=/); assert.match(loader, /runtime\.defs\.get\(assetId\)/);
+  assert.match(loader, /classic only/);
+});
+
+test('every production thumbnail is a labeled, provenance-tagged render of an inventory asset', () => {
+  const thumbs = JSON.parse(read('catalog/thumbnails.json')), ids = new Set(inventory.assets.map(a => a.id));
+  const entries = Object.entries(thumbs.production || {});
+  assert.ok(entries.length >= 28, String(entries.length));
+  for (const [id, record] of entries) {
+    assert.ok(ids.has(id), id); assert.equal(record.kind, 'production'); assert.match(record.src, /^thumbnails\/production-[a-z0-9-]+\.webp$/);
+    assert.ok(record.label && record.source && record.capturedAt, id);
+    const bytes = readFileSync(new URL('../' + record.src, import.meta.url)); assert.equal(bytes.toString('ascii', 8, 12), 'WEBP'); assert.ok(bytes.length < 30000, id);
+  }
+});

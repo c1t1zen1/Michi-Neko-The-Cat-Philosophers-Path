@@ -3,9 +3,9 @@
 //   key-rock       the rock the antique key hides behind, with two companions
 // Params are general (size, moss, weathering, facets) so the summit's brow
 // stones (s2-clearing) can reuse the same builders.
-import { defineAsset } from '../contract.js?v=20261113a';
-import { DETAIL, KEY_DETAIL, weatherOpts, variantRock, fitRock, placed, bake, rockMaterials } from './stone.js?v=20261113a';
-import { rockGeometry, withUv } from '../craft.js?v=20261113a';
+import { defineAsset } from '../contract.js?v=20261114a';
+import { DETAIL, KEY_DETAIL, weatherOpts, variantRock, fitRock, placed, bake, rockMaterials } from './stone.js?v=20261114a';
+import { rockGeometry, withUv } from '../craft.js?v=20261114a';
 
 const PARAMS = {
   size: { type: 'number', default: 1, min: 0.6, max: 1.5, step: 0.05, label: 'Size' },

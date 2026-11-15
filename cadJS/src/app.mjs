@@ -10,9 +10,10 @@ import { fingerprintDescriptor, splitLabel } from './catalog.mjs';
 import { AgentPanel } from './agent-panel.mjs';
 import { loadCatalogAsset } from '../../catalog/js/asset-loader.mjs';
 import {
-  ASSET_PACKAGE_FORMAT, changedObjectComponents, createAssetPackage, evaluateAssetCompatibility,
-  hashValue, normalizeAssetId, validateAssetPackage
+  ASSET_PACKAGE_FORMAT, applyStructureOps, changedObjectComponents, createAssetPackage, diffHierarchy,
+  evaluateAssetCompatibility, hashValue, migrateAssetPackage, normalizeAssetId, validateAssetPackage
 } from './asset-package.mjs';
+import { KIT_ACTIONS, KIT_VARIANTS, foldKitActions, kitOverridesWith, kitState, paramControls, validateParams } from './kit-params.mjs';
 import {
   CHARACTER_POSES, MATERIAL_PALETTES, PROCEDURAL_PREFABS, PROCEDURAL_TEXTURES,
   applyCharacterPose, applyMaterialPaletteToObject, buildProceduralAsset, synthesizePainterlyTexture
@@ -236,7 +237,14 @@ async function applyAssetObjectState(object, state, textureLoader) {
 
 class History {
   constructor(onChange) { this.undoStack = []; this.redoStack = []; this.onChange = onChange; }
-  push(label, undo, redo) { this.undoStack.push({ label, undo, redo }); this.redoStack.length = 0; this.onChange?.(); }
+  // `hooks.dropRedo` runs when the entry leaves via redo truncation, `hooks.dropOld` when the cap pushes it off the bottom (to free retained builds).
+  push(label, undo, redo, hooks = {}) {
+    this.undoStack.push({ label, undo, redo, ...hooks });
+    for (const item of this.redoStack) item.dropRedo?.();
+    this.redoStack.length = 0;
+    while (this.undoStack.length > 50) this.undoStack.shift().dropOld?.();
+    this.onChange?.();
+  }
   undo() { const item = this.undoStack.pop(); if (!item) return; item.undo(); this.redoStack.push(item); this.onChange?.(); }
   redo() { const item = this.redoStack.pop(); if (!item) return; item.redo(); this.undoStack.push(item); this.onChange?.(); }
 }
@@ -258,6 +266,7 @@ class CadApp {
     this.runtimeOverrides = new Map();
     this.assetBaselines = new Map();
     this.lastAssetPackage = null;
+    this.kit = null; this.kitTicket = 0; this.kitGesture = null;
     this.originalGeometries = new WeakMap();
     this.textureLoader = new THREE.TextureLoader();
     this.shapeSettings = { amount: .65, axis: 'y', frequency: 3, seed: 1 };
@@ -276,7 +285,8 @@ class CadApp {
     if (!catalogAssetId) this.addStarterScene();
     this.catalogReady = this.loadCatalog();
     if (catalogAssetId) this.catalogReady.finally(() => this.openInventoryAsset(catalogAssetId, {
-      variant: catalogQuery.get('variant') || 'original', targetId: catalogQuery.get('target') || null
+      variant: catalogQuery.get('variant') || 'original', targetId: catalogQuery.get('target') || null,
+      tier: catalogQuery.get('tier') || undefined, params: this.parseQueryParams(catalogQuery.get('params'))
     }));
     this.mountAssetCatalogLink(catalogAssetId);
     this.animate();
@@ -342,11 +352,16 @@ class CadApp {
     let loaded;
     try {
       loaded = await loadCatalogAsset(assetId, { ...options, renderer: this.renderer });
+      if (options.variant === 'production' && options.params && Object.keys(options.params).length) {
+        // A handoff may carry ?params=; cadJS rejects out-of-range values instead of clamping them.
+        const { errors } = validateParams(loaded.def.params || {}, options.params);
+        if (errors.length) { loaded.dispose?.(); loaded = null; throw new Error(`params: ${errors.join('; ')}`); }
+      }
       if (requestId !== this.inventoryRequestId) { loaded.dispose?.(); return false; }
-      const object = loaded.group;
+      let object = loaded.group;
       const before = {
         children: [...this.root.children], baselines: new Map(this.assetBaselines), overrides: new Map(this.runtimeOverrides),
-        assetPackage: this.lastAssetPackage, cat: this.catAdapter, selected: this.selected, catalogAsset: this.lastCatalogAsset
+        assetPackage: this.lastAssetPackage, cat: this.catAdapter, selected: this.selected, catalogAsset: this.lastCatalogAsset, kit: this.kit
       };
       const replace = (state) => {
         this.transform.detach();
@@ -354,12 +369,18 @@ class CadApp {
         for (const child of state.children) this.root.add(child);
         this.assetBaselines = new Map(state.baselines); this.runtimeOverrides = new Map(state.overrides);
         this.lastAssetPackage = state.assetPackage; this.catAdapter = state.cat;
-        this.lastCatalogAsset = state.catalogAsset;
+        this.lastCatalogAsset = state.catalogAsset; this.kit = state.kit || null;
         const catalogLink = $('#asset-catalog-link');
         if (catalogLink) { const url = new URL(catalogLink.href); state.catalogAsset?.id ? url.searchParams.set('asset', state.catalogAsset.id) : url.searchParams.delete('asset'); catalogLink.href = url.href; }
         this.sourceMode = 'editor'; $('#runtime-source').textContent = 'EDITOR';
         this.select(state.selected && this.isEditorObject(state.selected) ? state.selected : null); this.rebuildTree();
       };
+      let kitEntry = null;
+      if (options.variant === 'production') {
+        kitEntry = this.kitEntryFrom(loaded, assetId, options);
+        object = kitEntry.group;
+        this.labelKitParts(loaded, assetId);
+      }
       try {
         replace({ children: [object], baselines: new Map(), overrides: new Map(), assetPackage: null, cat: null, selected: object });
         this.registerAsset(object, {
@@ -367,7 +388,8 @@ class CadApp {
           sourceModule: loaded.source.file, sourceSymbol: loaded.source.symbol
         });
       } catch (error) { replace(before); throw error; }
-      const after = { children: [object], baselines: new Map(this.assetBaselines), overrides: new Map(), assetPackage: null, cat: null, selected: object, catalogAsset: { id: assetId, variant: options.variant || 'original', target: options.targetId || null, fidelity: loaded.fidelity, caption: loaded.caption } };
+      const after = { children: [object], baselines: new Map(this.assetBaselines), overrides: new Map(), assetPackage: null, cat: null, selected: object, catalogAsset: { id: assetId, variant: options.variant || 'original', target: options.targetId || null, fidelity: loaded.fidelity, caption: loaded.caption }, kit: kitEntry };
+      this.kit = kitEntry;
       // Retain live object references for undo, preserving custom shader
       // callbacks that Three.ObjectLoader cannot restore from JSON alone.
       this.history.push(`Open catalog ${assetId}`, () => replace(before), () => replace(after));
@@ -484,10 +506,46 @@ class CadApp {
   packageChanges(root) {
     const assetId = root.userData.cadAssetId; this.assignSemanticIds(root, assetId);
     const baseline = this.assetBaselines.get(assetId); const current = this.assetStates(root); const changes = {};
-    const baselineIds = Object.keys(baseline?.states || {}).sort(); const currentIds = Object.keys(current).sort();
-    if (hashValue(baselineIds) !== hashValue(currentIds)) throw new Error('Structural asset changes are not package-safe yet; restore added or removed parts before export');
-    for (const [id, state] of Object.entries(current)) { const change = changedObjectComponents(baseline?.states?.[id], state); if (change) changes[id] = change; }
+    // Schema 2: parts that exist on both sides diff by component; added, removed and reparented parts are structure operations.
+    for (const [id, state] of Object.entries(current)) { if (!baseline?.states?.[id]) continue; const change = changedObjectComponents(baseline.states[id], state); if (change) changes[id] = change; }
     return changes;
+  }
+
+  packageStructure(root) {
+    const assetId = root.userData.cadAssetId; this.assignSemanticIds(root, assetId);
+    const baseline = this.assetBaselines.get(assetId); const objects = this.assetObjects(root);
+    const describe = (id) => {
+      const object = objects[id];
+      if (!object.isMesh && !object.isGroup && object.type !== 'Object3D') throw new Error(`New part ${id} is a ${object.type}; packages can create Group and Mesh parts`);
+      return { kind: object.isMesh ? 'Mesh' : 'Group', state: serializeAssetObject(object) };
+    };
+    return diffHierarchy(baseline?.hierarchy || [], this.assetHierarchy(root), assetId, describe);
+  }
+
+  /** Apply structure operations to the live tree. Returns { undo, redo } closures over the retained objects. */
+  async applyStructure(root, ops) {
+    const steps = [];
+    const insertAt = (parent, object, index) => { parent.add(object); parent.children.splice(parent.children.indexOf(object), 1); parent.children.splice(Math.min(index, parent.children.length), 0, object); };
+    for (const op of ops) {
+      const objects = this.assetObjects(root);
+      if (op.op === 'create') {
+        const parent = objects[op.parent];
+        const object = op.kind === 'Mesh' ? new THREE.Mesh(parseGeometry(op.state?.geometry) || new THREE.BufferGeometry(), new THREE.MeshStandardMaterial({ color: 0xb8b0a0, roughness: .8 })) : new THREE.Group();
+        object.name = op.state?.properties?.name || op.id.split('.').pop(); object.userData.cadSemanticId = op.id;
+        await applyAssetObjectState(object, op.state, this.textureLoader);
+        parent.add(object);
+        steps.push({ undo: () => parent.remove(object), redo: () => parent.add(object) });
+      } else if (op.op === 'remove') {
+        const object = objects[op.id], parent = object.parent, index = parent.children.indexOf(object);
+        parent.remove(object);
+        steps.push({ undo: () => insertAt(parent, object, index), redo: () => parent.remove(object) });
+      } else {
+        const object = objects[op.id], oldParent = object.parent, index = oldParent.children.indexOf(object), parent = objects[op.parent];
+        parent.add(object);
+        steps.push({ undo: () => insertAt(oldParent, object, index), redo: () => parent.add(object) });
+      }
+    }
+    return { undo: () => { for (const step of [...steps].reverse()) step.undo(); }, redo: () => { for (const step of steps) step.redo(); } };
   }
 
   findAssetRoot(assetId) {
@@ -504,11 +562,11 @@ class CadApp {
       <button class="wide-button" data-inspector-action="register-asset">REGISTER + CAPTURE BASELINE</button>
     `);
     const baseline = this.assetBaselines.get(assetId);
-    let changed = 0; try { changed = Object.keys(this.packageChanges(root)).length; } catch { changed = -1; }
+    let changed = 0, structural = 0; try { changed = Object.keys(this.packageChanges(root)).length; structural = this.packageStructure(root).length; } catch { changed = -1; }
     return this.section('ASSET PACKAGE', `
       <div class="property-row"><span>Asset ID</span><input value="${escapeHtml(assetId)}" disabled></div>
       <div class="property-row"><span>Baseline</span><input value="${escapeHtml(baseline?.baselineFingerprint || 'Not captured')}" disabled></div>
-      <div class="property-row"><span>Changes</span><input value="${changed < 0 ? 'Structural change detected' : `${changed} semantic objects`}" disabled></div>
+      <div class="property-row"><span>Changes</span><input value="${changed < 0 ? 'Unsupported structural change' : `${changed} semantic objects, ${structural} structure op${structural === 1 ? '' : 's'}`}" disabled></div>
       <div class="button-grid"><button data-inspector-action="export-asset-package">EXPORT PACKAGE</button><button data-inspector-action="rebase-asset">CAPTURE NEW BASELINE</button></div>
     `);
   }
@@ -517,6 +575,7 @@ class CadApp {
     this.agentPanel = new AgentPanel({
       getContext: (scope) => this.getAgentContext(scope),
       executePlan: (plan, references) => this.executeAgentPlan(plan, references),
+      reviewPlan: (plan) => this.reviewKitPlan(plan),
       undo: () => this.history.undo(),
       captureViewport: () => this.captureViewportForAgent()
     });
@@ -910,11 +969,13 @@ class CadApp {
       ${object.isLight ? this.lightSection(object) : ''}
       ${object.isCamera ? this.cameraSection(object) : ''}
       ${object.isInstancedMesh ? this.instanceSection(object) : ''}
+      ${this.kitParamSection(object)}
       ${this.assetPackageSection(object)}
       ${this.runtimeLinkSection(object)}
       ${this.section('METADATA', `<div class="property-row"><span>Path</span><input value="${escapeHtml(pathForObject(object))}" disabled></div><div class="property-row"><span>Children</span><input value="${object.children?.length || 0}" disabled></div>`)}
     `;
     this.bindInspector(object, material);
+    this.bindKitPanel();
   }
 
   section(title, body) { return `<div class="section"><h3>${title}</h3><div class="section-body">${body}</div></div>`; }
@@ -1146,7 +1207,7 @@ class CadApp {
     let contextRoot = selected || this.root;
     if (scope === 'character' && selected) { let node = selected; while (node.parent && node.parent !== this.root) node = node.parent; contextRoot = node; }
     if (scope === 'workspace') contextRoot = this.root;
-    return { editor:'cadJS', sourceMode:this.sourceMode, scope, selectionUuid:selected?.uuid || null, selectionPath:selected ? pathForObject(selected) : null, root:this.objectManifest(contextRoot), catalogue:{ entries:this.catalog?.stats?.entries || 0, images:this.catalog?.stats?.images || 0 }, constraints:{ reversible:true, sourceFilesWritable:false, maxActions:64 } };
+    return { editor:'cadJS', sourceMode:this.sourceMode, scope, selectionUuid:selected?.uuid || null, selectionPath:selected ? pathForObject(selected) : null, root:this.objectManifest(contextRoot), catalogue:{ entries:this.catalog?.stats?.entries || 0, images:this.catalog?.stats?.images || 0 }, kitAsset:this.kitAgentContext(), constraints:{ reversible:true, sourceFilesWritable:false, maxActions:64 } };
   }
 
   findAgentTarget(target) {
@@ -1225,6 +1286,7 @@ class CadApp {
   }
 
   async executeAgentPlan(plan, references = []) {
+    if (plan.actions.some((a) => KIT_ACTIONS.includes(a.type))) return this.executeKitPlan(plan);
     if (this.sourceMode !== 'editor') { this.sourceMode = 'editor'; $('#runtime-source').textContent = 'EDITOR'; }
     const before = this.root.toJSON(); const historyStart = this.history.undoStack.length;
     try { for (const action of plan.actions) await this.executeAgentAction(action, references); }
@@ -1793,16 +1855,16 @@ class CadApp {
       const packageVersion = prompt('Asset package version (semantic versioning)', this.lastAssetPackage?.assetId === assetId ? this.lastAssetPackage.packageVersion : '0.1.0');
       if (packageVersion == null) return;
       const notes = prompt('Describe this asset revision', '') ?? '';
-      const changes = this.packageChanges(root);
+      const changes = this.packageChanges(root); const structure = this.packageStructure(root);
       const assetPackage = createAssetPackage({
         assetId, packageVersion, assetType:root.userData.cadAssetType,
-        source:{ module:root.userData.cadSourceModule || root.userData.sourceModule || '', symbol:root.userData.cadSourceSymbol || '', baselineFingerprint:baseline.baselineFingerprint },
+        source:{ module:root.userData.cadSourceModule || root.userData.sourceModule || '', symbol:root.userData.cadSourceSymbol || '', baselineFingerprint:baseline.baselineFingerprint, ...(this.kit?.group === root ? { kit:{ variant:this.kit.state.variant, params:this.kit.state.params } } : {}) },
         parentPackage:this.lastAssetPackage?.assetId === assetId ? { version:this.lastAssetPackage.packageVersion, checksum:this.lastAssetPackage.checksum } : null,
-        changes:{ objects:changes }, metadata:{ notes }
+        changes:{ objects:changes }, structure:{ ops:structure }, metadata:{ notes }
       });
       validateAssetPackage(assetPackage); this.lastAssetPackage = { assetId, packageVersion:assetPackage.packageVersion, checksum:assetPackage.checksum };
       download(`${assetId}-${assetPackage.packageVersion}.cadasset.json`, JSON.stringify(assetPackage, null, 2));
-      this.status(`ASSET PACKAGE ${assetPackage.packageVersion}: ${Object.keys(changes).length} OBJECT CHANGES`); this.refreshInspector();
+      this.status(`ASSET PACKAGE ${assetPackage.packageVersion} (SCHEMA 2): ${Object.keys(changes).length} OBJECT CHANGES, ${structure.length} STRUCTURE OPS`); this.refreshInspector();
     } catch (error) { this.status(`ASSET PACKAGE: ${error.message}`, true); }
   }
 
@@ -1824,24 +1886,192 @@ class CadApp {
     } catch (error) { this.status(`ASSET REGISTRATION: ${error.message}`, true); }
   }
 
+  /** A kit asset's baseline is its current build. Rebuild to the params the package recorded (or the defaults, for older packages) until the baseline matches. */
+  async alignKitForPackage(assetPackage) {
+    const kit = this.kit; if (!kit || normalizeAssetId(`catalog.${kit.id}`) !== assetPackage.assetId) return;
+    const matches = () => this.assetBaselines.get(assetPackage.assetId)?.baselineFingerprint === assetPackage.source.baselineFingerprint;
+    if (matches()) return;
+    const recorded = assetPackage.source.kit;
+    const candidates = [];
+    if (recorded) { const { values, errors } = validateParams(kit.def.params || {}, recorded.params || {}); if (errors.length) throw new Error(`Package kit params: ${errors.join('; ')}`); candidates.push(kitState(kit.id, recorded.variant, values)); }
+    candidates.push(kitState(kit.id, 'modular', {}));
+    for (const state of candidates) {
+      if (!await this.commitKit(state, 'Rebuild kit asset for package', { warn: false })) continue;
+      if (matches()) return;
+    }
+  }
+
   async loadAssetPackage(input) {
-    const assetPackage = validateAssetPackage(input); const root = this.findAssetRoot(assetPackage.assetId);
+    // Schema 1 packages are migrated (no structure operations); schema 2 pass through. Either way the checksum is verified first.
+    const original = validateAssetPackage(input); const assetPackage = migrateAssetPackage(input); const migrated = original.schemaVersion !== assetPackage.schemaVersion;
+    await this.alignKitForPackage(assetPackage);
+    const root = this.findAssetRoot(assetPackage.assetId);
     const baseline = root ? this.assetBaselines.get(assetPackage.assetId) : null;
     const compatibility = evaluateAssetCompatibility(assetPackage, { assetId:root?.userData?.cadAssetId, baselineFingerprint:baseline?.baselineFingerprint });
     if (!compatibility.compatible) throw new Error(compatibility.issues.join('; '));
-    const objects = this.assetObjects(root); const missing = Object.keys(assetPackage.changes.objects).filter((id) => !objects[id]);
+    const ops = assetPackage.structure.ops;
+    // Dry-run the structure on the hierarchy first: a bad plan changes nothing.
+    const finalIds = new Set(applyStructureOps(this.assetHierarchy(root).map((n) => ({ id:n.id, parent:n.parent })), ops, assetPackage.assetId).map((n) => n.id));
+    const missing = Object.keys(assetPackage.changes.objects).filter((id) => !finalIds.has(id));
     if (missing.length) throw new Error(`Package objects are missing from the loaded asset: ${missing.slice(0, 3).join(', ')}`);
-    const typeMismatches = Object.entries(assetPackage.changes.objects).filter(([id, state]) => state.type && state.type !== objects[id].type).map(([id]) => id);
+    const objects = this.assetObjects(root);
+    const typeMismatches = Object.entries(assetPackage.changes.objects).filter(([id, state]) => objects[id] && state.type && state.type !== objects[id].type).map(([id]) => id);
     if (typeMismatches.length) throw new Error(`Package object types do not match the loaded asset: ${typeMismatches.slice(0, 3).join(', ')}`);
     const count = compatibility.objectCount;
-    if (!confirm(`Apply ${assetPackage.assetId} package ${assetPackage.packageVersion}?\n\n${count} semantic object change${count === 1 ? '' : 's'}\nChecksum: ${assetPackage.checksum}\n\nThis is reversible with Undo.`)) return;
-    const before = {}; for (const id of Object.keys(assetPackage.changes.objects)) before[id] = serializeAssetObject(objects[id]);
-    for (const [id, state] of Object.entries(assetPackage.changes.objects)) await applyAssetObjectState(objects[id], state, this.textureLoader);
-    const after = {}; for (const id of Object.keys(assetPackage.changes.objects)) after[id] = serializeAssetObject(objects[id]);
-    const applyStates = async (states) => { for (const [id, state] of Object.entries(states)) await applyAssetObjectState(objects[id], state, this.textureLoader); this.refreshInspector(); this.rebuildTree(); };
-    this.history.push(`Asset ${assetPackage.packageVersion}`, () => applyStates(before), () => applyStates(after));
+    if (!confirm(`Apply ${assetPackage.assetId} package ${assetPackage.packageVersion}${migrated ? ' (migrated from schema 1)' : ''}?\n\n${count} semantic object change${count === 1 ? '' : 's'}, ${ops.length} structure operation${ops.length === 1 ? '' : 's'}\nChecksum: ${assetPackage.checksum}\n\nThis is reversible with Undo.`)) return;
+    const structure = await this.applyStructure(root, ops);
+    const live = this.assetObjects(root);
+    const before = {}; for (const id of Object.keys(assetPackage.changes.objects)) before[id] = serializeAssetObject(live[id]);
+    for (const [id, state] of Object.entries(assetPackage.changes.objects)) await applyAssetObjectState(live[id], state, this.textureLoader);
+    const after = {}; for (const id of Object.keys(assetPackage.changes.objects)) after[id] = serializeAssetObject(live[id]);
+    const applyStates = async (states) => { for (const [id, state] of Object.entries(states)) await applyAssetObjectState(live[id], state, this.textureLoader); this.refreshInspector(); this.rebuildTree(); };
+    // One undo step: states revert first, then the structure; redo goes the other way.
+    this.history.push(`Asset ${assetPackage.packageVersion}`, async () => { await applyStates(before); structure.undo(); this.rebuildTree(); this.refreshInspector(); }, async () => { structure.redo(); await applyStates(after); });
     this.lastAssetPackage = { assetId:assetPackage.assetId, packageVersion:assetPackage.packageVersion, checksum:assetPackage.checksum };
-    this.select(root); this.status(`ASSET PACKAGE ${assetPackage.packageVersion} APPLIED: ${count} OBJECTS`);
+    this.select(root); this.rebuildTree(); this.status(`ASSET PACKAGE ${assetPackage.packageVersion} APPLIED: ${count} OBJECTS, ${ops.length} STRUCTURE OPS${migrated ? ' (MIGRATED FROM SCHEMA 1)' : ''}`);
+  }
+
+  /* ------------------------------------------------ kit (production) assets --- */
+  // A production asset is the modular kit version of a catalog id. Its parts are
+  // named `asset:<id>/<part>` and carry stable semantic ids `catalog.<id>.<part>`.
+  // Parameter edits rebuild the asset; each committed edit is one undo step.
+
+  parseQueryParams(text) {
+    if (!text) return undefined;
+    try { const value = JSON.parse(text); return value && typeof value === 'object' && !Array.isArray(value) ? value : undefined; } catch { return undefined; }
+  }
+
+  kitEntryFrom(loaded, id, options = {}) {
+    const { values } = validateParams(loaded.def.params || {}, options.params || {});
+    return { id, def: loaded.def, state: kitState(id, 'modular', values), tier: options.tier || 'mid', group: loaded.group, loaded, preview: false };
+  }
+
+  labelKitParts(loaded, id) {
+    const base = normalizeAssetId(`catalog.${id}`);
+    for (const [key, part] of Object.entries(loaded.instance?.parts || {})) if (part?.userData) { part.userData.cadSemanticId = `${base}.${key}`; part.userData.kitPart = key; }
+  }
+
+  kitLookup(id) { return this.kit && this.kit.id === id ? this.kit.def : null; }
+
+  async buildKitEntry(state) {
+    const kit = this.kit;
+    const loaded = await loadCatalogAsset(state.id, { variant: state.variant === 'classic' ? 'original' : 'production', tier: kit.tier, params: state.params, renderer: this.renderer });
+    if (state.variant !== 'classic') this.labelKitParts(loaded, state.id);
+    return { id: state.id, def: kit.def, state, tier: kit.tier, group: loaded.group, loaded, preview: false };
+  }
+
+  installKitEntry(entry, { register = true } = {}) {
+    this.transform.detach();
+    for (const child of [...this.root.children]) this.root.remove(child);
+    this.root.add(entry.group); this.kit = entry;
+    if (register) this.registerAsset(entry.group, { assetId: `catalog.${entry.id}`, assetType: 'catalog-game-asset', sourceModule: entry.loaded.source.file, sourceSymbol: entry.loaded.source.symbol });
+    this.select(entry.group); this.rebuildTree();
+  }
+
+  /** Live preview while a slider moves: rebuilds, but is not an undo step. */
+  async previewKit(next) {
+    const ticket = ++this.kitTicket;
+    const entry = await this.buildKitEntry(next);
+    if (ticket !== this.kitTicket) { entry.loaded.dispose?.(); return null; }
+    if (!this.kitGesture) this.kitGesture = this.kit;
+    if (this.kit.preview) this.kit.loaded.dispose?.();
+    entry.preview = true; this.installKitEntry(entry, { register: false });
+    return entry;
+  }
+
+  /** One undoable transaction from the committed state to `next` (a param edit, a variant swap, or an AI plan). */
+  async commitKit(next, label, { warn = true } = {}) {
+    const before = this.kitGesture || this.kit; this.kitGesture = null;
+    if (warn) {
+      let free = 0; try { free = Object.keys(this.packageChanges(before.group)).length + this.packageStructure(before.group).length; } catch { free = 1; }
+      if ((free || this.lastAssetPackage) && !confirm(`Rebuilding ${before.id} drops ${free ? `${free} free-form edit${free === 1 ? '' : 's'}` : 'nothing'}${this.lastAssetPackage ? ' and re-bases the loaded package' : ''}: the new build becomes the package baseline. Packages made with kit parameters re-apply them on import. Continue? (Undo restores the old build.)`)) {
+        if (this.kit.preview) { this.kit.loaded.dispose?.(); this.installKitEntry(before, { register: false }); }
+        this.refreshInspector(); return false;
+      }
+    }
+    const ticket = ++this.kitTicket;
+    const entry = await this.buildKitEntry(next);
+    if (ticket !== this.kitTicket) { entry.loaded.dispose?.(); return false; }
+    if (this.kit.preview) this.kit.loaded.dispose?.();
+    this.installKitEntry(entry, { register: true });
+    this.history.push(label, () => { this.installKitEntry(before, { register: true }); this.refreshInspector(); }, () => { this.installKitEntry(entry, { register: true }); this.refreshInspector(); },
+      { dropRedo: () => { if (this.kit !== entry) entry.loaded.dispose?.(); }, dropOld: () => { if (this.kit !== before) before.loaded.dispose?.(); } });
+    this.refreshInspector(); this.status(`${label.toUpperCase()}`);
+    return true;
+  }
+
+  kitParamSection(object) {
+    const kit = this.kit; if (!kit || this.assetRootFor(object) !== kit.group) return '';
+    const variant = `<label class="property-row"><span>Variant</span><select id="kit-variant">${KIT_VARIANTS.map((v) => `<option value="${v}" ${v === kit.state.variant ? 'selected' : ''}>${v === 'classic' ? 'classic (original builder)' : 'modular (kit)'}</option>`).join('')}</select></label>`;
+    if (kit.state.variant === 'classic') return this.section(`KIT PARAMETERS / ${escapeHtml(kit.id)}`, `${variant}<div class="property-row"><span>Note</span><input value="The classic builder has no parameters" disabled></div>`);
+    const rows = paramControls(kit.def.params || {}, kit.state.params).map((c) => {
+      const label = escapeHtml(c.label), key = escapeHtml(c.key);
+      if (c.type === 'number') return `<label class="property-row"><span>${label}</span><span class="kit-range"><input type="range" data-kit-param="${key}" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.value}"><output>${c.value}</output></span></label>`;
+      if (c.type === 'enum') return `<label class="property-row"><span>${label}</span><select data-kit-param="${key}">${c.options.map((o) => `<option ${o === c.value ? 'selected' : ''}>${escapeHtml(o)}</option>`).join('')}</select></label>`;
+      if (c.type === 'boolean') return `<label class="property-row"><span>${label}</span><input type="checkbox" data-kit-param="${key}" ${c.value ? 'checked' : ''}></label>`;
+      return `<label class="property-row"><span>${label}</span><input type="color" data-kit-param="${key}" value="${c.hex}"></label>`;
+    }).join('');
+    return this.section(`KIT PARAMETERS / ${escapeHtml(kit.id)}`, `${variant}${rows || '<div class="property-row"><span>Note</span><input value="This asset has no parameters" disabled></div>'}<button class="wide-button" id="kit-reset">RESET TO DEFAULTS</button>`);
+  }
+
+  bindKitPanel() {
+    const host = $('#inspector'); if (!this.kit || !host) return;
+    const fail = (error) => this.status(`KIT PARAMETERS: ${error.message}`, true);
+    $('#kit-variant', host)?.addEventListener('change', (event) => this.commitKit({ ...this.kit.state, variant: event.target.value }, `Variant ${event.target.value}`).catch(fail));
+    $('#kit-reset', host)?.addEventListener('click', () => this.commitKit({ ...this.kit.state, params: {} }, 'Reset kit parameters').catch(fail));
+    let timer = 0;
+    for (const input of $$('[data-kit-param]', host)) {
+      const key = input.dataset.kitParam;
+      const next = () => {
+        const raw = input.type === 'checkbox' ? input.checked : input.type === 'range' ? Number(input.value) : input.value;
+        const { values, errors } = validateParams(this.kit.def.params, { [key]: raw });
+        if (errors.length) throw new Error(errors.join('; '));
+        return { ...this.kit.state, params: { ...this.kit.state.params, ...values } };
+      };
+      if (input.type === 'range' || input.type === 'color') input.addEventListener('input', () => {
+        const out = input.parentElement.querySelector('output'); if (out) out.textContent = input.value;
+        clearTimeout(timer); timer = setTimeout(() => { try { this.previewKit(next()).catch(fail); } catch (error) { fail(error); } }, 90);
+      });
+      input.addEventListener('change', () => { clearTimeout(timer); try { this.commitKit(next(), `Set ${key}`).catch(fail); } catch (error) { fail(error); } });
+    }
+  }
+
+  /** The agent's view of the open kit asset: its id, variant, current values and the schema it may edit. */
+  kitAgentContext() {
+    const kit = this.kit; if (!kit) return null;
+    return { id: kit.id, variant: kit.state.variant, values: kit.state.params, params: Object.fromEntries(Object.entries(kit.def.params || {}).map(([key, p]) => [key, { type: p.type, default: p.default, ...(p.type === 'number' ? { min: p.min, max: p.max, step: p.step } : {}), ...(p.type === 'enum' ? { options: p.options } : {}) }])) };
+  }
+
+  /** Check a plan's kit actions against the open asset. Returns review lines; throws when the plan must be rejected. */
+  reviewKitPlan(plan) {
+    const kitActions = plan.actions.filter((a) => KIT_ACTIONS.includes(a.type)); if (!kitActions.length) return [];
+    if (plan.actions.some((a) => !KIT_ACTIONS.includes(a.type) && !['select', 'focus'].includes(a.type))) throw new Error('Kit asset actions cannot be mixed with free-form edits in one plan');
+    if (!this.kit) throw new Error('Open a production asset first (/cadJS/?asset=<id>&variant=production)');
+    return foldKitActions(this.kit.state, kitActions, (id) => this.kitLookup(id)).review;
+  }
+
+  async executeKitPlan(plan) {
+    const kitActions = plan.actions.filter((a) => KIT_ACTIONS.includes(a.type));
+    this.reviewKitPlan(plan);
+    const { state } = foldKitActions(this.kit.state, kitActions, (id) => this.kitLookup(id));
+    if (!await this.commitKit(state, `AI: ${plan.summary}`)) throw new Error('A newer edit replaced this plan');
+    return plan.actions.length;
+  }
+
+  /** Push to game for a kit asset: param edits go to kit-overrides.json through the catalog server's atomic, revision-checked write. */
+  async pushKitToGame(publish) {
+    const kit = this.kit;
+    if (!publish) return this.status(`${kit.id.toUpperCase()} PARAMETERS ARE LIVE IN THE EDITOR — NOT PERSISTED`);
+    try {
+      const current = await fetch('/api/asset-library/kit-overrides').then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`); return d; });
+      const overrides = kitOverridesWith(current.overrides, kit.state, kit.def);
+      const response = await fetch('/api/asset-library/kit-overrides', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ overrides, revision: current.revision }) });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+      let free = 0; try { free = Object.keys(this.packageChanges(kit.group)).length; } catch { /* ignore */ }
+      const count = Object.keys(overrides.assets[kit.id].params || {}).length;
+      this.status(`PUSHED TO GAME: ${kit.id.toUpperCase()} → kit-overrides.json (${kit.state.variant}, ${count} param${count === 1 ? '' : 's'})${free ? ` — ${free} FREE-FORM EDIT${free === 1 ? '' : 'S'} NOT PUSHED (EXPORT A PACKAGE)` : ''}`);
+    } catch (error) { this.status(`KIT PUSH: ${error.message}`, true); }
   }
 
   async openFile(file) {
@@ -1876,7 +2106,7 @@ class CadApp {
     const beforeOverrides = new Map(this.runtimeOverrides);
     const beforeBaselines = new Map(this.assetBaselines);
     const beforePackage = this.lastAssetPackage;
-    this.transform.detach();
+    this.transform.detach(); this.kit = null;
     while (this.root.children.length) this.root.remove(this.root.children[0]);
     this.runtimeOverrides = new Map();
     this.assetBaselines = new Map();
@@ -1986,6 +2216,7 @@ class CadApp {
   }
 
   async pushToGame(publish) {
+    if (this.kit && (!this.selected || this.assetRootFor(this.selected) === this.kit.group)) return this.pushKitToGame(publish);
     const link = this.runtimeLinkFor(this.selected);
     if (!link) {
       const label = this.selected && this.isEditorObject(this.selected) ? objectLabel(this.selected).toUpperCase() : '';

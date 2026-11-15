@@ -121,6 +121,45 @@ Serve the repository root; open `/labs/sky/`. Useful captures:
 See [verification.md](verification.md) for the actual validation record and
 limits. The portal image is a capture of the real lab, not concept art.
 
+## Night studies (2026-11-13, lane v-sky)
+
+Two focused specimens close the asset-coverage gaps for `stars` and `moon`
+(they were only *embedded* in `sky-night`, which shows the game's own stars
+and moon). Module `js/night.js`; selector **Night** in the observatory;
+family "After the lanterns go out." in the gallery.
+
+* **`night-stars` — A sky full of names (星月夜).** 1,600 points with a
+  magnitude distribution N(<m) ∝ 10^(0.45 m) on 0…6.2 (many faint, few
+  bright), brightness 10^(−0.4 m), colour from a B−V index (blue-white to
+  orange), a third of them crowded toward a tilted great circle: the
+  Amanogawa, drawn as a faint additive strip with value-noise structure and
+  a dark rift just off its centre line. Low stars dim and redden
+  (extinction) and twinkle harder (scintillation). Limit: a stylised
+  distribution and a hand-placed band, not a catalogue or an ephemeris.
+* **`night-moon` — The moon with a face (月の兎).** One 256² painting per
+  phase: a disc lit from the phase angle (0.5 full, 0.25 first quarter),
+  limb darkening, ten soft seas placed after the maria the rabbit pounding
+  mochi is read from, a small rayed crater, and earthshine on the dark limb;
+  a soft glow and, only under a thin veil, a faint 22° ring (tsukigasa, 月暈),
+  all drawn by one camera-facing quad. Limit: the phase is a parameter, not a calendar; the ring
+  is an artistic accent, not ice-crystal optics.
+
+The drawing code lives once, in the game kit (`src/kit/sky/night.js`); the
+lab builds its night from it through `labs/shared/game.js` (fix round 1,
+ruling R56). Only the draw order differs: here the lab's dome is a
+transparent pass, so the night objects join it; in the game they draw in the
+background band before the kit cloud deck, and a star linked to the deck
+reads the deck's field in its vertex shader and goes out behind thick cloud
+(the deck's alpha alone would let a fifth of its light through).
+
+### What the game kit promotes from this lab (lane v-sky)
+
+| Inventory id | Specimen | In the game |
+| --- | --- | --- |
+| `clouds` | `cloud-field` (thickness painting) with the `cloud-painted` slab idea, and the projection of `shade-soft` | A curved deck 170 m above the cat, three height slices on hero (two on mid), one shared 256² four-genus field (cumulus puffs, cirrus, altocumulus, stratus) crossfaded by weather; the same field projected along the sun as cloud shade. The shade is promoted from `shade-soft`'s projection and five-tap penumbra, **not** its light model: the lab attenuates the directional light inside each receiving material, while the game composites the shade in its atmosphere pass (it cannot hook every material), darkening bright, i.e. mostly sunlit, pixels and sparing what already sits in shadow |
+| `stars` | `night-stars` | As studied, 1,600 / 960 / 420 stars by tier, band on hero and mid |
+| `moon` | `night-moon` | As studied, one draw (disc, glow, ring); ring on hero only, woken by a cloudy or misty veil; dimmed by the deck in front of it |
+
 ---
 
 # Historical proposal — 2026-10-25

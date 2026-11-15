@@ -22,7 +22,7 @@ const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt
 const fmt = (n) => (n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(n >= 1e4 ? 0 : 1) + 'k' : String(Math.round(n)));
 const dots = (n) => '●'.repeat(n) + '○'.repeat(5 - n);
 const wave = (x, z) => 0.03 * Math.sin(x * 2.1 + z * 0.7) + 0.02 * Math.sin(z * 2.9 - x * 1.3);
-const PADDY_SEASON = { mirror: 'spring', taue: 'early', summer: 'summer', autumn: 'autumn', winter: 'winter', game: 'spring' };
+const PADDY_SEASON = { mirror: 'spring', taue: 'early', summer: 'summer', autumn: 'autumn', winter: 'winter', aze: 'early', game: 'spring' };
 
 function mulberry(a) {
   return () => {
@@ -234,7 +234,7 @@ class Cube {
     g.uPaddyMud.value = v.paddy === 'autumn' ? 0.4 : 1;
     this.slab(this.groundMat);
     this.wind = { value: new THREE.Vector2(0, 0.6) };
-    this.paddies = buildPaddies({ style: v.paddy, plots, U, groundMat: this.groundMat, wind: this.wind, rnd: mulberry(5) });
+    this.paddies = buildPaddies({ style: v.paddy, plots, U, groundMat: this.groundMat, wind: this.wind, rnd: mulberry(5), woodMat: this.ctx.bmats && this.ctx.bmats.dark });
     this.scene.add(this.paddies.group);
     this.ripples = new RipplePool(U);
     this.pmirrors = [];

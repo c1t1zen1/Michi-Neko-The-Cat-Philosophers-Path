@@ -1,0 +1,91 @@
+
+=== 天上 summit logic ===
+
+  PASS  constructs
+  PASS  starts locked
+  PASS  group hidden at boot
+  PASS  has torii
+  PASS  has meadow + vista + rays in the group
+  PASS  has dense grass field
+  PASS  has layered 3D vista group
+  PASS  has summit-local snow
+  PASS  has summit-local rain
+  PASS  snow parks itself when clear
+  PASS  no collectibles on a respite scene
+  PASS  has summit-local butterfly visitors
+  PASS  has a pooled flock of colorful fly-by birds
+  PASS  a five-stone path leads naturally to the meditation perch
+  PASS  the meditation perch has a furin, light pool and gathering motes
+  PASS  sakura petals are local to the summit weather system
+  PASS  a bird fly-by wakes at least one pooled bird
+  PASS  a butterfly visit fades in around the perch
+  PASS  wildlife parks invisibly between visits
+  PASS  9 rings stay locked
+  PASS  9th ring teases the player
+  PASS  10th ring unlocks the summit
+  PASS  monk choir plays on the tenth bell
+  PASS  light rays switch on
+  PASS  unlock announces the path
+  PASS  re-ringing never re-fires the unlock
+  PASS  beacon pulses in the valley once unlocked
+  PASS  the thicket behind the shrine parts open
+  PASS  summit becomes active
+  PASS  summit group becomes visible
+  PASS  summit wind bed starts
+  PASS  guidance UI is hidden
+  PASS  summit mode removes valley guidance chrome
+  PASS  summit weather pool includes every valley weather
+  PASS  summit weather durations are installed
+  PASS  cat lands outside the ocean-side torii
+  PASS  cat faces uphill toward the clearing
+  PASS  groundAt exposes seven regular 28 cm stair bands
+  PASS  groundAt keeps meadow and arrival landing aligned to rendered surfaces
+  PASS  an earthen shoulder spans the complete torii approach
+  PASS  the approach shoulder sits tightly beneath every tread and the landing
+  PASS  one terrain runs from under the meadow rim to the horizon
+  PASS  the hillside stays beneath every tread, the landing and the lower path
+  PASS  the brow meets the meadow edge all the way round
+  PASS  behind the summit the land climbs out of the valleys into ridges
+  PASS  the city floor stays above the bay and the sea floor sinks below it
+  PASS  the perch sightline grazes the rim and falls away beyond it
+  PASS  runaway is pulled back inside
+  PASS  arrival outside the torii does not immediately trigger descent
+  PASS  entering the shade rings the furin exactly once per visit
+  PASS  reaching the clearing arms the return crossing
+  PASS  walking outward through the torii starts the descent
+  PASS  the summit closes behind the cat
+  PASS  summit wind bed stops
+  PASS  leaving the summit restores normal UI mode
+  PASS  exit places the cat under the valley torii
+  PASS  exit leaves the veil fully cleared for the next ascent
+  PASS  restore-from-save opens the thicket instantly
+  PASS  the summit makes the cat sit down on its own
+  PASS  sitting at the perch engages the clean scenic camera
+  PASS  stillness accumulates toward sleep
+  PASS  not asleep before the threshold
+  PASS  sleeps after the stillness threshold
+  PASS  sleep lands in the 2-3 minute window
+  PASS  the cat curls into a ball
+  PASS  the sleep pose holds indefinitely
+  PASS  a singing bowl rings the moment of sleep
+  PASS  walking away breaks the spell
+  PASS  movement exits scenic view and restores controls
+  PASS  the cat can fall asleep a second time
+
+--- kit stand-ins without the classic handles ---
+
+  PASS  bare stand-ins: every summit id is built from its kit stand-in
+  PASS  bare stand-ins: colliders and platforms come from the layouts, as on classic
+  PASS  bare stand-ins: unlock, beacon, portal, every weather and light, the perch, setQuality() and leaving never throw
+  PASS  bare stand-ins: the portal behind the shrine opens with no beacon handle
+  PASS  bare stand-ins: each missing bound part is warned once, through the runtime
+  PASS  a repeated unresolved bind is not warned again; an unknown parent is warned once
+  PASS  first-part stand-ins: a bell without its sail and clapper, a sky fill without the warm fill, … never throw
+  PASS  first-part stand-ins: the kit fūrin bell still sways in the breeze
+  PASS  plain-part stand-ins: every bound handle is the kit part
+  PASS  plain-part stand-ins: parts without geometry, material or ground colour never throw anywhere
+  PASS  plain-part stand-ins: the kit fūrin still sways in the breeze
+  PASS  a kit vista without a layers part still holds the classic layers
+  PASS  a ?swap for an id with no kit registered is warned once and builds classic
+
+83 passed, 0 failed

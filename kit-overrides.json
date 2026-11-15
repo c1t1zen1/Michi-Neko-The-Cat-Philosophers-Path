@@ -1,4 +1,6 @@
 {
   "format": "michi-neko-kit-overrides",
-  "assets": {}
+  "assets": {
+    "edge-forest": { "variant": "classic" }
+  }
 }

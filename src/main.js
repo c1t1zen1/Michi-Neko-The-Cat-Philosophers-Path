@@ -1,39 +1,39 @@
-import { duskEyeShine } from './characters/behaviour/dusk.js?v=20261113a';
+import { duskEyeShine } from './characters/behaviour/dusk.js?v=20261114a';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20261113a';
-import { Player } from './player.js?v=20261113a';
-import { Countryside } from './countryside.js?v=20261113a';
-import { Sky } from './sky.js?v=20261113a';
-import { Vegetation } from './vegetation.js?v=20261113a';
-import { Particles } from './particles.js?v=20261113a';
-import { AmbientLife } from './ambient_life.js?v=20261113a';
-import { Controls } from './controls.js?v=20261113a';
-import { UI } from './ui.js?v=20261113a';
-import { NPC } from './npc.js?v=20261113a';
-import { Dialogue } from './dialogue.js?v=20261113a';
-import { QuestManager } from './quest.js?v=20261113a';
-import { AudioManager } from './audio.js?v=20261113a';
-import { ProgressionManager } from './progression.js?v=20261113a';
-import { ContextActionManager } from './context_actions.js?v=20261113a';
-import { InteriorManager } from './interior.js?v=20261113a';
-import { SaveManager } from './save.js?v=20261113a';
-import { ScentTrail } from './scent.js?v=20261113a';
-import { SettingsManager } from './settings.js?v=20261113a';
-import { isDiscreteGPU } from './settings.js?v=20261113a';
-import { MenuSystem } from './menus.js?v=20261113a';
-import { WaypointSystem, Compass } from './waypoints.js?v=20261113a';
-import { MusicDirector } from './music.js?v=20261113a';
-import { SummitManager } from './mountaintop.js?v=20261113a';
-import { catRimUniforms } from './cat.js?v=20261113a';
-import { chunkSceneInstances } from './instanced_chunks.js?v=20261113a';
-import { setFoliageDetail } from './foliage.js?v=20261113a';
-import { applyCadOverrides } from './cad_overrides.js?v=20261113a';
-import { HiddenPlaces } from './hidden_places.js?v=20261113a';
-import { AssetRuntime } from './kit/runtime.js?v=20261113a';
+import { AOPass, AtmospherePass, GradeOutputShader } from './postfx.js?v=20261114a';
+import { Player } from './player.js?v=20261114a';
+import { Countryside } from './countryside.js?v=20261114a';
+import { Sky } from './sky.js?v=20261114a';
+import { Vegetation } from './vegetation.js?v=20261114a';
+import { Particles } from './particles.js?v=20261114a';
+import { AmbientLife } from './ambient_life.js?v=20261114a';
+import { Controls } from './controls.js?v=20261114a';
+import { UI } from './ui.js?v=20261114a';
+import { NPC } from './npc.js?v=20261114a';
+import { Dialogue } from './dialogue.js?v=20261114a';
+import { QuestManager } from './quest.js?v=20261114a';
+import { AudioManager } from './audio.js?v=20261114a';
+import { ProgressionManager } from './progression.js?v=20261114a';
+import { ContextActionManager } from './context_actions.js?v=20261114a';
+import { InteriorManager } from './interior.js?v=20261114a';
+import { SaveManager } from './save.js?v=20261114a';
+import { ScentTrail } from './scent.js?v=20261114a';
+import { SettingsManager } from './settings.js?v=20261114a';
+import { isDiscreteGPU } from './settings.js?v=20261114a';
+import { MenuSystem } from './menus.js?v=20261114a';
+import { WaypointSystem, Compass } from './waypoints.js?v=20261114a';
+import { MusicDirector } from './music.js?v=20261114a';
+import { SummitManager } from './mountaintop.js?v=20261114a';
+import { catRimUniforms } from './cat.js?v=20261114a';
+import { chunkSceneInstances } from './instanced_chunks.js?v=20261114a';
+import { setFoliageDetail } from './foliage.js?v=20261114a';
+import { applyCadOverrides } from './cad_overrides.js?v=20261114a';
+import { HiddenPlaces } from './hidden_places.js?v=20261114a';
+import { AssetRuntime } from './kit/runtime.js?v=20261114a';
 
 const AUTOSTART_KEY = 'catwalk_autostart';
 
@@ -209,17 +209,29 @@ class Game {
     // kit, or auto. Constructed here, preloaded in init() before the valley
     // is built, and handed to every owner module as `{ assets }`. The initial
     // quality stands in for the resolved tier only to answer "is this the low
-    // tier?" (the two agree on that); applyQuality() refines it later.
+    // tier?" (the two agree on that); init() re-resolves it before the valley builds.
     this.assets = new AssetRuntime({
       THREE,
       assetSet: this.settings.values.assetSet,
       search: location.search,
       quality: this.initialQuality
     });
+    // t3-audio: today's sounds for the moments the game already voices; the rest stay silent until a dawCAT pack is installed
+    this.assets.audio?.setSink((ev) => {
+      const a = this.audio; if (!a) return;
+      if (ev === 'shrine.bell.ring') a.playBell();
+      else if (ev === 'nest.settle') a.playPurr();
+      // keepsake.collect: main.js already calls playCollect on pickup; do not double-play
+    });
   }
 
   /** Preload the kit (nothing on the classic set), then build the valley. */
   async init() {
+    // Gate G-F I1: merged kit statics are built once, at the tier in force
+    // when the valley builds, so resolve the real quality (discrete GPU ->
+    // high) before preload() and assembleWorld(), not the constructor's guess.
+    this.resolvedQuality = this.settings.resolveQuality();
+    this.assets.setQuality(this.resolvedQuality);
     await this.assets.preload();
     this.assembleWorld();
     this.started = true;
@@ -228,7 +240,7 @@ class Game {
 
   /** Everything the original constructor built after the renderer, in the same order. */
   assembleWorld() {
-    this.sky = new Sky(this.scene);
+    this.sky = new Sky(this.scene, { assets: this.assets });
     this.sky.attachRenderer(this.renderer);
     this.city = new Countryside(this.scene, { assets: this.assets });
     // Hidden valley places register their clearings with the world before the
@@ -252,7 +264,7 @@ class Game {
     this.particles = new Particles(this.scene, { assets: this.assets });
     this.ambientLife = new AmbientLife(this.scene, this.audio, this.city.nestPos, { assets: this.assets });
     this.scent = new ScentTrail(this.scene);
-    this.player = new Player(this.scene, this.camera, this.audio, { assets: this.assets, quality: this.initialQuality });
+    this.player = new Player(this.scene, this.camera, this.audio, { assets: this.assets, quality: this.resolvedQuality });
     this.dialogue = new Dialogue();
     this.progression = new ProgressionManager(this.ui, this.player);
     this.quest = new QuestManager(this.ui, (quest) => this.progression.addXP(50, 'Quest complete'));
@@ -320,6 +332,13 @@ class Game {
     // Grass LOD rings follow the camera's gaze; its physics reads the cat's
     // paws and the villagers walking through it.
     this.vegetation.grassContext = { renderer: this.renderer, camera: this.camera, player: this.player, npcs: this.npcs };
+    // v-ground: the kit valley ground (modular set only) wears where the cat and the
+    // villagers walk and thins the meadow there; the classic set has no such instance.
+    for (const inst of this.city.assetInstances || []) {
+      if (inst.id === 'valley-ground' && typeof inst.bindWorld === 'function') {
+        inst.bindWorld({ grass: this.vegetation.grass, player: this.player, npcs: this.npcs });
+      }
+    }
 
     this.contextActions = new ContextActionManager(
       this.player,
@@ -576,11 +595,22 @@ class Game {
 
   /** The world state kit instances respond to (§3.3 `update(dt, t, env)`), one reused object. */
   assetEnv() {
-    const env = this._assetEnv || (this._assetEnv = { hour: 12, wind: 1, wet: 0, snow: 0, lanternOn: false });
+    const env = this._assetEnv || (this._assetEnv = { hour: 12, wind: 1, wet: 0, mist: 0, snow: 0, lanternOn: false });
     env.hour = this.sky.dayTime;
     env.wet = this.sky.weatherAmount('rain');
+    env.mist = this.sky.weatherAmount('mist');
     env.snow = this.sky.weatherAmount('snow');
     env.lanternOn = !!this.city._lanternsLit;
+    env.audio = (this.assets && this.assets.audio) || null;   // kit sound hook (src/kit/audio.js); classic has none
+    // The sun and the sky colours, read through the Sky's public API (sunDir,
+    // resolvePalette(), the same values Countryside.update() gives the classic
+    // river) and copied into env-owned objects, so no kit code can write into
+    // the Sky's per-frame buffers. Kit water reads these (src/kit/water/sky.js).
+    if (!env.sunDir) env.sunDir = new THREE.Vector3();
+    if (!env.palette) env.palette = { sun: new THREE.Color(), horizon: new THREE.Color(), top: new THREE.Color(), warm: new THREE.Color() };
+    env.sunDir.copy(this.sky.sunDir);
+    const p = this.sky.resolvePalette();
+    env.palette.sun.copy(p.sun); env.palette.horizon.copy(p.horizon); env.palette.top.copy(p.top); env.palette.warm.copy(p.warm);
     return env;
   }
 
@@ -1456,6 +1486,8 @@ class Game {
     // valley's lanterns. Every visible light is evaluated in every lit
     // fragment, so the half that cannot be seen is switched off outright.
     this.interior.setLightsActive(inside);
+    // kit room instances (shoji tint, lamps) keep running while the cat is inside
+    if (inside) this.interior.assets.update(dt, this.elapsed, this.assetEnv());
     if (inside) {
       this.city.suspendLanternLights();
     } else if (!this.summit.active) {

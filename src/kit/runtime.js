@@ -60,10 +60,11 @@
 import {
   TIERS, isAssetDefinition, isAssetInstance as isInstanceShape, validateInstance,
   resolveParams, groupName, partName, bandFor, tierFor, clampTier, emptyFootprint, AssetContractError
-} from './contract.js?v=20261113a';
-import { assetRng } from './rng.js?v=20261113a';
+} from './contract.js?v=20261114a';
+import { assetRng } from './rng.js?v=20261114a';
+import { createKitAudio } from './audio.js?v=20261114a';
 
-export { isAssetInstance } from './contract.js?v=20261113a';
+export { isAssetInstance } from './contract.js?v=20261114a';
 
 export const ASSET_SETS = Object.freeze(['classic', 'modular', 'auto']);
 // Resolved against this module, not the document, so tools/ and labs pages
@@ -154,7 +155,7 @@ export class AssetRuntime {
     this.set = resolveSet({ chosen: this.chosen, quality, explicit: this.explicit });
     const swap = parseSwap(params.get('swap'));
     this.swaps = swap.swaps;
-    this.problems = [...swap.problems];
+    this.problems = [];             // swap problems arrive via warnOnce() below
     this.overrides = null;          // parsed kit-overrides.json
     this.defs = new Map();          // id → definition
     this.families = new Map();      // family → [ids]
@@ -169,7 +170,8 @@ export class AssetRuntime {
     this._createMaterials = createMaterials;
     this._fetchOverrides = fetchOverrides;
     this._preload = null;
-    this._env = { hour: 12, wind: 1, wet: 0, snow: 0, lanternOn: false };
+    this.audio = createKitAudio();   // env.audio: families call env.audio?.play(event, { pos, gain })
+    this._env = { hour: 12, wind: 1, wet: 0, mist: 0, snow: 0, lanternOn: false, audio: this.audio };
     for (const p of swap.problems) this.warnOnce('swap:' + p, p);
   }
 
@@ -417,7 +419,7 @@ export class AssetRuntime {
     return instance;
   }
 
-  /** Per frame; env = { hour, wind, wet, snow, lanternOn }. A throwing update is disabled after one warning. */
+  /** Per frame; env = { hour, wind, wet, snow, lanternOn, audio }. A throwing update is disabled after one warning. */
   update(dt, t, env, list = this.instances) {
     if (!list.length) return;
     const e = env || this._env;
@@ -499,12 +501,12 @@ function disposeTree(root) {
 }
 
 async function defaultFamilies() {
-  const mod = await import('./index.js?v=20261113a');
+  const mod = await import('./index.js?v=20261114a');
   return mod.FAMILIES || {};
 }
 
 async function defaultMaterials() {
-  const mod = await import('./materials.js?v=20261113a');
+  const mod = await import('./materials.js?v=20261114a');
   return new mod.KitMaterials();
 }
 

@@ -441,6 +441,7 @@ export class AtmospherePass extends Pass {
     const behind = this._sunNdc.z > 1;
     u.uSunScreen.value.set(this._sunNdc.x * 0.5 + 0.5, this._sunNdc.y * 0.5 + 0.5);
     if (behind) u.uSunVisible.value = 0;
+    this.syncKit(sky, environment);
   }
 
   render(renderer, writeBuffer, readBuffer) {
@@ -464,7 +465,78 @@ export class AtmospherePass extends Pass {
   dispose() {
     this.material.dispose();
     this.fsQuad.dispose();
+    if (this.kitMaterial) this.kitMaterial.dispose();
   }
+
+  /**
+   * Modular set (src/kit/sky, BUILD_GUIDE_FABLE §3): when the sky carries a
+   * kit cloud deck, its projected shade is composited inside this pass (no
+   * extra pass, no extra render target) and the deck dims the shafts and the
+   * sun's haze glow when it covers the sun. The kit material is a copy of
+   * this pass's shader with the deck's chunks inserted; it shares every
+   * classic uniform object, so updateFromSky() and render() drive it
+   * unchanged. Tier-gated: on the classic set, on quality low, on the summit
+   * (which supplies its own `environment`) and indoors this pass renders
+   * with its classic material and classic uniform values, exactly as before.
+   */
+  syncKit(sky, environment) {
+    const hook = sky && typeof sky.kitPostHook === 'function' ? sky.kitPostHook() : null;
+    // envPaused is the Sky's public "the cat is indoors" flag (main.js sets it each frame)
+    const on = !!hook && !(sky.assets && sky.assets.quality === 'low') && !environment && !sky.envPaused;
+    if (on) {
+      const u = this.material.uniforms;
+      const occluded = hook.sunOcclusion || 0;
+      u.uShaftStrength.value *= 1 - 0.6 * occluded;
+      u.uSunVisible.value *= 1 - 0.7 * occluded;
+    }
+    const material = on && hook.active ? this.kitMaterialFor(hook) : this.material;
+    if (this.fsQuad.material !== material) this.fsQuad.material = material;
+    if (!hook && this.kitMaterial) {   // the kit sky went (quality low): free its copy of the shader
+      this.kitMaterial.dispose();
+      this.kitMaterial = this.kitHook = null;
+    }
+  }
+
+  /** One kit material per hook (rebuilt only if the sky's hook object changes). */
+  kitMaterialFor(hook) {
+    if (this.kitHook === hook) return this.kitMaterial || this.material;
+    if (this.kitMaterial) this.kitMaterial.dispose();
+    this.kitHook = hook;
+    this.kitMaterial = null;
+    const fragmentShader = kitAtmosphereFragment(hook);
+    if (!fragmentShader) {
+      console.warn('[kit] sky: the atmosphere shader markers moved; cloud shade stays off');
+      return this.material;
+    }
+    this.kitMaterial = new THREE.ShaderMaterial({
+      name: 'AtmospherePass.kit:' + hook.key,
+      uniforms: { ...this.material.uniforms, ...hook.uniforms },
+      defines: { ...hook.defines },
+      vertexShader: AtmosphereShader.vertexShader,
+      fragmentShader,
+      depthTest: false,
+      depthWrite: false
+    });
+    return this.kitMaterial;
+  }
+}
+
+/**
+ * The classic atmosphere fragment with a kit hook's chunks inserted at three
+ * fixed places: declarations after `varying vec2 vUv;`, the shade before the
+ * height fog, and (hero) the shaft march's sky test. Null when a marker is
+ * missing or ambiguous, so a changed classic shader can never half-apply.
+ */
+function kitAtmosphereFragment(hook) {
+  const src = AtmosphereShader.fragmentShader;
+  const once = (s, marker) => s.split(marker).length === 2;
+  const DECL = 'varying vec2 vUv;\n', FOG = '      // Exponential height fog integrated along the view ray';
+  const SHAFT = 'illum += (dd > 0.99999 ? 1.0 : 0.0) * w;';
+  if (!once(src, DECL) || !once(src, FOG) || (hook.shaftSky && !once(src, SHAFT))) return null;
+  let out = src.replace(DECL, DECL + (hook.declarations || '') + '\n');
+  out = out.replace(FOG, (hook.beforeFog || '') + FOG);
+  if (hook.shaftSky) out = out.replace(SHAFT, `illum += (dd > 0.99999 ? ${hook.shaftSky} : 0.0) * w;`);
+  return out;
 }
 
 // ---------------------------------------------------------------------------

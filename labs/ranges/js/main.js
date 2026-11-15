@@ -10,7 +10,7 @@ import { loadFoliageModule } from '../../shared/game.js';
 import { terrainHeight } from './profiles.js';
 import { Valley } from './hero.js';
 import { buildStack, buildWallBench, buildEdgeScene, buildAirBench, buildDrawScene, buildTimeOfDayBench } from './tiles.js';
-import { WALL_METHODS, RIDGE_MODES, KASUMI_STYLES, STACK_PROFILES, STEPS, SOURCES } from './data.js';
+import { WALL_METHODS, RIDGE_MODES, KASUMI_STYLES, STACK_PROFILES, STEPS, SOURCES } from './data.js'; import { buildFoothillBench, buildVillageBench, buildMistBench } from './life.js';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -274,6 +274,37 @@ $('#todVeil').addEventListener('input', (e) => {
     $('#todVeilOut').textContent = `${Math.round(+e.target.value * 100)}%`;
   }
 });
+
+// 08 · the distant life: foothill stands, hillside village, the two mists
+let footBench = null;
+views.add($('#footStage'), {
+  margin: 400,
+  build() { footBench = buildFoothillBench(F); return { scene: footBench.scene, camera: footBench.camera }; },
+  update(dt, t) { footBench?.update(dt * mo(), t * mo()); }
+});
+seg($('#seg-foot'), [{ v: 'mixed', label: 'Summer green' }, { v: 'momiji', label: 'Momiji red' }], 'mixed', (v) => footBench?.setKinds(v));
+let villageBench = null, villageHour = 17;
+views.add($('#villageStage'), {
+  margin: 400,
+  build() { villageBench = buildVillageBench(); villageBench.setHour(villageHour); return { scene: villageBench.scene, camera: villageBench.camera }; },
+  update(dt, t) {
+    villageBench?.update(dt * mo(), t * mo());
+    if (villageBench) $('#villageStats').textContent = `hearth glow ${villageBench.glow.toFixed(2)} — kindles as the sun drops (0.1 by day, up to 2.7)`;
+  }
+});
+seg($('#seg-village'), [{ v: 'gabled', label: 'Gabled' }, { v: 'boxes', label: 'Boxes (classic)' }], 'gabled', (v) => villageBench?.setStyle(v));
+bind('#villageHour', '#villageHour-out', (v) => fmtHour(v), (v) => { villageHour = v; villageBench?.setHour(v); });
+let mistBench = null, mistHour = 6.25, mistWeather = 'clear';
+views.add($('#mistStage'), {
+  margin: 400,
+  build() { mistBench = buildMistBench(); mistBench.setWeather(mistWeather); mistBench.setHour(mistHour); return { scene: mistBench.scene, camera: mistBench.camera }; },
+  update(dt, t) {
+    mistBench?.update(dt * mo(), t * mo());
+    if (mistBench) $('#mistStats').textContent = `river mist ${Math.round(mistBench.strength * 100)}% — a bell around 06:15, gone by 09:15`;
+  }
+});
+seg($('#seg-mistWeather'), [{ v: 'clear', label: 'Clear' }, { v: 'mist', label: 'Mist' }, { v: 'rain', label: 'Rain' }], 'clear', (v) => { mistWeather = v; mistBench?.setWeather(v); mistBench?.setHour(mistHour); });
+bind('#mistHour', '#mistHour-out', (v) => fmtHour(v), (v) => { mistHour = v; mistBench?.setHour(v); });
 
 /* ---------------- learn by building ---------------- */
 

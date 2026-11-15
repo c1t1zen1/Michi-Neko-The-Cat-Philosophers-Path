@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { SOUNDS } from '../src/library/sounds.js';
+import { kitCatalogMarkdown } from '../src/sfx/kit-events.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),game=path.dirname(root),src=path.join(game,'src');
 const files=fs.readdirSync(src).filter(f=>f.endsWith('.js')).map(f=>({file:'src/'+f,source:fs.readFileSync(path.join(src,f),'utf8').replace(/^\uFEFF/,'')}));
@@ -31,5 +32,6 @@ let md='# Game audio inventory\n\nReviewed 2026-11-08. Generated from the shippe
 md+='| Source | Sound / system | Call sites | New audition candidates |\n|---|---|---:|---|\n';
 for(const e of entries)md+=`| [${e.file}:${e.line}](../../${e.file}#L${e.line}) | ${e.method} | ${e.calls.length} | ${e.replacementCandidates.join(', ')||'Score ensemble / retained original'} |\n`;
 md+='\nFootsteps have grass, wood, stone and water branches; water delegates to `playLap`. `startLapping` repeats `playLap` every 430 ms. Unlock chimes are a direct-to-destination audio-enable confirmation. Pool drops, bamboo knocks and leaf breaths are synthesized in `hidden_places.js`, outside `AudioManager`. Music has dawn/day/dusk/night definitions, scene moods (Overworld, Tea House, Summit), pad/pluck layers, echo and occasional bowl calls.\n\nThe source purr comment says approximately 27.5 Hz, but the actual multiplier is `55 * 2π`: its amplitude modulation runs at **55 Hz**. The new breathing purr uses 26 Hz. `playPurr`/`playSingingBowl` take duration arguments, so one rendered audition is not the whole API contract. `playFootstep` throttles at 0.28 s. These behaviours must be preserved in a future integration.\n';
+md+=kitCatalogMarkdown();
 fs.writeFileSync(path.join(root,'docs/GAME_AUDIO_CATALOG.md'),md);
 console.log(`Catalogued ${entries.length} sound generators/systems across three game files; ${audioMethods.length} original AudioManager methods available for A/B.`);

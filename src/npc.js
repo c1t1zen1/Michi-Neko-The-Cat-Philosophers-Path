@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20261113a';
-import { VILLAGER_DEFS } from './characters/defs/index.js?v=20261113a';
-import { duskEyeShine } from './characters/behaviour/dusk.js?v=20261113a';
-import { GroomingBehaviour } from './characters/behaviour/grooming.js?v=20261113a';
+import { Cat } from './cat.js?v=20261114a';
+import { VILLAGER_DEFS } from './characters/defs/index.js?v=20261114a';
+import { duskEyeShine } from './characters/behaviour/dusk.js?v=20261114a';
+import { GroomingBehaviour } from './characters/behaviour/grooming.js?v=20261114a';
 
 /** Metres within which a modular villager runs its eye shine and grooming. */
 const NEAR_LIFE = 60;

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { Cat } from './cat.js?v=20261113a';
-import { MICHI_MODULAR, michiIsModular } from './characters/defs/michi.js?v=20261113a';
-import { ColliderGrid } from './collider_grid.js?v=20261113a';
+import { Cat } from './cat.js?v=20261114a';
+import { MICHI_MODULAR, michiIsModular } from './characters/defs/michi.js?v=20261114a';
+import { ColliderGrid } from './collider_grid.js?v=20261114a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 

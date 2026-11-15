@@ -330,3 +330,18 @@ its old short bar ended over the bowl. Checked the room variants against
 and the [Sugimoto residence](https://en.sugimotoke.or.jp/). These remain
 fictional interior studies of several dates; the chabudai room is not an Edo
 reconstruction. See the [full review](../REVIEW_2026-11-10.md).
+
+## Promoted to the game kit (2026-11-13, lane v-interiors-a)
+
+`src/kit/interiors/` carries the tea house's room as `tea-interior` and ten of
+its parts as their own ids (`tatami`, `interior-frame`, `shoji-doors`,
+`tokonoma`, `scroll`, `bonsai`, `chabudai`, `teaware`, `zabuton`, `knockables`).
+Seven had no focused study, so the craft bench gained a specimen for each
+before the kit was written (`js/specimens.js`: frame, tokonoma, scroll,
+chabudai, zabuton, bonsai, knick-knacks). What the kit adds to the classic
+slabs: a nageshi rail, skirting and ceiling battens, the two openings closed
+above, a real two-leaf shoji whose paper takes the sky's colour by the hour, an
+earthen alcove wall with a natural post, an ink-wash scroll, a stepped-edge
+table, a crowned cushion with tassels, a pine with a flat-bottomed cloud
+canopy, hollow lathed tea ware, and knick-knacks that stand on the table (the
+classic ones are 100 m above it: see docs/fable/handoff/f3-systems-split.md §3).
