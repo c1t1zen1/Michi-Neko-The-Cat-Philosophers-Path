@@ -42,7 +42,11 @@
 // that each `live` part was kept out of the merge, that a vertex-coloured
 // stand-in mesh keeps its colours through the merge (and an uncoloured one in
 // the same vertexColors material turns white) while no batch whose material
-// ignores vertex colours keeps a colour attribute; that world.update() moves
+// ignores vertex colours keeps a colour attribute, that a strip each stand-in
+// draws from `layout.rail` in its own frame lies on ribbon() over the piece
+// (and, for every piece, straight or across a fillet, that layout.rail is
+// ribbon()'s sampling and the frame recipe build.js documents holds); that
+// world.update() moves
 // the kit boats exactly as the classic ones; that the pagodas and Shōki stand
 // where the classic ones stand, on the root, the Shōki registered as the
 // pickups; and that every other piece, root child, the treats, the lights and
@@ -406,6 +410,19 @@ async function routingTest(mods, classic) {
     if (rgb) geo.setAttribute('color', new THREE.Float32BufferAttribute(new Array(geo.attributes.position.count).fill(rgb).flat(), 3));
     return geo;
   };
+  // layout.rail (build.js railSamples): a strip between depths dA and dB at
+  // height y, in the layout's frame, by the recipe build.js documents. Each
+  // stand-in draws one; the sweep below checks it for every piece.
+  const localStrip = (layout, dA, dB, y) => {
+    const c = Math.cos(layout.ry), sn = Math.sin(layout.ry), pos = [];
+    for (const p of layout.rail.points) {
+      const dx = p.x - layout.x, dz = p.z - layout.z;
+      const lx = dx * c - dz * sn, lz = dx * sn + dz * c, ltx = p.tx * c - p.tz * sn, ltz = p.tx * sn + p.tz * c;
+      for (const dd of [dA, dB]) pos.push(lx - ltz * dd, y, lz + ltx * dd);
+    }
+    return pos;
+  };
+  const STRIP = [-0.5, 0.5, 0.05];
   for (const sd of STANDINS) {
     runtime.register(defineAsset({
       id: sd.id, family: 'roof-routing-test', tiers: ['hero', 'mid'],
@@ -421,8 +438,13 @@ async function routingTest(mods, classic) {
         const tint = new ctx.THREE.Mesh(colourBox(0.3, 0.3, TINT), vcMat), plain = new ctx.THREE.Mesh(colourBox(0.2, 0.2, null), vcMat);
         tint.position.set(0, 0.4, d + 0.4);
         plain.position.set(0, 0.8, d + 0.4);
-        g.add(post, lamp, flag, tint, plain);
-        built.push({ sd, layout, tier: ctx.tier, post, flag, mat: ctx.MAT });
+        const stripPos = localStrip(layout, d + STRIP[0], d + STRIP[1], STRIP[2]), stripGeo = new ctx.THREE.BufferGeometry(), idx = [];
+        for (let i = 0; i + 2 < stripPos.length / 3; i += 2) idx.push(i, i + 2, i + 1, i + 1, i + 2, i + 3);
+        stripGeo.setAttribute('position', new ctx.THREE.Float32BufferAttribute(stripPos, 3));
+        stripGeo.setIndex(idx);
+        const strip = new ctx.THREE.Mesh(stripGeo, ctx.MAT.slab);
+        g.add(post, lamp, flag, tint, plain, strip);
+        built.push({ sd, layout, tier: ctx.tier, post, flag, mat: ctx.MAT, strip, stripPos });
         return { group: g, parts: { post, flag }, sockets: { light_lamp: lamp }, live: [flag], footprint: layout.footprint };
       }
     }));
@@ -511,6 +533,61 @@ async function routingTest(mods, classic) {
   const stray = allBatches.filter((o) => o.material.vertexColors !== true && o.geometry.attributes.color).map((o) => matKey(o.material));
   check('no batch whose material ignores vertex colours keeps a colour attribute (the stand-in posts, the bamboo culms)', stray.length === 0,
     [...new Set(stray)].slice(0, 5).join(', '));
+
+  // layout.rail: sampled as ribbon() samples, so a kit strip drawn from it in
+  // the layout's frame lands on the classic ribbon (Float32, so within 0.1 mm).
+  const { ribbon } = await import('../rooftops/js/pieces/common.js');
+  const ribbonPos = (pc, dA, dB, y) => {
+    const m = ribbon(B.level.rail, pc.s0, pc.s1, dA, dB, y, B.world.M.slab), arr = m.geometry.attributes.position.array.slice();
+    m.geometry.dispose();
+    return arr;
+  };
+  const placement = (layout) => {
+    const o = new THREE.Object3D();
+    o.position.set(layout.x, layout.y, layout.z);
+    o.rotation.set(0, layout.ry, 0);
+    o.updateMatrixWorld(true);
+    return o.matrixWorld;
+  };
+  const maxDelta = (local, m4, ref) => {
+    const v = new THREE.Vector3();
+    let worst = 0;
+    for (let i = 0; i < ref.length; i += 3) {
+      v.set(local[i], local[i + 1], local[i + 2]).applyMatrix4(m4);
+      worst = Math.max(worst, Math.abs(v.x - ref[i]), Math.abs(v.y - ref[i + 1]), Math.abs(v.z - ref[i + 2]));
+    }
+    return worst;
+  };
+  let stripWorst = 0, stripCount = 0;
+  for (const [k, { strip, stripPos }] of built.entries()) {
+    const [pc] = routed[k], ref = ribbonPos(pc, pc.d + STRIP[0], pc.d + STRIP[1], STRIP[2]);
+    strip.updateWorldMatrix(true, false);
+    if (ref.length !== stripPos.length) { stripWorst = Infinity; continue; }
+    stripWorst = Math.max(stripWorst, maxDelta(stripPos, strip.matrixWorld, ref));
+    stripCount++;
+  }
+  check('each stand-in\'s strip from layout.rail, placed by the facade, lies on ribbon() over the piece', stripCount === built.length && stripWorst < 1e-4,
+    `${stripCount} strips, max |Δ| ${stripWorst.toExponential(2)} m`);
+  const sweep = { pieces: 0, curved: 0, points: 0, countOff: 0, worldOff: 0, localWorst: 0, missing: 0 };
+  for (const pc of B.level.pieces) {
+    const layout = mods.build.pieceLayout(pc, 0, B.level.rail);
+    if (!layout.rail) { sweep.missing++; continue; }
+    const ref = ribbonPos(pc, -1.5, 1.5, 0), pts = layout.rail.points;
+    sweep.pieces++; sweep.points += pts.length;
+    if (!B.level.rail.isStraight(pc.s0, pc.s1)) sweep.curved++;
+    // The last s is s0 + (s1 − s0)·n/n, as in ribbon(): within 1e-9 of s1, not always equal.
+    if (pts.length * 6 !== ref.length || pts[0].s !== pc.s0 || Math.abs(pts[pts.length - 1].s - pc.s1) > 1e-9) { sweep.countOff++; continue; }
+    pts.forEach((p, i) => [-1.5, 1.5].forEach((dd, j) => {
+      const at = (i * 2 + j) * 3;
+      if (Math.fround(p.x - p.tz * dd) !== ref[at] || ref[at + 1] !== 0 || Math.fround(p.z + p.tx * dd) !== ref[at + 2]) sweep.worldOff++;
+    }));
+    sweep.localWorst = Math.max(sweep.localWorst, maxDelta(localStrip(layout, -1.5, 1.5, 0), placement(layout), ref));
+  }
+  check('every spanned piece\'s layout.rail is ribbon()\'s sampling (count, ends, (x − tz·d, z + tx·d) exact), straight and across fillets',
+    sweep.missing === 0 && sweep.pieces === B.level.pieces.length && sweep.countOff === 0 && sweep.worldOff === 0 && sweep.curved > 0,
+    `${sweep.pieces} pieces (${sweep.curved} across a fillet), ${sweep.points} points; ${sweep.countOff} count/end mismatches, ${sweep.worldOff} world mismatches, ${sweep.missing} without rail`);
+  check('the frame recipe (local x = dx·c − dz·sn, local z = dx·sn + dz·c) puts every piece\'s strip on ribbon()', sweep.localWorst < 1e-4,
+    `max |Δ| ${sweep.localWorst.toExponential(2)} m over ${sweep.pieces} pieces`);
   check('the light sockets land on the classic lantern lights (lights identical)', JSON.stringify(d.lights) === JSON.stringify(classic.lights),
     `${d.lights.length} vs ${classic.lights.length}`);
 
