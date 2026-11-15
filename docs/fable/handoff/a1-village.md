@@ -28,6 +28,15 @@ never hear each other.
 
 ## 2. World build (R66): two hot-file patches, measured in a scratch worktree
 
+**Status (fix round 1, ruling R71): §2a and §2b are applied in-lane** (commit
+96ca23f), not by the Integrator. They are tested by `tools/a1_village_test.mjs`
+(the runtime: side-by-side imports, generated registration order, warnings,
+a failing materials import still fails the preload) and
+`tools/a1_village_browser_test.mjs` (the prefetch: saved modular + high fetches
+the kit index and all 24 families before preload's kit-overrides.json; classic
+and saved low fetch none). The text below is kept as the record of what they
+change; it is no longer a patch to apply.
+
 The lane's own changes (families only) make the modular first builds cheaper
 with the same output (status file, R66). What is left of the gap is outside
 the families. Both patches below were applied in a scratch worktree on top of
@@ -139,3 +148,47 @@ later) or a low/auto saved quality, so the low promise holds:
    its kit content in idle time after the first frame (mountaintop.js).
 3. The first frame (shader compiles) is 140 to 200 ms longer on modular; it
    counts in world ready and boot total, not world build.
+4. **The ground's painted layer tiles and their pack loop (~55 ms, family
+   `ground`).** `groundLayers()` paints earth, moss and gravel on Canvas2D and
+   packs albedo, height, slope and cavity per texel (`src/kit/ground/layers.js`
+   `paintLayers`, the hottest kit-own function at ~21 ms self); the classic
+   ground paints only its meadow tile. Exact speedups (index tables instead of
+   modulo in the cavity blur, row fills for the flat layers) or painting the
+   tiles while the kit modules download would cut it without a visible change.
+5. **The hero trees' leaf sprays (~50 ms on high, family `trees`).** `sakura`
+   was 52 ms in a profiled high boot (13:36): `buildCanopy` leaf-spray placement
+   through the shared foliage code; medium builds the mid tier and is cheaper.
+
+(Fix round 1 re-measure, both patches in-lane: build 1.26/1.28 × medium,
+1.42/1.40 × high, boot +297 to +461 ms, load 2.7 to 4.5; the modular overhead
+is ~270 / ~380 ms and needs to come under ~240 ms. Items 1, 4 and 5 together
+are about 150 ms.)
+
+## 3. Requests and rulings (fix round 1)
+
+1. **Nest egg material (R26/R52).** The kit eggs now use
+   `km.bag({ rough: 0.4, metal: 0.1 })` for the classic `MAT.birdEgg` gloss with
+   their speckle vertex colours: a second nest-owned merged material (the first
+   is `matte`). Request: register it in `KIT_SHARED` (`src/kit/materials.js`,
+   hot), e.g. `gloss: { base: 0xffffff, from: 'nest', use: 'vertex-coloured
+   glossy small props: bird eggs', make: (km) => km.bag({ rough: 0.4, metal: 0.1 }) }`.
+   Draw cost: one small merged draw, as the classic eggs' own material; A.6
+   shows modular calls below classic at every spot and tier.
+2. **`water.stones.flow` pacing (R50).** The river plays one burble every 2.2 to
+   3.4 s while the cat is within 7 m of a bridge post in the water: a
+   proximity-paced sound, not a single edge. Ruling requested; the
+   alternative is one burble on entering the 7 m ring.
+3. **budgets.md §5.** The dropped exceptions (bamboo-fence `buildMs` 14/14,
+   tea-house and residence hero `buildMs` 12) were measured at load 1.9 to 4.7
+   (three full contract runs), not on a quiet machine; §5's table should say so
+   and list them as dropped. `bamboo-fence` mid triangles 13,000 stays (reason
+   in budgets.js).
+4. **Appendix C.** Add to G1: `node --test tools/a1_village_test.mjs` (verify.mjs
+   step 5 runs it already); to G2: `node tools/a1_village_browser_test.mjs`
+   (needs `PLAYWRIGHT_MODULE`, ~1 min on Metal; 15 checks).
+5. **Shishi-odoshi voiced twice when the cat bats it** (open; the fix-round-1
+   rule was reverted in fix round 2, ruling R74). For a later lane: treat a
+   one-frame tilt jump (the bat adds ~+0.7 in one frame; the natural rise is at
+   most ~0.006 a frame) as the bat, mute only a clack within ~1.5 s of it, and
+   test with the game's real cycle plus `clackerBoost`
+   (`src/countryside.js` 5068–5086), not a synthetic swing.

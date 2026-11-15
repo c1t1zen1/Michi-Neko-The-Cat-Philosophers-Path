@@ -128,7 +128,13 @@ function buildNoren(ctx, layout, p) {
   // trim and stood 1.5 to 4 cm off the swinging hem; a1-village, v-machiya-a minor): a strip 4 mm proud of
   // each panel's foot, in the panel's own darker colour, swaying with the hem
   const clothVerts = geos.reduce((a, g) => a + g.attributes.position.count, 0);
-  if (tier !== 'far') for (let i = 0; i < n; i++) geos.push(new THREE.PlaneGeometry(pw, 0.05).translate(-w / 2 + pw / 2 + i * (pw + gap), -top + 0.03, 0.004));
+  // (and its twin 4 mm behind, so the band shows from inside the shop as the old box did; same winding and
+  // normal as the cloth, so the double-sided material shades both like the cloth they are sewn to)
+  if (tier !== 'far') for (let i = 0; i < n; i++) {
+    const bx = -w / 2 + pw / 2 + i * (pw + gap);
+    geos.push(new THREE.PlaneGeometry(pw, 0.05).translate(bx, -top + 0.03, 0.004));
+    geos.push(new THREE.PlaneGeometry(pw, 0.05).translate(bx, -top + 0.03, -0.004));
+  }
   const merged = mergePlanes(geos);
   const pos = merged.attributes.position, sway = new Float32Array(pos.count), col = new Float32Array(pos.count * 3), c = new THREE.Color(base), hemC = new THREE.Color(tint(base, -0.06));
   for (let i = 0; i < pos.count; i++) { sway[i] = Math.min(1, Math.max(0, (top - 0.04 - pos.getY(i)) / hang)); const k = i < clothVerts ? c : hemC; col.set([k.r, k.g, k.b], i * 3); }

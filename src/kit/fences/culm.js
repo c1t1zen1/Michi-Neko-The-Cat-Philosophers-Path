@@ -4,7 +4,6 @@
 // unchanged, so `./culm.js` and `../fences/culm.js` imports keep working.
 // The finishes and the baker below stay with the family.
 import { culmGeometry, knotGeometry } from '../craft.js?v=20261114a';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export { culmGeometry, knotGeometry };
 
@@ -26,7 +25,7 @@ export function bake(THREE, geo, objs, tints = null) {
   // tint product for colours, the index offset per copy and setIndex()'s
   // Uint16/Uint32 choice, so the result is the same geometry, byte for byte,
   // as geo.clone().applyMatrix4() per copy merged by mergeGeometries()
-  // (bakeReference below; a1-village checked the two equal on 36 culm/knot cases).
+  // (tools/a1_village_test.mjs checks the two equal, the original baker its oracle).
   const names = Object.keys(geo.attributes).filter((n) => n !== 'color' || tints);
   const n = geo.attributes.position.count, copies = objs.length;
   const out = new THREE.BufferGeometry();
@@ -58,21 +57,5 @@ export function bake(THREE, geo, objs, tints = null) {
     }
     out.setAttribute(name, new THREE.BufferAttribute(arr, size, a.normalized));
   }
-  return out;
-}
-
-/** The original baker (clone, applyMatrix4, mergeGeometries): the reference bake() must equal. */
-export function bakeReference(THREE, geo, objs, tints = null) {
-  const parts = objs.map((o, i) => {
-    const g = geo.clone();
-    g.applyMatrix4(o.matrix);
-    if (tints) {
-      const c = g.attributes.color, t = tints[i];
-      for (let k = 0; k < c.count; k++) c.setXYZ(k, c.getX(k) * t[0], c.getY(k) * t[1], c.getZ(k) * t[2]);
-    } else g.deleteAttribute('color');
-    return g;
-  });
-  const out = mergeGeometries(parts);
-  for (const p of parts) p.dispose();
   return out;
 }

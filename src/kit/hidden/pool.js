@@ -65,33 +65,49 @@ export function buildApron(ctx, L, p) {
 // Caustic cells: the layout's ring centres become the sites of a wrapped
 // Voronoi; the bright network is the cell edges (F2 - F1), as light is on a
 // real pool floor. One texture per layout, shared by every instance.
-function causticTexture(km, L) {
-  // four sites per ring: its centre and three jittered by the ring's own squash and turn
+
+/** The four caustic sites of each ring: its centre and three jittered by the ring's own squash and turn. */
+export function causticSites(L) {
   const sites = [];
   for (const r of L.rings) {
     sites.push([r.cx, r.cy]);
     for (let k = 0; k < 3; k++) sites.push([(r.cx + (r.copies[k][0] - 0.7) * 0.22 + 1) % 1, (r.cy + (r.copies[k][1] - 1.5) * 0.09 + 1) % 1]);
   }
+  return sites;
+}
+
+/**
+ * The caustic network as N x N RGBA bytes (written into `out`, a
+ * Uint8ClampedArray like ImageData's). Pure: tools/kit_test.mjs checks it
+ * against the original per-copy search byte for byte.
+ */
+export function causticPixels(sites, N = 64, out = new Uint8ClampedArray(N * N * 4)) {
+  // every wrapped copy of every site, in the order the cell search visits them
+  const px = [], py = [];
+  for (const [sx, sy] of sites) for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) { px.push(sx + ox); py.push(sy + oy); }
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const u = (i + 0.5) / N, v = (j + 0.5) / N;
+    let f1 = 9, f2 = 9, lim = 81 * (1 + 1e-9);
+    for (let s = 0; s < px.length; s++) {
+      // a copy farther than f2 (squared, with a margin over rounding) changes nothing:
+      // skip it before the exact distance (a1-village, R66: the same bytes, ~3x faster)
+      const dx = px[s] - u, dy = py[s] - v;
+      if (dx * dx + dy * dy >= lim) continue;
+      const d = Math.hypot(dx, dy);
+      if (d < f1) { f2 = f1; f1 = d; lim = f2 * f2 * (1 + 1e-9); } else if (d < f2) { f2 = d; lim = f2 * f2 * (1 + 1e-9); }
+    }
+    const k = Math.max(0, 1 - (f2 - f1) * 46), a = k * k * k;     // thin bright cell edges, soft shoulders
+    const o = (j * N + i) * 4;
+    out[o] = 170 * a; out[o + 1] = 255 * a; out[o + 2] = 232 * a; out[o + 3] = 255;
+  }
+  return out;
+}
+
+function causticTexture(km, L) {
+  const sites = causticSites(L);
   return shared(km, 'caustic:' + sites.length + ':' + sites[0][0].toFixed(5), () => {
     const N = 64, [c, x] = canvas2d(N, N), img = x.createImageData(N, N);
-    // every wrapped copy of every site, in the order the cell search visits them
-    const px = [], py = [];
-    for (const [sx, sy] of sites) for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) { px.push(sx + ox); py.push(sy + oy); }
-    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-      const u = (i + 0.5) / N, v = (j + 0.5) / N;
-      let f1 = 9, f2 = 9, lim = 81 * (1 + 1e-9);
-      for (let s = 0; s < px.length; s++) {
-        // a copy farther than f2 (squared, with a margin over rounding) changes nothing:
-        // skip it before the exact distance (a1-village, R66: the same bytes, ~3x faster)
-        const dx = px[s] - u, dy = py[s] - v;
-        if (dx * dx + dy * dy >= lim) continue;
-        const d = Math.hypot(dx, dy);
-        if (d < f1) { f2 = f1; f1 = d; lim = f2 * f2 * (1 + 1e-9); } else if (d < f2) { f2 = d; lim = f2 * f2 * (1 + 1e-9); }
-      }
-      const k = Math.max(0, 1 - (f2 - f1) * 46), a = k * k * k;     // thin bright cell edges, soft shoulders
-      const o = (j * N + i) * 4;
-      img.data[o] = 170 * a; img.data[o + 1] = 255 * a; img.data[o + 2] = 232 * a; img.data[o + 3] = 255;
-    }
+    causticPixels(sites, N, img.data);
     x.putImageData(img, 0, 0);
     const [c2, x2] = canvas2d(128, 128);                           // a smooth upscale: soft lines, no pixel blocks
     x2.imageSmoothingEnabled = true; x2.imageSmoothingQuality = 'high'; x2.drawImage(c, 0, 0, 128, 128);

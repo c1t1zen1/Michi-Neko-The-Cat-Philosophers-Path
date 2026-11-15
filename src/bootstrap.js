@@ -43,8 +43,36 @@ function showError(error) {
 }
 
 function loadEngineModule() {
-  if (!engineModule) engineModule = import('./main.js?v=20261114a');
+  if (!engineModule) {
+    engineModule = import('./main.js?v=20261114a');
+    prefetchKit();
+  }
   return engineModule;
+}
+
+/**
+ * When this boot will build the modular set (the URL asks for it, or the saved
+ * setting does on a medium/high saved quality), fetch the kit's modules while
+ * main.js and its graph download, so AssetRuntime.preload() finds them in the
+ * module map instead of waiting on them inside the world build (a1-village,
+ * ruling R66). Never on the classic set, never on a low-locked device: the
+ * runtime's own rules decide what is built; this only starts downloads early.
+ */
+function prefetchKit() {
+  try {
+    const q = new URLSearchParams(location.search);
+    const flag = q.get('assets');
+    let set = flag, quality = null;
+    if (!flag) {
+      const saved = JSON.parse(localStorage.getItem('catwalk_settings_v1') || 'null') || {};
+      set = saved.assetSet; quality = saved.quality;
+      if (quality !== 'medium' && quality !== 'high') return;   // auto or low: let the runtime decide, no early fetch
+    }
+    if (set !== 'modular') return;   // 'auto' resolves by the GPU tier later: no early fetch
+    import('./kit/index.js?v=20261114a')
+      .then((m) => Promise.all([import('./kit/materials.js?v=20261114a'), ...Object.values(m.FAMILIES || {}).map((load) => load())]))
+      .catch(() => {});   // the runtime imports (and reports) for real
+  } catch { /* storage blocked: the runtime fetches as before */ }
 }
 
 async function start() {
