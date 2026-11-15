@@ -18,7 +18,9 @@ import {
 import { hash1 } from './level.js';
 import { downtownMaterials, paintDowntown, installDowntown } from './downtown.js';
 import { streetPaint } from './street-paint.js';
-import { makeCutaway } from './cutaway.js';
+import { cameraObstacles } from './camera-obstacles.js';
+import { makeResident } from './people.js';
+import { openAlleyPassages } from './alley-passages.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const TAU = Math.PI * 2;
@@ -889,7 +891,9 @@ B.corner = (pc, ctx) => {
 
 B.bridge = (pc, ctx) => {
   const { M, rail } = ctx;
-  const g = frameGroup(rail, 5.5);
+  const deck = ctx.platforms[pc.plats[0]], ramp = ctx.platforms[pc.plats[1]];
+  const deckLength = deck.s1 - deck.s0, deckMid = (deck.s0 + deck.s1) / 2;
+  const g = frameGroup(rail, deckMid);
 
   // Kamo riverbed close-up: long dressed-stone banks, pale gravel shoals and
   // a few water-worn rocks keep the opening vista from reading as one flat
@@ -924,12 +928,16 @@ B.bridge = (pc, ctx) => {
     g.add(stone);
   }
 
+  // River scenery stays at its original crossing while the walking deck
+  // extends all the way to the collision ramp.
+  for (const child of g.children) child.position.x += 5.5 - deckMid;
+
   // Heavy edge beams, visible cross-ties and individual plank seams give the
   // starting deck real joinery while preserving its single forgiving plane.
-  g.add(box(11.0, 0.18, 2.7, M.timberMed, 0, pc.deckY - 0.09, 0));
-  g.add(box(11.0, 0.16, 2.5, M.timber, 0, pc.deckY - 0.26, 0));
-  for (const z of [-1.4, 1.4]) g.add(box(11.25, 0.3, 0.17, M.timber, 0, pc.deckY - 0.34, z));
-  for (let x = -5.18, i = 0; x <= 5.18; x += 0.54, i++) {
+  g.add(box(deckLength, 0.18, 2.7, M.timberMed, 0, pc.deckY - 0.09, 0));
+  g.add(box(deckLength, 0.16, 2.5, M.timber, 0, pc.deckY - 0.26, 0));
+  for (const z of [-1.4, 1.4]) g.add(box(deckLength + .25, 0.3, 0.17, M.timber, 0, pc.deckY - 0.34, z));
+  for (let x = -deckLength / 2 + .32, i = 0; x <= deckLength / 2 - .32; x += 0.54, i++) {
     g.add(box(0.026, 0.022, 2.5, M.dark, x, pc.deckY + 0.011, 0));
     if (i % 2 === 0) {
       for (const z of [-1.04, 1.04]) {
@@ -939,14 +947,15 @@ B.bridge = (pc, ctx) => {
       }
     }
   }
-  for (let x = -4.8; x <= 4.8; x += 1.2) g.add(box(0.18, 0.19, 3.05, M.timber, x, pc.deckY - 0.41, 0));
+  for (let x = -deckLength / 2 + .7; x <= deckLength / 2 - .7; x += 1.2) g.add(box(0.18, 0.19, 3.05, M.timber, x, pc.deckY - 0.41, 0));
 
   // Three masonry piers stand in the flow. Pointed upstream cutwaters split
   // the current; lighter cap stones catch the morning sky beneath the deck.
   const cutwaterGeo = new THREE.ConeGeometry(0.56, 1.45, 4);
   cutwaterGeo.rotateY(Math.PI / 4);
   cutwaterGeo.rotateX(-Math.PI / 2);
-  for (const x of [-2.8, 0, 2.0]) {
+  for (const originalX of [-2.8, 0, 2.0]) {
+    const x = originalX + 5.5 - deckMid;
     g.add(box(0.72, pc.deckY + 0.3, 1.8, M.stone, x, (pc.deckY - 0.6) / 2 - 0.15, 0));
     g.add(box(1.02, 0.18, 2.12, M.slab, x, pc.deckY - 0.28, 0));
     const cutwater = new THREE.Mesh(cutwaterGeo, M.wetStone);
@@ -959,10 +968,10 @@ B.bridge = (pc, ctx) => {
     new THREE.Vector2(0.08, 0.38), new THREE.Vector2(0.03, 0.46), new THREE.Vector2(0.0, 0.5)
   ], 14);
   for (const z of [-1.25, 1.25]) {
-    g.add(box(11.0, 0.08, 0.14, M.timber, 0, 1.62, z));
-    g.add(box(11.0, 0.06, 0.1, M.timber, 0, 1.3, z));
-    for (const s of [0.2, ...pc.caps, 10.8]) {
-      const x = s - 5.5;
+    g.add(box(deckLength, 0.08, 0.14, M.timber, 0, 1.62, z));
+    g.add(box(deckLength, 0.06, 0.1, M.timber, 0, 1.3, z));
+    for (const s of [deck.s0 + .2, ...pc.caps, deck.s1 - .2]) {
+      const x = s - deckMid;
       g.add(box(0.2, 0.75, 0.2, M.timber, x, pc.deckY + 0.36, z));
       const collar = cyl(0.13, 0.07, M.bronze, 'y', 10);
       collar.position.set(x, pc.deckY + 0.13, z);
@@ -975,7 +984,18 @@ B.bridge = (pc, ctx) => {
     }
   }
   // Ramp down into the city.
-  slope(g, M.timberMed, { x: 7.9, y: 0.05, z: 0 }, pc.deckY - 0.05, 2.4, 2.7, Math.PI / 2, 0.14);
+  // Shear the plank box so its top matches platTop at every point, including
+  // both joins. The old hard-coded mesh ended three metres before collision.
+  const rampGeo = new THREE.BoxGeometry(ramp.s1 - ramp.s0, .14, 2.7);
+  const positions = rampGeo.attributes.position;
+  for (let i = 0; i < positions.count; i++) {
+    const u = positions.getX(i) / (ramp.s1 - ramp.s0) + .5;
+    positions.setY(i, positions.getY(i) - .07 + ramp.y0 + (ramp.y1 - ramp.y0) * u);
+  }
+  rampGeo.computeVertexNormals();
+  const rampMesh = new THREE.Mesh(rampGeo, M.timberMed);
+  rampMesh.position.x = (ramp.s0 + ramp.s1) / 2 - deckMid;
+  g.add(rampMesh);
   ctx.add(g);
 };
 
@@ -1697,7 +1717,13 @@ B.float = (pc, ctx) => {
       g.add(l);
     }
   }
-  g.add(box(1.5, 0.06, 0.12, M.timber, -1.95, 4.7 - 0.03, z));
+  // The climb runs along the outside face, clear of the solid upper roof.
+  g.add(box(1.5, .06, .22, M.timber, -1.95, 4.7-.03, z+1.7));
+  for (const x of [-2.55,-1.35]) {
+    g.add(box(.09,1.1,.09,M.lacquer,x,4.15,z+1.7));
+    const brace=box(.08,.08,.7,M.timber,x,4.65,z+1.4);brace.rotation.x=-.35;g.add(brace);
+  }
+  g.add(box(5.95,.08,.45,M.timber,0,pc.eaveY-.04,z+1.4));
 
   // The shingi pole stands just behind the climb; a crossbar of sakaki and a
   // small perch bracket stick out from it toward the street. A crescent tops it.
@@ -1766,25 +1792,23 @@ B.float = (pc, ctx) => {
 
   const musicians = [];
   for (let i = 0; i < 3; i++) {
-    const person = new THREE.Group();
-    person.position.set(-1.25 + i * 1.25, pc.deckY + 0.04, z - 0.34 + (i % 2) * 0.16);
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 0.43, 8), M.goods[[5, 3, 0][i]]);
-    body.position.y = 0.4;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.105, 9, 7), M.plasterWarm);
-    head.position.y = 0.72;
-    const hachimaki = box(0.23, 0.045, 0.16, M.plaster, 0, 0.75, 0);
-    const knees = box(0.46, 0.15, 0.24, M.dark, 0, 0.12, 0);
-    person.add(body, head, hachimaki, knees);
+    const { body: person, arms } = makeResident(M, { look: .18 + i * .27, role: 'musician', seated: true });
+    person.position.set(-1.25 + i * 1.25, pc.deckY + .04, z - .34 + (i % 2) * .16);
+    arms[0].rotation.x=-1.05; arms[1].rotation.x=-1.15;
+    arms[0].rotation.z=-.35; arms[1].rotation.z=.35;
     if (i === 1) {
       const drum = cyl(0.18, 0.26, M.timberMed, 'z', 10);
       drum.position.set(0.23, 0.38, 0.12);
       person.add(drum);
     } else {
       const flute = cyl(0.022, 0.58, M.bamboo, 'x', 6);
-      flute.position.set(0, 0.55, 0.16);
+      flute.position.set(0, .90, .25);
       flute.rotation.z = i ? -0.08 : 0.08;
       person.add(flute);
     }
+    const source = new THREE.Group();
+    for (const child of [...person.children]) source.add(child);
+    person.add(mergeByMaterial(source));
     person.userData.phase = i * 1.9;
     person.userData.baseY = person.position.y;
     live.add(person);
@@ -1977,7 +2001,6 @@ const downtown = installDowntown(B, { box, cyl, frameGroup, hiraRoof, ribbon, ha
 export function buildWorld(level, opts = {}) {
   const M = makeMaterials();
   paintDowntown(M);
-  const setView = makeCutaway(M);
   const rail = level.rail;
   const motionScale = opts.reduceMotion ? 0.22 : 1;
   const staticGroup = new THREE.Group();
@@ -1995,7 +2018,12 @@ export function buildWorld(level, opts = {}) {
   for (const pc of level.pieces) {
     const fn = B[pc.type];
     if (!fn) throw new Error('No Roof Road renderer for ' + pc.type);
+    const firstChild = staticGroup.children.length;
     fn(pc, ctx);
+    for (const child of staticGroup.children.slice(firstChild)) {
+      child.userData.alleyRoute = pc.type === 'alleyRoute';
+      child.userData.corner = pc.type === 'corner';
+    }
     if (pc.type === 'house') downtown.decorateHouse(pc, ctx);
     if (pc.type === 'yatai') downtown.decorateStall(pc, ctx);
   }
@@ -2010,6 +2038,9 @@ export function buildWorld(level, opts = {}) {
     glassGroup.add(c);
     m.parent.remove(m);
   }
+  openAlleyPassages(staticGroup, level);
+  openAlleyPassages(glassGroup, level);
+  const obstacles = cameraObstacles(staticGroup);
   const fixedBatches = mergeByMaterial(staticGroup), glassBatches = mergeByMaterial(glassGroup, false);
   root.add(fixedBatches, glassBatches);
 
@@ -2046,7 +2077,7 @@ export function buildWorld(level, opts = {}) {
   }
 
   return {
-    root, dynamic, lights, M, setView,
+    root, dynamic, lights, M, obstacles,
     /** Advance moving pieces; night ∈ [0,1] kindles lanterns and windows. */
     update(t, night, platOffset, platforms, playerS = 0) {
       downtown.updatePeople(dynamic.people, t, playerS, opts.lowPower, opts.reduceMotion);

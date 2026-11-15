@@ -10,7 +10,7 @@
 
 import { alleyDepth, alleyEntrance } from './alleys.js';
 
-export const platDepth = (p, s) => p?.depthPath ? alleyDepth(p.depthPath, s) : (p?.d ?? 0);
+export const platDepth = (p, s) => p?.depthPath ? alleyDepth(p.depthPath, s) + (p.laneOffset || 0) : (p?.d ?? 0);
 
 export const PHYS = {
   run: 4.5,           // player.speed

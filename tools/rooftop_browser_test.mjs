@@ -25,8 +25,27 @@ try {
     const page = await ctx.newPage(); const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     page.on('console', m => { if (m.type() === 'error' && /THREE|shader|WebGL|failed/i.test(m.text())) errors.push(m.text()); });
+    let releaseCats;
+    const catsHeld = new Promise(resolve => { releaseCats = resolve; });
+    await page.route('**/src/cat.js*', async route => { await catsHeld; await route.continue(); });
     await page.goto(base + '/kyoto-rooftops.html?qa=1&shot=1&quality=low&shadows=0', { waitUntil: 'domcontentloaded', timeout: 120000 });
+    await page.waitForFunction(() => !!window.roofRoad, { timeout: 180000 });
+    const loading = await page.evaluate(() => ({ ready: roofRoad.catReady, covered: document.body.classList.contains('loading'), canvas: getComputedStyle(document.getElementById('gl')).visibility, controls: getComputedStyle(document.querySelector('.tools')).visibility }));
+    assert.deepEqual(loading, {ready:false,covered:true,canvas:'hidden',controls:'hidden'}, 'scene and controls stay covered while the cats load');
+    releaseCats();
     await page.waitForFunction(() => window.roofRoad?.catReady, { timeout: 180000 });
+    assert.equal(await page.evaluate(() => document.body.getAttribute('aria-busy')), 'false');
+    const bridge = await page.evaluate(() => {
+      const ramp = roofRoad.level.platforms.find(p=>p.label==='bridge ramp'), out=[];
+      for(let s=10.5;s<16.6;s+=.1) {
+        const y=s<=ramp.s0?ramp.y0:ramp.y0+(ramp.y1-ramp.y0)*(s-ramp.s0)/(ramp.s1-ramp.s0);
+        const p=roofRoad.level.rail.place(s,0);
+        const from=roofRoad.sky.sun.position.clone().set(p.x,y+.2,p.z), to=from.clone();to.y-=.5;
+        out.push(Math.abs(roofRoad.world.obstacles.distance(from,to)-.2));
+      }
+      return Math.max(...out);
+    });
+    assert.ok(bridge<.035,'visible bridge deck and ramp match paw collision all the way to the street');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'no horizontal page overflow');
     const anatomy = await page.evaluate(() => ({ boats: roofRoad.world.dynamic.boats.length, residents: roofRoad.world.dynamic.people.length, length: roofRoad.level.length }));
     assert.equal(anatomy.boats, 2); assert.equal(anatomy.residents, 30); assert.ok(anatomy.length >= 980);
@@ -83,19 +102,25 @@ try {
       const alleyRun=await page.evaluate(seconds=>roofRoad.advanceForReview(seconds),length/4.5+.9);
       await page.keyboard.up(key);await page.keyboard.up('ArrowDown');
       assert.equal(await page.evaluate(()=>roofRoad.runner.alley),null,'both alley exits work');
-      for(const sample of alleyRun.samples) for(const b of Object.values(sample.bounds)) {
-        assert.ok(b.left>=-.93 && b.right<=.93 && b.top<=.65 && b.bottom>=-.65, 'both cats fit throughout chosen alleys');
+      assert.deepEqual(alleyRun.cameraFailures,[],'every alley frame has a clear camera boom');
+      for(const sample of alleyRun.samples) for(const subject of sample.camera.subjects) {
+        const b=sample.bounds[subject];
+        assert.ok(b.left>=-.93 && b.right<=.93 && b.top<=.65 && b.bottom>=-.65, 'focused cats fit throughout chosen alleys at '+sample.s+' '+subject+' '+JSON.stringify({b,camera:sample.camera}));
+        assert.ok(sample.camera.clear,'solid scenery never blocks the alley camera at '+sample.s);
         if(cfg.width<cfg.height) assert.ok(b.pixelsHigh>=20,'alley cats stay legible');
       }
     }
     await page.evaluate(() => { roofRoad.at(1, 1.1); roofRoad.setAuto(true); });
     const run = await page.evaluate(() => roofRoad.advanceForReview(400));
     assert.ok(run.catReady && run.finale, cfg.name + ' real game loop reaches finale');
+    assert.deepEqual(run.cameraFailures,[],'every street frame has a clear camera boom');
     assert.ok(run.samples.length > 500);
     let minCatPixels = Infinity, maxDistance = 0;
     for (const sample of run.samples) {
       maxDistance = Math.max(maxDistance, sample.distance);
-      for (const b of Object.values(sample.bounds)) {
+      assert.ok(sample.camera.clear, 'solid scenery never blocks the street camera at '+sample.s);
+      for (const subject of sample.camera.subjects) {
+        const b=sample.bounds[subject];
         assert.ok(b.left >= -.93 && b.right <= .93, `${cfg.name} cats remain horizontally visible at ${sample.s.toFixed(1)}m`);
         assert.ok(b.top <= .65 && b.bottom >= -.65, `${cfg.name} cats remain clear of HUD/thumb areas at ${sample.s.toFixed(1)}m`);
         minCatPixels = Math.min(minCatPixels, b.pixelsHigh);

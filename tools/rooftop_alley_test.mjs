@@ -23,7 +23,9 @@ for(const a of L.alleys) {
       c.update(dt,r,t,true);
       if(r.alley!==null) {
         assert.equal(r.ground?.alley ?? r.lastGround?.alley,a.id);
-        assert.ok(Math.abs(r.depth-alleyDepth(a,r.s))<1e-6);
+        const surface=r.ground||r.lastGround;
+        assert.ok(Math.abs(r.depth-alleyDepth(a,r.s)-(surface.laneOffset||0))<1e-6);
+        assert.equal(surface.laneOffset, surface.kind==='street'?0:1.25,'raised structures leave the paving lane clear');
         minDepth=Math.min(minDepth,r.depth);
         if(jumped&&r.grounded) landed=true;
       } else break;

@@ -28,11 +28,11 @@ export function addAlleys(L) {
   recipes.forEach(([leg, offset, length, theme, name, kanji, deep], id) => {
     const s0 = legs[leg].s0 + offset, s1 = s0 + length;
     const a = { id, s0, s1, theme, name, kanji, tunnelH: 2.15,
-      path: [[0, 2.2], [.20, deep + .8], [.45, deep], [.70, deep + 1.1], [1, 2.2]], plats: [] };
+      path: [[0, 3.05], [.20, deep + .8], [.45, deep], [.70, deep + 1.1], [1, 3.05]], plats: [] };
     L.alleys.push(a);
     const plat = (x0, x1, y, kind, label, portal = false) => {
       const p = { id: L.platforms.length, s0: s0 + x0, s1: s0 + x1, y0: y, y1: y,
-        d: alleyDepth(a, s0 + (x0 + x1) / 2), depthPath: a, alley: id, portal, kind, label: name + ' ' + label };
+        d: alleyDepth(a, s0 + (x0 + x1) / 2), laneOffset: kind === 'street' ? 0 : 1.25, depthPath: a, alley: id, portal, kind, label: name + ' ' + label };
       L.platforms.push(p); a.plats.push(p.id); return p;
     };
     // Continuous safe floors, with explicit graph portals at both street ends.

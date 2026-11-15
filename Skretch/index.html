@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <title>Skretch — The Roof Road · stage 2 board</title>
+  <meta name="description" content="Scroll the whole Roof Road stage 2 board, sketch fixes over the captures and pin notes for the next pass.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9C%8F%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header id="top">
+    <button id="btn-strip" class="chip" type="button" hidden title="Back to the whole strip">⇤ strip</button>
+    <h1>Skretch <span class="sub">屋根道 · stage 2</span></h1>
+    <select id="route-picker" aria-label="Choose the route to review"></select>
+    <output id="pos" aria-live="off">—</output>
+    <div class="top-actions">
+      <span id="save-state" class="save-state" role="status"><i class="dot"></i><span id="save-label">loading…</span></span>
+      <button id="btn-notes" class="chip" type="button">Notes <b id="notes-count">0</b></button>
+      <button id="btn-save" class="chip primary" type="button" disabled>Save</button>
+      <button id="btn-menu" class="chip" type="button" aria-label="More actions" aria-expanded="false">⋮</button>
+    </div>
+  </header>
+
+  <div id="ruler" aria-hidden="true">
+    <div id="ruler-track"></div>
+    <div id="ruler-view"></div>
+  </div>
+
+  <main id="board">
+    <div id="scroller">
+      <div id="strip"><!-- frames + ink + pins injected --></div>
+    </div>
+    <p id="boot">Warming the lanterns…</p>
+  </main>
+
+  <nav id="toolbar" aria-label="Sketch tools">
+    <div class="tools">
+      <button data-tool="hand"   class="tbtn" type="button" title="Browse & pan (H)">✋<span>pan</span></button>
+      <button data-tool="pen"    class="tbtn" type="button" title="Pen (P)">🖊<span>pen</span></button>
+      <button data-tool="pencil" class="tbtn" type="button" title="Pencil (B)">✏️<span>pencil</span></button>
+      <button data-tool="marker" class="tbtn" type="button" title="Marker (M)">🖍<span>marker</span></button>
+      <button data-tool="eraser" class="tbtn" type="button" title="Eraser (E)">◻️<span>erase</span></button>
+      <button data-tool="note"   class="tbtn" type="button" title="Note pin (N)">📌<span>note</span></button>
+    </div>
+    <div class="colors" id="colors" role="radiogroup" aria-label="Ink colour"></div>
+    <div class="sizes" id="sizes" role="radiogroup" aria-label="Stroke size"></div>
+    <div class="acts">
+      <button id="btn-undo" class="tbtn" type="button" title="Undo (⌘Z)" disabled>↩<span>undo</span></button>
+      <button id="btn-redo" class="tbtn" type="button" title="Redo (⇧⌘Z)" disabled>↪<span>redo</span></button>
+      <button id="btn-zout" class="tbtn" type="button" title="Zoom out (−)">−<span>zoom</span></button>
+      <button id="btn-zin"  class="tbtn" type="button" title="Zoom in (+)">＋<span>zoom</span></button>
+    </div>
+  </nav>
+
+  <form id="popup" class="popup" hidden>
+    <header><b id="pop-title">New note</b><button type="button" id="pop-close" aria-label="Close">×</button></header>
+    <input id="note-title" maxlength="140" placeholder="What needs fixing?" required>
+    <textarea id="note-body" rows="4" placeholder="Detail the change — reference platforms, rails, gaps, props…"></textarea>
+    <div class="chips" id="note-cats">
+      <label><input type="radio" name="cat" value="layout"><span>layout</span></label>
+      <label><input type="radio" name="cat" value="scenery"><span>scenery</span></label>
+      <label><input type="radio" name="cat" value="movement"><span>movement</span></label>
+      <label><input type="radio" name="cat" value="other"><span>other</span></label>
+    </div>
+    <div class="row">
+      <div class="colors small" id="note-colors"></div>
+      <label class="status"><input type="checkbox" id="note-done"><span>done</span></label>
+    </div>
+    <p class="anchor" id="note-anchor"></p>
+    <footer>
+      <button type="button" id="note-delete" class="danger">Delete</button>
+      <button type="submit" class="primary">Done</button>
+    </footer>
+  </form>
+
+  <aside id="drawer" hidden>
+    <header>
+      <b>Notes</b>
+      <div class="filters">
+        <button data-f="all"  class="chip on"  type="button">all</button>
+        <button data-f="open" class="chip" type="button">open</button>
+        <button data-f="done" class="chip" type="button">done</button>
+      </div>
+      <button id="drawer-close" type="button" aria-label="Close">×</button>
+    </header>
+    <ol id="notes-list"></ol>
+  </aside>
+
+  <div id="menu" hidden>
+    <button id="m-export-json" type="button">Download review.json</button>
+    <button id="m-export-md"   type="button">Download review.md report</button>
+    <button id="m-report"      type="button">View the report</button>
+    <hr>
+    <a href="../kyoto-rooftops.html" target="_blank" rel="noopener">Play the Roof Road ↗</a>
+    <p class="about" id="about"></p>
+  </div>
+
+  <div id="conflict" hidden>
+    <div class="card">
+      <b>A newer review exists</b>
+      <p>Another tab or device saved changes since you loaded this board.</p>
+      <div class="row">
+        <button id="cf-reload" type="button">Load theirs</button>
+        <button id="cf-merge" class="primary" type="button">Merge mine in</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="report" hidden>
+    <header><b>review.md</b><button id="report-close" type="button" aria-label="Close">×</button></header>
+    <pre id="report-body"></pre>
+  </div>
+
+  <div id="toast" role="status"></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

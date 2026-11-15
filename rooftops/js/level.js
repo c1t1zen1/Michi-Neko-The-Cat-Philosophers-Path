@@ -97,7 +97,9 @@ export function buildLevel() {
 
   const street = (s0, s1, d, surface = 'cobble', y = 0) => {
     const kind = surface === 'water' ? 'water' : 'street';
-    const p = plat({ s0, s1, y, d, kind, label: surface });
+    // Walk on the clear outer strip of the paving, beside the climbable
+    // barrels and crates. Their tops remain available when the cat jumps.
+    const p = plat({ s0, s1, y, d: kind === 'street' ? d + .85 : d, kind, label: surface });
     piece({ type: surface === 'water' ? 'water' : 'street', s0, s1, y, d, surface, plat: p.id });
     return p;
   };
@@ -383,7 +385,7 @@ export function buildLevel() {
 
     const deck = plat({ s0: 0, s1: 14.0, y: 1.1, d: 0, kind: 'deck', label: 'Sanjō Ōhashi deck' });
     deck.start = true;
-    const ramp = plat({ s0: 14.0, s1: 16.6, y0: 1.1, y1: 0.05, d: 0, kind: 'deck', label: 'bridge ramp' });
+    const ramp = plat({ s0: 14.0, s1: 16.6, y0: 1.1, y1: 0, d: 0, kind: 'deck', label: 'bridge ramp' });
     const capS = [1.8, 4.1, 6.4, 8.7, 11.0, 13.2];
     const caps = capS.map((s, i) => plat({ s0: s - 0.2, s1: s + 0.2, y: 1.95, d: 1.25, kind: 'cap', label: 'giboshi ' + (i + 1) }));
     piece({ type: 'bridge', s0: 0, s1: 16.6, deckY: 1.1, caps: capS, capY: 1.95, plats: [deck.id, ramp.id] });
@@ -473,7 +475,7 @@ export function buildLevel() {
     const N1 = near1.map(([a, b], i) => house(a, b, { eave: 2.45, ridge: 3.2, label: 'Pontochō ochaya', noren: i % 2 ? 'crimson' : 'indigo', lanterns: true }));
     const F1 = far1.map(([a, b]) => house(a, b, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 3.0, dFront: -4.4, depth: 5, row: 'far', label: 'geiko alley house', lanterns: true }));
     for (let i = 0; i + 1 < near1.length; i++) piece({ type: 'tsuboniwa', s0: near1[i][1], s1: near1[i + 1][0], d: -1.5 });
-    const PR1 = rope(near1[1][1] - 0.15, near1[2][0] + 0.15, 3.3, -3.9, 'lanterns');
+    const PR1 = rope(near1[1][1] - 0.15, near1[2][0] + 0.15, 3.3, -3.15, 'lanterns');
 
     // Low road: 4 riverside yuka dining decks on stilts + lantern posts.
     for (let i = 0; i < 4; i++) {
@@ -484,9 +486,9 @@ export function buildLevel() {
     small('post', pStart + 5.2, pStart + 5.5, 2.05, 2.7, 'cap', 'plover lantern post');
     small('post', pStart + 19.6, pStart + 19.9, 2.05, 2.7, 'cap', 'plover lantern post');
     balcony(pStart + 2.0, pStart + 6.4, 2.15, 0.85, 'engawa', 'Pontochō river engawa');
-    balcony(pStart + 7.2, pStart + 11.4, 2.55, -3.75, 'bridge', 'Pontochō alley bridge');
+    balcony(pStart + 7.2, pStart + 11.4, 2.55, -3.05, 'bridge', 'Pontochō alley bridge');
     balcony(pStart + 12.2, pStart + 16.8, 2.18, 0.85, 'awning', 'Pontochō awning');
-    balcony(pStart + 17.6, pStart + 22.0, 2.62, -3.80, 'engawa', 'Pontochō far engawa');
+    balcony(pStart + 17.6, pStart + 22.0, 2.62, -3.05, 'engawa', 'Pontochō far engawa');
     const K1 = corner(1, 3.45, 'Pontochō river corner');
 
     // Leg 2 (42 m West): Turns right DOWN a narrow Pontochō–Kiyamachi roji alley!
@@ -521,8 +523,8 @@ export function buildLevel() {
     const N3 = near3.map(([a, b], i) => house(a, b, { eave: 2.45, ridge: 3.25, label: 'izakaya', noren: i % 2 ? 'indigo' : 'crimson', lanterns: true, vines: i === 1 }));
     const F3 = far3.map(([a, b]) => house(a, b, { storeys: 2, eave: 3.7, ridge: 4.5, hisashi: 3.0, dFront: -4.4, depth: 5, row: 'far', label: 'Kaburenjō house', lanterns: true }));
     for (let i = 0; i + 1 < near3.length; i++) piece({ type: 'tsuboniwa', s0: near3[i][1], s1: near3[i + 1][0], d: -1.5 });
-    const PR2 = rope(near3[0][1] - 0.15, near3[1][0] + 0.15, 3.3, -3.9, 'lanterns');
-    const PR3 = rope(near3[2][1] - 0.15, near3[3][0] + 0.15, 3.35, -3.9, 'vines');
+    const PR2 = rope(near3[0][1] - 0.15, near3[1][0] + 0.15, 3.3, -3.15, 'lanterns');
+    const PR3 = rope(near3[2][1] - 0.15, near3[3][0] + 0.15, 3.35, -3.15, 'vines');
     // Yuka & crooked middle road along Leg 3:
     for (let i = 0; i < 5; i++) {
       const a = g3.s0 + 3.2 + i * 8.6;
@@ -833,7 +835,7 @@ export function buildLevel() {
     villager(g9.s0 + 5.8, 5.0, -1.6, 'laundry');
     piece({ type: 'tsuboniwa', s0: g9.s0 + 9.4, s1: g9.s0 + 13.8, d: -1.5 });
     const P1 = rope(g9.s0 + 8.7, g9.s0 + 13.7, 5.45, -1.0, 'laundry');
-    const W1 = cistern(g9.s0 + 10.6, g9.s0 + 13.0, 6.08, -1.0);
+    const W1 = cistern(g9.s0 + 10.6, g9.s0 + 13.0, 6.08, -2.3);
     futonRack(g9.s0 + 10.8, g9.s0 + 12.6, 1.62, 1.55, 0.2);
     balcony(g9.s0 + 12.0, g9.s0 + 14.8, 3.18, 0.75, 'engawa', 'futon climb-back balcony');
 
@@ -844,7 +846,7 @@ export function buildLevel() {
     const K_TALL = kura(g9.s0 + 20.6, g9.s0 + 26.4, 6.65, 7.8, 'tall merchant kura');
     const M3 = house(g9.s0 + 27.2, g9.s0 + 34.0, { storeys: 2, eave: 3.6, ridge: 4.4, hisashi: 2.3, label: 'sheet-drying house', deck: { s0: g9.s0 + 27.8, s1: g9.s0 + 33.2, y: 5.0 } });
     villager(g9.s0 + 30.2, 5.0, -1.6, 'laundry');
-    const CH1 = chimney(g9.s0 + 31.8, g9.s0 + 33.4, 6.02, -1.55);
+    const CH1 = chimney(g9.s0 + 31.8, g9.s0 + 33.4, 6.02, 0);
     const P2 = rope(g9.s0 + 33.2, g9.s0 + 38.2, 5.45, -1.0, 'laundry');
     piece({ type: 'tsuboniwa', s0: g9.s0 + 34.0, s1: g9.s0 + 38.6, d: -1.5 });
     futonRack(g9.s0 + 34.8, g9.s0 + 36.6, 1.58, 1.45, 0.7);
@@ -1023,9 +1025,9 @@ export function buildLevel() {
     /* ================= ⑦ Okuribi — the Grand Hoko Float & Fires ================= */
     const fd = 1.0;
     const fDeck = plat({ s0: floatS0, s1: floatS1, y: 3.6, d: fd + 0.2, kind: 'deck', label: 'float deck' });
-    const fFrame = plat({ s0: floatS0 + 0.3, s1: floatS0 + 1.7, y: 4.7, d: fd, kind: 'rack', label: 'float lantern frame' });
-    const fEaveL = plat({ s0: floatS0 + 0.3, s1: floatS0 + 1.9, y: 5.8, d: fd, kind: 'roof', label: 'float eave' });
-    const fEaveR = plat({ s0: floatS1 - 1.9, s1: floatS1 - 0.3, y: 5.8, d: fd, kind: 'roof', label: 'float eave' });
+    const fFrame = plat({ s0: floatS0 + 0.3, s1: floatS0 + 1.7, y: 4.7, d: fd + 1.7, kind: 'rack', label: 'float lantern frame' });
+    const fEaveL = plat({ s0: floatS0 + 0.3, s1: floatS0 + 1.9, y: 5.8, d: fd + 1.4, kind: 'roof', label: 'float eave' });
+    const fEaveR = plat({ s0: floatS1 - 1.9, s1: floatS1 - 0.3, y: 5.8, d: fd + 1.4, kind: 'roof', label: 'float eave' });
     const fRidge = plat({ s0: floatS0 + 1.6, s1: floatS1 - 1.6, y: 6.9, d: fd - 0.2, kind: 'roof', label: 'float roof' });
     const fBar = plat({ s0: floatS0 + 2.4, s1: floatS1 - 2.4, y: 8.0, d: fd - 0.2, kind: 'branch', label: 'shingi crossbar' });
     const fPerch = plat({ s0: floatS0 + 2.7, s1: floatS1 - 2.7, y: 9.1, d: fd - 0.2, kind: 'perch', label: 'float top' });
