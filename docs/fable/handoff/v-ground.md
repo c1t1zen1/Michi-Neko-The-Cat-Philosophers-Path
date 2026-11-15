@@ -41,6 +41,9 @@ file, "Live wear".
 Measured: classic 45,000 tris (150 x 150 plane); modular 45,000 / 45,000 / 5,000. Warm builds 2-3 ms; first build in
 the game ~390 ms (classic ground ~35-43 ms warm, plus the same `groundTextures(6)` both sets generate once).
 
+Warm-build allowances: hero the default 6 ms, mid 5 ms, far 4 ms (2-3 ms on a quiet machine). Per ruling R54 they were
+not raised for a loaded-machine reading; warm-build timing is re-measured on a quiet machine at G-V3.
+
 ## 3. Materials (ruling R52): one new kit material, net -2 draws — ACCEPTED at pre-review
 
 - `kit-ground` (src/kit/ground/material.js `createGroundMaterial`): one private, unmerged MeshStandardMaterial

@@ -185,6 +185,41 @@ None.
   boots `?assets=classic` `{"kit":0,"problems":[],"ground":0}` and `?assets=modular` `{"kit":238,"problems":[],"ground":1}`
   with `warnings: []`, the main.js wear test identical to the line above.
 - Contract under sibling load (load average 7-9): valley-ground hero warm build read 7.1 ms once and path-slabs hero
-  6.1-6.7 ms twice. Fixes: the valley-ground exception's warm allowance is now hero 10 / mid 8 / far 6 ms (2-3 ms quiet;
-  the warm build copies a 262k-texel field), and the slabs cache their superellipse outlines per segment count (no
-  exception). Then three runs of `--family ground` → `433 checks, 0 failed` each.
+  6.1-6.7 ms twice. Fixes: the slabs cache their superellipse outlines per segment count (kept, no exception). The
+  valley-ground warm allowance raised here to hero 10 / mid 8 / far 6 ms was **reverted** under ruling R54 (see the next
+  section): it is back to hero default 6 / mid 5 / far 4 ms.
+
+## Pre-review fix (R54) + integration merge (2026-11-14)
+
+- **R54 (binding): budgets are never loosened from loaded-machine timings.** `e035f5f` restores
+  `BUDGET_EXCEPTIONS['valley-ground']` buildMs to the values before 21c95bf: hero no key (default 6 ms), mid 5 ms, far
+  4 ms; triangle allowances unchanged (45,000 / 45,000 / 5,000). The `why` now states the quiet-machine warm numbers
+  (2-3 ms) and that warm-build timing is re-measured on a quiet machine at G-V3 (R54); no loaded-machine numbers. The
+  path-slabs outline cache from 21c95bf stays (a real optimisation).
+- **Merged `origin/fable/integration` (2f78865: v-water, s3-vista, G-V2/G-C chores)** in `df8da72`: `budgets.js` kept
+  both sides (valley-ground + the s3-vista entries), `src/kit/index.js` regenerated (24 families), `labs/ASSET_COVERAGE.md`
+  regenerated; `src/main.js` auto-merged (the bindWorld loop and integration's env.sunDir/palette lines both present).
+- Checks on df8da72:
+  - `node tools/check_syntax.mjs` → `All 170 modules OK`
+  - `node tools/verify.mjs` → `kit_test: tests 36, pass 36, fail 0`, `All checks passed`
+  - `node tools/kit_check.mjs` → `All kit checks OK (446 passed)`; `node tools/kit_index.mjs --check` → `OK   src/kit/index.js in sync (24 families, tag 20261113a)`
+  - `node tools/labs_check.mjs` → `All labs checks OK`; `node --test tools/labs_coverage_test.mjs` → `tests 11, pass 11, fail 0`
+  - `uptime` → load averages 3.88 2.48 2.36; `node tools/kit_contract_test.mjs --family ground` → `4 assets, 12 asset×tier
+    builds, 433 checks, 0 failed`, `merge: OK — valley 237 calls; +48 kit meshes → 285; after _mergeInto → 240`,
+    `PASS: kit contract` (with the restored caps)
+  - warm builds (contract page, two runs, load 3.4): valley-ground hero 1.9 / 3.7 ms (≤ 6), mid 1.5 / 1.9 (≤ 5), far
+    1.4 / 1.5 (≤ 4); path 0.4-0.5; path-shoulders 0.4-0.5; path-slabs hero 2.0, mid 0.5-0.8, far 0.2-0.3 ms. Not a quiet
+    machine (1-min load 3.4-3.9): for the G-V3 quiet re-measure.
+  - `node tools/footprint_golden.mjs` → `footprint golden: EQUAL`; `--systems` → `footprint golden: EQUAL`
+  - swap golden `--query "?swap=valley-ground:modular,path:modular,path-shoulders:modular,path-slabs:modular"` →
+    `DIFFERENT (4 changed, 3 added, 0 removed)`: the same 3 replaced objects (`Village Ground`, `Earthen Shoulders`,
+    `Cobbled Path` → groups with `asset:<id>/<part>` children), `counts.objects 312 → 315`, `518 colliders · 65 platforms
+    · 5 water rects · 4 exclusions · 25 anchors`, `rng valley 49233 draws (probe ok)`; same swap with `--systems` → EQUAL
+  - `node tools/kit_material_census.mjs` → `quality high: 30 kit materials, 28 on static (baked or plain) draws, 1 not in
+    the scene; page errors 2` (the 2 are 404s for `/docs/images/title-screen.jpg` and `/cad-overrides.json`, files the
+    census's temp copy does not include; `kit-ground` is a private material, not a KitMaterials entry, so not listed)
+  - boots (`tools/headless.mjs /index.html`, autostart, playing + 5 s): `?assets=classic` → `{"kit":0,"problems":[],"ground":0}`;
+    `?assets=modular` → `{"kit":261,"city":160,"problems":[],"ground":1}`; `?swap=<my 4 ids>` → city kit 3
+    (valley-ground, path-shoulders, path), `problems: []`; all three `warnings: []`, the only error the pre-existing
+    optional `/cad-overrides.json` 404
+  - `git diff --check origin/fable/integration...HEAD` → clean
