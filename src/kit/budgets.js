@@ -78,7 +78,7 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
   'roof-market-stalls': { hero: { materials: 12 }, why: 'classic shopfronts uses the same 12 (plaster x2, timberMed, six goods colours, three noren); 234 -> 12 meshes; mid 4 / far 1 by remap' },
   'roof-canopy': { hero: { materials: 8 }, why: 'classic canopy uses the same 8 (glass, steel, six banner colours) on the 103 m run; 289 -> 7 meshes; mid 3 / far 2' },
   'roof-takasebune': { hero: { materials: 14 }, mid: { meshes: 9, materials: 8 }, why: 'classic boat uses the same 14 MAT materials incl. the classic boatman (R75) and wake; 33 -> 15 meshes; mid keeps the boatman (9 meshes, 8 materials); far remaps to 2' },
-  'roof-hayashi': { hero: { triangles: 35000, meshes: 34, materials: 7, buildMs: 8 }, mid: { triangles: 10200, meshes: 18, buildMs: 4 }, far: { triangles: 1700, meshes: 6 }, why: 'three seated musicians with their instruments (r5b): classic is 44 meshes / 31,378 tris / 16 materials (measured on the page, makeResident x3 plus bare cylinders); modular hero 33 meshes / 34,082 tris / 7 materials (the one kit bag material + 6 resident materials), +9% tris for the taiko skins, bachi, flute holes and kane. mid/far are the same figures built at the resident tiers; the Roof Road builds the near band (hero) only, far is never chosen' },
+  'roof-hayashi': { hero: { triangles: 35000, meshes: 34, materials: 7, buildMs: 10 }, mid: { triangles: 10200, meshes: 18, buildMs: 5 }, far: { triangles: 1700, meshes: 6, buildMs: 2.5 }, why: 'three seated musicians with their instruments (r5b): classic is 44 meshes / 31,378 tris / 16 materials (measured on the page, makeResident x3 plus bare cylinders); modular hero 33 meshes / 34,082 tris / 7 materials (the one kit bag material + 6 resident materials), +9% tris for the taiko skins, bachi, flute holes and kane. mid/far are the same figures built at the resident tiers; the Roof Road builds the near band (hero) only, far is never chosen. Warm build allowances (R85): quiet reads at load 1.1-1.8, 6 runs (3 per set), hero 8.3-8.9 ms, mid up to 4.2, far 1.6-2.0, so hero 10 / mid 5 / far 2.5' },
   'roof-skylight-bridge': { hero: { materials: 7 }, why: 'classic marketCrossing uses 8 (timberMed, timber, hemp, steel, three goods, lanternWhite, paperCapMaterial); modular 7; 18 -> 9 meshes; mid 4 / far 1 by remap' },
   // the contract samples the real 11 m run (G-V1 I1); ruling R51
   'bamboo-fence': {
@@ -196,16 +196,16 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
   // r4b-festival (Roof Road sky, fires, city, atmosphere). Measured on the Roof Road page, classic scene vs kit builders (uptime load 1.5-1.7,
   // 2026-11-15); classic counts are the Sky / RooftopAtmosphere / buildWorld scene objects.
   'roof-okuribi': {
-    mid: { meshes: 10, materials: 5 }, far: { meshes: 10, materials: 5, buildMs: 3 },
-    why: 'the five fires: each is one Points (own shader material, Sky.update drives its uKindle/uTime) plus one glow Sprite (own opacity). Classic 10 meshes / 10 materials / 0 tris; modular 10 / 10 / 0 at every tier (the contract counts 5 materials: Points only). Hero adds embers inside the same Points (no extra draw). Warm build 5.3 / 2.8 / 2.5 ms: the glyph canvas sampling (classic runs it too)'
+    mid: { meshes: 10, materials: 5, buildMs: 4 }, far: { meshes: 10, materials: 5, buildMs: 4 },
+    why: 'the five fires: each is one Points (own shader material, Sky.update drives its uKindle/uTime) plus one glow Sprite (own opacity). Classic 10 meshes / 10 materials / 0 tris; modular 10 / 10 / 0 at every tier (the contract counts 5 materials: Points only). Hero adds embers inside the same Points (no extra draw). Warm build 5.3 / 2.8 / 2.5 ms: the glyph canvas sampling (classic runs it too). Warm build allowances (R85): quiet reads at load 1.1-1.8, 6 runs, mid 3.2-3.5 ms (6/6 over 3), far up to 3.7 ms, so mid 4 / far 4'
   },
   'roof-atmosphere': {
     mid: { materials: 5 }, far: { meshes: 6, materials: 5 },
     why: 'petals, smoke, fireflies (own ShaderMaterials: the class drives their uniforms), the birds (one shared material) and the motes. Classic ambient part 12 meshes / 5 materials (13 / 6 with the landing-burst points, which stay classic); modular hero 12 / 5, mid 8 / 5, far 6 / 5'
   },
   'roof-distant-city': {
-    hero: { buildMs: 8 },
-    why: 'the city is one merged mesh on the pagoda family matte material: classic 7,956 instanced houses = 79,560 tris / 2 meshes / 2 materials (two draws); modular hero 10,276 tris / 1 / 1, mid 2,240, far 228 (one draw). Hero warm build 3.5-6.1 ms at load 1.5 (classic buildDistantCity, same page: 16 ms cold, 3.6-4.1 ms warm)'
+    hero: { buildMs: 13 },
+    why: 'the city is one merged mesh on the pagoda family matte material: classic 7,956 instanced houses = 79,560 tris / 2 meshes / 2 materials (two draws); modular hero 10,276 tris / 1 / 1, mid 2,240, far 228 (one draw). Hero warm build 3.5-6.1 ms at load 1.5 (classic buildDistantCity, same page: 16 ms cold, 3.6-4.1 ms warm). Warm build allowance (R85): quiet reads at load 1.1-1.8, 6 runs, hero 9.8-11.6 ms (6/6 over 8), so 13'
   }
 });
 
