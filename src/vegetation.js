@@ -3,7 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { barkTextures, texturedMaterial } from './textures.js?v=20261116a';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, createBranchMaterial, leafSprayTexture, leafMassTexture,
-  buildCanopy, updateFoliage
+  buildCanopy, drawCanopy, updateFoliage
 } from './foliage.js?v=20261116a';
 import { GrassSystem, BiomeMask } from './grass.js?v=20261116a';
 import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261116a';
@@ -227,6 +227,7 @@ export class Vegetation {
     // tree, and drop it from the layout the runtime keeps on the instance.
     for (const k of ['branches', 'cards', 'tufts']) if (layout.canopy[k]) layout.canopy[k].dispose();
     layout.canopy = null;
+    delete layout.canopyReplay;
     return out.group;
   }
 
@@ -245,14 +246,48 @@ export class Vegetation {
     const lean = (this.random() - 0.5) * trunk.lean;
     const { rim, bake } = this.treeStyle(x, z);
     const base = { scale, colors, trunkH: trunk.h, trunkR: trunk.rTop * 1.15 };
-    const built = rim
-      ? buildCanopy(this.rng, Object.assign(base, canopy, masses, { style: 'masses' }))
-      : buildCanopy(this.rng, Object.assign(base, canopy, leaves, { style: 'leaves' }));
+    const canopyOpts = rim
+      ? Object.assign(base, canopy, masses, { style: 'masses' })
+      : Object.assign(base, canopy, leaves, { style: 'leaves' });
+    // Ruling R89 (b1-build-budget): when the kit builds this tree (modular),
+    // the classic canopy is only here for its draws, so draw them without the
+    // geometry: the same values, in the same order, recorded on a tape so a kit
+    // build that falls back to classic can still grow the exact canopy
+    // (meshTreeClassic replays it). The classic set calls buildCanopy as before.
+    const id = rim ? 'rim-trees' : (TREE_IDS[kind] || kind);
+    const assets = this.assets || CLASSIC_ASSETS;
+    let built, canopyTape = null;
+    // (a stand-in kit with only build(), as the systems seam test hands in, keeps the classic canopy)
+    if (typeof assets.setFor === 'function' && typeof assets.has === 'function' && assets.setFor(id) === 'modular' && assets.has(id)) {
+      canopyTape = [];
+      const record = () => { const v = this.rng(); canopyTape.push(v); return v; };
+      built = drawCanopy(record, canopyOpts);
+    } else {
+      built = buildCanopy(this.rng, canopyOpts);
+    }
     return {
       index: treeIdx - 1, name, kind, x, y: 0, z, ry, scale, lean, barkIdx, rim, bake, trunk,
       band: rim ? 'rim' : 'near', canopy: built,
-      footprint: { colliders: [{ x, z, r: collider * scale }] }
+      footprint: { colliders: [{ x, z, r: collider * scale }] },
+      ...(canopyTape ? { canopyReplay: { tape: canopyTape, opts: canopyOpts } } : {})
     };
+  }
+
+  /**
+   * The classic canopy of a layout whose canopy was only drawn (the kit was to
+   * build it and fell back to classic): replay the recorded draws through
+   * buildCanopy, which then grows exactly the canopy the classic set grows.
+   */
+  replayCanopy(L) {
+    const { tape, opts } = L.canopyReplay;
+    let i = 0;
+    const replay = () => {
+      if (i >= tape.length) throw new Error(`${L.name}: canopy replay ran past its ${tape.length} recorded draws`);
+      return tape[i++];
+    };
+    const built = buildCanopy(replay, opts);
+    if (i !== tape.length) throw new Error(`${L.name}: canopy replay used ${i} of ${tape.length} recorded draws`);
+    return built;
   }
 
   /**
@@ -273,7 +308,7 @@ export class Vegetation {
     trunkMesh.updateMatrix();
     this._bakeStatic(trunkMesh.geometry, new THREE.Matrix4().multiplyMatrices(tree.matrix, trunkMesh.matrix), trunkMat);
 
-    const built = L.canopy;
+    const built = L.canopyReplay ? this.replayCanopy(L) : L.canopy;
     if (L.rim) {
       this._bakeStatic(built.branches, tree.matrix, trunkMat);
       this._bakeStatic(built.tufts, tree.matrix, this.masses[kind]);

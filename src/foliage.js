@@ -1175,6 +1175,21 @@ export function buildCanopy(rng, opts = {}) {
 }
 
 /**
+ * buildCanopy's draws without its geometry (ruling R89, b1-build-budget): the
+ * same skeleton, curves and spray/clump placement maths, so `rng` is drawn
+ * exactly as buildCanopy(rng, opts) draws it (the same values in the same
+ * order, every draw a geometric test decides included), but no tube, tuft,
+ * card or merged geometry is made. Returns `{ top, radius }` (and `sprays`
+ * for 'leaves'), as buildCanopy's. Vegetation.layoutTree uses it on the
+ * modular set, where the kit builds the tree's canopy itself and the classic
+ * one was built only to advance the valley stream.
+ * tools/b1_build_budget_browser_test.mjs holds it to buildCanopy draw for draw.
+ */
+export function drawCanopy(rng, opts = {}) {
+  return buildCanopy(rng, Object.assign({}, opts, { drawOnly: true }));
+}
+
+/**
  * A branching skeleton of tapered, gently arcing primaries with
  * secondaries and twigs carries a leaf clump at every tip and along the
  * outer limbs; each clump is a few lumpy tuft cores, fringed by alpha-cut
@@ -1204,7 +1219,8 @@ function buildClumpCanopy(rng, {
   tuftDetail = 1,
   lump = 0.34,
   seed = 1,
-  leafCards = true       // off for 'masses': tuft cores only
+  leafCards = true,      // off for 'masses': tuft cores only
+  drawOnly = false       // drawCanopy(): every draw, no geometry
 } = {}) {
   const up = new THREE.Vector3(0, 1, 0);
   const tips = [];
@@ -1216,7 +1232,7 @@ function buildClumpCanopy(rng, {
     const mid = start.clone().addScaledVector(dir, len * 0.5);
     mid.y += bend * len * (level === 0 ? 1 : 0.5);
     const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
-    branchGeos.push(taperedTube(curve, r0, r1, level === 0 ? 7 : 5, level === 0 ? 7 : 5));
+    if (!drawOnly) branchGeos.push(taperedTube(curve, r0, r1, level === 0 ? 7 : 5, level === 0 ? 7 : 5));
     return { curve, end, tangent: curve.getTangent(1).normalize() };
   };
 
@@ -1270,7 +1286,7 @@ function buildClumpCanopy(rng, {
 
   const tuftGeos = [];
   const cardGeos = [];
-  const card = leafCardGeometry();
+  const card = drawOnly ? null : leafCardGeometry();
   const tmpColor = new THREE.Color();
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), qRoll = new THREE.Quaternion();
   const sc = new THREE.Vector3(), p = new THREE.Vector3();
@@ -1322,12 +1338,12 @@ function buildClumpCanopy(rng, {
       q.multiply(qRoll);
       sc.set(r * (1.0 + rng() * 0.34), r * tuftFlat * (0.85 + rng() * 0.2), r * (1.0 + rng() * 0.34));
       m.compose(p, q, sc);
-      const geo = lumpyTuftGeometry(tuftDetail, seed + n, lump).clone().applyMatrix4(m);
+      const geo = drawOnly ? null : lumpyTuftGeometry(tuftDetail, seed + n, lump).clone().applyMatrix4(m);
       // Under-shell pillows go deep into shade; sky-side crests stay bright
       const shadeBias = THREE.MathUtils.clamp(off.dot(up) / (R * 0.5) * 0.12, -0.14, 0.1);
       const col = pick(THREE.MathUtils.clamp(light - 0.1 + shadeBias + clumpTint, 0, 0.999), 0.06);
       col.multiplyScalar(0.76 + light * 0.24);
-      tuftGeos.push(bakeColor(geo, col));
+      if (!drawOnly) tuftGeos.push(bakeColor(geo, col));
     }
 
     for (let n = 0; leafCards && n < cardsPerClump[lvl]; n++) {
@@ -1355,11 +1371,13 @@ function buildClumpCanopy(rng, {
       const size = cardSize * (0.8 + rng() * 0.45) * (tip.level === 2 ? 0.85 : 1) * (pad ? 1 : 1.12 - elev * 0.22);
       sc.set(size, size, size);
       m.compose(p, q, sc);
-      const geo = card.clone().applyMatrix4(m);
+      const geo = drawOnly ? null : card.clone().applyMatrix4(m);
       const col = pick(Math.min(0.999, light + 0.1 + (1 - rim) * 0.1 + rng() * 0.08 + clumpTint * 0.5), 0.08);
-      cardGeos.push(bakeColor(geo, col));
+      if (!drawOnly) cardGeos.push(bakeColor(geo, col));
     }
   }
+
+  if (drawOnly) return { top: (maxY + clumpR * 1.5) * scale, radius: (maxR + clumpR) * scale };
 
   const branches = mergeGeometries(branchGeos, false);
   const tufts = mergeGeometries(tuftGeos, false);
@@ -1433,7 +1451,8 @@ function buildLeafCanopy(rng, {
   density = 14,          // sprays per metre of leaf-bearing twig (after scale)
   tipSprays = 3,         // rosette at every twig and sprig tip
   padSprays = 14,        // 'pad' habit: sprays per limb-end pad
-  padR = 0.45            // 'pad' habit: pad radius in metres
+  padR = 0.45,           // 'pad' habit: pad radius in metres
+  drawOnly = false       // drawCanopy(): every draw, no geometry
 } = {}) {
   const up = new THREE.Vector3(0, 1, 0);
   const phase = rng() * Math.PI * 2;
@@ -1455,7 +1474,7 @@ function buildLeafCanopy(rng, {
     mid.y += bend * len * (level === 0 ? 1 : 0.5);
     if (level >= 2) mid.addScaledVector(perp(dir), len * zigzag * (rng() - 0.3));
     const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
-    branchGeos.push(flexTube(curve, r0, r1, [7, 5, 3, 2][level], [7, 5, 4, 3][level], f0, f1, phase));
+    if (!drawOnly) branchGeos.push(flexTube(curve, r0, r1, [7, 5, 3, 2][level], [7, 5, 4, 3][level], f0, f1, phase));
     const limb = { curve, level, len, f0, f1 };
     limbs.push(limb);
     return limb;
@@ -1633,6 +1652,7 @@ function buildLeafCanopy(rng, {
   }
 
   const count = sprays.length;
+  if (drawOnly) return { top: (maxY + sLen) * scale, radius: (maxR + sLen) * scale, sprays: count };
   const pos = new Float32Array(count * nv * 3);
   const nrm = new Float32Array(count * nv * 3);
   const uv = new Float32Array(count * nv * 2);
