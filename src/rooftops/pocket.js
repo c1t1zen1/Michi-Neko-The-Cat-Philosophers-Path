@@ -95,7 +95,7 @@ export class RooftopPocket {
     this.scene.fog = this.root.fog;            // Sky sets the fog on what it was given
     this.world = buildWorld(level, { reduceMotion: this.reduceMotion, lowPower: this.lowPower, assets: this.assets });
     this.root.add(this.world.root);
-    this.atmosphere = new RooftopAtmosphere(this.root, level, { reduceMotion: this.reduceMotion, lowPower: this.lowPower });
+    this.atmosphere = new RooftopAtmosphere(this.root, level, { reduceMotion: this.reduceMotion, lowPower: this.lowPower, assets: this.assets });
 
     this.envMats = [];
     this.root.traverse((o) => {
@@ -147,8 +147,11 @@ export class RooftopPocket {
     this.startAt(1.0, 1.1);
     this.initChidori();
     this.update(0, null, false);
-    this.syncCamera();
-    if (renderer.compileAsync) await renderer.compileAsync(this.scene, g.camera);
+    // Compile with the run's own camera: the game camera is the valley's until attach().
+    this.cam.position.add(this.origin);
+    this.cam.updateMatrixWorld(true);
+    if (renderer.compileAsync) await renderer.compileAsync(this.scene, this.cam);
+    this.cam.position.sub(this.origin);
     this.ready = true;
   }
 
