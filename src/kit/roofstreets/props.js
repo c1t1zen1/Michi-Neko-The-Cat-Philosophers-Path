@@ -75,13 +75,13 @@ function finish(ctx, multi, name, extra = {}) {
 
 /** A slatted crate w x h x d standing on y = 0, centred on (x, z). */
 function addCrate(bag, w, h, d, x, z, tier, r, wear) {
-  const n = tier === 'hero' ? 4 : tier === 'mid' ? 3 : 1;
+  const n = tier === 'hero' ? 5 : tier === 'mid' ? 4 : 1;   // a3: more, narrower slats = deeper gaps
   if (n === 1) { bag.box(w, h, d, { x, y: h / 2, z, m: 'wood' }); return; }
-  const t = 0.045;
+  const t = 0.06;
   bag.box(w - 0.02, h - 0.02, d - 0.02, { x, y: h / 2, z, m: 'dark' });
   const sh = h / n;
   for (let i = 0; i < n; i++) {
-    const cy = sh * (i + 0.5), sz = sh * (0.85 - 0.04 * wear * r());
+    const cy = sh * (i + 0.5), sz = sh * (0.72 - 0.05 * wear * r());
     for (const a of [-1, 1]) {
       bag.box(w, sz, t, { x, y: cy, z: z + a * d / 2, m: 'wood' });
       bag.box(t, sz, d, { x: x + a * w / 2, y: cy, z, m: 'wood' });
