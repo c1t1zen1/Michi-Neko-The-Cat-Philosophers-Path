@@ -49,6 +49,22 @@ export const KIT_LIMITS = Object.freeze({
  * fields it names and must cite why. Added by the owning lane in its PR.
  */
 export const BUDGET_EXCEPTIONS = Object.freeze({
+  // Phase 5 r3b (roofcanal part b), R52. Hero tier = the classic piece's own MAT materials (ctx.MAT, so 0 new merged materials,
+  // 0 added merged draws); mid and far are remapped to the standard caps. Measured on the real runs, rooftop_golden digests of the
+  // largest piece of each type, classic vs `?swap=<id>:modular` (hero tier), uptime load 2.4-4.3, 2026-11-15:
+  //   roof-canal-banks     classic 182 meshes / 4480 tris / 14 materials -> modular 14 meshes / 4480 tris / 14 materials
+  //   roof-market-stalls   classic 234 meshes / 2808 tris / 12 materials -> modular 12 meshes / 2808 tris / 12 materials
+  //   roof-canopy          classic 289 meshes / 3468 tris /  8 materials -> modular  7 meshes / 3468 tris /  8 materials
+  //   roof-takasebune      classic  33 meshes / 4480 tris / 14 materials -> modular 15 meshes / 4480 tris / 14 materials (classic boatman kept, R75)
+  //   roof-skylight-bridge classic  18 meshes /  392 tris /  8 materials -> modular  9 meshes /  392 tris /  7 materials (the lantern's paper caps use M.dark, not the lone paperCapMaterial)
+  // Visible world meshes at the canal mouths 3-5 (s 280/300/352/499/520/672), classic -> all 8 part-b ids swapped, same frame:
+  //   437->384, 508->441, 565->516, 597->568, 747->721, 762->753 (fewer draws everywhere; renderer calls are not comparable: the
+  //   seeded Math.random draws shift with the build and move the atmosphere, +-25 calls between identical runs of different builds).
+  'roof-canal-banks': { hero: { materials: 14 }, why: 'classic canalQuarter uses the same 14 MAT materials (wet stone, slab, stone, timber, timberMed, twine, agedWood, steel, bronze, dark, water, pine, foliage, clay); 182 -> 14 meshes; mid/far remap to 4/2' },
+  'roof-market-stalls': { hero: { materials: 12 }, why: 'classic shopfronts uses the same 12 (plaster x2, timberMed, six goods colours, three noren); 234 -> 12 meshes; mid 4 / far 1 by remap' },
+  'roof-canopy': { hero: { materials: 8 }, why: 'classic canopy uses the same 8 (glass, steel, six banner colours) on the 103 m run; 289 -> 7 meshes; mid 3 / far 2' },
+  'roof-takasebune': { hero: { materials: 14 }, mid: { meshes: 9, materials: 8 }, why: 'classic boat uses the same 14 MAT materials incl. the classic boatman (R75) and wake; 33 -> 15 meshes; mid keeps the boatman (9 meshes, 8 materials); far remaps to 2' },
+  'roof-skylight-bridge': { hero: { materials: 7 }, why: 'classic marketCrossing uses 8 (timberMed, timber, hemp, steel, three goods, lanternWhite, paperCapMaterial); modular 7; 18 -> 9 meshes; mid 4 / far 1 by remap' },
   // the contract samples the real 11 m run (G-V1 I1); ruling R51
   'bamboo-fence': {
     mid: { triangles: 13000 },
@@ -144,6 +160,38 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
     hero: { triangles: 7000 }, mid: { triangles: 3800 }, far: { triangles: 1800, materials: 3 },
     why: 'three range rings (one material each, the summit hazes them by layer), each only the arc the seat looks over; classic 3 x 1,760 = 5.3k tris, modular 6,600 / 3,504 / ~1.6k (hero/mid/far)'
   },
+  // r4-festival (Roof Road mouths 6-7): whole festival pieces built in the Roof Road's own painterly set (ctx.MAT; R52). Each bucket
+  // is a PART; the facade's mergeByMaterial folds every instance into one draw per material and 32 m cell. Measured on the Roof Road
+  // page (build of the real level pieces, classic builder vs kit builder; tools: headless eval, 2026-11-15, uptime load 2.8-3.0).
+  // Page draw calls (one render, shadows included), classic vs all 7 ids swapped: mouth 6 yama 789 / 787, yatai 783 / 781; mouth 7
+  // hoko 617 / 610, gate 492 / 491; finale 454 / 448: modular is at or under classic everywhere.
+  'roof-yatai': {
+    hero: { meshes: 24, materials: 16 }, mid: { meshes: 22, materials: 14 },
+    why: 'largest of 19 stalls incl. decorateStall dressing. Classic 62 meshes / 2,450 tris / 17 materials; modular hero 24 / 1,680 / 16, mid 21 (22 on the contract sample, a masks stall) / 1,222 / 14, far 2 / 278 / 2. Materials are the stall\'s own (awning cloth, timbers, noren, fare goods, lantern paper, sign, twine, enamel, glass): none new, 1 fewer than classic, so merged draws are not above classic'
+  },
+  'roof-hoko': {
+    hero: { triangles: 41000, meshes: 90, materials: 30 }, mid: { triangles: 37500, meshes: 90, materials: 30 },
+    why: 'the one great float, with the CLASSIC hayashi kept (ruling R75: 3 makeResident musicians, ~30k tris). Classic 204 meshes / 38,558 tris / 31 materials; modular hero 89 / 40,670 / 29, mid 86 / 37,158 / 29, far 2 / 908 / 2. Mid is under classic high (budget rule). Materials 2 fewer than classic, no new merged material; draws 617 -> 610 at the hoko, 454 -> 448 at the finale. The contract page has no resident materials, so it builds the float without the musicians'
+  },
+  'roof-temple-gate': { mid: { meshes: 10, materials: 5 }, why: 'one gate. Classic 21 meshes / 250 tris / 5 materials; modular hero 10 / 610 / 5, mid 10 / 514 / 5, far 2 / 250 / 2. Same five materials as classic: 0 added' },
+  'roof-yama': {
+    hero: { materials: 7 }, mid: { meshes: 11, materials: 7 },
+    why: 'one kakiyama float. Classic 58 meshes / 488 tris / 7 materials; modular hero 11 / 1,504 / 7, mid 11 / 672 / 7, far 2 / 352 / 2. Same seven materials as classic (timber, timberMed, tapestry, bark, three leaves): 0 added'
+  },
+  // r4b-festival (Roof Road sky, fires, city, atmosphere). Measured on the Roof Road page, classic scene vs kit builders (uptime load 1.5-1.7,
+  // 2026-11-15); classic counts are the Sky / RooftopAtmosphere / buildWorld scene objects.
+  'roof-okuribi': {
+    mid: { meshes: 10, materials: 5 }, far: { meshes: 10, materials: 5, buildMs: 3 },
+    why: 'the five fires: each is one Points (own shader material, Sky.update drives its uKindle/uTime) plus one glow Sprite (own opacity). Classic 10 meshes / 10 materials / 0 tris; modular 10 / 10 / 0 at every tier (the contract counts 5 materials: Points only). Hero adds embers inside the same Points (no extra draw). Warm build 5.3 / 2.8 / 2.5 ms: the glyph canvas sampling (classic runs it too)'
+  },
+  'roof-atmosphere': {
+    mid: { materials: 5 }, far: { meshes: 6, materials: 5 },
+    why: 'petals, smoke, fireflies (own ShaderMaterials: the class drives their uniforms), the birds (one shared material) and the motes. Classic ambient part 12 meshes / 5 materials (13 / 6 with the landing-burst points, which stay classic); modular hero 12 / 5, mid 8 / 5, far 6 / 5'
+  },
+  'roof-distant-city': {
+    hero: { buildMs: 8 },
+    why: 'the city is one merged mesh on the pagoda family matte material: classic 7,956 instanced houses = 79,560 tris / 2 meshes / 2 materials (two draws); modular hero 10,276 tris / 1 / 1, mid 2,240, far 228 (one draw). Hero warm build 3.5-6.1 ms at load 1.5 (classic buildDistantCity, same page: 16 ms cold, 3.6-4.1 ms warm)'
+  }
 });
 
 /** The budget row for one asset and tier, with exceptions applied. */

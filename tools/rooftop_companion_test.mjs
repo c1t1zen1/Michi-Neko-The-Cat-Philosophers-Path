@@ -11,7 +11,7 @@ check('guide traverses the entire real-physics run without losing the player', (
   const player = new Runner(level), guide = new Companion(level), auto = new Autopilot(level);
   player.reset(1, 1.1); guide.reset(player);
   let maxGap = 0, maxSpeed = 0, feints = 0, detours = 0; const moods = new Set(), paces = new Set();
-  for (let i = 0; i < 120 * 370; i++) {
+  for (let i = 0; i < 120 * 570; i++) {
     const t = i * dt; player.step(dt, auto.input(player, t, dt), t);
     const before = guide.runner.s;
     guide.update(dt, player, t, true);
@@ -49,7 +49,7 @@ check('guide keeps up when cargo boats begin at different points in their cycles
     const player = new Runner(level), guide = new Companion(level), auto = new Autopilot(level);
     player.time = phase; player.reset(1, 1.1); guide.reset(player, phase);
     let maxGap = 0;
-    for (let i = 0; i < 48000; i++) {
+    for (let i = 0; i < 72000; i++) {
       const t = phase + i * dt; player.step(dt, auto.input(player, t, dt), t);
       guide.update(dt, player, t, true);
       maxGap = Math.max(maxGap, Math.abs(player.s - guide.runner.s));

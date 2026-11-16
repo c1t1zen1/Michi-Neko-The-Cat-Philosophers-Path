@@ -379,6 +379,22 @@ function digestBuild(mods, b) {
       r4(M.water.uniforms.uTime.value), r4(M.water.uniforms.uNight.value), r4(M.kamoWater.uniforms.uTime.value)]);
     d.update.push([t, 'shoki', (dyn.shoki || []).map((o) => r4(o.children[0].rotation.y))]);
   }
+  // Boat motion proof (r3-b handoff §6): 600 frames at a fixed 1/60 s step from t = 50,
+  // sampled every 10 frames: group world matrix, wake opacity and scale, boatman and pole
+  // rotation, visibility.
+  {
+    const M = world.M;
+    for (let k = 0; k <= 600; k++) {
+      const t = 50 + k / 60;
+      world.update(t, 0.5, mods.physics.platOffset, level.platforms, 300);
+      if (k % 10) continue;
+      for (const bt of dyn.boats || []) {
+        bt.group.updateWorldMatrix(true, false);
+        d.update.push([k, 'boatmotion', bt.plat, bt.group.visible, bt.group.matrixWorld.elements.map(r4), r4(M.wake.opacity),
+          bt.wake.visible, r4(bt.wake.scale.x), r4(bt.boatman.rotation.y), r4(bt.boatman.rotation.z), r4(bt.pole.rotation.z)]);
+      }
+    }
+  }
   return d;
 }
 
@@ -599,6 +615,10 @@ async function routingTest(mods, classic, mainAssets) {
   check('world.update() moves the kit boats exactly as the classic ones (visibility, transform, wake, heading)',
     JSON.stringify(boatMotion(d)) === JSON.stringify(boatMotion(classic)) && boatMotion(d).length > 0, `${boatMotion(d).length} samples`);
 
+  const boatSeries = (dd) => JSON.stringify(dd.update.filter((row) => row[1] === 'boatmotion'));
+  check('600 frames of boat motion (world matrix, wake, boatman, pole, visibility) are identical to classic',
+    boatSeries(d) === boatSeries(classic) && JSON.parse(boatSeries(d)).length > 0, `${JSON.parse(boatSeries(d)).length} samples`);
+
   // The extras: built through the contract, placed where the classic ones stand, unmerged on the root.
   const pagodas = extras.filter((e) => e.id === 'roof-skyline-pagodas');
   check('three skyline pagodas, at their classic spots and scales, far band', pagodas.length === 3 && pagodas.every((e, i) => e.layout.index === i &&
@@ -625,25 +645,41 @@ async function routingTest(mods, classic, mainAssets) {
   check('the treats stay classic (an id not swapped)', JSON.stringify(dyn.treats.map((o) => [at(o), plain(o.userData.pickup)])) === JSON.stringify(classic.dynamic.treats));
   const kitRoots = new Set([...boats.map((b) => b.rec.group), ...extras.map((e) => e.group)]);
   const isBatchGroup = (c) => c.children.some((o) => o.userData && o.userData.spatialBatch);
-  const otherRoots = aligned.filter((c) => !kitRoots.has(c) && !isBatchGroup(c));
-  const rootDiffer = otherRoots.filter((c) => JSON.stringify(d.root[root.children.indexOf(c)].slice(1)) !== JSON.stringify(classic.root[at(c)].slice(1))).map(at);
-  check('every other root child (ground, distant city, float, people, treats) is identical to the classic build', otherRoots.length > 0 && rootDiffer.length === 0,
-    `${otherRoots.length} compared; differ: ${rootDiffer.slice(0, 5).join(', ')}`);
-
-  const routedIdx = new Set([...routed, ...boatPieces].map(([, i]) => i));
   // Piece types a REGISTERED kit family provides, resolved modular in the main
   // run: they are real kit pieces there, so they may differ from this
   // stand-in build. Every other piece must still be identical.
   const { PIECES } = await import('../rooftops/js/pieces/index.js');
   const realKit = new Set(Object.keys(PIECES).filter((t) => mainAssets && mainAssets.has(PIECES[t].id) && mainAssets.setFor(PIECES[t].id) === 'modular'));
+  // Root children those pieces add (live kit groups in the main run; e.g. roof-villagers): exempt.
+  const realKitRoots = new Set();
+  B.level.pieces.forEach((pc, i) => { if (realKit.has(pc.type)) for (const { parent, child } of (B.per[i] || [])) if (parent === root) realKitRoots.add(child); });
+  // Likewise the treats, when roof-treats is a registered family id resolved modular in the main run.
+  if (mainAssets && mainAssets.has('roof-treats') && mainAssets.setFor('roof-treats') === 'modular') for (const o of dyn.treats || []) realKitRoots.add(o);
+  // The distant city (root child just before the first skyline pagoda), when roof-distant-city is a registered
+  // family id resolved modular in the main run: the main-run reference holds the kit city, this stand-in build the classic one.
+  if (mainAssets && mainAssets.has('roof-distant-city') && mainAssets.setFor('roof-distant-city') === 'modular' && pagodas.length) {
+    const ci = root.children.indexOf(pagodas[0].group) - 1;
+    if (ci >= 0 && !kitRoots.has(root.children[ci])) realKitRoots.add(root.children[ci]);
+  }
+  const otherRoots = aligned.filter((c) => !kitRoots.has(c) && !realKitRoots.has(c) && !isBatchGroup(c));
+  const rootDiffer = otherRoots.filter((c) => JSON.stringify(d.root[root.children.indexOf(c)].slice(1)) !== JSON.stringify(classic.root[at(c)].slice(1))).map(at);
+  check('every other root child (ground, distant city, float, people, treats) is identical to the classic build', otherRoots.length > 0 && rootDiffer.length === 0,
+    `${otherRoots.length} compared; differ: ${rootDiffer.slice(0, 5).join(', ')}`);
+
+  const routedIdx = new Set([...routed, ...boatPieces].map(([, i]) => i));
   const others = d.pieces.filter((row) => !routedIdx.has(row[0]) && !realKit.has(row[1]));
   const othersClassic = classic.pieces.filter((row) => !routedIdx.has(row[0]) && !realKit.has(row[1]));
   const differ = others.filter((row, i) => JSON.stringify(row) !== JSON.stringify(othersClassic[i])).map((row) => `#${row[0]} ${row[1]}`);
   check('every other piece is identical to the classic build', differ.length === 0, differ.slice(0, 5).join(', '));
   check('the routed pieces did change', [...routed, ...boatPieces].every(([, i]) => JSON.stringify(d.pieces[i]) !== JSON.stringify(classic.pieces[i])));
-  for (const sec of ['platforms', 'walls', 'ceilings', 'pickups', 'materials']) {
+  for (const sec of ['platforms', 'walls', 'ceilings', 'pickups']) {
     check(`${sec} identical to the classic build`, JSON.stringify(d[sec]) === JSON.stringify(classic[sec]));
   }
+  // A registered modular piece type may bring a material of its own (km.bag for the villagers):
+  // the main run may hold extra materials then, and every material of this build must be identical there.
+  const matSame = Object.keys(d.materials).every((k) => JSON.stringify(d.materials[k]) === JSON.stringify(classic.materials[k])) &&
+    (realKit.size > 0 || Object.keys(d.materials).length === Object.keys(classic.materials).length);
+  check('materials identical to the classic build', matSame);
   check('an unregistered ?swap id builds classic (roof-bridge)', runtime.setFor('roof-bridge') === 'modular' && !runtime.has('roof-bridge') &&
     !built.some((b) => b.layout.type === 'bridge') && !runtime.instances.some((x) => x.id === 'roof-bridge'));
   check('no kit warning while routing', warnings.length === 0, warnings.join('; '));

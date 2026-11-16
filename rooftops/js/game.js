@@ -48,16 +48,16 @@ scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnviron
 const level = buildLevel();
 const rail = level.rail;
 const runner = new Runner(level);
-const sky = new Sky(scene, renderer, { shadows, reduceMotion, lowPower, center: new THREE.Vector3(level.center.x, 0, level.center.z) });
 // The asset set switch (BUILD_GUIDE_FABLE §3.1), built as src/main.js builds
 // the game's: classic by default, ?assets=classic|modular|auto and ?swap= honoured,
 // the kit imported only when some id can resolve modular. Every piece is built
 // through it (build.js); with no Roof Road kit asset every piece stays classic.
 const assets = new AssetRuntime({ THREE, assetSet: 'classic', search: location.search, quality: lowPower ? 'low' : 'high' });
 await assets.preload();
+const sky = new Sky(scene, renderer, { shadows, reduceMotion, lowPower, assets, center: new THREE.Vector3(level.center.x, 0, level.center.z) });
 const world = buildWorld(level, { reduceMotion, lowPower, assets });
 scene.add(world.root);
-const atmosphere = new RooftopAtmosphere(scene, level, { reduceMotion, lowPower });
+const atmosphere = new RooftopAtmosphere(scene, level, { reduceMotion, lowPower, assets });
 
 // Every standard material, so the room environment can dim with the evening.
 const envMats = [];
@@ -93,7 +93,9 @@ async function loadCats() {
     catRoot.add(cat.group);
     catMod = mod;
     // Chidori: the same sculpt (cached), a smaller grey-and-white coat.
-    guide = new mod.Cat({ fur: 0x8f9095, belly: 0xf3f1ec, accent: 0x55575e, eyeColor: 0x9fd0a8, stripeAmount: 0.55, ribbonColor: 0x3a6fa8 });
+    const chidoriModular = assets.setFor('roof-chidori') === 'modular' && !lowPower;
+    const chidoriDef = chidoriModular ? (await import('../../src/characters/defs/chidori.js?v=20261114a')).CHIDORI : null;
+    guide = new mod.Cat(chidoriDef ? { def: chidoriDef, quality: 'high' } : { fur: 0x8f9095, belly: 0xf3f1ec, accent: 0x55575e, eyeColor: 0x9fd0a8, stripeAmount: 0.55, ribbonColor: 0x3a6fa8 });
     guide.group.scale.setScalar(0.86);
     guide.group.position.y = 0.02;
     guideRoot.add(guide.group);
