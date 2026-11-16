@@ -501,6 +501,12 @@
     body.rooftop-mode #edge-arrow,
     body.rooftop-mode .npc-nametag,
     body.rooftop-mode #prompt { display: none !important; }
+    /* The arrival hint on the roofs (controls + the way home): a toast that a
+       tap or click dismisses; large text and high contrast apply as to any toast. */
+    #toast-stack .roof-hint { pointer-events: auto; cursor: pointer; max-width: min(640px, 100%); }
+    /* "Leave the Roof Road" in the pause menu, only while on the roofs. */
+    #btn-leave-roofs { display: none; }
+    body.rooftop-mode #btn-leave-roofs { display: block; }
 
     /* Scenic view is the fully clean composition. Menus, recovery overlays,
        photo-mode feedback, and the visual vignette deliberately remain. */
@@ -919,6 +925,7 @@
       <h2 class="panel-title">一時停止<span>PAUSED</span></h2>
       <button id="btn-resume" class="menu-btn primary">▶ Resume</button>
       <button id="btn-pause-settings" class="menu-btn">⚙ Settings</button>
+      <button id="btn-leave-roofs" class="menu-btn">⛩ Leave the Roof Road</button>
       <button id="btn-save-quit" class="menu-btn">💾 Save & Quit to Title</button>
     </div>
   </div>

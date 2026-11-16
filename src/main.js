@@ -425,6 +425,14 @@ class Game {
     // leads to the run, a pocket scene of its own built on the first visit.
     // Nothing of the run loads before then (src/rooftops/manager.js).
     this.rooftops = new RooftopManager(this);
+    // The pause menu's "Leave the Roof Road" (shown only on the roofs): the
+    // normal way home, through the noren to the bridge.
+    const leaveRoofs = document.getElementById('btn-leave-roofs');
+    if (leaveRoofs) leaveRoofs.addEventListener('click', () => {
+      if (!this.rooftops.active || this.rooftops.transitioning) return;
+      this.menu.resume();
+      this.rooftops.exit();
+    });
 
     // Discovery journal (G1.4): keepsake memory of the valley, not a checklist.
     this.journal = {
@@ -1332,7 +1340,7 @@ class Game {
       // Shōki greeted (a 7-bit mask) and the finale. A save from before the
       // Roof Road has none of these keys and loads as it always did.
       if (data.worldFlags.rooftopsUnlocked) this.rooftops.setUnlocked(true, true);
-      if (Number.isFinite(data.worldFlags.rooftopShoki)) this.rooftops.shoki = data.worldFlags.rooftopShoki & 0x7f;
+      if (Number.isFinite(data.worldFlags.rooftopShoki)) this.rooftops.setShokiMask(data.worldFlags.rooftopShoki);
       if (data.worldFlags.rooftopFinished) this.rooftops.finished = true;
     }
     if (Array.isArray(data.restVisited)) {
@@ -1380,11 +1388,11 @@ class Game {
         : this.city.secretDoorSpawnPos;
       px = spawn ? spawn.x : 20; py = 0; pz = spawn ? spawn.z : 14.5;
     }
-    // 屋根道: never a pocket position (the run lives 2.4 km below the valley).
-    // On the Roof Road, or behind the noren on the way in or out, the save
-    // puts the cat on the bridge's south ramp, facing the valley.
-    const onRoof = !!(this.rooftops && (this.rooftops.active || this.rooftops.transitioning));
-    const back = onRoof ? this.rooftops.returnSpot : null;
+    // 屋根道: never a pocket position (the run lives 2.4 km below the valley)
+    // and never the Odoi gate. On the Roof Road, behind the noren on the way in
+    // or out, or standing in the gate, the save puts the cat on the bridge's
+    // south ramp, facing the valley (RooftopManager.saveSpot).
+    const back = this.rooftops ? this.rooftops.saveSpot(p.mesh.position) : null;
     if (back) { px = back.x; py = back.y; pz = back.z; }
     const safe = back ? { x: px, y: py, z: pz } : (this.safePos || { x: px, y: py, z: pz });
     const collected = [...this.collectedIds];
@@ -1747,7 +1755,7 @@ Quality  ${this.settings.resolveQuality()}`;
     this.audio.updateListener(this.camera);
     this.music.update(this.sky.dayTime);
     this.music.setDucked(!playing || this.dialogue.active);
-    if (this.music.setScene) this.music.setScene('Rooftops');
+    // The 'Rooftops' mood is set once per visit (RooftopManager.setActive).
     if (this.music.updateSwell) this.music.updateSwell(dt);
     this.applyCaptureCamera();
     const s = this.rooftops.pocket ? this.rooftops.pocket.state : null;

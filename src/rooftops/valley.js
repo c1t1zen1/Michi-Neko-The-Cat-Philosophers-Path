@@ -13,10 +13,11 @@
 // Countryside calls both (buildRiverAndBridge() and the end of its build). They
 // draw NOTHING from the valley's seeded stream: the Odoi has its own
 // mulberry32(0x0D01) and the posts draw no numbers at all, so every pre-existing
-// object, collider and rng draw of the valley is unchanged. Every material here
-// is the module's own (never one of Countryside's MAT entries), so
-// Countryside._mergeStatics() leaves these meshes alone: the giboshi glow, the
-// thicket parts and the lanterns kindle at runtime.
+// object, collider and rng draw of the valley is unchanged. Nothing here merges
+// into Countryside._mergeStatics(): the plain meshes use the module's own
+// materials (clones, never a MAT entry), and the bamboo culms, which do use
+// MAT.bambooGreen, are instanced (the merge skips instanced meshes). So the
+// giboshi glow, the thicket parts and the lanterns kindle at runtime.
 //
 // Both sets: the posts and the bank stand where the classic and the kit bridge
 // both have them (the kit bridge keeps the classic posts and rails), and are
@@ -24,7 +25,6 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { makeShoki } from '../../rooftops/js/pieces/pickups.js';
 import { createFoliageMaterial } from '../foliage.js?v=20261114a';
 import { BRIDGE_X, EAST_RAIL, POST_Z, ODOI } from './posts.js?v=20261114a';
 
@@ -81,6 +81,28 @@ function giboshiGeometry() {
 }
 
 /**
+ * The Roof Road's clay Shōki (rooftops/js/pieces/pickups.js makeShoki), copied
+ * here so the valley's build depends on no Roof Road module: a robed body, big
+ * head, tall hat and a sword held up. Same primitives, sizes and offsets.
+ */
+function makeShoki(M) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.11, 0.2, 8), M.clay);
+  body.position.y = 0.1;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.065, 10, 8), M.clay);
+  head.position.y = 0.25;
+  const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.09, 8), M.clay);
+  hat.position.y = 0.33;
+  const brim = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.012, 0.03), M.clay);
+  brim.position.y = 0.36;
+  const sword = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.22, 0.012), M.steel);
+  sword.position.set(0.09, 0.26, 0.02);
+  sword.rotation.z = -0.4;
+  g.add(body, head, hat, brim, sword);
+  return g;
+}
+
+/**
  * Fourteen caps (seven per railing) and the Shōki. The seven east caps keep a
  * material each so each can glow on its own; the west seven are one mesh.
  * Returns { group, caps: [{ mesh, material }], setGlow(i, v), shoki }.
@@ -113,8 +135,7 @@ export function buildSevenPosts(scene, MAT = {}) {
   west.castShadow = true;
   group.add(west);
 
-  // The Shōki: the Roof Road's own clay figure (rooftops/js/pieces/pickups.js),
-  // sitting on the outer edge of the east railing's south end and looking north
+  // The Shōki: the Roof Road's clay figure (makeShoki above), sitting on the outer edge of the east railing's south end and looking north
   // along it: the only hint, and a wordless one.
   const clay = new THREE.MeshStandardMaterial({ color: 0x9a6a4a, roughness: 0.9 });
   const steel = new THREE.MeshStandardMaterial({ color: 0x9ea3a8, roughness: 0.35, metalness: 0.7 });

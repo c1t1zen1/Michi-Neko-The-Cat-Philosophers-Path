@@ -40,13 +40,28 @@ const classList = () => {
 };
 const veil = { classList: classList(), offsetWidth: 0 };
 veil.classList.add('hidden');
+/** A DOM element stub, enough for the arrival hint in #toast-stack. */
+const element = () => {
+  const el = {
+    classList: classList(), attrs: {}, listeners: {}, parentNode: null, textContent: '', title: '', className: '',
+    setAttribute(k, v) { this.attrs[k] = v; },
+    addEventListener(t, fn) { this.listeners[t] = fn; },
+    remove() { if (this.parentNode) this.parentNode.children.splice(this.parentNode.children.indexOf(this), 1); this.parentNode = null; }
+  };
+  return el;
+};
+const toastStack = { children: [], appendChild(el) { el.parentNode = this; this.children.push(el); return el; } };
 globalThis.document = {
   body: { classList: classList() },
-  getElementById: (id) => (id === 'rooftop-transition' ? veil : null)
+  createElement: () => element(),
+  getElementById: (id) => (id === 'rooftop-transition' ? veil : id === 'toast-stack' ? toastStack : null)
 };
 
 const posts = await mod('src/rooftops/posts.js');
-const { RooftopManager, ROOFTOP_ORIGIN, SHOKI_COUNT } = await mod('src/rooftops/manager.js');
+const { RooftopManager, ROOFTOP_ORIGIN, SHOKI_COUNT, CONTROLS_HINT } = await mod('src/rooftops/manager.js');
+// The run as built (the Roof Road's own level module, pure): its Shōki are the save mask's bits.
+const { buildLevel } = await import(pathToFileURL(join(ROOT, 'rooftops/js/level.js')).href);
+const LEVEL_SHOKI = buildLevel().pickups.filter((k) => k.kind === 'shoki');
 const { SevenPosts, POST_Z, EAST_RAIL, ODOI_GATE, ODOI_RETURN, inOdoiGate, onEastRail } = posts;
 
 /* ---------------- the Seven Posts state machine ---------------- */
@@ -95,7 +110,9 @@ const walk = (sp, z0, z1, x = EAST_RAIL.x, y = EAST_RAIL.top, step = 0.05) => {
 }
 ok('seven posts, north to south, on the bridge (local z -4 … 4)', POST_Z.length === 7 && POST_Z[0] === 26.5 && POST_Z[6] === 34.5);
 ok('the gate zone is at the foot of the south ramp, the return spot outside it',
-  inOdoiGate({ x: -1, y: 0.35, z: 36.6 }) && !inOdoiGate(ODOI_RETURN) && !inOdoiGate({ x: -1, y: 1.66, z: 36.6 }) && ODOI_GATE.z > 34.7 + 1);
+  inOdoiGate({ x: 0.2, y: 0.35, z: 36.6 }) && !inOdoiGate(ODOI_RETURN) && !inOdoiGate({ x: 0.2, y: 1.66, z: 36.6 }) && ODOI_GATE.z > 34.7 + 1);
+ok('the gate is the gap (x -0.45…1.15), not the whole ramp foot: walking down the ramp axis does not pull the cat in',
+  !inOdoiGate({ x: -1, y: 0.35, z: 36.6 }) && !inOdoiGate({ x: -1.6, y: 0.35, z: 36.6 }) && inOdoiGate({ x: -0.6, y: 0.35, z: 36.6 }) && inOdoiGate({ x: 0.9, y: 0.35, z: 36.6 }));
 
 /* ---------------- the game stub ---------------- */
 const V = (x = 0, y = 0, z = 0) => ({
@@ -118,7 +135,7 @@ function makeGame() {
     contextActions: { hideAllPrompts() {} },
     ui: { showToast: (m) => log.toasts.push(m) },
     audio: { playBell: () => log.bells++, playDreamChime: () => log.chimes++, initialized: false },
-    music: { swell: () => log.swells++ },
+    music: { swell: () => log.swells++, scenes: [], setScene(n) { this.scenes.push(n); } },
     progression: { addXP: (n, why) => log.xp.push([n, why]) },
     city: {
       setOdoiThicketOpen: (t) => log.thicket.push(t),
@@ -176,7 +193,9 @@ section('RooftopManager: the Seven Posts unlock');
   const m = new RooftopManager(g, { loadPocket, timers });
   ok('starts locked, inactive, not loaded; origin 2.4 km below the valley',
     !m.unlocked && !m.active && !m.transitioning && loads === 0 && !m.pocket && ROOFTOP_ORIGIN.y === -2400);
-  ok('seven Shōki in the save mask', SHOKI_COUNT === 7);
+  ok('the save mask is as wide as the run has Shōki (level ids 1…N)', SHOKI_COUNT === LEVEL_SHOKI.length &&
+    LEVEL_SHOKI.every((k) => k.id >= 1 && k.id <= SHOKI_COUNT) && new Set(LEVEL_SHOKI.map((k) => k.id)).size === LEVEL_SHOKI.length,
+    `level ${LEVEL_SHOKI.length} (${LEVEL_SHOKI.map((k) => k.id)}), mask ${SHOKI_COUNT}`);
   const p = g.player.mesh.position;
   // walk three posts, step off
   for (let z = EAST_RAIL.z0 + 0.05; z <= POST_Z[2] + 0.1; z += 0.05) { p.set(EAST_RAIL.x, EAST_RAIL.top, z); m.update(1 / 60, true); }
@@ -207,7 +226,9 @@ section('RooftopManager: the Seven Posts unlock');
   ok('the Odoi thicket leans apart over ~3 s (monotonic, ends at 1)',
     g.log.thicket.length > n0 && mid > 0 && mid < 1 && last === 1 &&
     g.log.thicket.every((v, i, a) => i === 0 || v >= a[i - 1]), `mid=${mid} last=${last}`);
-  ok('the caps settle to a soft glow once unlocked', g.log.glow.every((v) => Math.abs(v - 0.5) < 0.05), JSON.stringify(g.log.glow));
+  ok('all seven caps ring warm while the thicket parts (the seventh too)', g.log.glow.every((v) => v > 0.75), JSON.stringify(g.log.glow));
+  tick(m, 5, true);
+  ok('…then settle to a soft glow', g.log.glow.every((v) => Math.abs(v - 0.5) < 0.05), JSON.stringify(g.log.glow));
 
   /* ---------------- enter ---------------- */
   section('RooftopManager: through the noren');
@@ -221,11 +242,18 @@ section('RooftopManager: the Seven Posts unlock');
   await timers.run();
   ok('behind the veil: active, the pocket built once, attached and started with the saved Shōki mask',
     m.active && pocketLog.built === 1 && pocketLog.attach === 1 && pocketLog.starts.length === 1 && pocketLog.starts[0].shoki === 0);
-  ok('the veil parts and clears, input comes back, a toast and a save',
-    veil.classList.contains('hidden') && !veil.classList.contains('show') && !m.transitioning && g.controls.enabled && !g.player.actionLocked &&
-    g.log.toasts.some((t) => /Through the noren/.test(t)));
+  ok('the veil parts and clears, input comes back, a save',
+    veil.classList.contains('hidden') && !veil.classList.contains('show') && !m.transitioning && g.controls.enabled && !g.player.actionLocked && g.log.saves > 0);
   ok('rooftop-mode on the body; the manager renders and owns the camera',
     document.body.classList.contains('rooftop-mode') && m.rendering && m.cameraActive);
+  const hint = toastStack.children.find((el) => /roof-hint/.test(el.className));
+  ok('on arrival, one hint in the toast stack: the controls and the way home', !!hint && hint.textContent === CONTROLS_HINT &&
+    /walk back over the bridge to go home/.test(hint.textContent) && /toast-item/.test(hint.className) &&
+    toastStack.children.filter((el) => /roof-hint/.test(el.className)).length === 1);
+  hint.listeners.pointerdown();
+  ok('…a tap or click dismisses it', hint.classList.contains('leaving'));
+  ok('the Rooftops music mood is set once on arrival, not every frame', g.music.scenes.filter((n) => n === 'Rooftops').length === 1);
+  ok('a save on the roofs writes the bridge (saveSpot)', m.saveSpot({ x: -100, y: 4, z: -50 }) === ODOI_RETURN);
 
   /* ---------------- input mapping ---------------- */
   section('RooftopManager: the game controls → the runner');
@@ -281,6 +309,11 @@ section('RooftopManager: the Seven Posts unlock');
     g.journal.keepsakes.some((e) => e.id === 'roof-shoki-1') && g.log.xp.some(([n, w]) => n === 10 && /Shōki/.test(w)) && g.log.saves > saves0);
   ok('Shōki 7 sets bit 6', m.onShoki(7, null) && m.shoki === (1 | 64) && m.greeted === 2);
   ok('a Shōki greeted twice counts once', !m.onShoki(1, null) && m.shoki === 65 && g.journal.keepsakes.length === 2);
+  ok('a Shōki past the mask is journaled once and never aliased onto another bit',
+    m.onShoki(SHOKI_COUNT + 1, null) && m.shoki === 65 && !m.onShoki(SHOKI_COUNT + 1, null) && g.journal.keepsakes.length === 3);
+  m.setShokiMask(0xffff);
+  ok('a restored mask keeps only the run\'s bits', m.shoki === (1 << SHOKI_COUNT) - 1);
+  m.setShokiMask(65);
   const xp0 = g.log.xp.length;
   m.onFinale();
   ok('the finale: rooftopFinished, a quiet moment, XP once', m.finished && g.journal.quietMoments.some((e) => e.id === 'roof-road-okuribi') && g.log.xp.length === xp0 + 1);
@@ -324,17 +357,119 @@ section('RooftopManager: locked gate, a save restored, a failed build');
   ok('restore (silent): unlocked, the thicket open at once, caps warm, no toast / journal / XP / save',
     m.unlocked && g.log.thicket[g.log.thicket.length - 1] === 1 && g.log.glow.every((v) => v === 0.5) &&
     g.log.toasts.length === 0 && g.journal.places.length === 0 && g.log.xp.length === 0 && g.log.saves === 0);
+  m.update(1 / 60, true);
+  ok('a cat that was in the gate all along (never seen outside) does not trigger it', !m.transitioning && !m.active);
+  g.player.mesh.position.set(-1, 1.08, 30);
+  m.update(1 / 60, true);
+  g.player.mesh.position.set(-0.5, 0.35, 36.6);
   failNext = true;
+  const errs = [], err0 = console.error;
+  console.error = (...a) => errs.push(a.map(String).join(' '));
+  try { m.update(1 / 60, true); await timers.run(); } finally { console.error = err0; }
+  ok('a failed build: back on the bridge (outside the gate), input returned, one calm line, the error logged once',
+    !m.active && !m.transitioning && g.controls.enabled && !inOdoiGate(g.player.mesh.position) &&
+    g.log.toasts.filter((t) => /not ready/.test(t)).length === 1 && errs.length === 1, JSON.stringify(errs));
+  m.update(1 / 60, true);                           // a frame on the bridge, outside the gate: armed
+  g.player.mesh.position.set(-0.5, 0.35, 36.6);
   m.update(1 / 60, true);
   await timers.run();
-  ok('a failed build: back in the valley, input returned, a calm toast', !m.active && !m.transitioning && g.controls.enabled &&
-    g.log.toasts.some((t) => /not ready/.test(t)));
+  ok('…and the next walk into the gap builds it', m.active && !!m.pocket);
+
+  /* quit to title in the middle of a veil (review r1, Minor 1) */
+  m.exitImmediate();
+  g.player.mesh.position.set(-1, 1.08, 30);
+  m.update(1 / 60, true);
+  g.player.mesh.position.set(-0.5, 0.35, 36.6);
+  m.update(1 / 60, true);
+  ok('an enter is under way', m.transitioning && !m.active);
+  m.exitImmediate();
+  g.controls.enabled = false;                       // what quitToTitle does next
+  await timers.run();
+  ok('exitImmediate cancels a pending enter: nothing fires on the title screen', !m.active && !m.transitioning && !g.controls.enabled &&
+    veil.classList.contains('hidden') && !veil.classList.contains('show'));
+  g.controls.enabled = true;
   g.player.mesh.position.set(-1, 1.08, 30);
   m.update(1 / 60, true);
   g.player.mesh.position.set(-0.5, 0.35, 36.6);
   m.update(1 / 60, true);
   await timers.run();
-  ok('…and the next try builds it', m.active && !!m.pocket);
+  m.onLeave();
+  ok('an exit is under way', m.transitioning && m.active);
+  m.exitImmediate();
+  g.controls.enabled = false;
+  await timers.run();
+  ok('exitImmediate cancels a pending exit too', !m.active && !m.transitioning && !g.controls.enabled && veil.classList.contains('hidden'));
+}
+
+/* ---------------- a build that keeps failing, a cat that does not move (review r1, Important 1) ---------------- */
+section('RooftopManager: a pocket that never builds (no soft-lock at the gate)');
+{
+  // Timers on a stepped clock: callbacks fire when the frame time reaches them, as setTimeout would.
+  const clock = {
+    now: 0, queue: [],
+    set(fn, ms) { this.queue.push({ fn, at: this.now + ms }); },
+    async advance(dt) {
+      this.now += dt * 1000;
+      for (;;) {
+        const due = this.queue.filter((q) => q.at <= this.now).sort((a, b) => a.at - b.at)[0];
+        if (!due) break;
+        this.queue.splice(this.queue.indexOf(due), 1);
+        await due.fn();
+        await new Promise((r) => setImmediate(r));
+      }
+    }
+  };
+  let attempts = 0;
+  const alwaysFails = async () => { attempts++; throw new Error('stub: the run cannot be built'); };
+  const g = makeGame();
+  const m = new RooftopManager(g, { loadPocket: alwaysFails, timers: clock });
+  // What main.js saveGame() persists: the manager's spot when it names one, the cat's position otherwise.
+  const saved = [];
+  g.saveGame = () => {
+    const pos = g.player.mesh.position;
+    const spot = typeof m.saveSpot === 'function' ? m.saveSpot(pos) : ((m.active || m.transitioning) ? m.returnSpot : null);
+    saved.push(spot ? { x: spot.x, y: spot.y, z: spot.z } : { x: pos.x, y: pos.y, z: pos.z });
+    g.log.saves++;
+  };
+  m.setUnlocked(true, true);
+  const p = g.player.mesh.position;
+  p.set(-1, 1.08, 30);                 // seen outside the gate first (on the deck)
+  m.update(1 / 60, true);
+  p.set(0.2, 0.35, 36.7);              // one walk into the gap; from here the cat never moves by itself
+  const errors = [];
+  const err0 = console.error;
+  console.error = (...a) => errors.push(a.map(String).join(' '));
+  let lockedFrames = 0, frames = 0;
+  try {
+    for (let t = 0; t < 20; t += 1 / 60) {
+      m.update(1 / 60, true);
+      await clock.advance(1 / 60);
+      frames++;
+      if (!g.controls.enabled) lockedFrames++;
+    }
+  } finally { console.error = err0; }
+  ok('one gate entry, at most one enter attempt (a failing build is not retried in a loop)', attempts <= 1, `attempts=${attempts}`);
+  ok('…the failure is logged once', errors.length === attempts && errors.every((e) => /could not be built/.test(e)), JSON.stringify(errors).slice(0, 160));
+  ok('control comes back and stays (no veil cycle)', lockedFrames < 2.2 * 60 && g.controls.enabled && !g.player.actionLocked && !m.transitioning && !m.active,
+    `locked ${lockedFrames} of ${frames} frames`);
+  ok('the cat is put back on the bridge, outside the gate', !inOdoiGate(p) && p.z === ODOI_RETURN.z, JSON.stringify(p));
+  ok('one soft message, no stack in the game', g.log.toasts.filter((t) => /not ready|lanes/.test(t)).length === 1);
+  ok('every save is outside the gate', saved.length > 0 && saved.every((q) => !inOdoiGate(q)), JSON.stringify(saved.slice(0, 3)));
+  // The gate re-arms only once the cat has left it: a cat placed straight into it does nothing.
+  const g2 = makeGame();
+  let tries2 = 0;
+  const m2 = new RooftopManager(g2, { loadPocket: async () => { tries2++; return StubPocket; }, timers: clock });
+  m2.setUnlocked(true, true);
+  g2.player.mesh.position.set(0.2, 0.35, 36.7);      // e.g. a reload that somehow landed in the gap
+  for (let i = 0; i < 30; i++) { m2.update(1 / 60, true); await clock.advance(1 / 60); }
+  ok('a cat that starts inside the gate does not trigger it (armed only after leaving)', tries2 === 0 && !m2.transitioning && !m2.active);
+  ok('…and a save made there writes the bridge, not the gate', typeof m2.saveSpot === 'function' && m2.saveSpot(g2.player.mesh.position) === ODOI_RETURN);
+  g2.player.mesh.position.set(-1, 1.08, 30);
+  m2.update(1 / 60, true);
+  g2.player.mesh.position.set(0.2, 0.35, 36.7);
+  m2.update(1 / 60, true);
+  ok('…walking out and back in opens it', m2.transitioning && tries2 === 1);
+  for (let i = 0; i < 180; i++) await clock.advance(1 / 60);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

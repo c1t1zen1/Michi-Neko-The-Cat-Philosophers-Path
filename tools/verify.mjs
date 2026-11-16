@@ -158,6 +158,7 @@ function rooftopChecks(m) {
   const pocket = read('src/rooftops/pocket.js');
   const valley = read('src/rooftops/valley.js');
   const posts = read('src/rooftops/posts.js');
+  const runview = read('rooftops/js/runview.js');
   const city = read('src/countryside.js');
   const roofDir = join(ROOT, 'src', 'rooftops');
   const roofAll = readdirSync(roofDir).filter((f) => f.endsWith('.js')).sort().map((f) => [f, read('src/rooftops/' + f)]);
@@ -180,16 +181,23 @@ function rooftopChecks(m) {
     ['the Roof Road owns the frame while active', /if \(this\.rooftops && this\.rooftops\.active\) \{\s*this\.updateRooftops\(dt, playing\);\s*return;/.test(m)],
     ['Player.update is skipped on the roofs', updateRooftops.length > 0 && !/this\.player\.update\(/.test(updateRooftops) && /this\.rooftops\.update\(dt, playing\)/.test(updateRooftops)],
     ['valley prompts suppressed on the roofs', /hideAllPrompts\(\)/.test(updateRooftops)],
-    ['music switches to the Rooftops mood', /this\.music\.setScene\('Rooftops'\)/.test(updateRooftops)],
+    ['music switches to the Rooftops mood once per visit (not every frame)',
+      /g\.music\.setScene\('Rooftops'\)/.test(body(mgr, '  setActive(on) {')) && !/setScene\(/.test(updateRooftops)],
     ['the pocket renders instead of the composer', /if \(this\.rooftops && this\.rooftops\.rendering\) this\.rooftops\.render\(\);\s*else this\.composer\.render\(\);/.test(m)],
     ['rooftop unlock is saved', /rooftopsUnlocked: this\.rooftops\.unlocked/.test(m)],
     ['rooftop Shōki mask is saved', /rooftopShoki: this\.rooftops\.shoki/.test(m)],
     ['rooftop finale is saved', /rooftopFinished: this\.rooftops\.finished/.test(m)],
-    ['save never persists the rooftop pocket',
-      /const onRoof = !!\(this\.rooftops && \(this\.rooftops\.active \|\| this\.rooftops\.transitioning\)\)/.test(m) &&
-      /if \(back\) \{ px = back\.x; py = back\.y; pz = back\.z; \}/.test(m)],
+    ['save never persists the rooftop pocket or the Odoi gate',
+      /const back = this\.rooftops \? this\.rooftops\.saveSpot\(p\.mesh\.position\) : null;/.test(m) &&
+      /if \(back\) \{ px = back\.x; py = back\.y; pz = back\.z; \}/.test(m) &&
+      /if \(this\.active \|\| this\.transitioning \|\| \(pos && inOdoiGate\(pos\)\)\) return ODOI_RETURN;/.test(mgr)],
+    ['a failed enter puts the cat back on the bridge, the gate re-arms only after leaving',
+      /\} else \{[\s\S]{0,240}this\.placeOnBridge\(\);/.test(body(mgr, '  enter() {')) && /this\._gateArmed/.test(body(mgr, '  update(dt, playing) {'))],
+    ['exitImmediate cancels pending veil callbacks', /this\._gen\+\+/.test(body(mgr, '  exitImmediate() {')) && (body(mgr, '  enter() {').match(/gen !== this\._gen/g) || []).length === 2],
+    ['the pause menu can leave the roofs (the normal exit)', /getElementById\('btn-leave-roofs'\)[\s\S]{0,300}this\.rooftops\.exit\(\)/.test(m)],
+    ['the arrival hint names the controls and the way home', /walk back over the bridge to go home/.test(mgr) && /showControlsHint\(\)/.test(body(mgr, '  enter() {'))],
     ['rooftop unlock restored silently', /worldFlags\.rooftopsUnlocked\) this\.rooftops\.setUnlocked\(true, true\)/.test(m)],
-    ['rooftop Shōki mask restored (7 bits)', /worldFlags\.rooftopShoki\)\) this\.rooftops\.shoki = data\.worldFlags\.rooftopShoki & 0x7f/.test(m)],
+    ['rooftop Shōki mask restored (the run\'s bits only)', /this\.rooftops\.setShokiMask\(data\.worldFlags\.rooftopShoki\)/.test(m)],
     ['rooftop finale restored', /worldFlags\.rooftopFinished\) this\.rooftops\.finished = true/.test(m)],
     ['quit to title leaves the roofs', /quitToTitle\(\) \{[\s\S]{0,250}this\.rooftops\.exitImmediate\(\)/.test(m)],
     ['the pocket loads only on the first enter (dynamic import)',
@@ -198,7 +206,11 @@ function rooftopChecks(m) {
     ['pocket origin 2.4 km below the valley', /ROOFTOP_ORIGIN = Object\.freeze\(\{ x: 0, y: -2400, z: 0 \}\)/.test(mgr)],
     ['noren veil driven by the manager', /getElementById\('rooftop-transition'\)/.test(mgr) && !/summit-transition/.test(mgr)],
     ['pocket: the runtime is preloaded before the Sky (r4b order)', /await this\.assets\.preload\(\);[\s\S]{0,600}new Sky\(this\.root, this\.exposure, \{[\s\S]{0,200}assets: this\.assets/.test(pocket)],
-    ['pocket: the sky follows the run (progress), night at the finale', /const prog = this\.finale \? 1 : clamp\(r\.s \/ this\.level\.length, 0, 1\)/.test(pocket)],
+    ['run view: the sky follows the run (progress), night at the finale', /const prog = this\.finale \? 1 : \(this\.fixedPhase !== null \? this\.fixedPhase : clamp\(runner\.s \/ this\.level\.length, 0, 1\)\)/.test(runview)],
+    ['R80: the pocket uses the shared run view, no copy of the camera / Chidori / finale',
+      /import \{ RunView \} from '\.\/runview\.js\?v=/.test(pocket) && read('src/rooftops/runview.js').includes("export * from '../../rooftops/js/runview.js';") &&
+      !/\n  (updateCamera|updateChidori|stepOffHeight|beginStepOff|checkPickups|checkProgress|startFinale|updateFinale|stepPhysics)\(/.test(pocket)],
+    ['run view: the finale mouth comes from the level, not an index', /export function finaleMouth\(level\)/.test(runview) && !/mouths\[[1-9]\d*\]/.test(runview)],
     ['Countryside builds the Seven Posts and the Odoi', /this\.sevenPosts = buildSevenPosts\(this\.scene, MAT\)/.test(city) && /this\.odoi = buildOdoiThicket\(this, MAT\)/.test(city)],
     ['setOdoiThicketOpen() and setSevenPostGlow() on Countryside', /\n  setOdoiThicketOpen\(t\) \{/.test(city) && /\n  setSevenPostGlow\(i, v\) \{/.test(city)],
     ['the Odoi draws its own mulberry32(0x0D01), never the valley stream',

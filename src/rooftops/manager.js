@@ -32,8 +32,17 @@
 import { SevenPosts, PENTATONIC, POST_Z, inOdoiGate, ODOI_RETURN } from './posts.js?v=20261114a';
 
 export const ROOFTOP_ORIGIN = Object.freeze({ x: 0, y: -2400, z: 0 });
-/** The Shōki of the run as built (rooftops/js/level.js pickups): the save's bit mask width. */
+/**
+ * The Shōki of the run as built (rooftops/js/level.js pickups, ids 1…7): the
+ * save's bit mask width. tools/rooftop_manager_test.mjs checks it against the
+ * level; a Shōki with a larger id is greeted and journaled but has no bit
+ * (never aliased onto another), until this widens.
+ */
 export const SHOKI_COUNT = 7;
+const SHOKI_MASK = (1 << SHOKI_COUNT) - 1;
+/** The arrival hint (review r1): the run's controls and the way home, once per visit. */
+export const CONTROLS_HINT = '← → run · Space jump · ↓ drop · R last lantern · walk back over the bridge to go home';
+export const CONTROLS_HINT_TOUCH = 'stick ← → run · jump button · stick ↓ drop · walk back over the bridge to go home';
 /** "The bamboo leans apart over about 3 s" (spec §4). */
 const THICKET_SECONDS = 3;
 /** The noren veil: sweep in, then the swap happens behind it, then sweep out. */
@@ -68,6 +77,12 @@ export class RooftopManager {
     this._timers = timers || { set: (fn, ms) => setTimeout(fn, ms) };
     this._input = { jumpWas: false, downWas: false, resetWas: false, touchJumpT: 0 };
     this.time = 0;
+    // The gate fires once per walk into it: armed only after the cat has been
+    // seen outside it (a reload, a failed build or a return never lands in it armed).
+    this._gateArmed = false;
+    // Bumped by every transition and by exitImmediate(): a veil callback from an
+    // older transition (quit to title mid-veil) does nothing.
+    this._gen = 0;
   }
 
   /** The pocket draws the frame (main.js loop) and owns the camera while it is up. */
@@ -76,6 +91,20 @@ export class RooftopManager {
   /** Where a save made on (or into) the Roof Road puts the cat: the bridge's south ramp. */
   get returnSpot() { return ODOI_RETURN; }
   get greeted() { let n = 0; for (let i = 0; i < SHOKI_COUNT; i++) if (this.shoki & (1 << i)) n++; return n; }
+
+  /** The saved Shōki mask, restored (bits past the run's Shōki dropped). */
+  setShokiMask(v) { this.shoki = (Number(v) | 0) & SHOKI_MASK; }
+
+  /**
+   * What main.js saveGame() writes instead of the cat's position: the return
+   * spot on the roofs, behind either veil, or with the cat standing in the
+   * Odoi gate; null otherwise (save the cat where it is). Never the pocket,
+   * never the gate.
+   */
+  saveSpot(pos) {
+    if (this.active || this.transitioning || (pos && inOdoiGate(pos))) return ODOI_RETURN;
+    return null;
+  }
 
   /* ================= Unlock ================= */
 
@@ -90,7 +119,8 @@ export class RooftopManager {
     const g = this.game;
     if (!on) return;
     this.posts.complete = true;
-    for (let i = 0; i < this.glowTarget.length; i++) this.glowTarget[i] = 0.5;
+    // All seven ring warm while the thicket parts, then settle (update()).
+    for (let i = 0; i < this.glowTarget.length; i++) this.glowTarget[i] = silent ? 0.5 : 1;
     if (silent) {
       this._thicketOpen = 1;
       for (let i = 0; i < this.glow.length; i++) this.glow[i] = 0.5;
@@ -165,10 +195,18 @@ export class RooftopManager {
     return this._pocketPromise;
   }
 
+  _hideVeil(veil) {
+    if (!veil) return;
+    veil.classList.remove('show', 'out');
+    veil.classList.add('hidden');
+  }
+
   /** The cat walked into the open gap: the noren sweeps across, the run begins behind it. */
   enter() {
     if (this.transitioning || this.active || !this.unlocked) return;
     this.transitioning = true;
+    this._gateArmed = false;
+    const gen = ++this._gen;
     const g = this.game;
     this._lock(true);
     if (g.dialogue && g.dialogue.active) g.dialogue.close();
@@ -176,49 +214,53 @@ export class RooftopManager {
     const veil = this._veil();
     if (veil) this._showVeil(veil);
     const building = this.ensurePocket();
+    building.catch(() => {});        // handled below, behind the veil
     this._timers.set(async () => {
       let ok = true;
       try { await building; } catch (e) {
         ok = false;
-        console.error('[rooftops] the Roof Road could not be built', e);
+        console.error('[rooftops] the Roof Road could not be built:', e && e.message ? e.message : e);
       }
+      if (gen !== this._gen) return;               // cancelled (quit to title)
       if (ok) {
         this.setActive(true);
         this.pocket.start({ shoki: this.shoki });
+      } else {
+        // No soft-lock: back on the bridge, outside the gate, which re-arms only
+        // once the cat has been outside it; one calm line, nothing to retry.
+        this.placeOnBridge();
       }
       if (veil) veil.classList.add('out');
       this._timers.set(() => {
-        if (veil) {
-          veil.classList.remove('show', 'out');
-          veil.classList.add('hidden');
-        }
+        if (gen !== this._gen) return;
+        this._hideVeil(veil);
         this.transitioning = false;
         this._lock(false);
-        if (g.ui) g.ui.showToast(ok ? 'Through the noren — the roofs of rakuchū, the old city.'
-          : 'The lanes beyond the noren are not ready yet. The bridge waits.', 4200);
+        if (ok) this.showControlsHint();
+        else if (g.ui) g.ui.showToast('The lanes beyond the noren are not ready. You are back on the bridge.', 4200);
         if (g.saveGame) g.saveGame();
       }, VEIL_OUT_MS);
     }, VEIL_IN_MS);
   }
 
-  /** Back through the noren to the bridge's south ramp (the lantern after the finale, or the bridge's end). */
+  /** Back through the noren to the bridge's south ramp (the lantern after the finale, the bridge's end, the pause menu). */
   exit() {
     if (this.transitioning || !this.active) return;
     this.transitioning = true;
+    const gen = ++this._gen;
     const g = this.game;
     this._lock(true);
     if (g.audio && g.audio.playDreamChime) g.audio.playDreamChime();
     const veil = this._veil();
     if (veil) this._showVeil(veil);
     this._timers.set(() => {
+      if (gen !== this._gen) return;
       this.setActive(false);
       this.placeOnBridge();
       if (veil) veil.classList.add('out');
       this._timers.set(() => {
-        if (veil) {
-          veil.classList.remove('show', 'out');
-          veil.classList.add('hidden');
-        }
+        if (gen !== this._gen) return;
+        this._hideVeil(veil);
         this.transitioning = false;
         this._lock(false);
         if (g.ui) g.ui.showToast('You pad back through the noren. The river sounds just as it did.', 3600);
@@ -227,13 +269,46 @@ export class RooftopManager {
     }, VEIL_IN_MS);
   }
 
-  /** No veil: leave at once (quit to title, a context loss). */
+  /**
+   * No veil: leave at once (quit to title, a context loss). Cancels a pending
+   * enter or exit too, so no veil callback fires on the title screen.
+   */
   exitImmediate() {
-    if (!this.active) return;
-    this.setActive(false);
+    if (!this.active && !this.transitioning) return;
+    this._gen++;
+    if (this.active) this.setActive(false);
     this.placeOnBridge();
+    this._hideVeil(this._veil());
     this.transitioning = false;
     this._lock(false);
+  }
+
+  /**
+   * The arrival hint: the run's controls and the way home, in the game's toast
+   * style (so large text and high contrast apply), tap or click to dismiss.
+   * On each arrival until the finale has been reached once.
+   */
+  showControlsHint() {
+    if (this.finished || typeof document === 'undefined') return;
+    const stack = document.getElementById('toast-stack');
+    if (!stack || !document.createElement) return;
+    const touch = !!(this.game.controls && this.game.controls.isMobile);
+    const el = document.createElement('div');
+    el.className = 'toast-item roof-hint';
+    el.setAttribute('role', 'status');
+    el.title = 'Tap to dismiss';
+    el.textContent = touch ? CONTROLS_HINT_TOUCH : CONTROLS_HINT;
+    const dismiss = () => {
+      if (!el.parentNode || el.classList.contains('leaving')) return;
+      el.classList.add('leaving');
+      setTimeout(() => el.remove(), 400);
+    };
+    el.addEventListener('pointerdown', dismiss);
+    stack.appendChild(el);
+    const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (fn) => setTimeout(fn, 16);
+    raf(() => raf(() => el.classList.add('show')));
+    setTimeout(dismiss, 9000);
+    this.hintEl = el;
   }
 
   /** The return spot: the bridge's south ramp, facing north over the river. */
@@ -263,6 +338,9 @@ export class RooftopManager {
       if (g.dialogue && g.dialogue.active) g.dialogue.close();
       if (g.contextActions && g.contextActions.hideAllPrompts) g.contextActions.hideAllPrompts();
       if (g.photoMode && g.togglePhotoMode) g.togglePhotoMode();
+      // Once per visit (not every frame): the valley's per-frame setScene puts
+      // its own mood back on the way home.
+      if (g.music && g.music.setScene) g.music.setScene('Rooftops');
       this.pocket.attach();
     } else {
       this.pocket.detach();
@@ -276,10 +354,11 @@ export class RooftopManager {
 
   /** A Shōki on the roofs was greeted (id 1 … 7). Each is a keepsake. */
   onShoki(id, mouth) {
-    const bit = 1 << ((id - 1) % SHOKI_COUNT);
-    if (this.shoki & bit) return false;
-    this.shoki |= bit;
+    const inMask = id >= 1 && id <= SHOKI_COUNT;
+    const bit = inMask ? 1 << (id - 1) : 0;
     const g = this.game;
+    if (inMask ? (this.shoki & bit) : (g.journal && (g.journal.keepsakes || []).some((e) => e.id === `roof-shoki-${id}`))) return false;
+    this.shoki |= bit;
     const n = this.greeted;
     if (g.progression) g.progression.addXP(10, 'Greeted a Shōki on the roofs');
     if (g.discover) {
@@ -378,14 +457,18 @@ export class RooftopManager {
     }
     if (changed) this._applyGlow();
 
+    // The gate fires on a walk INTO it: armed once the cat is seen outside.
+    const inGate = !!pos && inOdoiGate(pos);
+    if (pos && !inGate && !this.transitioning) this._gateArmed = true;
     if (!this.unlocked) return;
-    // The thicket leans apart over ~3 s, one way.
+    // The thicket leans apart over ~3 s, one way; the caps settle once it has.
     if (this._thicketOpen < 1) {
       this._thicketOpen = Math.min(1, this._thicketOpen + dt / THICKET_SECONDS);
       if (g.city && g.city.setOdoiThicketOpen) g.city.setOdoiThicketOpen(smoothstep(this._thicketOpen));
+      if (this._thicketOpen >= 1) this.glowTarget.fill(0.5);
     }
     // Walking into the open gap.
-    if (playing && !this.transitioning && this._thicketOpen >= 1 && pos && inOdoiGate(pos)) this.enter();
+    if (playing && !this.transitioning && this._thicketOpen >= 1 && inGate && this._gateArmed) this.enter();
   }
 
   /** main.js loop(): draw the pocket instead of the valley's composer. */

@@ -38,10 +38,12 @@ export const ODOI = Object.freeze({
 });
 /**
  * Walking into the open gap starts the noren veil: the cat at the foot of the
- * south ramp (it ends at z = 37.3; the forest stops a cat at z ≈ 36.7), anywhere
- * across the ramp's width, on the ground (not on a kerb or a jump).
+ * south ramp (it ends at z = 37.3; the forest stops a cat at z ≈ 36.7) in
+ * front of the gap (x -0.45…1.15, a little slack on its west side), on the
+ * ground (not on a kerb or a jump). Walking straight down the ramp's axis
+ * (x = -1) does not pull the cat through; turning to the gap does.
  */
-export const ODOI_GATE = Object.freeze({ x0: -2.0, x1: 1.0, z: 36.45, maxY: 1.25 });
+export const ODOI_GATE = Object.freeze({ x0: -0.75, x1: 1.0, z: 36.45, maxY: 1.25 });
 /** The cat's spot on the way back: the bridge's south ramp, facing north (the valley). */
 export const ODOI_RETURN = Object.freeze({ x: -1, y: 0.87, z: 35.2, heading: Math.PI });
 
