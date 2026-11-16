@@ -655,6 +655,12 @@ async function routingTest(mods, classic, mainAssets) {
   B.level.pieces.forEach((pc, i) => { if (realKit.has(pc.type)) for (const { parent, child } of (B.per[i] || [])) if (parent === root) realKitRoots.add(child); });
   // Likewise the treats, when roof-treats is a registered family id resolved modular in the main run.
   if (mainAssets && mainAssets.has('roof-treats') && mainAssets.setFor('roof-treats') === 'modular') for (const o of dyn.treats || []) realKitRoots.add(o);
+  // The distant city (root child just before the first skyline pagoda), when roof-distant-city is a registered
+  // family id resolved modular in the main run: the main-run reference holds the kit city, this stand-in build the classic one.
+  if (mainAssets && mainAssets.has('roof-distant-city') && mainAssets.setFor('roof-distant-city') === 'modular' && pagodas.length) {
+    const ci = root.children.indexOf(pagodas[0].group) - 1;
+    if (ci >= 0 && !kitRoots.has(root.children[ci])) realKitRoots.add(root.children[ci]);
+  }
   const otherRoots = aligned.filter((c) => !kitRoots.has(c) && !realKitRoots.has(c) && !isBatchGroup(c));
   const rootDiffer = otherRoots.filter((c) => JSON.stringify(d.root[root.children.indexOf(c)].slice(1)) !== JSON.stringify(classic.root[at(c)].slice(1))).map(at);
   check('every other root child (ground, distant city, float, people, treats) is identical to the classic build', otherRoots.length > 0 && rootDiffer.length === 0,
