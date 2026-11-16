@@ -3,8 +3,8 @@
 - Worker / model:     Claude Opus 5.5 (claude-opus-5-5)
 - Claimed:            2026-11-15 17:02 PST
 - Branch:             fable/r6-game-wiring
-- Base commit:        a63ff9e (fable/integration: four Roof Road kit families, Chidori, a1-village); merged 6016e11 (r3b, r4b-festival) at 9b6d648
-- State:              ready for review (G-R's play-through to the finale stays open: the operator's stage-2 route, not this lane)
+- Base commit:        a63ff9e (fable/integration: four Roof Road kit families, Chidori, a1-village); merged 6016e11 (r3b, r4b-festival) at 9b6d648, a549e78 (R78 route fix) at cbed473, 4ed6943 (r5-b) at 44d1c7c
+- State:              fix round 1 done, ready for re-review (G-R precondition: the game.js → runview.js patch, an operator decision)
 
 Lane: guide section 12, Phase 5, steps R6.1 to R6.8 (the spec's section 8.2
 table) under rulings D3 (Seven Posts unlock, one continuous run, Chidori stays
@@ -68,3 +68,19 @@ See `docs/fable/handoff/r6-game-wiring.md`: the music.js mood (2.1), the
 inventory rows and a `src/rooftops/` scan for labs_coverage (2.2), the catalog
 link note (2.3), the board (2.4), the CRLF `diff --check` note and the stale
 R64 sentence in AGENTS.md (3).
+
+## Fix round 1 (review r1)
+- [x] Important 1: no soft-lock at the gate (failed build → back on the bridge, one line; gate armed only after leaving; saveSpot never the gate) — test failed first (7 FAIL: 11 enter attempts, input locked 1190/1200 frames, saves in the gate), then 81/81
+- [x] Important 2 (R80): `rooftops/js/runview.js` (RunView), `src/rooftops/runview.js` re-export, pocket.js glue only; game.js switch-over = `docs/fable/handoff/r6-game-wiring.game-js.patch` (parity proven in scratch); finale mouth from the level
+- [x] Important 3: arrival hint (toast style, dismissable, large text / high contrast checked), "Leave the Roof Road" in the pause menu
+- [x] Minors 1–8 and 10 (FOV) fixed; 9 (crest height) and 10 (dispose) left with reasons (report)
+
+Checks after the fixes (2026-11-15 20:19–20:31 PST, load ≈ 1.4–2.5, Metal; integration 4ed6943 merged):
+- `node tools/verify.mjs` → All checks passed (190 modules, 10 src/rooftops, 91 PASS lines; summit_test 83/0; rooftop_manager_test 81/0; kit 523; kit_test 36/36; a1_village 6/6)
+- `node tools/rooftop_test.mjs` → 40 passed, 0 failed; `rooftop_companion_test` → 7 companion/ceiling checks passed
+- footprint golden EQUAL (49233 draws, probe ok), systems EQUAL (249867), rooftop golden EQUAL, cat golden EQUAL, summit golden EQUAL, summit parity EQUAL, cad_overrides 27/0, check_syntax 190 OK
+- `node tools/labs_check.mjs` → ONE error: "unclassified Roof Road module: rooftops/js/runview.js" (needs the inventory entry in handoff 5.1; checked in scratch)
+- drill (24 checks each, incl. a failing build, the hint, Leave the Roof Road): classic 24/24, modular 24/24; page errors only the drill's deliberate build failure
+- 08bd3b5 save loads on both sets; headless boots clean (only the pre-existing cad-overrides 404)
+- game_shot pairs vs 4ed6943: shrine 0, village 132, bridge 210, wide 66 (same as round 0: the new objects)
+
