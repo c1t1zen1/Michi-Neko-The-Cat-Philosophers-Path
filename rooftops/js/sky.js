@@ -3,6 +3,7 @@
 // around the basin and the five Okuribi fires on them.
 
 import * as THREE from 'three';
+import { isAssetInstance } from '../../src/kit/runtime.js?v=20261114a';
 
 const lerp = (a, b, t) => a + (b - a) * t;
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -82,6 +83,42 @@ export class Sky {
     this.reduceMotion = !!opts.reduceMotion;
     this.lowPower = !!opts.lowPower;
 
+    // Every Roof Road sky piece goes through the asset contract like build.js's pieces (R76): the
+    // classic builders below run unless that id resolves to a kit builder (opts.assets).
+    this.assets = opts.assets || null;
+    // roof-sky: the dome, the clouds and the moon (the lights, fog and phase stay here).
+    const kitSky = this._route('roof-sky', { lowPower: this.lowPower }, () => this.buildDome());
+    if (kitSky) {
+      this.uniforms = kitSky.uniforms; this.dome = kitSky.dome;
+      this.clouds = kitSky.clouds; this.moon = kitSky.moon;
+      scene.add(kitSky.group);
+    }
+
+    this.hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.7);
+    scene.add(this.hemi);
+    this.sun = new THREE.DirectionalLight(0xffffff, 2.5);
+    this.sun.castShadow = !!opts.shadows;
+    if (this.sun.castShadow) {
+      this.sun.shadow.mapSize.set(1536, 1536);
+      const c = this.sun.shadow.camera;
+      c.left = -16; c.right = 16; c.top = 16; c.bottom = -16; c.near = 1; c.far = 120;
+      this.sun.shadow.bias = -0.0005;
+      this.sun.shadow.normalBias = 0.03;
+    }
+    scene.add(this.sun, this.sun.target);
+    scene.fog = new THREE.FogExp2(0xe6d9c2, 0.0022);
+
+    const kitHills = this._route('roof-hills', {}, () => this.buildHills());
+    if (kitHills) { this.hills = kitHills.parts.hills; this.hillMat = kitHills.hillMat; this.scene.add(kitHills.group); }
+    if (!kitSky) this.buildClouds();
+    const kitFires = this._route('roof-okuribi', {}, () => this.buildFires());
+    if (kitFires) { this.fires = kitFires.fires; this.scene.add(kitFires.group); }
+    this.setPhase(0);
+  }
+
+  /** Classic dome (moved out of the constructor unchanged). */
+  buildDome() {
+    const scene = this.scene;
     this.uniforms = {
       uTop: { value: new THREE.Color() },
       uHor: { value: new THREE.Color() },
@@ -120,24 +157,14 @@ export class Sky {
     this.dome = dome;
     scene.add(dome);
 
-    this.hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.7);
-    scene.add(this.hemi);
-    this.sun = new THREE.DirectionalLight(0xffffff, 2.5);
-    this.sun.castShadow = !!opts.shadows;
-    if (this.sun.castShadow) {
-      this.sun.shadow.mapSize.set(1536, 1536);
-      const c = this.sun.shadow.camera;
-      c.left = -16; c.right = 16; c.top = 16; c.bottom = -16; c.near = 1; c.far = 120;
-      this.sun.shadow.bias = -0.0005;
-      this.sun.shadow.normalBias = 0.03;
-    }
-    scene.add(this.sun, this.sun.target);
-    scene.fog = new THREE.FogExp2(0xe6d9c2, 0.0022);
+  }
 
-    this.buildHills();
-    this.buildClouds();
-    this.buildFires();
-    this.setPhase(0);
+  /** Build `id` through the asset runtime: a kit instance when it resolves modular, else the classic builder runs (returns null). */
+  _route(id, more, classic) {
+    if (!this.assets) { classic(); return null; }
+    const layout = { index: 0, type: id, x: this.center.x, y: 0, z: this.center.z, ry: 0, band: 'near', center: { x: this.center.x, z: this.center.z }, ringR: this.ringR, ...more, footprint: { colliders: [], exclusions: [], anchors: {} } };
+    const out = this.assets.build(id, layout, () => { classic(); return null; });
+    return isAssetInstance(out) ? out : null;
   }
 
   buildHills() {

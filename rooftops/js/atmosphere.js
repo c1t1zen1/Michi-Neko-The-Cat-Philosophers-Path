@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { alleyDepth } from './alleys.js';
 import { hash1 } from './level.js';
+import { isAssetInstance } from '../../src/kit/runtime.js?v=20261114a';
 
 const TAU = Math.PI * 2;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -286,12 +287,48 @@ export class RooftopAtmosphere {
     this.root = new THREE.Group();
     this.root.name = 'Roof Road atmosphere';
     scene.add(this.root);
-    this._buildPetals();
-    this._buildSmoke();
-    this._buildFireflies();
-    this._buildBirds();
-    this._buildMotes();
+    // roof-atmosphere goes through the asset contract (R76): the kit builder gets the positions this
+    // class derives from the level (below, plain data); the classic builders run unless it resolves modular.
+    this.assets = opts.assets || null;
+    const kit = this.assets ? this.assets.build('roof-atmosphere', this._ambientLayout(), () => {
+      this._buildPetals(); this._buildSmoke(); this._buildFireflies(); this._buildBirds(); this._buildMotes();
+      return null;
+    }) : (this._buildPetals(), this._buildSmoke(), this._buildFireflies(), this._buildBirds(), this._buildMotes(), null);
+    if (isAssetInstance(kit)) {
+      this.petals = kit.petals; this.smoke = kit.smoke; this.fireflies = kit.fireflies; this.birds = kit.birds; this.motes = kit.motes;
+      this.root.add(kit.group);
+    }
     this.impacts = new ImpactFX(this.root, opts);
+  }
+
+  /** The level-derived positions of the ambient layers (plain data for the kit builder; the classic builders below compute the same). */
+  _ambientLayout() {
+    const lp = this.lowPower, lv = this.level, rail = this.rail;
+    const petals = { positions: [], seeds: [] }, smoke = { positions: [], seeds: [] }, fireflies = { positions: [], seeds: [] };
+    const cherries = lv.pieces.filter((p) => p.type === 'cherry');
+    const pc = lp ? 42 : 92;
+    for (let i = 0; i < pc; i++) {
+      const source = cherries[i % cherries.length];
+      const s = source.s0 + hash1(i * 3.31 + 4) * (source.s1 - source.s0), d = source.d + (hash1(i * 9.73 + 2) - 0.5) * 2.8;
+      const p = rail.place(s, d);
+      petals.positions.push(p.x, source.bough.y + hash1(i * 5.13) * 1.2, p.z); petals.seeds.push(hash1(700 + i * 7.17));
+    }
+    const sources = lv.pieces.filter((p) => p.type === 'chimney' || p.type === 'yatai' && /yaki|ayu|chestnut/.test(p.fare));
+    const per = lp ? 3 : 5;
+    sources.forEach((source, ci) => {
+      const s = (source.s0 + source.s1) / 2, d = source.d + (source.type === 'yatai' ? 0.4 : 0), p = rail.place(s, d);
+      for (let j = 0; j < per; j++) { smoke.positions.push(p.x, source.type === 'yatai' ? 1.12 : source.y + 0.05, p.z); smoke.seeds.push(hash1(ci * 17 + j * 4.7)); }
+    });
+    const fc = lp ? 34 : 72;
+    for (let i = 0; i < fc; i++) {
+      const a = lv.alleys[i % lv.alleys.length];
+      const s = i % 3 ? a.s0 + 4 + hash1(i * 8.19) * (a.s1 - a.s0 - 8) : lv.mouths[5].s0 + hash1(i * 8.19) * (lv.length - lv.mouths[5].s0);
+      const d = i % 3 ? alleyDepth(a, s) + (hash1(i * 2.77 + 9) - 0.5) * 1.8 : -2.8 + hash1(i * 2.77 + 9) * 8.2;
+      const p = rail.place(s, d);
+      fireflies.positions.push(p.x, 0.7 + hash1(i * 6.1) * 4.8, p.z); fireflies.seeds.push(hash1(3000 + i * 4.9));
+    }
+    return { index: 0, type: 'atmosphere', x: 0, y: 0, z: 0, ry: 0, band: 'near', lowPower: lp, petals, smoke, fireflies,
+      birds: lp ? 4 : 8, motes: lp ? 30 : 64, footprint: { colliders: [], exclusions: [], anchors: {} } };
   }
 
   _buildPetals() {

@@ -177,6 +177,20 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
   'roof-yama': {
     hero: { materials: 7 }, mid: { meshes: 11, materials: 7 },
     why: 'one kakiyama float. Classic 58 meshes / 488 tris / 7 materials; modular hero 11 / 1,504 / 7, mid 11 / 672 / 7, far 2 / 352 / 2. Same seven materials as classic (timber, timberMed, tapestry, bark, three leaves): 0 added'
+  },
+  // r4b-festival (Roof Road sky, fires, city, atmosphere). Measured on the Roof Road page, classic scene vs kit builders (uptime load 1.5-1.7,
+  // 2026-11-15); classic counts are the Sky / RooftopAtmosphere / buildWorld scene objects.
+  'roof-okuribi': {
+    mid: { meshes: 10, materials: 5 }, far: { meshes: 10, materials: 5, buildMs: 3 },
+    why: 'the five fires: each is one Points (own shader material, Sky.update drives its uKindle/uTime) plus one glow Sprite (own opacity). Classic 10 meshes / 10 materials / 0 tris; modular 10 / 10 / 0 at every tier (the contract counts 5 materials: Points only). Hero adds embers inside the same Points (no extra draw). Warm build 5.3 / 2.8 / 2.5 ms: the glyph canvas sampling (classic runs it too)'
+  },
+  'roof-atmosphere': {
+    mid: { materials: 5 }, far: { meshes: 6, materials: 5 },
+    why: 'petals, smoke, fireflies (own ShaderMaterials: the class drives their uniforms), the birds (one shared material) and the motes. Classic ambient part 12 meshes / 5 materials (13 / 6 with the landing-burst points, which stay classic); modular hero 12 / 5, mid 8 / 5, far 6 / 5'
+  },
+  'roof-distant-city': {
+    hero: { buildMs: 8 },
+    why: 'the city is one merged mesh on the pagoda family matte material: classic 7,956 instanced houses = 79,560 tris / 2 meshes / 2 materials (two draws); modular hero 10,276 tris / 1 / 1, mid 2,240, far 228 (one draw). Hero warm build 3.5-6.1 ms at load 1.5 (classic buildDistantCity, same page: 16 ms cold, 3.6-4.1 ms warm)'
   }
 });
 
