@@ -379,6 +379,22 @@ function digestBuild(mods, b) {
       r4(M.water.uniforms.uTime.value), r4(M.water.uniforms.uNight.value), r4(M.kamoWater.uniforms.uTime.value)]);
     d.update.push([t, 'shoki', (dyn.shoki || []).map((o) => r4(o.children[0].rotation.y))]);
   }
+  // Boat motion proof (r3-b handoff §6): 600 frames at a fixed 1/60 s step from t = 50,
+  // sampled every 10 frames: group world matrix, wake opacity and scale, boatman and pole
+  // rotation, visibility.
+  {
+    const M = world.M;
+    for (let k = 0; k <= 600; k++) {
+      const t = 50 + k / 60;
+      world.update(t, 0.5, mods.physics.platOffset, level.platforms, 300);
+      if (k % 10) continue;
+      for (const bt of dyn.boats || []) {
+        bt.group.updateWorldMatrix(true, false);
+        d.update.push([k, 'boatmotion', bt.plat, bt.group.visible, bt.group.matrixWorld.elements.map(r4), r4(M.wake.opacity),
+          bt.wake.visible, r4(bt.wake.scale.x), r4(bt.boatman.rotation.y), r4(bt.boatman.rotation.z), r4(bt.pole.rotation.z)]);
+      }
+    }
+  }
   return d;
 }
 
@@ -598,6 +614,10 @@ async function routingTest(mods, classic, mainAssets) {
   const boatMotion = (dd) => dd.update.filter((row) => row[1] === 'boat').map((row) => [row[0], row[2], row[3], row[4], row[5], row[6], row[9]]);
   check('world.update() moves the kit boats exactly as the classic ones (visibility, transform, wake, heading)',
     JSON.stringify(boatMotion(d)) === JSON.stringify(boatMotion(classic)) && boatMotion(d).length > 0, `${boatMotion(d).length} samples`);
+
+  const boatSeries = (dd) => JSON.stringify(dd.update.filter((row) => row[1] === 'boatmotion'));
+  check('600 frames of boat motion (world matrix, wake, boatman, pole, visibility) are identical to classic',
+    boatSeries(d) === boatSeries(classic) && JSON.parse(boatSeries(d)).length > 0, `${JSON.parse(boatSeries(d)).length} samples`);
 
   // The extras: built through the contract, placed where the classic ones stand, unmerged on the root.
   const pagodas = extras.filter((e) => e.id === 'roof-skyline-pagodas');
