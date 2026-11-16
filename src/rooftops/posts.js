@@ -43,7 +43,7 @@ export const ODOI = Object.freeze({
  */
 export const ODOI_GATE = Object.freeze({ x0: -2.0, x1: 1.0, z: 36.45, maxY: 1.25 });
 /** The cat's spot on the way back: the bridge's south ramp, facing north (the valley). */
-export const ODOI_RETURN = Object.freeze({ x: -1, y: 0.67, z: 35.7, heading: Math.PI });
+export const ODOI_RETURN = Object.freeze({ x: -1, y: 0.87, z: 35.2, heading: Math.PI });
 
 /** True when the cat (world position) stands in the open gap's mouth (ODOI_GATE). */
 export function inOdoiGate(pos) {

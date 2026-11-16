@@ -246,7 +246,8 @@ export class RooftopManager {
     if (p.velocity) p.velocity.set(0, 0, 0);
     const cam = this.game.camera;
     if (cam && cam.position) {
-      cam.position.set(ODOI_RETURN.x, ODOI_RETURN.y + 1.9, ODOI_RETURN.z + 1.6);
+      // above the ramp's foot, behind the cat, looking up the bridge
+      cam.position.set(ODOI_RETURN.x, ODOI_RETURN.y + 2.2, ODOI_RETURN.z + 2.0);
       if (cam.lookAt) cam.lookAt(ODOI_RETURN.x, ODOI_RETURN.y + 0.6, ODOI_RETURN.z - 4);
     }
   }
