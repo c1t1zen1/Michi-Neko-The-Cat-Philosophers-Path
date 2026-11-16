@@ -8,7 +8,7 @@ Use descriptive kebab-case scenery names that match what the image actually show
 - `lantern-lit-village-path-dusk.jpg` — a lantern-lit stone path through the village at dusk, cherry blossoms and machiya townhouses
 - `tea-ceremony-room.jpg` — the tea house interior concept: tatami, scroll, bonsai, lantern light, and grilled sea bream on the table
 
-Not concept art — real captures from the build (2026-10-23), referenced from the README's "From the build" section:
+Superseded by the hero captures below (the six files were removed in lane h1-hero):
 
 - `capture-in-game.jpg` — a real in-game frame from a headless full boot: the machiya lane, Michi, Luna and Kuro
 - `capture-villagers.jpg` — the `npcs` cat sheet: Luna (silver), Mochi (ginger), Kuro (black)

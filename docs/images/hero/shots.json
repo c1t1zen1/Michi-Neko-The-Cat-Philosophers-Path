@@ -1,0 +1,225 @@
+{
+ "_about": "Hero shots for the README (lane h1-hero). Run: node tools/hero_capture.mjs [--only id]. See docs/images/README.md.",
+ "defaults": {
+  "kind": "game",
+  "assets": "modular",
+  "width": 2560,
+  "height": 1440,
+  "frames": 120
+ },
+ "shots": [
+  {
+   "id": "01-valley-golden-hour",
+   "file": "hero-valley-golden-hour.jpg",
+   "title": "The valley at golden hour, pagoda beyond the roofs",
+   "hour": 17.6,
+   "cam": [
+    -8,
+    9,
+    -10,
+    10,
+    9,
+    56,
+    45
+   ]
+  },
+  {
+   "id": "02-torii-dusk",
+   "file": "hero-torii-dusk.jpg",
+   "title": "Michi at the torii as the lanterns kindle",
+   "hour": 18.7,
+   "cam": [
+    0.5,
+    0.9,
+    -12,
+    0,
+    2.2,
+    -30,
+    55
+   ],
+   "eval": "(()=>{const c=game.player;c.mesh.position.set(0.2,0,-19.5);c.heading=Math.PI;c.yaw=Math.PI;c.yawPrev=Math.PI;c.mesh.rotation.y=Math.PI;})()"
+  },
+  {
+   "id": "03-lane-rain",
+   "file": "hero-machiya-lane-rain.jpg",
+   "title": "The machiya lane in the rain, at cat height",
+   "hour": 12,
+   "weather": "rain",
+   "cam": [
+    0.8,
+    0.5,
+    13,
+    1,
+    1.2,
+    1,
+    60
+   ],
+   "eval": "(()=>{const c=game.player;c.mesh.position.set(0.8,0,5);c.heading=Math.PI;c.yaw=Math.PI;c.yawPrev=Math.PI;c.mesh.rotation.y=Math.PI;})()"
+  },
+  {
+   "id": "04-river-morning",
+   "file": "hero-river-morning-mist.jpg",
+   "title": "River bank in morning mist, the pagoda over the trees",
+   "hour": 7,
+   "cam": [
+    -16,
+    2.2,
+    22,
+    4,
+    1.2,
+    36,
+    55
+   ]
+  },
+  {
+   "id": "05-moon-pool-night",
+   "file": "hero-moon-pool-night.jpg",
+   "title": "Michi at the Moon Pool at night",
+   "hour": 22,
+   "cam": [
+    -14.8,
+    1.3,
+    -21.2,
+    -19.5,
+    0.5,
+    -27.5,
+    58
+   ],
+   "eval": "(()=>{const c=game.player;c.mesh.position.set(-17.4,0,-24.4);c.heading=Math.PI*1.2;c.yaw=Math.PI*1.2;c.yawPrev=Math.PI*1.2;c.mesh.rotation.y=Math.PI*1.2;})()"
+  },
+  {
+   "id": "06-lantern-glade",
+   "file": "hero-lantern-glade.jpg",
+   "title": "Lantern Glade, lanterns lit",
+   "hour": 19.6,
+   "cam": [
+    -29,
+    0.8,
+    -4,
+    -33,
+    2.4,
+    -11,
+    60
+   ],
+   "eval": "(()=>{const c=game.player;c.mesh.position.set(-30.6,0,-6.4);c.heading=Math.PI*0.9;c.yaw=Math.PI*0.9;c.yawPrev=Math.PI*0.9;c.mesh.rotation.y=Math.PI*0.9;})()"
+  },
+  {
+   "id": "07-tea-house-interior",
+   "file": "hero-tea-house-interior.jpg",
+   "title": "The tea house interior, low sun through the shoji",
+   "hour": 15.5,
+   "hold": false,
+   "settle": 600,
+   "cam": [
+    1.4,
+    100.55,
+    1.6,
+    -0.6,
+    100.45,
+    -2.5,
+    60
+   ],
+   "eval": "(async()=>{game.contextActions._doorLatch=true;game.interior.transitionToInterior();await new Promise(r=>setTimeout(r,3000));return game.interior.isInside})()",
+   "note": "enters the tea room as the door does (InteriorManager); the loop is not frozen, so the frame is real-time settled"
+  },
+  {
+   "id": "08-villagers",
+   "file": "hero-villagers.jpg",
+   "title": "Luna, Mochi and Kuro",
+   "kind": "sheet",
+   "sheet": "npcs",
+   "settle": 500,
+   "note": "review-sheet capture (tools/cat_preview.html), the real Cat API without the game's post-processing"
+  },
+  {
+   "id": "09-summit-seat-dawn",
+   "file": "hero-summit-seat-dawn.jpg",
+   "title": "The meditation seat above the Kyoto basin, early morning",
+   "kind": "summit",
+   "hour": 6.4,
+   "note": "tools/summit_preview.html, the real SummitManager; wall-time pollen and cloud drift"
+  },
+  {
+   "id": "10-summit-vista-dusk",
+   "file": "hero-summit-vista-dusk.jpg",
+   "title": "The summit vista at dusk",
+   "kind": "summit",
+   "hour": 19.2
+  },
+  {
+   "id": "11-roof-road-michi-chidori",
+   "file": "hero-roof-road-michi-chidori.jpg",
+   "title": "Roof Road: Michi and Chidori on the ridge",
+   "kind": "rooftops",
+   "hour": 0.5,
+   "at": 950,
+   "settle": 2500,
+   "note": "/kyoto-rooftops.html sandbox; hour is the sandbox phase 0..1"
+  },
+  {
+   "id": "12-roof-road-finale",
+   "file": "hero-roof-road-okuribi.jpg",
+   "title": "Roof Road finale: the five Okuribi fires",
+   "kind": "rooftops",
+   "hour": 0.95,
+   "finale": true,
+   "settle": 2500,
+   "eval": "roofRoad.skipFinale()",
+   "note": "skipFinale() lights all five fires; the result panel (#finale) is hidden for the frame",
+   "after": "document.querySelectorAll('#card,#finale').forEach((e)=>{e.style.display='none'})"
+  },
+  {
+   "id": "13-parts-toro",
+   "file": "hero-parts-sheet-toro.jpg",
+   "title": "Parts sheet: the stone lantern (toro) exploded into its eight named parts",
+   "hour": 17.6,
+   "cam": [
+    2,
+    15.9,
+    20,
+    10,
+    15.5,
+    20,
+    56
+   ],
+   "eval": "(async () => {\n  const THREE = await import('three');\n  const A = game.assets;\n  const src = A.instances.find((i) => i.id === 'toro');\n  const inst = A.build('toro', { ...src.layout, x: 10, z: 20 }, () => null);\n  game.scene.add(inst.group);\n  inst.group.position.set(10, 12.6, 20); inst.group.scale.setScalar(1.8);\n  inst.group.updateMatrixWorld(true);\n  const names = Object.keys(inst.parts);\n  const box = (o) => new THREE.Box3().setFromObject(o);\n  const centres = names.map((n) => ({ n, y: box(inst.parts[n]).getCenter(new THREE.Vector3()).y }));\n  centres.sort((a, b) => a.y - b.y);\n  const GAP = 0.34;\n  centres.forEach((c, i) => { inst.parts[c.n].position.y += i * GAP; });\n  inst.group.updateMatrixWorld(true);\n  return { order: centres.map((c) => c.n), top: box(inst.group).max.y };\n})()\n",
+   "frames": 90,
+   "note": "PARTS SHEET, labelled: a real kit instance (asset:toro) built in the running game, each named part lifted in height order; bottom to top kiso, sao, chudai, hibukuro, lamp, halo, kasa, hoju"
+  },
+  {
+   "id": "14a-before-classic",
+   "file": "hero-before-classic.jpg",
+   "title": "Before: the classic set",
+   "hour": 18.5,
+   "assets": "classic",
+   "cam": [
+    0.5,
+    0.9,
+    -12,
+    0,
+    2.2,
+    -30,
+    55
+   ],
+   "width": 1920,
+   "height": 1080
+  },
+  {
+   "id": "14b-after-modular",
+   "file": "hero-after-modular.jpg",
+   "title": "After: the modular kit, same camera",
+   "hour": 18.5,
+   "cam": [
+    0.5,
+    0.9,
+    -12,
+    0,
+    2.2,
+    -30,
+    55
+   ],
+   "width": 1920,
+   "height": 1080
+  }
+ ]
+}
