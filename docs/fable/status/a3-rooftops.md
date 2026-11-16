@@ -79,3 +79,9 @@ Not touched, ranked 5: crate slat gaps and trellis bark curls, decorateHouse bic
 4. Canal water not time-of-day aware (classic too); lanterns on the long roof runs at night.
 5. The deferred minors above.
 6. Pocket arrival and finale were not captured in the game; comfort in the pocket read, not driven.
+
+## Checks (final pass; load noted)
+- check_syntax 192 OK; verify all passed; kit_check 534 passed; labs_check OK
+- rooftop_golden classic EQUAL + modular routing 41/41; rooftop_test 40/0; companion 7 passed; alley PASS; manager 81/0; footprint_golden EQUAL
+- `kit_contract_test --family rooffestival` at uptime 2.2: 697 checks, 2 failed, both warm-build and both in files not edited here: roof-hoko [mid] 3.4 ms (cap 3), roof-okuribi [mid] 4.3 ms (cap 4). roof-distant-city passes all three tiers. The earlier run at load 4.5-5 failed 10 on warm builds (load, not judged). Ranked 5: re-read hoko/okuribi mid at a quiet machine.
+- Not run: game boots classic + modular, cadJS/catalog checks (no family file outside rooffestival/city.js changed; cadJS/catalog not run).
