@@ -231,6 +231,11 @@
    "reason": "Chidori's behaviour (intent, leash, jumps); her body is the game's Cat, built in game.js."
   },
   {
+   "file": "rooftops/js/runview.js",
+   "role": "support",
+   "reason": "The run's view, shared by the sandbox page and the game's pocket (ruling R80): where the cat is drawn, the camera, Chidori following, the Shōki and treats, mouths and lanterns, the finale. Builds nothing."
+  },
+  {
    "file": "rooftops/js/downtown.js",
    "role": "assets",
    "reason": "Downtown craft kit: crates, casks, zushi tunnels, alley pockets and routes, poles, trellises, willows, culverts, the Tenmangu gate, the yama float, villagers, house and stall dressing."

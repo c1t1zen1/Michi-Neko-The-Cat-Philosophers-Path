@@ -6,7 +6,7 @@ Reviewed 2026-11-14. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**, and for the Roof Road prototype (`rooftops/`) **58 modules**, **11 build/create/make functions** and **48 piece types**. It records **248 active asset types and assemblies**, plus **4 inactive entries**. **152 of 248 (61.3%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**, and for the Roof Road prototype (`rooftops/`) **59 modules**, **11 build/create/make functions** and **48 piece types**. It records **248 active asset types and assemblies**, plus **4 inactive entries**. **152 of 248 (61.3%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects, and in the Roof Road prototype (rooftops/, its own page; the game does not load it yet). Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -551,6 +551,7 @@ Every Roof Road module (`rooftops/js/*.js`, `rooftops/js/pieces/*.js`) is classi
 | [rooftops/js/build.js](../rooftops/js/build.js) | assets | The buildWorld facade: walks the PIECES table through assets.build, merges statics, adds the ground, skyline and pickups. |
 | [rooftops/js/camera-obstacles.js](../rooftops/js/camera-obstacles.js) | excluded | Camera occlusion BVH over the opaque scenery; no renderer. |
 | [rooftops/js/companion.js](../rooftops/js/companion.js) | support | Chidori's behaviour (intent, leash, jumps); her body is the game's Cat, built in game.js. |
+| [rooftops/js/runview.js](../rooftops/js/runview.js) | support | The run's view, shared by the sandbox page and the game's pocket (ruling R80): where the cat is drawn, the camera, Chidori following, the Shōki and treats, mouths and lanterns, the finale. Builds nothing. |
 | [rooftops/js/downtown.js](../rooftops/js/downtown.js) | assets | Downtown craft kit: crates, casks, zushi tunnels, alley pockets and routes, poles, trellises, willows, culverts, the Tenmangu gate, the yama float, villagers, house and stall dressing. |
 | [rooftops/js/game.js](../rooftops/js/game.js) | assets | The Roof Road page: Michi and Chidori (the game’s Cat), camera, HUD and finale. |
 | [rooftops/js/level.js](../rooftops/js/level.js) | excluded | Gameplay data: the rail, pieces, platforms, walls, ceilings and pickups; no renderer. |
@@ -611,7 +612,7 @@ Every Roof Road module (`rooftops/js/*.js`, `rooftops/js/pieces/*.js`) is classi
 | [src/cat.js:buildMaterials(](../src/cat.js#L80) | Material setup for the inventoried cat; not another object. |
 | [src/countryside.js:createRiverUniforms(](../src/countryside.js#L1616) | Shader parameter state for the inventoried river/paddies, not another visible asset. |
 | [src/npc.js:createNameTag(](../src/npc.js#L212) | DOM character label; interface is outside the visible world-asset inventory. |
-| [src/main.js:buildJournalUI(](../src/main.js#L1830) | DOM journal interface; journal text rewards are not physical inventory objects. |
+| [src/main.js:buildJournalUI(](../src/main.js#L1838) | DOM journal interface; journal text rewards are not physical inventory objects. |
 | [src/menus.js:buildSettings(](../src/menus.js#L140) | DOM settings interface, outside the world-asset scope. |
 | [src/postfx.js:buildKernel(](../src/postfx.js#L176) | AO sampling-kernel data, not a second visual asset. |
 | [rooftops/js/build.js:export function buildWorld(](../rooftops/js/build.js#L169) | Roof Road assembly facade; every piece type, the ground, skyline and pickups are inventoried separately. |
@@ -628,9 +629,9 @@ Narrative-only characters and journal/progression rewards are recorded separatel
 
 | Nonvisual entry | Source | Reason |
 |---|---|---|
-| Bokuchi, the forest spirit | [src/main.js](../src/main.js#L1979) | Named in Kuro’s dialogue; no separate Bokuchi actor or mesh is constructed. |
+| Bokuchi, the forest spirit | [src/main.js](../src/main.js#L1987) | Named in Kuro’s dialogue; no separate Bokuchi actor or mesh is constructed. |
 | Mist Charm | [src/context_actions.js](../src/context_actions.js#L690) | Journal/progression reward from touching the altar; no collectible mesh. |
-| Bokuchi’s Blessing | [src/main.js](../src/main.js#L2050) | Journal/progression reward for the offering-bell quest; no separate item mesh. |
+| Bokuchi’s Blessing | [src/main.js](../src/main.js#L2058) | Journal/progression reward for the offering-bell quest; no separate item mesh. |
 | The valley became home | [src/context_actions.js](../src/context_actions.js#L762) | Journal memory from a quiet moment; no physical item. |
 
 Optional media and dormant code are recorded without claiming that a download succeeded or an unused builder is part of the current playable scene. The Roof Road rows describe its own prototype page, which the game does not load yet; its run keeps its reachability checks (`node tools/rooftop_test.mjs`) and its numeric golden (`node tools/rooftop_golden.mjs`).

@@ -6,7 +6,8 @@
 const SCENE_MOODS = {
   Overworld: { density: 1, cutoffMul: 1, gainMul: 1 },
   'Tea House': { density: 0.55, cutoffMul: 0.72, gainMul: 0.8 },
-  'Summit': { density: 0.16, cutoffMul: 0.62, gainMul: 0.58, bowls: true }
+  'Summit': { density: 0.16, cutoffMul: 0.62, gainMul: 0.58, bowls: true },
+  'Rooftops': { density: 0.45, cutoffMul: 0.85, gainMul: 0.72 }
 };
 
 /**

@@ -626,6 +626,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 - [x] **G-S** Hilltop merged; summit_test 83/0, summit golden EQUAL, summit_kit_parity EQUAL, verify + G1 pass, classic+modular boots clean; meditation view accepted PROVISIONALLY (R59, operator may overturn) (`docs/fable/status/a2-hilltop.md`)
 - [ ] **G-R** Roof Road merged and wired (→ may merge to `main`)
   - Board note: Operator-approved route fix (R78) applied: rooftop_test 40/40, finale reachable; G-R play-through unblocked. Open layout notes for the operator: overlapping legs at s≈1010/1424/1558, mouth 12 zero length, mouths[6] as finale mouth.
+  - G-R preconditions: operator approval of the game.js → runview.js patch (r6 handoff §4); then G-R chores (full play-through valley bridge → finale → back on both sets, old saves, tag check) and review. Pending Integrator items from r6: catalog/js/links.mjs wording (§2.3, optional), src/rooftops scan in labs_coverage (§2.2).
 - [x] **G-T** Tooling merged; cadJS param edit (key-rock size 1.5, Push to game) changed the ?assets=modular shot (maxDelta 166), restoring kit-overrides.json reverted it (maxDelta 0); catalog 49/49, cadJS 16/16 pass
 - [ ] **G-A** Area polish accepted for all three areas
 - [ ] **G-H** Hero images and README merged
@@ -672,7 +673,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 5 | `r3-canal-market` | Mouths 3–5: Takase canal, boat, Nishiki canopy, laundry sky | r1 | [x] r3-canal-market (part a: 8/19 ids; part b merged: 8 more ids; willows, culvert ledges, tenmangu gate deferred) |
 | 5 | `r4-festival` | Mouths 6–7: yatai, hoko float, temple gate, Okuribi | r1 | [x] r4-festival part a (7 ids) · [x] r4-festival part b merged (sky, hills, okuribi, distant city, atmosphere) |
 | 5 | `r5-roof-cast` | Chidori, Shōki, boatman, hayashi musicians | r1, c1 | [x] r5-roof-cast (part a: Shōki, treats, villagers, Chidori; boatman + hayashi → r5-b after r3-b/r4 merge, R75) · [x] r5-roof-cast part b merged (boatman, hayashi) |
-| 5 | `r6-game-wiring` | `RooftopManager`, unlock, save, music (serial) | r2–r5, D3 | [ ] |
+| 5 | `r6-game-wiring` | `RooftopManager`, unlock, save, music (serial) | r2–r5, D3 | [x] |
 | 6 | `t1-catalog` | `production` variant, swap board, thumbnails | G-V1 | [x] |
 | 6 | `t2-cadjs` | Param panel, AI action, package schema 2 | G-V1 | [x] |
 | 6 | `t3-audio` | dawCAT sound hooks for new assets | G-V2 | [x] |
