@@ -1,6 +1,8 @@
 // pocket.js — the Roof Road run inside the game (BUILD_GUIDE_FABLE R6.3; spec
-// §5–§7, §8.2). RooftopManager (manager.js) builds this the first time the cat
-// goes through the noren and drives it while the Roof Road is up.
+// §5–§7, §8.2). RooftopManager (manager.js) builds this each time the cat goes
+// through the noren, drives it while the Roof Road is up, and disposes it when
+// the cat leaves (ruling R88: dispose(); the next visit builds a new one behind
+// the veil).
 //
 // The run itself is the Roof Road's own: the level, runner physics, world,
 // sky, atmosphere and companion modules, and its view of a run (where the cat
@@ -44,6 +46,53 @@ const FIRE_NOTES = [196.0, 220.0, 246.94, 293.66, 329.63];
 const WOOD = ['deck', 'boat', 'rack', 'futon', 'rope', 'branch', 'step'];
 const STONE = ['ridge', 'eave', 'roof', 'canopy', 'cap', 'street', 'perch'];
 
+/**
+ * What the GPU holds for some object trees (dispose(), R88): geometries,
+ * materials and the textures they carry (maps, shader uniforms), skeletons
+ * (bone textures), and the objects that free GPU state of their own when
+ * disposed (lights' shadow maps, instanced meshes' instance buffers); a
+ * scene's environment and background.
+ */
+class GpuSet {
+  constructor() {
+    this.geometries = new Set(); this.materials = new Set(); this.textures = new Set();
+    this.skeletons = new Set(); this.objects = new Set();
+  }
+
+  texture(t) { if (t && t.isTexture) this.textures.add(t); }
+
+  uniforms(u) {
+    if (!u || typeof u !== 'object') return;
+    for (const k in u) {
+      const v = u[k] && u[k].value;
+      if (Array.isArray(v)) v.forEach((t) => this.texture(t)); else this.texture(v);
+    }
+  }
+
+  material(m) {
+    if (!m || !m.isMaterial || this.materials.has(m)) return;
+    this.materials.add(m);
+    for (const k in m) this.texture(m[k]);              // map, envMap, normalMap, alphaMap, …
+    this.uniforms(m.uniforms);
+    const ud = m.userData;
+    if (ud) { this.uniforms(ud.uniforms); if (ud.shader) this.uniforms(ud.shader.uniforms); }
+  }
+
+  tree(root) {
+    if (!root || typeof root.traverse !== 'function') return this;
+    root.traverse((o) => {
+      if (o.isScene) { this.texture(o.environment); this.texture(o.background); }
+      if (o.geometry && o.geometry.isBufferGeometry) this.geometries.add(o.geometry);
+      if (Array.isArray(o.material)) o.material.forEach((m) => this.material(m)); else this.material(o.material);
+      this.material(o.customDepthMaterial);
+      this.material(o.customDistanceMaterial);
+      if (o.skeleton) this.skeletons.add(o.skeleton);
+      if (o.isInstancedMesh || o.isLight) this.objects.add(o);
+    });
+    return this;
+  }
+}
+
 export class RooftopPocket {
   constructor(game, { origin, manager }) {
     this.game = game;
@@ -68,7 +117,10 @@ export class RooftopPocket {
     this.root.position.copy(this.origin);
     this.scene.add(this.root);
     this.pmrem = new THREE.PMREMGenerator(renderer);
-    this.scene.environment = this.pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    // The room and the target are kept only so dispose() can free them.
+    this._room = new RoomEnvironment();
+    this.envTarget = this.pmrem.fromScene(this._room, 0.04);
+    this.scene.environment = this.envTarget.texture;
 
     const level = this.level = buildLevel();
     this.rail = level.rail;
@@ -266,6 +318,7 @@ export class RooftopPocket {
   /* ---------------- sound: small tones on the game's sfx bus ---------------- */
 
   _bus() {
+    if (this.disposed) return null;
     const a = this.game.audio;
     return a && a.initialized && a.ctx && a.buses ? a : null;
   }
@@ -314,15 +367,16 @@ export class RooftopPocket {
   /* ---------------- comfort ---------------- */
 
   /**
-   * Reduce motion, live. The pocket is built once and kept after the cat
-   * leaves, so a later change (Game.applyComfort(), and attach() on every
-   * entry) has to reach it. Read again every frame, so updated here: the run
-   * view's camera easing (RunView.reduceMotion), the sky's cloud drift and sun
-   * flicker (Sky.reduceMotion), the atmosphere's clock, petals and impact
-   * bursts (RooftopAtmosphere.reduceMotion and its ImpactFX), the street
-   * people's pace (buildWorld's opts, this._worldOpts). Build-time only, kept
-   * as built until the page reloads: the float's tassel and musician sway
-   * (build.js motionScale, a constant taken when the world was built).
+   * Reduce motion, live. The pocket reads the setting when it is built (each
+   * visit, R88); a change made while the run is up (Game.applyComfort()) or
+   * while the pocket was still building (attach() re-reads the game's value
+   * on every entry) has to reach it. Read again every frame, so updated here:
+   * the run view's camera easing (RunView.reduceMotion), the sky's cloud drift
+   * and sun flicker (Sky.reduceMotion), the atmosphere's clock, petals and
+   * impact bursts (RooftopAtmosphere.reduceMotion and its ImpactFX), the
+   * street people's pace (buildWorld's opts, this._worldOpts). Build-time
+   * only, kept as built until the next visit: the float's tassel and musician
+   * sway (build.js motionScale, a constant taken when the world was built).
    */
   setReduceMotion(on) {
     on = !!on;
@@ -337,6 +391,59 @@ export class RooftopPocket {
     a.setLowPower(a.lowPower);          // re-derives the petals' visibility (hidden on a trimmed tier with reduce motion)
   }
 
+  /* ---------------- put away (ruling R88) ---------------- */
+
+  /**
+   * Free the run. The manager calls this when the cat leaves (exit,
+   * exitImmediate) and when a build fails half-way, then drops the pocket;
+   * the next enter() builds a new one behind the veil. Goes: every geometry,
+   * material, texture, skeleton, instance buffer and shadow map under the
+   * run's scene (the world, the sky, hills and fires, the atmosphere,
+   * Chidori, the lantern), the PMREM environment target, its generator and
+   * the RoomEnvironment it was rendered from, the run's AssetRuntime (each
+   * kit instance's own dispose(), its own KitMaterials, its audio sink), and
+   * every reference to the scene, level, runner, world and RunView.
+   * Never touched: whatever the game's scene still holds (Michi, handed back
+   * first if still attached; the cats' shared sculpts, outline materials and
+   * blob shadow; src/textures.js sets the valley paints with too). Caches
+   * shared by every build (src/textures.js, the Roof Road's unit geometries)
+   * keep their objects; only the GPU copies go, and the next build uploads
+   * them again. Listeners and audio: the pocket adds no DOM listener, and its
+   * tones are one-shot oscillators that stop themselves; once disposed, none
+   * start (_bus()). Safe on a half-built pocket and when called twice.
+   * → what was freed { geometries, materials, textures }.
+   */
+  dispose() {
+    if (this.disposed) return this.freed;
+    this.disposed = true;
+    this.ready = false;
+    if (this._saved && this.view) this.detach();
+    this.autopilot = null;
+    const keep = new GpuSet().tree(this.game && this.game.scene);
+    const mine = new GpuSet().tree(this.scene).tree(this._room);
+    const assets = this.assets;
+    if (assets) {
+      if (assets.kitMaterials && assets.kitMaterials.list) for (const m of assets.kitMaterials.list()) mine.material(m);
+      if (assets.audio && assets.audio.setSink) assets.audio.setSink(null);
+      // Each kit instance's own dispose() (and its geometry), after the scene was read above.
+      if (typeof assets.dispose === 'function') assets.dispose();
+    }
+    const freed = { geometries: 0, materials: 0, textures: 0 };
+    for (const o of mine.objects) if (typeof o.dispose === 'function') o.dispose();   // shadow maps, instance buffers
+    for (const s of mine.skeletons) if (!keep.skeletons.has(s)) s.dispose();          // bone textures
+    for (const g of mine.geometries) if (!keep.geometries.has(g)) { g.dispose(); freed.geometries++; }
+    for (const m of mine.materials) if (!keep.materials.has(m)) { m.dispose(); freed.materials++; }
+    for (const t of mine.textures) if (!keep.textures.has(t)) { t.dispose(); freed.textures++; }
+    if (this.envTarget) this.envTarget.dispose();
+    if (this.pmrem) this.pmrem.dispose();
+    if (this.scene) { this.scene.environment = null; this.scene.clear(); }
+    this.scene = this.root = this.world = this.sky = this.atmosphere = this.view = null;
+    this.level = this.rail = this.runner = this.assets = this.cam = this.lantern = null;
+    this.pmrem = this.envTarget = this._room = this._worldOpts = this._entranceShown = null;
+    this.freed = freed;
+    return freed;
+  }
+
   /* ---------------- per frame ---------------- */
 
   /**
@@ -345,6 +452,7 @@ export class RooftopPocket {
    * (null while the veil is up or the game is paused-like: the cat stands still).
    */
   update(dt, input) {
+    if (!this.view) return;               // disposed (R88)
     dt = Math.max(0, Math.min(0.1, dt));
     const view = this.view, r = this.runner;
     this.lastMove = input ? input.move || 0 : 0;
@@ -410,6 +518,7 @@ export class RooftopPocket {
 
   /** Draw the run with the game's renderer and camera (no valley post chain). */
   render() {
+    if (!this.scene) return;              // disposed (R88)
     const r = this.game.renderer;
     const exposure = r.toneMappingExposure;
     r.toneMappingExposure = this.exposure.toneMappingExposure;
