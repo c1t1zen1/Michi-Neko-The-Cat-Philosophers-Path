@@ -45,12 +45,12 @@ function buildBoatman(ctx, layout, p) {
   if (t !== 'far') {
     b.add(new THREE.TorusGeometry(0.103, 0.017, 5, n).rotateX(Math.PI / 2), { y: 0.86, color: 0xf2efe6 });                   // hachimaki
     for (const s of [-1, 1]) {                                                                                                // arms toward the pole
-      b.add(new THREE.CylinderGeometry(0.036, 0.03, 0.34, 6), { x: s * 0.17, y: 0.6, z: 0.08, rx: 1.0, rz: -s * 0.12, color: 0x7a4a2a });
+      b.add(new THREE.CylinderGeometry(0.036, 0.03, 0.34, 6), { x: s * 0.17, y: 0.6, z: 0.08, rx: 1.0, rz: s * 0.12, color: 0x7a4a2a });
       ell(b, 0.04, 0.04, 0.04, { x: s * 0.13, y: 0.5, z: 0.19, color: 0xd9a981 });                                           // hands on the pole
     }
   }
   b.add(new THREE.ConeGeometry(0.27, 0.13, seg(t, 16), 1, true), { y: 0.93, color: 0xc8a96a });                                // kasa
-  if (hero) for (const [r, y] of [[0.09, 1.0], [0.17, 0.965], [0.24, 0.935]]) b.add(new THREE.TorusGeometry(r, 0.006, 4, seg(t, 16)).rotateX(Math.PI / 2), { y, color: 0x8a6c3a });
+  if (hero) for (const [r, y] of [[0.09, 0.954], [0.17, 0.914], [0.24, 0.881]]) b.add(new THREE.TorusGeometry(r, 0.006, 4, seg(t, 16)).rotateX(Math.PI / 2), { y, color: 0x8a6c3a });
   const figure = meshOf(b, mat, 'figure');
   figure.material.side = THREE.FrontSide;
 
