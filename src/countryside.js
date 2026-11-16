@@ -9,6 +9,7 @@ import {
   createFoliageMaterial, lumpyTuftGeometry, lumpyConeGeometry, leafMassTexture, bushGeometry, buildCanopy
 } from './foliage.js?v=20261114a';
 import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261114a';
+import { buildSevenPosts, buildOdoiThicket } from './rooftops/valley.js?v=20261114a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 
@@ -348,6 +349,11 @@ export class Countryside {
     this.buildMountains();
     this.buildYarn();
     this.buildOfferingBells();
+    // The Roof Road's gate (BUILD_GUIDE_FABLE R6.2): the Odoi bank south of the
+    // bridge, its bamboo and the closed thicket in its gap. Its own
+    // mulberry32(0x0D01) stream, never this.random(); its colliders and its one
+    // exclusion are appended after everything above (src/rooftops/valley.js).
+    this.odoi = buildOdoiThicket(this, MAT);
     this.boundaryRadius = 44;
     // All builders are done: collapse the static architecture into one draw
     // call per material before the first frame renders.
@@ -1387,7 +1393,27 @@ export class Countryside {
 
   buildRiverAndBridge() {
     const layout = this.layoutRiverAndBridge();
-    return this.placeAsset('river', layout, () => this.meshRiverClassic(layout));
+    const river = this.placeAsset('river', layout, () => this.meshRiverClassic(layout));
+    // The Seven Posts (BUILD_GUIDE_FABLE R6.1): bronze giboshi on the railing
+    // posts and a clay Shōki on the east railing's south end, on either asset
+    // set. Their own materials keep them out of _mergeStatics so the east caps
+    // can glow; no draw from this.random(), no collider (src/rooftops/valley.js).
+    this.sevenPosts = buildSevenPosts(this.scene, MAT);
+    return river;
+  }
+
+  /** The Seven Posts: cap i (0 = north end) from cold bronze (0) to a warm glow (1). */
+  setSevenPostGlow(i, v) {
+    if (this.sevenPosts) this.sevenPosts.setGlow(i, Math.max(0, Math.min(1, v)));
+  }
+
+  /**
+   * The Odoi thicket parts when the seventh post sings (the Roof Road unlock),
+   * the way setShrineThicketOpen() parts the shrine's: t 0 closed → 1 open; the
+   * gap's collider is dropped once it starts to part (one-way).
+   */
+  setOdoiThicketOpen(t) {
+    if (this.odoi) this.odoi.setOpen(t);
   }
 
   /**
