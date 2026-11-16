@@ -262,7 +262,7 @@ async function instrumentedBuild(mods, runtime = null) {
   const level = mods.level.buildLevel();
   // The Roof Road page: classic by default, ?assets= / ?swap= honoured, high
   // quality on a desktop (game.js resolves the same 'high' when lowPower is off).
-  const assets = runtime || new mods.runtime.AssetRuntime({ THREE, assetSet: 'classic', search: location.search, quality: 'high' });
+  const assets = runtime || new mods.runtime.AssetRuntime({ THREE, assetSet: 'classic', search: location.search, quality: 'high', families: (f) => f.startsWith('roof') });
   await assets.preload();
   const per = [];
   const mark = { current: -1, start: Infinity };

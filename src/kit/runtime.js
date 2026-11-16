@@ -139,13 +139,17 @@ export class AssetRuntime {
    *   search           location.search (reads ?assets= and ?swap=)
    *   quality          'low' | 'medium' | 'high'
    *   loadFamilies     async () → { family: () => import(...) }   (default: src/kit/index.js)
+   *   families         which of those families preload() imports: an array of
+   *                    names or a (name) => boolean test (default: all of them).
+   *                    The Roof Road page passes its own (roof*), so it never
+   *                    downloads the valley kit; ids of a family left out stay classic
    *   createMaterials  async () → KitMaterials                     (default: src/kit/materials.js)
    *   fetchOverrides   async () → parsed JSON or null               (default: fetch kit-overrides.json)
    *   logger           console-like, for the one warning per id
    */
   constructor({
     THREE = null, assetSet = 'classic', search = '', quality = 'medium',
-    loadFamilies = null, createMaterials = null, fetchOverrides = null, logger = console
+    loadFamilies = null, families = null, createMaterials = null, fetchOverrides = null, logger = console
   } = {}) {
     const params = new URLSearchParams(search || '');
     const urlSet = parseAssetsFlag(search);
@@ -167,6 +171,8 @@ export class AssetRuntime {
     this.warned = new Set();
     this.logger = logger;
     this._loadFamilies = loadFamilies;
+    this._familyFilter = typeof families === 'function' ? families
+      : Array.isArray(families) ? ((name) => families.includes(name)) : null;
     this._createMaterials = createMaterials;
     this._fetchOverrides = fetchOverrides;
     this._preload = null;
@@ -270,8 +276,9 @@ export class AssetRuntime {
     const materials = this.kitMaterials ? null : Promise.resolve().then(() => (this._createMaterials ? this._createMaterials() : defaultMaterials()));
     if (materials) materials.catch(() => {});        // awaited below; never an unhandled rejection meanwhile
     const families = await (this._loadFamilies ? this._loadFamilies() : defaultFamilies());
-    const entries = Object.entries(families || {});
-    const loaded = await Promise.all(entries.map(([, load]) => Promise.resolve().then(load).then((mod) => ({ mod }), (error) => ({ error }))));
+    const filter = this._familyFilter;
+    const entries = Object.entries(families || {}).filter(([family]) => !filter || filter(family));
+    const loaded =await Promise.all(entries.map(([, load]) => Promise.resolve().then(load).then((mod) => ({ mod }), (error) => ({ error }))));
     entries.forEach(([family], i) => {
       try {
         if (loaded[i].error) throw loaded[i].error;

@@ -53,7 +53,7 @@ const runner = new Runner(level);
 // the game's: classic by default, ?assets=classic|modular|auto and ?swap= honoured,
 // the kit imported only when some id can resolve modular. Every piece is built
 // through it (build.js); with no Roof Road kit asset every piece stays classic.
-const assets = new AssetRuntime({ THREE, assetSet: 'classic', search: location.search, quality: lowPower ? 'low' : 'high' });
+const assets = new AssetRuntime({ THREE, assetSet: 'classic', search: location.search, quality: lowPower ? 'low' : 'high', families: (f) => f.startsWith('roof') });
 await assets.preload();
 const sky = new Sky(scene, renderer, { shadows, reduceMotion, lowPower, assets, center: new THREE.Vector3(level.center.x, 0, level.center.z) });
 const world = buildWorld(level, { reduceMotion, lowPower, assets });

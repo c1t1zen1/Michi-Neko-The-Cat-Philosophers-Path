@@ -286,6 +286,43 @@ test('preload: modular imports every family once, registers assets, binds materi
   assert.equal(bound[bound.length - 1], MAT);
 });
 
+test('preload: a families filter (names or a test) imports only those families; the rest stay classic', async () => {
+  for (const families of [['roofstreets'], (name) => name.startsWith('roof')]) {
+    const imported = [];
+    const rt = new AssetRuntime({
+      assetSet: 'modular', quality: 'high', logger: quiet(), families,
+      loadFamilies: async () => ({
+        shrine: async () => { imported.push('shrine'); return { assets: [goodDef()] }; },
+        roofstreets: async () => { imported.push('roofstreets'); return { assets: [goodDef({ id: 'roof-kido', family: 'roofstreets' })] }; }
+      }),
+      createMaterials: async () => ({ bind() {}, list: () => [] }),
+      fetchOverrides: async () => null
+    });
+    await rt.preload();
+    assert.deepEqual(imported, ['roofstreets']);
+    assert.deepEqual(rt.summary().families, { roofstreets: ['roof-kido'] });
+    assert.ok(rt.loaded);
+    assert.ok(rt.has('roof-kido'));
+    assert.ok(!rt.has('torii'));
+    const calls = [];
+    rt.build('torii', {}, () => calls.push('classic'));   // a family left out: its ids run the classic builder
+    assert.deepEqual(calls, ['classic']);
+  }
+  // No filter (the game's own runtime): every family, as before.
+  const all = [];
+  const rt = new AssetRuntime({
+    assetSet: 'modular', quality: 'high', logger: quiet(),
+    loadFamilies: async () => ({
+      shrine: async () => { all.push('shrine'); return { assets: [] }; },
+      roofstreets: async () => { all.push('roofstreets'); return { assets: [] }; }
+    }),
+    createMaterials: async () => ({ bind() {}, list: () => [] }),
+    fetchOverrides: async () => null
+  });
+  await rt.preload();
+  assert.deepEqual(all.sort(), ['roofstreets', 'shrine']);
+});
+
 test('preload failure never throws: the runtime falls back to classic with one warning', async () => {
   const log = quiet();
   const rt = new AssetRuntime({ assetSet: 'modular', quality: 'high', logger: log, loadFamilies: async () => { throw new Error('offline'); }, fetchOverrides: async () => null });
