@@ -55,6 +55,7 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
   //   roof-canal-banks     classic 182 meshes / 4480 tris / 14 materials -> modular 14 meshes / 4480 tris / 14 materials
   //   roof-market-stalls   classic 234 meshes / 2808 tris / 12 materials -> modular 12 meshes / 2808 tris / 12 materials
   //   roof-canopy          classic 289 meshes / 3468 tris /  8 materials -> modular  7 meshes / 3468 tris /  8 materials
+  //   roof-hayashi         classic 44 meshes / 31378 tris / 16 materials -> modular 33 / 34082 / 7 (r5b)
   //   roof-takasebune      classic  33 meshes / 4480 tris / 14 materials -> modular 15 meshes / 4480 tris / 14 materials (classic boatman kept, R75)
   //   roof-skylight-bridge classic  18 meshes /  392 tris /  8 materials -> modular  9 meshes /  392 tris /  7 materials (the lantern's paper caps use M.dark, not the lone paperCapMaterial)
   // Visible world meshes at the canal mouths 3-5 (s 280/300/352/499/520/672), classic -> all 8 part-b ids swapped, same frame:
@@ -64,6 +65,7 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
   'roof-market-stalls': { hero: { materials: 12 }, why: 'classic shopfronts uses the same 12 (plaster x2, timberMed, six goods colours, three noren); 234 -> 12 meshes; mid 4 / far 1 by remap' },
   'roof-canopy': { hero: { materials: 8 }, why: 'classic canopy uses the same 8 (glass, steel, six banner colours) on the 103 m run; 289 -> 7 meshes; mid 3 / far 2' },
   'roof-takasebune': { hero: { materials: 14 }, mid: { meshes: 9, materials: 8 }, why: 'classic boat uses the same 14 MAT materials incl. the classic boatman (R75) and wake; 33 -> 15 meshes; mid keeps the boatman (9 meshes, 8 materials); far remaps to 2' },
+  'roof-hayashi': { hero: { triangles: 35000, meshes: 34, materials: 7, buildMs: 8 }, mid: { triangles: 10200, meshes: 18, buildMs: 4 }, far: { triangles: 1700, meshes: 6 }, why: 'three seated musicians with their instruments (r5b): classic is 44 meshes / 31,378 tris / 16 materials (measured on the page, makeResident x3 plus bare cylinders); modular hero 33 meshes / 34,082 tris / 7 materials (the one kit bag material + 6 resident materials), +9% tris for the taiko skins, bachi, flute holes and kane. mid/far are the same figures built at the resident tiers; the Roof Road builds the near band (hero) only, far is never chosen' },
   'roof-skylight-bridge': { hero: { materials: 7 }, why: 'classic marketCrossing uses 8 (timberMed, timber, hemp, steel, three goods, lanternWhite, paperCapMaterial); modular 7; 18 -> 9 meshes; mid 4 / far 1 by remap' },
   // the contract samples the real 11 m run (G-V1 I1); ruling R51
   'bamboo-fence': {
