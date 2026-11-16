@@ -17,7 +17,10 @@
 //   - packLayers (src/kit/ground/layers.js): byte for byte the pack loop it
 //     was cut from (the oracle below, verbatim from ef6adad);
 //   - groundLayers: the two layer textures are made without painting; the
-//     first read of image.data paints.
+//     first read of image.data paints;
+//   - paintOnFirstUpload (src/kit/materials.js, for the family patches in
+//     docs/fable/handoff/b1-build-budget.md): a texture's source data is
+//     painted on its first read, once.
 // The pixels are proven in the browser: game_shot pairs on ?assets=modular
 // (docs/fable/status/b1-build-budget.md).
 import { test } from 'node:test';
@@ -54,7 +57,7 @@ registerHooks({
 });
 const kit = (path) => import(`../src/kit/${path}.js?v=${TAG}`);
 const THREE = await import('three');
-const { deferredTextured, DEFERRED_MAP_KEYS, KitMaterials } = await kit('materials');
+const { deferredTextured, DEFERRED_MAP_KEYS, KitMaterials, paintOnFirstUpload } = await kit('materials');
 const { packLayers, groundLayers, LAYERS } = await kit('ground/layers');
 
 /* ------------------------------------------------------- deferredTextured --- */
@@ -139,6 +142,25 @@ test('KitMaterials: the textured factories make their material without painting;
   assert.equal(km.shared('stone'), made[0], 'KIT_SHARED.stone is the same material');
   // textures.js paints on a canvas: under Node the read reaches it and throws
   assert.throws(() => made[0].map, /document|canvas/i);
+});
+
+test('paintOnFirstUpload: the source data is painted on its first read, once; a write before any read keeps the written value', () => {
+  let paints = 0;
+  const canvas = { painted: false };
+  const tex = { source: { data: canvas } };
+  assert.equal(paintOnFirstUpload(tex, () => { paints++; canvas.painted = true; return canvas; }), tex);
+  assert.equal(paints, 0);
+  assert.equal(tex.source.data, canvas);
+  assert.equal(canvas.painted, true);
+  assert.equal(tex.source.data, canvas);
+  assert.equal(paints, 1);
+  const d = Object.getOwnPropertyDescriptor(tex.source, 'data');
+  assert.ok('value' in d && d.writable, 'a plain property after the first read');
+  let other = 0;
+  const tex2 = paintOnFirstUpload({ source: { data: null } }, () => { other++; return 'painted'; });
+  tex2.source.data = 'mine';
+  assert.equal(tex2.source.data, 'mine');
+  assert.equal(other, 0);
 });
 
 /* ------------------------------------------------------------ packLayers --- */

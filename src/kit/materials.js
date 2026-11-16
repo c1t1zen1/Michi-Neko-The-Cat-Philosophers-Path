@@ -251,6 +251,25 @@ export function deferredTextured(paint, opts = {}, make = texturedMaterial) {
   return mat;
 }
 
+/**
+ * The same idea for a texture a family paints itself (R66): make the texture
+ * at once, at its final size (a CanvasTexture over the still blank canvas, a
+ * DataTexture's image object), and let `paint()` fill it the first time its
+ * source data is read, which three does when it first uploads the texture for
+ * a mesh it draws. `paint()` returns what the source holds (the painted canvas,
+ * or the image object) and runs once. Returns the texture.
+ */
+export function paintOnFirstUpload(texture, paint) {
+  const source = texture.source;
+  const settle = (value) => Object.defineProperty(source, 'data', { value, writable: true, enumerable: true, configurable: true });
+  Object.defineProperty(source, 'data', {
+    enumerable: true, configurable: true,
+    get() { const value = paint(); settle(value); return value; },
+    set(value) { settle(value); }
+  });
+  return texture;
+}
+
 /* ---------------------------------------------------------- KitMaterials --- */
 
 const MAT_KEY_PREFIX = 'kit:';
