@@ -11,6 +11,13 @@
 //
 // The pair is painted once per KitMaterials set (the kit's shared state) and
 // never disposed by an instance (userData.kit, like the lanterns' washi).
+//
+// Painted on first upload (ruling R66, b1-build-budget): the two textures are
+// made at once, but their pixels are painted and packed the first time three
+// reads `image.data`, which is when it uploads them for the first frame that
+// draws the ground. The world build no longer waits on the painting; the bytes
+// are the same (packLayers is the former pack loop, verbatim; the unit test
+// tools/b1_build_budget_test.mjs holds it to that loop as an oracle).
 import * as THREE from 'three';
 import { groundTextures } from '../../textures.js?v=20261116a';
 import { rng } from '../craft.js?v=20261116a';
@@ -237,9 +244,12 @@ function flat(li) {
   return { flat: [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255] };
 }
 
-/** Paint the layers named in `need` (ids); the rest are flat fills (cheap). */
-function paintLayers(need) {
-  const tiles = RECIPES.map((f, li) => (need.has(LAYERS[li].id) ? f() : flat(li)));
+/**
+ * Pack painted tiles into the two layer arrays: albedo + height (alpha), and
+ * slope (RG) + cavity (B). `tiles[li]` is `{ a, h }` (the albedo and height
+ * canvases' RGBA bytes, N × N) or `{ flat: [r, g, b] }`. Pure: no DOM, no three.
+ */
+export function packLayers(tiles) {
   const L = tiles.length, S = N * N, R = 3;
   const alb = new Uint8Array(S * 4 * L), nor = new Uint8Array(S * 4 * L);
   // wrapped neighbour columns/rows, computed once (the lab used % per read)
@@ -257,7 +267,7 @@ function paintLayers(need) {
       }
       return;
     }
-    const a = t.x.getImageData(0, 0, N, N).data, h = t.h.getImageData(0, 0, N, N).data;
+    const a = t.a, h = t.h;
     for (let i = 0; i < S; i++) hf[i] = h[i * 4] / 255;
     // the lab's cavity blur (a wrapped cross of radius R: row sum + column sum), as running sums
     for (let y = 0; y < N; y++) {
@@ -286,8 +296,35 @@ function paintLayers(need) {
       }
     }
   });
-  const mk = (data, srgb) => {
-    const tex = new THREE.DataArrayTexture(data, N, N, L);
+  return { alb, nor };
+}
+
+/** Paint the layers named in `need` (ids; the rest are flat fills) and pack them. */
+function paintArrays(need) {
+  const tiles = RECIPES.map((f, li) => {
+    if (!need.has(LAYERS[li].id)) return flat(li);
+    const t = f();
+    return { a: t.x.getImageData(0, 0, N, N).data, h: t.h.getImageData(0, 0, N, N).data };
+  });
+  return packLayers(tiles);
+}
+
+/**
+ * The two layer textures for `need`. Their `image.data` is painted and packed
+ * on its first read (three's first upload of either texture), once for both.
+ */
+function paintLayers(need) {
+  const L = RECIPES.length;
+  let arrays = null;
+  const paint = () => arrays || (arrays = paintArrays(need));
+  const mk = (key, srgb) => {
+    const tex = new THREE.DataArrayTexture(null, N, N, L);
+    const image = tex.image;
+    Object.defineProperty(image, 'data', {
+      enumerable: true, configurable: true,
+      get: () => paint()[key],
+      set: (value) => { Object.defineProperty(image, 'data', { value, writable: true, enumerable: true, configurable: true }); }
+    });
     tex.format = THREE.RGBAFormat;
     tex.type = THREE.UnsignedByteType;
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
@@ -300,7 +337,7 @@ function paintLayers(need) {
     tex.needsUpdate = true;
     return tex;
   };
-  return { alb: mk(alb, true), nor: mk(nor, false) };
+  return { alb: mk('alb', true), nor: mk('nor', false) };
 }
 
 // What the valley paints: earth, the meadow floor, moss, gravel (the road's

@@ -204,6 +204,72 @@ export function paintify(mat, { brush = 0.1, dab = 16, moss = 0, lichen = 0, gri
   return mat;
 }
 
+/* ------------------------------------------- maps painted on first read --- */
+
+// Ruling R66 (b1-build-budget): the textured kit materials (stone, wood, bark,
+// lacquer, bronze, straw, plaster, tile) paint their canvases (textures.js:
+// 256² fbm fields, 10–25 ms each) when a map is first READ, not when the
+// material is made. three reads material.map / normalMap only when it builds
+// the program for a mesh it draws (or its shadow), so a material made during
+// the world build paints in the first frame that draws it, and one nothing
+// draws before the summit unlocks paints then. Once read, the maps are exactly
+// what texturedMaterial(set, opts) gives (the same cached Texture objects any
+// classic material on that set holds, the same normalScale): the resolution
+// copies them from a reference material made that way.
+// tools/b1_build_budget_test.mjs proves the equality and that nothing paints
+// before a read; game_shot pairs on ?assets=modular prove the pixels.
+export const DEFERRED_MAP_KEYS = Object.freeze(['map', 'normalMap', 'roughnessMap', 'emissiveMap']);
+let _pendingSet = null;
+
+/**
+ * texturedMaterial(paint(), opts), with paint() run on the first read (or
+ * write) of any of its maps. `make` is texturedMaterial itself (injectable for
+ * the unit test). Returns the material.
+ */
+export function deferredTextured(paint, opts = {}, make = texturedMaterial) {
+  // stand-ins with every map a painted set has, so `make` sets the same
+  // non-map parameters (normalScale) as it would for the real set
+  if (!_pendingSet || make !== texturedMaterial) _pendingSet = { map: new THREE.Texture(), normalMap: new THREE.Texture() };
+  const mat = make(_pendingSet, opts);
+  // the first read or write paints, then turns every map back into a plain
+  // property holding what make(paint(), opts) holds (a failing paint throws
+  // to the reader and the next read tries again)
+  const resolve = () => {
+    const ref = make(paint(), opts);
+    for (const key of DEFERRED_MAP_KEYS) {
+      Object.defineProperty(mat, key, { value: ref[key] === undefined ? null : ref[key], writable: true, enumerable: true, configurable: true });
+    }
+    if (mat.normalScale && ref.normalScale) mat.normalScale.copy(ref.normalScale);
+  };
+  for (const key of DEFERRED_MAP_KEYS) {
+    Object.defineProperty(mat, key, {
+      enumerable: true, configurable: true,
+      get() { resolve(); return mat[key]; },
+      set(value) { resolve(); mat[key] = value; }
+    });
+  }
+  return mat;
+}
+
+/**
+ * The same idea for a texture a family paints itself (R66): make the texture
+ * at once, at its final size (a CanvasTexture over the still blank canvas, a
+ * DataTexture's image object), and let `paint()` fill it the first time its
+ * source data is read, which three does when it first uploads the texture for
+ * a mesh it draws. `paint()` returns what the source holds (the painted canvas,
+ * or the image object) and runs once. Returns the texture.
+ */
+export function paintOnFirstUpload(texture, paint) {
+  const source = texture.source;
+  const settle = (value) => Object.defineProperty(source, 'data', { value, writable: true, enumerable: true, configurable: true });
+  Object.defineProperty(source, 'data', {
+    enumerable: true, configurable: true,
+    get() { const value = paint(); settle(value); return value; },
+    set(value) { settle(value); }
+  });
+  return texture;
+}
+
 /* ---------------------------------------------------------- KitMaterials --- */
 
 const MAT_KEY_PREFIX = 'kit:';
@@ -271,7 +337,7 @@ export class KitMaterials {
   /** Dressed stone from the game's stone texture. */
   stone({ tint = 0x8d8d86, seed = 5, rough = 0.92, ...p } = {}) {
     return this._once('stone', [tint, seed, rough, p], () =>
-      paintify(texturedMaterial(stoneTextures(tint, seed), { roughness: rough, normalScale: 0.9 }), this._paint({ brush: 0.09, ...p })));
+      paintify(deferredTextured(() => stoneTextures(tint, seed), { roughness: rough, normalScale: 0.9 }), this._paint({ brush: 0.09, ...p })));
   }
   /** Fully procedural rock for unmapped meshes (world-space colour and bump). */
   rock({ a = 0x6a665e, b = 0xa8a294, moss = 0, lichen = 0.55, bump = 0.02, rough = 0.95, ...p } = {}) {
@@ -280,19 +346,19 @@ export class KitMaterials {
   }
   wood({ base = 0x6b4a2e, dark = 0x3a2416, seed = 2, rough = 0.8, ...p } = {}) {
     return this._once('wood', [base, dark, seed, rough, p], () =>
-      paintify(texturedMaterial(woodTextures(base, dark, seed), { roughness: rough, normalScale: 0.8 }), this._paint({ brush: 0.06, ...p })));
+      paintify(deferredTextured(() => woodTextures(base, dark, seed), { roughness: rough, normalScale: 0.8 }), this._paint({ brush: 0.06, ...p })));
   }
   bark({ base = 0x6a4b35, dark = 0x2c1b12, seed = 8, rough = 0.95, ...p } = {}) {
     return this._once('bark', [base, dark, seed, rough, p], () =>
-      paintify(texturedMaterial(barkTextures(base, dark, seed), { roughness: rough }), this._paint({ brush: 0.06, ...p })));
+      paintify(deferredTextured(() => barkTextures(base, dark, seed), { roughness: rough }), this._paint({ brush: 0.06, ...p })));
   }
   lacquer({ color = 0xd8482c, seed = 13, rough = 0.34, grime = 0.3, ...p } = {}) {
     return this._once('lacquer', [color, seed, rough, grime, p], () =>
-      paintify(texturedMaterial(lacquerTextures(color, seed), { roughness: rough, normalScale: 0.4, envMapIntensity: 0.8 }), this._paint({ brush: 0.07, grime, grimeH: 0.8, ...p })));
+      paintify(deferredTextured(() => lacquerTextures(color, seed), { roughness: rough, normalScale: 0.4, envMapIntensity: 0.8 }), this._paint({ brush: 0.07, grime, grimeH: 0.8, ...p })));
   }
   bronze({ color = 0x9a7a44, rough = 0.42, metal = 0.85, ...p } = {}) {
     return this._once('bronze', [color, rough, metal, p], () =>
-      paintify(texturedMaterial(metalTextures(color), { metalness: metal, roughness: rough }), this._paint({ brush: 0.05, ...p })));
+      paintify(deferredTextured(() => metalTextures(color), { metalness: metal, roughness: rough }), this._paint({ brush: 0.05, ...p })));
   }
   bamboo({ color = 0x7fa84f, rough = 0.48, vcol = false, side = THREE.FrontSide, ...p } = {}) {
     return this._once('bamboo', [color, rough, vcol, side, p], () =>
@@ -300,15 +366,15 @@ export class KitMaterials {
   }
   straw({ color = 0xc8a96a, rough = 1, side = THREE.FrontSide, ...p } = {}) {
     return this._once('straw', [color, rough, side, p], () =>
-      paintify(texturedMaterial(strawTextures(color), { roughness: rough, side }), this._paint({ brush: 0.08, ...p })));
+      paintify(deferredTextured(() => strawTextures(color), { roughness: rough, side }), this._paint({ brush: 0.08, ...p })));
   }
   plaster({ tint = 0xefe6d2, seed = 1, rough = 0.96, ...p } = {}) {
     return this._once('plaster', [tint, seed, rough, p], () =>
-      paintify(texturedMaterial(plasterTextures(tint, seed), { roughness: rough }), this._paint({ brush: 0.06, ...p })));
+      paintify(deferredTextured(() => plasterTextures(tint, seed), { roughness: rough }), this._paint({ brush: 0.06, ...p })));
   }
   tile({ color = 0x5e6872, seed = 3, rough = 0.5, side = THREE.FrontSide, ...p } = {}) {
     return this._once('tile', [color, seed, rough, side, p], () =>
-      paintify(texturedMaterial(kawaraTextures(color, seed), { roughness: rough, normalScale: 0.5, envMapIntensity: 0.85, side }), this._paint({ brush: 0.05, ...p })));
+      paintify(deferredTextured(() => kawaraTextures(color, seed), { roughness: rough, normalScale: 0.5, envMapIntensity: 0.85, side }), this._paint({ brush: 0.05, ...p })));
   }
   /** Washi lit from inside: the lit look is emissive, multiplied by a rib/fibre map when given. */
   paper({ color = 0xfff0d8, glow = 0, glowColor = 0xffa14a, rough = 0.9, map = null, side = THREE.DoubleSide, ...p } = {}) {

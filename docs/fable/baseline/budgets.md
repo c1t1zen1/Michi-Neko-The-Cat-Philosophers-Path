@@ -118,6 +118,27 @@ whose merge ships classic. G-V3 is ticked with this item open.
   and +1.2 s: the classic world now builds in ~950 ms on this machine, and the
   modular overhead is ~270 ms (medium) / ~380 ms (high); the build rule needs it
   under ~240 ms. Levers left: `docs/fable/handoff/a1-village.md` §2c.
+- **b1-build-budget (ruling R83, 2026-11-16 02:53–05:15): medium holds, high
+  does not yet; still OPEN for high.** The kit's textures now paint on their first
+  upload instead of inside the build (`KitMaterials` stone/wood/bark/lacquer/…
+  on the first map read; the ground's layer tiles on the first `image.data`
+  read); modular pixels unchanged (`maxDelta 0` at eight frames, summit
+  included). The same build command, every boot started at load < 3:
+  - two runs of `--boots 3` in a quiet spell (load 1.29–2.84): build **1.20 × /
+    1.23 ×** on medium, **1.30 × / 1.31 ×** on high; boot total **+680 / +769 ms**
+    and **+816 / +785 ms** (the boot rule holds);
+  - 12 boots per cell, one per invocation, gated at load < 2.6, lane and ef6adad
+    interleaved (load 1.97–2.84): lane **1.23 ×** medium, **1.24 ×** high, boot
+    **+721 / +612 ms**; ef6adad in the same sessions 1.42 × / 1.45 ×, +887 / +830 ms.
+  Boot-to-boot noise on the machine was ±300 ms (classic, same code), so 3-boot
+  runs swing by ±0.2; read the 12-boot medians and the quiet pair together: high
+  sits at 1.24–1.31 against 1.25. The modular high overhead is ~420 ms on a
+  ~1,390 ms classic build and needs to be under ~350. What would buy it, ranked
+  with measured shares (`docs/fable/handoff/b1-build-budget.md` §2, §4): every
+  valley tree's classic canopy is still built in Vegetation's layout step only to
+  advance the stream (~98 ms profiled at high), three family textures painted in
+  the build (cloud field, pool caustics, sign face: ~45–65 ms, exact patches
+  ready), the summit's kit (~60 ms profiled at high).
 
 ## 3. Per-asset budgets for the contract test (AAA-7)
 
