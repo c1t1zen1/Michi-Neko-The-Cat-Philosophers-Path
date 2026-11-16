@@ -737,7 +737,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 6 | `t3-audio` | dawCAT sound hooks for new assets | G-V2 | [x] |
 | 7 | `a1-village` | Village area pass | G-V3, G-C | [x] |
 | 7 | `a2-hilltop` | Hilltop area pass | G-S | [x] |
-| 7 | `a3-rooftops` | Roof Road area pass | G-R | [ ] |
+| 7 | `a3-rooftops` | Roof Road area pass | G-R | [x] merged as 6f396e4 (PR #55); its timing rows wait for the solo window (R86/R87) |
 | 8 | `h1-hero` | Hero capture tool and shots | G-A | [ ] |
 | 8 | `h2-readme` | README and docs rewrite | h1 | [ ] |
 | 9 | `z-final` | Fable review and test | G-H | [ ] |
@@ -772,6 +772,14 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 - Roof Road kit: 47 of the 62 inventory ids are in the four Roof Road families (`roofcanal` 16, `roofcast` 5, `rooffestival` 12, `roofstreets` 14), and `roof-chidori` is a `CharacterDef` (`?swap=roof-chidori:modular`). **Deferred, classic (not G-R blockers; they build their classic piece on both sets):** r2 part c, `roof-bridge`, `roof-corner-house`, `roof-roji`, `roof-balconies`, `roof-zushi`, `roof-alley-pockets`, `roof-alley-routes`, `roof-street`, `roof-ground`, `roof-kawara-roofs`, `roof-facades` (the standalone kawara and façade rows; the machiya builds its own); r3, `roof-willows`, `roof-culvert-ledges`, `roof-tenmangu-gate` (`downtown.js` builders, no `PIECES` entry). The valley's Seven Posts and Odoi (`valley-seven-posts`, `valley-odoi`) are classic on both sets (no `placeAsset` seam).
 - Still pending from r6, optional: `catalog/js/links.mjs` wording (r6 handoff §2.3; the note still says "not yet in the game").
 - G-R chores items 1a and 1b: the Roof Road family filter (`AssetRuntime` `families` option; the sandbox passes `roof*`, r3 handoff §4 closed) and ruling R84 (roof-machiya hero `buildMs` 12 → 15 from quiet readings) are on `fable/integration`.
+
+### Board notes (a3-rooftops merge, 2026-11-16)
+
+- `a3-rooftops` merged as 6f396e4 (PR #55, approved after two fix rounds: `reviews/a3-rooftops-review-r1.md` and `a3-rooftops-rereview-r1.md` in the swarm records). What it changes: the `roof-distant-city` far tier is one InstancedMesh of a 14-triangle house on an 8.5 m lattice (about 5,900 houses, 74 % of classic's 7,956), and the hero and mid colours match classic's dark kawara; the hero machiya gets the classic bicycle; crates get 5 (hero) / 4 (mid) slats. Classic is untouched (rooftop golden classic EQUAL, footprint golden EQUAL).
+- **Timing rows wait for the solo window (R86, R87). They were not judged at this merge:** `roof-distant-city` far `buildMs 6` is PROVISIONAL (set from loaded reads at load 2.3–3.2); `roof-machiya` hero 15 (R84) needs a re-read with the bicycle (about +1.5 ms; the lane's loaded reads were 17–18 ms); `roof-hayashi` hero/mid/far 10/5/2.5 (R85) needs a solo re-read. The merge ran the two changed families' contracts once (rooffestival 697 checks, roofstreets 837, 0 failed), but those runs are not timing verdicts.
+- **G-A is NOT ticked here.** The Integrator ticks it after the solo timing window (R86).
+- Handoff: the only patch is the `rooftops/js/runview.js` finale framing (frame the pair's midpoint). It is applied, or not, as a separate Integrator decision with sandbox and pocket proof (note below). The `build.js` distant-city band stays `far` (no patch).
+- Reviewer minors carried forward: no test asserts the city part name (`asset:roof-distant-city/city`) or the far instance count; R52 at s = 350 (modular 202 vs classic 199–203) is noise-level, so re-measure it once in the solo window.
 
 ### Suggested allocation for three workers
 
