@@ -54,6 +54,6 @@ For s3-vista and r4-festival (import with the current `?v=` tag):
 | v-water | water (river, bridge, paddies, paddy-bunds, rice, water-ripples) | `src/kit/water/index.js` `assets` |
 | s3-vista | vista/summit-vista, vista-terrain, kyoto-city, summit-pagoda, summit-bay, harbour, bay-bridge, ferris-wheel, horizon | src/kit/vista/index.js assets (production: "vista") |
 | v-ground | ground (valley-ground, path, path-shoulders, path-slabs) | `src/kit/ground/index.js` `assets` (production: "ground") |
-| r5-roof-cast | roofcast (roof-shoki, roof-treats, roof-villagers; part of 6 ids) | src/kit/roofcast/index.js assets |
+| r5-roof-cast | roofcast (roof-shoki, roof-treats, roof-villagers, roof-boatman, roof-hayashi; part of 6 ids) | src/kit/roofcast/index.js assets |
 | r4-festival | rooffestival (roof-yatai, roof-lantern-racks, roof-hoko, roof-temple-gate, roof-tsuiji, roof-yama, roof-skyline-pagodas; part of 12 ids) | src/kit/rooffestival/index.js assets |
 | r3b-canal-market | roofcanal (roof-canal, roof-canal-banks, roof-lines, roof-skylight-bridge, roof-market-stalls, roof-cherry-boughs, roof-canopy, roof-takasebune; part b, 8 more ids) | `src/kit/roofcanal/index.js` `assets` |
