@@ -4,9 +4,11 @@ A production workspace for the game’s authored visual assets. Open
 **[/catalog/](index.html)** from the served repository root, or
 **[browse on GitHub Pages](https://c1t1zen1.github.io/Michi-Neko-The-Cat-Philosophers-Path/catalog/)**.
 
-The library records **190 inventory entries: 186 active and four inactive**.
-It brings together original game factories, named lab specimens, source
-provenance, review imagery and editable production metadata. The
+The library records **254 inventory entries: 250 active and four inactive**,
+across the valley, the tea-house interior, the summit, the characters and the
+Roof Road. It brings together original game factories, named lab specimens,
+the modular kit's **production** assets, source provenance, review imagery
+and editable production metadata. The
 [coverage audit](../labs/ASSET_COVERAGE.md) defines the denominator and gaps.
 
 [![The Asset Library with categories, provenance-labeled thumbnails, coverage filters and an original torii inspector](images/library.webp)](index.html)
@@ -45,8 +47,9 @@ companion settings; browser storage belongs to an origin.
 - **Production board:** drag cards between Untriaged, Research, In progress,
   In review and Approved. These are work statuses; approval does not change
   the audited lab coverage or claim a study has shipped.
-- **Inspector:** compare the original and available updated study adapters,
-  open the exact lab specimen, inspect source anchors and manage art notes.
+- **Inspector:** compare the original, the available updated study adapters
+  and, for kit assets, the production version; open the exact lab specimen,
+  inspect source anchors and manage art notes.
 - **Collections:** gather any asset IDs for an area or art pass. Add/remove
   members, rename or delete a collection; Undo retains the assets and notes.
 - **Saved views:** retain a query and filters; edit or delete the view later.
@@ -88,7 +91,7 @@ before searching `lifecycle:inactive`.
 cards, Enter selects the inspector, Escape closes a panel and Cmd/Ctrl Z
 undoes a production change. Normal text-field undo is preserved.
 
-## Originals, studies and cadJS
+## Originals, studies, production and cadJS
 
 **124 original adapters** and **71 unique updated lab recipes** are explicitly
 implemented in [asset-loader.mjs](js/asset-loader.mjs). They cover **126 active
@@ -102,12 +105,47 @@ offers orbit/zoom, camera presets, a turntable, animation pause, wireframe,
 grid and PNG export. Some game physics and whole-scene effects need their
 own lab or game context; an isolated model is not a replay of those systems.
 
+### Production: the kit version
+
+The third variant, **production**, is the asset as the game builds it on the
+modular set: the kit record from `src/kit/` (187 assets in 28 families
+today), built by the game's own `AssetRuntime` on the modular set at quality
+high, with published overrides ignored. The allowlist is the registered kit
+ids, read from the generated `src/kit/index.js` through
+`labs/shared/game.js`, so a family merged later appears here with no catalog
+change. An asset with no kit version shows **Production (classic only)**.
+
+- `preview.html?asset=<id>&variant=production` adds a hero / mid / far tier
+  switch and controls generated from the asset's `params` schema (sliders,
+  selects, checkboxes, colours); `&tier=` and `&params={json}` are honoured.
+- `preview.html?asset=<id>&variant=compare` shows the original, the lab study
+  and the production version side by side.
+- **Swap board** (`swap.html`): choose classic or modular and set parameters
+  per kit asset. **Save** writes the repo-root `kit-overrides.json` (format
+  `michi-neko-kit-overrides`) through `GET/POST /api/asset-library/kit-overrides`
+  on the local server: atomic (temp file + rename), revision-checked (a
+  changed file returns 409) and limited to registered ids. Entries equal to
+  the defaults are dropped. On a static host the board downloads the file
+  instead; commit it to the repo root.
+
+The game reads `kit-overrides.json` only when the kit can be active
+(`?assets=modular`, the `assetSet` setting, or a `?swap=` that asks for the
+kit), and its runtime clamps or ignores anything unusable. The classic
+default never fetches it. Server-side validation of params is shape-only (the
+schemas need three.js); the swap board clamps to the schema and the game
+clamps again.
+
 **Edit in cadJS** opens:
 
 ```text
 /cadJS/?asset=larry&variant=original
 /cadJS/?asset=bamboo-fence&variant=lab&target=fences%2Fkoetsu
+/cadJS/?asset=toro&variant=production
 ```
+
+A production asset arrives in cadJS with its named parts
+(`asset:<id>/<part>`) and a **Kit parameters** panel; *Push to game* there
+writes the same `kit-overrides.json` through the same route.
 
 cadJS suppresses the asynchronous starter cat for an explicit handoff,
 builds the requested object, selects/frames it, and registers a stable
@@ -117,8 +155,9 @@ retains live objects so custom shader behavior survives. Imports are frozen
 for editing; the separate viewer can animate them.
 
 Catalog imports do not automatically overwrite game geometry or approve a
-replacement. Use cadJS’s existing export and game-integration workflow to
-review edits. Large effects and scene systems without an isolated adapter
+replacement. Parameter and variant choices for kit assets reach the game only
+through `kit-overrides.json`, and only on the modular set. Use cadJS’s
+existing export and game-integration workflow to review other edits. Large effects and scene systems without an isolated adapter
 have explicit limits and working source/review links.
 
 **Original scene** opens existing game review sheets or the normal game,
@@ -129,12 +168,13 @@ links include line numbers resolved from the current local anchor.
 
 ## Production metadata and saving
 
-There are two separate records:
+There are two catalog records, plus the game's published kit choices:
 
 | Record | Purpose |
 |---|---|
 | `labs/asset_inventory.json` | Audited identity, game source, lifecycle and specimen evidence |
 | `catalog/metadata.json` | Owners, status, priority, tags, notes, favorites, collections, views and activity |
+| `kit-overrides.json` (repo root) | Per kit asset: the published variant (classic or modular) and parameter values. The game reads it; the swap board and cadJS write it |
 
 Edits first become browser drafts. **Save to repo** writes the metadata file
 through the local server with an atomic rename and revision comparison.
@@ -198,15 +238,20 @@ unchanged. Cancel stops the current request.
 ```text
 catalog/
   index.html, styles.css, tokens.css, icon.svg
-  preview.html, preview.css
+  preview.html, preview.css     isolated viewer; production tiers and compare
+  swap.html, swap.css           the swap board
   metadata.json                 production overlay
-  thumbnails.json, thumbnails/ evidence-labeled WebP captures
-  server.mjs                    optional repository persistence + AI relay
+  thumbnails.json, thumbnails/ evidence-labeled WebP captures (+ production map)
+  server.mjs                    optional repository persistence, kit-overrides
+                                route + AI relay
   js/
     model.mjs                   query, metadata validation, merges, CSV
     app.mjs                     browser workspace and interaction flow
     assistant.mjs               constrained plans and shared provider transport
-    asset-loader.mjs            explicit original / lab object factories
+    asset-loader.mjs            explicit original / lab / production factories
+    kit-overrides.mjs           the kit-overrides.json format (shared with cadJS)
+    param-controls.mjs          controls generated from a params schema
+    swap.mjs                    the swap board
     links.mjs                   specimen, review and source navigation
     preview.mjs, icons.mjs      isolated viewer and interface symbols
   tests/                        unit, API and optional browser suites
@@ -214,10 +259,15 @@ catalog/
 
 Add a new game type to the audited inventory before cataloging it. To enable
 editing, add a specific original or study adapter; source text is never
-evaluated as arbitrary code. Keep game imports in the cache-tagged
+evaluated as arbitrary code. A production version needs no catalog code: it
+appears once its kit family is registered (`node tools/kit_index.mjs`). Keep game imports in the cache-tagged
 `labs/shared/game.js` bridge. Add a real specimen capture and its provenance
 to the thumbnail manifest; [thumbnail notes](THUMBNAILS.md) document its
 matching and refresh process. Unknown/uncaptured types retain explicit limits.
+The manifest holds 386 original and study captures and 28 production
+thumbnails (414 WebP files in all); kit assets added after those 28 show
+the asset's usual thumbnail (or a type placeholder) in the production view
+until someone captures them.
 
 ## Verification
 
@@ -226,7 +276,7 @@ From the repository root:
 ```sh
 node tools/catalog_check.mjs
 node tools/labs_coverage.mjs
-node --test catalog/tests/*.test.mjs
+node --test catalog/tests/*.test.mjs     # or: cd catalog && npm test
 node --test tools/labs_coverage_test.mjs
 node tools/labs_check.mjs
 cd cadJS && npm run check

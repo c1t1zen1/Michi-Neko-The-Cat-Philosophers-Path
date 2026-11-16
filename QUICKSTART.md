@@ -1,7 +1,8 @@
-# 🐾 Cat Walk — Quick Start & Extended Gameplay Guide
+# 🐾 Michi-Neko — Quick Start & Extended Gameplay Guide
 
 > **猫の散歩** — A cat's stroll through a Kyoto-inspired valley.  
-> This guide covers everything from your first steps to discovering every secret.
+> This guide covers everything from your first steps to discovering every secret: the valley, the hilltop above the shrine and the Roof Road past the bridge.\
+> (The game's working title was *Cat Walk*; you will still see it in storage keys and photo file names.)
 
 ---
 
@@ -12,7 +13,7 @@
 1. Start the game (see [INSTALL.md](INSTALL.md) if you haven't already)
 2. You'll see the **title screen** with an animated paw and cinematic orbit camera
 3. Click **"New Game"** to begin (or **"Continue"** if you have a saved game)
-4. Your tabby cat will appear in the valley at dawn — ready to explore
+4. Your tabby cat will appear in the valley in the morning — ready to explore
 
 ### The First 60 Seconds
 
@@ -30,14 +31,14 @@
 | Key | Action | Notes |
 |-----|--------|-------|
 | `W` `A` `S` `D` / Arrows | Move | Relative to camera direction |
-| `Shift` | Sprint | Unlocked at rank 2 (Curious Cat) |
+| `Shift` | Sprint | Available from the start |
 | `Space` | Jump | Hold longer for higher jump; tap for short hop |
 | `E` | Context action | Talk to NPCs, pick up items, interact with world |
 | `M` | Meow | The cat meows with an animated mouth open |
 | `C` | Toggle prowl | Crouch low, move quietly at 45% speed |
-| `P` | Photo mode | Free camera orbit, zoom, capture PNG screenshots |
+| `P` | Photo mode | Free camera orbit, zoom, capture PNG screenshots (not on the Roof Road) |
 | `J` | Discovery journal | Places, quiet moments, photographs, keepsakes, weather memories |
-| `Esc` | Pause menu | Save & quit, settings, resume |
+| `Esc` | Pause menu | Save & quit, settings, resume; *Leave the Roof Road* while on the roofs |
 | `F3` | Debug overlay | FPS, draw calls, triangles, GPU memory |
 | Mouse drag | Camera rotate | Yaw (horizontal) + pitch (vertical) |
 
@@ -50,6 +51,17 @@
 | ACT button | Context action |
 | MEOW button | Meow |
 | Swipe right half | Rotate camera |
+
+### On the Roof Road
+
+| Desktop | Touch | Action |
+|---------|-------|--------|
+| `←` `→` or `A` `D` | Stick left / right | Run |
+| `Space`, `W` or `↑` | JUMP | Jump (hold for height) |
+| `↓` or `S` | Stick down | Drop to a lower route |
+| `Shift` | Stick to the edge | Sprint |
+| `R` | — | Back to the last lantern |
+| `Esc` | — | Pause; *Leave the Roof Road* takes you home |
 
 ---
 
@@ -94,7 +106,7 @@ Explore → Discover → Interact → Collect → Progress → Repeat
 2. **Discover** yarn balls, NPCs, hidden items, and secret areas
 3. **Interact** with the world — talk to cats, ring the shrine bell, paw at koi
 4. **Collect** yarn balls for XP and quest completion
-5. **Progress** through ranks that unlock sprint, jump boost, and speed
+5. **Progress** through ranks that add a jump boost, more speed and, at the top, a golden bell
 6. **Repeat** — the valley changes with time of day and weather, so revisiting areas at different times reveals new moods and details
 
 ---
@@ -105,28 +117,37 @@ Explore → Discover → Interact → Collect → Progress → Repeat
 
 | Rank | XP Required | Unlock |
 |------|-------------|--------|
-| **Kitten** | 0 | Starting rank — walk and jump only |
-| **Curious Cat** | 30 XP | **Sprint** — hold Shift to run at 1.7x speed |
+| **Kitten** | 0 | Starting rank — walk, sprint (1.7x speed), jump and prowl from the first step |
+| **Curious Cat** | 30 XP | The valley starts to remember your pawprints |
 | **Backyard Explorer** | 80 XP | **Jump Boost** — higher jumps (8.5 force, up from 7.2) |
-| **Rooftop Wanderer** | 150 XP | **Speed Up** — base speed 5.5, sprint multiplier 1.9x |
-| **City Legend** | 250 XP | **Master Cat** — all abilities at maximum |
+| **Rooftop Wanderer** | 150 XP | **Speed Up** — base speed 5.5 (up from 4.5), sprint multiplier 1.9x |
+| **City Legend** | 250 XP | **Master Cat** — a golden bell, and a twin, on your collar; the torii crown becomes a rest spot |
 
 ### How to Earn XP
 
 | Action | XP Reward |
 |--------|-----------|
 | Collect a yarn ball | +10 |
-| Make a new NPC friend (first meeting) | +5 |
-| Greet an NPC (press E) | +15 |
+| Make a new NPC friend (first greeting) | +5 |
+| Give a yarn ball to a villager | +15 |
+| Share a slow blink with a villager | +10 |
 | Ring the shrine bell | +10 |
+| Tip the shishi-odoshi, ring the furin, scratch bamboo or a fence post | +10 |
 | Paw at koi fish | +5 |
-| Drink water | +2 |
+| Drink water | +2 (and +40 for the tenth drink) |
 | Complete a quest | +50 |
 | Find the Antique Key | +40 |
-| Unlock the Tea House | +50 |
+| Unlock the Tea House | +20 (walk up with the key) or +50 (press E at the door) |
 | Eat grilled sea bream | +30 |
 | Take a cozy nap | +50 |
 | Obtain the Guardian's Feather | +60 |
+| Discover a rest spot | +20 |
+| A quiet moment (stillness) | +15 |
+| Find the Moon Pool or the Lantern Glade | +25 each |
+| The tenth bell (the way to the hilltop) | +60 |
+| The Seven Posts (the way to the Roof Road) | +60 |
+| Greet a Shōki on the roofs | +10 |
+| Reach the Roof Road's finale (the first time) | +75 |
 
 ---
 
@@ -201,7 +222,7 @@ The tea house is the game's main discovery quest. Here's how to find it:
 Walk forward from your spawn point. Luna will greet you automatically and start the "Luna's Yarn Hunt" quest.
 
 ### Step 2: Collect 3 Yarn Balls
-Explore the valley — yarn balls glow with a pink emissive light and are scattered along paths, near buildings, and in hidden corners. Collect 3 to complete Luna's quest.
+Explore the valley — yarn balls glow with a pink emissive light and are scattered along paths, near buildings, and in hidden corners. Collect 3 to complete Luna's quest, then talk to Luna for her reward (+50 XP).
 
 ### Step 3: Find the Antique Key
 Talk to **Mochi** near the bamboo grove (east side). He hints at something shiny near the torii gate. Head to the **bamboo shrine area** (look for the 🎋 icon on your compass). The Antique Key is hidden there — walk near it and press E to pick it up.
@@ -301,7 +322,7 @@ Press **P** at any time during gameplay to enter photo mode.
 
 ### Sprint Mechanics
 
-- Sprint unlocks at **Curious Cat** rank (30 XP — roughly 3 yarn balls)
+- Sprint is available from the first step; at **Rooftop Wanderer** (150 XP) it gets faster (1.9x instead of 1.7x)
 - Hold **Shift** on desktop or push the joystick to the **full edge** on mobile
 - Sprinting increases your FOV slightly for a sense of speed
 - On mobile, the joystick's raw input magnitude determines walk vs. sprint
@@ -327,7 +348,7 @@ Press **P** at any time during gameplay to enter photo mode.
 
 1. **Talk to every cat** — each NPC gives XP and hints about secrets
 2. **Follow the compass icons** — they point to NPCs, the tea house, and key items
-3. **Collect yarn early** — 3 yarn balls completes Luna's quest and gets you 30+ XP toward sprint unlock
+3. **Collect yarn early** — 3 yarn balls complete Luna's quest; take them back to her for the reward. That is 80 XP (30 for the yarn, 50 from Luna): straight to Backyard Explorer and its jump boost
 4. **Explore at different times** — the valley looks completely different at sunset vs. dawn vs. night
 5. **Try photo mode during golden hour** — the bloom and warm lighting make stunning screenshots
 6. **Climb everything** — rooftops hide the bird's nest and offer beautiful vantage points
@@ -358,7 +379,37 @@ Two secrets sit on the valley floor with no marker pointing to them. The scent t
 Each gives a journal entry and a little XP the first time you arrive, and is a sit-and-watch spot with its own stillness moments for day, night and rain.
 
 ### The Summit
-A last secret waits above the shrine. Ring the shrine bell ten times and step into the light: you arrive in a wind-combed meadow high above Kyoto, with the city, Osaka and the bay stretching away. There are no quests, no hints and no NPCs — sit still and the cat will sleep. Walk back under the torii at the foot of the shrine steps to return. *(This scene is still being developed.)*
+A last secret waits above the shrine. Ring the shrine bell ten times: the thicket behind the shrine parts and light spills through. Step into the light and you arrive in a wind-combed meadow high above Kyoto, with the city, Osaka and the bay stretching away. There are no quests, no hints and no NPCs — sit still and the cat will sleep. Walk back under the gate to return to the valley. *(The summit had a polish pass in November 2026 and is still being refined.)*
+
+---
+
+## The Roof Road (屋根道)
+
+Past the valley bridge lies level two: a side-scrolling run over the roofs of an imagined downtown Kyoto, with Chidori, a small guide cat, leading the way.
+
+### Opening it: the Seven Posts
+1. Go to the **valley bridge** and climb onto its **east railing** at the **north** end.
+2. Walk the railing to the south end without stepping off. Each of the seven posts warms to a glow and sings the next note of a rising scale.
+3. Step off and the glows fade back. That is all: a quiet reset, no penalty, no time limit. Start again from the north end.
+4. At the seventh note the bamboo on the old earthen wall (the **Odoi bank**) south of the bridge leans apart. A noren hangs in the gap.
+5. Walk into the gap and through the noren.
+
+Nothing points you there. It is open from the start of the game, like the summit bell.
+
+### On the roofs
+- **Follow Chidori** about 1.7 km along the roofs, through eleven named districts from Awataguchi and Pontochō past the Takase canal, the Nishiki canopy and the laundry decks to the festival streets and Shirakawa
+- **Choose your height** — roofs, trellises, laundry lines and pole crossarms above; alleys, market rafters and canal stones below. At a marked noren, drop to explore an alley; both ends come back to the street
+- **Nothing can go wrong.** A missed jump lands you in the street, and there is always a way back up close by. **R** takes you back to the last lantern
+- **Greet the seven clay Shōki**, the roof guardians. Each one goes in your journal as a keepsake
+- **The sky follows you.** It turns from afternoon to night as you travel along the route, not by the clock; standing still stops time
+- **The finale** is the top of a festival float, with the five Okuribi fires kindling on the hills. Sit as long as you like. When a paper lantern drifts past, follow it (any move) and it takes you home
+- **Going home early:** walk back over the bridge where the run began, or choose *Leave the Roof Road* in the pause menu
+- A short hint with the controls and the way home shows when you arrive, until you have reached the finale once
+
+### Saved progress
+The unlock, the Shōki you have greeted and the finale are saved. The game never saves a spot on the roofs: a save made there reloads with Michi on the bridge's south ramp. Photo mode is off on the roofs.
+
+The Roof Road also has a page of its own, `/kyoto-rooftops.html`, which the game does not link to; see [rooftops/README.md](rooftops/README.md) for its flags.
 
 ---
 
@@ -377,17 +428,19 @@ Open **Settings** from the title screen or pause menu (Esc). Everything applies 
 | **Interface size** | 80–150% for the parchment, prompts, toasts and dialogue |
 | **Larger dialogue text** | Bigger, roomier conversation text |
 | **High-contrast prompts** | Black-and-white prompts and dialogue boxes |
-| **Reduce motion** | *Follow system* (default), *On* or *Off*. On holds the camera still: no sprint/jump FOV kicks, no automatic swing behind the cat, a still title backdrop, no rest-camera drift, no film grain or lens fringe, and calmer UI animation |
+| **Reduce motion** | *Follow system* (default), *On* or *Off*. On holds the camera still: no sprint/jump FOV kicks, no automatic swing behind the cat, a still title backdrop, no rest-camera drift, no film grain or lens fringe, and calmer UI animation. It reaches the Roof Road live too (camera easing, cloud drift, festival motion); the float's tassels and musicians keep their sway until your next visit to the roofs |
 | **Film grain / Lens fringe** | Individual toggles (fringe is a High-quality effect) |
 | Save data | Export or import your save as a JSON file |
+
+**Asset set (no menu entry yet).** The world can be built two ways: the original builders (*classic*, the default) or the new modular kit (*modular*). To try the kit, add `?assets=modular` to the game's address. On quality Low the game always stays classic. Saves work on both.
 
 ---
 
 ## Save System
 
-- The game **auto-saves every 12 seconds** during gameplay, and whenever the tab is hidden or closed
+- The game **auto-saves every 30 seconds** during gameplay, when you go indoors or out, and whenever the tab is hidden or closed
 - Saves are stored in your browser's `localStorage` with a rotating **backup copy**: if the main save is ever damaged, the game restores the last good one automatically
-- Your position, yarn count, XP, rank, quest progress, collected items, world state (key/tea house/feather), journal, visited rest spots, time of day, and weather are all saved
+- Your position, yarn count, XP, rank, quest progress, collected items, world state (key/tea house/feather, the Roof Road's unlock, Shōki and finale), journal, visited rest spots, time of day, and weather are all saved
 - **Export / Import** (Settings → Save Data) moves a save between browsers or devices as a JSON file
 - If your graphics context is ever lost (common on phones), the game saves, shows a calm "the valley is resting" screen, and recovers on its own
 - Click **"Save & Quit to Title"** in the pause menu to save and return to the title screen
@@ -402,16 +455,19 @@ Open **Settings** from the title screen or pause menu (Esc). Everything applies 
 Follow the compass icons at the top of the screen. The 🐱 icon points to Luna (who gives you a quest). The 🎋 icon points to the bamboo grove (where the key is hidden). The 🏮 icon points to the tea house door.
 
 ### How do I sprint?
-Sprint unlocks at **Curious Cat** rank (30 XP). Collect 3 yarn balls and talk to Luna to reach this rank quickly.
+Hold **Shift**, or push the joystick to its edge on touch. Sprint is available from the first step.
 
 ### Can I play offline?
 Once the page is loaded, the game runs entirely client-side. However, Three.js is loaded from a CDN, so you need internet on first load. Offline caching via PWA is planned for a future release.
 
 ### Is there combat?
-No. Cat Walk is an exploration game with no combat, no enemies, and no fail states. The focus is on discovery, atmosphere, and relaxation.
+No. Michi-Neko is an exploration game with no combat, no enemies, and no fail states. The focus is on discovery, atmosphere, and relaxation. Even the Roof Road has no way to fail: a missed jump lands you safely in the street.
 
 ### How long is the game?
-The current alpha content can be explored thoroughly in 30–60 minutes. The secret tea house quest takes about 15–20 minutes if you know where to go. Future updates will add more zones, NPCs, and story content.
+The current alpha content can be explored thoroughly in 30–60 minutes. The secret tea house quest takes about 15–20 minutes if you know where to go. The Roof Road adds a run of its own: the autopilot in the tests takes about 8½ minutes from the bridge to the finale, and a cat who stops to look takes longer. Future updates will add more zones, NPCs, and story content.
+
+### Why does the game look different with `?assets=modular`?
+That address uses the new modular asset kit instead of the original builders. Same world, same colliders, same saves; different, more detailed objects. Classic stays the default for now.
 
 ### Where is my progress book?
 Press **J** for the discovery journal. It records places, quiet moments, photographs, weather memories and keepsakes.
@@ -429,7 +485,7 @@ The dynamic day/night cycle and weather system continuously change the lighting,
 
 ## The Vibe
 
-Cat Walk was created as a love letter to Kyoto and to the quiet, contemplative films of Studio Ghibli. There's no urgency here. No score to beat. No enemy to defeat. Just a cat, a valley, and the passage of time.
+Michi-Neko was created as a love letter to Kyoto and to the quiet, contemplative films of Studio Ghibli. There's no urgency here. No score to beat. No enemy to defeat. Just a cat, a valley, and the passage of time.
 
 Walk slowly. Climb high. Listen to the bells. Watch the koi. Take a nap. Wait for the sunset.
 
