@@ -17,3 +17,8 @@
 - check_syntax: All 192 modules OK; verify: All checks passed; labs_check: All labs checks OK
 - --diff 02-torii-dusk: maxDelta 0; --diff 09-summit-seat-dawn: maxDelta 219 (wall-time page)
 - full run: 15 files, ~2 min, no page errors
+
+## Fix round 1
+- 11 re-shot from cat height (runView.camera placed 2.4 m behind, 0.9 m beside Michi, dusk, pagoda in frame); 04 river now 9 h with Michi and Kuro, pagoda clear, sun soft (file renamed hero-river-morning.jpg); 05 closer, 21.3 h, Michi on the rim; 12 tilted/zoomed to crop the star sprites; 09 retitled morning (no true dawn on the summit); 08 golden light; live title menu captured as hero-title-menu.jpg.
+- title-screen.jpg kept: the game uses it as the title backdrop. README poster= listed for h2.
+- README gives a commit per file. maxDelta twice-shot: 04 56, 05 0, 08 0, 09 216, 11 193, 12 233, 00 4. (13 parts sheet unchanged, judged acceptable.)
