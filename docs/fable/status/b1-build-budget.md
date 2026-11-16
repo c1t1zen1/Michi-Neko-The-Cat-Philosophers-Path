@@ -206,3 +206,14 @@ None.
 7. **Appendix C.** `node --test tools/b1_build_budget_test.mjs` (9 tests: the
    deferral mechanics, the factories under Node, `packLayers` against the
    ef6adad loop, `paintOnFirstUpload`) could join G1 beside a1_village_test.
+
+## Paused mid fix round 1 (2026-11-16, usage limit)
+Fix round 1 (ruling R89) was cut off by the session usage limit. Done and pushed: 3cc67e7 (three family textures paint on first
+upload, handoff §2) and 74a87a5 (draw-only classic canopy for kit-built valley trees, handoff §4.1, with
+tools/b1_build_budget_browser_test.mjs: valley stream 25, 480 seeded buildCanopy/drawCanopy runs, sakura-throwing fallback boot
+whose 13 canopies equal classic; ASSET_COVERAGE regenerated). The handoff now marks both levers applied.
+Not yet done: the full proof re-run on the merged head (footprint + `--systems` on both sets with the `valley 49233 draws (probe ok)`
+line, classic game_shot pairs and the 8 modular frames maxDelta 0, cat/summit/rooftop goldens, contracts of the touched families,
+`cd cadJS && npm run check`, `cd catalog && npm test`), the 12-boots-per-cell interleaved re-measure vs ef6adad on medium and high
+(world build, world ready, boot total; every boot start at load < 3), the budgets.md §2 tick if both tiers pass, and the
+"Fix round 1" section of the report.

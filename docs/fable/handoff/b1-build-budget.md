@@ -55,7 +55,7 @@ the same 261 instances with no console message, and the street noon frame
 equals ef6adad's (`maxDelta 0`). The pocket entry
 with it was not drilled (r6's Roof Road drill would be the check).
 
-## 2. Family textures painted on first upload (exact patches, not applied)
+## 2. Family textures painted on first upload (APPLIED in fix round 1, 3cc67e7, ruling R89)
 
 Levers 1 and 2 move the kit's texture painting out of the world build. Three
 more family textures are painted inside it, in files outside the grant. Each
@@ -266,7 +266,7 @@ index ed91e39..e441123 100644
 
 ## 4. What is left, ranked by what it would buy
 
-1. **Every valley tree's classic canopy is still built on modular** (hot:
+1. **APPLIED in fix round 1 (74a87a5, ruling R89): every valley tree's classic canopy was still built on modular** (hot:
    `src/vegetation.js`; shared: `src/foliage.js`). `Vegetation.layoutTree()`
    calls `buildCanopy(this.rng, …)` for every tree so the valley stream
    advances by the canopy's draws, and on modular the kit tree then builds its
@@ -288,7 +288,7 @@ index ed91e39..e441123 100644
    drawCanopy on every valley tree layout and a spread of seeds, and classic
    `game_shot` pairs. Estimated ~60–70 ms off the modular build at both tiers
    (the geometry share of `layoutTree`), real work, not moved.
-2. **The §2 patches**: ~45–65 ms of instance time (above).
+2. **APPLIED in fix round 1 (3cc67e7): the §2 patches**, ~45–65 ms of instance time (above).
 3. **The summit's kit after the first frame** (lever 4; `src/mountaintop.js`
    and `src/summit/*`): 24 instances, ~32 ms (medium) / ~60 ms (high)
    profiled, real work (the summit is not drawn before the tenth bell). Needs
