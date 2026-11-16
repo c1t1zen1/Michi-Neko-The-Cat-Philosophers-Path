@@ -49,6 +49,22 @@ export const KIT_LIMITS = Object.freeze({
  * fields it names and must cite why. Added by the owning lane in its PR.
  */
 export const BUDGET_EXCEPTIONS = Object.freeze({
+  // Phase 5 r3b (roofcanal part b), R52. Hero tier = the classic piece's own MAT materials (ctx.MAT, so 0 new merged materials,
+  // 0 added merged draws); mid and far are remapped to the standard caps. Measured on the real runs, rooftop_golden digests of the
+  // largest piece of each type, classic vs `?swap=<id>:modular` (hero tier), uptime load 2.4-4.3, 2026-11-15:
+  //   roof-canal-banks     classic 182 meshes / 4480 tris / 14 materials -> modular 14 meshes / 4480 tris / 14 materials
+  //   roof-market-stalls   classic 234 meshes / 2808 tris / 12 materials -> modular 12 meshes / 2808 tris / 12 materials
+  //   roof-canopy          classic 289 meshes / 3468 tris /  8 materials -> modular  7 meshes / 3468 tris /  8 materials
+  //   roof-takasebune      classic  33 meshes / 4480 tris / 14 materials -> modular 15 meshes / 4480 tris / 14 materials (classic boatman kept, R75)
+  //   roof-skylight-bridge classic  18 meshes /  392 tris /  8 materials -> modular  9 meshes /  392 tris /  7 materials (the lantern's paper caps use M.dark, not the lone paperCapMaterial)
+  // Visible world meshes at the canal mouths 3-5 (s 280/300/352/499/520/672), classic -> all 8 part-b ids swapped, same frame:
+  //   437->384, 508->441, 565->516, 597->568, 747->721, 762->753 (fewer draws everywhere; renderer calls are not comparable: the
+  //   seeded Math.random draws shift with the build and move the atmosphere, +-25 calls between identical runs of different builds).
+  'roof-canal-banks': { hero: { materials: 14 }, why: 'classic canalQuarter uses the same 14 MAT materials (wet stone, slab, stone, timber, timberMed, twine, agedWood, steel, bronze, dark, water, pine, foliage, clay); 182 -> 14 meshes; mid/far remap to 4/2' },
+  'roof-market-stalls': { hero: { materials: 12 }, why: 'classic shopfronts uses the same 12 (plaster x2, timberMed, six goods colours, three noren); 234 -> 12 meshes; mid 4 / far 1 by remap' },
+  'roof-canopy': { hero: { materials: 8 }, why: 'classic canopy uses the same 8 (glass, steel, six banner colours) on the 103 m run; 289 -> 7 meshes; mid 3 / far 2' },
+  'roof-takasebune': { hero: { materials: 14 }, mid: { meshes: 9, materials: 8 }, why: 'classic boat uses the same 14 MAT materials incl. the classic boatman (R75) and wake; 33 -> 15 meshes; mid keeps the boatman (9 meshes, 8 materials); far remaps to 2' },
+  'roof-skylight-bridge': { hero: { materials: 7 }, why: 'classic marketCrossing uses 8 (timberMed, timber, hemp, steel, three goods, lanternWhite, paperCapMaterial); modular 7; 18 -> 9 meshes; mid 4 / far 1 by remap' },
   // the contract samples the real 11 m run (G-V1 I1); ruling R51
   'bamboo-fence': {
     mid: { triangles: 13000 },
