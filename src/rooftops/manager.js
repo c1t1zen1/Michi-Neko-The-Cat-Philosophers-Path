@@ -12,10 +12,12 @@
 //     (src/rooftops/pocket.js), which owns the run: the real runner physics, the
 //     real cat, Chidori, the camera, the sky by progress and the finale.
 //
-// The pocket is a scene of its own, built the first time the cat goes through
-// the noren (behind the veil) and kept afterwards; its origin is
-// ROOFTOP_ORIGIN, 2.4 km below the valley (the summit sits at 1.2 km), so
-// nothing that measures distance from the cat hears or reaches the valley.
+// The pocket is a scene of its own, built each time the cat goes through the
+// noren (behind the veil) and disposed when it leaves (ruling R88: the run
+// holds ~270 MB of heap and ~1,450 GPU geometries; releasePocket()); its
+// origin is ROOFTOP_ORIGIN, 2.4 km below the valley (the summit sits at
+// 1.2 km), so nothing that measures distance from the cat hears or reaches
+// the valley.
 // Nothing of the Roof Road loads on the way to the valley: main.js imports this
 // file, which imports only pure modules; pocket.js and the Roof Road's own
 // modules are imported on the first enter().
@@ -180,19 +182,60 @@ export class RooftopManager {
     veil.classList.add('show');
   }
 
-  /** Build the pocket once (the first enter); later enters reuse it. */
+  /**
+   * Build the pocket for this visit (each enter; one build at a time). A build
+   * that fails half-way is disposed before the error goes on: nothing of it stays.
+   * The build blocks the main thread for about a second, so it starts only once
+   * the noren's first frame is on screen (_afterPaint): the panels then slide
+   * on the compositor over it. The first visit got that from its module
+   * download; a rebuild's import is already cached and would otherwise start
+   * building before the veil was ever painted.
+   */
   ensurePocket() {
     if (this.pocket) return Promise.resolve(this.pocket);
     if (!this._pocketPromise) {
       this._pocketPromise = (async () => {
         const Pocket = await this._loadPocket();
+        await this._afterPaint();
         const pocket = new Pocket(this.game, { origin: this.origin, manager: this });
-        await pocket.init();
+        try { await pocket.init(); } catch (e) {
+          this._disposePocket(pocket);
+          throw e;
+        }
         this.pocket = pocket;
         return pocket;
       })().catch((e) => { this._pocketPromise = null; throw e; });
     }
     return this._pocketPromise;
+  }
+
+  /**
+   * Ruling R88: put the built pocket away (the cat has left, or it was built
+   * for an enter that was cancelled); the next enter() builds a new one behind
+   * the veil. A build still under way is left to finish: the enter that asked
+   * for it uses it or puts it away. → whether a pocket was disposed.
+   */
+  releasePocket() {
+    const pocket = this.pocket;
+    if (!pocket) return false;
+    this.pocket = null;
+    this._pocketPromise = null;
+    this._disposePocket(pocket);
+    return true;
+  }
+
+  /** After the next painted frame (two animation frames); at once where there are none (Node, the manager test). */
+  _afterPaint() {
+    const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : null;
+    return raf ? new Promise((resolve) => raf(() => raf(resolve))) : Promise.resolve();
+  }
+
+  /** dispose() never throws into a transition: a failure is logged and the pocket is dropped all the same. */
+  _disposePocket(pocket) {
+    if (!pocket || typeof pocket.dispose !== 'function') return;
+    try { pocket.dispose(); } catch (e) {
+      console.error('[rooftops] the Roof Road could not be put away:', e && e.message ? e.message : e);
+    }
   }
 
   _hideVeil(veil) {
@@ -221,7 +264,11 @@ export class RooftopManager {
         ok = false;
         console.error('[rooftops] the Roof Road could not be built:', e && e.message ? e.message : e);
       }
-      if (gen !== this._gen) return;               // cancelled (quit to title)
+      if (gen !== this._gen) {                     // cancelled (quit to title)
+        // Built for nobody: not kept, unless a newer enter is already waiting for it.
+        if (!this.active && !this.transitioning) this.releasePocket();
+        return;
+      }
       if (ok) {
         this.setActive(true);
         this.pocket.start({ shoki: this.shoki });
@@ -257,6 +304,7 @@ export class RooftopManager {
       if (gen !== this._gen) return;
       this.setActive(false);
       this.placeOnBridge();
+      this.releasePocket();                         // behind the veil (R88)
       if (veil) veil.classList.add('out');
       this._timers.set(() => {
         if (gen !== this._gen) return;
@@ -278,6 +326,7 @@ export class RooftopManager {
     this._gen++;
     if (this.active) this.setActive(false);
     this.placeOnBridge();
+    this.releasePocket();                           // R88; a build under way is put away when it lands
     this._hideVeil(this._veil());
     this.transitioning = false;
     this._lock(false);

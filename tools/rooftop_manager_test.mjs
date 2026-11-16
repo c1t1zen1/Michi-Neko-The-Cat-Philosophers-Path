@@ -10,6 +10,11 @@
 // classes), with a stub pocket and timers this test steps itself. What runs is
 // the actual unlock, the thicket, the gate, enter/exit with the noren veil, the
 // controls → runner input mapping, the journal/XP/save hooks and the restore.
+// Ruling R88: leaving disposes the pocket and the next visit builds a new one
+// behind the veil; the stub pocket counts its builds and disposals, and the
+// section "the pocket is put away" covers a half-built pocket, a quit to title
+// while a build is under way, a dispose that throws and many visits in a row.
+// (The real pocket's disposal and memory are tools/rooftop_pocket_test.mjs.)
 //
 //   node tools/rooftop_manager_test.mjs
 import { readFileSync } from 'node:fs';
@@ -155,16 +160,30 @@ function makeGame() {
 }
 
 /** A stub pocket: records what the manager asks of it. */
-const pocketLog = { built: 0, attach: 0, detach: 0, starts: [], updates: [], renders: 0, quality: [] };
+const pocketLog = {
+  built: 0, attach: 0, detach: 0, starts: [], updates: [], renders: 0, quality: [],
+  // R88: disposals, the order of detach/dispose per pocket, the most pockets alive at once,
+  // and whether the noren was down (shown, not parting) when each was built and disposed.
+  disposed: 0, order: [], alive: 0, maxAlive: 0, veilAtBuild: [], veilAtDispose: []
+};
+const veilDown = () => veil.classList.contains('show') && !veil.classList.contains('out') && !veil.classList.contains('hidden');
 class StubPocket {
-  constructor(game, { origin, manager }) { this.game = game; this.origin = origin; this.manager = manager; pocketLog.built++; }
-  async init() { this.ready = true; }
+  constructor(game, { origin, manager }) {
+    this.game = game; this.origin = origin; this.manager = manager; pocketLog.built++;
+    this.serial = pocketLog.built;
+    pocketLog.alive++; pocketLog.maxAlive = Math.max(pocketLog.maxAlive, pocketLog.alive);
+  }
+  async init() { pocketLog.veilAtBuild.push(veilDown()); this.ready = true; }
   attach() { pocketLog.attach++; }
-  detach() { pocketLog.detach++; }
+  detach() { pocketLog.detach++; pocketLog.order.push('detach:' + this.serial); }
   start(opts) { pocketLog.starts.push(opts); }
   update(dt, input) { pocketLog.updates.push(input); }
   render() { pocketLog.renders++; }
   setQuality(q) { pocketLog.quality.push(q); }
+  dispose() {
+    pocketLog.disposed++; pocketLog.alive--; this.disposed = true;
+    pocketLog.order.push('dispose:' + this.serial); pocketLog.veilAtDispose.push(veilDown());
+  }
 }
 let loads = 0, failNext = false;
 const loadPocket = async () => {
@@ -242,6 +261,7 @@ section('RooftopManager: the Seven Posts unlock');
   await timers.run();
   ok('behind the veil: active, the pocket built once, attached and started with the saved Shōki mask',
     m.active && pocketLog.built === 1 && pocketLog.attach === 1 && pocketLog.starts.length === 1 && pocketLog.starts[0].shoki === 0);
+  ok('…built while the noren was down', pocketLog.veilAtBuild.length === 1 && pocketLog.veilAtBuild[0] === true, JSON.stringify(pocketLog.veilAtBuild));
   ok('the veil parts and clears, input comes back, a save',
     veil.classList.contains('hidden') && !veil.classList.contains('show') && !m.transitioning && g.controls.enabled && !g.player.actionLocked && g.log.saves > 0);
   ok('rooftop-mode on the body; the manager renders and owns the camera',
@@ -330,17 +350,27 @@ section('RooftopManager: the Seven Posts unlock');
   ok('back in the valley: inactive, pocket detached, the cat on the south ramp facing the valley',
     !m.active && pocketLog.detach === 1 && q.x === ODOI_RETURN.x && q.y === ODOI_RETURN.y && q.z === ODOI_RETURN.z && g.player.heading === Math.PI);
   ok('veil cleared, input back, rooftop-mode off, a save', veil.classList.contains('hidden') && g.controls.enabled && !document.body.classList.contains('rooftop-mode') && !m.transitioning);
+  ok('R88: leaving disposes the pocket, once, behind the noren (down, not yet parting), after the cat was handed back',
+    pocketLog.disposed === 1 && JSON.stringify(pocketLog.order) === '["detach:1","dispose:1"]' && pocketLog.veilAtDispose[0] === true,
+    JSON.stringify({ disposed: pocketLog.disposed, order: pocketLog.order, veil: pocketLog.veilAtDispose }));
+  ok('…the manager holds no pocket: nothing renders, quality and render calls go nowhere',
+    m.pocket === null && !m.rendering && (m.setQuality('medium'), m.render(), pocketLog.renders === 1 && pocketLog.quality.length === 1));
   m.update(1 / 60, true);
   ok('the return spot is outside the gate: no immediate re-entry', !m.transitioning && !m.active);
   ok('the return spot is where a save made on the roofs puts the cat', m.returnSpot === ODOI_RETURN);
-  // second entry reuses the pocket
+  // second entry rebuilds the pocket (R88)
   q.set(-0.5, 0.35, 36.6);
   m.update(1 / 60, true);
+  ok('a second walk into the gap starts the veil and loads a new pocket', m.transitioning && !m.active && loads === 2 && veil.classList.contains('show'));
   await timers.run();
-  ok('a second visit reuses the pocket (no reload, no rebuild) and passes the Shōki mask',
-    m.active && loads === 1 && pocketLog.built === 1 && pocketLog.starts[1].shoki === 65);
+  ok('a second visit rebuilds the pocket behind the veil (a new one, attached and started with the Shōki mask)',
+    m.active && pocketLog.built === 2 && m.pocket && m.pocket.serial === 2 && !m.pocket.disposed && pocketLog.attach === 2 &&
+    pocketLog.starts[1].shoki === 65 && pocketLog.veilAtBuild[1] === true && pocketLog.maxAlive === 1,
+    JSON.stringify({ built: pocketLog.built, attach: pocketLog.attach, veil: pocketLog.veilAtBuild, maxAlive: pocketLog.maxAlive }));
   m.exitImmediate();
   ok('exitImmediate (quit to title): out at once, on the bridge, no veil', !m.active && !m.transitioning && pocketLog.detach === 2 && q.z === ODOI_RETURN.z && g.controls.enabled);
+  ok('…and the pocket is disposed there too (after the cat was handed back)',
+    pocketLog.disposed === 2 && m.pocket === null && pocketLog.order.slice(-2).join() === 'detach:2,dispose:2', JSON.stringify(pocketLog.order));
 }
 
 /* ---------------- locked, restore, failure ---------------- */
@@ -470,6 +500,99 @@ section('RooftopManager: a pocket that never builds (no soft-lock at the gate)')
   m2.update(1 / 60, true);
   ok('…walking out and back in opens it', m2.transitioning && tries2 === 1);
   for (let i = 0; i < 180; i++) await clock.advance(1 / 60);
+}
+
+/* ---------------- ruling R88: the pocket is put away when the cat leaves ---------------- */
+section('RooftopManager: the pocket is put away (ruling R88)');
+{
+  const made = [];
+  let queue = [], loadsR = 0;
+  const loader = async () => { loadsR++; return queue.shift() || StubPocket; };
+  const track = (Base) => class extends Base { constructor(...a) { super(...a); made.push(this); } };
+  const g = makeGame();
+  const m = new RooftopManager(g, { loadPocket: loader, timers });
+  m.setUnlocked(true, true);
+  const p = g.player.mesh.position;
+  const walkIn = () => { p.set(-1, 1.08, 30); m.update(1 / 60, true); p.set(-0.5, 0.35, 36.6); m.update(1 / 60, true); };
+  const settle = () => new Promise((r) => setImmediate(r));     // the loader and the build's first steps run
+  const quietly = async (fn) => {
+    const errs = [], err0 = console.error;
+    console.error = (...a) => errs.push(a.map(String).join(' '));
+    try { await fn(); } finally { console.error = err0; }
+    return errs;
+  };
+
+  // 1. A build that breaks half-way through init(): what it made is disposed, the cat is not stranded.
+  queue.push(track(class extends StubPocket { async init() { this.half = true; throw new Error('stub: broke half-way'); } }));
+  let errs = await quietly(async () => { walkIn(); await timers.run(); });
+  const half = made[made.length - 1];
+  ok('a pocket that fails half-way through its build is disposed before the error goes on',
+    !!half && half.half && half.disposed && m.pocket === null, JSON.stringify({ half: !!half, disposed: half && half.disposed }));
+  ok('…and the cat is back on the bridge with input, as for any failed build (one line logged)',
+    !m.active && !m.transitioning && g.controls.enabled && !inOdoiGate(p) && p.z === ODOI_RETURN.z &&
+    errs.length === 1 && /could not be built/.test(errs[0]), JSON.stringify(errs));
+
+  // 2. Quit to title while the build is still under way: when it lands, it is put away, not kept.
+  let land;
+  queue.push(track(class extends StubPocket { async init() { await new Promise((r) => { land = r; }); this.ready = true; } }));
+  walkIn();
+  await settle();
+  ok('an enter is under way with its build still running', m.transitioning && !m.active && !!land);
+  const slow = made[made.length - 1];
+  m.exitImmediate();
+  ok('exitImmediate meanwhile: out at once (the build keeps running)', !m.transitioning && !m.active && g.controls.enabled && m.pocket === null && !slow.disposed);
+  land();
+  await timers.run();
+  ok('…the build lands for nobody and is disposed, not kept for later', slow.disposed && m.pocket === null && !m.active && !m.transitioning);
+
+  // 3. Quit mid-build, then walk in again before it lands: the new enter takes that build.
+  const loads3 = loadsR;
+  queue.push(track(class extends StubPocket { async init() { await new Promise((r) => { land = r; }); this.ready = true; } }));
+  walkIn();
+  await settle();
+  const slow2 = made[made.length - 1];
+  m.exitImmediate();
+  walkIn();
+  ok('walking back in before the build lands reuses that build (no second load)', m.transitioning && loadsR === loads3 + 1);
+  land();
+  await timers.run();
+  ok('…which the new visit gets, live (not disposed)', m.active && m.pocket === slow2 && !slow2.disposed);
+  m.onLeave();
+  await timers.run();
+  ok('…and leaving disposes it', slow2.disposed && m.pocket === null && !m.active);
+
+  // 4. A dispose() that throws never strands the cat.
+  queue.push(track(class extends StubPocket { dispose() { super.dispose(); throw new Error('stub: dispose failed'); } }));
+  walkIn();
+  await timers.run();
+  const bad = made[made.length - 1];
+  ok('(a pocket whose dispose() throws is up)', m.active && m.pocket === bad);
+  errs = await quietly(async () => { m.onLeave(); await timers.run(); });
+  ok('a dispose() that throws: home all the same (bridge, input, veil cleared), the pocket dropped, one line logged',
+    !m.active && !m.transitioning && g.controls.enabled && veil.classList.contains('hidden') && p.z === ODOI_RETURN.z &&
+    m.pocket === null && errs.length === 1 && /could not be put away/.test(errs[0]), JSON.stringify(errs));
+  walkIn();
+  await timers.run();
+  ok('…and the next visit builds a new pocket', m.active && !!m.pocket && m.pocket !== bad && !m.pocket.disposed);
+  m.onLeave();
+  await timers.run();
+
+  // 5. Many visits: one pocket alive at a time, each one disposed, the save mask on every start.
+  const built0 = pocketLog.built, disposed0 = pocketLog.disposed, starts0 = pocketLog.starts.length;
+  pocketLog.maxAlive = pocketLog.alive;
+  const alive0 = pocketLog.alive;
+  m.setShokiMask(5);
+  for (let i = 0; i < 6; i++) {
+    walkIn();
+    await timers.run();
+    if (!m.active) break;
+    m.onLeave();
+    await timers.run();
+  }
+  ok('six visits in a row: six builds, six disposals, never two pockets at once, the mask on every start',
+    pocketLog.built - built0 === 6 && pocketLog.disposed - disposed0 === 6 && pocketLog.maxAlive === alive0 + 1 &&
+    pocketLog.alive === alive0 && pocketLog.starts.slice(starts0).every((s) => s.shoki === 5) && m.pocket === null,
+    JSON.stringify({ built: pocketLog.built - built0, disposed: pocketLog.disposed - disposed0, maxAlive: pocketLog.maxAlive - alive0 }));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
