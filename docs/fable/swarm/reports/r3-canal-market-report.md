@@ -1,0 +1,49 @@
+# r3-canal-market status
+Model: Claude Sonnet 5.5. Base: fable/integration 80ddf98. Started 2026-11-15 13:10. State: DONE_WITH_CONCERNS (8 of 19 ids promoted, 11 deferred).
+
+## Promoted (family `roofcanal`, src/kit/roofcanal/index.js; 8 assets, hero/mid/far)
+roof-stepping-stones, roof-canal-landings, roof-footbridge, roof-toro (light socket `light_toro`), roof-cistern, roof-chimney, roof-futon-racks, roof-canopy-vents. All 42 level pieces of these types.
+Each builds in the rail frame at the piece's middle from `layout.piece`, drawing the same boxes/heights as the classic builder (platforms are level.js; no collider or grab edge registered). Materials are the Roof Road's own `ctx.MAT` entries (0 new materials; a km.plain fallback exists only for the contract page). Hero adds plank seams, finial, bronze caps, futon stripes, down-pipe; `wear` leans/settles parts (geometry only, centimetres).
+
+## Deferred, with reasons
+- roof-canal, roof-canal-banks, roof-lines (ribbons along the rail across a corner: need rail points, which layout does not carry; a ribbon cannot be built from the straight-frame layout). Handoff 3.
+- roof-cherry-boughs (frame is the bough's mid, not the piece's mid), roof-canopy, roof-skylight-bridge, roof-market-stalls (shopfronts): larger, same frame question; next PR.
+- roof-takasebune (boat hull: r5 boatman/dynamic record coupling, wake and ring live meshes), roof-willows, roof-culvert-ledges, roof-tenmangu-gate: no PIECES entry on integration (not built by any piece type today).
+Size rule: ~10 ids per PR, so the most-seen small pieces went first.
+
+## Checks (uptime 1-min load 2.5 to 4.1 during runs)
+- kit_check: All kit checks OK (451 passed)
+- kit_contract_test --family roofcanal: 8 assets, 24 asset x tier builds, 560 checks, 0 failed; merge OK
+- rooftop_golden classic: EQUAL
+- rooftop_golden swap of all 8 ids: only the 42 piece entries change (+ 1 root group, batches, 5 update samples that hash batches); materials 0 added; light list unchanged (299). "routing FAILED" there is the self-test's own "every other piece identical" rule, which any real swap trips (named: canalLanding/steppingStone, i.e. mine)
+- footprint_golden classic: EQUAL; check_syntax 172 modules OK; verify All checks passed; labs_check OK; git diff --check clean
+- rooftop_test: 38 passed, 2 failed = the baseline pair (autopilot reaches the perch: stops after drama school ridge @1221.6, s=1232.17; every piece on one straight leg). Level is untouched by the kit; rooftop_companion_test crashes on its baseline assertion (finale), unchanged.
+- ?auto=1 not run (physics/level independent of kit meshes; autopilot test above runs the real physics, same stop s=1232.17 on classic).
+
+## L6 (docs/fable/status/r3-canal-market/<id>-<d|k|c>-<classic|modular>.jpg, 48 JPGs, all <= 84 KB, no pair byte-identical by cmp)
+ids by frame: stones s262, landing s255, footbridge s273, toro s307, cistern s707, chimney s717, futon s696, vent s486. d = hour 0.5 (cat=0), k = hour 0.2 (cat=0), c = hour 0.8 with the cat in frame (the page camera follows the cat, so c is the cat-height view; there is no free camera flag). Captures are not pixel repeatable (time loops); judged by eye. I opened cistern-d, toro-k, futon-c, vent-d (modular) plus the earlier canal/footbridge/laundry shots; the rest were checked for non-identity only.
+AAA-1: parity with small hero gains (plank seams, bridge caps, finial, futon stripes, down-pipe); not a leap, because the classic pieces are already painted with the same MAT. AAA-5: legible at the cat view and at night; the cistern hoops/ladder and chimney cap read in both. The vent is seen from below at s486 and matches the classic.
+
+## ?auto=1 (qa=1, advanceForReview(450) twice)
+classic: s=1232.2124, swap of all 8 ids: s=1232.2124 (identical; baseline stall s~1232). uptime load 2.2 to 3.4.
+
+## Stepping-stone bounds (resolved, no waiver needed)
+Digest bounds use Box3.setFromObject on a rotated mesh, which transforms the geometry's AABB (conservative); the kit bakes the transform into the vertices, so its box is tight. Measured on a dodecahedron r0.55 scaled 1.25,0.3,0.9 rotated 0.4: +-0.773 vs +-0.660. The geometry is the same; no collider involved.
+
+## After merge of fable/integration f8eabc9
+Rechecked: kit_check 451 OK, contract 560/0, rooftop_golden classic EQUAL, swap changes only the 42 pieces (+1 root group), rooftop_test 38/2 baseline, footprint EQUAL, syntax 172, verify, labs OK, diff --check clean. Pieces stay on ctx.MAT (no vertex colours); not switched, because alley passages strip colours and parity with classic is the goal.
+
+## Concerns
+1. pieces/common.js mergeByMaterial drops the vertex-colour attribute, so any km.bag piece renders black on the Roof Road (found in a first capture). Worked around by using ctx.MAT. r2/r4/r5 must do the same or the Integrator fixes common.js (handoff 2).
+2. Stepping-stone bounds differ ~0.1 m from classic (digest only); no collider.
+# Handoff: r3-canal-market
+## 1. Inventory/registry
+`src/kit/index.js` regenerated (family roofcanal). Ids: roof-stepping-stones, roof-canal-landings, roof-footbridge, roof-toro, roof-cistern, roof-chimney, roof-futon-racks, roof-canopy-vents (family `roofcanal`, tiers hero/mid/far, param `wear`). New part names: `asset:<id>/body_<material>` (stone, timber, timbermed, wetstone, pine, lacquer, indigo, bronze, steel, dark, bamboo, ridge, bengara, plasterwarm, futon, crimson, lanternwhite as used). No new materials, no live meshes, one light socket (`light_toro`).
+## 2. Integrator patch: rooftops/js/pieces/common.js (r1's file)
+`mergeByMaterial` deletes every attribute other than position/normal/uv (line ~125), so vertex-coloured kit materials (`km.bag`) render black. Preferred patch: `['position','normal','uv','color']` kept, and add a colour attribute (white) to geos lacking it when any in the bucket has one. Until then every Roof Road family must use `ctx.MAT` entries, as roofcanal does. Classic golden must stay EQUAL after the patch.
+## 3. Deferred ids
+roof-canal, roof-canal-banks, roof-lines need rail points: add `rail` (or a sampled polyline `route` over [s0,s1]) to `pieceLayout()` (build.js, r1 file), then a kit ribbon is possible. roof-cherry-boughs, roof-canopy, roof-skylight-bridge, roof-market-stalls: next r3 PR. roof-takasebune: r5 coupling (boat dynamic record). roof-willows, roof-culvert-ledges, roof-tenmangu-gate: no PIECES entry.
+## 4. Roof Road family filter
+`?assets=modular` still loads the whole valley kit (r1 minor 4); the runtime change is an Integrator patch.
+## 5. Specimens
+None added (no labs/registry change).

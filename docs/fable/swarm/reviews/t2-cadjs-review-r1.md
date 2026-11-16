@@ -1,0 +1,24 @@
+# t2-cadjs review r1 (BASE 1e74cf3, HEAD ec309c3)
+
+Verdict: APPROVE with 1 Important, 3 Minor. No Critical.
+
+## Spec compliance
+- T2.1 production handoff, parts labelled catalog.<id>.<part>, selectable: present (kitEntryFrom / labelKitParts). Note: brief names parts `asset:<id>/<part>`; the code uses semantic ids `catalog.<id>.<part>` plus a tree label (report says group asset:<id>). Accepted, browser-verified per report.
+- T2.2 panel from params, live rebuild, Undo/Redo: present (preview not an undo step, commit = one step).
+- T2.3 actions + validation + one transaction: present.
+- T2.4 schema 2 create/remove/reparent, migration, schema 1 still imports: present, tested.
+- T2.5 push via t1 route; cad-overrides path unchanged: present.
+- T2.6 README updated, package.json test/check include kit.test.
+
+## Named risks
+1. AI actions (checked kit-params.mjs, agent-protocol.mjs): OK. checkParam rejects unknown keys (schema lookup -> undefined), non-finite/out-of-range numbers (no clamping), bad enum/bool/colour. Key names are shape-checked by KEY_RE; asset id by ID_RE; the asset must equal the open asset; plan is folded atomically (all or nothing), checked at review AND again at execute. Mixing with free-form edits is rejected. No path/code input reaches anything: values only feed the params of a registered builder. `__proto__`/`constructor` keys hit schema[key] = Object.prototype, p.type undefined -> "unsupported parameter type", so rejected. Tests cover min/max accepted and just-beyond rejected for every param of every kit asset.
+2. Schema 2 / migration: OK. validateAssetPackage accepts [1,2]; schema 1 with a `structure` field is rejected; v1 is validated (checksum) then migrated with migratedFrom:1 and a fresh checksum; migrating v2 is a no-op. Test builds a genuine v1 package, asserts it still validates as schema 1, migrates to 2, and that v3 is rejected. Structure ops are dry-run on the hierarchy before anything is touched (apply cannot half-apply); cycle, duplicate create, root change guarded. Both directions covered (create schema 2 + tamper check; migrate 1->2). Reverse direction (2->1) is not offered, which is fine.
+3. Push to game: OK. Uses GET/POST /api/asset-library/kit-overrides (catalog/server.mjs, revision-checked 409, validateOverrides) and kitOverridesWith reuses catalog/js/kit-overrides.mjs setEntry/validateOverrides; no second write path. Preserves other entries (setEntry on fetched doc). cad-overrides push untouched for non-kit assets and non-kit selections. Free-form edits on a kit asset are reported as not pushed (status text), not silently written.
+4. Undo-history retention: MINOR. History is an unbounded array of closures; each committed edit retains its entry (geometry/materials). Retention while on the undo/redo stack is by design. The leak is that entries dropped from the redo stack by History.push (redo.length = 0), and entries replaced during undo/redo, are never disposed, so GPU buffers survive until reload. Bounded by number of committed edits in a session in a dev tool, kit assets are small; not user-visible. Fix when convenient: dispose entries on redo truncation and cap the history.
+5. Baseline recapture: IMPORTANT (not blocking). commitKit calls registerAsset, which re-fingerprints the current-params build as the baseline. Effects: (a) any package exported before a param edit (or at defaults) reports "created from a different asset baseline" and cannot be imported until params are put back exactly; (b) free-form edits made on the old group are not carried onto the rebuilt group (only Undo restores them). Nothing on disk is destroyed (packages remain valid files, kit-overrides unaffected), so not data loss in the strict sense, but a user can strand a package silently. Recommend fingerprinting the default-params (or variant-neutral) build, or recording params in the package source and rebuilding to them on import; at minimum warn before a param edit when free-form edits or a loaded package exist. The report discloses this; disclosure does not reduce the finding.
+6. WIP rule: worktree `git status --short` is clean at HEAD; diff touches only cadJS/{README.md,package.json,src/*,tests/kit.test.mjs} plus docs/fable/handoff|status/t2-cadjs.md (the lane-standard files per _common.md). No src/**, labs/** or catalog/** edits. OK.
+
+## Other findings
+- MINOR: server-side validation of kit-overrides params is shape-only (route owned by t1); a direct POST can store out-of-range params. Game clamps, so harmless, but note for t1/G-T.
+- MINOR: report-disclosed gaps remain: out-of-range `?params=` handoff rejection unexercised in a browser; clearWorkspace-undo / non-kit AI plans on a kit asset restore a JSON clone that switches the kit panel off. Cover with a small test or browser check.
+- Tests are pure-Node with a three stub; the app.mjs wiring (preview/commit tickets, undo closures) has no automated coverage beyond the manual Chromium run reported.

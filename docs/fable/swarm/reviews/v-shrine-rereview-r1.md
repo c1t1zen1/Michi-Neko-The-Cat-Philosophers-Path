@@ -1,0 +1,7 @@
+# v-shrine re-review r1
+Verdict: PASS (finding 1 closed; minors acknowledged).
+
+1. Kasagi/shimaki seat: CLOSED. solve.js iterates the lean over the real post height H, and gate.js cuts each post's top ring onto the lintel curve (postTopY). Re-ran the sweep: 2916 combinations (4 sori x span/height/post_r/taper/lean/ext extremes), worst gap and worst penetration both -0.015 m (uniform 1.5 cm seat), inside limits (gap <= 0.01, pen >= -0.03). kit_check 134 OK, check_syntax 89 OK. Re-shot torii-6/12 show posts bearing on the beam, no notches at cat-eye distance (cut only moves top-ring vertices by a few cm over the post width; the post top is hidden behind the kasagi/nuki).
+2. Test honesty (Minor): the test is analytic, not a mesh measurement. It samples 21 points across the post-top width with the same solveGate/postTopY/undersideY that gate.js uses, and undersideY matches how the shimaki is built (beamOnCurve at S.C(t*0.965) = same curve at world x). It can genuinely fail (the old formula would give +0.2 m), but it would not catch a divergence in gate.js's beamOnCurve; also far tier omits the shimaki (kasagi then bears, 0.14 m higher) and is not covered. Harmless.
+3. src/kit/shrine/solve.test.mjs: not scanned by kit_check/check_syntax (both pass); no inventory/index impact; ships as a static file but is never imported at runtime. Minor at most (21 other *.test.mjs already tracked). 
+4. Far-tier mist-altar fade and nuki/platform vs span: documented in handoff as deferred (altar never far tier); acceptable, Minor note for s2.

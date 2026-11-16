@@ -1,0 +1,41 @@
+From 95adf63cb5b8a7011756a0f28d98619fcf868491 Mon Sep 17 00:00:00 2001
+From: c1t1zen1 <kmkennedy@gmail.com>
+Date: Sun, 15 Nov 2026 17:17:44 -0800
+Subject: [PATCH] Roof Road companion test: run long enough for the 13-mouth
+ route
+
+The two real-physics runs that must end on the perch were sized for the
+1,082 m route (finale at 310-324 s against 370 s and 400 s). The stage-2
+route is 1,709 m and its finale comes at 509-523 s, so give them the
+same ~60-75 s of headroom: 570 s and 600 s. The checks are unchanged.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ tools/rooftop_companion_test.mjs | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/tools/rooftop_companion_test.mjs b/tools/rooftop_companion_test.mjs
+index e416484..108780d 100644
+--- a/tools/rooftop_companion_test.mjs
++++ b/tools/rooftop_companion_test.mjs
+@@ -11,7 +11,7 @@ check('guide traverses the entire real-physics run without losing the player', (
+   const player = new Runner(level), guide = new Companion(level), auto = new Autopilot(level);
+   player.reset(1, 1.1); guide.reset(player);
+   let maxGap = 0, maxSpeed = 0, feints = 0, detours = 0; const moods = new Set(), paces = new Set();
+-  for (let i = 0; i < 120 * 370; i++) {
++  for (let i = 0; i < 120 * 570; i++) {
+     const t = i * dt; player.step(dt, auto.input(player, t, dt), t);
+     const before = guide.runner.s;
+     guide.update(dt, player, t, true);
+@@ -49,7 +49,7 @@ check('guide keeps up when cargo boats begin at different points in their cycles
+     const player = new Runner(level), guide = new Companion(level), auto = new Autopilot(level);
+     player.time = phase; player.reset(1, 1.1); guide.reset(player, phase);
+     let maxGap = 0;
+-    for (let i = 0; i < 48000; i++) {
++    for (let i = 0; i < 72000; i++) {
+       const t = phase + i * dt; player.step(dt, auto.input(player, t, dt), t);
+       guide.update(dt, player, t, true);
+       maxGap = Math.max(maxGap, Math.abs(player.s - guide.runner.s));
+-- 
+2.55.0
+

@@ -14,8 +14,63 @@ status file, never here (§4.4). The Integrator ticks the master board.
 
 ---
 
+## 0. Status and how to resume (paused 2026-11-16)
+
+The build is paused here. Start with this section, then the master board (§6). The swarm's records (ledger with every ruling
+R1–R81, lane and gate briefs, reports, review verdicts) are in [`docs/fable/swarm/`](docs/fable/swarm/README.md).
+
+**Branches.** `fable/integration` holds everything merged so far. `main` (what players get) has the village kit, the characters,
+the summit and the tooling (gate G-V3, reviewed GO), plus the operator's own merges of `r1-roof-split`, an early `a1-village`, and
+Roof Road stage 2. Everything else below is on `fable/integration` only, until gate G-R. Classic is still the default asset set.
+
+**Gates:** G-P0, G-F, G-V1, G-V2, G-V3, G-C, G-T done; G-S done provisionally (the operator may overturn it); G-R, G-A, G-H, G-FINAL open.
+
+**Done on `fable/integration`:**
+- Phases 0, 1, 2, 3, 4 and 6.
+- Phase 7: `a1-village` and `a2-hilltop`.
+- Phase 5:
+  - `r1`;
+  - `r2` part a;
+  - `r3` parts a and b;
+  - `r4` parts a and b;
+  - `r5` parts a and b;
+  - `r6` (the Roof Road in the game: Seven Posts unlock, Odoi bank, pocket scene, save flags, noren veil).
+- The operator-approved Roof Road route fix (R78: `rooftop_test` 40/40, finale reachable).
+- The operator-approved `game.js` → `rooftops/js/runview.js` switch-over (R81).
+
+**In flight:** `r2b-roofs-streets` (PR #51, branch `fable/r2b-roofs-streets`). It is paused at the end of fix round 1, after
+both Important findings were fixed. Next: a scoped re-review, then the merge. The status file lists two quiet-machine re-reads still to take.
+
+**Next steps, in order:**
+1. Re-review and merge `r2b-roofs-streets`.
+2. G-R chores (`docs/fable/swarm/briefs/gate-r-chores.md`): merge `origin/main`, cache tag `20261115a` (or that day's date), the full
+   play-through valley → Seven Posts → Roof Road → finale → home on both sets, old saves, G1–G4.
+3. The G-R review (Fable; `gate-r-review.md`). On GO, fast-forward `main` to the reviewed commit.
+4. `a3-rooftops` (Roof Road area pass), then G-A.
+5. Phase 8: `h1-hero`, then `h2-readme`, then G-H.
+6. `z-final`, then the default flip. The flip is blocked until R66 closes (below).
+
+**Open items to carry:**
+- **R66, the world-build budget.** On the modular set, the world build is 1.26–1.28× classic on medium and 1.40–1.42× on high,
+  against a 1.25× rule. Boot overhead is within budget. This blocks the default flip only. The levers are in `docs/fable/handoff/a1-village.md` §2c.
+- **Deferred kit ids (still classic):**
+  - `r2` part c: bridge, corner house, roji, balconies, zushi, alley pockets/routes, street, ground;
+  - `r3`: willows, culvert ledges, tenmangu gate (downtown.js builders).
+- **Operator layout notes** (`docs/fable/swarm/reports/route-fix-report.md`):
+  - overlapping stage-2 legs block the camera near s≈1010 and s≈1558;
+  - mouth 12 (Yasaka) has zero length;
+  - the debug getter `roofRoad.view` throws under `?finale=1` before the camera is placed;
+  - `tools/rooftop_browser_test.mjs` asserts 30 residents where the route now has 40.
+- **Watch list for a quiet machine:** okuribi mid/far and pagoda mid warm builds. Draws at s=700 and the machiya buildMs for `r2-b`.
+- **Process lessons:**
+  - Run at most about 4 agents at once (the usage cap stopped the swarm twice).
+  - Take timing measurements only with `uptime` 1-min load under 3, and never loosen a budget from a loaded reading (R54).
+  - Every merge of a kit family runs `cd cadJS && npm run check` and `cd catalog && npm test` (R67).
+  - Remove scratch worktrees with plain `git worktree remove`.
+
 ## Contents
 
+0. [Status and how to resume](#0-status-and-how-to-resume-paused-2026-11-16)
 1. [Where we are (verified facts)](#1-where-we-are-verified-facts)
 2. [What "AAA" means here](#2-what-aaa-means-here)
 3. [Target architecture](#3-target-architecture)
@@ -669,7 +724,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 4 | `s3-vista` | City, pagoda, bay, harbour, ranges, clouds | s1, `v-pagoda`, `v-ranges` | [x] |
 | 4 | `s4-summit-life` | Summit weather, pollen, petals, butterflies, birds | s1, `v-weather` | [x] |
 | 5 | `r1-roof-split` | `build.js` split into pieces + inventory (serial); merged to main by the operator (R69) | G-F | [x] |
-| 5 | `r2-roofs-streets` | Mouths 1–2: bridge gate, machiya roofs, Pontochō | r1, `v-machiya` | [x] r2-roofs-streets (part a: 7 props; machiya/kura/kido/façades/bridge/steps/street/ground → r2-b) |
+| 5 | `r2-roofs-streets` | Mouths 1–2: bridge gate, machiya roofs, Pontochō | r1, `v-machiya` | [~] part a merged (7 props, PR #47); part b (machiya, kura, kido, river steps, komayose, inuyarai, tsuboniwa) PR #51 paused at the end of fix round 1, awaiting re-review; part c deferred (bridge, corner house, roji, balconies, zushi, alley pockets/routes, street, ground) |
 | 5 | `r3-canal-market` | Mouths 3–5: Takase canal, boat, Nishiki canopy, laundry sky | r1 | [x] r3-canal-market (part a: 8/19 ids; part b merged: 8 more ids; willows, culvert ledges, tenmangu gate deferred) |
 | 5 | `r4-festival` | Mouths 6–7: yatai, hoko float, temple gate, Okuribi | r1 | [x] r4-festival part a (7 ids) · [x] r4-festival part b merged (sky, hills, okuribi, distant city, atmosphere) |
 | 5 | `r5-roof-cast` | Chidori, Shōki, boatman, hayashi musicians | r1, c1 | [x] r5-roof-cast (part a: Shōki, treats, villagers, Chidori; boatman + hayashi → r5-b after r3-b/r4 merge, R75) · [x] r5-roof-cast part b merged (boatman, hayashi) |
@@ -740,29 +795,29 @@ Lane `p0-baseline`. One agent. Changes nothing in the game.
 
 ### Steps
 
-- [ ] P0.1 Create `fable/integration` from `main` and push it.
-- [ ] P0.2 Run the whole verification matrix (Appendix C) on `main`. Record
+- [x] P0.1 Create `fable/integration` from `main` and push it.
+- [x] P0.2 Run the whole verification matrix (Appendix C) on `main`. Record
       every command and its real output in `docs/fable/baseline/checks.md`.
       A failure on `main` is recorded and reported, not fixed here.
-- [ ] P0.3 Record performance on the dev machine in
+- [x] P0.3 Record performance on the dev machine in
       `docs/fable/baseline/perf.md`: for quality `low`, `medium`, `high` at four
       fixed spots (street, shrine, river, meadow) note frame time, draw calls
       and triangles from `renderer.info`, and world build time. State the
       machine, browser and GPU backend. State plainly that this is not a phone
       or low-end benchmark.
-- [ ] P0.4 Capture baseline images to `docs/fable/baseline/captures/`: every
+- [x] P0.4 Capture baseline images to `docs/fable/baseline/captures/`: every
       sheet of `tools/town_preview.html`, `hidden_preview.html`,
       `tree_preview.html`, `cat_preview.html`, `summit_preview.html` and the
       seven Roof Road mouths plus finale. These are the "before" of every
       later comparison.
-- [ ] P0.5 Propose budgets in `docs/fable/baseline/budgets.md`, derived from
+- [x] P0.5 Propose budgets in `docs/fable/baseline/budgets.md`, derived from
       P0.3 (for example: modular `medium` may cost no more than the measured
       classic `high`). Budgets are proposals until the operator accepts them.
-- [ ] P0.6 Generate `docs/fable/baseline/swap_matrix.md` from
+- [x] P0.6 Generate `docs/fable/baseline/swap_matrix.md` from
       `labs/asset_inventory.json` and `catalog/js/asset-loader.mjs`: one row
       per active asset with its lane, best lab target, coverage level, and
       whether a lab adapter exists. Appendix D is the starting point.
-- [ ] P0.7 Write `docs/fable/decisions.md` with the questions below and wait.
+- [x] P0.7 Write `docs/fable/decisions.md` with the questions below and wait.
 
 ### Operator decisions
 
@@ -797,44 +852,44 @@ Owns: `src/kit/runtime.js`, `contract.js`, `materials.js`, `craft.js`,
 (+ `.js`), and the listed edits to `src/settings.js`, `src/main.js`,
 `src/bootstrap.js`, `src/cad_overrides.js`, `tools/check_syntax.mjs`.
 
-- [ ] F1.1 `contract.js`: `defineAsset`, param schema validation, part-name
+- [x] F1.1 `contract.js`: `defineAsset`, param schema validation, part-name
       helper, tier constants. Pure, importable under Node.
-- [ ] F1.2 `rng.js`: `mulberry32`, `hashId`. Same algorithm as
+- [x] F1.2 `rng.js`: `mulberry32`, `hashId`. Same algorithm as
       `countryside.js` so behaviour is familiar; separate streams.
-- [ ] F1.3 `runtime.js`: `AssetRuntime` with `resolveSet()` (setting, URL,
+- [x] F1.3 `runtime.js`: `AssetRuntime` with `resolveSet()` (setting, URL,
       quality), `preload()` (dynamic import of families), `build(id, layout,
       classicFn)`, try/catch fallback with one console warning per id,
       `kit-overrides.json` loading, `?swap=` parsing, `instances` registry for
       `update` and `setTier`, `dispose`.
-- [ ] F1.4 `materials.js`: painterly kit materials, promoted from
+- [x] F1.4 `materials.js`: painterly kit materials, promoted from
       `labs/shared/painted.js` and `finish.js`, registered so
       `_mergeStatics()` can merge them. Verify by counting draw calls before
       and after on a test scene.
-- [ ] F1.5 `tools/kit_check.mjs` (Node, fast): every asset id exists in the
+- [x] F1.5 `tools/kit_check.mjs` (Node, fast): every asset id exists in the
       inventory; ids unique; every family folder has `index.js`; no import
       from `labs/`; no `Math.random`, `Date.now`, `this.random` in `src/kit`;
       param defaults inside their ranges; cache tags on imports of game
       modules match the current tag.
-- [ ] F1.6 `tools/footprint_golden`: a page that builds the valley with a
+- [x] F1.6 `tools/footprint_golden`: a page that builds the valley with a
       fixed seed and writes a JSON digest of (a) every named object's world
       position and rotation, (b) every collider, (c) every vegetation
       exclusion rect, (d) interaction anchors. Commit the digest for the
       current `main` as `tools/golden/valley_classic.json`. The same page
       diffs a new build against it. Model it on how the review sheets build
       `Countryside` in isolation.
-- [ ] F1.7 `tools/kit_contract_test.html`: for each registered asset and
+- [x] F1.7 `tools/kit_contract_test.html`: for each registered asset and
       tier, build it and assert the AAA-2, 3, 7, 8, 9 checks. With zero
       assets registered it passes trivially and prints `0 assets`.
-- [ ] F1.8 Wire: `assetSet` in `settings.js` (default `'classic'`), runtime
+- [x] F1.8 Wire: `assetSet` in `settings.js` (default `'classic'`), runtime
       constructed in `Game`, `await runtime.preload()` before `Countryside`,
       `runtime.update()` in the frame loop, tier changes from
       `applyQuality()`. Settings menu entry is added in Phase 9, not now.
-- [ ] F1.9 `cad_overrides.js`: resolve `asset:<id>/<part>` names first, then
+- [x] F1.9 `cad_overrides.js`: resolve `asset:<id>/<part>` names first, then
       the existing child-index path. Existing override files must apply
       exactly as before; add a test fixture proving it.
-- [ ] F1.10 Add `src/kit/**` to `tools/check_syntax.mjs` and
+- [x] F1.10 Add `src/kit/**` to `tools/check_syntax.mjs` and
       `tools/verify.mjs`.
-- [ ] F1.11 Docs: add a "Kit" row to the layout table in `AGENTS.md` and
+- [x] F1.11 Docs: add a "Kit" row to the layout table in `AGENTS.md` and
       reconcile §3 of this guide with what was actually built.
 
 Done when: G1 passes, the golden diff against `main` is empty, and
@@ -844,20 +899,20 @@ Done when: G1 passes, the golden diff against `main` is empty, and
 
 Owns: `src/countryside.js` for the duration. Nobody else touches it.
 
-- [ ] F2.1 List the 47 builders (`grep -n '^  build\|^  create' src/countryside.js`)
+- [x] F2.1 List the 47 builders (`grep -n '^  build\|^  create' src/countryside.js`)
       in the status file with the inventory ids each one produces.
-- [ ] F2.2 For each builder, split into `layoutX()` + `meshXClassic(layout)`
+- [x] F2.2 For each builder, split into `layoutX()` + `meshXClassic(layout)`
       and route through `this.assets.build(...)` (§3.4). Move code; do not
       rewrite it. Every `this.random()` call stays in the same order.
-- [ ] F2.3 After **each** builder, run the footprint golden. The diff must be
+- [x] F2.3 After **each** builder, run the footprint golden. The diff must be
       empty. Commit per builder so a regression bisects to one commit.
-- [ ] F2.4 Builders called from inside other builders (`createKawaraRoof`,
+- [x] F2.4 Builders called from inside other builders (`createKawaraRoof`,
       `createKoushi`, `createEngawa`, `createChochinLantern`,
       `createClimbCrates`, `buildBirdNest`) get the same treatment, keyed by
       their component ids.
-- [ ] F2.5 Leave `_mergeStatics()` behaviour unchanged for classic. For kit
+- [x] F2.5 Leave `_mergeStatics()` behaviour unchanged for classic. For kit
       instances, merge everything not listed in `instance.live`.
-- [ ] F2.6 Run the full-game headless boot (`/__boot.html`). No new console
+- [x] F2.6 Run the full-game headless boot (`/__boot.html`). No new console
       output beyond the known AudioContext warnings.
 
 Done when: golden diff empty, all review sheets render as the Phase 0
@@ -868,13 +923,13 @@ captures, headless boot clean.
 Owns, for the duration: `src/vegetation.js`, `src/interior.js`,
 `src/hidden_places.js`, `src/ambient_life.js`, `src/particles.js`.
 
-- [ ] F3.1 Same split and `assets.build` routing for the 21 builders in
+- [x] F3.1 Same split and `assets.build` routing for the 21 builders in
       these modules. `hidden_places.js` must still be built before
       `Vegetation` and attached after `ContextActionManager`.
-- [ ] F3.2 Interior: keep knockable physics and nap/interaction anchors in
+- [x] F3.2 Interior: keep knockable physics and nap/interaction anchors in
       the layout data so a kit interior inherits them.
-- [ ] F3.3 Extend the footprint golden to the interior and hidden places.
-- [ ] F3.4 `src/sky.js`, `src/postfx.js` and `src/grass.js` are **not** split
+- [x] F3.3 Extend the footprint golden to the interior and hidden places.
+- [x] F3.4 `src/sky.js`, `src/postfx.js` and `src/grass.js` are **not** split
       here. They are systems, handled in wave 2.3 by one lane each.
 
 **Gate G-F:** G1 and G2 (Appendix C) pass on `fable/integration`; golden
@@ -889,6 +944,8 @@ Every village lane follows the same ten steps. The lane card only adds the
 specifics.
 
 ### The standard lane recipe
+
+> Template: each lane ticks L1–L10 in its own `docs/fable/status/<lane>.md`. The boxes here stay empty.
 
 - [ ] L1 **Claim** (§4.4). Create the status file.
 - [ ] L2 **Read** the lab's `research.md`, its `js/recipes.js`, the matching
@@ -1001,21 +1058,21 @@ facade.
 
 Owns `src/cat.js`, `src/npc.js`, `src/player.js` for the duration.
 
-- [ ] C1.1 Create `src/characters/`: `rig.js` (skeleton, leg IK wiring),
+- [x] C1.1 Create `src/characters/`: `rig.js` (skeleton, leg IK wiring),
       `parts/coat.js`, `parts/face.js`, `parts/collar.js`, `parts/shadow.js`,
       `behaviour/locomotion.js`, `behaviour/poses.js`, `behaviour/mood.js`,
       `character.js` (`CharacterDef` → assembled character).
-- [ ] C1.2 Move code out of `Cat` into those modules without changing
+- [x] C1.2 Move code out of `Cat` into those modules without changing
       behaviour. `Cat` keeps every public method and property it has today
       and delegates.
-- [ ] C1.3 `CharacterDef`: `{ id, build, palette, face, accessories: [slots],
+- [x] C1.3 `CharacterDef`: `{ id, build, palette, face, accessories: [slots],
       scale, personality }`. Accessory slots: `collar`, `bell`, `head`,
       `back`. `setMasterCat()` becomes a slot swap.
-- [ ] C1.4 Proof of no change: every `tools/cat_preview.html` sheet
+- [x] C1.4 Proof of no change: every `tools/cat_preview.html` sheet
       (anatomy, face, gait, stride, poses, sleep, closeup, coat, npcs)
       matches the Phase 0 capture; `&perf=1` build and update timings are
       within noise; the Roof Road autopilot test still passes.
-- [ ] C1.5 The sculpt cache per body type keeps working; a part swap must
+- [x] C1.5 The sculpt cache per body type keeps working; a part swap must
       not trigger a re-sculpt.
 
 ### Parallel lanes after C1
@@ -1047,22 +1104,22 @@ sea from the meditation seat (`perchSightlineAt()`).
 
 ### Lane `s1-summit-split` (serial, single writer of `mountaintop.js`)
 
-- [ ] S1.1 Record a summit golden: object transforms plus the full
+- [x] S1.1 Record a summit golden: object transforms plus the full
       `node tools/summit_test.mjs` output, and every `summit_preview.html`
       view from Phase 0.
-- [ ] S1.2 Split the 27 builders into `src/summit/` modules by concern:
+- [x] S1.2 Split the 27 builders into `src/summit/` modules by concern:
       `terrain.js`, `clearing.js` (meadow, stone, ensō, fūrin, torii, steps,
       path), `planting.js`, `vista.js` (city, pagoda, bay, harbour, bridge,
       Ferris wheel, horizon), `weather.js`, `wildlife.js`, `light.js`.
       `SummitManager` stays in `mountaintop.js` as the facade with the same
       public API and state machine.
-- [ ] S1.3 Layout/mesh split and `assets.build` routing as in §3.4, using
+- [x] S1.3 Layout/mesh split and `assets.build` routing as in §3.4, using
       the summit's own stream. No new `this.rng()` draws; the summit grass
       draws nothing from it today and must not start.
-- [ ] S1.4 `tools/summit_test.mjs` rewrites import statements of
+- [x] S1.4 `tools/summit_test.mjs` rewrites import statements of
       `mountaintop.js` to stubs. Update the harness for the new imports
       **without removing any check**.
-- [ ] S1.5 `node tools/verify.mjs` wiring checks grep `mountaintop.js` for
+- [x] S1.5 `node tools/verify.mjs` wiring checks grep `mountaintop.js` for
       specific strings. Where code moved, point the check at the new file;
       do not delete the check.
 
@@ -1097,7 +1154,7 @@ passing.
 
 ### Lane `r1-roof-split` (serial, single writer of `rooftops/js/build.js`)
 
-- [ ] R1.1 Inventory: add a `Roof Road` group to
+- [x] R1.1 Inventory: add a `Roof Road` group to
       `labs/asset_inventory.json` (remove it from `exclusions`), one row per
       piece type and character. Expect roughly forty rows: bridge and
       giboshi, kido gate, machiya roofs (hira and tsuma), façades and eave
@@ -1109,14 +1166,14 @@ passing.
       gate, Shōki, treats, Chidori, distant city, pagoda, sky, hills and
       fires, atmosphere effects. Update `tools/labs_coverage.mjs` totals and
       its test.
-- [ ] R1.2 Split `build.js` into `rooftops/js/pieces/<type>.js`, one builder
+- [x] R1.2 Split `build.js` into `rooftops/js/pieces/<type>.js`, one builder
       per piece type, registered in a `PIECES` table that `buildWorld`
       walks. Move code; do not redesign.
-- [ ] R1.3 Route each piece through the same `assets.build` contract so the
+- [x] R1.3 Route each piece through the same `assets.build` contract so the
       Roof Road has `classic` and `modular` sets too.
-- [ ] R1.4 Proof: the Phase 0 captures of all seven mouths and the finale
+- [x] R1.4 Proof: the Phase 0 captures of all seven mouths and the finale
       match; `node tools/rooftop_test.mjs` passes 38/38; `?auto=1` completes.
-- [ ] R1.5 Register a Roof Road lab in `labs/registry.js` (promoting the
+- [x] R1.5 Register a Roof Road lab in `labs/registry.js` (promoting the
       `roofroad` extra) with a shelf of the piece types, so each has a
       specimen and a catalog adapter.
 
@@ -1134,26 +1191,28 @@ Every Roof Road lane also runs the standard lane recipe (§9), with
 
 ### Lane `r6-game-wiring` (serial, Integrator; needs D3)
 
+> Done 2026-11-15 (PR #54). R6.4 went the other way under ruling R57: `src/rooftops/` re-exports the runner modules from `rooftops/js/`. The shared view is `rooftops/js/runview.js` (R80/R81).
+
 Implements the spec's §8.2 table. Summarised:
 
-- [ ] R6.1 Giboshi caps and a Shōki on the valley bridge
+- [x] R6.1 Giboshi caps and a Shōki on the valley bridge
       (`buildRiverAndBridge`), caps kept out of `_mergeStatics` so the glow
       can animate.
-- [ ] R6.2 Odoi bank and bamboo thicket with its **own** `mulberry32(0x0D01)`
+- [x] R6.2 Odoi bank and bamboo thicket with its **own** `mulberry32(0x0D01)`
       stream; registers exclusions and colliders; `setOdoiThicketOpen(t)`.
-- [ ] R6.3 `src/rooftops/manager.js`: `RooftopManager` shaped like
+- [x] R6.3 `src/rooftops/manager.js`: `RooftopManager` shaped like
       `SummitManager` (`setUnlocked`, `enter`, `exit`, `setActive`,
       `update`), pocket origin `(0, −2400, 0)`.
-- [ ] R6.4 The pure runner modules moved into `src/rooftops/` verbatim;
+- [x] R6.4 The pure runner modules moved into `src/rooftops/` verbatim;
       `rooftops/js/` re-exports them so the prototype page and the test keep
       working from one source.
-- [ ] R6.5 Save: `worldFlags.rooftopsUnlocked`, `rooftopShoki` (7-bit mask),
+- [x] R6.5 Save: `worldFlags.rooftopsUnlocked`, `rooftopShoki` (7-bit mask),
       `rooftopFinished`. Never save a pocket position.
-- [ ] R6.6 Journal and XP hooks, `music.setScene('Rooftops')`, bell audio
+- [x] R6.6 Journal and XP hooks, `music.setScene('Rooftops')`, bell audio
       for the posts.
-- [ ] R6.7 `index.html`: the noren veil as a **sibling** element. Do not
+- [x] R6.7 `index.html`: the noren veil as a **sibling** element. Do not
       touch `#summit-transition`.
-- [ ] R6.8 Tests: extend `tools/verify.mjs` with wiring checks for the
+- [x] R6.8 Tests: extend `tools/verify.mjs` with wiring checks for the
       rooftop manager in the style of the summit ones; a Node state-machine
       test `tools/rooftop_manager_test.mjs` modelled on `summit_test.mjs`.
 
@@ -1169,44 +1228,44 @@ before the Roof Road load; operator may merge to `main`.
 
 ### Lane `t1-catalog` (can start after G-V1)
 
-- [ ] T1.1 `catalog/js/asset-loader.mjs`: add variant `production`, built
+- [x] T1.1 `catalog/js/asset-loader.mjs`: add variant `production`, built
       through the kit registry via `labs/shared/game.js`. Still an allowlist;
       source text is never evaluated.
-- [ ] T1.2 Inspector: three-way compare (original, lab study, production),
+- [x] T1.2 Inspector: three-way compare (original, lab study, production),
       tier switch, param controls from the schema.
-- [ ] T1.3 **Swap board:** per-asset variant and params, saved as
+- [x] T1.3 **Swap board:** per-asset variant and params, saved as
       `kit-overrides.json` through `catalog/server.mjs` with the same
       atomic, revision-checked write used for `metadata.json`. On a static
       host it downloads the file instead.
-- [ ] T1.4 Thumbnails for production variants, with provenance, per
+- [x] T1.4 Thumbnails for production variants, with provenance, per
       `catalog/THUMBNAILS.md`.
-- [ ] T1.5 Tests: extend `catalog/tests/asset-loader.test.mjs` and
+- [x] T1.5 Tests: extend `catalog/tests/asset-loader.test.mjs` and
       `server.test.mjs`; `node tools/catalog_check.mjs` passes.
 
 ### Lane `t2-cadjs`
 
-- [ ] T2.1 Handoff `/cadJS/?asset=<id>&variant=production` loads the kit
+- [x] T2.1 Handoff `/cadJS/?asset=<id>&variant=production` loads the kit
       asset with its part tree named and selectable.
-- [ ] T2.2 Parameter panel generated from `params`; edits rebuild the asset
+- [x] T2.2 Parameter panel generated from `params`; edits rebuild the asset
       live; Undo/Redo works.
-- [ ] T2.3 AI agent: a validated `set_asset_params` action and a
+- [x] T2.3 AI agent: a validated `set_asset_params` action and a
       `swap_asset_variant` action in `agent-protocol.mjs`. Plans are shown
       for review and applied as one undoable transaction, as today.
-- [ ] T2.4 Asset package **schema 2**: explicit create/remove/reparent of
+- [x] T2.4 Asset package **schema 2**: explicit create/remove/reparent of
       named parts, with a migration from schema 1. Schema 1 packages keep
       importing. This lifts the structural limitation in the cadJS manual.
-- [ ] T2.5 "Push to game" writes `kit-overrides.json` for param edits and
+- [x] T2.5 "Push to game" writes `kit-overrides.json` for param edits and
       keeps writing `cad-overrides.json` for free-form edits.
-- [ ] T2.6 `cd cadJS && npm run check` passes; manual updated.
+- [x] T2.6 `cd cadJS && npm run check` passes; manual updated.
 
 ### Lane `t3-audio`
 
-- [ ] T3.1 List every new asset with a sound moment (shishi-odoshi clack,
+- [x] T3.1 List every new asset with a sound moment (shishi-odoshi clack,
       fūrin, lantern kindle, bell, water over stones, noren, float bells,
       boat pole) in `dawCAT/docs/GAME_AUDIO_CATALOG.md`.
-- [ ] T3.2 Author or map sounds in dawCAT; export through the existing
+- [x] T3.2 Author or map sounds in dawCAT; export through the existing
       zero-file `sfx-pack.js` route.
-- [ ] T3.3 Kit assets call sound through an `env.audio` hook; no kit file
+- [x] T3.3 Kit assets call sound through an `env.audio` hook; no kit file
       imports `src/audio.js` directly. `cd dawCAT && npm test` passes.
 
 **Gate G-T:** catalog and cadJS suites pass; a param edit made in cadJS
@@ -1217,28 +1276,30 @@ file.
 
 ## 14. Phase 7 — Area polish passes
 
+> **Status 2026-11-16:** A.1–A.8 are done for the village (`a1-village`) and the hilltop (`a2-hilltop`), and open for the Roof Road (`a3-rooftops`, which needs G-R). `[~]` means done for some areas.
+
 One lane per area, after its assets are in. These lanes edit only kit
 params, `kit-overrides.json` defaults, and their own area notes; structural
 fixes go back to the owning family lane as issues in the status file.
 
 For each area (`a1-village`, `a2-hilltop`, `a3-rooftops`):
 
-- [ ] A.1 **Walk it at cat height** along three fixed routes, at dawn, noon,
+- [~] A.1 **Walk it at cat height** along three fixed routes, at dawn, noon,
       dusk and night, in clear, rain and snow where the area supports it.
       Capture every 10 m. List every frame where something breaks the bar.
-- [ ] A.2 **Composition:** landmark sightlines, lantern rhythm along paths,
+- [~] A.2 **Composition:** landmark sightlines, lantern rhythm along paths,
       clutter density, what closes each view.
-- [ ] A.3 **Light:** continuity between neighbouring assets, lantern falloff,
+- [~] A.3 **Light:** continuity between neighbouring assets, lantern falloff,
       wet and snow response, no asset that ignores fog or time of day.
-- [ ] A.4 **Life:** something moves in every view (cloth, water, leaves,
+- [~] A.4 **Life:** something moves in every view (cloth, water, leaves,
       critters, villagers), and nothing moves that should not.
-- [ ] A.5 **Sound:** each landmark has its sound; nothing loops audibly.
-- [ ] A.6 **Performance:** frame time, draw calls and triangles at the fixed
+- [~] A.5 **Sound:** each landmark has its sound; nothing loops audibly.
+- [~] A.6 **Performance:** frame time, draw calls and triangles at the fixed
       spots on all three tiers against the budgets. Tune tier distances
       before cutting detail.
-- [ ] A.7 **Comfort:** reduce-motion, high-contrast prompts, large text and
+- [~] A.7 **Comfort:** reduce-motion, high-contrast prompts, large text and
       FOV still behave.
-- [ ] A.8 Write `docs/fable/status/<lane>.md` with before/after pairs against
+- [~] A.8 Write `docs/fable/status/<lane>.md` with before/after pairs against
       the Phase 0 captures and the remaining issues, ranked.
 
 **Gate G-A:** operator accepts each area from the capture set.
