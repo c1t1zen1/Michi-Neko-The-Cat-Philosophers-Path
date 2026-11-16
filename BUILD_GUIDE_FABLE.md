@@ -625,6 +625,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 - [x] **G-C** Characters merged; cat golden EQUAL, systems golden EQUAL, G1–G4 green, a save made on `main` loads on `?assets=classic` and `?assets=modular` (`reports/gate-v2-chores-report.md`)
 - [x] **G-S** Hilltop merged; summit_test 83/0, summit golden EQUAL, summit_kit_parity EQUAL, verify + G1 pass, classic+modular boots clean; meditation view accepted PROVISIONALLY (R59, operator may overturn) (`docs/fable/status/a2-hilltop.md`)
 - [ ] **G-R** Roof Road merged and wired (→ may merge to `main`)
+  - Board note: Operator-approved route fix (R78) applied: rooftop_test 40/40, finale reachable; G-R play-through unblocked. Open layout notes for the operator: overlapping legs at s≈1010/1424/1558, mouth 12 zero length, mouths[6] as finale mouth.
 - [x] **G-T** Tooling merged; cadJS param edit (key-rock size 1.5, Push to game) changed the ?assets=modular shot (maxDelta 166), restoring kit-overrides.json reverted it (maxDelta 0); catalog 49/49, cadJS 16/16 pass
 - [ ] **G-A** Area polish accepted for all three areas
 - [ ] **G-H** Hero images and README merged

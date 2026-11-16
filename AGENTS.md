@@ -123,7 +123,7 @@ the rail is continuous, the finale is reachable from the start and from every
 platform (no soft-locks), every metre of street has a climb-back within 12 m,
 route links fit 80 % of the running jump, and the autopilot runs the whole
 route on the real physics without touching the street. Change a height in
-`rooftops/js/level.js`, run it. Page flags: `?mouth=1..7`, `?at=<s>`,
+`rooftops/js/level.js`, run it (stage 2 has 13 mouths). Page flags: `?mouth=1..7`, `?at=<s>`,
 `?finale=1`, `?auto=1` (autopilot), `?debug=1` (platform lines, route in red),
 `?hour=0..1`, `?cat=0`, `?shadows=0`, `?shot=1&nohud=1` for captures; console
 hooks `roofRoad.at(s)`, `roofRoad.skipFinale()`. A headless capture takes about
