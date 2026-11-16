@@ -79,12 +79,13 @@ the game, through the Odoi gate south of the bridge)".
 
 ### 2.4 Board
 
-Tick R6.1 to R6.8 in `BUILD_GUIDE_FABLE.md` section 12. Gate G-R: the manager
-tests pass (59/59); `rooftop_test` stays at the known baseline 38/2 and the
-companion test's "player reaches finale" stays failing (operator's stage-2
-route, 17c9cae; not this lane), so **G-R's play-through to the finale stays
-open** until the operator's route fix lands; saves from before the Roof Road
-load (checked from 08bd3b5 on both sets).
+Tick R6.1 to R6.8 in `BUILD_GUIDE_FABLE.md` section 12. Gate G-R (after fix
+round 1, on integration with the R78 route fix): the manager tests pass
+(81/81), `rooftop_test` 40/40 and the companion test pass, and saves from
+before the Roof Road load (checked from 08bd3b5 on both sets). **G-R
+precondition (ruling R80): the game.js switch-over to runview.js (section 4)
+is applied by the operator's decision**; until then the sandbox page keeps its
+own copy of the run's view.
 
 ## 3. Notes
 
@@ -103,3 +104,107 @@ load (checked from 08bd3b5 on both sets).
 - The footprint and systems goldens were rewritten in 3ff1ee0 with the reason
   in the message (additions only; rng draws unchanged; the meadow mask differs
   only around the Odoi). Re-run both after merging any other valley change.
+
+## 4. game.js → runview.js (ruling R80; an operator decision, a G-R precondition)
+
+The run's view (where the cat is drawn, the camera search, Chidori following,
+step-off, pickups, lanterns and mouths, the finale) lives in ONE module now,
+`rooftops/js/runview.js` (class `RunView`, `finaleMouth(level)`, `STEP`),
+beside the runner modules; `src/rooftops/runview.js` re-exports it and the
+game's pocket uses it. **This lane does not edit `rooftops/js/game.js`.** The
+page's switch-over is the exact patch
+`docs/fable/handoff/r6-game-wiring.game-js.patch` (game.js 1193 → 777 lines):
+
+```
+git apply docs/fable/handoff/r6-game-wiring.game-js.patch
+node tools/labs_coverage.mjs --write      # game.js anchors move
+```
+
+It applies cleanly to `rooftops/js/game.js` as of 44d1c7c (integration
+4ed6943 merged; game.js unchanged since r4b's Sky ordering). What it does:
+module state that moved (`time`, `acc`, `vis`, `cam`, `finale`,
+`currentMouth`, `seenMouths`, `greeted`, `lastCheckpoint`) is read from
+`view`; `startAt` / `jumpToMouth` / `respawn` / "Run it again" /
+`skipFinale` call the view; `tick()` is `view.frame(dt, readInput(),
+autopilot)` followed by the page's own sound, map, alley hint, HUD timers,
+quality governor and draw; the page's voice (cards, toasts, chimes, drums,
+the strip, the finale card with its buttons) is in the view's hooks; the
+canvas resize is the `viewport` hook; `roofRoad.runView` exposes the view.
+Edge presses are cleared only after a frame that ran a physics step (as the
+original loop did).
+
+**Proof (scratch, Metal):** the sandbox page booted from two trees, the
+current one and one with the patch + runview.js, with `Math.random` seeded
+and the clock stepped only by the review loop (the page otherwise ticks on
+wall-clock time, and two unpatched boots then differ by themselves);
+`roofRoad.at(1, 1.1); setAuto(true); advanceForReview(400)` twice, sampled
+every 30 frames (s, y, camera position and focus, cat and Chidori positions,
+mood, camera mode and clear) through the finale (s 1673.08, 5 fires, the card):
+- unpatched vs unpatched: 1017 / 1017 samples identical (the harness is deterministic);
+- unpatched vs patched with the view's finale mouth set to the old fixed one
+  (`runView.finaleMouth = level.mouths[6]`): **1017 / 1017 identical**, same
+  digest (302c3f06), same finale card, Shōki count, strip and fire panorama;
+- unpatched vs patched as shipped: the run, the cat and Chidori identical in
+  all 1017 samples; the camera differs from s ≈ 1023 on (below).
+
+**The one behaviour change, deliberate:** the finale's mouth comes from the
+level's data (its last mouth, 13 送り火 Okuribi, or `level.finaleMouth` if a
+level names one), where game.js hard-coded `level.mouths[6]` (stage 1 had
+seven mouths). On the page that changes (a) the finale card: "Okuribi — the
+Sending Fires" instead of "Nijō-jō — Castle Gardens", and the strip marks
+mouth 13 seen; (b) the camera's slight rise for the float climb starts at
+Okuribi's s0 (1028) instead of Nijō-jō's (1079).
+
+**The operator's open layout items** (the sandbox's `mouths[6]`; not this
+lane's to settle): which mouth the finale belongs to on the 13-mouth route
+(level.js's `mouthAt` treats the last mouth, the float roof at s 1028–1034,
+as the finale's, while the perch is at s 1672.7 in mouth 11); `build.js`
+still culls the float with `level.mouths[6].s0`; `game.js`'s `?finale=1`
+start uses `level.checkpoints[6]`; the page's mouth chime reads
+`PENTA[m.id - 1]`, which is undefined for mouths 8–13 (a NaN pitch; kept
+as is in the patch); the page's strip, map and Shōki counter still say 7 in
+places. `tools/rooftop_browser_test.mjs` is stale against stage 2 (it
+expects 30 residents, 40 are built, and a finale within 400 s of autopilot,
+which now takes ≈ 800 s): it stops at the same first assertion with or
+without the patch.
+
+## 5. Fix round 1 (review r1)
+
+### 5.1 `labs/asset_inventory.json`: classify `rooftops/js/runview.js`
+
+`node tools/labs_check.mjs` on this branch reports exactly one error,
+"unclassified Roof Road module: rooftops/js/runview.js" (every Roof Road module
+must be classified; the inventory is a hot file this lane does not own). The
+entry, after `rooftops/js/companion.js`'s (checked in scratch: with it,
+labs_coverage passes after `--write`):
+
+```json
+  {
+   "file": "rooftops/js/runview.js",
+   "role": "support",
+   "reason": "The run's view, shared by the sandbox page and the game's pocket (ruling R80): where the cat is drawn, the camera, Chidori following, the Shōki and treats, mouths and lanterns, the finale. Builds nothing."
+  },
+```
+
+then `node tools/labs_coverage.mjs --write` (the module count and the
+main.js / countryside.js anchors).
+
+### 5.2 What the fixes changed (for merging)
+
+- **No soft-lock at the gate.** A failed build puts the cat back on the bridge
+  with one line ("The lanes beyond the noren are not ready. You are back on
+  the bridge."); the gate fires once per walk into it (armed after the cat is
+  seen outside it); `RooftopManager.saveSpot(pos)` makes `saveGame()` write
+  the return spot on the roofs, behind either veil, or in the gate.
+- **The arrival hint**: one toast-style hint per arrival until the finale has
+  been reached ("← → run · Space jump · ↓ drop · R last lantern · walk back
+  over the bridge to go home"; a stick/button wording on touch), tap or click
+  to dismiss; large text and high contrast apply.
+- **Pause menu**: `#btn-leave-roofs` "Leave the Roof Road", shown only in
+  `rooftop-mode`, runs the normal exit().
+- The gate zone is the gap (x -0.75…1.0 at the ramp's foot), so walking down
+  the ramp's axis does not pull the cat through; the bridge Shōki is a local
+  copy of `makeShoki` (the valley imports no Roof Road module; the footprint
+  golden is unchanged); `music.setScene('Rooftops')` is called once per
+  visit; the Shōki mask never aliases (`setShokiMask`).
+
