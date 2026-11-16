@@ -761,6 +761,13 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 - r5-roof-cast part b merged (roof-boatman, roof-hayashi on roofcast; castPass hook in rooftops/js/build.js accepted R79; r5 is complete).
 - r4-festival part b merged (roof-sky, roof-hills, roof-okuribi, roof-distant-city, roof-atmosphere; sky.js/atmosphere.js/game.js routing accepted R76/R77, classic-neutral). r4 is complete. okuribi mid/far warm-build watch (quiet pass).
 
+### Board notes (G-R chores, 2026-11-16)
+
+- Phase 5, every row merged `[x]` on `fable/integration`: `r1-roof-split` (operator-merged, R69), `r2-roofs-streets` part a (PR #47) and part b (PR #51, f6feb39), `r3-canal-market` parts a and b, `r4-festival` parts a and b, `r5-roof-cast` parts a and b, `r6-game-wiring` (PR #54), plus the operator-approved route fix (R78) and the `game.js` → `runview.js` switch-over (R81). No Phase 5 lane is deferred at lane level.
+- Roof Road kit: 47 of the 62 inventory ids are in the four Roof Road families (`roofcanal` 16, `roofcast` 5, `rooffestival` 12, `roofstreets` 14), and `roof-chidori` is a `CharacterDef` (`?swap=roof-chidori:modular`). **Deferred, classic (not G-R blockers; they build their classic piece on both sets):** r2 part c, `roof-bridge`, `roof-corner-house`, `roof-roji`, `roof-balconies`, `roof-zushi`, `roof-alley-pockets`, `roof-alley-routes`, `roof-street`, `roof-ground`, `roof-kawara-roofs`, `roof-facades` (the standalone kawara and façade rows; the machiya builds its own); r3, `roof-willows`, `roof-culvert-ledges`, `roof-tenmangu-gate` (`downtown.js` builders, no `PIECES` entry). The valley's Seven Posts and Odoi (`valley-seven-posts`, `valley-odoi`) are classic on both sets (no `placeAsset` seam).
+- Still pending from r6, optional: `catalog/js/links.mjs` wording (r6 handoff §2.3; the note still says "not yet in the game").
+- G-R chores items 1a and 1b: the Roof Road family filter (`AssetRuntime` `families` option; the sandbox passes `roof*`, r3 handoff §4 closed) and ruling R84 (roof-machiya hero `buildMs` 12 → 15 from quiet readings) are on `fable/integration`.
+
 ### Suggested allocation for three workers
 
 | Step | Worker A | Worker B | Worker C | Integrator |
