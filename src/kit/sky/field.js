@@ -146,7 +146,51 @@ const cache = new Map();
 export function cloudField(seed) {
   const key = seed >>> 0;
   if (cache.has(key)) return cache.get(key);
-  const N = FIELD_SIZE, raw = new Float32Array(N * N * 4);
+  const N = FIELD_SIZE;
+  // The field is computed on its first use (R66, b1-build-budget: out of the
+  // world build): the texture's first upload, a CPU raw() read or `data`.
+  let data = null;
+  const compute = () => data || (data = paintField(key, N));
+  const texture = new THREE.DataTexture(null, N, N, THREE.RGBAFormat);
+  Object.defineProperty(texture.image, 'data', {
+    enumerable: true, configurable: true,
+    get: () => compute(),
+    set: (value) => { Object.defineProperty(texture.image, 'data', { value, writable: true, enumerable: true, configurable: true }); }
+  });
+  texture.name = 'kit-sky:cloud-field';
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
+  texture.colorSpace = THREE.NoColorSpace;
+  texture.userData.shared = true;
+  texture.needsUpdate = true;
+  const field = {
+    size: N, texture, seed: key,
+    get data() { return compute(); },
+    /** Bilinear CPU read of the mixed field at tile coordinates (u, v) — the same arithmetic as kitCloudRaw(). */
+    raw(u, v, mix) {
+      const data = compute();
+      const fx = (u - Math.floor(u)) * N - 0.5, fy = (v - Math.floor(v)) * N - 0.5;
+      const ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy;
+      const x0 = ((ix % N) + N) % N, x1 = (x0 + 1) % N, y0 = ((iy % N) + N) % N, y1 = (y0 + 1) % N;
+      const k00 = (y0 * N + x0) * 4, k10 = (y0 * N + x1) * 4, k01 = (y1 * N + x0) * 4, k11 = (y1 * N + x1) * 4;
+      let out = 0;
+      for (let c = 0; c < 4; c++) {
+        if (!mix[c]) continue;
+        const a = data[k00 + c], b = data[k10 + c], d = data[k01 + c], e = data[k11 + c];
+        out += mix[c] * (a + (b - a) * tx + (d - a) * ty + (a - b - d + e) * tx * ty) / 255;
+      }
+      return out;
+    }
+  };
+  cache.set(key, field);
+  return field;
+}
+
+/** The field's bytes for one key (the former body of cloudField, verbatim). */
+function paintField(key, N) {
+  const raw = new Float32Array(N * N * 4);
   const s1 = key ^ 0x51ed27, s2 = key ^ 0x2c1b3c6d, s3 = key ^ 0x297a2d39, s4 = key ^ 0x6b43a9b5;
   const warpU = lattice(4, 4, s1, 9), warpV = lattice(4, 4, s1, 10);
   const big6 = cellTable(6, s1), small14 = cellTable(14, s1 ^ 0x3a), alto10 = cellTable(10, s3);
@@ -180,35 +224,7 @@ export function cloudField(seed) {
       raw[k + 3] = fbm(u, v, stratusT, 2);
     }
   }
-  const data = equalize(raw);
-  const texture = new THREE.DataTexture(data, N, N, THREE.RGBAFormat);
-  texture.name = 'kit-sky:cloud-field';
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.magFilter = THREE.LinearFilter;
-  texture.minFilter = THREE.LinearMipmapLinearFilter;
-  texture.generateMipmaps = true;
-  texture.colorSpace = THREE.NoColorSpace;
-  texture.userData.shared = true;
-  texture.needsUpdate = true;
-  const field = {
-    size: N, data, texture, seed: key,
-    /** Bilinear CPU read of the mixed field at tile coordinates (u, v) — the same arithmetic as kitCloudRaw(). */
-    raw(u, v, mix) {
-      const fx = (u - Math.floor(u)) * N - 0.5, fy = (v - Math.floor(v)) * N - 0.5;
-      const ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy;
-      const x0 = ((ix % N) + N) % N, x1 = (x0 + 1) % N, y0 = ((iy % N) + N) % N, y1 = (y0 + 1) % N;
-      const k00 = (y0 * N + x0) * 4, k10 = (y0 * N + x1) * 4, k01 = (y1 * N + x0) * 4, k11 = (y1 * N + x1) * 4;
-      let out = 0;
-      for (let c = 0; c < 4; c++) {
-        if (!mix[c]) continue;
-        const a = data[k00 + c], b = data[k10 + c], d = data[k01 + c], e = data[k11 + c];
-        out += mix[c] * (a + (b - a) * tx + (d - a) * ty + (a - b - d + e) * tx * ty) / 255;
-      }
-      return out;
-    }
-  };
-  cache.set(key, field);
-  return field;
+  return equalize(raw);
 }
 
 /** The coverage threshold of kitCloudAt(), on the CPU (sun occlusion for the post chain). */

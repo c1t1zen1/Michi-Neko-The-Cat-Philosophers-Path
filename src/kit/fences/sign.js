@@ -5,7 +5,7 @@
 import { defineAsset } from '../contract.js?v=20261116a';
 import { culmGeometry, knotGeometry, bake } from './culm.js?v=20261116a';
 import { canvas2d, canvasTexture } from '../craft.js?v=20261116a';
-import { KIT_SHARED, tintToward } from '../materials.js?v=20261116a';
+import { KIT_SHARED, tintToward, paintOnFirstUpload } from '../materials.js?v=20261116a';
 
 const matOr = (ctx, name, make) => (ctx.MAT && ctx.MAT[name]) || make();
 
@@ -13,12 +13,15 @@ let faceMap = null;   // one canvas texture for the page (shared: never disposed
 function faceTexture(THREE) {
   if (faceMap && faceMap.userData.rev === THREE.REVISION) return faceMap;
   const [c, x] = canvas2d(512, 160);
-  x.fillStyle = '#e7d0a4'; x.fillRect(0, 0, 512, 160);
-  for (let i = 0; i < 70; i++) { x.fillStyle = `rgba(120,86,48,${0.025 + (i % 5) * 0.01})`; x.fillRect((i * 97) % 512, (i * 31) % 160, 90 + (i % 7) * 20, 2); }
-  x.strokeStyle = '#5a311d'; x.lineWidth = 12; x.strokeRect(6, 6, 500, 148);
-  x.fillStyle = '#7b2018'; x.font = 'bold 52px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-  x.fillText('警告・凶暴な亀', 256, 80);
-  faceMap = canvasTexture(c);
+  // painted on the face's first upload (R66: out of the world build; materials.js paintOnFirstUpload)
+  faceMap = paintOnFirstUpload(canvasTexture(c), () => {
+    x.fillStyle = '#e7d0a4'; x.fillRect(0, 0, 512, 160);
+    for (let i = 0; i < 70; i++) { x.fillStyle = `rgba(120,86,48,${0.025 + (i % 5) * 0.01})`; x.fillRect((i * 97) % 512, (i * 31) % 160, 90 + (i % 7) * 20, 2); }
+    x.strokeStyle = '#5a311d'; x.lineWidth = 12; x.strokeRect(6, 6, 500, 148);
+    x.fillStyle = '#7b2018'; x.font = 'bold 52px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText('警告・凶暴な亀', 256, 80);
+    return c;
+  });
   faceMap.userData.rev = THREE.REVISION;
   return faceMap;
 }

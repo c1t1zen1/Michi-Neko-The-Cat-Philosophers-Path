@@ -8,6 +8,7 @@ import { TAU, sstep, canvas2d, canvasTexture, merge, indexed, rockGeometry, with
 import { fitRock, variantRock, placed, bake, DETAIL, rockMaterials } from '../rocks/stone.js?v=20261116a';
 import { assets as lanternAssets } from '../lanterns/index.js?v=20261116a';
 import { defaultParams } from '../contract.js?v=20261116a';
+import { paintOnFirstUpload } from '../materials.js?v=20261116a';
 import {
   nightnessAt, dayLightAt, calmAt, hourOf, shared, glowTexture, leafMaterial, freePrivate,
   polarDisc, bakeAt, tint, glowPoints, compose, single
@@ -106,12 +107,15 @@ export function causticPixels(sites, N = 64, out = new Uint8ClampedArray(N * N *
 function causticTexture(km, L) {
   const sites = causticSites(L);
   return shared(km, 'caustic:' + sites.length + ':' + sites[0][0].toFixed(5), () => {
-    const N = 64, [c, x] = canvas2d(N, N), img = x.createImageData(N, N);
-    causticPixels(sites, N, img.data);
-    x.putImageData(img, 0, 0);
-    const [c2, x2] = canvas2d(128, 128);                           // a smooth upscale: soft lines, no pixel blocks
-    x2.imageSmoothingEnabled = true; x2.imageSmoothingQuality = 'high'; x2.drawImage(c, 0, 0, 128, 128);
-    const t = canvasTexture(c2, { repeat: true });
+    const [c2, x2] = canvas2d(128, 128);
+    // painted on the texture's first upload (R66: out of the world build; materials.js paintOnFirstUpload)
+    const t = paintOnFirstUpload(canvasTexture(c2, { repeat: true }), () => {
+      const N = 64, [c, x] = canvas2d(N, N), img = x.createImageData(N, N);
+      causticPixels(sites, N, img.data);
+      x.putImageData(img, 0, 0);
+      x2.imageSmoothingEnabled = true; x2.imageSmoothingQuality = 'high'; x2.drawImage(c, 0, 0, 128, 128);   // a smooth upscale: soft lines, no pixel blocks
+      return c2;
+    });
     t.repeat.set(2.4, 2.4); t.center.set(0.5, 0.5);
     return t;
   });
