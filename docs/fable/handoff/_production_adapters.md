@@ -57,3 +57,4 @@ For s3-vista and r4-festival (import with the current `?v=` tag):
 | r5-roof-cast | roofcast (roof-shoki, roof-treats, roof-villagers, roof-boatman, roof-hayashi; part of 6 ids) | src/kit/roofcast/index.js assets |
 | r4-festival | rooffestival (roof-yatai, roof-lantern-racks, roof-hoko, roof-temple-gate, roof-tsuiji, roof-yama, roof-skyline-pagodas; part of 12 ids) | src/kit/rooffestival/index.js assets |
 | r3b-canal-market | roofcanal (roof-canal, roof-canal-banks, roof-lines, roof-skylight-bridge, roof-market-stalls, roof-cherry-boughs, roof-canopy, roof-takasebune; part b, 8 more ids) | `src/kit/roofcanal/index.js` `assets` |
+| r2b-roofs-streets | roofstreets (roof-machiya, roof-kura, roof-kido, roof-river-steps, roof-komayose, roof-inuyarai, roof-tsuboniwa; part b, 7 ids) | `src/kit/roofstreets/index.js` `assets` |

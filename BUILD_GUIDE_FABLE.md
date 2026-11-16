@@ -30,7 +30,7 @@ Roof Road stage 2. Everything else below is on `fable/integration` only, until g
 - Phase 7: `a1-village` and `a2-hilltop`.
 - Phase 5:
   - `r1`;
-  - `r2` part a;
+  - `r2` parts a and b (part b: `r2b-roofs-streets`, PR #51, merged as f6feb39);
   - `r3` parts a and b;
   - `r4` parts a and b;
   - `r5` parts a and b;
@@ -38,17 +38,15 @@ Roof Road stage 2. Everything else below is on `fable/integration` only, until g
 - The operator-approved Roof Road route fix (R78: `rooftop_test` 40/40, finale reachable).
 - The operator-approved `game.js` → `rooftops/js/runview.js` switch-over (R81).
 
-**In flight:** `r2b-roofs-streets` (PR #51, branch `fable/r2b-roofs-streets`). It is paused at the end of fix round 1, after
-both Important findings were fixed. Next: a scoped re-review, then the merge. The status file lists two quiet-machine re-reads still to take.
+**In flight:** nothing. `r2-b` is merged; the Roof Road kit families are done apart from the deferred ids below.
 
 **Next steps, in order:**
-1. Re-review and merge `r2b-roofs-streets`.
-2. G-R chores (`docs/fable/swarm/briefs/gate-r-chores.md`): merge `origin/main`, cache tag `20261115a` (or that day's date), the full
+1. G-R chores (`docs/fable/swarm/briefs/gate-r-chores.md`): merge `origin/main`, cache tag `20261115a` (or that day's date), the full
    play-through valley → Seven Posts → Roof Road → finale → home on both sets, old saves, G1–G4.
-3. The G-R review (Fable; `gate-r-review.md`). On GO, fast-forward `main` to the reviewed commit.
-4. `a3-rooftops` (Roof Road area pass), then G-A.
-5. Phase 8: `h1-hero`, then `h2-readme`, then G-H.
-6. `z-final`, then the default flip. The flip is blocked until R66 closes (below).
+2. The G-R review (Fable; `gate-r-review.md`). On GO, fast-forward `main` to the reviewed commit.
+3. `a3-rooftops` (Roof Road area pass), then G-A.
+4. Phase 8: `h1-hero`, then `h2-readme`, then G-H.
+5. `z-final`, then the default flip. The flip is blocked until R66 closes (below).
 
 **Open items to carry:**
 - **R66, the world-build budget.** On the modular set, the world build is 1.26–1.28× classic on medium and 1.40–1.42× on high,
@@ -61,7 +59,7 @@ both Important findings were fixed. Next: a scoped re-review, then the merge. Th
   - mouth 12 (Yasaka) has zero length;
   - the debug getter `roofRoad.view` throws under `?finale=1` before the camera is placed;
   - `tools/rooftop_browser_test.mjs` asserts 30 residents where the route now has 40.
-- **Watch list for a quiet machine:** okuribi mid/far and pagoda mid warm builds. Draws at s=700 and the machiya buildMs for `r2-b`.
+- **Watch list for a quiet machine:** okuribi mid/far and pagoda mid warm builds. The `r2-b` machiya warm hero buildMs is flaky at 12 ms on a quiet machine (see `docs/fable/status/r2b-roofs-streets.md`).
 - **Process lessons:**
   - Run at most about 4 agents at once (the usage cap stopped the swarm twice).
   - Take timing measurements only with `uptime` 1-min load under 3, and never loosen a budget from a loaded reading (R54).
@@ -724,7 +722,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 4 | `s3-vista` | City, pagoda, bay, harbour, ranges, clouds | s1, `v-pagoda`, `v-ranges` | [x] |
 | 4 | `s4-summit-life` | Summit weather, pollen, petals, butterflies, birds | s1, `v-weather` | [x] |
 | 5 | `r1-roof-split` | `build.js` split into pieces + inventory (serial); merged to main by the operator (R69) | G-F | [x] |
-| 5 | `r2-roofs-streets` | Mouths 1–2: bridge gate, machiya roofs, Pontochō | r1, `v-machiya` | [~] part a merged (7 props, PR #47); part b (machiya, kura, kido, river steps, komayose, inuyarai, tsuboniwa) PR #51 paused at the end of fix round 1, awaiting re-review; part c deferred (bridge, corner house, roji, balconies, zushi, alley pockets/routes, street, ground) |
+| 5 | `r2-roofs-streets` | Mouths 1–2: bridge gate, machiya roofs, Pontochō | r1, `v-machiya` | [x] part a merged (7 props, PR #47); part b merged as f6feb39 (7 ids, PR #51); part c deferred, classic (bridge, corner house, roji, balconies, zushi, alley pockets/routes, street, ground) |
 | 5 | `r3-canal-market` | Mouths 3–5: Takase canal, boat, Nishiki canopy, laundry sky | r1 | [x] r3-canal-market (part a: 8/19 ids; part b merged: 8 more ids; willows, culvert ledges, tenmangu gate deferred) |
 | 5 | `r4-festival` | Mouths 6–7: yatai, hoko float, temple gate, Okuribi | r1 | [x] r4-festival part a (7 ids) · [x] r4-festival part b merged (sky, hills, okuribi, distant city, atmosphere) |
 | 5 | `r5-roof-cast` | Chidori, Shōki, boatman, hayashi musicians | r1, c1 | [x] r5-roof-cast (part a: Shōki, treats, villagers, Chidori; boatman + hayashi → r5-b after r3-b/r4 merge, R75) · [x] r5-roof-cast part b merged (boatman, hayashi) |

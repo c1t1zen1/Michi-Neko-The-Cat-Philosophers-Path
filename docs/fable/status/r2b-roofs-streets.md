@@ -40,3 +40,17 @@ rooftop_golden classic EQUAL; swap of the 7 ids: 185 pieces changed (the level n
 Pause requested by the operator after ee1005b. Everything in ee1005b is finished and coherent; no uncommitted experimental edits exist.
 Done: Important 1 (budgets moved into src/kit/budgets.js with measured classic/modular numbers; machiya hero buildMs re-measured at load 1.5 = 11.0 ms, allowance 12 kept with load recorded). Important 2 (per-32 m-cell meshes for wide pieces; draws classic/modular s=14/125/233/700 = 159/151, 165/163, 192/190, 137/134, load 1.5). Roof clip check by golden bounds (y equal, max horizontal 0.059 m). Minors (bicycle gap noted, kura pair re-framed).
 Remaining: reviewer confirmation only. Not yet done: a second quiet-load (< 3) re-read of the machiya buildMs after the merge of newer integration, and a re-check of draws at s=700 on a quiet machine (the golden and auto runs were at load 3.0).
+
+## Post-merge quiet re-reads
+Merged into fable/integration as f6feb39 (no conflicts; kit index and coverage regenerated unchanged). rooftop_golden classic EQUAL (no regeneration); swap of the 7 ids: 185 piece entries changed, routing 41/41. rooftop_test 40/40, companion 7, alley pass. R54 loads are the 1-min `uptime` / os.loadavg() at the time.
+- Machiya warm hero buildMs (allowance 12), `kit_contract_test --family roofstreets`, load 1.3-1.5: 9 runs, 6 pass, 3 fail at 12.2, 12.9, 13.7 ms (cold 64-77 ms). BLOCKED as a stable result: the 12 ms allowance is marginal on the merged head. Not raised (R54).
+- Draw calls (`kyoto-rooftops.html?at=<s>&cat=0&shot=1&nohud=1&qa=1`, `roofRoad.view.calls`, 12 s settle, loads 1.3-1.8 on the modular/classic runs):
+
+| s | classic | `?assets=modular` | swap of the 7 roofstreets ids only |
+|---|---------|-------------------|------------------------------------|
+| 14 | 160 | 142 | 152 |
+| 125 | 165 | 160 | 163 |
+| 233 | 191 | 165 | 189 |
+| 700 | 132 | 117 | 134 |
+
+R52 holds for `?assets=modular` at all four spots. For the roofstreets-only swap it holds at 14, 125, 233 and fails at s=700 by 2 (134 vs 132; the lane's earlier 134 vs 137 had a different classic baseline). Triangles modular 75405/77182/76058/56398 (whole kit) vs classic 154005/162275/158533/124585.
