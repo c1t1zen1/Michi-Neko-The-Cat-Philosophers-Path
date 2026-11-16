@@ -6,7 +6,7 @@
 import { defineAsset } from '../contract.js?v=20261116a';
 import { disposeTree } from './fx.js?v=20261116a';
 
-const STEP = { hero: 16, mid: 34, far: 63 };
+const STEP = { hero: 16, mid: 34, far: 52 };
 
 /** A flat-array accumulator for coloured boxes and gabled prisms (no per-shape geometry objects). */
 class Soup {
@@ -54,7 +54,7 @@ function buildCity(ctx, layout) {
   for (let x = (b.x0 ?? -230) - 80; x <= (b.x1 ?? 200) + 80; x += step) {
     for (let z = (b.z0 ?? -260) - 80; z <= (b.z1 ?? 150) + 80; z += step) {
       const h = rng(), jx = x + (h - 0.5) * step * 0.3, jz = z + (rng() - 0.5) * step * 0.3;
-      if (near(jx, jz, 14 + step * 0.35)) continue;
+      if (near(jx, jz, 14 + Math.min(step * 0.35, 6))) continue;   // a3: the gap beside the route stays small (was 14 + 0.35 step = 36 m at far: bare ground under the run camera)
       const w = (4.5 + h * 3) * (0.9 + k * 0.28), d = (5 + rng() * 4) * (0.9 + k * 0.28);
       const hh = 1.7 + (h > 0.86 ? 1.5 : 0) + rng() * 0.7, rise = (1.3 + h * 0.6) * 0.78;
       const kk = rng(), roof = [0.36 + kk * 0.14, 0.4 + kk * 0.14, 0.45 + kk * 0.15], wall = [0.56 + kk * 0.14, 0.5 + kk * 0.12, 0.42 + kk * 0.1];
