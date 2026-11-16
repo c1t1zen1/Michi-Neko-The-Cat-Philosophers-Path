@@ -15,6 +15,7 @@
 //   summit    /tools/summit_preview.html (the real SummitManager; its clock is wall time, so repeats differ in
 //             cloud and pollen drift but not in composition)
 //   rooftops  /kyoto-rooftops.html (?at= ?hour= ?finale=1 ?shot=1 ?nohud=1; wall-time loops, same caveat)
+//   title     /index.html with no autostart and no ?shot=: the live title menu (wall-time, so not pixel-repeatable)
 //   sheet     a review sheet page (tools/cat_preview.html?sheet=npcs): labelled as a review-sheet capture
 // `eval` (optional) runs in the page after the wait (game kind: at frame `evalAt`, default 5) and `after` runs once the `settle` time has passed, just before the screenshot; `wait` overrides the readiness test.
 // Real frames only: nothing is painted over or composited (decision D8). The one exception is the parts sheet,
@@ -74,6 +75,8 @@ function queryOf(s) {
     add('assets', s.assets); add('hour', s.hour); add('at', s.at); add('mouth', s.mouth);
     if (s.finale) q.push('finale=1');
     q.push('shot=1', 'nohud=1');
+  } else if (s.kind === 'title') {
+    add('assets', s.assets);
   } else if (s.kind === 'sheet') {
     add('sheet', s.sheet);
   } else {
@@ -87,12 +90,13 @@ function queryOf(s) {
   return q.join('&');
 }
 
-const PAGES = { game: '/index.html', summit: '/tools/summit_preview.html', rooftops: '/kyoto-rooftops.html', sheet: '/tools/cat_preview.html' };
+const PAGES = { game: '/index.html', summit: '/tools/summit_preview.html', rooftops: '/kyoto-rooftops.html', sheet: '/tools/cat_preview.html', title: '/index.html' };
 const READY = {
   game: (s) => `window.game && window.game.capture && window.game.capture.frame >= ${s.frames || 120}`,
   summit: () => 'window.previewView && window.game && window.game.summit',
   rooftops: () => 'window.roofRoad && window.roofRoad.catReady',
-  sheet: () => "document.title === 'ready'"
+  sheet: () => "document.title === 'ready'",
+  title: () => "!!document.querySelector('#title-screen') && getComputedStyle(document.querySelector('#title-screen')).display !== 'none'"
 };
 
 async function shoot(s, png, size) {
