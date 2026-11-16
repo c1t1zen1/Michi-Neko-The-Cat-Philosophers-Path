@@ -11,7 +11,7 @@
   "colliders": 135,
   "platforms": 1,
   "waterRects": 5,
-  "exclusions": 4,
+  "exclusions": 5,
   "textures": 42,
   "trees": 25,
   "draws": 249867
@@ -262,6 +262,7 @@
    "exclusions": [
     [-1,30.5,4.2,15.2],
     [-31,9,9.2,8.2],
+    [-1,38.7,21,3.4],
     [-20,-27,11,11],
     [-31,-10,16,16]
    ],
@@ -461,7 +462,7 @@
   ],
   "collidersExact": "f7f789f6afc82317",
   "dapple": {"pools":["vegetation:Dapple Pool 1","vegetation:Dapple Pool 2","vegetation:Dapple Pool 3","vegetation:Dapple Pool 4","vegetation:Dapple Pool 5","vegetation:Dapple Pool 6","vegetation:Dapple Pool 7","vegetation:Dapple Pool 8","vegetation:Dapple Pool 9","vegetation:Dapple Pool 10","vegetation:Dapple Pool 11","vegetation:Dapple Pool 12","vegetation:Dapple Pool 13","vegetation:Dapple Pool 14"],"materials":14,"texture":"bf5b7b4e5f7f"},
-  "mask": {"texture":"62707b77e26d","rect":[-52,-52,0.0096,0.0096]},
+  "mask": {"texture":"8dc7b4c9ec47","rect":[-52,-52,0.0096,0.0096]},
   "grass": [
    {"kind":"ring","name":"near","radius":8,"spacing":0.115,"lead":0.6,"inside":null,"minQuality":0,"qualityOn":true,"mesh":"vegetation:Grass near"},
    {"kind":"ring","name":"mid","radius":24,"spacing":0.27,"lead":0.4,"inside":"near","minQuality":0,"qualityOn":true,"mesh":"vegetation:Grass mid"},
@@ -1143,7 +1144,7 @@
   "59424e4f0f3c": {"kind":"canvas","size":"256x256","cmds":1023,"content":"3e2197c4fcc7c634","props":"w1000,1001 r1,1 o0,0 srgb f1006,1008 flipY mip fmt1023,1009","first":"ambient:Koi 16 · 0"},
   "f7acbf1eb323": {"kind":"canvas","size":"256x256","cmds":1083,"content":"216165d309499c97","props":"w1000,1001 r1,1 o0,0 srgb f1006,1008 flipY mip fmt1023,1009","first":"ambient:Koi 17 · 0"},
   "852fda29132c": {"kind":"canvas","size":"256x256","cmds":1065,"content":"c9b4a79ac88d7251","props":"w1000,1001 r1,1 o0,0 srgb f1006,1008 flipY mip fmt1023,1009","first":"ambient:Koi 18 · 0"},
-  "62707b77e26d": {"kind":"data","size":"256x256","content":"66d411c1e8fa32bf","props":"w1001,1001 r1,1 o0,0 - f1006,1006 noflip nomip fmt1023,1009","first":"vegetation.mask"}
+  "8dc7b4c9ec47": {"kind":"data","size":"256x256","content":"69ecef9f5bcd8adf","props":"w1001,1001 r1,1 o0,0 - f1006,1006 noflip nomip fmt1023,1009","first":"vegetation.mask"}
  },
  "volatile": {
   "note": "values that differ between two builds with the same seeds (nondeterminism): written as \"~\"",

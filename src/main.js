@@ -28,6 +28,7 @@ import { MenuSystem } from './menus.js?v=20261114a';
 import { WaypointSystem, Compass } from './waypoints.js?v=20261114a';
 import { MusicDirector } from './music.js?v=20261114a';
 import { SummitManager } from './mountaintop.js?v=20261114a';
+import { RooftopManager } from './rooftops/manager.js?v=20261114a';
 import { catRimUniforms } from './cat.js?v=20261114a';
 import { chunkSceneInstances } from './instanced_chunks.js?v=20261114a';
 import { setFoliageDetail } from './foliage.js?v=20261114a';
@@ -419,6 +420,19 @@ class Game {
     this.summit = new SummitManager(this);
     this.contextActions.onBellRing = () => this.summit.onBellRing();
     this.contextActions.summit = this.summit;
+    // 屋根道 — the Roof Road (BUILD_GUIDE_FABLE R6.3). The Seven Posts on the
+    // bridge's east railing open the Odoi bank south of it; the noren in its gap
+    // leads to the run, a pocket scene of its own built on the first visit.
+    // Nothing of the run loads before then (src/rooftops/manager.js).
+    this.rooftops = new RooftopManager(this);
+    // The pause menu's "Leave the Roof Road" (shown only on the roofs): the
+    // normal way home, through the noren to the bridge.
+    const leaveRoofs = document.getElementById('btn-leave-roofs');
+    if (leaveRoofs) leaveRoofs.addEventListener('click', () => {
+      if (!this.rooftops.active || this.rooftops.transitioning) return;
+      this.menu.resume();
+      this.rooftops.exit();
+    });
 
     // Discovery journal (G1.4): keepsake memory of the valley, not a checklist.
     this.journal = {
@@ -514,7 +528,7 @@ class Game {
     this.captureRequested = false;
 
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'KeyP' && this.menu.isPlaying) {
+      if (e.code === 'KeyP' && this.menu.isPlaying && !(this.rooftops && this.rooftops.active)) {
         e.preventDefault();
         this.togglePhotoMode();
       }
@@ -1019,6 +1033,7 @@ class Game {
       this.particles.setBudget(q === 'low' ? 0.5 : q === 'medium' ? 0.75 : 1.0);
     }
     if (this.summit) this.summit.setQuality(q);
+    if (this.rooftops) this.rooftops.setQuality(q);
     if (this.city) {
       this.city.lanternLightCount = q === 'low' ? 2 : 4;
       // Resize the pool now: the count is the number of lights that exist,
@@ -1153,6 +1168,8 @@ class Game {
 
   quitToTitle() {
     this.saveGame();
+    // The title's orbit looks at the valley: leave the Roof Road without a veil.
+    if (this.rooftops) this.rooftops.exitImmediate();
     this.controls.enabled = false;
     this.menu.showTitle();
   }
@@ -1319,6 +1336,12 @@ class Game {
         this.summit.setUnlocked(true, true);
         this.summit.bellRings = Math.max(this.summit.bellRings, 10);
       }
+      // 屋根道: the Seven Posts unlock (the Odoi already open, no toast), the
+      // Shōki greeted (a 7-bit mask) and the finale. A save from before the
+      // Roof Road has none of these keys and loads as it always did.
+      if (data.worldFlags.rooftopsUnlocked) this.rooftops.setUnlocked(true, true);
+      if (Number.isFinite(data.worldFlags.rooftopShoki)) this.rooftops.setShokiMask(data.worldFlags.rooftopShoki);
+      if (data.worldFlags.rooftopFinished) this.rooftops.finished = true;
     }
     if (Array.isArray(data.restVisited)) {
       this.contextActions.visitedSpots = new Set(data.restVisited);
@@ -1365,7 +1388,13 @@ class Game {
         : this.city.secretDoorSpawnPos;
       px = spawn ? spawn.x : 20; py = 0; pz = spawn ? spawn.z : 14.5;
     }
-    const safe = this.safePos || { x: px, y: py, z: pz };
+    // 屋根道: never a pocket position (the run lives 2.4 km below the valley)
+    // and never the Odoi gate. On the Roof Road, behind the noren on the way in
+    // or out, or standing in the gate, the save puts the cat on the bridge's
+    // south ramp, facing the valley (RooftopManager.saveSpot).
+    const back = this.rooftops ? this.rooftops.saveSpot(p.mesh.position) : null;
+    if (back) { px = back.x; py = back.y; pz = back.z; }
+    const safe = back ? { x: px, y: py, z: pz } : (this.safePos || { x: px, y: py, z: pz });
     const collected = [...this.collectedIds];
     const data = {
       x: px,
@@ -1374,8 +1403,8 @@ class Game {
       safeX: safe.x,
       safeY: safe.y,
       safeZ: safe.z,
-      heading: p.heading,
-      yaw: p.yaw,
+      heading: back ? back.heading : p.heading,
+      yaw: back ? back.heading : p.yaw,
       score: this.score,
       collected,
       xp: this.progression.xp,
@@ -1401,6 +1430,10 @@ class Game {
         summitUnlocked: this.summit.unlocked,
         summitBellRings: this.summit.bellRings,
         onSummit,
+        // 屋根道: the unlock, the Shōki greeted (bit i = Shōki i + 1) and the finale.
+        rooftopsUnlocked: this.rooftops.unlocked,
+        rooftopShoki: this.rooftops.shoki,
+        rooftopFinished: this.rooftops.finished,
       },
       restVisited: [...(this.contextActions.visitedSpots || [])],
       slowBlinked: [...(this.contextActions.slowBlinked || [])],
@@ -1428,6 +1461,12 @@ class Game {
 
   update(dt) {
     const playing = this.menu.isPlaying;
+    // 屋根道: while the Roof Road is up it owns the frame (its own scene,
+    // runner, camera and sky); the valley holds still behind it.
+    if (this.rooftops && this.rooftops.active) {
+      this.updateRooftops(dt, playing);
+      return;
+    }
 
     // Rest cinematics and the summit's seated vista own the camera while they
     // last. Player movement still cancels the summit view on the next tick.
@@ -1570,6 +1609,8 @@ class Game {
     // vegetation.update() drives the SAME shared foliage uniforms the summit's
     // updateFoliage() writes, so running both makes the two clocks fight.
     this.summit.update(dt, playing);
+    // The Roof Road's valley side: the Seven Posts, the Odoi thicket, the gap.
+    if (!this.summit.active && !inside) this.rooftops.update(dt, playing);
     if (!this.summit.active && !inside && !(onTitle && this._titleTick)) {
       this.vegetation.update(dt, this.player.mesh.position, this.sky);
       this.particles.update(dt, this.player.mesh.position, this.sky);
@@ -1691,6 +1732,34 @@ class Game {
 Time     ${this.formatTime(this.sky.dayTime)} · ${this.sky.weather}
 Quality  ${this.settings.resolveQuality()}`;
     this.ui.update(dt, this.score, debug);
+  }
+
+  /**
+   * The frame while the Roof Road is up (R6.3, R6.6): Player.update is skipped
+   * (the run's runner moves the cat), the valley's simulation, NPCs, prompts,
+   * waypoints and scent rest, and the manager reads the controls and drives
+   * the pocket. Autosave keeps running (it saves the bridge, never the pocket).
+   */
+  updateRooftops(dt, playing) {
+    this.controls.update(dt);
+    if (playing) {
+      if (this.dialogue.active) this.dialogue.close();
+      this.contextActions.hideAllPrompts();
+      this.saveTimer -= dt;
+      if (this.saveTimer <= 0) {
+        this.saveTimer = 30;
+        this.saveGame();
+      }
+    }
+    this.rooftops.update(dt, playing);
+    this.audio.updateListener(this.camera);
+    this.music.update(this.sky.dayTime);
+    this.music.setDucked(!playing || this.dialogue.active);
+    // The 'Rooftops' mood is set once per visit (RooftopManager.setActive).
+    if (this.music.updateSwell) this.music.updateSwell(dt);
+    this.applyCaptureCamera();
+    const s = this.rooftops.pocket ? this.rooftops.pocket.state : null;
+    this.ui.update(dt, this.score, s ? `Roof Road s ${s.s} · y ${s.y} · mouth ${s.mouth}\nQuality  ${this.settings.resolveQuality()}` : null);
   }
 
   isTouchDevice() {
@@ -2115,7 +2184,9 @@ Quality  ${this.settings.resolveQuality()}`;
       this._shadowFrame = 0;
       this.sky.sun.shadow.needsUpdate = true;
     }
-    this.composer.render();
+    // 屋根道: the Roof Road draws its own scene (no valley post chain, as on its page).
+    if (this.rooftops && this.rooftops.rendering) this.rooftops.render();
+    else this.composer.render();
     // Frame counter + ready flag for tools/game_shot.mjs (window.game.capture).
     this.capture.frame++;
     this.capture.ready = true;

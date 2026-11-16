@@ -4,8 +4,8 @@
 //
 // Runs five passes:
 //   1. ES-module syntax check across src/ and src/kit/**
-//   2. static wiring checks (the call sites main.js must make, summit + kit)
-//   3. the headless summit state-machine suite (tools/summit_test.mjs)
+//   2. static wiring checks (the call sites main.js must make, summit + kit + Roof Road)
+//   3. the headless state-machine suites (tools/summit_test.mjs, tools/rooftop_manager_test.mjs)
 //   4. an HTML/CSS sanity pass over index.html
 //   5. the kit: tools/kit_check.mjs and the node --test suites tools/kit_test.mjs and tools/a1_village_test.mjs
 import { readFileSync, readdirSync } from 'node:fs';
@@ -45,6 +45,21 @@ step(1, 'ES module syntax', () => {
   }
   if (summitBad.length) { failures++; console.log(summitBad.join('\n')); }
   console.log(`  ${summitBad.length ? summitBad.length + ' of ' : 'All '}${summitFiles.length} summit modules ${summitBad.length ? 'failed' : 'OK'} (src/summit/)`);
+  // The Roof Road's game side (src/rooftops/, BUILD_GUIDE_FABLE R6), likewise.
+  const roofFiles = readdirSync(join(ROOT, 'src', 'rooftops')).filter((f) => f.endsWith('.js')).sort();
+  const roofBad = [];
+  for (const f of roofFiles) {
+    const raw = readFileSync(join(ROOT, 'src', 'rooftops', f), 'utf8');
+    try {
+      execFileSync(process.execPath, ['--input-type=module', '--check'], {
+        input: raw.replace(/^\uFEFF/, ''), stdio: ['pipe', 'pipe', 'pipe'],
+      });
+    } catch (e) {
+      roofBad.push(`FAIL src/rooftops/${f}\n${String(e.stderr || e.message)}`);
+    }
+  }
+  if (roofBad.length) { failures++; console.log(roofBad.join('\n')); }
+  console.log(`  ${roofBad.length ? roofBad.length + ' of ' : 'All '}${roofFiles.length} Roof Road game modules ${roofBad.length ? 'failed' : 'OK'} (src/rooftops/)`);
 });
 
 // 2. wiring -----------------------------------------------------------------
@@ -124,6 +139,7 @@ step(2, 'main.js wiring', () => {
     ['capture flags parsed from the URL', /parseCaptureFlags\(location\.search\)/.test(m)],
     ['?cam= applied after every camera owner', /applyCaptureCamera\(\)/.test(m)],
     ['?shot=1 fixes the timestep', /CAPTURE_DT/.test(m)],
+    ...rooftopChecks(m),
   ];
   for (const [name, ok] of checks) {
     console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${name}`);
@@ -131,14 +147,101 @@ step(2, 'main.js wiring', () => {
   }
 });
 
+/**
+ * The Roof Road in the game (BUILD_GUIDE_FABLE R6, the spec's section 8.2), in
+ * the summit checks' style: the call sites main.js makes, what the manager,
+ * the pocket and the valley builders must keep, and the cache tags.
+ */
+function rooftopChecks(m) {
+  const read = (p) => readFileSync(join(ROOT, p), 'utf8');
+  const mgr = read('src/rooftops/manager.js');
+  const pocket = read('src/rooftops/pocket.js');
+  const valley = read('src/rooftops/valley.js');
+  const posts = read('src/rooftops/posts.js');
+  const runview = read('rooftops/js/runview.js');
+  const city = read('src/countryside.js');
+  const roofDir = join(ROOT, 'src', 'rooftops');
+  const roofAll = readdirSync(roofDir).filter((f) => f.endsWith('.js')).sort().map((f) => [f, read('src/rooftops/' + f)]);
+  const tag = (m.match(/\?v=([0-9a-z]+)/) || [])[1];
+  const body = (src, head) => {
+    const i = src.indexOf(head);
+    if (i < 0) return '';
+    let depth = 0;
+    for (let k = src.indexOf('{', i); k < src.length; k++) {
+      if (src[k] === '{') depth++;
+      else if (src[k] === '}' && --depth === 0) return src.slice(i, k + 1);
+    }
+    return '';
+  };
+  const updateRooftops = body(m, '  updateRooftops(dt, playing) {');
+  return [
+    ['rooftops imported', /import \{ RooftopManager \} from '\.\/rooftops\/manager\.js\?v=/.test(m)],
+    ['rooftop manager built after the summit', /this\.summit = new SummitManager\(this\);[\s\S]{0,800}this\.rooftops = new RooftopManager\(this\)/.test(m)],
+    ['rooftops.update() runs in the valley frame (posts, thicket, gap)', /if \(!this\.summit\.active && !inside\) this\.rooftops\.update\(dt, playing\)/.test(m)],
+    ['the Roof Road owns the frame while active', /if \(this\.rooftops && this\.rooftops\.active\) \{\s*this\.updateRooftops\(dt, playing\);\s*return;/.test(m)],
+    ['Player.update is skipped on the roofs', updateRooftops.length > 0 && !/this\.player\.update\(/.test(updateRooftops) && /this\.rooftops\.update\(dt, playing\)/.test(updateRooftops)],
+    ['valley prompts suppressed on the roofs', /hideAllPrompts\(\)/.test(updateRooftops)],
+    ['music switches to the Rooftops mood once per visit (not every frame)',
+      /g\.music\.setScene\('Rooftops'\)/.test(body(mgr, '  setActive(on) {')) && !/setScene\(/.test(updateRooftops)],
+    ['the pocket renders instead of the composer', /if \(this\.rooftops && this\.rooftops\.rendering\) this\.rooftops\.render\(\);\s*else this\.composer\.render\(\);/.test(m)],
+    ['rooftop unlock is saved', /rooftopsUnlocked: this\.rooftops\.unlocked/.test(m)],
+    ['rooftop Shōki mask is saved', /rooftopShoki: this\.rooftops\.shoki/.test(m)],
+    ['rooftop finale is saved', /rooftopFinished: this\.rooftops\.finished/.test(m)],
+    ['save never persists the rooftop pocket or the Odoi gate',
+      /const back = this\.rooftops \? this\.rooftops\.saveSpot\(p\.mesh\.position\) : null;/.test(m) &&
+      /if \(back\) \{ px = back\.x; py = back\.y; pz = back\.z; \}/.test(m) &&
+      /if \(this\.active \|\| this\.transitioning \|\| \(pos && inOdoiGate\(pos\)\)\) return ODOI_RETURN;/.test(mgr)],
+    ['a failed enter puts the cat back on the bridge, the gate re-arms only after leaving',
+      /\} else \{[\s\S]{0,240}this\.placeOnBridge\(\);/.test(body(mgr, '  enter() {')) && /this\._gateArmed/.test(body(mgr, '  update(dt, playing) {'))],
+    ['exitImmediate cancels pending veil callbacks', /this\._gen\+\+/.test(body(mgr, '  exitImmediate() {')) && (body(mgr, '  enter() {').match(/gen !== this\._gen/g) || []).length === 2],
+    ['the pause menu can leave the roofs (the normal exit)', /getElementById\('btn-leave-roofs'\)[\s\S]{0,300}this\.rooftops\.exit\(\)/.test(m)],
+    ['the arrival hint names the controls and the way home', /walk back over the bridge to go home/.test(mgr) && /showControlsHint\(\)/.test(body(mgr, '  enter() {'))],
+    ['rooftop unlock restored silently', /worldFlags\.rooftopsUnlocked\) this\.rooftops\.setUnlocked\(true, true\)/.test(m)],
+    ['rooftop Shōki mask restored (the run\'s bits only)', /this\.rooftops\.setShokiMask\(data\.worldFlags\.rooftopShoki\)/.test(m)],
+    ['rooftop finale restored', /worldFlags\.rooftopFinished\) this\.rooftops\.finished = true/.test(m)],
+    ['quit to title leaves the roofs', /quitToTitle\(\) \{[\s\S]{0,250}this\.rooftops\.exitImmediate\(\)/.test(m)],
+    ['the pocket loads only on the first enter (dynamic import)',
+      /import\('\.\/pocket\.js\?v=/.test(mgr) && !/^import [^\n]*(pocket\.js|rooftops\/js\/)/m.test(mgr)],
+    ['the manager is pure (no three.js import)', !/from 'three'/.test(mgr) && !/from 'three'/.test(posts)],
+    ['pocket origin 2.4 km below the valley', /ROOFTOP_ORIGIN = Object\.freeze\(\{ x: 0, y: -2400, z: 0 \}\)/.test(mgr)],
+    ['noren veil driven by the manager', /getElementById\('rooftop-transition'\)/.test(mgr) && !/summit-transition/.test(mgr)],
+    ['pocket: the runtime is preloaded before the Sky (r4b order)', /await this\.assets\.preload\(\);[\s\S]{0,600}new Sky\(this\.root, this\.exposure, \{[\s\S]{0,200}assets: this\.assets/.test(pocket)],
+    ['run view: the sky follows the run (progress), night at the finale', /const prog = this\.finale \? 1 : \(this\.fixedPhase !== null \? this\.fixedPhase : clamp\(runner\.s \/ this\.level\.length, 0, 1\)\)/.test(runview)],
+    ['R80: the pocket uses the shared run view, no copy of the camera / Chidori / finale',
+      /import \{ RunView \} from '\.\/runview\.js\?v=/.test(pocket) && read('src/rooftops/runview.js').includes("export * from '../../rooftops/js/runview.js';") &&
+      !/\n  (updateCamera|updateChidori|stepOffHeight|beginStepOff|checkPickups|checkProgress|startFinale|updateFinale|stepPhysics)\(/.test(pocket)],
+    ['run view: the finale mouth comes from the level, not an index', /export function finaleMouth\(level\)/.test(runview) && !/mouths\[[1-9]\d*\]/.test(runview)],
+    ['Countryside builds the Seven Posts and the Odoi', /this\.sevenPosts = buildSevenPosts\(this\.scene, MAT\)/.test(city) && /this\.odoi = buildOdoiThicket\(this, MAT\)/.test(city)],
+    ['setOdoiThicketOpen() and setSevenPostGlow() on Countryside', /\n  setOdoiThicketOpen\(t\) \{/.test(city) && /\n  setSevenPostGlow\(i, v\) \{/.test(city)],
+    ['the Odoi draws its own mulberry32(0x0D01), never the valley stream',
+      /seed: 0x0D01/.test(posts) && /mulberry32\(ODOI\.seed\)/.test(valley) && !/\.random\(\)|\.rng\(\)|Math\.random/.test(valley)],
+    ['R57: the runner modules are re-exported from rooftops/js/, not copied',
+      ['rail', 'level', 'physics', 'reach', 'autopilot'].every((n) => {
+        const src = read('src/rooftops/' + n + '.js');
+        return src.includes(`export * from '../../rooftops/js/${n}.js';`) && !/\b(class|function)\b/.test(src.replace(/^\/\/.*$/gm, ''));
+      })],
+    ['src/rooftops modules import game modules with the main.js cache tag',
+      !!tag && roofAll.every(([, src]) => {
+        const specs = [...src.matchAll(/(?:from|import\()\s*'([^']+)'/g)].map((x) => x[1]).filter((p) => p.startsWith('.'));
+        return specs.every((p) => (p.includes('rooftops/js/') ? !/\?v=/.test(p) : p.endsWith('?v=' + tag)));
+      })],
+  ];
+}
+
 // 3. behaviour --------------------------------------------------------------
-step(3, 'summit state machine', () => {
+step(3, 'summit + rooftop state machines', () => {
   const out = execFileSync(process.execPath, ['tools/summit_test.mjs'], {
     cwd: ROOT, encoding: 'utf8',
   });
   const summary = out.trim().split(/\r?\n/);
-  console.log('  ' + summary[summary.length - 1]);
+  console.log('  summit_test: ' + summary[summary.length - 1]);
   if (!/0 failed/.test(summary[summary.length - 1])) failures++;
+  let roof;
+  try { roof = execFileSync(process.execPath, ['tools/rooftop_manager_test.mjs'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); }
+  catch (e) { failures++; roof = String(e.stdout || '') + String(e.stderr || ''); }
+  const roofSummary = roof.trim().split(/\r?\n/);
+  console.log('  rooftop_manager_test: ' + roofSummary[roofSummary.length - 1]);
+  if (!/ 0 failed/.test(roofSummary[roofSummary.length - 1])) failures++;
 });
 
 // 4. markup -----------------------------------------------------------------
@@ -156,6 +259,15 @@ step(4, 'index.html markup + CSS', () => {
     ['reduced-motion disables the veils',
       /prefers-reduced-motion[\s\S]{0,400}summit-transition\.fallback, #summit-transition\.quick \{ animation: none; \}/.test(h)],
     ['quest card target exists', h.includes('id="quest-card"')],
+    ['rooftop noren veil present', h.includes('id="rooftop-transition"') && /#rooftop-transition\.show/.test(h) && /#rooftop-transition\.out/.test(h)],
+    ['rooftop veil is a sibling of the summit veil, not inside it', (() => {
+      const a = h.indexOf('<div id="summit-transition">'), b = h.indexOf('<div id="rooftop-transition"');
+      if (a < 0 || b < a) return false;
+      let depth = 0;
+      for (const t of h.slice(a, b).matchAll(/<div\b|<\/div>/g)) depth += t[0] === '</div>' ? -1 : 1;
+      return depth === 0;
+    })()],
+    ['rooftop-mode hides the valley guidance, keeps the toasts', /body\.rooftop-mode #compass/.test(h) && !/body\.rooftop-mode #toast-stack/.test(h)],
     ['compass target exists', h.includes('id="compass"')],
     ['prompt target exists', h.includes('id="prompt"')],
   ];
