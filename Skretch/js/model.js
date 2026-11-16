@@ -1,9 +1,10 @@
 export const BOARD_ID = 'rooftops-stage-2';
+export const CAPTURE_ID = 'unfolded-20261115';
 export const COLORS = ['#d54b3e', '#e5aa27', '#3c8468', '#397bb5', '#8b61b1', '#292d29', '#ffffff'];
 export const clone = value => structuredClone(value);
 export const uid = () => crypto.randomUUID();
 export function emptyReview() {
-  return { schemaVersion: 1, boardId: BOARD_ID, revision: 0, updatedAt: null, routes: {} };
+  return { schemaVersion: 1, boardId: BOARD_ID, captureId: CAPTURE_ID, revision: 0, updatedAt: null, routes: {} };
 }
 export function routeReview(review, id) {
   return review.routes[id] ||= { strokes: [], notes: [] };
@@ -22,7 +23,7 @@ export function locatePoint(route, x, y) {
   const frame = geometry.frames.find(f => x >= f.x && x < f.x + f.width) || geometry.frames.at(-1);
   if (!frame) return null;
   const u = Math.max(0, Math.min(1, (x - frame.x) / frame.width));
-  return { frameId: frame.id, u, v: Math.max(0, Math.min(1, y / frame.height)), s: frame.s0 + (frame.s1 - frame.s0) * u };
+  return { frameId: frame.id, u, v: Math.max(0, Math.min(1, y / frame.height)), s: Math.min(route.length, frame.s0 + (frame.s1 - frame.s0) * u) };
 }
 export function strokePath(points) {
   if (!points.length) return '';
@@ -46,6 +47,7 @@ function string(value, max, label) {
 }
 export function validateReview(input, manifest) {
   if (!input || input.schemaVersion !== 1 || input.boardId !== BOARD_ID) fail('This is not a Skretch Stage 2 review.');
+  if (input.captureId !== CAPTURE_ID) fail('This review belongs to an older capture. Its marks cannot be positioned safely on the new board.');
   number(input.revision, 0, Number.MAX_SAFE_INTEGER, 'revision');
   if (!Number.isInteger(input.revision)) fail('Invalid revision.');
   if (!input.routes || typeof input.routes !== 'object' || Array.isArray(input.routes)) fail('Invalid routes.');
@@ -110,7 +112,7 @@ export function mergeReviews(remote, local) {
   return merged;
 }
 export function reviewMarkdown(review, manifest) {
-  const lines = ['# Skretch — The Roof Road / Stage 2', '', `Revision: ${review.revision}  `, `Saved: ${review.updatedAt || 'browser draft'}  `, `Capture: ${manifest.capturedAt || 'unknown'}  `, '', 'Coordinates are in original capture pixels. Metres are approximate within a frame; turn views have a changing camera heading.', ''];
+  const lines = ['# Skretch — The Roof Road / Stage 2', '', `Revision: ${review.revision}  `, `Saved: ${review.updatedAt || 'browser draft'}  `, `Capture: ${manifest.capturedAt || 'unknown'}  `, '', 'Coordinates are in capture pixels. Each 32 m frame has the same scale; the winding route is shown unfolded.', ''];
   for (const route of manifest.routes) {
     const data = review.routes[route.id]; if (!data) continue;
     const strokes = data.strokes.filter(s => !s.deleted), notes = data.notes.filter(n => !n.deleted);

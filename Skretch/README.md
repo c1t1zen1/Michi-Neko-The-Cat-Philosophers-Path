@@ -1,81 +1,42 @@
-# Skretch — the Roof Road stage 2 review board
+# Skretch — Roof Road stage 2 review board
 
-A mobile-first board for reviewing **stage 2** (`kyoto-rooftops.html`, the
-Roof Road lab) end to end: the whole 1,082 m route as one long horizontal
-scroll of captured scenery, with pen/pencil/marker sketching and pinned
-notes saved back to disk for the next fix pass.
+Skretch unfolds the current Roof Road main route into 54 JPEG scenes at the same scale. Every scene covers 32 route metres, with the ground and the top of the festival float in the same vertical frame. The original level piece builders are run against a straightened copy of the route, so bends join into a continuous elevation while distant city scenery stays out. Adjacent captures overlap by 64 pixels; the capture tool checks and blends those overlaps before slicing the board. The last frame has blank space beyond the end of the route. This is an unfolded design view of the winding level, rather than a literal camera shot of each bend.
 
-## Run
+## Use on GitHub Pages
 
-```
-node Skretch/server.mjs            # http://localhost:8098/Skretch/
-node Skretch/server.mjs --host 0.0.0.0   # same, reachable from a phone on Wi-Fi
-```
+Publish the repository with GitHub Pages and open `/Skretch/` under its Pages URL. No server or build step is required for the board; all paths are relative and the game link requires the rest of the repository to be published too.
 
-The server is zero-dependency Node. It serves the repo (so the per-frame
-`▸ play` links into `kyoto-rooftops.html?at=<s>` work) plus a tiny API:
+- Swipe/drag to browse; tap a scene to zoom; use **strip** to return. Drag the coloured ruler to jump along the route. On desktop, the mouse wheel moves along the strip; Ctrl/⌘ + wheel zooms.
+- Pick **pen**, **pencil**, or **marker**, then a colour and size. Use **erase**, undo and redo to revise. The tool rail scrolls sideways on a phone. Pin a note to add a title, detail, category, colour and open/done status; the Notes drawer can jump back to it.
+- On Pages, changes are saved automatically **in that browser on that device**. Use **Download** for a portable `skretch-review.json` backup; choose **Open review.json** in the menu to merge a file on any device. Browser storage can be cleared, so keep the downloaded file. Pages cannot write the review back into the repository or sync devices automatically.
+- The menu also downloads a Markdown work list, an annotated JPEG of the scene currently at the centre of the screen, and the complete unannotated stage JPEG. The full image is 64,800 × 750 pixels.
 
-- `GET /Skretch/api/review` — the current review (empty scaffold if none)
-- `PUT /Skretch/api/review` — `{ baseRevision, review }`, revision-checked,
-  atomic writes, last 20 revisions kept in `data/history/`
-- `GET /Skretch/api/report` — `review.md` rendered on the fly
+The new capture changes where every scene falls on the strip. The menu’s **Open previous board** opens the earlier capture with its own browser-local annotations. Older review files can be opened there; they are intentionally rejected by the new board because their pixel coordinates no longer match. Files previously saved by the local server remain in `Skretch/data/`; open those JSON files in the previous board to review them. The current board uses a separate browser draft and will not overwrite an incompatible server review.
 
-## What gets saved
+## Save directly to a local checkout
 
-Every save writes, atomically, into `Skretch/data/`:
-
-- `review.json` — canonical annotations. Per route: `strokes`
-  (`{tool, size, color, points:[[x,y,pressure]…]}`) and `notes`
-  (`{x, y, color, title, body, category: layout|scenery|movement|other,
-  status: open|done}`) in capture-pixel space, each with a stable id and
-  `updatedAt` so a disconnected phone can merge without reviving deletions.
-- `review.md` — the same review as a readable work list: each note with its
-  frame id, route-metre anchor and source image; each stroke summarised.
-  This is the file to feed the fix pass.
-- `history/review-*.json` — last 20 saved revisions.
-
-Conflicting saves get a **409 → merge** flow in the UI (per-id newest-wins).
-
-## Using the board
-
-- **Browse**: the strip is one long scroll — swipe/drag, mouse wheel, or
-  drag the minimap ruler (districts labelled by mouth, tick every 50 m,
-  hatched segments are street turns). The header shows district · metre · zoom.
-- **Open a screen**: tap/click any screenshot to zoom into it, then pick a
-  pen. `⇤ strip` or double-tap returns to the whole board.
-- **Sketch**: pen · pencil · marker · eraser (whole-stroke) — 7 colours,
-  S/M/L sizes. Undo/redo work per board. Ink is stored as vectors, so it
-  stays sharp at every zoom.
-- **Notes**: 📌 tool, tap the board → tooltip card with title, body,
-  category, open/done status and colour. Pins render on the strip; the
-  **Notes** drawer lists everything (filter open/done) and jumps to the spot.
-- **Routes**: the picker switches between the main run and the six alley
-  supplements (overhead views of the hidden lanes).
-- **Keys** (desktop): H P B M E N tools · ⌘Z / ⇧⌘Z undo/redo · ⌘S save ·
-  +/− zoom · 0/Esc back to strip.
-
-Offline: opened from any other static server the board still works —
-annotations mirror to `localStorage` and **Download review.json** exports
-them by hand.
-
-## Re-capturing the scenery
-
-`assets/` holds 47 main frames + 12 alley frames (1200×750 JPEG, orthographic
-elevations at fixed warm daylight), thumbs, the stitched panorama and
-`manifest.json` (frame ↔ route-metre mapping used by the whole app).
-
-```
-node Skretch/tools/capture.mjs     # needs PLAYWRIGHT_MODULE + SHARP_MODULE
+```sh
+node Skretch/server.mjs                 # http://localhost:8098/Skretch/
+node Skretch/server.mjs --host 0.0.0.0  # also reachable from a phone on Wi-Fi
 ```
 
-The rig (`tools/capture.html` + `capture-scene.js`) boots the real level —
-`level.js` → `buildWorld` → `Sky` at phase 0.24 — and shoots each rail
-segment side-on; turns are separate wider views, alleys are oblique
-overheads.
+The optional zero-dependency server saves `Skretch/data/review.json` and `review.md`, keeps the last 20 revisions, and checks revision conflicts. A browser draft is merged by annotation ID when this server becomes available. If the server contains an older incompatible capture, the board keeps a separate browser draft and does not overwrite that file. A downloaded JSON file can also be opened on the local server and saved there. Treat these review files as the input for the next implementation pass.
 
-## Tests
+## Re-capture after a level change
 
+```sh
+PLAYWRIGHT_MODULE=/path/to/node_modules/playwright \\
+SHARP_MODULE=/path/to/node_modules/sharp node Skretch/tools/capture.mjs
 ```
-cd Skretch && npm test             # model + server API (node:test)
-cd Skretch && npm run test:browser # headless Chromium: draw, pin, save, reload
+
+The capture reads `rooftops/js/level.js` and its piece builders; it does not modify the game. It writes the numbered frames, thumbnails, one full-resolution JPEG and `assets/manifest.json`. It checks the 64-pixel overlaps before blending the tiny renderer differences and publishing the files. Changing the framing or frame order requires a new capture ID and a migration strategy for existing annotations; otherwise their pixel positions no longer correspond to the images.
+
+## Checks
+
+```sh
+cd Skretch && npm test
+PLAYWRIGHT_MODULE=/path/to/node_modules/playwright npm run test:browser
+PLAYWRIGHT_MODULE=/path/to/node_modules/playwright npm run test:static
 ```
+
+The browser suites test local server persistence and a phone-sized static-hosted workflow, including drawing, notes, reload, download and reopening a review.

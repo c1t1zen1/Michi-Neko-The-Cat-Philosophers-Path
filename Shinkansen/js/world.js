@@ -5,6 +5,9 @@ import {chochin,washiTexture} from '../../labs/shared/paperlantern.js';
 import {rng} from '../../labs/shared/craft.js';
 import {instancedAsset,instancedParts} from './assets.js';
 import * as S from './scenery.js';
+import {TravellingRooms} from './interior.js';
+import {corridorPlan,RuralDetails,groundAt} from './corridor.js';
+import {sceneryZ,travelAt,SCENERY_SPAN} from './motion.js';
 import {CAR_LENGTH,CAR_PITCH,CAR_COUNT,TRAIN_LENGTH,ENTRY,EXIT,POSTCARDS,clamp,mix,smooth} from './route.js';
 
 const mod=(a,b)=>((a%b)+b)%b;
@@ -39,12 +42,12 @@ export class World {
   }
   buildTrain(){
     const {kit,train}=this;const brass=M.bronze({color:0xbc9b5c}),dark=M.plain(0x233c43),blue=kit.materials.get('indigo');
-    const glazing=new THREE.MeshStandardMaterial({color:0xa0c3c0,roughness:.28,metalness:.12,transparent:true,opacity:.14,depthWrite:false,side:THREE.DoubleSide});
+    const glazing=new THREE.MeshStandardMaterial({color:0xa0c3c0,roughness:.22,metalness:.24,transparent:true,opacity:.36,depthWrite:false,side:THREE.FrontSide});
     for(let i=0;i<CAR_COUNT;i++){
       const root=new THREE.Group();root.position.z=-i*CAR_PITCH-CAR_LENGTH/2;root.name=`Car ${16-i}`;train.add(root);
       const body=kit.clone('coach_shell'),roof=kit.clone('coach_roof');root.add(body,roof);
       this.cars.push({root,body,roof});
-      for(const x of [-1.735,1.735]){const pane=mesh(root,new THREE.PlaneGeometry(24.5,1.26),glazing,[x,2.73,0]);pane.rotation.y=Math.PI/2;pane.castShadow=false;}
+      for(const x of [-1.735,1.735]){const pane=mesh(root,new THREE.PlaneGeometry(24.5,1.26),glazing,[x,2.73,0]);pane.rotation.y=x>0?Math.PI/2:-Math.PI/2;pane.material=glazing;pane.castShadow=false;}
       const badge=mesh(root,new THREE.PlaneGeometry(.6,.35),label(String(16-i).padStart(2,'0')),[1.82,2.06,9]);badge.rotation.y=Math.PI/2;
       // Paw-sized running stripe and carriage-edge markings.
       box(root,blue,[0,4.356,0],[.075,.012,24.3]);
@@ -58,38 +61,10 @@ export class World {
         box(root,kit.materials.get('timber'),[0,1.09,-12.92],[2.7,.12,.72]);
         for(let z=-12.55;z>-13.30;z-=.13)box(root,kit.materials.get('graphite'),[0,3.84,z],[2.7,.09,.04]);
       }
-      if(i>=6&&i<=9){
-        const interior=new THREE.Group();root.add(interior);this.interiors.push({root:interior,index:i});
-        box(interior,this.kit.materials.get('linen'),[0,3.78,0],[3.40,.045,24.90]);
-        // Linen roof lining, luggage shelves and warm ceiling lamps (visible from below).
-        for(const x of [-1.15,1.15]){
-          box(interior,brass,[x,3.20,0],[.50,.045,22]);
-          tube(interior,[[x,3.35,-11],[x,3.35,0],[x,3.35,11]],.025,brass);
-        }
-        for(const z of [-9,-4.5,0,4.5,9])box(interior,kit.materials.get('warm_light'),[0,3.68,z],[.38,.035,1.7]);
-        if(i<=7){
-          for(let z=-9;z<=9;z+=2.5)for(const side of [-1,1]){
-            const seat=kit.clone('seat_pair');seat.position.set(side*1.0,1.15,z);seat.scale.set(.72,.90,.9);interior.add(seat);
-          }
-          for(const x of [-1.18,1.18]){
-            box(interior,kit.materials.get('window'),[x,3.19,-7],[.45,.25,1.2]);
-            box(interior,kit.materials.get('vermilion'),[x,3.16,3],[.42,.20,.8]);
-          }
-        }else{
-          const counter=kit.clone('cafe_counter');counter.position.set(1.13,1.15,0);interior.add(counter);
-          for(const z of [-8,-5.7,5.7,8]){
-            box(interior,kit.materials.get('timber'),[-1.12,1.85,z],[.85,.08,1.15]);
-            box(interior,brass,[-1.12,1.48,z],[.08,.65,.08]);
-            const tea=kit.clone('tea_set');tea.position.set(-1.12,1.90,z);tea.scale.setScalar(.7);interior.add(tea);
-            for(const dz of [-.65,.65]){box(interior,kit.materials.get('sage_cloth'),[-1.15,1.60,z+dz],[.6,.11,.5]);box(interior,brass,[-1.15,1.36,z+dz],[.055,.45,.055]);}
-          }
-          const sign=mesh(interior,new THREE.PlaneGeometry(1.45,.65),label('雲のカフェ\nCLOUD CAFÉ','#284b4c','#f5e9c8'),[.85,3.10,2.85]);
-          const lantern=chochin({h:.4,belly:.14,glow:.7,tex:washiTexture({ribs:12,seed:17})});lantern.position.set(.80,3.1,-3.4);interior.add(lantern);
-        }
-      }
       // Underbody shadow: painted, not an expensive transparency stack.
       box(root,M.plain(0x657c6c),[0,-.05,0],[3.3,.04,24.5]);
     }
+    this.rooms=new TravellingRooms(train,kit,label);
     const nose=kit.clone('nose');nose.position.z=-TRAIN_LENGTH;train.add(nose);
     const rear=kit.clone('nose');rear.rotation.y=Math.PI;train.add(rear);
     this.frontNose=nose;
@@ -137,42 +112,47 @@ export class World {
   buildScenery(){
     const scene=this.root;this.landscape=new THREE.Group();scene.add(this.landscape);
     const r=rng(78541),makeSeeds=(n,fn)=>Array.from({length:n},(_,i)=>fn(i));
-    this.treeSeeds=makeSeeds(this.low?170:300,()=>({x:(r()<.5?-1:1)*(14+r()*220),z:r()*1500,scale:.65+r()*1.5,rot:r()*6.28}));
+    const plan=corridorPlan(this.low);
+    this.treeSeeds=plan.trees;
     this.trees=this.F?S.corridorForest(this.F,this.treeSeeds.length,{seed:5,parent:this.landscape}):instancedAsset(this.kit,'tree',this.treeSeeds.length,this.landscape);
-    this.sakuraSeeds=makeSeeds(30,()=>({x:(r()<.5?-1:1)*(13+r()*55),z:r()*1500,scale:.6+r()*.8,rot:r()*6.28}));
-    this.sakura=this.F?S.corridorForest(this.F,30,{colors:S.SAKURA_PINKS,seed:17,parent:this.landscape}):instancedAsset(this.kit,'sakura',30,this.landscape);
-    this.houseSeeds=makeSeeds(this.low?40:75,()=>({x:(r()<.5?-1:1)*(30+r()*180),z:r()*1500,scale:.8+r()*.8,rot:r()*6.28,v:r()<.55?0:r()<.85?1:2}));
+    this.nearTreeSeeds=plan.nearTrees;
+    this.nearTrees=this.F?S.corridorForest(this.F,this.nearTreeSeeds.length,{seed:31,style:'leaves',parent:this.landscape}):instancedAsset(this.kit,'tree',this.nearTreeSeeds.length,this.landscape);
+    this.sakuraSeeds=plan.nearTrees.filter((_,i)=>i%9===0).map(a=>({...a,scale:a.scale*.85}));
+    this.sakura=this.F?S.corridorForest(this.F,this.sakuraSeeds.length,{colors:S.SAKURA_PINKS,seed:17,style:'leaves',parent:this.landscape}):instancedAsset(this.kit,'sakura',this.sakuraSeeds.length,this.landscape);
+    this.houseSeeds=plan.houses;
     this.houses=this.Countryside?S.variantSet(S.houseTemplates(this.Countryside),this.houseSeeds.map(a=>a.v),this.landscape):instancedAsset(this.kit,'cottage',this.houseSeeds.length,this.landscape);
+    this.rural=new RuralDetails(this.landscape,this.F,{low:this.low});
     this.groundMat=M.plain(0xa4b578,{rough:1,brush:.1,dab:2});
     this.ground=box(this.landscape,this.groundMat,[-180,-5.5,-200],[1200,1,1700]);this.ground.castShadow=false;
     // Fields / flooded paddies / tea ridges: a few instanced draws.
-    this.fieldSeeds=makeSeeds(160,i=>({x:(i%2?-1:1)*(20+r()*290),z:r()*1500,w:12+r()*22,d:16+r()*35,shade:r()}));
+    this.fieldSeeds=plan.fields;
     this.fields=new THREE.InstancedMesh(boxGeo,M.plain(0x79994f,{rough:1,brush:.12,dab:4}),this.fieldSeeds.length);this.fields.frustumCulled=false;this.landscape.add(this.fields);
-    this.paddyWater=new THREE.InstancedMesh(boxGeo,S.waterMaterial({deep:0x84a3ab,shallow:0xaec6bd,calm:1}),80);this.paddyWater.frustumCulled=false;this.landscape.add(this.paddyWater);
-    const riceGeo=new THREE.ConeGeometry(.35,1.2,3);riceGeo.translate(0,.6,0);
-    this.rice=new THREE.InstancedMesh(riceGeo,M.plain(0x9ebd59,{rough:1}),this.low?1600:3000);this.rice.frustumCulled=false;this.landscape.add(this.rice);
+    this.paddyWater=new THREE.InstancedMesh(boxGeo,S.waterMaterial({deep:0x84a3ab,shallow:0xaec6bd,calm:1}),this.fieldSeeds.length);this.paddyWater.frustumCulled=false;this.landscape.add(this.paddyWater);
+    const rv=[];for(let j=0;j<5;j++){const a=j*2.399;rv.push(0,0,0,Math.cos(a)*.07,.3,Math.sin(a)*.07,Math.cos(a)*.32,.8,Math.sin(a)*.32);}const riceGeo=new THREE.BufferGeometry();riceGeo.setAttribute('position',new THREE.Float32BufferAttribute(rv,3));riceGeo.computeVertexNormals();
+    this.rice=new THREE.InstancedMesh(riceGeo,M.plain(0x9ebd59,{rough:1,side:THREE.DoubleSide}),this.fieldSeeds.length*(this.low?36:64));this.rice.frustumCulled=false;this.landscape.add(this.rice);
+    this.teaHedges=new THREE.InstancedMesh(this.rural.teaGeo,M.plain(0x527d36,{rough:1,brush:.17,dab:4}),this.fieldSeeds.length*8);this.teaHedges.frustumCulled=false;this.landscape.add(this.teaHedges);
     // Painted ridgelines from the ranges lab: three parallax walls per side
     // with foot-mist, cloud shadows and drifting kasumi bands.
     this.ranges=new S.Ranges(this.landscape,{low:this.low});
     // Lab landmarks and wayside life.
     if(this.Countryside){
-      this.toriiSeeds=makeSeeds(10,()=>({x:-(16+r()*100),z:r()*1500,scale:.75+r()*.55,rot:(r()-.5)*.35}));
+      this.toriiSeeds=makeSeeds(10,()=>({x:-(16+r()*100),z:r()*SCENERY_SPAN,scale:.75+r()*.55,rot:(r()-.5)*.35}));
       this.torii=instancedParts(S.toriiParts(this.Countryside),10,this.landscape);
-      this.toroSeeds=makeSeeds(24,()=>({x:(r()<.5?-1:1)*(11+r()*42),z:r()*1500,scale:.5+r()*.35,rot:r()*6.28}));
+      this.toroSeeds=makeSeeds(24,()=>({x:(r()<.5?-1:1)*(11+r()*42),z:r()*SCENERY_SPAN,scale:.5+r()*.35,rot:r()*6.28}));
       this.toros=instancedParts(S.toroParts(),24,this.landscape);
-      this.pagoda=S.pagodaLandmark();this.pagoda.position.set(-250,38,0);this.pagoda.scale.setScalar(.85);this.landscape.add(this.pagoda);
+      this.pagoda=S.pagodaLandmark();this.pagoda.position.set(-250,groundAt(-250,800),0);this.pagoda.scale.setScalar(.85);this.landscape.add(this.pagoda);
     }
     if(this.F){
-      this.bambooSeeds=makeSeeds(this.low?320:640,()=>({x:(r()<.5?-1:1)*(13+r()*70),z:r()*1500,h:4.5+r()*7,r:.05+r()*.05,lean:(r()-.5)*.16,rot:r()*6.28}));
+      this.bambooSeeds=plan.bamboo;
       this.bamboo=S.bambooStand(this.F,this.bambooSeeds.length,{parent:this.landscape});
       this.butterflies=S.butterflies(this.low?6:10);this.landscape.add(this.butterflies.group);
     }
     this.bridge=S.riverBridge();this.bridge.position.x=-72;this.bridge.visible=false;this.landscape.add(this.bridge);
-    this.citySeeds=makeSeeds(this.low?140:240,()=>({x:(r()<.5?-1:1)*(20+r()*270),z:r()*1500,w:5+r()*14,d:5+r()*13,h:7+r()**2*90,shade:r()}));
+    this.citySeeds=makeSeeds(this.low?140:240,()=>({x:(r()<.5?-1:1)*(20+r()*270),z:r()*SCENERY_SPAN,w:5+r()*14,d:5+r()*13,h:7+r()**2*90,shade:r()}));
     this.cityMat=new THREE.MeshStandardMaterial({map:this.cityTexture(),color:0xf4e0c9,roughness:.8,emissive:0xe0b875,emissiveMap:this.cityTexture(),emissiveIntensity:0});
     this.buildings=new THREE.InstancedMesh(boxGeo,this.cityMat,this.citySeeds.length);this.buildings.frustumCulled=false;this.landscape.add(this.buildings);
     this.trafficRoot=new THREE.Group();this.landscape.add(this.trafficRoot);
-    this.trafficSeeds=makeSeeds(80,i=>({x:(i%2?-1:1)*(i%4<2?27.5:32.0),z:r()*1500,dir:i%4<2?1:-1,color:r()}));
+    this.trafficSeeds=makeSeeds(80,i=>({x:(i%2?-1:1)*(i%4<2?27.5:32.0),z:r()*SCENERY_SPAN,dir:i%4<2?1:-1,color:r()}));
     this.traffic=new THREE.InstancedMesh(boxGeo,new THREE.MeshStandardMaterial({color:0xffffff,roughness:.5}),80);
     this.trafficWindows=new THREE.InstancedMesh(boxGeo,M.plain(0x344f5a,{rough:.25}),80);
     this.trafficLights=new THREE.InstancedMesh(new THREE.SphereGeometry(.09,6,4),new THREE.MeshBasicMaterial({color:0xffe6a4}),160);
@@ -189,7 +169,7 @@ export class World {
     this.riverBanks=new THREE.Group();this.landscape.add(this.riverBanks);
     for(const side of [-1,1]){const bank=box(this.riverBanks,this.groundMat,[side*640,-5.5,-250],[1020,1,1800]);bank.castShadow=false;}
     this.viaducts=instancedAsset(this.kit,'viaduct',70,this.landscape);
-    this.fuji=this.kit.clone('fuji');this.fuji.position.set(-500,-5,-680);this.fuji.scale.setScalar(1.5);this.landscape.add(this.fuji);
+    this.fuji=this.kit.clone('fuji');this.fuji.position.set(-500,-5,-680);this.fuji.scale.setScalar(2.2);this.landscape.add(this.fuji);
     this.tower=this.kit.clone('tokyo_tower');this.tower.position.set(-100,-5,-330);this.tower.scale.setScalar(1.15);this.landscape.add(this.tower);
     // Track furniture whips past close to camera; distant hills drift slowly.
     this.track=new THREE.Group();scene.add(this.track);
@@ -238,7 +218,7 @@ export class World {
     for(let i=0;i<3;i++){const a=i*Math.PI/3,dx=Math.cos(a)*.075,dz=Math.sin(a)*.075;verts.push(-dx,0,-dz,dx,0,dz,Math.sin(a+.3)*.16,.6+i*.12,Math.cos(a)*.12);}
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.computeVertexNormals();
     this.bankGrass=new THREE.InstancedMesh(geo,M.plain(0x7a9949,{side:THREE.DoubleSide,brush:.15}),this.low?2200:4600);this.bankGrass.frustumCulled=false;this.wayside.add(this.bankGrass);
-    this.grassSeeds=Array.from({length:this.bankGrass.count},()=>({side:r()<.5?-1:1,u:r(),z:r()*1200,scale:.6+r()*.8,rot:r()*6.28}));
+    this.grassSeeds=Array.from({length:this.bankGrass.count},()=>({side:r()<.5?-1:1,u:r(),z:r()*SCENERY_SPAN,scale:.6+r()*.8,rot:r()*6.28}));
     this.flowers=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.085,0),M.plain(0xf4df9b),this.low?300:650);this.flowers.frustumCulled=false;this.wayside.add(this.flowers);
     this.fences=[];
     for(let i=0;i<18;i++){
@@ -246,7 +226,7 @@ export class World {
       for(let z=-12;z<=12;z+=3)items.push({p:[0,.55,z],s:[.12,1.1,.12]});
       for(const y of [.35,.8])items.push({p:[0,y,0],s:[.08,.08,24]});
       batchBoxes(group,items,M.wood({base:0x9f9161,dark:0x746b48}),'Farm fence');
-      const x=(i%2?-1:1)*(22+r()*28);this.fences.push({group,x,z:r()*1500});this.wayside.add(group);
+      const x=(i%2?-1:1)*(22+r()*28);this.fences.push({group,x,z:r()*SCENERY_SPAN});this.wayside.add(group);
     }
     if(this.Countryside){
       this.shrine=S.shrineGroup(this.Countryside);this.shrine.scale.setScalar(.9);
@@ -274,12 +254,12 @@ export class World {
   updateWayside(travel,coast){
     for(let i=0;i<this.grassSeeds.length;i++){
       const a=this.grassSeeds[i],width=2+a.u*10,x=a.side<0?-5-width:12+width,y=-.2-width*.46;
-      dummy.position.set(x,y,mod(a.z+travel,1200)-900);dummy.scale.setScalar(a.scale);dummy.rotation.set(0,a.rot,0);dummy.updateMatrix();this.bankGrass.setMatrixAt(i,dummy.matrix);
+      dummy.position.set(x,y,sceneryZ(a.z,travel));dummy.scale.setScalar(a.scale);dummy.rotation.set(0,a.rot,0);dummy.updateMatrix();this.bankGrass.setMatrixAt(i,dummy.matrix);
       if(i<this.flowers.count){dummy.position.y+=.45;dummy.scale.setScalar(a.scale);dummy.updateMatrix();this.flowers.setMatrixAt(i,dummy.matrix);}
     }
     this.bankGrass.instanceMatrix.needsUpdate=true;this.flowers.instanceMatrix.needsUpdate=true;
-    for(const f of this.fences)f.group.position.set(coast?-Math.abs(f.x):f.x,-5,mod(f.z+travel,1500)-1120);
-    this.shrine.position.z=mod(400+travel*.6,1500)-1100;
+    for(const f of this.fences)f.group.position.set(coast?-Math.abs(f.x):f.x,-5,sceneryZ(f.z,travel));
+    this.shrine.position.z=sceneryZ(400,travel);
   }
   buildTunnels(){
     this.tunnelRoot=new THREE.Group();this.root.add(this.tunnelRoot);
@@ -297,9 +277,10 @@ export class World {
     this.birds=new THREE.LineSegments(birdGeo,new THREE.LineBasicMaterial({color:0xf9f1db}));this.root.add(this.birds);
   }
   update(dt,time,route,motor,{gentle=false,postcards=new Set()}={}){
-    this.time=time;this.travel+=dt*route.speed/3.6;const travel=this.travel,inside=motor.mode==='interior';
+    this.time=time;this.travel=travelAt(time);const travel=this.travel,inside=motor.mode==='interior';
     this.landscape.position.z=-motor.s;
-    this.train.rotation.z=gentle?0:Math.sin(time*5.8)*.0013+Math.sin(time*1.7)*.0015;
+    // The room, gangways, cats and camera share a stable rail frame.
+    this.train.rotation.z=0;this.rooms.update(dt,motor);this.rural.update(travel,route);
     this.overpass.visible=motor.mode==='overpass'||motor.mode==='boarding'||time<8;
     if(motor.mode==='roof')this.overpass.position.z=Math.max(0,travel);
     // Only the current interior and its neighbours are open to the camera.
@@ -313,33 +294,39 @@ export class World {
     this.ground.position.x=coast?-540:-180;this.ground.scale.x=coast?1200:1700;
     this.ground.position.y=river?-21:-5.5;this.groundMat.color.setHex(route.c.color).lerp(new THREE.Color(route.next.color),route.blend);
     for(let i=0;i<this.treeSeeds.length;i++){
-      const a=this.treeSeeds[i],base=coast&&a.x>60?-a.x:a.x,x=river?Math.sign(base)*(Math.abs(base)+140):base,z=mod(a.z+travel,1500)-1120;
-      this.trees.set(i,x,city?-10:-5,z,a.scale*(city?.55:1),a.rot);
+      const a=this.treeSeeds[i],base=coast&&a.x>60?-a.x:a.x,x=river?Math.sign(base)*(Math.abs(base)+140):base,z=sceneryZ(a.z,travel);
+      this.trees.set(i,x,city?-7:groundAt(a.x,a.z),z,a.scale*(city?.65:1),a.rot);
     }this.trees.commit();
+    for(let i=0;i<this.nearTreeSeeds.length;i++){const a=this.nearTreeSeeds[i],x=coast?-Math.abs(a.x):a.x;this.nearTrees.set(i,river?Math.sign(x)*(Math.abs(x)+140):x,-5,sceneryZ(a.z,travel),a.scale,a.rot);}this.nearTrees.commit();
     this.sakura.batches.forEach(b=>b.mesh.visible=!river&&!city);
-    for(let i=0;i<this.sakuraSeeds.length;i++){const a=this.sakuraSeeds[i];this.sakura.set(i,coast?-Math.abs(a.x):a.x,-5,mod(a.z+travel,1500)-1120,a.scale,a.rot);}this.sakura.commit();
-    for(let i=0;i<this.houseSeeds.length;i++){const a=this.houseSeeds[i],base=coast?-Math.abs(a.x):a.x;this.houses.set(i,river?Math.sign(base)*(Math.abs(base)+140):base,-5,mod(a.z+travel,1500)-1120,a.scale*(city?.7:1),a.rot);}this.houses.commit();
-    if(this.torii){const on=!city&&!river;for(const b of this.torii.batches)b.mesh.visible=on;for(let i=0;i<this.toriiSeeds.length;i++){const a=this.toriiSeeds[i];this.torii.set(i,a.x,-5,mod(a.z+travel,1500)-1120,a.scale,a.rot);}this.torii.commit();}
-    if(this.toros){const on=!city&&!river;for(const b of this.toros.batches)b.mesh.visible=on;for(let i=0;i<this.toroSeeds.length;i++){const a=this.toroSeeds[i];this.toros.set(i,a.x,-5,mod(a.z+travel,1500)-1120,a.scale,a.rot);}this.toros.commit();}
-    if(this.bamboo){const on=!river&&!coast;for(const b of this.bamboo.batches)b.mesh.visible=on;for(let i=0;i<this.bambooSeeds.length;i++){const a=this.bambooSeeds[i];this.bamboo.set(i,a.x,city?-10:-5,mod(a.z+travel,1500)-1120,a.h*(city?.6:1),a.r,a.lean,a.rot,i%2?-1:i>>1);}this.bamboo.commit();}
-    if(this.pagoda){this.pagoda.visible=!city&&!coast;this.pagoda.position.z=mod(800+travel*.5,6800)-4300;}
-    this.bridge.visible=!!river;if(river)this.bridge.position.z=mod(600+travel,4200)-2900;
-    this.fields.visible=!city&&!river;this.paddyWater.visible=terrain==='paddy'||terrain==='fuji';this.rice.visible=this.paddyWater.visible||terrain==='tea';
+    for(let i=0;i<this.sakuraSeeds.length;i++){const a=this.sakuraSeeds[i];this.sakura.set(i,coast?-Math.abs(a.x):a.x,-5,sceneryZ(a.z,travel),a.scale,a.rot);}this.sakura.commit();
+    for(let i=0;i<this.houseSeeds.length;i++){const a=this.houseSeeds[i],base=coast?-Math.abs(a.x):a.x;this.houses.set(i,river?Math.sign(base)*(Math.abs(base)+140):base,-5,sceneryZ(a.z,travel),a.scale*(city?.7:1),a.rot);}this.houses.commit();
+    if(this.torii){const on=!city&&!river;for(const b of this.torii.batches)b.mesh.visible=on;for(let i=0;i<this.toriiSeeds.length;i++){const a=this.toriiSeeds[i];this.torii.set(i,a.x,-5,sceneryZ(a.z,travel),a.scale,a.rot);}this.torii.commit();}
+    if(this.toros){const on=!city&&!river;for(const b of this.toros.batches)b.mesh.visible=on;for(let i=0;i<this.toroSeeds.length;i++){const a=this.toroSeeds[i];this.toros.set(i,a.x,-5,sceneryZ(a.z,travel),a.scale,a.rot);}this.toros.commit();}
+    if(this.bamboo){const on=!river&&!coast;for(const b of this.bamboo.batches)b.mesh.visible=on;for(let i=0;i<this.bambooSeeds.length;i++){const a=this.bambooSeeds[i];this.bamboo.set(i,a.x,city?-10:-5,sceneryZ(a.z,travel),a.h*(city?.6:1),a.r,a.lean,a.rot,i%2?-1:i>>1);}this.bamboo.commit();}
+    if(this.pagoda){this.pagoda.visible=!city&&!coast;this.pagoda.position.z=sceneryZ(800,travel);}
+    this.bridge.visible=!!river;if(river)this.bridge.position.z=sceneryZ(600,travel);
+    this.fields.visible=!city&&!river;this.paddyWater.visible=terrain==='paddy'||terrain==='fuji';this.rice.visible=this.paddyWater.visible;this.teaHedges.visible=['tea','fuji','coast'].includes(terrain);this.paddyWater.visible=this.paddyWater.visible&&!river;
     for(let i=0;i<this.fieldSeeds.length;i++){
-      const a=this.fieldSeeds[i],x=coast?-Math.abs(a.x):a.x,z=mod(a.z+travel,1500)-1120;
+      const a=this.fieldSeeds[i],x=coast?-Math.abs(a.x):a.x,z=sceneryZ(a.z,travel);
       dummy.position.set(x,-4.93,z);dummy.scale.set(a.w,.12,a.d);dummy.rotation.set(0,0,0);dummy.updateMatrix();this.fields.setMatrixAt(i,dummy.matrix);
       this.fields.setColorAt(i,new THREE.Color().setHSL(.20+a.shade*.025,.30+a.shade*.2,.36+a.shade*.14));
-      if(i<80){dummy.position.y=-4.81;dummy.scale.set(a.w*.91,.025,a.d*.91);dummy.updateMatrix();this.paddyWater.setMatrixAt(i,dummy.matrix);}
+      if(i<this.paddyWater.count){dummy.position.y=-4.81;dummy.scale.set(a.w*.91,.025,a.d*.91);dummy.updateMatrix();this.paddyWater.setMatrixAt(i,dummy.matrix);}
     }this.fields.instanceMatrix.needsUpdate=true;this.fields.instanceColor.needsUpdate=true;this.paddyWater.instanceMatrix.needsUpdate=true;
+    const riceCols=this.low?6:8;
     for(let i=0;i<this.rice.count;i++){
-      const a=this.fieldSeeds[i%80],row=Math.floor(i/80),x=(coast?-Math.abs(a.x):a.x)+(row%6-2.5)*a.w/7;
-      dummy.position.set(x,-4.77,mod(a.z+travel+(Math.floor(row/6)-2)*a.d/6,1500)-1120);dummy.scale.set(.55,.5,.55);dummy.updateMatrix();this.rice.setMatrixAt(i,dummy.matrix);
+      const a=this.fieldSeeds[i%this.fieldSeeds.length],row=Math.floor(i/this.fieldSeeds.length),x=(coast?-Math.abs(a.x):a.x)+(row%riceCols-(riceCols-1)/2)*a.w/(riceCols+1);
+      dummy.position.set(x,-4.77,sceneryZ(a.z,travel)+(Math.floor(row/riceCols)-(riceCols-1)/2)*a.d/(riceCols+1));dummy.scale.set(.8,.7,.8);dummy.updateMatrix();this.rice.setMatrixAt(i,dummy.matrix);
     }this.rice.instanceMatrix.needsUpdate=true;
+    if(this.teaHedges.visible){for(let i=0;i<this.teaHedges.count;i++){
+      const a=this.fieldSeeds[i%this.fieldSeeds.length],row=Math.floor(i/this.fieldSeeds.length);
+      dummy.position.set(coast?-Math.abs(a.x):a.x,-4.46,sceneryZ(a.z,travel)+(row-3.5)*a.d/8);dummy.scale.set(a.w*.42,.66,1.25);dummy.rotation.set(0,0,0);dummy.updateMatrix();this.teaHedges.setMatrixAt(i,dummy.matrix);
+    }this.teaHedges.instanceMatrix.needsUpdate=true;}
     this.ranges.update(dt,time,travel,this.sky,terrain==='mountain'?1.3:1,coast);
     this.buildings.visible=city||terrain==='town';this.cityMat.emissiveIntensity=smooth(16.5,19,route.hour)*.70;
     if(this.buildings.visible){
       for(let i=0;i<this.citySeeds.length;i++){
-        const a=this.citySeeds[i],height=city?a.h:Math.min(a.h,12);dummy.position.set(city?Math.sign(a.x)*Math.max(48,Math.abs(a.x)):a.x,-5+height/2,mod(a.z+travel,1500)-1120);dummy.scale.set(a.w,height,a.d);dummy.rotation.set(0,0,0);dummy.updateMatrix();this.buildings.setMatrixAt(i,dummy.matrix);
+        const a=this.citySeeds[i],height=city?a.h:Math.min(a.h,12);dummy.position.set(city?Math.sign(a.x)*Math.max(48,Math.abs(a.x)):a.x,-5+height/2,sceneryZ(a.z,travel));dummy.scale.set(a.w,height,a.d);dummy.rotation.set(0,0,0);dummy.updateMatrix();this.buildings.setMatrixAt(i,dummy.matrix);
         this.buildings.setColorAt(i,new THREE.Color().setHSL(.08+a.shade*.1,.05+a.shade*.10,.70+a.shade*.22));
       }this.buildings.instanceMatrix.needsUpdate=true;this.buildings.instanceColor.needsUpdate=true;
     }
@@ -358,10 +345,10 @@ export class World {
     if(this.sky){const dusk=smooth(14,18,route.hour);S.feedWater(this.oceanMat,this.sky,time,dusk);S.feedWater(this.riverMat,this.sky,time,dusk);S.feedWater(this.paddyWater.material,this.sky,time,dusk);}
     this.viaducts.batches.forEach(b=>b.mesh.visible=(!!river||city)&&!(city&&b.mesh.material.name==='vermilion'));
     if(river||city){for(let i=0;i<70;i++)this.viaducts.set(i,3.5,0,mod(i*20+travel,1400)-1000);this.viaducts.commit();}
-    this.fuji.visible=['fuji','coast','tea'].includes(terrain);this.fuji.position.set(-500,-5,-680+Math.sin(time*.004)*75);
-    this.tower.visible=city;this.tower.position.z=-420+route.t*160;
-    this.tokyoStation.visible=route.c.id==='arrival';this.tokyoStation.position.z=-motor.s-220+route.t*200;
-    this.track.position.z=-motor.s+mod(travel,1.1);this.catenary.position.z=mod(travel,45)-22;
+    this.fuji.visible=['fuji','coast','tea'].includes(terrain);this.fuji.position.set(-720,-5,sceneryZ(400,travel,12000));
+    this.tower.visible=city;this.tower.position.z=sceneryZ(850,travel);
+    this.tokyoStation.visible=route.c.id==='arrival';this.tokyoStation.position.z=-motor.s+sceneryZ(800,travel);
+    this.track.position.z=-motor.s;this.track.getObjectByName('Sleepers').position.z=mod(travel,1.1);this.catenary.position.z=mod(travel,45)-22;
     this.tunnelRoot.position.z=-motor.s;this.tunnelRoot.visible=route.tunnel>.01;
     if(this.tunnelRoot.visible){for(let i=0;i<75;i++)this.rings.set(i,0,0,mod(i*12+travel,900)-670);this.rings.commit();}
     this.tunnelLight.intensity=route.tunnel*(inside?2:15);this.tunnelLight.position.set(0,5.5,-motor.s-3);

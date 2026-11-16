@@ -4,6 +4,7 @@ import {loadCatModule,loadSkyModule} from '../../labs/shared/game.js';
 import {loadKit} from './assets.js';
 import {loadSceneryModules} from './scenery.js';
 import {World} from './world.js';
+import {travelAt} from './motion.js';
 import {Input} from './input.js';
 import {CatMotor} from './physics.js';
 import {TrainAudio} from './audio.js';
@@ -25,7 +26,7 @@ const actions={
     if(restore&&saved){motor.restore(saved.motor);journeyTime=saved.time;postcards=new Set((Array.isArray(saved.postcards)?saved.postcards:[]).filter(id=>POSTCARDS.some(p=>p.id===id)));}
     else{try{localStorage.removeItem(SAVE_KEY);}catch{}}
     lastSave=journeyTime-9;
-    started=true;paused=false;accumulator=0;world.travel=journeyTime*70;world.hoops.forEach(h=>h.previous=-999);world.overpass.position.z=0;
+    started=true;paused=false;accumulator=0;world.travel=travelAt(journeyTime);world.hoops.forEach(h=>h.previous=-999);world.overpass.position.z=0;
     ui.begin();input.clear();cameraSnap=true;ui.toast(restore?'The train kept your place. Welcome back.':'Space or E · a soft leap from the bridge onto the waiting train.',6);
   },
   pause(force){if(!started||finishing)return;paused=typeof force==='boolean'?force:!paused;input.clear();ui.pause(paused);save();},
@@ -37,7 +38,7 @@ const actions={
     if(!started||paused||finishing||motor.mode==='overpass'||motor.mode==='boarding')return;
     const c=routeAt(journeyTime).c;
     journeyTime=Math.min(DURATION,c.end+.02);motor.hoopCycle=null;
-    world.travel+=1500;ui.toast('Michi settles in. The country turns another page…',4);audio.chime();save();
+    world.travel=travelAt(journeyTime);ui.toast('Michi settles in. The country turns another page…',4);audio.chime();save();
   },
   stay(){finishing=false;$('arrival').hidden=true;ui.toast('No more destinations. Just the city lights.',6);$('scene').focus();}
 };
@@ -82,11 +83,11 @@ function updateCamera(dt,route){
   const inside=motor.mode==='interior',overpass=motor.mode==='overpass';
   const aspect=camera.aspect,portrait=aspect<.85;
   const x=started?motor.x:-.4,s=started?motor.s:11,y=started?motor.y:6.8;
-  const yaw=started?input.yaw:-.56,dist=inside?Math.min(input.distance,4.8):overpass?9.2:input.distance*(portrait?1.12:1);
-  const pitch=inside?clamp(input.pitch,.10,.32):input.pitch;
-  cameraTarget.set(x,y+(inside?.65:.5),-s);
+  const yaw=started?input.yaw:-.56,dist=inside?Math.min(input.distance,3.1):overpass?9.2:input.distance*(portrait?1.12:1);
+  const pitch=inside?clamp(input.pitch,.10,.25):input.pitch;
+  cameraTarget.set(x,y+(inside?.48:.5),-s);
   cameraDesired.set(x+Math.sin(yaw)*dist,y+Math.sin(pitch)*dist+(inside?.38:.8),-s+Math.cos(yaw)*dist);
-  if(inside){cameraDesired.x=clamp(cameraDesired.x,-1.36,1.36);cameraDesired.y=clamp(cameraDesired.y,FLOOR+.75,3.42);}
+  if(inside){cameraDesired.x=clamp(cameraDesired.x,-.44,.44);cameraDesired.y=clamp(cameraDesired.y,FLOOR+.80,3.12);}
   if(route.tunnel>.5&&!inside)cameraDesired.y=Math.min(cameraDesired.y,7.0);
   const k=cameraSnap?1:1-Math.exp(-dt*(inside?7:5));camera.position.lerp(cameraDesired,k);look.lerp(cameraTarget,k);camera.lookAt(look);cameraSnap=false;
   const fov=inside?68:gentle?52:mix(52,57,route.speed/285);camera.fov=portrait?fov+8:fov;camera.updateProjectionMatrix();
@@ -96,7 +97,6 @@ function updateCamera(dt,route){
 }
 function render(dt){
   const route=routeAt(journeyTime),inside=motor.mode==='interior';
-  world.update(paused||finishing?0:dt,journeyTime,route,motor,{gentle,postcards});
   if(!started)world.overpass.visible=true;
   if(cat){
     const moving=Math.hypot(motor.vx,motor.vs),desired=moving>.15?Math.atan2(motor.vx,-motor.vs):heading;
@@ -111,8 +111,9 @@ function render(dt){
   sky.sun.intensity*=1-route.tunnel*.88;sky.hemi.intensity*=1-route.tunnel*.72;
   scene.fog.near=route.tunnel>.5?22:120;scene.fog.far=route.tunnel>.5?160:1000;
   if(route.tunnel>.5)scene.fog.color.setHex(0x555750);
+  world.update(paused||finishing?0:dt,journeyTime,route,motor,{gentle,postcards});
   updateCamera(dt,route);
-  renderer.toneMappingExposure=inside?1.08:route.tunnel>.5?1.15:1.05;
+  renderer.toneMappingExposure=inside?.96:route.tunnel>.5?1.15:1.05;
   renderer.render(scene,camera);
   if(started)ui.render(journeyTime,route,motor,postcards,interaction(motor,journeyTime,postcards,world.npcs),world);
   audio.update(dt,route,inside,paused||finishing);
@@ -138,7 +139,7 @@ async function boot(){
   renderer.setPixelRatio(Math.min(devicePixelRatio,low?1.25:1.75));renderer.outputColorSpace=THREE.SRGBColorSpace;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.shadowMap.enabled=!low&&Q.get('shadows')!=='0';renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   scene=new THREE.Scene();scene.background=new THREE.Color(0xc6d8ce);camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.08,1600);resize();
-  ui.loading('Unpacking the Blender-built train and scenery…');
+  ui.loading('Opening the travelling rooms…');
   const [kit,catModule,skyModule,scenery]=await Promise.all([loadKit(),loadCatModule(),loadSkyModule(),loadSceneryModules()]);
   sky=new skyModule.Sky(scene);sky.dayTime=9.3;sky.cycleSpeed=0;sky.weatherPool=['clear'];
   // Keep the valley's painted sky rig, with a clear travel-day palette.

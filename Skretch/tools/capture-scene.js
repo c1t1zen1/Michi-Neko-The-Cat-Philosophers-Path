@@ -1,49 +1,57 @@
-// Read-only capture rig. Reuses the actual Stage 2 level, meshes and sky.
+// Build the actual level pieces once on a straightened copy of the rail.
+// All cameras see the same scene, so geometry and lighting are continuous.
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { buildLevel } from '../../rooftops/js/level.js';
-import { buildWorld } from '../../rooftops/js/build.js';
-import { Sky } from '../../rooftops/js/sky.js';
-import { platOffset } from '../../rooftops/js/physics.js';
-import { alleyDepth } from '../../rooftops/js/alleys.js';
+import { PIECES } from '../../rooftops/js/pieces/index.js';
+import { makeMaterials } from '../../rooftops/js/pieces/paint.js';
+import { paintDowntown } from '../../rooftops/js/downtown.js';
 
-const width = 1200, height = 750;
+// Overscan lets capture.mjs compare and feather the matching overlaps.
+const width = 1264, height = 750, span = 32, viewHeight = 20;
 const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('canvas'), antialias: true, preserveDrawingBuffer: true });
-renderer.setSize(width,height); renderer.setPixelRatio(1);
+renderer.setSize(width, height); renderer.setPixelRatio(1);
+// Keep transparent draw order stable as the orthographic camera moves.
+renderer.sortObjects = false;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 const scene = new THREE.Scene();
+scene.background = new THREE.Color('#dce8e1');
 scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), .04).texture;
+scene.add(new THREE.HemisphereLight(0xeef6ff, 0x9a8065, 2));
+const sun = new THREE.DirectionalLight(0xffe5bc, 2.3); sun.position.set(20, 40, 25); scene.add(sun);
 const level = buildLevel();
-const sky = new Sky(scene, renderer, { shadows: false, reduceMotion: true, lowPower: false, center: new THREE.Vector3(level.center.x,0,level.center.z) });
-const world = buildWorld(level, { reduceMotion: true, lowPower: false });
-scene.add(world.root);
-const camera = new THREE.OrthographicCamera(-16,16,10,-10,12,1500);
-
-function render(frame) {
-  const s = (frame.s0+frame.s1)/2;
-  const p = level.rail.pointAt(s), n = level.rail.normalAt(s);
-  const span = frame.span || (frame.kind === 'turn' ? 24 : frame.s1-frame.s0);
-  const viewH = span*height/width;
-  camera.left=-span/2; camera.right=span/2;
-  camera.top=viewH/2; camera.bottom=-viewH/2;
-  const alley = frame.alley == null ? null : level.alleys[frame.alley];
-  let focus = new THREE.Vector3(p.x,6,p.z), eye;
-  if (alley) {
-    const d = alleyDepth(alley,s);
-    focus = new THREE.Vector3(p.x+n.x*d,1.8,p.z+n.z*d);
-    eye = focus.clone().add(new THREE.Vector3(n.x*14,24,n.z*14));
-    camera.near=.1;
-  } else {
-    eye = focus.clone().add(new THREE.Vector3(n.x*30,3,n.z*30));
-    camera.near=17;
-  }
-  camera.position.copy(eye); camera.lookAt(focus);camera.updateProjectionMatrix();camera.updateMatrixWorld(true);
-  const night=sky.setPhase(.24);
-  sky.update(0,12,focus); world.update(12,night,platOffset,level.platforms,s);
-  scene.updateMatrixWorld(true);renderer.render(scene,camera);
-  return {position:eye.toArray(),focus:focus.toArray(),projection:'orthographic',span,viewHeight:viewH,kind:frame.kind,near:camera.near};
+const M = makeMaterials(); paintDowntown(M);
+// The piece builders already describe their positions in route metres (s,d).
+// Supply that same contract on a straight line; no game source is changed.
+const rail = {
+  pointAt(s, out = {}) { out.x = s; out.z = 0; return out; },
+  tangentAt(s, out = {}) { out.x = 1; out.z = 0; return out; },
+  normalAt(s, out = {}) { out.x = 0; out.z = 1; return out; },
+  place(s, d, out = {}) { out.x = s; out.z = d; return out; }
+};
+const root = new THREE.Group(); scene.add(root);
+const dynamic = { boat: null, boats: [], people: [], float: null, shoki: [], treats: [] };
+const ctx = { M, rail, dynamic, platforms: level.platforms, alleys: level.alleys,
+  add: o => root.add(o), addGlass: o => root.add(o), addDyn: o => root.add(o), light: () => {} };
+for (const pc of level.pieces) {
+  const piece = PIECES[pc.type];
+  piece.build(pc, ctx); if (piece.decorate) piece.decorate(pc, ctx);
 }
-render({s0:0,s1:32,kind:'street'});
-await renderer.compileAsync(scene,camera);
-window.skretchCapture={ready:true,render,level};
+// In the game the update loop positions boats. Freeze them on their platform
+// midpoint for this still, in the same straightened frame as the rest.
+for (const boat of dynamic.boats) {
+  const platform = level.platforms[boat.plat];
+  boat.group.position.set((platform.s0 + platform.s1) / 2, .005, boat.d);
+}
+scene.updateMatrixWorld(true);
+const camera = new THREE.OrthographicCamera(-span * width / 2400, span * width / 2400, viewHeight / 2, -viewHeight / 2, .1, 200);
+function render(frame) {
+  const center = frame.s0 + span / 2;
+  camera.position.set(center, viewHeight / 2 - 1, 60);
+  camera.lookAt(center, viewHeight / 2 - 1, 0);
+  camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
+  renderer.render(scene, camera);
+  return { projection: 'orthographic-unfolded', span, viewHeight, groundY: -1, overscanPixels: 32 };
+}
+window.skretchCapture = { ready: true, render, level };

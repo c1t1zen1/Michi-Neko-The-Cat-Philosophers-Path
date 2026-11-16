@@ -20,7 +20,14 @@ test('manifest frames cover the whole route in order', () => {
   assert.equal(manifest.id, 'rooftops-stage-2');
   assert.ok(main.frames.length >= 40);
   assert.equal(main.frames[0].s0, 0);
-  assert.ok(Math.abs(main.frames.at(-1).s1 - manifest.source.length) < 0.01);
+  assert.ok(main.frames.at(-1).s1 >= manifest.source.length);
+  assert.ok(main.frames.at(-1).s1 - manifest.source.length < 32);
+  for (const [i, f] of main.frames.entries()) {
+    assert.equal(f.s1 - f.s0, 32, 'all frames have the same scale');
+    if (i) assert.equal(f.s0, main.frames[i - 1].s1, 'frames meet without gaps');
+  }
+  assert.ok(manifest.source.seamCheck.worstMismatchFraction < .02, 'capture overlaps agree');
+  assert.equal(manifest.source.seamCheck.blended, true);
   for (const f of main.frames) for (const p of [f.image, f.thumb])
     assert.ok(p.startsWith('assets/'), f.id + ' path');
 });

@@ -261,3 +261,21 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @media (min-width: 1100px) {
   #route-picker { max-width: 260px; }
 }
+
+/* Keep the main actions reachable on narrow phones. */
+@media (max-width: 759px) {
+  #top { gap: 4px; padding-inline: 6px; }
+  #top h1 { font-size: 15px; }
+  #route-picker { max-width: 105px; font-size: 11px; padding-inline: 4px; }
+  #pos { display: none; }
+  .top-actions { margin-left: auto; gap: 4px; }
+  #top .chip { padding-inline: 7px; font-size: 12px; }
+  #toolbar { scrollbar-width: thin; }
+}
+
+@media (max-width: 759px) {
+  #ruler-track .seg { font-size: 0; }
+  #board::after { content: 'Swipe to explore · Tap a scene to zoom'; position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; color: #a9957b; font-size: 12px; pointer-events: none; }
+}
+
+#panorama-links { display: flex; flex-direction: column; }

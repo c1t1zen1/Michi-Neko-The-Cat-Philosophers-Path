@@ -23,7 +23,7 @@ try {
   ok(true, 'board boots');
 
   const frames = await page.locator('.frame').count();
-  ok(frames === 47, `47 main frames on the strip (got ${frames})`);
+  ok(frames === await page.evaluate(() => skretch.manifest.routes.find(r => r.id === 'main').frames.length), `all ${frames} main frames on the strip`);
   ok(await page.locator('#ruler-track .seg').count() >= 7, 'district ruler built');
 
   // Pick the pen and draw a short stroke on the strip.

@@ -4,11 +4,11 @@
 // to Skretch/data/review.json (+ a review.md report) through server.mjs.
 import {
   COLORS, emptyReview, routeGeometry, routeReview, locatePoint,
-  strokePath, distanceToStroke, mergeReviews, uid, clone
+  strokePath, distanceToStroke, mergeReviews, validateReview, reviewMarkdown, uid, clone
 } from './js/model.js';
 
 const API = './api/';
-const LS_REVIEW = 'skretch:v1:review';
+const LS_REVIEW = 'skretch:v3:review';
 const LS_PREFS = 'skretch:v1:prefs';
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -59,9 +59,10 @@ function toast(msg, ms = 2400) {
   toast.t = setTimeout(() => els.toast.classList.remove('show'), ms);
 }
 
-function scale() { return (els.board.clientHeight * state.zoom) / 750; }
+function scale() { return Math.min(els.board.clientHeight / 750, els.board.clientWidth / 1200) * state.zoom; }
 function dispW() { return state.geo.width * scale(); }
-function dispH() { return els.board.clientHeight * state.zoom; }
+function dispH() { return 750 * scale(); }
+function topOffset() { return Math.max(0, (els.scroller.clientHeight - dispH()) / 2); }
 
 function frameAtS(route, s) {
   return route.frames.find(f => s >= f.s0 && s < f.s1) || route.frames.at(-1);
@@ -69,7 +70,7 @@ function frameAtS(route, s) {
 function sAtX(x) {
   const f = state.geo.frames[clamp(Math.floor(x / 1200), 0, state.geo.frames.length - 1)];
   const u = clamp((x - f.x) / f.width, 0, 1);
-  return f.s0 + (f.s1 - f.s0) * u;
+  return Math.min(state.route.length, f.s0 + (f.s1 - f.s0) * u);
 }
 function xAtS(s) {
   const f = frameAtS(state.route, s);
@@ -147,6 +148,7 @@ function buildRoute() {
   els.strip.append(frag);
   els.strip.style.width = dispW() + 'px';
   els.strip.style.height = dispH() + 'px';
+  els.strip.style.marginTop = topOffset() + 'px';
   state.inkSvg = svg; state.pinsEl = pins;
   renderInk(); renderPins(); buildRuler();
 }
@@ -196,6 +198,7 @@ function layout() {
   const sc = scale();
   els.strip.style.width = dispW() + 'px';
   els.strip.style.height = dispH() + 'px';
+  els.strip.style.marginTop = topOffset() + 'px';
   state.inkSvg.setAttribute('width', dispW());
   state.inkSvg.setAttribute('height', dispH());
   for (const f of els.strip.querySelectorAll('.frame')) {
@@ -225,23 +228,23 @@ function zoomTo(z, anchorClient) {
   const rect = els.scroller.getBoundingClientRect();
   const ax = (anchorClient ? anchorClient.x : rect.left + rect.width / 2) - rect.left;
   const ay = (anchorClient ? anchorClient.y : rect.top + rect.height / 2) - rect.top;
-  const sc0 = scale(), rx = (state.view.x + ax) / sc0, ry = (state.view.y + ay) / sc0;
+  const sc0 = scale(), rx = (state.view.x + ax) / sc0, ry = (state.view.y + ay - topOffset()) / sc0;
   state.zoom = z;
   const sc1 = scale();
   layout();
-  state.view.x = rx * sc1 - ax; state.view.y = ry * sc1 - ay;
+  state.view.x = rx * sc1 - ax; state.view.y = ry * sc1 + topOffset() - ay;
   applyView(); updateRulerView(); updatePos();
   els.stripBtn.hidden = state.zoom <= 1.02;
 }
 function zoomRoute(z, rx, ry) { // route-px anchored
   const sc = scale();
   zoomTo(z, { x: els.scroller.getBoundingClientRect().left + rx * sc - state.view.x,
-              y: els.scroller.getBoundingClientRect().top + ry * sc - state.view.y });
+              y: els.scroller.getBoundingClientRect().top + topOffset() + ry * sc - state.view.y });
 }
 function jumpTo(rx, ry, z = 2.2) {
   if (z) zoomRoute(z, rx, ry);
   state.view.x = rx * scale() - els.scroller.clientWidth / 2;
-  state.view.y = ry * scale() - els.scroller.clientHeight / 2;
+  state.view.y = ry * scale() + topOffset() - els.scroller.clientHeight / 2;
   applyView(); updateRulerView(); updatePos();
 }
 
@@ -324,7 +327,7 @@ els.scroller.addEventListener('pointerdown', (e) => {
     const [a, b] = [...pointers.values()];
     gesture = {
       kind: 'pinch', d0: Math.hypot(b.x - a.x, b.y - a.y),
-      z0: state.zoom, v0: { ...state.view },
+      z0: state.zoom, v0: { ...state.view }, offset0: topOffset(),
       mid0: mid(a, b), sc0: scale()
     };
     els.scroller.classList.add('dragging');
@@ -360,12 +363,12 @@ els.scroller.addEventListener('pointermove', (e) => {
     const d = Math.hypot(b.x - a.x, b.y - a.y) || 1;
     const m = mid(a, b), rect = els.scroller.getBoundingClientRect();
     const rx = (gesture.v0.x + gesture.mid0.x - rect.left) / gesture.sc0;
-    const ry = (gesture.v0.y + gesture.mid0.y - rect.top) / gesture.sc0;
+    const ry = (gesture.v0.y + gesture.mid0.y - rect.top - gesture.offset0) / gesture.sc0;
     state.zoom = clamp(gesture.z0 * d / gesture.d0, ZMIN, ZMAX);
     layout();
     const sc1 = scale();
     state.view.x = rx * sc1 - (m.x - rect.left);
-    state.view.y = ry * sc1 - (m.y - rect.top);
+    state.view.y = ry * sc1 + topOffset() - (m.y - rect.top);
     applyView(); updateRulerView(); updatePos();
     els.stripBtn.hidden = state.zoom <= 1.02;
     return;
@@ -380,7 +383,8 @@ els.scroller.addEventListener('pointermove', (e) => {
     gesture.lx = e.clientX; gesture.ly = e.clientY; gesture.lt = t;
     return;
   }
-  const pt = routePoint(e.clientX, e.clientY);
+  const raw = routePoint(e.clientX, e.clientY);
+  const pt = { x: clamp(raw.x, 0, state.geo.width), y: clamp(raw.y, 0, 750) };
   if (gesture.kind === 'note') {
     gesture.moved = Math.max(gesture.moved, Math.hypot(e.clientX - gesture.sx, e.clientY - gesture.sy));
     return;
@@ -476,7 +480,7 @@ els.scroller.addEventListener('wheel', (e) => {
   e.preventDefault();
   if (e.ctrlKey || e.metaKey) zoomTo(state.zoom * (e.deltaY < 0 ? 1.12 : .89), { x: e.clientX, y: e.clientY });
   else {
-    state.view.x += (e.deltaX || (e.shiftKey ? e.deltaY : 0));
+    state.view.x += (e.deltaX || e.deltaY);
     state.view.y += e.shiftKey ? 0 : (e.deltaX ? e.deltaY : 0);
     applyView(); updateRulerView(); updatePos();
   }
@@ -692,7 +696,7 @@ els.stripBtn.addEventListener('click', () => zoomTo(1));
 function markDirty() {
   state.dirty = true;
   setSaveState('dirty', 'unsaved');
-  els.saveBtn.disabled = state.online === false;
+  els.saveBtn.disabled = false;
   localStorage.setItem(LS_REVIEW, JSON.stringify(state.review));
   clearTimeout(state.saveTimer);
   state.saveTimer = setTimeout(save, 2600);
@@ -704,22 +708,24 @@ function setSaveState(cls, label) {
 
 async function save() {
   if (!state.dirty || state.saving) return;
-  if (state.online === false) { setSaveState('offline', 'offline — browser only'); return; }
+  if (state.online === false) { setSaveState('saved', 'saved in this browser'); return; }
   state.saving = true;
+  const snapshot = JSON.stringify(state.review);
   setSaveState('dirty', 'saving…');
   try {
     const res = await fetch(API + 'review', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ baseRevision: state.baseRevision, review: state.review })
+      body: JSON.stringify({ baseRevision: state.baseRevision, review: JSON.parse(snapshot) })
     });
     if (res.status === 409) { els.conflict.hidden = false; setSaveState('error', 'conflict'); return; }
     if (!res.ok) throw new Error((await res.json()).error || res.statusText);
     const body = await res.json();
-    state.review = body.review;
+    const changedWhileSaving = JSON.stringify(state.review) !== snapshot;
+    state.review = changedWhileSaving ? mergeReviews(body.review, state.review) : body.review;
     state.baseRevision = body.review.revision;
-    state.dirty = false;
+    state.dirty = changedWhileSaving;
     localStorage.setItem(LS_REVIEW, JSON.stringify(state.review));
-    setSaveState('saved', `saved · rev ${body.review.revision}`);
+    setSaveState(state.dirty ? 'dirty' : 'saved', state.dirty ? 'new changes pending' : `saved · rev ${body.review.revision}`);
     state.online = true;
   } catch (e) {
     if (state.online === null || state.online) toast('Save failed — kept in this browser. ' + e.message);
@@ -727,7 +733,7 @@ async function save() {
     setSaveState('offline', 'offline — browser only');
   } finally { state.saving = false; }
 }
-els.saveBtn.addEventListener('click', save);
+els.saveBtn.addEventListener('click', () => { if (state.online === false) { download('skretch-review.json', JSON.stringify(state.review, null, 2)); toast('Review downloaded — keep this file as a backup.'); } else save(); });
 
 $('cf-merge').addEventListener('click', async () => {
   els.conflict.hidden = true;
@@ -769,23 +775,57 @@ function download(name, text, type = 'application/json') {
   a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
+$('m-export-image').addEventListener('click', async () => {
+  els.menu.hidden = true;
+  const f = state.geo.frames[clamp(Math.floor(centerX() / 1200), 0, state.geo.frames.length - 1)];
+  try {
+    const img = new Image(); img.src = f.image; await img.decode();
+    const canvas = document.createElement('canvas'); canvas.width = f.width; canvas.height = f.height;
+    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, f.width, f.height);
+    ctx.save(); ctx.translate(-f.x, 0); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (const stroke of liveStrokes()) {
+      ctx.strokeStyle = stroke.color; ctx.lineWidth = stroke.size; ctx.globalAlpha = TOOL_OPACITY[stroke.tool] ?? 1;
+      ctx.beginPath(); stroke.points.forEach(([x,y], i) => i ? ctx.lineTo(x,y) : ctx.moveTo(x,y)); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    liveNotes().forEach((note, i) => {
+      if (note.x < f.x || note.x >= f.x + f.width) return;
+      ctx.fillStyle = note.color; ctx.beginPath(); ctx.arc(note.x, note.y, 13, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), note.x, note.y);
+    });
+    ctx.restore();
+    canvas.toBlob(blob => {
+      if (!blob) { toast('Could not create image.'); return; }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `skretch-${f.id}-annotated.jpg`; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    }, 'image/jpeg', .93);
+  } catch (error) { toast('Could not export this scene: ' + error.message); }
+});
 $('m-export-json').addEventListener('click', () => {
   download('skretch-review.json', JSON.stringify(state.review, null, 2));
   els.menu.hidden = true;
 });
-$('m-export-md').addEventListener('click', async () => {
+$('m-import').addEventListener('click', () => { els.menu.hidden = true; $('import-file').click(); });
+$('import-file').addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
   try {
-    const md = await (await fetch(API + 'report')).text();
-    download('skretch-review.md', md, 'text/markdown');
-  } catch { toast('Report needs the Skretch server (node Skretch/server.mjs).'); }
+    if (file.size > 20 * 1024 * 1024) throw new Error('File is too large (20 MB maximum).');
+    const incoming = validateReview(JSON.parse(await file.text()), state.manifest);
+    state.review = mergeReviews(state.review, incoming);
+    state.undoStack = []; state.redoStack = [];
+    renderInk(); renderPins(); renderDrawer(); markDirty();
+    toast('Review merged into this board.');
+  } catch (error) { toast('Could not open review: ' + error.message, 6000); }
+  e.target.value = '';
+});
+$('m-export-md').addEventListener('click', () => {
+  download('skretch-review.md', reviewMarkdown(state.review, state.manifest), 'text/markdown');
   els.menu.hidden = true;
 });
-$('m-report').addEventListener('click', async () => {
+$('m-report').addEventListener('click', () => {
   els.menu.hidden = true;
-  try {
-    els.reportBody.textContent = await (await fetch(API + 'report')).text();
-    els.report.hidden = false;
-  } catch { toast('Report needs the Skretch server.'); }
+  els.reportBody.textContent = reviewMarkdown(state.review, state.manifest);
+  els.report.hidden = false;
 });
 els.reportClose.addEventListener('click', () => { els.report.hidden = true; });
 
@@ -817,7 +857,7 @@ function switchRoute(id) {
   state.route = state.manifest.routes.find(r => r.id === id) || state.manifest.routes[0];
   els.picker.value = state.route.id;
   state.view = { x: 0, y: 0 };
-  buildRoute(); applyView();
+  buildRoute(); layout();
   els.stripBtn.hidden = state.zoom <= 1.02;
   savePrefs();
 }
@@ -872,33 +912,52 @@ async function boot() {
   for (const r of state.manifest.routes) {
     const o = document.createElement('option');
     o.value = r.id;
-    o.textContent = r.id === 'main' ? 'Main run — 1082 m' : `Alley · ${r.name}`;
+    o.textContent = r.id === 'main' ? `Main run — ${Math.round(r.length)} m` : `Alley · ${r.name}`;
     els.picker.append(o);
   }
   // Review: server wins; the localStorage mirror is the offline fallback.
   let review = null;
   try {
     const res = await fetch(API + 'review');
-    if (!res.ok) throw new Error('api ' + res.status);
-    review = (await res.json()).review;
+    if (!res.ok) {
+      if (res.status !== 404) { const problem = await res.json().catch(() => ({})); toast(problem.error || 'Server review unavailable; this browser will keep a separate draft.', 8000); }
+      throw new Error('api ' + res.status);
+    }
+    review = validateReview((await res.json()).review, state.manifest);
     state.online = true;
     setSaveState('saved', `rev ${review.revision}`);
   } catch {
     state.online = false;
     try { review = JSON.parse(localStorage.getItem(LS_REVIEW)); } catch {}
-    setSaveState('offline', 'offline — browser only');
-    toast('Skretch server not found — annotations stay in this browser. Run: node Skretch/server.mjs');
+    setSaveState('saved', 'saved in this browser');
   }
+  // Reconcile a browser draft before accepting the server copy, including
+  // offline edits made since this device last connected.
+  let local = null;
+  try { const draft = JSON.parse(localStorage.getItem(LS_REVIEW)); if (draft) local = validateReview(draft, state.manifest); } catch {}
   state.review = review || emptyReview();
   state.baseRevision = state.review.revision || 0;
+  if (state.online && local) {
+    const combined = mergeReviews(state.review, local);
+    if (JSON.stringify(combined.routes) !== JSON.stringify(state.review.routes)) {
+      state.review = combined; state.dirty = true;
+    }
+  }
+  const panoramas = $('panorama-links');
+  for (const [i, image] of (state.manifest.panoramas || []).entries()) {
+    const link = document.createElement('a'); link.href = image.path; link.download = '';
+    link.textContent = state.manifest.panoramas.length === 1 ? 'Download the full stage JPEG' : `Download stage JPEG · part ${i + 1}`; panoramas.append(link);
+  }
   buildColors(); selectTool(state.tool);
   els.colors.querySelectorAll('.swatch').forEach(x => x.classList.toggle('on', x.dataset.color === state.color));
   switchRoute(prefs.route || 'main');
   if (prefs.s) jumpTo(xAtS(prefs.s), 300, state.zoom);
   els.boot.remove();
-  els.about.textContent = `Captured ${new Date(state.manifest.capturedAt).toLocaleString()} · ${state.manifest.source.frameCount} frames · orthographic elevations at warm daytime.`;
-  els.saveBtn.disabled = state.online === false;
-  setInterval(() => { if (state.dirty) save(); }, 30000);
+  els.about.textContent = `Captured ${new Date(state.manifest.capturedAt).toLocaleString()} · ${state.manifest.source.frameCount} frames · one continuous, constant-scale elevation.`;
+  els.saveBtn.disabled = false;
+  els.saveBtn.textContent = state.online ? 'Save' : 'Download';
+  if (state.dirty && state.online) markDirty();
+  setInterval(() => { if (state.dirty && state.online) save(); }, 30000);
 }
 
 /* Console + test handle. */

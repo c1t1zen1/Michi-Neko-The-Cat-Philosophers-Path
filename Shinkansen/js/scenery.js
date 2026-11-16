@@ -8,6 +8,8 @@ import {M} from '../../labs/shared/painted.js';
 import {rng as mulberry32} from '../../labs/shared/craft.js';
 import {HASH, NOISE} from '../../labs/shared/glsl.js';
 import {mergeTemplate} from './assets.js';
+import {sceneryZ} from './motion.js';
+import {leafTexture} from '../../labs/greenery/js/kit.js';
 import {friezeGeometry} from '../../labs/ranges/js/ridge.js';
 import {worldNoise} from '../../labs/ranges/js/profiles.js';
 import {Air, CloudField} from '../../labs/ranges/js/air.js';
@@ -38,23 +40,24 @@ export const SAKURA_PINKS=[0xe8a7b8,0xf2bcc9,0xf7d4dc,0xfbe6ea];
  *  built with the ranges lab's wall recipe (masses style, per-variant sets
  *  with a slot → (variant, index) map). Same set(i,x,y,z,scale,rot)/commit()
  *  contract as instancedAsset. */
-export function corridorForest(F,count,{colors=FOREST_GREENS,seed=5,parent,scale=1}={}){
+export function corridorForest(F,count,{colors=FOREST_GREENS,seed=5,parent,scale=1,style='masses'}={}){
   const r=mulberry32(seed);
-  const leafMat=F.createFoliageMaterial({sss:.3,wind:.65,mottle:.26,bump:.45,vertexColors:true,massMap:F.leafMassTexture('leaf'),massScale:1/1.2,ragged:1});
+  const leafMat=F.createFoliageMaterial(style==='leaves'?{sss:.32,wind:.35,mottle:.16,bump:.18,vertexColors:true,map:F.leafSprayTexture('broadleaf'),alphaTest:.4,side:THREE.DoubleSide,flex:true,twoSided:true}:{sss:.28,wind:.3,mottle:.18,bump:.25,vertexColors:true,massMap:F.leafMassTexture('leaf'),massScale:.7,ragged:.7});
   const barkMat=M.bark({base:0x6a4b35,dark:0x2c1b12});
   const assign=[],per=[0,0,0,0];
   for(let i=0;i<count;i++){const v=(r()*4)|0;assign.push(v);per[v]++;}
   const sets=[];
   for(let v=0;v<4;v++){
     const built=F.buildCanopy(mulberry32(seed*97+v*31),{
-      style:'masses',scale:1,trunkH:2.2,trunkR:.15,primaries:5,tilt:.74+v*.07,tiltVar:.22,
-      droop:-.02,bend:.12,branchLen:1.5,secondaries:2,twigs:false,crownFill:3,
-      colors,clumpR:.5,tuftsPerClump:[3,3,2],tuftFlat:.74,lump:.4,seed:seed+v*7});
+      style,scale:1,trunkH:2.8+v*.15,trunkR:.19,primaries:5,tilt:.88+v*.04,tiltVar:.25,
+      droop:-.08,bend:.18,branchLen:2.1+v*.12,secondaries:2,twigs:false,crownFill:4,
+      colors,clumpR:.78,tuftsPerClump:[2,1,1],tuftDetail:0,tuftFlat:.85,lump:.25,
+      twigsPerLimb:2,sprigs:1,density:8,sprayLen:.48,tipSprays:3,seed:seed+v*7});
     const set={tufts:new THREE.InstancedMesh(built.tufts,leafMat,per[v]),branches:new THREE.InstancedMesh(built.branches,barkMat,per[v])};
     for(const m of [set.tufts,set.branches]){m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);m.frustumCulled=false;m.count=per[v];parent.add(m);}
     sets.push(set);
   }
-  const trunkGeo=new THREE.CylinderGeometry(.11,.34,2.6,7);trunkGeo.translate(0,1.15,0);
+  const trunkGeo=new THREE.CylinderGeometry(.14,.36,3.05,8);trunkGeo.translate(0,1.48,0);
   const trunks=new THREE.InstancedMesh(trunkGeo,barkMat,count);
   trunks.instanceMatrix.setUsage(THREE.DynamicDrawUsage);trunks.frustumCulled=false;parent.add(trunks);
   const cursors=[0,0,0,0],slotIdx=assign.map(v=>cursors[v]++);
@@ -73,15 +76,15 @@ export function corridorForest(F,count,{colors=FOREST_GREENS,seed=5,parent,scale
 
 /** One free-standing canopy tree (overpass sakura). */
 export function canopyTree(F,{colors=SAKURA_PINKS,seed=7,scale=1.4}={}){
-  const built=F.buildCanopy(mulberry32(seed),{style:'masses',scale,trunkH:2.6,trunkR:.17,primaries:6,tilt:.82,tiltVar:.2,
+  const built=F.buildCanopy(mulberry32(seed),{style:'leaves',scale,trunkH:2.6,trunkR:.17,primaries:6,tilt:.82,tiltVar:.2,
     bend:.14,branchLen:1.6,secondaries:2,twigs:false,crownFill:4,colors,clumpR:.55,
-    tuftsPerClump:[3,3,2],tuftFlat:.78,lump:.42,seed});
-  const leafMat=F.createFoliageMaterial({sss:.4,wind:.5,mottle:.2,bump:.4,vertexColors:true,massMap:F.leafMassTexture('leaf'),massScale:1/1.1,ragged:1});
+    tuftsPerClump:[3,3,2],tuftFlat:.78,lump:.42,sprayLen:.4,density:12,seed});
+  const leafMat=F.createFoliageMaterial({sss:.4,wind:.4,mottle:.15,bump:.2,vertexColors:true,map:F.leafSprayTexture('sakura'),alphaTest:.4,side:THREE.DoubleSide,flex:true,twoSided:true});
   const barkMat=M.bark({base:0x584238,dark:0x2c1b12});
   const g=new THREE.Group();
   g.add(new THREE.Mesh(built.tufts,leafMat),new THREE.Mesh(built.branches,barkMat));
-  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.13,.4,3.2,7),barkMat);
-  trunk.position.y=1.5;g.add(trunk);
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.13*scale,.34*scale,2.9*scale,8),barkMat);
+  trunk.position.y=1.4*scale;g.add(trunk);
   return g;
 }
 
@@ -113,11 +116,11 @@ export class Ranges{
     this.group=new THREE.Group();parent.add(this.group);
     this.right=new THREE.Group();this.group.add(this.right);
     this.field=new CloudField({seed:9});
-    this.air=new Air(this.field);
+    this.air=new Air(this.field);this.air.setClouds(.24);
     this.field.scale=this.air.u.uCloudScale.value=1/1900;
     this.layers=[];
     for(const side of[-1,1])for(const L of LAYERS){
-      const geo=friezeGeometry(circleProfile(L.seed+side*3,.95,.12),{width:FRIEZE_W,height:L.h,depth:L.h*.42,dip:.14,cols:low?110:170,rows:6,jitter:.07,seed:L.seed+side});
+      const geo=friezeGeometry(circleProfile(L.seed+side*3,.95,.12),{width:FRIEZE_W,height:L.h,depth:L.h*.42,dip:.14,cols:low?180:300,rows:6,jitter:.009,seed:L.seed+side});
       const mat=this.air.rangeMaterial({dist:L.dist,foot:L.foot,crown:L.crown,rock:L.rock,treed:L.treed,rocky:L.rocky,footMist:L.footMist,fogK:L.fogK});
       const mesh=new THREE.Mesh(geo,mat);
       mesh.rotation.y=side<0?Math.PI/2:-Math.PI/2;
@@ -126,9 +129,9 @@ export class Ranges{
       (side>0?this.right:this.group).add(mesh);
       // drifting mist strip at the foot of this wall
       const mk=L.kasumi==='heian'?heianBand:suyariBand;
-      const band=mk({width:FRIEZE_W*.96,height:L.h*.34});
+      const band=mk({width:FRIEZE_W*.96,height:L.h*.11});
       band.mesh.rotation.y=mesh.rotation.y;
-      band.mesh.position.x=side*(L.x-42);band.mesh.position.y=-5+L.h*.17;
+      band.mesh.position.x=side*(L.x-42);band.mesh.position.y=-5+L.h*.08;
       band.mesh.renderOrder=6;
       (side>0?this.right:this.group).add(band.mesh);
       this.layers.push({mesh,band,rate:L.rate,off:(L.seed*side*137)%FRIEZE_SPAN,baseX:L.x,side});
@@ -142,11 +145,11 @@ export class Ranges{
     this.air.update({sunDir:sky.sunDir,palette:sky.resolvePalette()});
     const veil=this.air.u.uVeil.value;
     for(const L of this.layers){
-      const s=mod(L.off+travel*L.rate,FRIEZE_SPAN)-FRIEZE_SPAN+1100;
+      const s=mod(L.off+travel,FRIEZE_SPAN)-FRIEZE_SPAN+1100;
       L.mesh.position.z=s;L.band.mesh.position.z=s;
       const target=coast?L.baseX+140:L.baseX;
       L.mesh.position.x=L.side*target;L.band.mesh.position.x=L.side*(target-42);
-      const ty=mountainK*1.15;
+      const ty=mountainK*1.15;L.band.mesh.material.opacity=.17;
       L.mesh.scale.y+=(ty-L.mesh.scale.y)*Math.min(1,dt*1.6);
       L.band.tex.offset.x+=dt*.006*(L.side>0?1:-1);
       L.band.mesh.material.color.copy(veil).lerp(_white,.35);
@@ -229,9 +232,18 @@ export function bambooStand(F,count,{seed=41,parent}={}){
   const culmGeo=culmGeometry({nodes:6,radial:7});
   const culmMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.78,metalness:0,envMapIntensity:.3});
   const culms=new THREE.InstancedMesh(culmGeo,culmMat,count);
-  const tuftGeo=F.lumpyTuftGeometry(1,3,.5);
-  const tuftMat=F.createFoliageMaterial({sss:.24,wind:.7,mottle:.3,bump:.4,vertexColors:false,massMap:F.leafMassTexture('leaf'),massScale:.9});
-  const nTuft=Math.ceil(count/2);
+  // Airy sprays of narrow leaves, rather than the former flattened boulders.
+  const vertices=[],uv=[];
+  for(let j=0;j<64;j++){
+    const a=j*2.399,rad=.25+r()*.85,y=(r()-.5)*.8;
+    const cx=Math.cos(a)*rad,cz=Math.sin(a)*rad,L=.48+r()*.35,W=.08;
+    const dx=Math.cos(a)*L,dz=Math.sin(a)*L,wx=-Math.sin(a)*W,wz=Math.cos(a)*W;
+    vertices.push(cx-wx,y,cz-wz,cx+wx,y,cz+wz,cx+dx,y+.2,cz+dz);
+    uv.push(0,0,1,0,.5,1);
+  }
+  const tuftGeo=new THREE.BufferGeometry();tuftGeo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));tuftGeo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));tuftGeo.computeVertexNormals();
+  const tuftMat=new THREE.MeshStandardMaterial({map:leafTexture(),color:0x72964a,alphaTest:.4,side:THREE.DoubleSide,roughness:.85});
+  const nTuft=count;
   const tufts=new THREE.InstancedMesh(tuftGeo,tuftMat,nTuft);
   for(const m of [culms,tufts]){m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);m.frustumCulled=false;parent.add(m);}
   const col=new THREE.Color();
@@ -242,7 +254,7 @@ export function bambooStand(F,count,{seed=41,parent}={}){
     set(i,x,y,z,h,rad,leanX,rot,tuft){
       _d.position.set(x,y,z);_d.rotation.set(leanX,rot,leanX*.5);_d.scale.set(rad,h,rad);_d.updateMatrix();
       culms.setMatrixAt(i,_d.matrix);
-      if(tuft>=0){_d.position.y=y+h*.9;_d.rotation.set(0,rot,0);_d.scale.set(h*.55,h*.22,h*.55);_d.updateMatrix();tufts.setMatrixAt(tuft,_d.matrix);}
+      _d.position.y=y+h*.78;_d.rotation.set(0,rot,0);_d.scale.set(h*.25,h*.28,h*.25);_d.updateMatrix();tufts.setMatrixAt(i,_d.matrix);
     },
     commit(){culms.instanceMatrix.needsUpdate=tufts.instanceMatrix.needsUpdate=true;}};
 }
@@ -352,7 +364,7 @@ export function butterflies(count,{seed=77}={}){
   }
   return {group,update(time,travel){
     for(const b of list){const u=b.userData;
-      b.position.set(u.x+Math.sin(time*.7+u.ph)*2.4,u.y+Math.sin(time*1.1+u.ph)*.5,mod(u.z+travel,1500)-1150);
+      b.position.set(u.x+Math.sin(time*.7+u.ph)*2.4,u.y+Math.sin(time*1.1+u.ph)*.5,sceneryZ(u.z,travel));
       b.rotation.y=Math.sin(time*.5+u.ph)*.9;
       const f=Math.sin(time*u.f+u.ph)*1.1;
       u.wings[0].rotation.z=f;u.wings[1].rotation.z=-f;
