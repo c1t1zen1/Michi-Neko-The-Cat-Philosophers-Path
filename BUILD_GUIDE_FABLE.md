@@ -14,62 +14,62 @@ status file, never here (§4.4). The Integrator ticks the master board.
 
 ---
 
-## 0. Status and how to resume (paused 2026-11-16)
+## 0. Status and how to resume (paused 2026-11-16, second pause)
 
-The build is paused here. Start with this section, then the master board (§6). The swarm's records (ledger with every ruling
-R1–R81, lane and gate briefs, reports, review verdicts) are in [`docs/fable/swarm/`](docs/fable/swarm/README.md).
+The build is paused here (session usage limit). Start with this section, then the master board (§6). The swarm's records (ledger with
+every ruling R1–R89, lane and gate briefs, reports, review verdicts) are in [`docs/fable/swarm/`](docs/fable/swarm/README.md); the
+ready-to-paste restart prompt is [`docs/fable/swarm/RESUME.md`](docs/fable/swarm/RESUME.md).
 
-**Branches.** `fable/integration` holds everything merged so far. `main` (what players get) has the village kit, the characters,
-the summit and the tooling (gate G-V3, reviewed GO), plus the operator's own merges of `r1-roof-split`, an early `a1-village`, and
-Roof Road stage 2. Everything else below is on `fable/integration` only, until gate G-R. Classic is still the default asset set.
+**Branches.** `main` (what players get) = the G-R reviewed commit `ef6adad` (the Roof Road in the game, everything through G-R; classic
+default) plus, on top, the operator's own Skretch/ + Shinkansen/ work committed at the pause. `fable/integration` = `main`'s
+`ef6adad` plus everything after G-R listed below. It does NOT yet contain the operator commit on `main`: merge `origin/main` into it
+before the next fast-forward of `main`.
 
-**Gates:** G-P0, G-F, G-V1, G-V2, G-V3, G-C, G-T done; G-S done provisionally (the operator may overturn it); G-R ticked (review next); G-A, G-H, G-FINAL open.
+**Gates:** G-P0, G-F, G-V1, G-V2, G-V3, G-C, G-T, G-R done (G-R review GO, `main` fast-forwarded to `ef6adad`); G-S provisional
+(R59); G-A, G-H, G-FINAL open.
 
-**Done on `fable/integration`:**
-- Phases 0, 1, 2, 3, 4 and 6.
-- Phase 7: `a1-village` and `a2-hilltop`.
-- Phase 5:
-  - `r1`;
-  - `r2` parts a and b (part b: `r2b-roofs-streets`, PR #51, merged as f6feb39);
-  - `r3` parts a and b;
-  - `r4` parts a and b;
-  - `r5` parts a and b;
-  - `r6` (the Roof Road in the game: Seven Posts unlock, Odoi bank, pocket scene, save flags, noren veil).
-- The operator-approved Roof Road route fix (R78: `rooftop_test` 40/40, finale reachable).
-- The operator-approved `game.js` → `rooftops/js/runview.js` switch-over (R81).
+**Done since G-R (on `fable/integration`):**
+- `a3-rooftops` merged (PR #55; far-tier distant city at classic look, hero bicycle, crate slats, pocket captures).
+- The pocket's reduce-motion follows the setting live (45c0b54); the finale camera frames Michi and Chidori both (9c7f490, operator may
+  overturn with one revert); the pocket is disposed on exit and rebuilt behind the noren (R88, 713967a: memory back to valley levels).
+- `h1-hero` merged (PR #56; `tools/hero_capture.mjs`, `docs/images/hero/shots.json`, 16 real hero frames in `docs/images/`).
 
-**In flight:** `h2-readme` (README rewrite) and `b1` (in flight). `h1-hero` (PR #56) and R88 (pocket disposed on exit) are merged. Then: the solo timing window, G-A, G-H and `z-final`. G-H is not ticked.
+**In flight (paused):**
+- `b1-build-budget` (PR #57, branch `fable/b1-build-budget`, worktree `michi-wt/b1-build-budget`): closes R66. Round 0 reached build
+  1.20–1.23× on medium (pass) and 1.30–1.31× on high (fail). Fix round 1 (R89) committed both levers (3cc67e7 family textures on first
+  upload, 74a87a5 draw-only classic canopy with its tests) but not the proof re-run, the 12-boot re-measure or the report section —
+  its status file "Paused mid fix round 1" lists exactly what is left.
+- `h2-readme` (PR #58, branch `fable/h2-readme`): the README/INSTALL/QUICKSTART/AGENTS/catalog README rewrite is done and pushed;
+  its review was cut off by the usage limit (start a fresh reviewer). After `b1` merges, its world-build numbers (it says 1.26–1.42×)
+  need updating.
 
 **Next steps, in order:**
-1. G-R chores: **done 2026-11-16** (`reports/gate-r-chores-report.md` in the swarm records; §6 G-R notes). Cache tag `20261116a`, the
-   Roof Road family filter, R84, the full play-through valley → Seven Posts → Roof Road → finale → home on both sets (21/21 each),
-   old saves, G1–G4. Ruling R85 applied (70ba95e allowances, 1402ec0 median-of-3 warm build); G-R ticked.
-2. Next: the G-R review (Fable; `gate-r-review.md`). On GO, fast-forward `main` to the reviewed commit.
-3. `a3-rooftops` (Roof Road area pass), then G-A.
-4. Phase 8: `h1-hero`, then `h2-readme`, then G-H.
-5. `z-final`, then the default flip. The flip is blocked until R66 closes (below).
+1. Finish `b1` fix round 1 → review → merge (R67: cadJS check + catalog tests at the merge).
+2. Review `h2-readme` (G-H stand-in, R82) → fixes → merge, then refresh the world-build numbers in the docs to b1's result.
+3. The solo timing window (R86/R87, no other agent running a browser): R66 verdict on medium + high; the provisional `roof-distant-city`
+   far buildMs 6, `roof-machiya` hero 15, `roof-hayashi` 10/5/2.5; the watch list (`summit-pagoda` mid, `valley-ground` far,
+   `summit-bay` mid, `roof-hoko` mid, `roof-okuribi` mid); all-families contract ×3.
+4. Tick G-A (provisional, R82) and G-H (provisional, R82).
+5. `z-final` (Fable; `docs/fable/swarm/briefs/z-final.md`), on a fixed commit, after merging `origin/main`.
+6. On a z-final "merge to main: GO", fast-forward `main`. The default flip (X.1–X.4) needs the operator's explicit approval.
 
-**Open items to carry:**
-- **R66, the world-build budget.** On the modular set, the world build is 1.26–1.28× classic on medium and 1.40–1.42× on high,
-  against a 1.25× rule. Boot overhead is within budget. This blocks the default flip only. The levers are in `docs/fable/handoff/a1-village.md` §2c.
-- **Deferred kit ids (still classic):**
-  - `r2` part c: bridge, corner house, roji, balconies, zushi, alley pockets/routes, street, ground;
-  - `r3`: willows, culvert ledges, tenmangu gate (downtown.js builders).
-- **Operator layout notes** (`docs/fable/swarm/reports/route-fix-report.md`):
-  - overlapping stage-2 legs block the camera near s≈1010 and s≈1558;
-  - mouth 12 (Yasaka) has zero length;
-  - the debug getter `roofRoad.view` throws under `?finale=1` before the camera is placed;
-  - `tools/rooftop_browser_test.mjs` asserts 30 residents where the route now has 40.
-- **Watch list for a quiet machine:** pagoda mid warm builds. The `r2-b` machiya warm hero allowance is 15 ms since R84. Failing on a quiet machine at G-R (needs a ruling): `roof-hayashi` hero/mid/far, `roof-okuribi` mid/far; once each `roof-distant-city` hero, `valley-ground` far, `summit-bay` mid (§6 G-R notes).
-- **Process lessons:**
-  - Run at most about 4 agents at once (the usage cap stopped the swarm twice).
-  - Take timing measurements only with `uptime` 1-min load under 3, and never loosen a budget from a loaded reading (R54).
-  - Every merge of a kit family runs `cd cadJS && npm run check` and `cd catalog && npm test` (R67).
-  - Remove scratch worktrees with plain `git worktree remove`.
+**Open items to carry** (details in §6 "Open for z-final" and the G-R notes):
+- Deferred kit ids (classic): `r2` part c (bridge, corner house, roji, balconies, zushi, alley pockets/routes, street, ground); `r3`
+  willows, culvert ledges, tenmangu gate.
+- Visual: Moon Pool canopy white cut-outs and red edge glow (shared valley code, both sets); square star sprites in the Roof Road sky;
+  no true summit dawn; no summit night window lights; on 360/390-px phones Michi is outside the finale frame.
+- Operator layout notes: overlapping stage-2 legs (s≈1010/1558), mouth 12 zero length, `roofRoad.view` throws under `?finale=1`,
+  `tools/rooftop_browser_test.mjs` asserts 30 residents (route has 40); the sandbox lacks `?cam=` (patch in `docs/fable/handoff/h1-hero.md`).
+- Operator to-dos: the cadJS README proposal (`docs/fable/handoff/h2-readme.md` §1, not applied: cadJS/ is never staged by agents);
+  stale text in files h2 did not own (same handoff §2); the rulings marked "operator may overturn" (R82–R89).
+- **Process lessons:** at most ~3 agents at once, and at most 2 on Opus (the session usage limit stopped the swarm a third time);
+  timing verdicts only in a solo window (R86); never loosen a budget from a loaded reading (R54); every kit-family merge runs
+  `cd cadJS && npm run check` and `cd catalog && npm test` (R67); never stage dawCAT/ or cadJS/ (the harness blocks it); check `ps` for
+  leftover agent scripts (a reviewer once left a detached chain running); remove scratch worktrees with plain `git worktree remove`.
 
 ## Contents
 
-0. [Status and how to resume](#0-status-and-how-to-resume-paused-2026-11-16)
+0. [Status and how to resume](#0-status-and-how-to-resume-paused-2026-11-16-second-pause)
 1. [Where we are (verified facts)](#1-where-we-are-verified-facts)
 2. [What "AAA" means here](#2-what-aaa-means-here)
 3. [Target architecture](#3-target-architecture)
