@@ -669,7 +669,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 5 | `r1-roof-split` | `build.js` split into pieces + inventory (serial); merged to main by the operator (R69) | G-F | [x] |
 | 5 | `r2-roofs-streets` | Mouths 1–2: bridge gate, machiya roofs, Pontochō | r1, `v-machiya` | [x] r2-roofs-streets (part a: 7 props; machiya/kura/kido/façades/bridge/steps/street/ground → r2-b) |
 | 5 | `r3-canal-market` | Mouths 3–5: Takase canal, boat, Nishiki canopy, laundry sky | r1 | [x] r3-canal-market (part a: 8/19 ids; part b merged: 8 more ids; willows, culvert ledges, tenmangu gate deferred) |
-| 5 | `r4-festival` | Mouths 6–7: yatai, hoko float, temple gate, Okuribi | r1 | [x] r4-festival (part a: 7 ids; distant city/sky/hills/okuribi/atmosphere → r4-b) |
+| 5 | `r4-festival` | Mouths 6–7: yatai, hoko float, temple gate, Okuribi | r1 | [x] r4-festival part a (7 ids) · [x] r4-festival part b merged (sky, hills, okuribi, distant city, atmosphere) |
 | 5 | `r5-roof-cast` | Chidori, Shōki, boatman, hayashi musicians | r1, c1 | [x] r5-roof-cast (part a: Shōki, treats, villagers, Chidori; boatman + hayashi → r5-b after r3-b/r4 merge, R75) |
 | 5 | `r6-game-wiring` | `RooftopManager`, unlock, save, music (serial) | r2–r5, D3 | [ ] |
 | 6 | `t1-catalog` | `production` variant, swap board, thumbnails | G-V1 | [x] |
@@ -703,6 +703,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 - r2-roofs-streets merged (part a: roofstreets, 7 prop types: crates, barrels, komodaru, lantern post, yuka decks, utility poles, trellises). Deferred to r2-b: machiya, kura, kido, façades, bridge, steps, street, ground. Vertex colours are dropped by the Roof Road unless patched (already on integration, c612ad7), so this family uses plain materials. Family filter for `?assets=modular` still pending (G-R chores).
 - r5-roof-cast merged (part a: roofcast, roof-shoki, roof-treats, roof-villagers + the Chidori CharacterDef; `?swap=roof-chidori:modular` wired in rooftops/js/game.js). r5-b (boatman, hayashi musicians) waits for r3-b/r4 to merge (R75). rooftop_golden routing exempts registered+modular piece types, their root groups and the extra material they bring (km.bag).
 - r4-festival merged (part a: rooffestival, roof-yatai, roof-lantern-racks, roof-hoko, roof-temple-gate, roof-tsuiji, roof-yama, roof-skyline-pagodas; hoko keeps the classic hayashi via dynamic.float, R75). Deferred to r4-b: roof-distant-city (instance-count budget exception + density decision), roof-sky, roof-hills, roof-okuribi, roof-atmosphere. Routing need: sky.js/atmosphere.js do not go through assets.build; an Integrator patch must wrap buildFires/buildHills/sky/atmosphere in assets.build(...) before r4-b.
+- r4-festival part b merged (roof-sky, roof-hills, roof-okuribi, roof-distant-city, roof-atmosphere; sky.js/atmosphere.js/game.js routing accepted R76/R77, classic-neutral). r4 is complete. okuribi mid/far warm-build watch (quiet pass).
 
 ### Suggested allocation for three workers
 
