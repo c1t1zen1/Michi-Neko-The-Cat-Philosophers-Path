@@ -113,7 +113,7 @@ function buildCity(ctx, layout) {
       if (near(jx, jz, 14 + Math.min(step * 0.35, 6))) continue;   // a3: the gap beside the route stays small (was 14 + 0.35 step = 36 m at far: bare ground under the run camera)
       const w = (4.5 + h * 3) * (0.9 + k * 0.28), d = (5 + rng() * 4) * (0.9 + k * 0.28);
       const hh = 1.7 + (h > 0.86 ? 1.5 : 0) + rng() * 0.7, rise = (1.3 + h * 0.6) * 0.78;
-      const kk = rng(), roof = [0.36 + kk * 0.14, 0.4 + kk * 0.14, 0.45 + kk * 0.15], wall = [0.56 + kk * 0.14, 0.5 + kk * 0.12, 0.42 + kk * 0.1];
+      const kk = rng(), roof = [0.17 + kk * 0.06, 0.18 + kk * 0.06, 0.22 + kk * 0.07], wall = [0.42 + kk * 0.1, 0.36 + kk * 0.08, 0.3 + kk * 0.06];   // a3 r2: display colours matched to far and classic's dark kawara
       house(S, jx, jz, Math.min(w, step * 0.86), Math.min(d, step * 0.86), far ? 0 : hh, far ? hh + rise * 2 : rise * 1.4, h > 0.5, wall, roof, !far);
       n++;
     }
