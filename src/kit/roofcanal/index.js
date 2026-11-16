@@ -8,60 +8,8 @@
 // ctx.MAT entries (no new material), so the facade merges every instance.
 import * as THREE from 'three';
 import { defineAsset } from '../contract.js?v=20261114a';
-import { Bag } from '../craft.js?v=20261114a';
-import { worldScaleBoxUVs } from '../../textures.js?v=20261114a';
-
-const SEG = { hero: 1, mid: 0.7, far: 0.5 };
-const seg = (tier, n) => Math.max(4, Math.round(n * (SEG[tier] || 0.7)));
-
-// Materials: the Roof Road passes its own painterly set as ctx.MAT (scopeAssets),
-// so every static mesh here is on a MAT entry the facade already merges: no new
-// material. (Vertex colour is NOT usable: pieces/common.js mergeByMaterial drops
-// the colour attribute, see the handoff.) A plain km material stands in where a
-// MAT entry is missing (the contract page's MAT is the valley's).
-const FALLBACK = {
-  timber: 0x3b2819, timberMed: 0x6e4c30, wetStone: 0x7d8480, stone: 0x8f8d85, pine: 0x3b5e34,
-  lacquer: 0xa8341f, steel: 0x5d6168, dark: 0x1e1915, bamboo: 0x8f9a52, bronze: 0xb28538,
-  bengara: 0xa4503a, plasterWarm: 0xe0cfae, ridge: 0x3a4149, futon: 0xe8e2d2, lanternWhite: 0xf3e6c0,
-  indigo: 0x223652, crimson: 0x8a2a2a
-};
-const matFor = (ctx, name) => {
-  const M = ctx.MAT || {};
-  const hit = name === 'indigo' || name === 'crimson' ? M.noren && M.noren[name] : M[name];
-  return hit || ctx.kitMaterials.plain(FALLBACK[name], { rough: 0.85 });
-};
-
-/** A Bag per material: `m: 'timber'` picks the bucket; boxes get world-scale UVs like the classic ones. */
-class PBag {
-  constructor(remap = null) { this.bags = new Map(); this.remap = remap; }
-  _bag(m) { m = (this.remap && this.remap[m]) || m; if (!this.bags.has(m)) this.bags.set(m, new Bag()); return this.bags.get(m); }
-  add(geo, { m = 'stone', ...o } = {}) { this._bag(m).add(geo, o); return this; }
-  box(w, h, d, { m = 'stone', ...o } = {}) {
-    const g = new THREE.BoxGeometry(w, h, d);
-    if (m !== 'futon' && m !== 'indigo' && m !== 'crimson' && m !== 'lanternWhite') worldScaleBoxUVs(g, 1);
-    this._bag(m).add(g, o);
-    g.dispose();
-    return this;
-  }
-  sphere(r, { m = 'stone', ...o } = {}) { this._bag(m).sphere(r, o); return this; }
-}
-
-const PARAMS = { wear: { type: 'number', default: 0.5, min: 0, max: 1, step: 0.1, label: 'Wear (settling and lean)' } };
-const SAMPLE = { x: 0, y: 0, z: 0, ry: 0, index: 0, band: 'near', piece: { s0: -0.5, s1: 0.5, y: 1.2, d: 0, look: 0.6, side: 'near', shape: 'stone' } };
-const sample = (piece) => ({ ...SAMPLE, piece: { ...SAMPLE.piece, ...piece } });
-
-/** One mesh per material bucket, each its own part (`body_<material>`). */
-function finish(ctx, pbag, extra = {}) {
-  const group = new ctx.THREE.Group();
-  const parts = {};
-  for (const [name, bag] of pbag.bags) {
-    const mesh = bag.mesh(matFor(ctx, name));
-    mesh.castShadow = mesh.receiveShadow = true;
-    group.add(mesh);
-    parts[`body_${name.toLowerCase()}`] = mesh;
-  }
-  return { group, parts, sockets: {}, live: [], ...extra };
-}
+import { seg, PBag, PARAMS, sample, finish } from './common.js?v=20261114a';
+import { assetsB } from './market.js?v=20261114a';
 
 /* ------------------------------------------------------ stepping stones --- */
 function buildSteppingStone(ctx, layout, p) {
@@ -179,7 +127,7 @@ const def = (id, label, build, piece, extra = {}) => defineAsset({
   id, family: 'roofcanal', label, params: PARAMS, tiers: ['hero', 'mid', 'far'], sample: sample(piece), build, ...extra
 });
 
-export const assets = [
+const assetsA = [
   def('roof-stepping-stones', 'Stepping stone', buildSteppingStone, { s0: -0.6, s1: 0.65, y: 0.2, d: 3, shape: 'turtle' }, { floating: ['body_pine'] }),
   def('roof-canal-landings', 'Canal landing', buildCanalLanding, { s0: -1.4, s1: 1.4, y: 0.7, d: 1.5 }),
   def('roof-footbridge', 'Canal footbridge', buildFootbridge, { s0: -1.6, s1: 1.6, y: 0.2, d: 3 }, { floating: ['body_indigo'] }),
@@ -189,3 +137,5 @@ export const assets = [
   def('roof-futon-racks', 'Futon rack', buildFutonRack, { s0: -1.2, s1: 1.2, y: 2.2, d: 0 }),
   def('roof-canopy-vents', 'Canopy vent', buildVent, { s0: -0.35, s1: 0.35, y: 5.42, d: 1.2 }, { floating: ['body_steel', 'body_dark'] })
 ];
+
+export const assets = [...assetsA, ...assetsB];
