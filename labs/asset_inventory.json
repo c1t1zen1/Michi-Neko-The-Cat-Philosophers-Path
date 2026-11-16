@@ -7055,6 +7055,10 @@
     },
     {
      "file": "rooftops/js/sky.js",
+     "anchor": "  buildDome() {"
+    },
+    {
+     "file": "rooftops/js/sky.js",
      "anchor": "  buildClouds() {"
     }
    ],
