@@ -23,7 +23,7 @@ R1–R81, lane and gate briefs, reports, review verdicts) are in [`docs/fable/sw
 the summit and the tooling (gate G-V3, reviewed GO), plus the operator's own merges of `r1-roof-split`, an early `a1-village`, and
 Roof Road stage 2. Everything else below is on `fable/integration` only, until gate G-R. Classic is still the default asset set.
 
-**Gates:** G-P0, G-F, G-V1, G-V2, G-V3, G-C, G-T done; G-S done provisionally (the operator may overturn it); G-R, G-A, G-H, G-FINAL open.
+**Gates:** G-P0, G-F, G-V1, G-V2, G-V3, G-C, G-T done; G-S done provisionally (the operator may overturn it); G-R ticked (review next); G-A, G-H, G-FINAL open.
 
 **Done on `fable/integration`:**
 - Phases 0, 1, 2, 3, 4 and 6.
@@ -43,9 +43,8 @@ Roof Road stage 2. Everything else below is on `fable/integration` only, until g
 **Next steps, in order:**
 1. G-R chores: **done 2026-11-16** (`reports/gate-r-chores-report.md` in the swarm records; §6 G-R notes). Cache tag `20261116a`, the
    Roof Road family filter, R84, the full play-through valley → Seven Posts → Roof Road → finale → home on both sets (21/21 each),
-   old saves, G1–G4. **G-R is not ticked:** the all-families contract has reproducible warm-build failures on a quiet machine
-   (`roof-hayashi`, `roof-okuribi`; pre-existing). The Integrator rules on those first.
-2. Next: the G-R review (Fable; `gate-r-review.md`), after that ruling. On GO, fast-forward `main` to the reviewed commit.
+   old saves, G1–G4. Ruling R85 applied (70ba95e allowances, 1402ec0 median-of-3 warm build); G-R ticked.
+2. Next: the G-R review (Fable; `gate-r-review.md`). On GO, fast-forward `main` to the reviewed commit.
 3. `a3-rooftops` (Roof Road area pass), then G-A.
 4. Phase 8: `h1-hero`, then `h2-readme`, then G-H.
 5. `z-final`, then the default flip. The flip is blocked until R66 closes (below).
@@ -679,7 +678,8 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 - [x] **G-V3** Village wave 3 (systems, life) merged (→ may merge to `main`); G1–G4 green (`reports/gate-v3-chores-report.md`; the G3 cadJS check fixed in the sky and ground families, R67); world-build §2 fails on modular only (1.72×/1.74×) — ruling R66: blocks the default flip, owner a1-village; operator may overturn
 - [x] **G-C** Characters merged; cat golden EQUAL, systems golden EQUAL, G1–G4 green, a save made on `main` loads on `?assets=classic` and `?assets=modular` (`reports/gate-v2-chores-report.md`)
 - [x] **G-S** Hilltop merged; summit_test 83/0, summit golden EQUAL, summit_kit_parity EQUAL, verify + G1 pass, classic+modular boots clean; meditation view accepted PROVISIONALLY (R59, operator may overturn) (`docs/fable/status/a2-hilltop.md`)
-- [ ] **G-R** Roof Road merged and wired (→ may merge to `main`)
+- [x] **G-R** Roof Road merged and wired (→ may merge to `main`)
+  - Chores 078faf3 + R85 (70ba95e, 1402ec0): play-through 21/21 both sets, saves load, classic game_shot vs main maxDelta 0 except the new Seven Posts / Odoi objects, all-families contract 0 failed ×3 at load <3. Review next.
   - Board note: Operator-approved route fix (R78) applied: rooftop_test 40/40, finale reachable; G-R play-through unblocked. Open layout notes for the operator: overlapping legs at s≈1010/1424/1558, mouth 12 zero length, mouths[6] as finale mouth.
   - game.js → runview.js applied (R81, operator-approved 2026-11-15; rooftop 40/40, golden EQUAL, manager 81/0). `src/rooftops` scan added to labs_coverage with rows valley-seven-posts and valley-odoi (r6 handoff §2.2). G-R preconditions left: G-R chores (full play-through valley bridge → finale → back on both sets, old saves, tag check) and review. Pending Integrator items from r6: catalog/js/links.mjs wording (§2.3, optional).
   - G-R chores done 2026-11-16 (`reports/gate-r-chores-report.md` in the swarm records; commits e814191, 4bcc0ad, a33dc55, 0623272 and this note). `origin/main` 8ab0c9b was already an ancestor (nothing to merge). 1a: the Roof Road family filter (`AssetRuntime` `families` option; the sandbox on `?assets=modular` imports 4 roof families, not 28; modular digest byte-identical). 1b: R84 (roof-machiya hero `buildMs` 15; roofstreets contract 0 failed ×3 at load 1.5–1.7). Cache tag `20261116a` (191 files; `Shinkansen/`, `Skretch/` and `docs/` skipped). **Play-through, classic and modular, 21/21 each:** a real-key walk from the spawn to the bridge, the Seven Posts unlock, a failed pocket load puts the cat back on the bridge, the noren veil, a Shōki greeted, "Leave the Roof Road" mid-run returns home, then the autopilot runs the whole route from the bridge (s 1) to the finale perch (s 1673.08, mouths 1–11, 515 s), five fires, the lantern home to the return spot, save, reload: `rooftopsUnlocked`, Shōki mask 55, `rooftopFinished` restored, the cat in the valley; console only the optional `/cad-overrides.json` 404 and the drill's own simulated build failure. Saves from 08bd3b5 and 8ab0c9b load on both sets (no new required key). G1, G3 green; G2 green except the contract; G4 boots clean (≥ 150 frames), classic `game_shot` 8ab0c9b vs head `maxDelta 0` at street noon, shrine dusk, meadow rain; river night `maxDelta 130` (1,640 px > 8, +16 draws): the Seven Posts caps on the railing and the Odoi bank bamboo only, as at r6.
