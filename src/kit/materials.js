@@ -23,8 +23,8 @@ import * as THREE from 'three';
 import {
   stoneTextures, woodTextures, lacquerTextures, strawTextures, metalTextures, plasterTextures,
   kawaraTextures, barkTextures, texturedMaterial
-} from '../textures.js?v=20261114a';
-import { rng, canvas2d, canvasTexture } from './craft.js?v=20261114a';
+} from '../textures.js?v=20261116a';
+import { rng, canvas2d, canvasTexture } from './craft.js?v=20261116a';
 
 /* ---------------------------------------------------------- GLSL chunks --- */
 

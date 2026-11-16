@@ -5,9 +5,9 @@
 // `buildTower` with other presets. Geometry is built in real metres and scaled
 // by 1 / layout.scale, because Countryside applies the classic 1.232 scale to
 // the group: the world height is `height` metres whatever the layout scale.
-import { defineAsset } from '../contract.js?v=20261114a';
-import { buildPagoda } from './build.js?v=20261114a';
-import { PRESETS } from './presets.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { buildPagoda } from './build.js?v=20261116a';
+import { PRESETS } from './presets.js?v=20261116a';
 
 export { buildPagoda, PRESETS };
 

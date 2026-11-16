@@ -7,7 +7,7 @@
 // worldScaleBoxUVs), so MAT's 256 px wood and stone textures keep their scale.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { worldScaleBoxUVs } from '../../textures.js?v=20261114a';
+import { worldScaleBoxUVs } from '../../textures.js?v=20261116a';
 
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _one = new THREE.Vector3(1, 1, 1);
 const _up = new THREE.Vector3(0, 1, 0), _dir = new THREE.Vector3(), _mid = new THREE.Vector3();

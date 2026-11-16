@@ -5,7 +5,7 @@
 // reuse it. Bend and flutter stay in the vertex shader (zero per-frame JS but
 // one uniform), exactly the classic maths, so layouts and sway match.
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { KIT_SHARED, tintToward } from '../materials.js?v=20261114a';
+import { KIT_SHARED, tintToward } from '../materials.js?v=20261116a';
 
 /** Tier knobs: lathe sides, node count along the 7 m unit culm, rings per node, leaves kept of 72, blade rows. */
 export const BAMBOO_TIER = Object.freeze({

@@ -3,7 +3,7 @@
 // around the basin and the five Okuribi fires on them.
 
 import * as THREE from 'three';
-import { isAssetInstance } from '../../src/kit/runtime.js?v=20261114a';
+import { isAssetInstance } from '../../src/kit/runtime.js?v=20261116a';
 
 const lerp = (a, b, t) => a + (b - a) * t;
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };

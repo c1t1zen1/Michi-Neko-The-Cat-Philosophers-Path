@@ -6,10 +6,10 @@
 // summit-wildlife is the umbrella row (classic builds nothing of its own: the
 // butterflies and birds are routed separately), so it is deferred; see the
 // handoff.
-import { defineAsset } from '../contract.js?v=20261114a';
-import { buildSnow, buildSummitRain, buildPollen, buildPetals, summitBox } from './weather.js?v=20261114a';
-import { buildSummitButterflies, buildSummitBirds } from './wildlife.js?v=20261114a';
-import { buildSummitLight, buildShrineRays } from './light.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { buildSnow, buildSummitRain, buildPollen, buildPetals, summitBox } from './weather.js?v=20261116a';
+import { buildSummitButterflies, buildSummitBirds } from './wildlife.js?v=20261116a';
+import { buildSummitLight, buildShrineRays } from './light.js?v=20261116a';
 
 const num = (def, min, max, step, label) => ({ type: 'number', default: def, min, max, step, label });
 const FP = { colliders: [], platforms: [], exclusions: [], anchors: {} };

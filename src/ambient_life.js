@@ -1,6 +1,6 @@
 ﻿import * as THREE from 'three';
-import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261114a';
-import { KIT_TABLES } from './countryside.js?v=20261114a';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261116a';
+import { KIT_TABLES } from './countryside.js?v=20261116a';
 
 // Asset routing (BUILD_GUIDE_FABLE §3.4, Integrator rulings R12 / R18): each
 // builder runs a layout step (its Math.random() spawn draws, in the original

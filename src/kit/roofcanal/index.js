@@ -7,9 +7,9 @@
 // platforms belong to level.js. Static, plain merged geometry on the Roof Road's own
 // ctx.MAT entries (no new material), so the facade merges every instance.
 import * as THREE from 'three';
-import { defineAsset } from '../contract.js?v=20261114a';
-import { seg, PBag, PARAMS, sample, finish } from './common.js?v=20261114a';
-import { assetsB } from './market.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { seg, PBag, PARAMS, sample, finish } from './common.js?v=20261116a';
+import { assetsB } from './market.js?v=20261116a';
 
 /* ------------------------------------------------------ stepping stones --- */
 function buildSteppingStone(ctx, layout, p) {

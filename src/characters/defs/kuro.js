@@ -1,4 +1,4 @@
-import { villagerDef } from './villager.js?v=20261114a';
+import { villagerDef } from './villager.js?v=20261116a';
 
 /** Kuro: black, long-limbed, aloof. Sits and watches, warms up slowly; a rare, unhurried wash. */
 export const KURO = villagerDef({

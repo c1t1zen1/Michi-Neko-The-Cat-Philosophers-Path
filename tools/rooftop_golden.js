@@ -252,7 +252,7 @@ async function loadModules() {
   const level = await import('../rooftops/js/level.js');
   const build = await import('../rooftops/js/build.js');
   const physics = await import('../rooftops/js/physics.js');
-  const runtime = await import('../src/kit/runtime.js?v=20261114a');
+  const runtime = await import('../src/kit/runtime.js?v=20261116a');
   return { THREE, level, build, physics, runtime };
 }
 
@@ -403,7 +403,7 @@ async function routingTest(mods, classic, mainAssets) {
   const { THREE } = mods;
   const out = { ran: false, ok: false, checks: [], problems: [] };
   const check = (name, ok, detail = '') => { out.checks.push([name, !!ok, detail]); if (!ok) out.problems.push(name + (detail ? ': ' + detail : '')); };
-  const { defineAsset } = await import('../src/kit/contract.js?v=20261114a');
+  const { defineAsset } = await import('../src/kit/contract.js?v=20261116a');
   const warnings = [];
   const runtime = new mods.runtime.AssetRuntime({
     THREE, assetSet: 'classic', quality: 'high',

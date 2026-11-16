@@ -5,7 +5,7 @@
 // Dawn mist keeps its per-time-of-day fade (updateDawnMist: opacity 0 and
 // hidden until first light).
 import * as THREE from 'three';
-import { rng as seeded, canvas2d, canvasTexture } from '../craft.js?v=20261114a';
+import { rng as seeded, canvas2d, canvasTexture } from '../craft.js?v=20261116a';
 
 const TEX_SIZE = Object.freeze({ hero: 256, mid: 128, far: 64 });
 

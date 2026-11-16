@@ -25,18 +25,18 @@
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { buildLevel } from './level.js?v=20261114a';
-import { Runner } from './physics.js?v=20261114a';
-import { Autopilot } from './autopilot.js?v=20261114a';
-import { RunView } from './runview.js?v=20261114a';
+import { buildLevel } from './level.js?v=20261116a';
+import { Runner } from './physics.js?v=20261116a';
+import { Autopilot } from './autopilot.js?v=20261116a';
+import { RunView } from './runview.js?v=20261116a';
 import { buildWorld } from '../../rooftops/js/build.js';
 import { Sky } from '../../rooftops/js/sky.js';
 import { RooftopAtmosphere } from '../../rooftops/js/atmosphere.js';
 import { alleyEntrance } from '../../rooftops/js/alleys.js';
 import { Companion } from '../../rooftops/js/companion.js';
-import { AssetRuntime } from '../kit/runtime.js?v=20261114a';
-import { Cat, catRimUniforms } from '../cat.js?v=20261114a';
-import { PENTATONIC } from './posts.js?v=20261114a';
+import { AssetRuntime } from '../kit/runtime.js?v=20261116a';
+import { Cat, catRimUniforms } from '../cat.js?v=20261116a';
+import { PENTATONIC } from './posts.js?v=20261116a';
 
 /** Walk back past here (route metres) once armed and the run hands the cat home. */
 const HOME_S = 0.6;
@@ -112,7 +112,7 @@ export class RooftopPocket {
     guideRoot.name = 'Chidori';
     this.root.add(guideRoot);
     const chidoriModular = this.assets.setFor('roof-chidori') === 'modular' && !this.lowPower;
-    const chidoriDef = chidoriModular ? (await import('../characters/defs/chidori.js?v=20261114a')).CHIDORI : null;
+    const chidoriDef = chidoriModular ? (await import('../characters/defs/chidori.js?v=20261116a')).CHIDORI : null;
     const guide = new Cat(chidoriDef
       ? { def: chidoriDef, quality: 'high' }
       : { fur: 0x8f9095, belly: 0xf3f1ec, accent: 0x55575e, eyeColor: 0x9fd0a8, stripeAmount: 0.55, ribbonColor: 0x3a6fa8 });

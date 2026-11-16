@@ -1,8 +1,8 @@
 // roof-hills: the ring of hills around the basin (rooftops/js/sky.js buildHills). Same ring, same profile
 // (the five fires stand on it: roof-okuribi uses hillHeight), with more rows and segments, ridge noise
 // and a darker cedar band in vertex colour. One mesh, one private Lambert material (Sky tints it with the night).
-import { defineAsset } from '../contract.js?v=20261114a';
-import { hillHeight, hashCloud, disposeTree } from './fx.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { hillHeight, hashCloud, disposeTree } from './fx.js?v=20261116a';
 
 const GRID = { hero: [384, 6], mid: [192, 4], far: [96, 2] };
 

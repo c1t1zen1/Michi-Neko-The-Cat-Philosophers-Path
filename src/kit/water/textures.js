@@ -8,7 +8,7 @@
 // tiles exactly; sin(A + B) is expanded into per-row and per-column tables,
 // which makes a 128 px map a few milliseconds instead of tens.
 import * as THREE from 'three';
-import { rng } from '../craft.js?v=20261114a';
+import { rng } from '../craft.js?v=20261116a';
 
 const cache = new WeakMap();
 const noOwner = {};

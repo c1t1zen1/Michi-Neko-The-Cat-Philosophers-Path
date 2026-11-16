@@ -3,9 +3,9 @@
 // the takasebune hull. Same rules as index.js: built in the layout frame from
 // layout.piece / layout.rail, geometry and heights identical to the classic
 // builders in rooftops/js/pieces/, nothing registered for collision.
-import { defineAsset } from '../contract.js?v=20261114a';
-import { Bag } from '../craft.js?v=20261114a';
-import { THREE, matFor, seg, PBag, PARAMS, sample, finish, ribbonGeo, placeLocal, frameGroupAt, lightSocket } from './common.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { Bag } from '../craft.js?v=20261116a';
+import { THREE, matFor, seg, PBag, PARAMS, sample, finish, ribbonGeo, placeLocal, frameGroupAt, lightSocket } from './common.js?v=20261116a';
 
 const rep = (tier, far, mid, hero) => (tier === 'far' ? far : tier === 'mid' ? mid : hero);
 

@@ -17,7 +17,7 @@ import { alleyEntrance } from './alleys.js';
 import { Companion } from './companion.js';
 import { neighbourhoodMap } from './neighbourhood-map.js';
 import { RunView } from './runview.js';
-import { AssetRuntime } from '../../src/kit/runtime.js?v=20261114a';
+import { AssetRuntime } from '../../src/kit/runtime.js?v=20261116a';
 
 const Q = new URLSearchParams(location.search);
 const flag = (k, d = null) => (Q.has(k) ? Q.get(k) : d);
@@ -87,7 +87,7 @@ let guide = null, stageReady = false;
 async function loadCats() {
   if (flag('cat') === '0') return true;
   try {
-    const mod = await import('../../src/cat.js?v=20261114a');
+    const mod = await import('../../src/cat.js?v=20261116a');
     await new Promise((r) => setTimeout(r, 60));          // let the page paint first
     cat = new mod.Cat({ fur: 0xae8450, belly: 0xeedcb8, accent: 0x5e3d26 });
     cat.group.position.y = 0.02;
@@ -95,7 +95,7 @@ async function loadCats() {
     catMod = mod;
     // Chidori: the same sculpt (cached), a smaller grey-and-white coat.
     const chidoriModular = assets.setFor('roof-chidori') === 'modular' && !lowPower;
-    const chidoriDef = chidoriModular ? (await import('../../src/characters/defs/chidori.js?v=20261114a')).CHIDORI : null;
+    const chidoriDef = chidoriModular ? (await import('../../src/characters/defs/chidori.js?v=20261116a')).CHIDORI : null;
     guide = new mod.Cat(chidoriDef ? { def: chidoriDef, quality: 'high' } : { fur: 0x8f9095, belly: 0xf3f1ec, accent: 0x55575e, eyeColor: 0x9fd0a8, stripeAmount: 0.55, ribbonColor: 0x3a6fa8 });
     guide.group.scale.setScalar(0.86);
     guide.group.position.y = 0.02;

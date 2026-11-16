@@ -9,10 +9,10 @@
 // Tiers: hero (quality high) has everything; mid (quality medium) drops POM,
 // puddles and rain rings; far also drops to the 2-tap sampler. Quality low
 // never reaches the kit (the classic ground stays).
-import { defineAsset } from '../contract.js?v=20261114a';
-import { buildValleyGround } from './valley.js?v=20261114a';
-import { buildRoad, buildShoulders, ROAD_POINTS } from './road.js?v=20261114a';
-import { buildSlabs, sampleSlabs } from './slabs.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { buildValleyGround } from './valley.js?v=20261116a';
+import { buildRoad, buildShoulders, ROAD_POINTS } from './road.js?v=20261116a';
+import { buildSlabs, sampleSlabs } from './slabs.js?v=20261116a';
 import * as THREE from 'three';
 
 const emptyFootprint = () => ({ colliders: [], platforms: [], exclusions: [], waterRects: [], anchors: {}, lists: {} });

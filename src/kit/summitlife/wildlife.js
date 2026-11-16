@@ -13,7 +13,7 @@
 //    meshes a bird against six) handed to the facade as `summitBirds` records
 //    through footprint.anchors, in the classic record shape.
 import * as THREE from 'three';
-import { buildButterflies } from '../critters/butterflies.js?v=20261114a';
+import { buildButterflies } from '../critters/butterflies.js?v=20261116a';
 
 /* ---------------------------------------------------------- butterflies --- */
 

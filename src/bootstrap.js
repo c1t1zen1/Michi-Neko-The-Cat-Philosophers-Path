@@ -44,7 +44,7 @@ function showError(error) {
 
 function loadEngineModule() {
   if (!engineModule) {
-    engineModule = import('./main.js?v=20261114a');
+    engineModule = import('./main.js?v=20261116a');
     prefetchKit();
   }
   return engineModule;
@@ -69,8 +69,8 @@ function prefetchKit() {
       if (quality !== 'medium' && quality !== 'high') return;   // auto or low: let the runtime decide, no early fetch
     }
     if (set !== 'modular') return;   // 'auto' resolves by the GPU tier later: no early fetch
-    import('./kit/index.js?v=20261114a')
-      .then((m) => Promise.all([import('./kit/materials.js?v=20261114a'), ...Object.values(m.FAMILIES || {}).map((load) => load())]))
+    import('./kit/index.js?v=20261116a')
+      .then((m) => Promise.all([import('./kit/materials.js?v=20261116a'), ...Object.values(m.FAMILIES || {}).map((load) => load())]))
       .catch(() => {});   // the runtime imports (and reports) for real
   } catch { /* storage blocked: the runtime fetches as before */ }
 }

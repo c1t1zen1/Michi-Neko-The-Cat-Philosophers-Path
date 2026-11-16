@@ -4,7 +4,7 @@
 // flaps through wing_l / wing_r (rotation.z about the shoulder). 3 live meshes a
 // bird (classic: 4). Geometry is cached per tier and shared by every bird.
 import * as THREE from 'three';
-import { Bag } from '../craft.js?v=20261114a';
+import { Bag } from '../craft.js?v=20261116a';
 
 const shared = (g) => { g.userData.sharedGeometry = true; return g; };
 const _cache = new WeakMap(); // kitMaterials -> { wingMat, bodyGeo{tier}, wingGeo{tier} }

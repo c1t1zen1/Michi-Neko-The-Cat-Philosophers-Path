@@ -8,13 +8,13 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { worldNoise, glowTexture } from '../textures.js?v=20261114a';
-import { lumpyTuftGeometry } from '../foliage.js?v=20261114a';
+import { worldNoise, glowTexture } from '../textures.js?v=20261116a';
+import { lumpyTuftGeometry } from '../foliage.js?v=20261116a';
 import {
   mulberry32, box, clamp01, smoothstep, MEADOW_Y, CORRIDOR_W, CORRIDOR_Z0, CORRIDOR_Z1, GATE_Z,
   ENTRY_Y, STEP_COUNT, STEP_RUN, STEP_RISE, LANDING_Z0, LANDING_Z1, LOWER_STEP_COUNT,
   LOWER_STEP_RUN, approachTopAt, lowerStepTopAt, MEDITATE_SECONDS, summitWeatherAmount, summitFootprint
-} from './common.js?v=20261114a';
+} from './common.js?v=20261116a';
 
 const _furinAt = new THREE.Vector3();
 

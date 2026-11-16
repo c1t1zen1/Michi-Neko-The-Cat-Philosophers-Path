@@ -7,8 +7,8 @@
 // countryside.layoutClimbCrates, so crate sizes/positions here only have to
 // match those boxes visually (outer sizes are identical to the classic boxes).
 import * as THREE from 'three';
-import { defineAsset } from '../contract.js?v=20261114a';
-import { Bag } from '../craft.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { Bag } from '../craft.js?v=20261116a';
 
 const COURSES = { hero: 4, mid: 3, far: 1 };
 

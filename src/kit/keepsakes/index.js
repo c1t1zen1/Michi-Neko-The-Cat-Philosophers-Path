@@ -12,12 +12,12 @@
 // merge-able materials; only the glints and the glowing jade and gold are
 // live (private materials the game's collectible loop pulses).
 import * as THREE from 'three';
-import { defineAsset } from '../contract.js?v=20261114a';
-import { canvas2d, canvasTexture } from '../craft.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { canvas2d, canvasTexture } from '../craft.js?v=20261116a';
 import {
   YARN_DETAIL, yarnThread, KEY_DETAIL, keyGeometry, DANGO_DETAIL, dangoBalls, dangoTrim,
   JADE_DETAIL, jadePawGeometry, FISH_DETAIL, fishGeometry, platterGeometry, garnishGeometry
-} from './shapes.js?v=20261114a';
+} from './shapes.js?v=20261116a';
 
 const num = (def, min, max, step, label) => ({ type: 'number', default: def, min, max, step, label });
 const mesh = (geo, mat, cast = true) => { const m = new THREE.Mesh(geo, mat); m.castShadow = cast; m.receiveShadow = true; return m; };

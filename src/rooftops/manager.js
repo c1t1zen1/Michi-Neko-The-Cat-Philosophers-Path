@@ -29,7 +29,7 @@
 // the run has seven Shōki as built) and rooftopFinished. A pocket position is
 // never saved: a save made on the Roof Road reloads on the bridge's south ramp.
 
-import { SevenPosts, PENTATONIC, POST_Z, inOdoiGate, ODOI_RETURN } from './posts.js?v=20261114a';
+import { SevenPosts, PENTATONIC, POST_Z, inOdoiGate, ODOI_RETURN } from './posts.js?v=20261116a';
 
 export const ROOFTOP_ORIGIN = Object.freeze({ x: 0, y: -2400, z: 0 });
 /**
@@ -73,7 +73,7 @@ export class RooftopManager {
     this._thicketOpen = 0;
     this.pocket = null;
     this._pocketPromise = null;
-    this._loadPocket = loadPocket || (() => import('./pocket.js?v=20261114a').then((m) => m.RooftopPocket));
+    this._loadPocket = loadPocket || (() => import('./pocket.js?v=20261116a').then((m) => m.RooftopPocket));
     this._timers = timers || { set: (fn, ms) => setTimeout(fn, ms) };
     this._input = { jumpWas: false, downWas: false, resetWas: false, touchJumpT: 0 };
     this.time = 0;

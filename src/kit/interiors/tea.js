@@ -5,11 +5,11 @@
 // `fish`, bound to InteriorManager.fishMesh) and the room's two lights. The
 // andon and the courtyard toro are the lanterns family's builders.
 import * as THREE from 'three';
-import { Bag } from '../craft.js?v=20261114a';
-import { buildAndon, buildStoneLantern } from '../lanterns/build.js?v=20261114a';
-import { TexBag, roomMats, bagMesh, groupOf, tierFlags, paperMat, shojiLight } from './common.js?v=20261114a';
-import { buildTatami, buildFrame, buildDoor, buildTokonoma, buildScroll, buildChabudai } from './room.js?v=20261114a';
-import { buildZabuton, buildBonsai, buildTeaware, buildFishPlatter } from './small.js?v=20261114a';
+import { Bag } from '../craft.js?v=20261116a';
+import { buildAndon, buildStoneLantern } from '../lanterns/build.js?v=20261116a';
+import { TexBag, roomMats, bagMesh, groupOf, tierFlags, paperMat, shojiLight } from './common.js?v=20261116a';
+import { buildTatami, buildFrame, buildDoor, buildTokonoma, buildScroll, buildChabudai } from './room.js?v=20261116a';
+import { buildZabuton, buildBonsai, buildTeaware, buildFishPlatter } from './small.js?v=20261116a';
 
 /** Engawa boards, the raked gravel court with its stones, and the courtyard's timber wall. Room frame. */
 export function buildCourtyard(ctx, tier = 'hero') {

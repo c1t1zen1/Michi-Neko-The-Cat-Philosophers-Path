@@ -4,8 +4,8 @@
 // drives (petals/smoke/fireflies .material.uniforms uTime, uNight, uOpacity; the birds' scale and rotation; the
 // motes' position and opacity). The look: petals spin, fireflies get a soft bokeh halo, smoke swells as it
 // rises, birds have swept wings.
-import { defineAsset } from '../contract.js?v=20261114a';
-import { canvas, canvasTex, disposeTree } from './fx.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { canvas, canvasTex, disposeTree } from './fx.js?v=20261116a';
 
 const TAU = Math.PI * 2;
 const hash1 = (x) => { const s = Math.sin(x * 127.1) * 43758.5453; return s - Math.floor(s); };   // (level.js hash1 is the classic's; the birds' values below are cosmetic)

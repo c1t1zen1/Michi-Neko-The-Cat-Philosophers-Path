@@ -4,8 +4,8 @@
 // exactly the classic geometry, plus material lookup from the Roof Road's own
 // ctx.MAT (so the kit merges into the classic batches) with kit fallbacks.
 import * as THREE from 'three';
-import { Bag } from '../craft.js?v=20261114a';
-import { worldScaleBoxUVs } from '../../textures.js?v=20261114a';
+import { Bag } from '../craft.js?v=20261116a';
+import { worldScaleBoxUVs } from '../../textures.js?v=20261116a';
 
 /** hash1 of rooftops/js/level.js, ported (kit code may not import rooftops/). */
 export function hash1(x) {

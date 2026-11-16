@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261114a';
-import { KIT_TABLES } from './countryside.js?v=20261114a';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261116a';
+import { KIT_TABLES } from './countryside.js?v=20261116a';
 
 /**
  * Hidden places — secrets of the valley floor, found by wandering rather than

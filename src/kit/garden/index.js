@@ -1,7 +1,7 @@
 // The garden family: the shishi-odoshi and the fūrin. Lab: labs/garden (lab 14).
 // Offering bells belong to v-shrine (Integrator ruling).
-import { defineAsset } from '../contract.js?v=20261114a';
-import { buildShishi, buildWindChime } from './build.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { buildShishi, buildWindChime } from './build.js?v=20261116a';
 
 export const assets = [
   defineAsset({

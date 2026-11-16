@@ -9,7 +9,7 @@
 // fits it to the game's size and builds the meshes. Geometry is indexed with
 // position, normal and uv so _mergeStatics() can take it.
 import * as THREE from 'three';
-import { V3, TAU, lerp, tube, merge, indexed } from '../craft.js?v=20261114a';
+import { V3, TAU, lerp, tube, merge, indexed } from '../craft.js?v=20261116a';
 
 export const KINDS = ['kasuga', 'yukimi', 'oribe', 'kotoji', 'street'];
 

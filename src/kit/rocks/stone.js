@@ -7,7 +7,7 @@
 // Everything is seeded: callers pass integer seeds drawn from ctx.rng.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { rockGeometry, withUv } from '../craft.js?v=20261114a';
+import { rockGeometry, withUv } from '../craft.js?v=20261116a';
 
 /** Icosphere subdivision per tier: [big/hero rock, small rock]. */
 export const DETAIL = Object.freeze({ hero: [3, 2], mid: [2, 1], far: [1, 0] });

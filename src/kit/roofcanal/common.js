@@ -1,8 +1,8 @@
 // Shared helpers of the roofcanal family: per-material buckets over the Roof
 // Road's own ctx.MAT entries, tier segment counts, frame helpers over layout.rail.
 import * as THREE from 'three';
-import { Bag } from '../craft.js?v=20261114a';
-import { worldScaleBoxUVs } from '../../textures.js?v=20261114a';
+import { Bag } from '../craft.js?v=20261116a';
+import { worldScaleBoxUVs } from '../../textures.js?v=20261116a';
 
 export { THREE };
 const SEG = { hero: 1, mid: 0.7, far: 0.5 };

@@ -5,8 +5,8 @@
 // vertexColors materials). The contract page's MAT is the valley's: a plain km
 // material stands in for any missing entry.
 import * as THREE from 'three';
-import { Bag } from '../craft.js?v=20261114a';
-import { worldScaleBoxUVs } from '../../textures.js?v=20261114a';
+import { Bag } from '../craft.js?v=20261116a';
+import { worldScaleBoxUVs } from '../../textures.js?v=20261116a';
 
 const FALLBACK = {
   timber: 0x3b2819, timberMed: 0x6e4c30, lacquer: 0xa8341f, gold: 0xd9ad4c, hemp: 0x9c8256, bark: 0x4a3426,

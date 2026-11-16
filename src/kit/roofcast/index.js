@@ -14,10 +14,10 @@
 // rail frame at the piece's middle and registers its `people` record, as
 // downtown.js does.
 import * as THREE from 'three';
-import { defineAsset } from '../contract.js?v=20261114a';
-import { Bag, UNIT } from '../craft.js?v=20261114a';
-import { buildResident } from './resident.js?v=20261114a';
-import { castAssets } from './cast.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { Bag, UNIT } from '../craft.js?v=20261116a';
+import { buildResident } from './resident.js?v=20261116a';
+import { castAssets } from './cast.js?v=20261116a';
 
 const TAU = Math.PI * 2;
 const SEG = { hero: 1, mid: 0.65, far: 0.4 };

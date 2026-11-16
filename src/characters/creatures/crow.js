@@ -9,7 +9,7 @@
 // meshes), mid (body with head/beak/tail/legs merged + one mesh a wing = 3),
 // far (one body mesh + one wing quad a side = 3, 3-sided lathe).
 import * as THREE from 'three';
-import { Bag } from '../../kit/craft.js?v=20261114a';
+import { Bag } from '../../kit/craft.js?v=20261116a';
 
 const shared = (g) => { g.userData.sharedGeometry = true; return g; };
 const col = (h) => new THREE.Color(h);

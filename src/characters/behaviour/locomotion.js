@@ -1,4 +1,4 @@
-import { copyPose, lerpPose, smoothstep } from '../../cat_motion.js?v=20261114a';
+import { copyPose, lerpPose, smoothstep } from '../../cat_motion.js?v=20261116a';
 
 /**
  * Locomotion: the gait clock and paw targets (a lateral walk that eases

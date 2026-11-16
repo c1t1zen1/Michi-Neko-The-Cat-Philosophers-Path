@@ -3,15 +3,15 @@
 // floats.js (part a), hills.js, sky.js, fires.js, city.js, atmosphere.js (part b: the sky, hills, the five
 // Okuribi fires, the distant city and the ambient layers; sky/hills/fires/atmosphere are routed from Sky and
 // RooftopAtmosphere, R76).
-import { defineAsset } from '../contract.js?v=20261114a';
-import { buildYatai, buildRack, buildTsuiji, buildGate } from './stalls.js?v=20261114a';
-import { buildHoko, buildYama, buildSkylinePagoda } from './floats.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { buildYatai, buildRack, buildTsuiji, buildGate } from './stalls.js?v=20261116a';
+import { buildHoko, buildYama, buildSkylinePagoda } from './floats.js?v=20261116a';
 
-import { hillsAsset } from './hills.js?v=20261114a';
-import { skyAsset } from './sky.js?v=20261114a';
-import { okuribiAsset } from './fires.js?v=20261114a';
-import { cityAsset } from './city.js?v=20261114a';
-import { atmosphereAsset } from './atmosphere.js?v=20261114a';
+import { hillsAsset } from './hills.js?v=20261116a';
+import { skyAsset } from './sky.js?v=20261116a';
+import { okuribiAsset } from './fires.js?v=20261116a';
+import { cityAsset } from './city.js?v=20261116a';
+import { atmosphereAsset } from './atmosphere.js?v=20261116a';
 
 const TIERS = ['hero', 'mid', 'far'];
 const base = { x: 0, y: 0, z: 0, ry: 0, index: 0, band: 'near' };

@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { barkTextures, texturedMaterial } from './textures.js?v=20261114a';
+import { barkTextures, texturedMaterial } from './textures.js?v=20261116a';
 import {
   createFoliageMaterial, createFoliageDepthMaterial, createBranchMaterial, leafSprayTexture, leafMassTexture,
   buildCanopy, updateFoliage
-} from './foliage.js?v=20261114a';
-import { GrassSystem, BiomeMask } from './grass.js?v=20261114a';
-import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261114a';
-import { KIT_TABLES } from './countryside.js?v=20261114a';
+} from './foliage.js?v=20261116a';
+import { GrassSystem, BiomeMask } from './grass.js?v=20261116a';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261116a';
+import { KIT_TABLES } from './countryside.js?v=20261116a';
 
 // Trees past this radius stand in or behind the edge-forest wall and are
 // built as textured leaf masses; inside it they are hero trees with

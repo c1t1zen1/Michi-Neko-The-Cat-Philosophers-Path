@@ -5,11 +5,11 @@
 // builders (tatami, teaware, platter, zabuton) and the lanterns family's andon.
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { Bag } from '../craft.js?v=20261114a';
-import { buildAndon } from '../lanterns/build.js?v=20261114a';
-import { TexBag, roomMats, bagMesh, groupOf, tierFlags } from './common.js?v=20261114a';
-import { buildTatami } from './room.js?v=20261114a';
-import { buildTeaware, buildFishPlatter } from './small.js?v=20261114a';
+import { Bag } from '../craft.js?v=20261116a';
+import { buildAndon } from '../lanterns/build.js?v=20261116a';
+import { TexBag, roomMats, bagMesh, groupOf, tierFlags } from './common.js?v=20261116a';
+import { buildTatami } from './room.js?v=20261116a';
+import { buildTeaware, buildFishPlatter } from './small.js?v=20261116a';
 
 const SECRET_MATS = [[-1.15, 0.04, -1.15, false], [1.15, 0.04, -1.15, false], [-1.15, 0.04, 1.15, false], [1.15, 0.04, 1.15, false], [-2.3, 0.04, 0, true], [2.3, 0.04, 0, true]];
 

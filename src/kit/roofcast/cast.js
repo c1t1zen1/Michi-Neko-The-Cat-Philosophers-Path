@@ -15,9 +15,9 @@
 // Everything is vertex-coloured on the kit's one `bag` material (km.bag), as the
 // residents are, so nothing needs the Roof Road's MAT beyond the resident set.
 import * as THREE from 'three';
-import { defineAsset } from '../contract.js?v=20261114a';
-import { Bag, UNIT } from '../craft.js?v=20261114a';
-import { buildResident, residentMats } from './resident.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { Bag, UNIT } from '../craft.js?v=20261116a';
+import { buildResident, residentMats } from './resident.js?v=20261116a';
 
 const ell = (bag, rx, ry, rz, o) => bag.add(UNIT.sphere, { ...o, sx: rx, sy: ry, sz: rz });
 const seg = (tier, n) => Math.max(5, Math.round(n * (tier === 'hero' ? 1 : tier === 'mid' ? 0.65 : 0.45)));

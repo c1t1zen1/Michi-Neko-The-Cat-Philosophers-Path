@@ -25,11 +25,11 @@
 // Local-space rule for builders: build with the asset's ground point at the
 // origin, +y up; the owning module places `instance.group` from the layout.
 import * as THREE from 'three';
-import { AssetRuntime, isAssetInstance } from '../src/kit/runtime.js?v=20261114a';
-import { defineAsset, partName, groupName } from '../src/kit/contract.js?v=20261114a';
-import { budgetFor, BUDGET_SOURCE } from '../src/kit/budgets.js?v=20261114a';
-import { countScene } from '../src/kit/craft.js?v=20261114a';
-import { FAMILIES } from '../src/kit/index.js?v=20261114a';
+import { AssetRuntime, isAssetInstance } from '../src/kit/runtime.js?v=20261116a';
+import { defineAsset, partName, groupName } from '../src/kit/contract.js?v=20261116a';
+import { budgetFor, BUDGET_SOURCE } from '../src/kit/budgets.js?v=20261116a';
+import { countScene } from '../src/kit/craft.js?v=20261116a';
+import { FAMILIES } from '../src/kit/index.js?v=20261116a';
 
 const q = new URLSearchParams(location.search);
 const FAMILY = q.get('family'), ASSET = q.get('asset');
@@ -347,7 +347,7 @@ async function mergeCheck(rt) {
   const list = lists.merge;
   const out = { ok: true };
   try {
-    const { Countryside } = await import('../src/countryside.js?v=20261114a');
+    const { Countryside } = await import('../src/countryside.js?v=20261116a');
     const valley = new THREE.Scene();
     valley.add(new THREE.HemisphereLight(0xffffff, 0x446644, 1));
     const t0 = performance.now();

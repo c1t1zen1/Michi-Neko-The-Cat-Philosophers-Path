@@ -60,11 +60,11 @@
 import {
   TIERS, isAssetDefinition, isAssetInstance as isInstanceShape, validateInstance,
   resolveParams, groupName, partName, bandFor, tierFor, clampTier, emptyFootprint, AssetContractError
-} from './contract.js?v=20261114a';
-import { assetRng } from './rng.js?v=20261114a';
-import { createKitAudio } from './audio.js?v=20261114a';
+} from './contract.js?v=20261116a';
+import { assetRng } from './rng.js?v=20261116a';
+import { createKitAudio } from './audio.js?v=20261116a';
 
-export { isAssetInstance } from './contract.js?v=20261114a';
+export { isAssetInstance } from './contract.js?v=20261116a';
 
 export const ASSET_SETS = Object.freeze(['classic', 'modular', 'auto']);
 // Resolved against this module, not the document, so tools/ and labs pages
@@ -518,12 +518,12 @@ function disposeTree(root) {
 }
 
 async function defaultFamilies() {
-  const mod = await import('./index.js?v=20261114a');
+  const mod = await import('./index.js?v=20261116a');
   return mod.FAMILIES || {};
 }
 
 async function defaultMaterials() {
-  const mod = await import('./materials.js?v=20261114a');
+  const mod = await import('./materials.js?v=20261116a');
   return new mod.KitMaterials();
 }
 

@@ -8,7 +8,7 @@
 // can hand the same builders a different volume (see weatherCloud()).
 // Nothing here reads Math.random or Date.now.
 import * as THREE from 'three';
-import { canvas2d, canvasTexture, rng as seeded } from '../craft.js?v=20261114a';
+import { canvas2d, canvasTexture, rng as seeded } from '../craft.js?v=20261116a';
 
 /* ------------------------------------------------------------------ calm --- */
 

@@ -27,8 +27,8 @@
 //     its `edge` attribute, the classic shoulder's alpha curve.
 // Prints and rake grooves are not promoted (no mark buffers in the game).
 import * as THREE from 'three';
-import { COMMON, HEX, SAMPLER, PAVE, RIPPLES } from './glsl.js?v=20261114a';
-import { LAYERS } from './layers.js?v=20261114a';
+import { COMMON, HEX, SAMPLER, PAVE, RIPPLES } from './glsl.js?v=20261116a';
+import { LAYERS } from './layers.js?v=20261116a';
 
 /** Shader switches per tier (guide §3.3; the card: far / quality medium drop POM and puddles). */
 export const TIER_DEFINES = Object.freeze({

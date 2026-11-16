@@ -3,8 +3,8 @@
 // ones merge into the room's single draw for that material; the knick-knacks
 // and the fish stay separate meshes (gameplay moves / hides them).
 import * as THREE from 'three';
-import { Bag, UNIT, tube, catmull, V3 } from '../craft.js?v=20261114a';
-import { roomMats, bagMesh, groupOf, tierFlags } from './common.js?v=20261114a';
+import { Bag, UNIT, tube, catmull, V3 } from '../craft.js?v=20261116a';
+import { roomMats, bagMesh, groupOf, tierFlags } from './common.js?v=20261116a';
 
 const lathe = (pts, seg, scale = 1) => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r * scale, y * scale)), seg);
 const LOW = new THREE.SphereGeometry(1, 8, 6);

@@ -4,7 +4,7 @@
 // platform tops, ridges, eaves and gable lines stay exactly where level.js
 // and the golden expect them (gameplay is geometry); detail is tiered.
 import * as THREE from 'three';
-import { Multi, finish, hash1, TAU } from './shared.js?v=20261114a';
+import { Multi, finish, hash1, TAU } from './shared.js?v=20261116a';
 
 /* ------------------------------------------------------------- roof parts --- */
 

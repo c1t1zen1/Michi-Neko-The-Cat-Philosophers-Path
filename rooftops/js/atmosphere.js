@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 import { alleyDepth } from './alleys.js';
 import { hash1 } from './level.js';
-import { isAssetInstance } from '../../src/kit/runtime.js?v=20261114a';
+import { isAssetInstance } from '../../src/kit/runtime.js?v=20261116a';
 
 const TAU = Math.PI * 2;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));

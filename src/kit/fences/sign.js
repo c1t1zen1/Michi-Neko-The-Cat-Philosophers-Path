@@ -2,10 +2,10 @@
 // bamboo post with a rain cap, a framed board, a painted lit face and two cord
 // lashings. Promoted from labs/fences/js/sign.js. Origin at the ground in
 // front of the north fence; the face reads from -z like the classic sign.
-import { defineAsset } from '../contract.js?v=20261114a';
-import { culmGeometry, knotGeometry, bake } from './culm.js?v=20261114a';
-import { canvas2d, canvasTexture } from '../craft.js?v=20261114a';
-import { KIT_SHARED, tintToward } from '../materials.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { culmGeometry, knotGeometry, bake } from './culm.js?v=20261116a';
+import { canvas2d, canvasTexture } from '../craft.js?v=20261116a';
+import { KIT_SHARED, tintToward } from '../materials.js?v=20261116a';
 
 const matOr = (ctx, name, make) => (ctx.MAT && ctx.MAT[name]) || make();
 

@@ -3,8 +3,8 @@
 // and uTime, glow sprite opacity and scale), so the fires light in order on the classic kindle curve and the camera
 // move is untouched. What changes is the look: a denser bed (hero: a 4 px grid against 6), a per-point size,
 // a hotter white-yellow core, and rising embers that live in the SAME Points as the bed (one draw per fire, as classic).
-import { defineAsset } from '../contract.js?v=20261114a';
-import { hillHeight, hashCloud, canvas, canvasTex, disposeTree } from './fx.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { hillHeight, hashCloud, canvas, canvasTex, disposeTree } from './fx.js?v=20261116a';
 
 const FONTS = "'Yu Mincho','Hiragino Mincho ProN','Shippori Mincho','Noto Serif JP','MS Mincho',serif";
 const GRID = { hero: 4, mid: 6, far: 9 };

@@ -5,8 +5,8 @@
 // the Countryside as components; Larry's patrol bounds, the reward flag and the
 // vegetation exclusion stay in the layout's footprint (countryside.js) and are
 // registered from `layout.footprint` untouched.
-import { defineAsset } from '../contract.js?v=20261114a';
-import { culmGeometry, knotGeometry, bake, FINISHES } from './culm.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { culmGeometry, knotGeometry, bake, FINISHES } from './culm.js?v=20261116a';
 
 export const corral = defineAsset({
   id: 'corral', family: 'fences', lab: 'fences/corral',

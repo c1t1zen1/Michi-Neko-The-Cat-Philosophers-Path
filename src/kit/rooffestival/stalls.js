@@ -5,7 +5,7 @@
 // rooftops/js/pieces/{yatai,rack,tsuiji,gate}.js draw them. Platforms, walls
 // and heights are gameplay (level.js): nothing here rises above a classic
 // surface or past a classic edge a jump could meet.
-import { PBag, seg } from './pbag.js?v=20261114a';
+import { PBag, seg } from './pbag.js?v=20261116a';
 
 const TAU = Math.PI * 2;
 

@@ -5,7 +5,7 @@
 // (part `windows`) is the emissive one Countryside.update() kindles at dusk
 // (villageWindowMat). The foothill forest is a component the runtime places.
 import * as THREE from 'three';
-import { Bag } from '../craft.js?v=20261114a';
+import { Bag } from '../craft.js?v=20261116a';
 
 const WALLS = [0xf5e6c8, 0xf2b8c6, 0xfdf3e0, 0xe8d8f0];
 const ROOFS = [0x7a8aa8, 0xc87888, 0x88a890, 0x9a86b0, 0xd8a878];

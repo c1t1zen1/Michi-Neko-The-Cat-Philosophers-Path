@@ -7,15 +7,15 @@
 // `this` = the manager, so the code reads exactly as it did in the class.
 
 import * as THREE from 'three';
-import { worldNoise } from '../textures.js?v=20261114a';
+import { worldNoise } from '../textures.js?v=20261116a';
 import {
   createFoliageMaterial, buildCanopy, lumpyTuftGeometry, lumpyConeGeometry, bushGeometry,
   leafMassTexture
-} from '../foliage.js?v=20261114a';
-import { GrassSystem, BiomeMask } from '../grass.js?v=20261114a';
+} from '../foliage.js?v=20261116a';
+import { GrassSystem, BiomeMask } from '../grass.js?v=20261116a';
 import {
   mulberry32, MEADOW_Y, CORRIDOR_W, CORRIDOR_Z0, LOWER_PATH_Z1, summitFootprint
-} from './common.js?v=20261114a';
+} from './common.js?v=20261116a';
 
 export const plantingMethods = {
   // Each build*() is the §3.4 split: a layout step (every this.rng() draw, in

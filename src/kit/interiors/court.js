@@ -4,8 +4,8 @@
 // detail the classic slabs lack. tea-interior builds its own inline copy;
 // these are for a mixed room (classic or kit frame around them).
 import * as THREE from 'three';
-import { Bag } from '../craft.js?v=20261114a';
-import { TexBag, roomMats, bagMesh, groupOf, tierFlags } from './common.js?v=20261114a';
+import { Bag } from '../craft.js?v=20261116a';
+import { TexBag, roomMats, bagMesh, groupOf, tierFlags } from './common.js?v=20261116a';
 
 /**
  * The raked gravel court. Origin at the court's centre, top surface at y 0

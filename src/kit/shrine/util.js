@@ -1,7 +1,7 @@
 // Shared helpers for the shrine family: translated boxes, baking, the game's
 // own materials with kit fallbacks, and per-KitMaterials private materials.
 import * as THREE from 'three';
-import { merge, indexed } from '../craft.js?v=20261114a';
+import { merge, indexed } from '../craft.js?v=20261116a';
 
 export const TIER_N = { hero: 0, mid: 1, far: 2 };
 export const byTier = (tier, hero, mid, far) => (tier === 'hero' ? hero : tier === 'mid' ? mid : far);

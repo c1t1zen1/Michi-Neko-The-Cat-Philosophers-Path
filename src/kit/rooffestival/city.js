@@ -3,8 +3,8 @@
 // instead: one gabled block (low wall + tiled roof) per grid cell, the cell size growing with the tier, all in ONE
 // mesh on the shared vertex-colour matte kit material (KIT_SHARED.matte: already in the pagoda's far draw), so the whole
 // city is one draw (classic: two). Cells within 14 m of the route stay empty, as classic. Deterministic: ctx.rng.
-import { defineAsset } from '../contract.js?v=20261114a';
-import { disposeTree } from './fx.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { disposeTree } from './fx.js?v=20261116a';
 
 const STEP = { hero: 16, mid: 34, far: 63 };
 

@@ -11,9 +11,9 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   createFoliageMaterial, leafMassTexture, buildCanopy, bushGeometry, lumpyConeGeometry, lumpyTuftGeometry
-} from '../../foliage.js?v=20261114a';
-import { texturedMaterial, woodTextures } from '../../textures.js?v=20261114a';
-import { rng as seeded, noise3 } from '../craft.js?v=20261114a';
+} from '../../foliage.js?v=20261116a';
+import { texturedMaterial, woodTextures } from '../../textures.js?v=20261116a';
+import { rng as seeded, noise3 } from '../craft.js?v=20261116a';
 
 export const FOREST_GREENS = [0x2e5a24, 0x3b6e2e, 0x4e873c, 0x67a24a];
 const VARIANTS = 4;

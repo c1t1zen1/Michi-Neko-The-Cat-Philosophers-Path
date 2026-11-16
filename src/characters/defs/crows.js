@@ -1,4 +1,4 @@
-import { defineCreature } from '../creature.js?v=20261114a';
+import { defineCreature } from '../creature.js?v=20261116a';
 
 /** The three nest guardian crows. Circling, swoops and the nudge stay in ambient_life.js. */
 export const GUARDIAN_CROW = defineCreature({

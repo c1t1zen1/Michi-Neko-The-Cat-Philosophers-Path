@@ -7,9 +7,9 @@
 //   - one lit-paper material for the shoji (driven by the hour).
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { Bag, canvas2d, canvasTexture, rng } from '../craft.js?v=20261114a';
-import { worldScaleBoxUVs } from '../../textures.js?v=20261114a';
-import { nightnessAt, washiTexture } from '../lanterns/light.js?v=20261114a';
+import { Bag, canvas2d, canvasTexture, rng } from '../craft.js?v=20261116a';
+import { worldScaleBoxUVs } from '../../textures.js?v=20261116a';
+import { nightnessAt, washiTexture } from '../lanterns/light.js?v=20261116a';
 
 export const tierFlags = (tier) => ({ hi: tier === 'hero', far: tier === 'far' });
 

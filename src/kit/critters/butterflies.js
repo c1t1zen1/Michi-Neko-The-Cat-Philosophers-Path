@@ -4,7 +4,7 @@
 // same arithmetic) run on the CPU into the instance matrices. The swarm fades
 // in by day and out at night/rain by scaling, like the classic opacity fade.
 import * as THREE from 'three';
-import { TAU, rng as seeded, canvas2d, canvasTexture } from '../craft.js?v=20261114a';
+import { TAU, rng as seeded, canvas2d, canvasTexture } from '../craft.js?v=20261116a';
 
 const _cache = new WeakMap();
 

@@ -12,8 +12,8 @@
 // tower still follows dawn, noon, dusk, night and rain from the same palette.
 // The evening lanterns have their own glow, lit by env.lanternOn.
 import * as THREE from 'three';
-import { buildPagoda } from '../pagoda/build.js?v=20261114a';
-import { glowSprite, disposeAll } from './ground.js?v=20261114a';
+import { buildPagoda } from '../pagoda/build.js?v=20261116a';
+import { glowSprite, disposeAll } from './ground.js?v=20261116a';
 
 const proxy = (hex) => ({ color: new THREE.Color(hex), emissive: new THREE.Color(0), emissiveIntensity: 0, roughness: 0.9 });
 

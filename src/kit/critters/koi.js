@@ -6,7 +6,7 @@
 // Body, dorsal, tail and the two fins are the five live meshes a fish has
 // (classic: body, outline, tail, dorsal, two fins, two eyes = 8).
 import * as THREE from 'three';
-import { TAU, rng as seeded, canvas2d, canvasTexture } from '../craft.js?v=20261114a';
+import { TAU, rng as seeded, canvas2d, canvasTexture } from '../craft.js?v=20261116a';
 
 const PATTERNS = {
   kohaku: { base: '#f6efe0', blobs: [['#d83a18', 5]], fin: 0xffd9c2 },

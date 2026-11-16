@@ -50,11 +50,9 @@ Every module import carries `?v=<tag>`. Keep all tags in sync when editing:
 find src -name '*.js' -exec sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDD<letter>/g" {} + && sed -i '' -E "s/\?v=[0-9a-z]+/?v=YYYYMMDD<letter>/g" index.html
 ```
 
-Current tag: `20261114a` (the `tools/*_preview.*` sheets and
-`tools/kit_contract_test.html/.js` carry it too). Exception (ruling R64): the
-Roof Road sandbox (`rooftops/js/game.js`, `rooftops/js/build.js`) stays on
-`20261113a` until gate G-R bumps it, so the operator's live work there is not
-disturbed. A tag bump touches every
+Current tag: `20261116a` (the `tools/*_preview.*` sheets,
+`tools/kit_contract_test.html/.js` and the Roof Road's tagged imports carry it
+too; `Shinkansen/` tags its own files and is left out of a bump). A tag bump touches every
 module's import lines, including `mountaintop.js` — change only the `?v=`
 strings there. The kit (`src/kit/**`, every family folder) imports with the
 tag as well; `node tools/kit_check.mjs` fails when a kit import's tag differs
@@ -64,8 +62,10 @@ from `src/main.js`, and `node tools/kit_index.mjs` regenerates
 Companion apps (`dawCAT/`, `cadJS/`) import their own files without tags. The
 labs import game modules *with* tags, and the one-liner below only rewrites
 `src/**/*.js` and `index.html`: bump `rooftops/js/game.js`, `rooftops/js/build.js`,
-`rooftops/js/pieces/paint.js`, `rooftops/js/pieces/common.js`,
-`tools/rooftop_golden.js` and `labs/shared/game.js` by hand.
+`rooftops/js/sky.js`, `rooftops/js/atmosphere.js`, `rooftops/js/pieces/paint.js`,
+`rooftops/js/pieces/common.js`, the `tools/` pages that import game modules,
+`cadJS/src/kit-params.mjs` and `labs/shared/game.js` by hand
+(`git grep -l "?v=<old tag>" -- ':!docs' ':!Shinkansen'` lists them).
 
 On Windows do NOT bulk-rewrite with PowerShell `Get-Content`/`Set-Content` —
 it re-encodes and corrupts em-dashes/Japanese text. Use Node (byte-safe):

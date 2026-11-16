@@ -5,8 +5,8 @@
 // approachSupportAt), so it runs on a plain object carrying those methods.
 // Reading it changes no landform height (the kit never writes terrain).
 import * as THREE from 'three';
-import { terrainMethods } from '../../summit/terrain.js?v=20261114a';
-import { canvas2d, canvasTexture, rng as seeded } from '../craft.js?v=20261114a';
+import { terrainMethods } from '../../summit/terrain.js?v=20261116a';
+import { canvas2d, canvasTexture, rng as seeded } from '../craft.js?v=20261116a';
 
 const field = Object.assign({}, terrainMethods);
 /** The summit's rendered ground height at summit-local (x, z). */

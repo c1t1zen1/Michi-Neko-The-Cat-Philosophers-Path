@@ -4,8 +4,8 @@
 // chime = cord, bell, clapper, tanzaku (4 live draws). The basin, posts,
 // feeder and anvil are static and merge by material.
 import * as THREE from 'three';
-import { merge, indexed, shadows, V3 } from '../craft.js?v=20261114a';
-import { KIT_SHARED, tintToward, tintGeometry } from '../materials.js?v=20261114a';
+import { merge, indexed, shadows, V3 } from '../craft.js?v=20261116a';
+import { KIT_SHARED, tintToward, tintGeometry } from '../materials.js?v=20261116a';
 
 const mesh = (geo, mat, name, cast = true) => { const m = new THREE.Mesh(geo, mat); m.name = name; m.castShadow = cast; m.receiveShadow = true; return m; };
 const seg = (tier, hero, mid, far) => (tier === 'hero' ? hero : tier === 'mid' ? mid : far);

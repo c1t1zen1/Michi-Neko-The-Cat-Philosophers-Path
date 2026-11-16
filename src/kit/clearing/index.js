@@ -7,11 +7,11 @@
 //   deferred (classic): summit-meadow, meditation-atmosphere, summit-trees,
 //             summit-terrain, summit-shoulder, slope-forest, summit-grass
 //             (see docs/fable/handoff/s2-clearing.md for the reasons)
-import { defineAsset } from '../contract.js?v=20261114a';
-import { buildMeditationStone, buildEnso } from './stones.js?v=20261114a';
-import { buildSummitFurin } from './furin.js?v=20261114a';
-import { buildEntry, buildLowerPath } from './approach.js?v=20261114a';
-import { summitFootprint, STEP_COUNT, STEP_RUN, CORRIDOR_Z0, ENTRY_Y, LANDING_Z0, CORRIDOR_Z1, GATE_Z, approachTopAt } from '../../summit/common.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { buildMeditationStone, buildEnso } from './stones.js?v=20261116a';
+import { buildSummitFurin } from './furin.js?v=20261116a';
+import { buildEntry, buildLowerPath } from './approach.js?v=20261116a';
+import { summitFootprint, STEP_COUNT, STEP_RUN, CORRIDOR_Z0, ENTRY_Y, LANDING_Z0, CORRIDOR_Z1, GATE_Z, approachTopAt } from '../../summit/common.js?v=20261116a';
 
 const num = (def, min, max, step, label) => ({ type: 'number', default: def, min, max, step, label });
 

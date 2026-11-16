@@ -12,8 +12,8 @@
 // and shows or hides the bound `beacon`. The kit draws the shafts with a
 // softer, streaked texture and lets them sway a little.
 import * as THREE from 'three';
-import { canvas2d, canvasTexture, rng as seeded } from '../craft.js?v=20261114a';
-import { glowTexture, sharedTexture, reducedMotion, CALM } from '../weather/sprites.js?v=20261114a';
+import { canvas2d, canvasTexture, rng as seeded } from '../craft.js?v=20261116a';
+import { glowTexture, sharedTexture, reducedMotion, CALM } from '../weather/sprites.js?v=20261116a';
 
 export function buildSummitLight(ctx, layout, p) {
   const group = new THREE.Group();

@@ -3,9 +3,9 @@
 // is rooftops/js/build.js pieceLayout(): the level record is `layout.piece`.
 // Lab: labs/roofroad. Sizes come from the record, so the run's platforms stay
 // exactly where level.js put them.
-import { defineAsset } from '../contract.js?v=20261114a';
-import { buildMachiya, buildKura, buildKido, buildSteps, buildKomayose, buildInuyarai, buildTsuboniwa } from './roofs.js?v=20261114a';
-import { buildCrate, buildBarrel, buildKomodaru, buildLanternPost, buildYuka, buildUtilityPole, buildTrellis } from './props.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { buildMachiya, buildKura, buildKido, buildSteps, buildKomayose, buildInuyarai, buildTsuboniwa } from './roofs.js?v=20261116a';
+import { buildCrate, buildBarrel, buildKomodaru, buildLanternPost, buildYuka, buildUtilityPole, buildTrellis } from './props.js?v=20261116a';
 
 const wear = { wear: { type: 'number', default: 0.5, min: 0, max: 1, step: 0.1, label: 'Wear' } };
 const T = ['hero', 'mid', 'far'];

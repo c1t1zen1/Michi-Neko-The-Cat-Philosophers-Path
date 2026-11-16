@@ -3,15 +3,15 @@
 // positions local to the part's origin, `buildLanternGlade` composes them.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { TAU, sstep, canvas2d, canvasTexture, merge, indexed, rockGeometry } from '../craft.js?v=20261114a';
-import { fitRock, rockMaterials } from '../rocks/stone.js?v=20261114a';
-import { culmGeometry, bladeGeometry } from '../greenery/bamboo.js?v=20261114a';
-import { washiTexture, haloTexture, kindle, KINDLE_SOUND_AT } from '../lanterns/light.js?v=20261114a';
+import { TAU, sstep, canvas2d, canvasTexture, merge, indexed, rockGeometry } from '../craft.js?v=20261116a';
+import { fitRock, rockMaterials } from '../rocks/stone.js?v=20261116a';
+import { culmGeometry, bladeGeometry } from '../greenery/bamboo.js?v=20261116a';
+import { washiTexture, haloTexture, kindle, KINDLE_SOUND_AT } from '../lanterns/light.js?v=20261116a';
 import {
   nightnessAt, hourOf, shared, glowTexture, leafMaterial, freePrivate, polarDisc, tint, strut,
   glowPoints, billboardSet, compose, single
-} from './common.js?v=20261114a';
-import { slabGeometry } from './pool.js?v=20261114a';
+} from './common.js?v=20261116a';
+import { slabGeometry } from './pool.js?v=20261116a';
 
 const TIER = (t, hero, mid, far) => (t === 'hero' ? hero : t === 'mid' ? mid : far);
 

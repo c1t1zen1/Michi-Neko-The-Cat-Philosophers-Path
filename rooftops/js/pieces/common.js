@@ -8,7 +8,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { worldScaleBoxUVs } from '../../../src/textures.js?v=20261114a';
+import { worldScaleBoxUVs } from '../../../src/textures.js?v=20261116a';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const TAU = Math.PI * 2;

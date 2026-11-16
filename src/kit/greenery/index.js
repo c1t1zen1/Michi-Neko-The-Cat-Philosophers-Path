@@ -3,9 +3,9 @@
 //   roadside-moss   the moss pillows hugging the road edge (its components, the
 //                   bushes / fences / toro, are placed by the runtime)
 //   bamboo-groves   the valley's bamboo groves with noded culms
-import { defineAsset } from '../contract.js?v=20261114a';
-import { buildStreetBushes, buildRoadsideMoss } from './bushes.js?v=20261114a';
-import { bambooGrove, sampleGrove } from './bamboo.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { buildStreetBushes, buildRoadsideMoss } from './bushes.js?v=20261116a';
+import { bambooGrove, sampleGrove } from './bamboo.js?v=20261116a';
 
 const rngOf = (seed) => { let a = seed; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
 

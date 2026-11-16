@@ -2,8 +2,8 @@
 // phase stay in Sky). Same uniforms (uTop, uHor, uSunDir, uSunCol, uNight) and the same cloud/moon records
 // Sky.setPhase/update drive: this adds a horizon haze band, a sun halo, two star layers and cloud sprites with
 // more lobes and a lit upper rim; the moon gets maria and a soft limb.
-import { defineAsset } from '../contract.js?v=20261114a';
-import { hashCloud, canvas, canvasTex, disposeTree } from './fx.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { hashCloud, canvas, canvasTex, disposeTree } from './fx.js?v=20261116a';
 
 const DOME = { hero: [48, 24], mid: [32, 16], far: [20, 10] };
 const CLOUDS = { hero: 13, mid: 6, far: 1 };

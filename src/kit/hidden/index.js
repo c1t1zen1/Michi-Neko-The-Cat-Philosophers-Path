@@ -3,10 +3,10 @@
 // as a whole (the kit composes every part, pool toro included) and part by
 // part (a classic parent places the kit parts it asks for). Water, moon,
 // motes, fireflies and lantern light animate themselves from update(dt, t, env).
-import { defineAsset } from '../contract.js?v=20261114a';
-import { samplePool, sampleGlade } from './samples.js?v=20261114a';
-import { buildMoonPool, buildApron, buildWater, buildMoon, buildRim, buildPoolSeat, buildPads, buildLotus, buildMotes } from './pool.js?v=20261114a';
-import { buildLanternGlade, buildFloor, buildBamboo, buildLanternSet, buildGladeSeat, buildFlies } from './glade.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { samplePool, sampleGlade } from './samples.js?v=20261116a';
+import { buildMoonPool, buildApron, buildWater, buildMoon, buildRim, buildPoolSeat, buildPads, buildLotus, buildMotes } from './pool.js?v=20261116a';
+import { buildLanternGlade, buildFloor, buildBamboo, buildLanternSet, buildGladeSeat, buildFlies } from './glade.js?v=20261116a';
 
 const num = (def, min, max, step, label) => ({ type: 'number', default: def, min, max, step, label });
 const moss = (d) => num(d, 0, 1.5, 0.1, 'Moss');

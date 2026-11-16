@@ -451,8 +451,8 @@ function driveSummit(summit, game) {
 
 async function routingTest(classicGame, classicPreview) {
   const t0 = realNow();
-  const { AssetRuntime, isAssetInstance } = await import('../src/kit/runtime.js?v=20261114a');
-  const { defineAsset } = await import('../src/kit/contract.js?v=20261114a');
+  const { AssetRuntime, isAssetInstance } = await import('../src/kit/runtime.js?v=20261116a');
+  const { defineAsset } = await import('../src/kit/contract.js?v=20261116a');
   if (typeof SummitManager.prototype.placeAsset !== 'function') {
     return { ok: false, ran: false, problems: ['SummitManager has no placeAsset(): nothing is routed'] };
   }
@@ -1501,7 +1501,7 @@ async function main() {
   const tStart = realNow();
   THREE = await import('three');
   ({ GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js'));
-  ({ SummitManager } = await import('../src/mountaintop.js?v=20261114a'));
+  ({ SummitManager } = await import('../src/mountaintop.js?v=20261116a'));
   const tImport = realNow();
   instrument();
   // The UUID stream must stay apart from the game's Math.random() stream.

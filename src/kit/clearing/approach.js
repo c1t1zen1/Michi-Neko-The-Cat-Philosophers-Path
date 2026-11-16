@@ -9,15 +9,15 @@
 // 2 x 1.8 m so the two collider pillars match), the lanterns family's stone
 // toro, and the kit's shared cord and dark timber.
 import * as THREE from 'three';
-import { merge, indexed } from '../craft.js?v=20261114a';
-import { resolveParams } from '../contract.js?v=20261114a';
-import { assets as gateAssets } from '../shrine/gate.js?v=20261114a';
-import { buildStoneLantern } from '../lanterns/build.js?v=20261114a';
-import { castMesh, byTier } from '../shrine/util.js?v=20261114a';
+import { merge, indexed } from '../craft.js?v=20261116a';
+import { resolveParams } from '../contract.js?v=20261116a';
+import { assets as gateAssets } from '../shrine/gate.js?v=20261116a';
+import { buildStoneLantern } from '../lanterns/build.js?v=20261116a';
+import { castMesh, byTier } from '../shrine/util.js?v=20261116a';
 import {
   MEADOW_Y, CORRIDOR_Z0, GATE_Z, ENTRY_Y, STEP_COUNT, STEP_RUN, STEP_RISE, LANDING_Z0, LANDING_Z1,
   LOWER_STEP_COUNT, LOWER_STEP_RUN, approachTopAt, lowerStepTopAt
-} from '../../summit/common.js?v=20261114a';
+} from '../../summit/common.js?v=20261116a';
 
 const TORII = gateAssets.find((a) => a.id === 'torii');
 const TORII_SCALE = 0.56;

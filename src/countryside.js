@@ -4,12 +4,12 @@ import {
   plasterTextures, woodTextures, kawaraTextures, shojiTextures, tatamiTextures,
   cobbleTextures, stoneTextures, groundTextures, dirtTextures, strawTextures,
   metalTextures, namakoTextures, lacquerTextures, texturedMaterial, worldScaleBoxUVs, worldNoise
-} from './textures.js?v=20261114a';
+} from './textures.js?v=20261116a';
 import {
   createFoliageMaterial, lumpyTuftGeometry, lumpyConeGeometry, leafMassTexture, bushGeometry, buildCanopy
-} from './foliage.js?v=20261114a';
-import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261114a';
-import { buildSevenPosts, buildOdoiThicket } from './rooftops/valley.js?v=20261114a';
+} from './foliage.js?v=20261116a';
+import { CLASSIC_ASSETS, isAssetInstance, scopeAssets } from './kit/runtime.js?v=20261116a';
+import { buildSevenPosts, buildOdoiThicket } from './rooftops/valley.js?v=20261116a';
 
 const Y_UP = new THREE.Vector3(0, 1, 0);
 

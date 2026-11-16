@@ -5,8 +5,8 @@
 //   rim-trees       any of the three past r = 39 m, as painted leaf masses
 // Deferred (not assets): tree-trunks / tree-canopies; buildSkeleton / buildCanopyOnly are exported building blocks.
 // Reusable builders: buildTree, buildTrunkGeometry, addCanopy, SPECIES (see build.js).
-import { defineAsset } from '../contract.js?v=20261114a';
-import { buildTree, addCanopy, buildTrunkGeometry, spineX, SPECIES, TREE_PARAMS, sampleLayout, KIND_OF_ID } from './build.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { buildTree, addCanopy, buildTrunkGeometry, spineX, SPECIES, TREE_PARAMS, sampleLayout, KIND_OF_ID } from './build.js?v=20261116a';
 
 export { buildTree, addCanopy, buildTrunkGeometry, SPECIES };
 

@@ -5,8 +5,8 @@
 // the frame the classic builders used (see each header).
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { Bag } from '../craft.js?v=20261114a';
-import { TexBag, roomMats, bagMesh, groupOf, tierFlags, paperMat, paintingTexture } from './common.js?v=20261114a';
+import { Bag } from '../craft.js?v=20261116a';
+import { TexBag, roomMats, bagMesh, groupOf, tierFlags, paperMat, paintingTexture } from './common.js?v=20261116a';
 
 const MATS = [[-1.25, 0.04, -1.25, false], [1.25, 0.04, -1.25, false], [-1.25, 0.04, 1.25, false], [1.25, 0.04, 1.25, false], [-2.5, 0.04, 0, true], [2.5, 0.04, 0, true]];
 

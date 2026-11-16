@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { GROUND } from '../../cat_anatomy.js?v=20261114a';
-import { makePose, copyPose, smoothstep, clamp } from '../../cat_motion.js?v=20261114a';
+import { GROUND } from '../../cat_anatomy.js?v=20261116a';
+import { makePose, copyPose, smoothstep, clamp } from '../../cat_motion.js?v=20261116a';
 
 /**
  * Poses and idle verbs: the rest pose, the action poses (sit, groom,

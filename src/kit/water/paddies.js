@@ -17,12 +17,12 @@
 // The season is a param (`season`, the same default on all three: 'early',
 // nearest the classic's seedling cones); the game has no season clock yet.
 // Water level (y = 0.02) and every water rect stay the classic ones.
-import { HASH, NOISE } from '../materials.js?v=20261114a';
-import { noise3 } from '../craft.js?v=20261114a';
+import { HASH, NOISE } from '../materials.js?v=20261116a';
+import { noise3 } from '../craft.js?v=20261116a';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { waterShared, WATER_GLSL, FOG_PREMULT } from './sky.js?v=20261114a';
-import { rippleNormals } from './textures.js?v=20261114a';
-import { WATER_Y } from './field.js?v=20261114a';
+import { waterShared, WATER_GLSL, FOG_PREMULT } from './sky.js?v=20261116a';
+import { rippleNormals } from './textures.js?v=20261116a';
+import { WATER_Y } from './field.js?v=20261116a';
 
 export const SEASONS = ['spring', 'early', 'summer', 'autumn', 'winter'];
 const SEASON_I = { spring: 0, early: 1, summer: 2, autumn: 3, winter: 4 };

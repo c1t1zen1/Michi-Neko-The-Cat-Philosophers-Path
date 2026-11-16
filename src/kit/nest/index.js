@@ -4,8 +4,8 @@
 // world position; the feather's group is nestFeatherMesh ('.') and the quest
 // hides it on pickup. Eggs and feather are components of the nest: the
 // Countryside places them, the nest builder never builds them.
-import { defineAsset } from '../contract.js?v=20261114a';
-import { buildNestBowl, buildEggs, buildFeather } from './build.js?v=20261114a';
+import { defineAsset } from '../contract.js?v=20261116a';
+import { buildNestBowl, buildEggs, buildFeather } from './build.js?v=20261116a';
 
 const EMPTY_FP = { colliders: [], platforms: [], exclusions: [], waterRects: [], anchors: {}, lists: {} };
 

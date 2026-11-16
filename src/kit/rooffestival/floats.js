@@ -3,11 +3,11 @@
 // downtown.js yamaFloat; same rail frame, same platforms (level.js). The hoko's
 // tassels and hayashi breathe, so they are `live` and `dynamic.float` carries the
 // classic record { group, tassels, musicians } that world.update() animates.
-import { PBag, seg } from './pbag.js?v=20261114a';
-import { Bag } from '../craft.js?v=20261114a';
-import { buildPagoda } from '../pagoda/build.js?v=20261114a';
-import { makeResident } from '../../../rooftops/js/people.js?v=20261114a';
-import { mergeByMaterial } from '../../../rooftops/js/pieces/common.js?v=20261114a';
+import { PBag, seg } from './pbag.js?v=20261116a';
+import { Bag } from '../craft.js?v=20261116a';
+import { buildPagoda } from '../pagoda/build.js?v=20261116a';
+import { makeResident } from '../../../rooftops/js/people.js?v=20261116a';
+import { mergeByMaterial } from '../../../rooftops/js/pieces/common.js?v=20261116a';
 
 /* ------------------------------------------------------------------- hoko --- */
 

@@ -9,8 +9,8 @@
 // Vertex colours are deliberately not used: they would only survive
 // mergeByMaterial on vertexColors materials, and alley-cut meshes drop them.
 import * as THREE from 'three';
-import { Bag } from '../craft.js?v=20261114a';
-import { worldScaleBoxUVs } from '../../textures.js?v=20261114a';
+import { Bag } from '../craft.js?v=20261116a';
+import { worldScaleBoxUVs } from '../../textures.js?v=20261116a';
 
 /**
  * Material key -> [the Roof Road's own material name in ctx.MAT, kit fallback].

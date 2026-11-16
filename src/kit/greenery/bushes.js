@@ -1,7 +1,7 @@
 // Street bushes + roadside moss (Phase 2 v-greenery). Lab 15 "karikomi": the
 // street keeps two shapes of green, free lumpy shrubs and clipped cushions.
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { createFoliageMaterial, leafMassTexture, bushGeometry } from '../../foliage.js?v=20261114a';
+import { createFoliageMaterial, leafMassTexture, bushGeometry } from '../../foliage.js?v=20261116a';
 
 // per-tier [icosphere detail, lobes] of a bush; hero is the classic shape
 export const BUSH_DETAIL = Object.freeze({ hero: [2, 8], mid: [1, 8], far: [0, 5] });
