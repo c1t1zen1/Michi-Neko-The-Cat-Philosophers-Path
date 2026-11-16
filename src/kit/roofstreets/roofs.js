@@ -116,7 +116,7 @@ function crate(u, x, y, z, w, h, d) {
   u.box(w, h, d, { m: 'agedWood', x, y: y + h / 2, z });
 }
 
-/** The downtown kit's decorateHouse (rain cups, shop bench, vines, byobu); the bicycle is left out. */
+/** The downtown kit's decorateHouse (rain cups, shop bench, vines, byobu); the bicycle is ported (a3, hero only). */
 function dressHouse(u, pc) {
   const w = pc.s1 - pc.s0, d = pc.dFront, eave = pc.hisashi || pc.eave, seed = hash1(pc.s0 * 7.9);
   if (seed > 0.35) {
@@ -130,6 +130,19 @@ function dressHouse(u, pc) {
     for (const x of [-w * 0.26 - 0.45, -w * 0.26 + 0.45]) u.box(0.06, 0.4, 0.06, { m: 'agedWood', x, y: 0.2, z: d + 0.4 });
     crate(u, -w * 0.26, 0.46, d + 0.4, 0.42, 0.24, 0.32);
     u.beam([w * 0.35, 0.12, d + 0.65], [w * 0.35 - 0.18, 1.3, d + 0.25], 0.017, 'bamboo');
+  }
+  if (seed > 0.72) {
+    // the classic's bicycle: two spoked wheels, a diamond frame, saddle, handlebar, a basket crate
+    const bx = -w * 0.26, z = d + 0.37;
+    for (const x of [bx - 0.38, bx + 0.38]) {
+      u.add(new THREE.TorusGeometry(0.26, 0.018, 4, 12), { m: 'dark', x, y: 0.28, z });
+      for (let i = 0; i < 3; i++) u.box(0.51, 0.008, 0.008, { m: 'steel', x, y: 0.28, z, rz: i * Math.PI / 3 });
+    }
+    const A = [bx - 0.38, 0.28, z], B = [bx - 0.1, 0.28, z], C = [bx - 0.2, 0.63, z], D = [bx + 0.2, 0.61, z], E = [bx + 0.38, 0.28, z];
+    for (const [a, b] of [[A, B], [B, C], [C, A], [C, D], [D, B], [D, E]]) u.beam(a, b, 0.017, 'bengara');
+    u.beam(D, [bx + 0.16, 0.83, z], 0.016, 'steel');
+    u.box(0.28, 0.035, 0.12, { m: 'dark', x: bx - 0.2, y: 0.66, z });
+    crate(u, bx + 0.36, 0.59, z, 0.22, 0.18, 0.2);
   }
   if (pc.vines) { vine(u, -w * 0.48, -w * 0.05, eave - 0.2, pc.dFront + 0.8, pc.s0); pot(u, -w * 0.42, 0, pc.dFront + 0.5, pc.s0); }
   if (pc.byobu) for (let i = 0; i < 4; i++) u.box(0.42, 0.94, 0.035, { m: i % 2 ? 'tapestry' : 'gold', x: -0.7 + i * 0.4, y: 0.63, z: pc.dFront + 0.15 + (i % 2) * 0.12, ry: i % 2 ? -0.25 : 0.25 });

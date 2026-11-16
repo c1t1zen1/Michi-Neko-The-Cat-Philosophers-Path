@@ -205,7 +205,8 @@ export const BUDGET_EXCEPTIONS = Object.freeze({
   },
   'roof-distant-city': {
     hero: { buildMs: 13 },
-    why: 'the city is one merged mesh on the pagoda family matte material: classic 7,956 instanced houses = 79,560 tris / 2 meshes / 2 materials (two draws); modular hero 10,276 tris / 1 / 1, mid 2,240, far 228 (one draw). Hero warm build 3.5-6.1 ms at load 1.5 (classic buildDistantCity, same page: 16 ms cold, 3.6-4.1 ms warm). Warm build allowance (R85): quiet reads at load 1.1-1.8, 6 runs, hero 9.8-11.6 ms (6/6 over 8), so 13'
+    far: { triangles: 90000, buildMs: 6 },
+    why: 'a3 fix 1: the far tier is ONE InstancedMesh of a 14-triangle gabled house on the matte material (classic buildDistantCity: 7,956 instanced houses = 79,560 tris, 2 InstancedMeshes, 2 materials, 7 m lattice; kit far: about 5,900 houses at 8.5 m = about 82,000 tris, 1 mesh, 1 material). The Roof Road always builds the city at far (band far), so far must keep classic coverage; the far cap is raised to 90,000 tris on that basis. Older note: the city is one merged mesh on the pagoda family matte material: classic 7,956 instanced houses = 79,560 tris / 2 meshes / 2 materials (two draws); modular hero 10,276 tris / 1 / 1, mid 2,240, far 228 (one draw). Hero warm build 3.5-6.1 ms at load 1.5 (classic buildDistantCity, same page: 16 ms cold, 3.6-4.1 ms warm). Warm build allowance (R85): quiet reads at load 1.1-1.8, 6 runs, hero 9.8-11.6 ms (6/6 over 8), so 13'
   }
 });
 

@@ -21,14 +21,14 @@ Mouth s ranges from `buildLevel()`: 1 0-100, 2 100-242, 3 242-402, 4 402-590, 5 
 - R2 Takase canal, boat, Nishiki canopy, laundry sky: s 242-799. Stops 280, 350, 520, 650.
 - R3 festival: hoko-cho yatai, float, castle, to the finale: s 799-1261 and the float roof. Stops 760, 950, 1230, finale.
 Times (sandbox phase 0..1; the sandbox is one summer afternoon into festival night, so there is no dawn): 0.05 early afternoon, 0.35 noon, 0.72 dusk, 0.95 night.
-Captures: `docs/fable/status/a3-rooftops/mod_<phase>_<s>.jpg` (modular, 48), `cls_*` (classic pairs, 8), `patch_band_near_0.35_150.jpg` (modular with the issue-1 patch applied locally).
+Captures: `docs/fable/status/a3-rooftops/mod_<phase>_<s>.jpg` (modular, 6 stops x 4 phases, re-shot after fix round 1), `cls_*` (classic pairs, 8), `fix1_*`, `fix3_*`, `pocket_*` (fix round 1).
 Tool: scratch script over `roofRoad.at(s)` + `renderNow` on `/kyoto-rooftops.html?hour=&assets=&shot=1&nohud=1`, Metal. Not pixel-repeatable (time loops).
 
 ## Contact sheet (best frame per route and time; classic vs modular)
 | Route | phase 0.35 noon | phase 0.95 night |
 |---|---|---|
-| R1 | mod_0.35_70 / cls_0.35_20 | mod_0.95_70 |
-| R2 | mod_0.35_350 / cls_0.35_350 | mod_0.95_520 / cls_0.95_280 |
+| R1 | mod_0.35_150 / cls_0.35_150 | fix1_mod_0.95_150 / fix1_cls_0.95_150 |
+| R2 | mod_0.35_350 / cls_0.35_350 | mod_0.95_350 / cls_0.95_280 |
 | R3 | mod_0.35_950 / cls_0.35_650 | mod_0.95_950 / cls_0.95_950 |
 | finale | mod_0.05_finale | mod_0.95_finale / cls_0.95_finale |
 
@@ -85,3 +85,19 @@ Not touched, ranked 5: crate slat gaps and trellis bark curls, decorateHouse bic
 - rooftop_golden classic EQUAL + modular routing 41/41; rooftop_test 40/0; companion 7 passed; alley PASS; manager 81/0; footprint_golden EQUAL
 - `kit_contract_test --family rooffestival` at uptime 2.2: 697 checks, 2 failed, both warm-build and both in files not edited here: roof-hoko [mid] 3.4 ms (cap 3), roof-okuribi [mid] 4.3 ms (cap 4). roof-distant-city passes all three tiers. The earlier run at load 4.5-5 failed 10 on warm builds (load, not judged). Ranked 5: re-read hoko/okuribi mid at a quiet machine.
 - Not run: game boots classic + modular, cadJS/catalog checks (no family file outside rooffestival/city.js changed; cadJS/catalog not run).
+
+## Fix round 1 (Integrator pre-review)
+1. Distant city (AAA-1): the far tier is now ONE InstancedMesh of a 14-triangle gabled house on the shared matte material, on an 8.5 m lattice
+   (classic 7 m: 7,956 houses, two InstancedMeshes), the route gap back to 14 m, colours converted to linear (all tiers: they were reading pale/blue).
+   Budget row `roof-distant-city` far: `{ triangles: 90000, buildMs: 6 }`, why cites classic's 79,560 tris / 2 meshes / 2 materials / 7,956 instances against the kit's
+   about 5,900 houses / about 82,000 tris / 1 mesh / 1 material. build.js untouched. The far buildMs 6 is from a contract pass at load 3.2 and 2.3 (warm build far under 1.5 ms before; no failure reported at 6), not a quiet measurement: re-read at load < 2 (open).
+   A/B from the run camera (classic vs modular, day and night): fix1_cls_/fix1_mod_ at s 150 (R1), 350 (R2), 950 (R3), phases 0.35 and 0.95. By eye the modular skyline now matches classic's tone and fills the same view.
+   Gates: rooftop golden classic EQUAL, modular routing 41/41.
+2. R52 at s=350: modular was 204 vs classic 203. Now 3 runs each at load 3.9-4.4 (draws are load-independent): modular 202, 202, 202; classic 200, 199, 203 (and 203, 206 in
+   earlier runs): the classic count itself swings +-3 with animated state, so modular is within it, not clearly below. A per-family swap bisect (streets, festival, cast classic one by one) showed no single family adds the draw: swapping the street family to classic RAISES draws (211), the cast to 205, the festival family 203, i.e. the kit
+   is already cheaper in each family and the residual is the shared sandbox state. All spots (s 20/150/350/520/950/1230, high): modular 190/254/204/189/324/97 vs classic 201/265/206/215/339/100 at load 3.9-4.2 on the same run: modular <= classic at every spot. The s=350 margin is 2-4 draws on that run; I could not make it larger without cutting a mesh. ms not recorded (load > 3).
+3. Deferred minors: hayashi: close-up pair from the float at noon and night (fix3_hayashi_cls/mod; run camera s 1026/1031 in f3): the kit musicians read equal to classic, with hats and instruments; not weaker, no change. Bicycle: ported on the hero machiya (`dressHouse`, same recipe, 3 spokes per wheel); fix3_bicycle_cls/mod, s 950, matches. Crate slats: 5 (hero) / 4 (mid) slats, thicker and narrower (gap 28% instead of 15%); no frame shows a crate close enough to judge, so the look is unverified (contract passes). Trellis bark curls left ranked.
+4. Sound: everything the Roof Road plays is event or state driven, not tied to a mesh. Sandbox (`rooftops/js/game.js`): footsteps by `ground.kind`, the festival drum after mouth 6 at night by s, the river and roof wind layers by s, bounce/land/splash/chimes from the run view's events, the Okuribi drums and chimes from `fire` events. Pocket (`src/rooftops/pocket.js`, `manager.js`): the same event tones on the sfx bus, the Rooftops music mood (`music.setScene('Rooftops')`), the bell and dream chime. `awk` over game.js 100-300 and pocket.js 262-300 finds no scene, mesh, world or assets reference. So `?assets=modular` loses nothing, and no kit family needs an `env.audio` call. There is no hayashi or canal-water source in classic either (the float's musicians are silent; the drum is the festival sound). Hearing it (a real ear check) was not done.
+5. Pocket (both sets, real game, `?assets=classic|modular`, autostart new, unlocked via `rooftops.setUnlocked`, walked into the gap, 1280x720): pocket_classic_/pocket_modular_ arrival, run (s 150), finale (t about 9 s). Console clean on both boots (errors [] warnings []). Comfort driven with body classes large-text, high-contrast, reduce-motion in the pocket: the arrival hint is white on black 16 px, "Leave the Roof Road" in the pause menu is 15 px cream on the panel, both legible (pocket_modular_comfort_hint/menu). Not driven: the settings UI itself and a real prefers-reduced-motion. Finale framing: judged in docs/fable/handoff/a3-rooftops.md (Michi at the left edge; a pair-midpoint patch for runview.js, untested).
+6. Checks (final): check_syntax 192, verify all passed, kit_check 534, labs_check OK, kit_test 37/0, rooftop_test 40/0, companion 7, alley PASS, manager 81/0, rooftop golden EQUAL (routing 41/41), footprint golden EQUAL, `cd cadJS && npm run check` 16/16, `cd catalog && npm test` 50/0. Both game boots clean (above).
+   Contract at load 2.1-2.4: rooffestival 697 checks 0 failed (the hoko/okuribi mid flakes did not recur). roofstreets: 1 failed, roof-machiya [hero] warm build 17-18 ms vs 15; the same check on the unchanged base (git stash) reads 15.3 / 16.6 and fails, so it predates this lane (quiet reads were 11.0 in r2b); the bicycle adds about 1.5 ms of it. roofcast: roof-hayashi warm builds fail at base too (13.7 vs 10 hero). Neither is raised from a loaded read; both need a re-read at load < 2 (not reached: the machine held 2-3).
