@@ -26,26 +26,9 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { makeShoki } from '../../rooftops/js/pieces/pickups.js';
 import { createFoliageMaterial } from '../foliage.js?v=20261114a';
-import { BRIDGE_X, BRIDGE_Z, EAST_RAIL, POST_Z } from './posts.js?v=20261114a';
+import { BRIDGE_X, EAST_RAIL, POST_Z, ODOI } from './posts.js?v=20261114a';
 
-/**
- * The Odoi bank, in world metres. Its gap sits at the foot of the bridge's south
- * ramp, a little east of the ramp's axis (x = -1): the edge forest's trunks stand
- * at x ≈ -1.5 and x ≈ 2.1 just behind the bank, and the gate stands between them.
- */
-export const ODOI = Object.freeze({
-  seed: 0x0D01,
-  z: 38.7, depth: 2.4, crest: 0.9, height: 1.35,
-  x0: -11, x1: 9, gap0: -0.45, gap1: 1.15
-});
-/**
- * Walking into the open gap starts the noren veil: the cat at the foot of the
- * south ramp (it ends at z = 37.3; the forest stops a cat at z ≈ 36.7), anywhere
- * across the ramp's width, on the ground (not on a kerb or a jump).
- */
-export const ODOI_GATE = Object.freeze({ x0: -2.0, x1: 1.0, z: 36.45, maxY: 1.25 });
-/** The cat's spot on the way back: the bridge's south ramp, facing north (the valley). */
-export const ODOI_RETURN = Object.freeze({ x: -1, y: 0.67, z: 35.7, heading: Math.PI });
+export { ODOI, ODOI_GATE, ODOI_RETURN } from './posts.js?v=20261114a';
 
 function mulberry32(a) {
   return function () {
