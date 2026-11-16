@@ -41,9 +41,11 @@ Roof Road stage 2. Everything else below is on `fable/integration` only, until g
 **In flight:** nothing. `r2-b` is merged; the Roof Road kit families are done apart from the deferred ids below.
 
 **Next steps, in order:**
-1. G-R chores (`docs/fable/swarm/briefs/gate-r-chores.md`): merge `origin/main`, cache tag `20261115a` (or that day's date), the full
-   play-through valley → Seven Posts → Roof Road → finale → home on both sets, old saves, G1–G4.
-2. The G-R review (Fable; `gate-r-review.md`). On GO, fast-forward `main` to the reviewed commit.
+1. G-R chores: **done 2026-11-16** (`reports/gate-r-chores-report.md` in the swarm records; §6 G-R notes). Cache tag `20261116a`, the
+   Roof Road family filter, R84, the full play-through valley → Seven Posts → Roof Road → finale → home on both sets (21/21 each),
+   old saves, G1–G4. **G-R is not ticked:** the all-families contract has reproducible warm-build failures on a quiet machine
+   (`roof-hayashi`, `roof-okuribi`; pre-existing). The Integrator rules on those first.
+2. Next: the G-R review (Fable; `gate-r-review.md`), after that ruling. On GO, fast-forward `main` to the reviewed commit.
 3. `a3-rooftops` (Roof Road area pass), then G-A.
 4. Phase 8: `h1-hero`, then `h2-readme`, then G-H.
 5. `z-final`, then the default flip. The flip is blocked until R66 closes (below).
@@ -59,7 +61,7 @@ Roof Road stage 2. Everything else below is on `fable/integration` only, until g
   - mouth 12 (Yasaka) has zero length;
   - the debug getter `roofRoad.view` throws under `?finale=1` before the camera is placed;
   - `tools/rooftop_browser_test.mjs` asserts 30 residents where the route now has 40.
-- **Watch list for a quiet machine:** okuribi mid/far and pagoda mid warm builds. The `r2-b` machiya warm hero buildMs is flaky at 12 ms on a quiet machine (see `docs/fable/status/r2b-roofs-streets.md`).
+- **Watch list for a quiet machine:** pagoda mid warm builds. The `r2-b` machiya warm hero allowance is 15 ms since R84. Failing on a quiet machine at G-R (needs a ruling): `roof-hayashi` hero/mid/far, `roof-okuribi` mid/far; once each `roof-distant-city` hero, `valley-ground` far, `summit-bay` mid (§6 G-R notes).
 - **Process lessons:**
   - Run at most about 4 agents at once (the usage cap stopped the swarm twice).
   - Take timing measurements only with `uptime` 1-min load under 3, and never loosen a budget from a loaded reading (R54).
@@ -680,6 +682,9 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 - [ ] **G-R** Roof Road merged and wired (→ may merge to `main`)
   - Board note: Operator-approved route fix (R78) applied: rooftop_test 40/40, finale reachable; G-R play-through unblocked. Open layout notes for the operator: overlapping legs at s≈1010/1424/1558, mouth 12 zero length, mouths[6] as finale mouth.
   - game.js → runview.js applied (R81, operator-approved 2026-11-15; rooftop 40/40, golden EQUAL, manager 81/0). `src/rooftops` scan added to labs_coverage with rows valley-seven-posts and valley-odoi (r6 handoff §2.2). G-R preconditions left: G-R chores (full play-through valley bridge → finale → back on both sets, old saves, tag check) and review. Pending Integrator items from r6: catalog/js/links.mjs wording (§2.3, optional).
+  - G-R chores done 2026-11-16 (`reports/gate-r-chores-report.md` in the swarm records; commits e814191, 4bcc0ad, a33dc55, 0623272 and this note). `origin/main` 8ab0c9b was already an ancestor (nothing to merge). 1a: the Roof Road family filter (`AssetRuntime` `families` option; the sandbox on `?assets=modular` imports 4 roof families, not 28; modular digest byte-identical). 1b: R84 (roof-machiya hero `buildMs` 15; roofstreets contract 0 failed ×3 at load 1.5–1.7). Cache tag `20261116a` (191 files; `Shinkansen/`, `Skretch/` and `docs/` skipped). **Play-through, classic and modular, 21/21 each:** a real-key walk from the spawn to the bridge, the Seven Posts unlock, a failed pocket load puts the cat back on the bridge, the noren veil, a Shōki greeted, "Leave the Roof Road" mid-run returns home, then the autopilot runs the whole route from the bridge (s 1) to the finale perch (s 1673.08, mouths 1–11, 515 s), five fires, the lantern home to the return spot, save, reload: `rooftopsUnlocked`, Shōki mask 55, `rooftopFinished` restored, the cat in the valley; console only the optional `/cad-overrides.json` 404 and the drill's own simulated build failure. Saves from 08bd3b5 and 8ab0c9b load on both sets (no new required key). G1, G3 green; G2 green except the contract; G4 boots clean (≥ 150 frames), classic `game_shot` 8ab0c9b vs head `maxDelta 0` at street noon, shrine dusk, meadow rain; river night `maxDelta 130` (1,640 px > 8, +16 draws): the Seven Posts caps on the railing and the Odoi bank bamboo only, as at r6.
+  - **Not ticked: `node tools/kit_contract_test.mjs` (all families) fails 4 checks on each of three quiet runs (load 1.1–1.8), all warm build time:** `roof-hayashi` hero up to 8.9 / 8 ms, mid 4.2 / 4, far 2.0 / 1.5; `roof-okuribi` mid 3.5 / 3, far 3.7 / 3; once each `roof-distant-city` hero 8.1 / 8, `valley-ground` far 2.2 / 2, `summit-bay` mid 3.4 / 3. The same failures on 9f7c0ed (pre-existing, not from the chores). Budgets are not loosened by the chores (R54): an Integrator ruling is needed (the R84 kind, from these quiet numbers, or a fix in the families) before G-R can be ticked.
+  - Operator layout notes (`reports/route-fix-report.md`; the operator's files, recorded, not fixed, not G-R blockers): overlapping stage-2 legs block the camera near s ≈ 1010 and s ≈ 1558 (and s ≈ 1424); mouth 12 (Yasaka) has zero length (s0 = s1 = 1709.47); the debug getter `roofRoad.view` throws under `?finale=1` before the camera is placed (`view.cam.center` undefined, `rooftops/js/game.js:730`); `tools/rooftop_browser_test.mjs:51` asserts 30 residents where the route builds 40.
 - [x] **G-T** Tooling merged; cadJS param edit (key-rock size 1.5, Push to game) changed the ?assets=modular shot (maxDelta 166), restoring kit-overrides.json reverted it (maxDelta 0); catalog 49/49, cadJS 16/16 pass
 - [ ] **G-A** Area polish accepted for all three areas
 - [ ] **G-H** Hero images and README merged
