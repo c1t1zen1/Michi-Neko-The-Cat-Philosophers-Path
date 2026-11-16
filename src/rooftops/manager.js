@@ -47,7 +47,7 @@ export class RooftopManager {
    * @param game the Game (main.js): scene, camera, renderer, player, controls,
    *   ui, audio, city, progression, music, discover(), saveGame().
    * @param options.loadPocket () => Promise<class>, the pocket's constructor
-   *   (default: import('./pocket.js')); tools/rooftop_manager_test.mjs injects a stub.
+   *   (default: a dynamic import of pocket.js); tools/rooftop_manager_test.mjs injects a stub.
    * @param options.timers { set(fn, ms) } (default setTimeout), for the test.
    */
   constructor(game, { loadPocket = null, timers = null } = {}) {
