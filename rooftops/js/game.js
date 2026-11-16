@@ -8,14 +8,15 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { buildLevel, mouthAt } from './level.js';
-import { Runner, PHYS, platOffset, platTop, platDepth } from './physics.js';
+import { Runner, PHYS, platTop } from './physics.js';
 import { Autopilot } from './autopilot.js';
 import { buildWorld } from './build.js';
 import { Sky } from './sky.js';
 import { RooftopAtmosphere } from './atmosphere.js';
-import { alleyEntrance, alleyDepth } from './alleys.js';
+import { alleyEntrance } from './alleys.js';
 import { Companion } from './companion.js';
 import { neighbourhoodMap } from './neighbourhood-map.js';
+import { RunView } from './runview.js';
 import { AssetRuntime } from '../../src/kit/runtime.js?v=20261114a';
 
 const Q = new URLSearchParams(location.search);
@@ -100,6 +101,7 @@ async function loadCats() {
     guide.group.position.y = 0.02;
     guideRoot.add(guide.group);
     mod.catRimUniforms.uRimStrength.value = 0.35;
+    view.cat = cat; view.guide = guide; view.rim = mod.catRimUniforms;
     return true;
   } catch (e) {
     console.error('cat failed to load', e);
@@ -285,7 +287,7 @@ addEventListener('keydown', (e) => {
   else if (e.code === 'KeyH') toggleGuidance();
   else if (e.code === 'KeyM') setMuted(!audio.muted);
   else if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
-  else if (e.code === 'KeyN' && Q.has('debug')) jumpToMouth(Math.min(7, currentMouth.id + 1));
+  else if (e.code === 'KeyN' && Q.has('debug')) jumpToMouth(Math.min(7, view.currentMouth.id + 1));
 });
 addEventListener('keyup', (e) => {
   const k = KEYMAP[e.code];
@@ -440,51 +442,30 @@ function updateStrip() {
   if (!strip) return;
   for (const li of strip.children) {
     const id = +li.dataset.m;
-    li.classList.toggle('seen', seenMouths.has(id));
-    li.classList.toggle('here', id === currentMouth.id);
+    li.classList.toggle('seen', view.seen.has(id));
+    li.classList.toggle('here', id === view.currentMouth.id);
   }
   const sc = $('shoki-count');
-  if (sc) sc.textContent = `${greeted.size}/7`;
+  if (sc) sc.textContent = `${view.greeted.size}/7`;
 }
 
 /* ---------------- state ---------------- */
 
-let time = 0;
-let currentMouth = level.mouths[0];
-const seenMouths = new Set();
-const greeted = new Set();
-let lastCheckpoint = level.checkpoints[0];
-let finale = null;
+// The run's view (rooftops/js/runview.js, shared with the game, ruling R80)
+// owns the run's time, the mouths seen, the Shōki greeted, the last lantern,
+// the finale and the cat's and camera's rigs. It is built below, once
+// Chidori's companion exists; this page keeps its input, HUD, sound and
+// renderer, and hears the run's events through the view's hooks.
+let view = null;
 let autopilot = flag('auto') === '1' ? new Autopilot(level) : null;
 let isPaused = false, contextLost = false;
 
-// Visual state for the cat.
-const vis = { depth: 0, phi: 0, catY: 0, landT: 0 };
-// The camera rig.
-const cam = { s: 0, y: 2, dist: 8.2, water: 0, fov: 34, n: { x: 0, z: 1 }, init: false };
+function startAt(s, y) { view.startAt(s, y); }
 
-function startAt(s, y) {
-  runner.reset(s, y + 0.4);
-  vis.depth = runner.depth;
-  vis.catY = runner.y; vis.stepOff = null;
-  const p = rail.place(runner.s, vis.depth);
-  catRoot.position.set(p.x, runner.y, p.z);
-  cam.dist = 10.2;
-  cam.init = false;
-  cam.boom = null;
-  if (typeof companion !== 'undefined') initChidori();
-}
-
-function jumpToMouth(id) {
-  const cp = level.checkpoints.find((c) => c.mouth === id) || level.checkpoints[0];
-  lastCheckpoint = cp;
-  startAt(cp.s, cp.y);
-}
+function jumpToMouth(id) { view.jumpToMouth(id); }
 
 function respawn() {
-  if (finale) return;
-  startAt(lastCheckpoint.s, lastCheckpoint.y);
-  toast('Back to the last lantern.', 1.6);
+  if (view.respawn()) toast('Back to the last lantern.', 1.6);
 }
 
 function setPaused(on, reason = 'The roofs will wait.') {
@@ -500,7 +481,7 @@ function setPaused(on, reason = 'The roofs will wait.') {
   }
   const b = $('btn-pause');
   if (b) { b.setAttribute('aria-pressed', String(isPaused)); b.setAttribute('aria-label', isPaused ? 'Resume' : 'Pause'); }
-  if (!isPaused) { acc = 0; lastNow = performance.now(); canvas.focus?.(); }
+  if (!isPaused) { if (view) view.acc = 0; lastNow = performance.now(); canvas.focus?.(); }
 }
 function togglePause() { if (!contextLost) setPaused(!isPaused); }
 
@@ -510,7 +491,7 @@ $('btn-reset')?.addEventListener('click', respawn);
 $('btn-pause')?.addEventListener('click', togglePause);
 $('btn-resume')?.addEventListener('click', () => setPaused(false));
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && !finale) setPaused(true, 'Paused while you were away.');
+  if (document.hidden && !view?.finale) setPaused(true, 'Paused while you were away.');
 });
 canvas.addEventListener('webglcontextlost', (e) => {
   e.preventDefault(); contextLost = true; setPaused(true, 'The painted world is restoring itself…');
@@ -518,178 +499,61 @@ canvas.addEventListener('webglcontextlost', (e) => {
 canvas.addEventListener('webglcontextrestored', () => location.reload());
 setMuted(false, false);
 
-/* ---------------- Chidori, the guide cat ---------------- */
+/* ---------------- Chidori and the run's view ---------------- */
 
 const companion = new Companion(level);
 const townMap = neighbourhoodMap(level, () => { keys.clear(); resetTouch(); });
-const chidori = { pos: new THREE.Vector3(), heading: 0, depth: 0 };
-function initChidori() {
-  companion.reset(runner, time);
-  const r = companion.runner, p = rail.place(r.s, r.depth);
-  chidori.pos.set(p.x, r.y, p.z); chidori.depth = r.depth;
-  guideRoot.position.copy(chidori.pos);
-  chidori.catY = r.y; chidori.stepOff = null;
-}
-function beginStepOff(r, visual) {
-  const g = r.dropIgnore;
-  if (r.alley !== null || g?.kind !== 'eave') return;
-  visual.stepOff = { t:0, top:platTop(g,r.s,time), depth:platDepth(g,r.s)+.95 };
-}
-function stepOffHeight(r, visual, dt) {
-  const step = visual.stepOff;
-  if (!step) { visual.catY=r.y; return r.y; }
-  step.t += dt;
-  if (r.grounded || step.t > .3) { visual.stepOff=null;visual.catY=r.y;return r.y; }
-  // Step sideways over the actual roof edge before descending to the lower
-  // ledge. The one-way physics drop must not draw a cat melting through tiles.
-  visual.depth=damp(visual.depth,step.depth,24,dt);
-  visual.catY=step.t < .12 ? Math.max(r.y,step.top) : damp(visual.catY,r.y,18,dt);
-  return visual.catY;
-}
-function lowHeadroom(position, r) {
-  const tangent = pathTangent(r);
-  for (const lead of [0,.6]) {
-    const from = position.clone(); from.y += .35;
-    from.x += tangent.x * r.facing * lead; from.z += tangent.z * r.facing * lead;
-    const to = from.clone(); to.y += .65;
-    if (world.obstacles.distance(from,to) < .52) return true;
-  }
-  return false;
-}
-function pathTangent(r) {
-  if (r.alley === null) return rail.tangentAt(r.s);
-  const a = level.alleys[r.alley], lo = clamp(r.s - .1,a.s0,a.s1), hi = clamp(r.s + .1,a.s0,a.s1);
-  const p = rail.place(lo,alleyDepth(a,lo)), q = rail.place(hi,alleyDepth(a,hi));
-  const length = Math.hypot(q.x-p.x,q.z-p.z) || 1;
-  return { x:(q.x-p.x)/length, z:(q.z-p.z)/length };
-}
-function updateChidori(dt) {
-  const portrait = camera.aspect < 0.85;
-  // Substep the companion alongside the same real runner constants.
-  const steps = Math.max(1, Math.ceil(dt / STEP)), step = dt / steps;
-  let r = companion.runner;
-  const events = new Set();
-  for (let i = 0; i < steps; i++) {
-    if (finale) r.step(step, { move: 0 }, time - dt + i * step);
-    else r = companion.update(step, runner, time - dt + i * step, portrait);
-    for (const event of r.events) events.add(event);
-  }
-  chidori.depth = r.alley !== null ? r.depth : damp(chidori.depth, r.depth, 9, dt);
-  if (events.has('drop')) beginStepOff(r,chidori);
-  const drawY = stepOffHeight(r,chidori,dt);
-  const p = rail.place(r.s, chidori.depth);
-  chidori.pos.set(p.x, drawY, p.z);
-  const t = pathTangent(r);
-  const watch = Math.abs(r.vs) < 0.2;
-  const want = watch ? Math.atan2(catRoot.position.x - p.x, catRoot.position.z - p.z) : Math.atan2(t.x * r.facing, t.z * r.facing);
-  let turn = want - chidori.heading;
-  while (turn > Math.PI) turn -= Math.PI * 2;
-  while (turn < -Math.PI) turn += Math.PI * 2;
-  chidori.heading += turn * Math.min(1, dt * 8);
-  guideRoot.position.copy(chidori.pos); guideRoot.rotation.y = chidori.heading;
-  if (guide) {
-    if (events.has('jump') || events.has('bounce')) guide.onJump();
-    if (events.has('land')) guide.onLand();
-    if (!watch && guide.idleAction) guide.endIdleAction();
-    if (watch && companion.modeTime > 0.65 && !guide.idleAction) guide.startIdleAction(companion.mood === 'prowl' ? 'groom' : companion.mood === 'feint' ? 'stretch' : 'sit', 2);
-    guide.setProwling(companion.mood === 'prowl' || r.onRope || lowHeadroom(guideRoot.position, r));
-    guide.update(dt, Math.abs(r.vs), r.grounded, r.sprinting, false, r.inWater, null);
-    guide.setLookTarget(watch ? catRoot.position : null);
-  }
-}
-
-/* ---------------- pickups, checkpoints, mouths ---------------- */
-
-function checkPickups() {
-  for (const obj of [...world.dynamic.shoki, ...world.dynamic.treats]) {
-    const k = obj.userData.pickup;
-    if (obj.userData.done) continue;
-    if (Math.abs(runner.s - k.s) > 0.6 || Math.abs(runner.y - k.y) > 0.8) continue;
-    obj.userData.done = true;
-    atmosphere.burst(k.kind, obj.position, rail.tangentAt(k.s));
-    if (k.kind === 'shoki') {
-      greeted.add(k.id);
-      for (const ch of obj.children) ch.material = world.M.clayLit || (world.M.clayLit = new THREE.MeshStandardMaterial({ color: 0x8a7a68, roughness: 0.7, emissive: 0x5a3a14, emissiveIntensity: 0.55 }));
+view = new RunView({
+  level, runner, world, sky, atmosphere, companion, catRoot, guideRoot, camera,
+  lightPool, envMats, reduceMotion,
+  hooks: {
+    viewport: syncViewport,
+    sound(name) {
+      if (name === 'bounce') audio.bounce();
+      else if (name === 'land') audio.pat();
+      else if (name === 'splash') audio.splash();
+    },
+    mouth(m, first) {
+      if (first) {
+        showCard(m);
+        audio.chime(PENTA[m.id - 1] * 0.5, 2.6, 0.05);
+      }
+      updateStrip();
+    },
+    shoki(k, count) {
       audio.chime(PENTA[(k.id - 1) % PENTA.length], 2.2, 0.07);
-      toast(greeted.size === 7 ? 'Seven Shōki greeted. The roofs are well guarded.' : `A Shōki keeps watch here. (${greeted.size}/7)`);
-      if (cat) cat.setMood('curious', 1.2, 2);
-    } else {
-      obj.visible = false;
+      toast(count === 7 ? 'Seven Shōki greeted. The roofs are well guarded.' : `A Shōki keeps watch here. (${count}/7)`);
+      updateStrip();
+    },
+    treat(k) {
       audio.chime(659.25, 1.0, 0.05);
       toast(k.label[0].toUpperCase() + k.label.slice(1) + '.', 3.6);
-      if (cat) cat.startIdleAction('groom', 2.4);
-    }
-    updateStrip();
-  }
-}
-
-function checkProgress() {
-  if (runner.grounded) {
-    for (const cp of level.checkpoints) {
-      if (cp.mouth > lastCheckpoint.mouth && runner.s >= cp.s - 0.6 && runner.y >= cp.y - 0.6) lastCheckpoint = cp;
-    }
-  }
-  const m = mouthAt(level, runner.s, runner.y);
-  if (m !== currentMouth) {
-    currentMouth = m;
-    if (!seenMouths.has(m.id)) {
-      seenMouths.add(m.id);
+      updateStrip();
+    },
+    finale(m) {
+      document.body.classList.add('at-finale');
       showCard(m);
-      audio.chime(PENTA[m.id - 1] * 0.5, 2.6, 0.05);
-    }
-    updateStrip();
-  }
-  if (!finale && runner.grounded && runner.ground.kind === 'perch') startFinale();
-}
-
-/* ---------------- the finale ---------------- */
-
-function startFinale() {
-  finale = { t: 0, lit: 0, shown: false };
-  document.body.classList.add('at-finale');
-  seenMouths.add(7);
-  showCard(level.mouths[6]);
-  updateStrip();
-  if (cat) { cat.startIdleAction('sit', 9999); cat.setLookTarget(null); }
-  // Chidori settles on the real roof he reached beside Michi. The chase
-  // ends here; no scripted long leap or old perch index takes over.
-  companion.runner.vs = 0;
-  if (guide && companion.runner.grounded) guide.startIdleAction('sit', 9999);
-}
-
-function updateFinale(dt) {
-  finale.t += dt;
-  const t = finale.t;
-  // Fires: Daimonji first, then right to left, ~1.6 s apart.
-  const due = Math.floor((t - 3.0) / 1.6) + 1;
-  while (finale.lit < Math.min(5, due)) {
-    const i = finale.lit;
-    sky.lightFire(i);
-    audio.drum(76 - i * 4, 1.15, 0.042);
-    audio.chime([196.0, 220.0, 246.94, 293.66, 329.63][i], 3.5, 0.06);
-    toast(sky.fires[i]?.label || sky.fires[i]?.name || 'Okuribi', 1.45);
-    finale.lit++;
-  }
-  if (!finale.shown && t > 13.5) {
-    finale.shown = true;
-    const f = $('finale');
-    if (f) {
-      f.querySelector('.count').textContent = `${greeted.size} of 7 Shōki greeted`;
-      f.classList.add('show');
+      updateStrip();
+    },
+    fire(i, fire) {
+      audio.drum(76 - i * 4, 1.15, 0.042);
+      audio.chime([196.0, 220.0, 246.94, 293.66, 329.63][i], 3.5, 0.06);
+      toast(fire?.label || fire?.name || 'Okuribi', 1.45);
+    },
+    finaleCard(count) {
+      const f = $('finale');
+      if (f) {
+        f.querySelector('.count').textContent = `${count} of 7 Shōki greeted`;
+        f.classList.add('show');
+      }
     }
   }
-}
+});
 
 $('again') && $('again').addEventListener('click', () => {
   $('finale').classList.remove('show');
   document.body.classList.remove('at-finale');
-  finale = null;
-  sky.resetFires();
-  if (cat) cat.endIdleAction();
-  seenMouths.clear();
-  lastCheckpoint = level.checkpoints[0];
-  initChidori();
-  startAt(level.checkpoints[0].s, level.checkpoints[0].y);
+  view.restart();
   if (autopilot) autopilot = new Autopilot(level);
 });
 $('stay') && $('stay').addEventListener('click', () => $('finale').classList.remove('show'));
@@ -722,19 +586,11 @@ if (flag('debug') === '1') {
 
 /* ---------------- per-frame ---------------- */
 
-const tmpV = new THREE.Vector3(), tmpL = new THREE.Vector3(), tmpImpact = new THREE.Vector3();
-const STEP = 1 / 120;
-let acc = 0, lastNow = performance.now();
-let lastPhase = -1, envScale = 1;
+let lastNow = performance.now();
 const fixedHour = flag('hour') !== null ? clamp(parseFloat(flag('hour')), 0, 1) : null;
+view.fixedPhase = fixedHour;
 let fpsT = 0, fpsN = 0, healthyT = 0;
 let qualityTier = qualityFlag === 'low' ? 2 : (lowPower ? 1 : 0);
-
-function burstAtRunner(kind) {
-  rail.place(runner.s, runner.depth, tmpImpact);
-  tmpImpact.y = runner.y + 0.04;
-  atmosphere.burst(kind, tmpImpact, rail.tangentAt(runner.s));
-}
 
 function applyQualityTier(tier) {
   qualityTier = clamp(tier, 0, 2);
@@ -749,24 +605,6 @@ function applyQualityTier(tier) {
 }
 applyQualityTier(qualityTier);
 
-function stepPhysics(inp) {
-  const prevGrounded = runner.grounded;
-  runner.step(STEP, inp, time);
-  const ev = runner.events;
-  if (ev.includes('drop')) beginStepOff(runner,vis);
-  if (ev.includes('jump')) { if (cat) cat.onJump(); }
-  const bounced = ev.includes('bounce');
-  if (bounced) { if (cat) cat.onJump(); audio.bounce(); burstAtRunner('futon'); }
-  if (ev.includes('land') || ev.includes('mantle')) {
-    if (cat && !prevGrounded) cat.onLand();
-    audio.pat();
-    const kind = (runner.ground || runner.lastGround)?.kind;
-    if (!bounced && kind !== 'rope' && kind !== 'branch' && kind !== 'boat' && kind !== 'water') burstAtRunner('dust');
-  }
-  if (ev.includes('splash')) { audio.splash(); burstAtRunner('water'); if (cat) cat.onLand(); }
-  time += STEP;
-}
-
 function frame(now) {
   requestAnimationFrame(frame);
   tick(now);
@@ -777,115 +615,28 @@ function tick(now, draw = true) {
   if (flag('shot') === '1') dt = Math.min(dt, 1 / 30);
 
   if (isPaused || contextLost) {
-    acc = 0;
+    view.acc = 0;
     if (!contextLost) { updateCamera(0); if (draw) renderer.render(scene, camera); }
     return;
   }
 
-  // Input → fixed physics steps.
-  let inp = readInput();
-  if (finale) inp = { move: 0 };
-  acc += dt;
-  let steps = 0;
-  while (acc >= STEP && steps < 24) {
-    let use = inp;
-    if (autopilot && !finale) use = autopilot.input(runner, time, STEP);
-    stepPhysics(use);
-    press.jump = press.down = press.jumpUp = false;
-    // Only the first sub-step sees the edge presses.
-    inp = { ...inp, jumpPressed: false, downPressed: false, jumpReleased: false };
-    acc -= STEP;
-    steps++;
-  }
+  // Input → the run's view: fixed physics steps (or the autopilot), the sky by
+  // progress, moving pieces, the cat, Chidori, pickups and mouths or the
+  // finale, the lantern lights and the camera.
+  const { steps, prog, night } = view.frame(dt, readInput(), autopilot);
+  // A press is consumed by the first physics step that sees it; with no step
+  // this frame it waits for the next one.
+  if (steps) press.jump = press.down = press.jumpUp = false;
+  audio.update(runner.s, runner.y, prog, night, runner.grounded ? runner.ground : null, !!view.finale);
 
-  // Sky by progress along the route (or forced by ?hour, or night at the finale).
-  const prog = finale ? 1 : (fixedHour !== null ? fixedHour : clamp(runner.s / level.length, 0, 1));
-  if (Math.abs(prog - lastPhase) > 0.002) {
-    const night = sky.setPhase(prog);
-    lastPhase = prog;
-    envScale = 1 - 0.75 * night;
-    for (const m of envMats) m.envMapIntensity = (m.userData.env0 ?? 1) * envScale;
-  }
-  const night = sky.night;
-  world.update(time, night, platOffset, level.platforms, runner.s);
-  audio.update(runner.s, runner.y, prog, night, runner.grounded ? runner.ground : null, !!finale);
-
-  // Where the cat is drawn: depth eases toward what it stands on (or will land on).
-  let targetD = runner.depth;
-  if (!runner.grounded) {
-    const below = runner.support(runner.s, runner.y, 0, 40);
-    if (below) targetD = platDepth(below, runner.s);
-  }
-  vis.depth = runner.alley !== null ? targetD : damp(vis.depth, targetD, runner.grounded ? 10 : 5, dt);
-  const drawY = stepOffHeight(runner,vis,dt);
-  const p = rail.place(runner.s, vis.depth);
-  catRoot.position.set(p.x, drawY, p.z);
-  // Facing: φ = 0 along +s, π along −s, turning through the camera side.
-  const goal = runner.facing > 0 ? 0 : Math.PI;
-  const turning = Math.abs(vis.phi - goal) > 0.3;
-  vis.phi = damp(vis.phi, goal, 11, dt);
-  const t = pathTangent(runner);
-  const n = { x: -t.z, z: t.x };
-  const dir = { x: t.x * Math.cos(vis.phi) + n.x * Math.sin(vis.phi), z: t.z * Math.cos(vis.phi) + n.z * Math.sin(vis.phi) };
-  if (finale) {
-    // Sit facing the hills, back to the camera, like the summit's overlook.
-    const f = sky.fires[1].center;
-    let want = Math.atan2(f.x - catRoot.position.x, f.z - catRoot.position.z);
-    let d = want - catRoot.rotation.y;
-    while (d > Math.PI) d -= Math.PI * 2;
-    while (d < -Math.PI) d += Math.PI * 2;
-    catRoot.rotation.y += d * Math.min(1, dt * 2.5);
-  } else {
-    catRoot.rotation.y = Math.atan2(dir.x, dir.z);
-  }
-  // Lean with slopes along s.
-  let pitch = 0;
-  if (runner.grounded && runner.ground.y1 !== runner.ground.y0) {
-    const g = runner.ground;
-    pitch = -Math.atan2(g.y1 - g.y0, g.s1 - g.s0) * Math.cos(vis.phi);
-  }
-  catRoot.rotation.x = damp(catRoot.rotation.x, 0, 10, dt);
-  if (cat) {
-    cat.group.rotation.x = damp(cat.group.rotation.x, pitch, 10, dt);
-    cat.setProwling(runner.onRope || lowHeadroom(catRoot.position, runner));
-    const speed = Math.abs(runner.vs);
-    cat.update(dt, speed, runner.grounded, runner.sprinting && speed > 4.5, turning && speed < 0.6, runner.inWater, null);
-    const sup = runner.grounded ? null : runner.support(runner.s, runner.y, 0, 40);
-    cat.updateShadow(sup ? Math.max(0, runner.y - platTop(sup, runner.s, time)) : 0);
-    // Peer over a ledge the guard stopped us at.
-    if (runner.peering && !finale) {
-      const ahead = rail.place(runner.s + runner.facing * 0.8, vis.depth);
-      cat.setLookTarget(tmpL.set(ahead.x, runner.y - 1.5, ahead.z));
-    } else if (!finale) cat.setLookTarget(null);
-    catMod.catRimUniforms.uRimDir.value.copy(sky.lightDir);
-  }
-
-  updateChidori(dt);
   townMap.update(runner.s, companion.runner.s, runner.depth, companion.runner.depth);
   const entrance = runner.alley === null ? alleyEntrance(level, runner.s, runner.y) : null;
   const alley = runner.alley !== null ? level.alleys[runner.alley] : null;
   const alleyHint = $('alley-hint');
-  alleyHint.hidden = !!finale || !(entrance || alley);
+  alleyHint.hidden = !!view.finale || !(entrance || alley);
   alleyHint.textContent = entrance ? '↓ ' + entrance.name : alley ? alley.kanji + ' · ' + alley.name : '';
   $('btn-down').querySelector('span').textContent = entrance ? 'alley' : 'drop';
   $('btn-down').setAttribute('aria-label', entrance ? 'Enter ' + entrance.name : 'Drop down');
-  if (!finale) { checkPickups(); checkProgress(); }
-  else updateFinale(dt);
-
-  // Lantern light pool: nearest anchors to the cat.
-  if (night > 0.05) {
-    const near = world.lights.map((v) => [v, v.distanceToSquared(catRoot.position)]).sort((a, b) => a[1] - b[1]).slice(0, lightPool.length);
-    lightPool.forEach((l, i) => {
-      const e = near[i];
-      if (!e || e[1] > 30 * 30) { l.intensity = 0; return; }
-      l.position.copy(e[0]);
-      l.intensity = 2.2 * night;
-    });
-  } else lightPool.forEach((l) => { l.intensity = 0; });
-
-  updateCamera(dt);
-  sky.update(dt, time, catRoot.position);
-  atmosphere.update(dt, time, prog, night, catRoot.position);
 
   // HUD timers.
   if (cardT > 0) { cardT -= dt; if (cardT <= 0) $('card').classList.remove('show'); }
@@ -911,184 +662,25 @@ function tick(now, draw = true) {
   if (draw) renderer.render(scene, camera);
 }
 
-function updateCamera(dt, playerOnly = false) {
+/** The page's canvas and lens, before the view frames the camera. */
+function syncViewport() {
   const w = canvas.clientWidth, h = canvas.clientHeight;
   if (canvas.width !== Math.floor(w * renderer.getPixelRatio()) || canvas.height !== Math.floor(h * renderer.getPixelRatio())) {
     renderer.setSize(w, h, false);
   }
   camera.aspect = w / Math.max(1, h);
-
-  if (finale) {
-    // Pull back behind the cat and turn toward the hills and the fires.
-    // Three-quarter from behind, low, so the cat sits against the fires and
-    // the shingi pole stays off to one side.
-    const k = smooth(0, 4.5, finale.t);
-    const c = catRoot.position;
-    const want = tmpV.set(c.x - 5.2, c.y + 0.7, c.z + 3.6);
-    camera.position.lerp(want, 1 - Math.exp(-(reduceMotion ? 1.2 : 2.2) * dt * (0.3 + k)));
-    // The new downtown endpoint faces a different bearing. Aim at the real
-    // hill fires; a portrait panorama needs a wider horizontal field as well.
-    const look = tmpL.set(0, 0, 0);
-    for (const fire of sky.fires) look.add(fire.center);
-    look.multiplyScalar(1 / sky.fires.length); look.y -= 20;
-    camera.lookAt(look);
-    const finaleFov = camera.aspect < .85 ? 96 : 50;
-    camera.fov = damp(camera.fov, finaleFov, 1.5, dt);
-    camera.updateProjectionMatrix();
-    return;
-  }
-
-  const previousPosition = camera.position.clone();
-  const portrait = camera.aspect < .85;
-  const r = companion.runner, inAlley = runner.alley !== null;
-  const alley = inAlley ? level.alleys[runner.alley] : null;
-  // A close alley view follows Michi. Chidori can explore another lane without
-  // pulling the camera back through the intervening houses.
-  cam.soloT = Math.max(0,(cam.soloT || 0)-dt);
-  const together = !inAlley && r.alley === null && !playerOnly && !cam.soloT;
-  const subjects = together ? [catRoot, guideRoot] : [catRoot];
-  cam.subjects = together ? ['player','guide'] : ['player'];
-  const vertical = smooth(level.mouths[6].s0 - 5, level.mouths[6].s0, runner.s);
-  const mid = catRoot.position.clone();
-  if (together) mid.add(guideRoot.position).multiplyScalar(.5);
-  mid.y += inAlley ? .38 : .5;
-  const rate = reduceMotion ? 4 : 7;
-  const reset = !cam.init;
-  if (reset) { cam.center = mid.clone(); cam.init = true; cam.alley = inAlley ? 1 : 0; }
-  cam.center.lerp(mid, 1 - Math.exp(-rate * Math.max(dt, 1 / 120)));
-  if (inAlley) { cam.center.x = mid.x; cam.center.z = mid.z; }
-  cam.alley = damp(cam.alley, inAlley ? 1 : 0, 5, dt);
-  cam.s = (runner.s + (together ? r.s : runner.s)) / 2;
-  const normal = rail.smoothNormalAt(clamp(cam.s, 0, level.length), 3.5, cam.n);
-  const side = new THREE.Vector3(normal.x, 0, normal.z);
-  const tangent = new THREE.Vector3(normal.z, 0, -normal.x);
-  const behind = tangent.clone().multiplyScalar(-runner.facing);
-  if (alley) {
-    const lo = clamp(runner.s - .35, alley.s0, alley.s1), hi = clamp(runner.s + .35, alley.s0, alley.s1);
-    const a = rail.place(lo, alleyDepth(alley, lo)), b = rail.place(hi, alleyDepth(alley, hi));
-    behind.set(a.x - b.x, 0, a.z - b.z).normalize().multiplyScalar(runner.facing);
-  }
-  // Street: see over the eaves. Alley: human head height, close behind and
-  // looking down at the paws, with a slightly wider lens in the confined space.
-  camera.fov = 40 + cam.alley * 18 + (portrait ? 3 : 0);
-  camera.updateProjectionMatrix();
-  const direction = side.clone().lerp(behind, cam.alley).normalize();
-  const baseDistance = (portrait ? 9 : 8.4) * (1 - cam.alley) + 2.5 * cam.alley;
-  const baseHeight = (4.5 + vertical * .5) * (1 - cam.alley) + 1.25 * cam.alley;
-  const point = new THREE.Vector3(), offset = new THREE.Vector3();
-  // Test the posed anatomy, including a lowered head when prowling. A
-  // fixed cube around the root overestimated the cats in covered passages.
-  const sightPoints = [], sightGroups = [];
-  for (const subject of subjects) {
-    const first = sightPoints.length;
-    subject.updateMatrixWorld(true);
-    const model = subject === catRoot ? cat : guide;
-    if (model) {
-      sightPoints.push(model.head.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,.05,0)));
-      const chest = model.chest.getWorldPosition(new THREE.Vector3());
-      for (const x of [-.09,.09]) sightPoints.push(chest.clone().addScaledVector(side,x));
-      sightPoints.push(model.hips.getWorldPosition(new THREE.Vector3()));
-    } else sightPoints.push(subject.position.clone().add(new THREE.Vector3(0,.4,0)));
-    sightGroups.push([first,sightPoints.length]);
-  }
-  const clear = position => {
-    // Thin rails can overlap an extremity without concealing the cat. Avoid
-    // throwing the camera over a roof for that normal contact during a jump.
-    for (const [first,end] of sightGroups) {
-      let visible = 0;
-      for (let i=first;i<end;i++) {
-        const point = sightPoints[i];
-        if (world.obstacles.distance(point,position) >= point.distanceTo(position)-.18) visible++;
-      }
-      if (visible < Math.ceil((end-first)*.75)) return false;
-    }
-    return true;
-  };
-  const fits = () => {
-    let overflow = 1;
-    for (const subject of subjects) for (const x of [-.42,.42]) for (const y of [0,.72]) for (const z of [-.42,.42]) {
-      point.copy(subject.position).add(offset.set(x,y,z)).project(camera);
-      if (point.z > 1) return Infinity;
-      overflow = Math.max(overflow, Math.abs(point.x) / (portrait ? .8 : .88), Math.abs(point.y) / .56);
-    }
-    return overflow;
-  };
-  const place = (distance, height, shift = 0) => {
-    camera.position.copy(cam.center).addScaledVector(direction, distance).addScaledVector(tangent, shift);
-    camera.position.y += height;
-    camera.lookAt(cam.center); camera.updateMatrixWorld(true);
-  };
-  const candidate = new THREE.Vector3();
-  const sharedLimit = portrait ? 16 : 22;
-  let found = false;
-  // Try the gently returning boom first. If scenery blocks it, resolve before
-  // drawing: easing alone would spend several frames inside a wall or roof.
-  const wanted = direction.clone().multiplyScalar(baseDistance); wanted.y = baseHeight;
-  if (!cam.boom || reset) cam.boom = wanted.clone();
-  cam.boom.lerp(wanted, 1 - Math.exp(-2.5 * dt));
-  camera.position.copy(cam.center).add(cam.boom);
-  camera.lookAt(cam.center); camera.updateMatrixWorld(true);
-  if ((!together || (cam.boom.y <= baseHeight+3 && cam.boom.length() <= sharedLimit)) && fits() <= 1.001 && clear(camera.position)) { candidate.copy(camera.position); found = true; }
-  const lifts = inAlley ? [0,.35,.8,1.6,3,5,8] : together ? [0,1.2,2.8] : [0,1.2,2.8,4.8,7.5,11,16];
-  if (!found) search: for (const shift of [0, 1.4, -1.4, 3, -3]) for (const lift of lifts) {
-    let distance = baseDistance, height = baseHeight + lift;
-    for (let i = 0; i < 5; i++) {
-      place(distance, height, shift);
-      const overflow = fits();
-      if (overflow <= 1.001) break;
-      const scale = Math.min(1.7, overflow * 1.02);
-      distance *= scale; height *= scale;
-    }
-    if ((!together || camera.position.distanceTo(cam.center) <= sharedLimit) && fits() <= 1.001 && clear(camera.position)) { candidate.copy(camera.position); found = true; break search; }
-  }
-  // In a covered passage, shortening the boom keeps it below the soffit.
-  if (!found) searchClose: for (const d of [1.8,1.2,.8]) for (const h of [1.1,.75,.45]) {
-    place(d,h);
-    if (fits() <= 1.12 && clear(camera.position)) { candidate.copy(camera.position); found = true; break searchClose; }
-  }
-  if (!found && together) {
-    cam.soloT = .8; cam.init = false;
-    updateCamera(0,true); return;
-  }
-  if (!found) {
-    // A sharp exit can leave the eased focus behind a corner. Recenter on
-    // Michi and search around the corner before falling back to a short boom.
-    cam.center.copy(mid);
-    const savedDirection = direction.clone();
-    searchAround: for (const turn of [0,.45,-.45,.9,-.9,1.57,-1.57,Math.PI]) {
-      direction.copy(savedDirection).applyAxisAngle(new THREE.Vector3(0,1,0),turn);
-      for (const height of [1.25,.85,.55,.3,.12,2,3.5,5,8,12,18]) for (const distance of [baseDistance,3.4,2.5,1.9]) {
-        place(distance,height);
-        if (fits() <= 1.001 && clear(camera.position)) {candidate.copy(camera.position);found=true;break searchAround;}
-      }
-    }
-  }
-  if (found) {
-    camera.position.copy(candidate);
-    if (!reset && dt > 0) {
-      const eased = previousPosition.lerp(candidate,1-Math.exp(-(reduceMotion?5:8)*dt));
-      camera.position.copy(eased);camera.lookAt(cam.center);camera.updateMatrixWorld(true);
-      // Ease only through a clear view. A collision correction must take
-      // effect before drawing, never leave an interpolated frame in a wall.
-      if (fits()>1.001 || !clear(eased)) camera.position.copy(candidate);
-    }
-  }
-  camera.lookAt(cam.center); camera.updateMatrixWorld(true);
-  cam.boom.subVectors(camera.position, cam.center);
-  cam.dist = cam.boom.length();
-  cam.clear = found;
-  cam.mode = inAlley ? 'alley' : 'street';
-
 }
+
+function updateCamera(dt, playerOnly = false) { view.updateCamera(dt, playerOnly); }
 
 /* ---------------- start ---------------- */
 
 async function start() {
-  initChidori();
+  view.initChidori();
   if (flag('finale') === '1') {
     const perch = level.platforms.find((p) => p.kind === 'perch');
     startAt((perch.s0 + perch.s1) / 2, perch.y0);
-    lastCheckpoint = level.checkpoints[6];
+    view.lastCheckpoint = level.checkpoints[6];
   } else if (flag('at') !== null) {
     const s = clamp(parseFloat(flag('at')), 0.5, level.length - 0.5);
     const sup = runner.support(s, 20, 0, 40);
@@ -1099,9 +691,9 @@ async function start() {
     startAt(1.0, 1.1);
   }
   // Put Chidori just ahead of wherever we start.
-  initChidori();
-  currentMouth = mouthAt(level, runner.s, runner.y);
-  seenMouths.add(currentMouth.id);
+  view.initChidori();
+  view.currentMouth = mouthAt(level, runner.s, runner.y);
+  view.seen.add(view.currentMouth.id);
   updateStrip();
   if (!await loadCats()) return;
   // Initialise poses, all visible scenery and lighting before compiling the
@@ -1112,11 +704,11 @@ async function start() {
   await new Promise(requestAnimationFrame);
   renderer.render(scene, camera);
   keys.clear(); resetTouch(); press.jump = press.down = press.jumpUp = false;
-  acc = 0; lastNow = performance.now(); stageReady = true;
+  view.acc = 0; lastNow = performance.now(); stageReady = true;
   document.body.classList.remove('loading');
   document.body.setAttribute('aria-busy', 'false');
   $('wake').classList.add('gone');
-  if (flag('nohud') !== '1') showCard(currentMouth);
+  if (flag('nohud') !== '1') showCard(view.currentMouth);
   requestAnimationFrame((t) => { lastNow = t; frame(t); });
 }
 
@@ -1124,6 +716,7 @@ async function start() {
 window.roofRoad = {
   level, runner, sky, world, atmosphere, audio, PHYS, jumpToMouth,
   get companion() { return companion; },
+  get runView() { return view; },
   get view() {
     const ndc = p => { const v = p.clone().add(new THREE.Vector3(0, 0.3, 0)).project(camera); return { x: v.x, y: v.y, z: v.z }; };
     const bounds = p => {
@@ -1134,10 +727,10 @@ window.roofRoad = {
       }
       b.pixelsHigh = (b.top - b.bottom) * canvas.clientHeight / 2; return b;
     };
-    return { positions:{player:catRoot.position.toArray(),guide:guideRoot.position.toArray()}, player: ndc(catRoot.position), guide: ndc(guideRoot.position), fires: sky.fires.map(f => ndc(f.center)), bounds: { player: bounds(catRoot.position), guide: bounds(guideRoot.position) }, distance: cam.dist, aspect: camera.aspect, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, mood: companion.mood, camera: { mode: cam.mode, clear: cam.clear, subjects: cam.subjects, position: camera.position.toArray(), focus: cam.center.toArray() } };
+    return { positions:{player:catRoot.position.toArray(),guide:guideRoot.position.toArray()}, player: ndc(catRoot.position), guide: ndc(guideRoot.position), fires: sky.fires.map(f => ndc(f.center)), bounds: { player: bounds(catRoot.position), guide: bounds(guideRoot.position) }, distance: view.cam.dist, aspect: camera.aspect, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, mood: companion.mood, camera: { mode: view.cam.mode, clear: view.cam.clear, subjects: view.cam.subjects, position: camera.position.toArray(), focus: view.cam.center.toArray() } };
   },
   setAuto(on = true) { autopilot = on ? new Autopilot(level) : null; },
-  get finale() { return finale; },
+  get finale() { return view.finale; },
   get catReady() { return stageReady; },
   /** Stand the cat at route position s; pass y to inspect a specific layer. */
   at(s, y = null) {
@@ -1154,40 +747,31 @@ window.roofRoad = {
     renderer.render(scene, camera);
   },
   /** Jump to the end of the finale: all five fires burning, the card up. */
-  skipFinale() {
-    if (!finale) {
-      const perch = level.platforms.find((p) => p.kind === 'perch');
-      startAt((perch.s0 + perch.s1) / 2, perch.y0);
-      startFinale();
-    }
-    finale.t = 14;
-    finale.lit = 5;
-    sky.fires.forEach((f, i) => { sky.lightFire(i); f.kindle = 1; });
-  }
+  skipFinale() { view.skipFinale(); }
 };
 // Deterministic browser review runs the actual frame pipeline without drawing
 // every intermediate tick. Available only with ?qa=1; normal play has no clock.
 if (flag('qa') === '1') {
   roofRoad.advanceFramesForReview = milliseconds => {
-    acc=0;const states=[];
+    view.acc=0;const states=[];
     for(const ms of milliseconds.slice(0,120)) {
       tick(lastNow+clamp(Number(ms)||0,0,100),false);
       states.push({y:runner.y,vy:runner.vy,grounded:runner.grounded});
     }
-    lastNow=performance.now();acc=0;renderer.render(scene,camera);return states;
+    lastNow=performance.now();view.acc=0;renderer.render(scene,camera);return states;
   };
   roofRoad.advanceForReview = seconds => {
     const n = Math.ceil(clamp(Number(seconds) || 0, 0, 450) * 60);
     const samples = [], moods = new Set(), cameraFailures = [];
     for (let i = 0; i < n; i++) {
       tick(lastNow + 1000 / 60, false);
-      if (!finale && !cam.clear && cameraFailures.length < 80 && cameraFailures.every(f=>Math.abs(f.s-runner.s)>1 || f.alley!==runner.alley)) cameraFailures.push({s:runner.s,alley:runner.alley,y:runner.y,depth:runner.depth,ground:runner.ground?.label,positions:roofRoad.view.positions,camera:roofRoad.view.camera});
-      if (i % 30 === 0 && !finale) { const v = roofRoad.view; samples.push({ s: runner.s, y: runner.y, ...v }); moods.add(companion.mood); }
+      if (!view.finale && !view.cam.clear && cameraFailures.length < 80 && cameraFailures.every(f=>Math.abs(f.s-runner.s)>1 || f.alley!==runner.alley)) cameraFailures.push({s:runner.s,alley:runner.alley,y:runner.y,depth:runner.depth,ground:runner.ground?.label,positions:roofRoad.view.positions,camera:roofRoad.view.camera});
+      if (i % 30 === 0 && !view.finale) { const v = roofRoad.view; samples.push({ s: runner.s, y: runner.y, ...v }); moods.add(companion.mood); }
     }
     // The accelerated review clock must never leak into the next real RAF.
-    lastNow = performance.now(); acc = 0;
+    lastNow = performance.now(); view.acc = 0;
     renderer.render(scene, camera);
-    return { samples, cameraFailures, moods: [...moods], s: runner.s, finale: !!finale, catReady: stageReady };
+    return { samples, cameraFailures, moods: [...moods], s: runner.s, finale: !!view.finale, catReady: stageReady };
   };
 }
 start();
