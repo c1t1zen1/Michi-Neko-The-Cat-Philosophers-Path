@@ -38,7 +38,7 @@ Roof Road stage 2. Everything else below is on `fable/integration` only, until g
 - The operator-approved Roof Road route fix (R78: `rooftop_test` 40/40, finale reachable).
 - The operator-approved `game.js` → `rooftops/js/runview.js` switch-over (R81).
 
-**In flight:** nothing. `r2-b` is merged; the Roof Road kit families are done apart from the deferred ids below.
+**In flight:** `h2-readme` (README rewrite) and `b1` (in flight). `h1-hero` (PR #56) and R88 (pocket disposed on exit) are merged. Then: the solo timing window, G-A, G-H and `z-final`. G-H is not ticked.
 
 **Next steps, in order:**
 1. G-R chores: **done 2026-11-16** (`reports/gate-r-chores-report.md` in the swarm records; §6 G-R notes). Cache tag `20261116a`, the
@@ -739,7 +739,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 | 7 | `a1-village` | Village area pass | G-V3, G-C | [x] |
 | 7 | `a2-hilltop` | Hilltop area pass | G-S | [x] |
 | 7 | `a3-rooftops` | Roof Road area pass | G-R | [x] merged as 6f396e4 (PR #55); its timing rows wait for the solo window (R86/R87) |
-| 8 | `h1-hero` | Hero capture tool and shots | G-A | [ ] |
+| 8 | `h1-hero` | Hero capture tool and shots | G-A | [x] merged (PR #56) |
 | 8 | `h2-readme` | README and docs rewrite | h1 | [ ] |
 | 9 | `z-final` | Fable review and test | G-H | [ ] |
 
@@ -786,6 +786,16 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 
 - **Pocket reduce-motion, live** (G-R review minor: `pocket.js` read `g.reducedMotion` once in `init()`, and the pocket is kept after exit, so a later change never reached the roofs). Fixed: `RooftopPocket.setReduceMotion(on)` updates everything the run reads per frame (the run view's camera easing, the sky's cloud drift and sun flicker, the atmosphere's clock, petals and impact bursts, the street people through the kept `buildWorld` opts). `Game.applyComfort()` calls it (one guarded line in `src/main.js`), and `attach()` resyncs on every entry. Build-time only, as built until reload: the float's tassel and musician sway (`build.js` `motionScale`). New test `tools/rooftop_pocket_test.mjs` (the real pocket in the real game): built with reduce motion off, turned on in the pocket, turned off while away, re-entered, and set without `applyComfort`; the atmosphere clock runs at 0.22 × / 1 ×. Classic and modular 12/0. It failed 7 of 12 on the old code. Classic unaffected: footprint and `--systems` goldens EQUAL, rooftop golden classic EQUAL (routing 41/41), `rooftop_manager_test` 81/0, `rooftop_test` 40/0, classic boot clean.
 - **Finale framing (a3 handoff, `rooftops/js/runview.js`), an Integrator change the operator may overturn (one revert).** The a3 patch as proposed (take the camera's world offset from the pair's midpoint) was tested and is wrong: Chidori always ends ahead of Michi on the lower ridge, so it pushed Michi to the left edge (NDC −0.85 / −0.96), and the lower camera skimmed the float's deck, hiding Chidori (`finale-patch-as-proposed.jpg`). Applied instead: the same camera slot 0.4 m higher (Michi shows whole over the near ridge), the look point 25 m lower, and a turn half-way toward the pair as the finale settles (capped at 13°, clamped so every fire stays in the frame). At 1280×720, Michi goes from −0.64 (box left −0.79, half-hidden) to −0.40 (box left −0.53, whole), Chidori from −0.17 to 0.03, and the five fires from −0.47…0.50 to −0.26…0.75. It is the same on the sandbox (`?finale=1` and an autopilot arrival) and in the game pocket, on classic and modular, with reduce motion on and off; console clean. On 360/390-wide portrait phones Michi was already outside the frame (−1.03) and still is (−0.99); the fires still fit there (operator's layout question). Evidence: `docs/fable/status/a3-rooftops/finale-*.jpg` and the a3 handoff. Guard: `tools/rooftop_pocket_test.mjs` "Finale framing" (17/0 on both sets; it fails on the shipped camera and without the fire clamp). rooftop_test 40/0, companion 7, alley PASS, manager 81/0, rooftop golden classic EQUAL + modular routing 41/41, footprint EQUAL.
+
+### Board notes (h1-hero merge, 2026-11-16)
+
+- `h1-hero` merged (PR #56). The old `docs/images/capture-*.jpg` are git-removed; the only file that still links them is `README.md` (lines 46-61), for lane `h2-readme` to repoint using `docs/fable/handoff/h1-hero.md` (its README line 5 `poster=` note included). `docs/images/README.md` mentions them only as superseded.
+- **Open for z-final** (defects found while shooting, not fixed here):
+  - Moon Pool canopy white cut-outs and red edge glow at night (21.3 h): shared valley canopy code, present on classic and modular, unchanged by any `?swap=`; the canopy alpha cut-outs and the lantern bloom radius.
+  - Roof Road night sky: star sprites render as white squares of a few to about 20 px (classic too).
+  - The summit has no true dawn (5.7-6.0 h reads as blue night, 6.4 h as bright day).
+  - The summit city shows no window lights at night (only the lantern pairs glow).
+  - The Roof Road sandbox has no `?cam=px,py,pz,tx,ty,tz[,fov]` flag (handoff: apply it in `rooftops/js/game.js` after `updateCamera`; no exact patch given, so not applied).
 
 ### Suggested allocation for three workers
 
