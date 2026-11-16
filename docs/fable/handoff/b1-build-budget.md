@@ -48,10 +48,11 @@ first entry, inside the `await this.assets.preload()` it already has):
        .catch(() => {});   // the runtime imports (and reports) for real
 ```
 
-Tried in a scratch worktree (`_scratch/b1-build-budget/noroof`, lane + this
-patch): a modular high boot registers 24 families, none `roof*`, requests no
-`src/kit/roof*` file, builds the same 261 instances with no console message,
-and the street noon frame equals ef6adad's (`maxDelta 0`). The pocket entry
+Tried in a scratch worktree (lane + this patch, since removed; saved as
+`michi-wt/_scratch/b1-build-budget/noroof.patch`): a modular high boot
+registers 24 families, none `roof*`, requests no `src/kit/roof*` file, builds
+the same 261 instances with no console message, and the street noon frame
+equals ef6adad's (`maxDelta 0`). The pocket entry
 with it was not drilled (r6's Roof Road drill would be the check).
 
 ## 2. Family textures painted on first upload (exact patches, not applied)
@@ -61,10 +62,10 @@ more family textures are painted inside it, in files outside the grant. Each
 patch below makes the texture at its final size at once and paints it on its
 first upload with the helper `paintOnFirstUpload(texture, paint)` (lane commit
 dd7ffcc, `src/kit/materials.js`, unit-tested), so the pixels are the same. The
-patches were applied together in a scratch worktree on top of the lane
-(`michi-wt/_scratch/b1-build-budget/fam`, the diff is
-`_scratch/b1-build-budget/family_deferrals.patch`); their checks and what they
-buy are in §3. Applying them is a family-owner (or Integrator) change.
+patches were applied together in a scratch worktree on top of the lane (since
+removed; the diff below is also saved as
+`michi-wt/_scratch/b1-build-budget/family_only.patch`); their checks and what
+they buy are in §3. Applying them is a family-owner (or Integrator) change.
 
 What each moves out of the world build (CPU profile of a modular medium boot
 at the lane head, load 3.3, so read the shares): the corral sign's painted face
