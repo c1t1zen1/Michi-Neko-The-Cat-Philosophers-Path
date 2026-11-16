@@ -51,8 +51,8 @@ export const KIT_LIMITS = Object.freeze({
 export const BUDGET_EXCEPTIONS = Object.freeze({
   // Roof Road buildings (r2b-roofs-streets): measured with kit_contract_test --family roofstreets, uptime 1-min load 1.5 (R54: < 3)
   'roof-machiya': {
-    hero: { meshes: 58, materials: 28, buildMs: 12 }, mid: { meshes: 40, materials: 21 }, far: { meshes: 16, materials: 7 },
-    why: 'contract sample = the 67 m near-row house with deck, futon, vines, byobu, lanterns and kaisho on (3 batch cells, one mesh per material per cell so the Roof Road merge keeps classic draw counts): modular 58/40/16 meshes, 28/21/7 materials hero/mid/far, warm build 11.0 ms (load 1.5). Classic builds the same record as 413 meshes / 8892 tris (golden, largest real house); modular 26 meshes / 8021 tris. Materials are the page ctx.MAT set, the same the classic house uses'
+    hero: { meshes: 58, materials: 28, buildMs: 15 }, mid: { meshes: 40, materials: 21 }, far: { meshes: 16, materials: 7 },
+    why: 'contract sample = the 67 m near-row house with deck, futon, vines, byobu, lanterns and kaisho on (3 batch cells, one mesh per material per cell so the Roof Road merge keeps classic draw counts): modular 58/40/16 meshes, 28/21/7 materials hero/mid/far, warm build 11.0 ms (load 1.5); hero buildMs 15 by ruling R84 from the post-merge quiet re-read (reports/r2b-roofs-streets-merge-report.md, docs/fable/status/r2b-roofs-streets.md: 9 runs at load 1.3-1.5, 6 pass at 12, max 13.7 ms, cold 64-77 ms; quiet readings only, R54). Classic builds the same record as 413 meshes / 8892 tris (golden, largest real house); modular 26 meshes / 8021 tris. Materials are the page ctx.MAT set, the same the classic house uses'
   },
   'roof-kura': {
     mid: { materials: 6 }, far: { meshes: 5, materials: 5 },
