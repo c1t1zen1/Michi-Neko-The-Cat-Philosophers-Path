@@ -17,6 +17,7 @@ import * as THREE from 'three';
 import { defineAsset } from '../contract.js?v=20261114a';
 import { Bag, UNIT } from '../craft.js?v=20261114a';
 import { buildResident } from './resident.js?v=20261114a';
+import { castAssets } from './cast.js?v=20261114a';
 
 const TAU = Math.PI * 2;
 const SEG = { hero: 1, mid: 0.65, far: 0.4 };
@@ -115,5 +116,6 @@ const villagerSample = () => ({
 export const assets = [
   defineAsset({ id: 'roof-shoki', family: 'roofcast', label: 'Shoki, the clay guardian', params: SIZE, tiers: ['hero', 'mid', 'far'], sample: pickupSample('shoki', 1.6), build: buildShoki }),
   defineAsset({ id: 'roof-treats', family: 'roofcast', label: 'Treat dish', params: SIZE, tiers: ['hero', 'mid', 'far'], sample: pickupSample('treat', 1.4), build: buildTreat }),
-  defineAsset({ id: 'roof-villagers', family: 'roofcast', label: 'Kyoto resident', params: {}, tiers: ['hero', 'mid', 'far'], sample: villagerSample, build: buildVillager })
+  defineAsset({ id: 'roof-villagers', family: 'roofcast', label: 'Kyoto resident', params: {}, tiers: ['hero', 'mid', 'far'], sample: villagerSample, build: buildVillager }),
+  ...castAssets
 ];

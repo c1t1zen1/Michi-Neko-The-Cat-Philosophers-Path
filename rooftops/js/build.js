@@ -136,6 +136,36 @@ function placePiece(out, layout, { ctx, root, lights, merge = true }) {
   }
 }
 
+/**
+ * r5b-roof-cast: the boatman and the hoko's hayashi are separate kit ids that ride on the
+ * boat / float record whichever hull or float built it (classic or kit). Not swapped: assets.build
+ * returns the classic callback's null and nothing changes. Swapped: the instance's parts move into
+ * the record's own slots (boat.boatman / boat.pole; float.group / float.musicians).
+ */
+function castPass(pc, layout, assets, dynamic) {
+  const drop = (o) => { o.removeFromParent(); o.traverse((c) => { if (c.geometry) c.geometry.dispose(); }); };
+  if (pc.type === 'boat') {
+    const out = assets.build('roof-boatman', layout, () => null);
+    const rec = dynamic.boats[dynamic.boats.length - 1];
+    if (!isAssetInstance(out) || !rec) return;
+    for (const c of [...rec.boatman.children]) if (c !== rec.pole) drop(c);
+    for (const c of [...rec.pole.children]) drop(c);
+    rec.boatman.add(out.parts.figure);
+    rec.pole.add(out.parts.pole);
+  } else if (dynamic.float) {
+    const out = assets.build('roof-hayashi', layout, () => null);
+    const rec = dynamic.float;
+    if (!isAssetInstance(out)) return;
+    rec.musicians.forEach((old, i) => {
+      const person = out.parts['musician_' + i];
+      if (!person) return;
+      drop(old);
+      rec.group.add(person);
+      rec.musicians[i] = person;
+    });
+  }
+}
+
 export function buildWorld(level, opts = {}) {
   const M = makeMaterials();
   paintDowntown(M);
@@ -167,6 +197,7 @@ export function buildWorld(level, opts = {}) {
       if (piece.decorate) piece.decorate(pc, ctx);
     });
     if (isAssetInstance(out)) placePiece(out, layout, { ctx, root, lights });
+    if (pc.type === 'boat' || pc.type === 'float') castPass(pc, layout, assets, dynamic);
     for (const child of staticGroup.children.slice(firstChild)) {
       child.userData.alleyRoute = pc.type === 'alleyRoute';
       child.userData.corner = pc.type === 'corner';
