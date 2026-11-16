@@ -35,3 +35,8 @@ rooftop_golden classic EQUAL; swap of the 7 ids: 185 pieces changed (the level n
 - Known gap: the decorateHouse bicycle (two wheels and a frame beside some shop fronts) is not ported; AAA-1 gap, no gameplay effect.
 - kura-near-dusk re-framed (camera further back and higher): classic and modular now differ.
 - Re-run: rooftop_golden classic EQUAL; swap 185 piece entries only; rooftop_test 40/40; qa auto twice 450 s: both reach the finale at s=1673.0817; cadJS npm test 16/16 (+ one 15/15 suite); kit_check 528 OK; verify 83/0; labs_check OK.
+
+## Paused mid fix round 1
+Pause requested by the operator after ee1005b. Everything in ee1005b is finished and coherent; no uncommitted experimental edits exist.
+Done: Important 1 (budgets moved into src/kit/budgets.js with measured classic/modular numbers; machiya hero buildMs re-measured at load 1.5 = 11.0 ms, allowance 12 kept with load recorded). Important 2 (per-32 m-cell meshes for wide pieces; draws classic/modular s=14/125/233/700 = 159/151, 165/163, 192/190, 137/134, load 1.5). Roof clip check by golden bounds (y equal, max horizontal 0.059 m). Minors (bicycle gap noted, kura pair re-framed).
+Remaining: reviewer confirmation only. Not yet done: a second quiet-load (< 3) re-read of the machiya buildMs after the merge of newer integration, and a re-check of draws at s=700 on a quiet machine (the golden and auto runs were at load 3.0).
