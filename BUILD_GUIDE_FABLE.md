@@ -626,7 +626,7 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 - [x] **G-S** Hilltop merged; summit_test 83/0, summit golden EQUAL, summit_kit_parity EQUAL, verify + G1 pass, classic+modular boots clean; meditation view accepted PROVISIONALLY (R59, operator may overturn) (`docs/fable/status/a2-hilltop.md`)
 - [ ] **G-R** Roof Road merged and wired (→ may merge to `main`)
   - Board note: Operator-approved route fix (R78) applied: rooftop_test 40/40, finale reachable; G-R play-through unblocked. Open layout notes for the operator: overlapping legs at s≈1010/1424/1558, mouth 12 zero length, mouths[6] as finale mouth.
-  - G-R preconditions: operator approval of the game.js → runview.js patch (r6 handoff §4); then G-R chores (full play-through valley bridge → finale → back on both sets, old saves, tag check) and review. Pending Integrator items from r6: catalog/js/links.mjs wording (§2.3, optional), src/rooftops scan in labs_coverage (§2.2).
+  - game.js → runview.js applied (R81, operator-approved 2026-11-15; rooftop 40/40, golden EQUAL, manager 81/0). `src/rooftops` scan added to labs_coverage with rows valley-seven-posts and valley-odoi (r6 handoff §2.2). G-R preconditions left: G-R chores (full play-through valley bridge → finale → back on both sets, old saves, tag check) and review. Pending Integrator items from r6: catalog/js/links.mjs wording (§2.3, optional).
 - [x] **G-T** Tooling merged; cadJS param edit (key-rock size 1.5, Push to game) changed the ?assets=modular shot (maxDelta 166), restoring kit-overrides.json reverted it (maxDelta 0); catalog 49/49, cadJS 16/16 pass
 - [ ] **G-A** Area polish accepted for all three areas
 - [ ] **G-H** Hero images and README merged

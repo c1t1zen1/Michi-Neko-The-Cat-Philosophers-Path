@@ -156,3 +156,23 @@ test('the Roof Road shelf is review evidence, not a focused study', () => {
   data.assets.find((a) => a.id === 'roof-bridge').coverage[0].level = 'direct';
   hasError(data, /direct coverage requires a specimen or bench: roof-bridge/);
 });
+
+test('the game side of the Roof Road (src/rooftops/) is scanned: modules and valley builders cannot escape the inventory', () => {
+  const data = inventory();
+  const valley = data.assets.filter((a) => a.id === 'valley-seven-posts' || a.id === 'valley-odoi');
+  assert.equal(valley.length, 2);
+  assert.ok(valley.every((a) => a.group === 'Kyoto village' && a.sources.every((s) => s.file === 'src/rooftops/valley.js')));
+  // Honest levels: no lab studies the valley props; only the sandbox Shōki is related, with a limitation.
+  assert.deepEqual(valley.find((a) => a.id === 'valley-odoi').coverage, []);
+  assert.deepEqual(valley.find((a) => a.id === 'valley-seven-posts').coverage.map((c) => c.level), ['related']);
+  const roofFiles = [...data.sourceFiles.filter((f) => /^(rooftops|src\/rooftops)\//.test(f.file)).map((f) => f.file), 'src/rooftops/new_gate.js'];
+  hasError(data, /unclassified Roof Road module: src\/rooftops\/new_gate.js/, {
+    roofFiles, readText: (file) => file === 'src/rooftops/new_gate.js' ? '// A new module.\n' : read(file)
+  });
+  hasError(data, /unaccounted Roof Road construction function: src\/rooftops\/valley.js:buildNewGate/, {
+    readText: (file) => read(file) + (file === 'src/rooftops/valley.js' ? '\nexport function buildNewGate(city) {}\n' : '')
+  });
+  const stripped = inventory();
+  stripped.assets = stripped.assets.filter((a) => a.id !== 'valley-odoi');
+  hasError(stripped, /unaccounted Roof Road construction function: src\/rooftops\/valley.js:buildOdoiThicket/);
+});

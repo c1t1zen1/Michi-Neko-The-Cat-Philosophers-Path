@@ -156,6 +156,56 @@
    "reason": "Quest state and text rewards."
   },
   {
+   "file": "src/rooftops/autopilot.js",
+   "role": "excluded",
+   "reason": "Re-export of the one source in rooftops/js/; draws nothing here."
+  },
+  {
+   "file": "src/rooftops/level.js",
+   "role": "excluded",
+   "reason": "Re-export of the one source in rooftops/js/; draws nothing here."
+  },
+  {
+   "file": "src/rooftops/manager.js",
+   "role": "support",
+   "reason": "RooftopManager: the pocket scene lifecycle, unlock and transitions. Builds no meshes of its own."
+  },
+  {
+   "file": "src/rooftops/physics.js",
+   "role": "excluded",
+   "reason": "Re-export of the one source in rooftops/js/; draws nothing here."
+  },
+  {
+   "file": "src/rooftops/pocket.js",
+   "role": "support",
+   "reason": "The pocket scene that runs the Roof Road inside the game; assembles rooftops/js pieces, builds nothing new."
+  },
+  {
+   "file": "src/rooftops/posts.js",
+   "role": "support",
+   "reason": "The Seven Posts unlock state (seven bridge posts, greeting progress); no geometry."
+  },
+  {
+   "file": "src/rooftops/rail.js",
+   "role": "excluded",
+   "reason": "Re-export of the one source in rooftops/js/; draws nothing here."
+  },
+  {
+   "file": "src/rooftops/reach.js",
+   "role": "excluded",
+   "reason": "Re-export of the one source in rooftops/js/; draws nothing here."
+  },
+  {
+   "file": "src/rooftops/runview.js",
+   "role": "excluded",
+   "reason": "Re-export of the one source in rooftops/js/; draws nothing here."
+  },
+  {
+   "file": "src/rooftops/valley.js",
+   "role": "assets",
+   "reason": "The valley side of the Roof Road (R6.1, R6.2): the Seven Posts giboshi caps and clay Shōki on the bridge, the Odoi bank, bamboo thicket and noren gate. Plain functions called from Countryside."
+  },
+  {
    "file": "src/save.js",
    "role": "excluded",
    "reason": "Persistence."
@@ -2305,6 +2355,44 @@
   }
  },
  "assets": [
+  {
+   "id": "valley-seven-posts",
+   "label": "Seven Posts: bridge giboshi caps and Shōki",
+   "group": "Kyoto village",
+   "lifecycle": "active",
+   "sources": [
+    {
+     "file": "src/rooftops/valley.js",
+     "anchor": "export function buildSevenPosts(scene, MAT = {}) {"
+    },
+    {
+     "file": "src/rooftops/valley.js",
+     "anchor": "function makeShoki(M) {"
+    }
+   ],
+   "coverage": [
+    {
+     "target": "roofroad/shoki",
+     "level": "related",
+     "note": "The sandbox Shōki specimen is the same clay figure drawn by rooftops/js; the bridge copy in valley.js, the bronze giboshi caps and their placement on the railing have no study."
+    }
+   ],
+   "note": "The Roof Road's unlock on the valley bridge (R6.1); no lab of its own. Review: tools/game_shot.mjs on the bridge."
+  },
+  {
+   "id": "valley-odoi",
+   "label": "Odoi bank, bamboo thicket and noren gate",
+   "group": "Kyoto village",
+   "lifecycle": "active",
+   "sources": [
+    {
+     "file": "src/rooftops/valley.js",
+     "anchor": "export function buildOdoiThicket(city, MAT = {}) {"
+    }
+   ],
+   "coverage": [],
+   "note": "The Roof Road's gate south of the bridge (R6.2); its own mulberry32(0x0D01) stream; no lab or review sheet. Review: tools/game_shot.mjs."
+  },
   {
    "id": "michi",
    "label": "Michi (player cat)",

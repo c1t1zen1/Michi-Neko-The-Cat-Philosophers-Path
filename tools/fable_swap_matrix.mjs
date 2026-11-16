@@ -169,6 +169,9 @@ const LANES = [
     ['roof-chidori', 'card'], ['roof-shoki', 'card'], ['roof-boatman', 'card'], ['roof-hayashi', 'card'],
     ['roof-villagers', 'pieces'],
     ['roof-treats', 'judgement', 'built beside the Shōki in `rooftops/js/pieces/pickups.js` and greeted the same way']]),
+  lane('r6-game-wiring', '5', 'Roof Road (`src/rooftops/valley.js`, plain builders called from `Countryside`; not a kit family)', '`labs/roofroad/` (review shelf); no lab for the valley props', [
+    ['valley-seven-posts', 'judgement', 'built by `buildSevenPosts` in `src/rooftops/valley.js` for the Roof Road\'s unlock on the valley bridge; classic on both sets (not routed through `placeAsset`)'],
+    ['valley-odoi', 'judgement', 'built by `buildOdoiThicket` in `src/rooftops/valley.js` on its own mulberry32 stream; classic on both sets (not routed through `placeAsset`)']]),
   lane('media', '-', '-', '-', [
     ['summit-transition', 'ruling'], ['blender-roofscape', 'ruling']])
 ];

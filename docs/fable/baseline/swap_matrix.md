@@ -7,8 +7,8 @@ Sources: `labs/asset_inventory.json` (schema 1, reviewed 2026-11-14), `catalog/j
 
 ## Totals
 
-- Inventory rows: **252**, of which **248 active** and **4 inactive**. This matrix has **248 rows, one per active row**; the generator refuses to run if any active row has no lane or two.
-- Coverage of the 248 active rows (strongest evidence, as `labs/ASSET_COVERAGE.md`): direct 152, review 77, embedded 6, related 10, missing 3. Rows without a focused lab study: 96.
+- Inventory rows: **254**, of which **250 active** and **4 inactive**. This matrix has **250 rows, one per active row**; the generator refuses to run if any active row has no lane or two.
+- Coverage of the 250 active rows (strongest evidence, as `labs/ASSET_COVERAGE.md`): direct 152, review 77, embedded 6, related 11, missing 4. Rows without a focused lab study: 98.
 - Asset Library adapters: 124 rows have an original adapter; 61 rows have a lab adapter, backed by 71 unique lab specimens (85 row-to-specimen links). The guide's "71 lab recipes" is the 71 specimens, not the 61 rows.
 
 ## Lanes and the rules used to assign them
@@ -80,8 +80,9 @@ A lab adapter is not a focused study, and the reverse. 1 row has a lab adapter w
 | r3-canal-market | 5 | Roof Road (`src/kit/`, the lane's family; reuses water, trees, alley) | `labs/roofroad/` (review shelf) | 19 | 0 | 19 | 0 | 0 | 0 | 19 | 0 | 0 |
 | r4-festival | 5 | Roof Road (`src/kit/`, the lane's family; reuses pagoda, ranges, lanterns) | `labs/roofroad/` (review shelf) | 12 | 0 | 12 | 0 | 0 | 0 | 12 | 0 | 0 |
 | r5-roof-cast | 5 | characters (`src/characters/`) | `labs/roofroad/` (review shelf); the run for Chidori | 6 | 0 | 4 | 2 | 0 | 0 | 6 | 0 | 0 |
+| r6-game-wiring | 5 | Roof Road (`src/rooftops/valley.js`, plain builders called from `Countryside`; not a kit family) | `labs/roofroad/` (review shelf); no lab for the valley props | 2 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 |
 | media | - | media, not a kit asset (optional runtime media with fallbacks) | - | 2 | 0 | 1 | 0 | 0 | 1 | 2 | 0 | 1 |
-| **All lanes** | | | | **248** | **152** | **77** | **6** | **10** | **3** | **96** | **61** | **124** |
+| **All lanes** | | | | **250** | **152** | **77** | **6** | **11** | **4** | **98** | **61** | **124** |
 
 Roof Road rows (inventory group `Roof Road`, added by lane r1-roof-split, guide section 12 R1.1) go to r2 to r5 by the section 12 mouth table. Every piece type sits in the lane the `PIECES` table in `rooftops/js/pieces/index.js` names for it, and the generator checks they agree. Lane r1 owns no row: it split `rooftops/js/build.js` and routed every piece through `assets.build`.
 
@@ -119,6 +120,7 @@ Active rows whose strongest evidence is not `direct`. Under the standard lane re
 - **r3-canal-market** (19 of 19): `roof-canal` (review), `roof-canal-banks` (review), `roof-stepping-stones` (review), `roof-footbridge` (review), `roof-takasebune` (review), `roof-cherry-boughs` (review), `roof-canopy` (review), `roof-skylight-bridge` (review), `roof-market-stalls` (review), `roof-lines` (review), `roof-cistern` (review), `roof-chimney` (review), `roof-canal-landings` (review), `roof-toro` (review), `roof-canopy-vents` (review), `roof-futon-racks` (review), `roof-willows` (review), `roof-culvert-ledges` (review), `roof-tenmangu-gate` (review)
 - **r4-festival** (12 of 12): `roof-yatai` (review), `roof-lantern-racks` (review), `roof-hoko` (review), `roof-temple-gate` (review), `roof-distant-city` (review), `roof-skyline-pagodas` (review), `roof-hills` (review), `roof-okuribi` (review), `roof-tsuiji` (review), `roof-yama` (review), `roof-sky` (review), `roof-atmosphere` (review)
 - **r5-roof-cast** (6 of 6): `roof-chidori` (review), `roof-shoki` (review), `roof-boatman` (embedded), `roof-hayashi` (embedded), `roof-villagers` (review), `roof-treats` (review)
+- **r6-game-wiring** (2 of 2): `valley-seven-posts` (related), `valley-odoi` (missing)
 - **at-standard** (1 of 14 without a focused study): `grass-fireflies` (related); these are not rebuilt, so no study is needed.
 - **media** (2): `summit-transition` (missing), `blender-roofscape` (review); optional runtime media with fallbacks.
 
@@ -127,7 +129,7 @@ Active rows whose strongest evidence is not `direct`. Under the standard lane re
 - Moved by a ruling: `pool-toro` (Appendix D: v-hidden; this matrix: v-lanterns); `courtyard-toro` (Appendix D: v-interiors; this matrix: v-lanterns); `grass-fireflies` (Appendix D: v-weather; this matrix: at-standard); `roadside-moss` (Appendix D: v-trees; this matrix: v-greenery).
 - Listed in Appendix D but not a gap in the inventory: `corral-sign` (listed under v-fences; the inventory has `direct` coverage); `dango` (listed under v-keepsakes; the inventory has `direct` coverage); `jade-paw` (listed under v-keepsakes; the inventory has `direct` coverage); `secret-fish` (listed under v-keepsakes; the inventory has `direct` coverage); `interior-fish` (listed under v-keepsakes; the inventory has `direct` coverage); `offering-box` (listed under v-shrine; the inventory has `direct` coverage); `mist-altar` (listed under v-shrine; the inventory has `direct` coverage); `namako` (listed under v-machiya; the inventory has `direct` coverage); `tea-bench` (listed under v-machiya; the inventory has `direct` coverage); `secret-door` (listed under v-machiya; the inventory has `direct` coverage); `lock-plate` (listed under v-machiya; the inventory has `direct` coverage); `pool-apron` (listed under v-hidden; the inventory has `direct` coverage); `pool-rim` (listed under v-hidden; the inventory has `direct` coverage); `pool-seat` (listed under v-hidden; the inventory has `direct` coverage); `lantern-glade` (listed under v-hidden; the inventory has `direct` coverage); `glade-floor` (listed under v-hidden; the inventory has `direct` coverage); `glade-bamboo` (listed under v-hidden; the inventory has `direct` coverage); `glade-seat` (listed under v-hidden; the inventory has `direct` coverage); `interior-frame` (listed under v-interiors; the inventory has `direct` coverage); `tokonoma` (listed under v-interiors; the inventory has `direct` coverage); `scroll` (listed under v-interiors; the inventory has `direct` coverage); `bonsai` (listed under v-interiors; the inventory has `direct` coverage); `chabudai` (listed under v-interiors; the inventory has `direct` coverage); `zabuton` (listed under v-interiors; the inventory has `direct` coverage); `courtyard-wall` (listed under v-interiors; the inventory has `direct` coverage); `knockables` (listed under v-interiors; the inventory has `direct` coverage); `secret-tatami` (listed under v-interiors; the inventory has `direct` coverage); `secret-table` (listed under v-interiors; the inventory has `direct` coverage); `secret-bed` (listed under v-interiors; the inventory has `direct` coverage); `secret-andon` (listed under v-interiors; the inventory has `direct` coverage); `paddy-bunds` (listed under v-ground / v-water; the inventory has `direct` coverage); `foothill-forest` (listed under v-ranges; the inventory has `direct` coverage); `distant-village` (listed under v-ranges; the inventory has `direct` coverage); `mist-ring` (listed under v-ranges; the inventory has `direct` coverage); `dawn-mist` (listed under v-ranges; the inventory has `direct` coverage); `stars` (listed under v-sky; the inventory has `direct` coverage); `moon` (listed under v-sky; the inventory has `direct` coverage); `fireflies` (listed under v-weather; the inventory has `direct` coverage); `dust-motes` (listed under v-weather; the inventory has `direct` coverage); `scent` (listed under v-weather; the inventory has `direct` coverage); `splash` (listed under v-weather; the inventory has `direct` coverage); `landing-dust` (listed under v-weather; the inventory has `direct` coverage); `guardian-crows` (listed under v-critters; the inventory has `direct` coverage); `larry` (listed under c4-creatures; the inventory has `direct` coverage); `guardian-crows` (listed under c4-creatures; the inventory has `direct` coverage).
 - Gaps in the inventory that Appendix D does not list (outside the summit, Roof Road and media rows): none.
-- Appendix D predates the Roof Road rows: all 62 of them (r2 to r5) are gaps, with the `labs/roofroad/` review shelf or the run itself as their evidence.
+- Appendix D predates the Roof Road rows: all 64 of them (r2 to r5) are gaps, with the `labs/roofroad/` review shelf or the run itself as their evidence.
 - Appendix D says "31 summit rows with review-sheet evidence only" for s2 to s4. In the inventory that is 10 kit rows assigned to s2, s3 and s4 plus the media row `blender-roofscape` (review) = 11, which does NOT match; `kyoto-city` is `direct`.
 
 ### Overlaps and judgement calls to confirm
@@ -164,10 +166,12 @@ Rows marked `judgement` in the matrix, with the reason each was placed where it 
 - `roof-sky` to r4-festival: the sky the five fires burn in; `rooftops/js/sky.js` builds it with the hills and the fires r4 owns.
 - `roof-atmosphere` to r4-festival: `rooftops/js/atmosphere.js` is one module of scene-wide effects; it sits with the sky and the finale night it lights.
 - `roof-treats` to r5-roof-cast: built beside the Shōki in `rooftops/js/pieces/pickups.js` and greeted the same way.
+- `valley-seven-posts` to r6-game-wiring: built by `buildSevenPosts` in `src/rooftops/valley.js` for the Roof Road's unlock on the valley bridge; classic on both sets (not routed through `placeAsset`).
+- `valley-odoi` to r6-game-wiring: built by `buildOdoiThicket` in `src/rooftops/valley.js` on its own mulberry32 stream; classic on both sets (not routed through `placeAsset`).
 
 ## Matrix
 
-One table per lane, in guide order. 248 rows in total.
+One table per lane, in guide order. 250 rows in total.
 
 ### v-lanterns
 
@@ -631,6 +635,15 @@ Phase 5, the Roof Road · kit family characters (`src/characters/`) · lab `labs
 | `roof-hayashi` | Roof Road | r5-roof-cast | card | `roofroad/float` | embedded | no | no |
 | `roof-villagers` | Roof Road | r5-roof-cast | pieces | `roofroad/villager` | review | no | no |
 | `roof-treats` | Roof Road | r5-roof-cast | judgement | `roofroad/treat` | review | no | no |
+
+### r6-game-wiring
+
+Phase 5, the Roof Road · kit family Roof Road (`src/rooftops/valley.js`, plain builders called from `Countryside`; not a kit family) · lab `labs/roofroad/` (review shelf); no lab for the valley props · 2 rows, 0 with a focused study.
+
+| Inventory id | Area | Lane | Basis | Best lab target | Coverage | Lab adapter | Original adapter |
+|---|---|---|---|---|---|---|---|
+| `valley-seven-posts` | Kyoto village | r6-game-wiring | judgement | `roofroad/shoki` | related | no | no |
+| `valley-odoi` | Kyoto village | r6-game-wiring | judgement | - | missing | no | no |
 
 ### media
 

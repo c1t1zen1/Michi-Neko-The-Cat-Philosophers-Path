@@ -6,7 +6,7 @@ Reviewed 2026-11-14. Generated from [asset_inventory.json](asset_inventory.json)
 
 ## What can be claimed
 
-The inventory accounts for **37 core source modules** and **112 build/create construction methods**, and for the Roof Road prototype (`rooftops/`) **59 modules**, **11 build/create/make functions** and **48 piece types**. It records **248 active asset types and assemblies**, plus **4 inactive entries**. **152 of 248 (61.3%) have a focused lab study.** Full individual specimen coverage is incomplete.
+The inventory accounts for **37 core source modules** and **112 build/create construction methods**, and for the Roof Road prototype (`rooftops/`) **69 modules**, **14 build/create/make functions** and **48 piece types**. It records **250 active asset types and assemblies**, plus **4 inactive entries**. **152 of 250 (60.8%) have a focused lab study.** Full individual specimen coverage is incomplete.
 
 Authored visual asset types in the core src/ game, including valley, tea-house interior, summit, characters, physical items and visible effects, and in the Roof Road prototype (rooftops/, its own page; the game does not load it yet). Assemblies and separately recognizable parts are separate rows; procedural instances are not.
 
@@ -28,16 +28,17 @@ Each active row is counted once at its strongest evidence level, in the order ab
 
 | Strongest evidence | Active rows | Share |
 |---|---:|---:|
-| Focused lab study | 152 | 61.3% |
-| Review sheet | 77 | 31.0% |
+| Focused lab study | 152 | 60.8% |
+| Review sheet | 77 | 30.8% |
 | Embedded in a specimen | 6 | 2.4% |
-| Related evidence only | 10 | 4.0% |
-| No mapped evidence | 3 | 1.2% |
+| Related evidence only | 11 | 4.4% |
+| No mapped evidence | 4 | 1.6% |
 
 ## Coverage by area
 
 | Area | Active rows | Focused | Review | Embedded | Related | Missing |
 |---|---:|---:|---:|---:|---:|---:|
+| Kyoto village | 2 | 0 | 0 | 0 | 1 | 1 |
 | Characters | 9 | 8 | 1 | 0 | 0 | 0 |
 | Cat components | 5 | 0 | 3 | 1 | 0 | 1 |
 | Ground and water | 13 | 13 | 0 | 0 | 0 | 0 |
@@ -61,6 +62,8 @@ This list includes every active row without a focused study, including review-on
 
 | Asset | Current evidence | Limitation |
 |---|---|---|
+| [Seven Posts: bridge giboshi caps and Shōki](#valley-seven-posts) | Related evidence only | The Roof Road's unlock on the valley bridge (R6.1); no lab of its own. Review: tools/game_shot.mjs on the bridge. The sandbox Shōki specimen is the same clay figure drawn by rooftops/js; the bridge copy in valley.js, the bronze giboshi caps and their placement on the railing have no study. |
+| [Odoi bank, bamboo thicket and noren gate](#valley-odoi) | No mapped evidence | The Roof Road's gate south of the bridge (R6.2); its own mulberry32(0x0D01) stream; no lab or review sheet. Review: tools/game_shot.mjs. |
 | [Michi (player cat)](#michi) | Review sheet | The sleep specimen uses Michi’s coat/build; it is a pose study rather than a dedicated player-model lab. |
 | [Cat body, fur and tabby coats](#cat-coat) | Review sheet | No individual focused specimen is mapped. |
 | [Cat nose, muzzle, whiskers, ears and painted eyes](#cat-face) | Review sheet | No individual focused specimen is mapped. |
@@ -161,6 +164,13 @@ This list includes every active row without a focused study, including review-on
 ## Inventory and individual evidence
 
 Source links resolve to declarations or recognizable construction anchors. Evidence links resolve to the actual specimen definition, bench or review code. Dynamic specimen IDs (for example `original-secret` and `orig-tower`) link to their generating definitions.
+
+### Kyoto village
+
+| Asset ID / type | Game source | Evidence | Notes |
+|---|---|---|---|
+| <a id="valley-seven-posts"></a>`valley-seven-posts` — Seven Posts: bridge giboshi caps and Shōki | [src/rooftops/valley.js:export function buildSevenPosts(scene, MAT = {}) {](../src/rooftops/valley.js#L110)<br>[src/rooftops/valley.js:function makeShoki(M) {](../src/rooftops/valley.js#L88) | [roofroad / shoki](../labs/roofroad/js/shelf.js#L78) (related) — The sandbox Shōki specimen is the same clay figure drawn by rooftops/js; the bridge copy in valley.js, the bronze giboshi caps and their placement on the railing have no study. | The Roof Road's unlock on the valley bridge (R6.1); no lab of its own. Review: tools/game_shot.mjs on the bridge. |
+| <a id="valley-odoi"></a>`valley-odoi` — Odoi bank, bamboo thicket and noren gate | [src/rooftops/valley.js:export function buildOdoiThicket(city, MAT = {}) {](../src/rooftops/valley.js#L298) | **No mapped evidence** | The Roof Road's gate south of the bridge (R6.2); its own mulberry32(0x0D01) stream; no lab or review sheet. Review: tools/game_shot.mjs. |
 
 ### Characters
 
@@ -480,13 +490,13 @@ Source links resolve to declarations or recognizable construction anchors. Evide
 | <a id="roof-ground"></a>`roof-ground` — Roof Road ground plane under the run | [rooftops/js/build.js:extra('roof-ground', extraLayout(](../rooftops/js/build.js#L236)<br>[rooftops/js/build.js:const ground = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), M.ground);](../rooftops/js/build.js#L237) | [roofroad / run](../kyoto-rooftops.html#L23) (review) | Built by buildWorld() around the run, not from a level piece; routed through assets.build('roof-ground', extraLayout(…)). |
 | <a id="roof-distant-city"></a>`roof-distant-city` — Roof Road distant city (instanced roofscape) | [rooftops/js/pieces/skyline.js:function buildDistantCity(](../rooftops/js/pieces/skyline.js#L10)<br>[rooftops/js/build.js:extra('roof-distant-city', extraLayout(](../rooftops/js/build.js#L248) | [roofroad / distant-city](../labs/roofroad/js/shelf.js#L74) (review) | Built by buildWorld() around the run; routed through assets.build('roof-distant-city', extraLayout(…)). |
 | <a id="roof-skyline-pagodas"></a>`roof-skyline-pagodas` — Roof Road skyline pagodas | [rooftops/js/pieces/skyline.js:function buildPagoda(](../rooftops/js/pieces/skyline.js#L68)<br>[rooftops/js/build.js:extra('roof-skyline-pagodas', extraLayout(](../rooftops/js/build.js#L255) | [roofroad / skyline-pagoda](../labs/roofroad/js/shelf.js#L75) (review) | Three, built by buildWorld() around the run; each routed through assets.build('roof-skyline-pagodas', extraLayout(…)). |
-| <a id="roof-sky"></a>`roof-sky` — Roof Road sky dome, clouds and moon (afternoon to festival night) | [rooftops/js/sky.js:export class Sky {](../rooftops/js/sky.js#L77)<br>[rooftops/js/sky.js:buildDome() {](../rooftops/js/sky.js#L120)<br>[rooftops/js/sky.js:buildClouds() {](../rooftops/js/sky.js#L202) | [roofroad / run](../kyoto-rooftops.html#L23) (review)<br>[roofroad / finale](../rooftops/js/game.js#L1088) (review) | Driven by route progress, not a clock. |
-| <a id="roof-hills"></a>`roof-hills` — Roof Road ring of hills around the basin | [rooftops/js/sky.js:buildHills() {](../rooftops/js/sky.js#L170) | [roofroad / finale](../rooftops/js/game.js#L1088) (review) |  |
-| <a id="roof-okuribi"></a>`roof-okuribi` — Roof Road Okuribi: the five fires on the hills | [rooftops/js/sky.js:buildFires() {](../rooftops/js/sky.js#L239) | [roofroad / finale](../rooftops/js/game.js#L1088) (review) |  |
+| <a id="roof-sky"></a>`roof-sky` — Roof Road sky dome, clouds and moon (afternoon to festival night) | [rooftops/js/sky.js:export class Sky {](../rooftops/js/sky.js#L77)<br>[rooftops/js/sky.js:buildDome() {](../rooftops/js/sky.js#L120)<br>[rooftops/js/sky.js:buildClouds() {](../rooftops/js/sky.js#L202) | [roofroad / run](../kyoto-rooftops.html#L23) (review)<br>[roofroad / finale](../rooftops/js/game.js#L680) (review) | Driven by route progress, not a clock. |
+| <a id="roof-hills"></a>`roof-hills` — Roof Road ring of hills around the basin | [rooftops/js/sky.js:buildHills() {](../rooftops/js/sky.js#L170) | [roofroad / finale](../rooftops/js/game.js#L680) (review) |  |
+| <a id="roof-okuribi"></a>`roof-okuribi` — Roof Road Okuribi: the five fires on the hills | [rooftops/js/sky.js:buildFires() {](../rooftops/js/sky.js#L239) | [roofroad / finale](../rooftops/js/game.js#L680) (review) |  |
 | <a id="roof-atmosphere"></a>`roof-atmosphere` — Roof Road atmosphere: petals, chimney smoke, birds, dust, fireflies, landing bursts | [rooftops/js/atmosphere.js:export class RooftopAtmosphere {](../rooftops/js/atmosphere.js#L279)<br>[rooftops/js/atmosphere.js:class ImpactFX {](../rooftops/js/atmosphere.js#L132) | [roofroad / run](../kyoto-rooftops.html#L23) (review) |  |
 | <a id="roof-shoki"></a>`roof-shoki` — Roof Road clay Shōki (the seven guardians) | [rooftops/js/pieces/pickups.js:export function makeShoki(](../rooftops/js/pieces/pickups.js#L8)<br>[rooftops/js/build.js:k.kind === 'shoki' ? 'roof-shoki' : 'roof-treats'](../rooftops/js/build.js#L267) | [roofroad / shoki](../labs/roofroad/js/shelf.js#L78) (review) | Built by buildWorld() for each level pickup; routed through assets.build('roof-shoki', extraLayout(…)), the instance registered as the pickup. |
 | <a id="roof-treats"></a>`roof-treats` — Roof Road treats | [rooftops/js/pieces/pickups.js:function makeTreat(](../rooftops/js/pieces/pickups.js#L25)<br>[rooftops/js/build.js:k.kind === 'shoki' ? 'roof-shoki' : 'roof-treats'](../rooftops/js/build.js#L267) | [roofroad / treat](../labs/roofroad/js/shelf.js#L79) (review) | Built by buildWorld() for each level pickup; routed through assets.build('roof-treats', extraLayout(…)), the instance registered as the pickup. |
-| <a id="roof-chidori"></a>`roof-chidori` — Chidori, the Roof Road guide cat | [rooftops/js/game.js:guide = new mod.Cat(](../rooftops/js/game.js#L98)<br>[rooftops/js/companion.js:export class Companion {](../rooftops/js/companion.js#L18) | [roofroad / run](../kyoto-rooftops.html#L23) (review) | The game’s Cat with Chidori’s coat (decision D3: no PERSONALITIES entry); no specimen of her own. |
+| <a id="roof-chidori"></a>`roof-chidori` — Chidori, the Roof Road guide cat | [rooftops/js/game.js:guide = new mod.Cat(](../rooftops/js/game.js#L99)<br>[rooftops/js/companion.js:export class Companion {](../rooftops/js/companion.js#L18) | [roofroad / run](../kyoto-rooftops.html#L23) (review) | The game’s Cat with Chidori’s coat (decision D3: no PERSONALITIES entry); no specimen of her own. |
 | <a id="roof-boatman"></a>`roof-boatman` — Roof Road takasebune boatman | [rooftops/js/pieces/boat.js:const boatman = new THREE.Group();](../rooftops/js/pieces/boat.js#L93) | [roofroad / boat](../labs/roofroad/js/shelf.js#L55) (embedded) — Poles the takasebune in the boat specimen; no specimen of his own. |  |
 | <a id="roof-hayashi"></a>`roof-hayashi` — Roof Road hayashi musicians on the hoko | [rooftops/js/pieces/float.js:const musicians = [];](../rooftops/js/pieces/float.js#L154) | [roofroad / float](../labs/roofroad/js/shelf.js#L70) (embedded) — Ride the hoko in the float specimen; no specimen of their own. |  |
 
@@ -536,6 +546,16 @@ Every Roof Road module (`rooftops/js/*.js`, `rooftops/js/pieces/*.js`) is classi
 | [src/postfx.js](../src/postfx.js) | assets | Screen-space visual passes. |
 | [src/progression.js](../src/progression.js) | excluded | XP/ranks and journal rewards; cosmetic bell meshes are inventoried in cat.js. |
 | [src/quest.js](../src/quest.js) | excluded | Quest state and text rewards. |
+| [src/rooftops/autopilot.js](../src/rooftops/autopilot.js) | excluded | Re-export of the one source in rooftops/js/; draws nothing here. |
+| [src/rooftops/level.js](../src/rooftops/level.js) | excluded | Re-export of the one source in rooftops/js/; draws nothing here. |
+| [src/rooftops/manager.js](../src/rooftops/manager.js) | support | RooftopManager: the pocket scene lifecycle, unlock and transitions. Builds no meshes of its own. |
+| [src/rooftops/physics.js](../src/rooftops/physics.js) | excluded | Re-export of the one source in rooftops/js/; draws nothing here. |
+| [src/rooftops/pocket.js](../src/rooftops/pocket.js) | support | The pocket scene that runs the Roof Road inside the game; assembles rooftops/js pieces, builds nothing new. |
+| [src/rooftops/posts.js](../src/rooftops/posts.js) | support | The Seven Posts unlock state (seven bridge posts, greeting progress); no geometry. |
+| [src/rooftops/rail.js](../src/rooftops/rail.js) | excluded | Re-export of the one source in rooftops/js/; draws nothing here. |
+| [src/rooftops/reach.js](../src/rooftops/reach.js) | excluded | Re-export of the one source in rooftops/js/; draws nothing here. |
+| [src/rooftops/runview.js](../src/rooftops/runview.js) | excluded | Re-export of the one source in rooftops/js/; draws nothing here. |
+| [src/rooftops/valley.js](../src/rooftops/valley.js) | assets | The valley side of the Roof Road (R6.1, R6.2): the Seven Posts giboshi caps and clay Shōki on the bridge, the Odoi bank, bamboo thicket and noren gate. Plain functions called from Countryside. |
 | [src/save.js](../src/save.js) | excluded | Persistence. |
 | [src/scent.js](../src/scent.js) | assets | Instanced scent-trail particles. |
 | [src/settings.js](../src/settings.js) | excluded | Settings state. |

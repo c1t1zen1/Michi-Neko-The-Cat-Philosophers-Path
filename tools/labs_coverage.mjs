@@ -17,7 +17,8 @@ const METHOD = /^  ((?:build|create)[A-Z]\w*)\(/gm;
 // functions (buildPagoda, makeShoki), so its modules are scanned with a wider
 // pattern; its piece builders are accounted through the PIECES table.
 const ROOF_METHOD = /^(?:  |(?:export )?(?:async )?function )((?:build|create|make)[A-Z]\w*)\(/gm;
-const ROOF_DIRS = ['rooftops/js', 'rooftops/js/pieces'];
+// src/rooftops/ is the game's side of the Roof Road (R6): the valley props and the pocket.
+const ROOF_DIRS = ['rooftops/js', 'rooftops/js/pieces', 'src/rooftops'];
 const PIECES_FILE = 'rooftops/js/pieces/index.js';
 // One PIECES entry: `  type: piece('inventory-id', 'r2', 'pieces/type.js', builder…`
 const PIECE_ENTRY = /^\s+(\w+): piece\('([^']+)', '([^']+)', '([^']+)'/gm;
@@ -25,7 +26,7 @@ const ROOF_GROUP = 'Roof Road';
 const read = (file) => readFileSync(resolve(ROOT, file), 'utf8').replace(/^\uFEFF/, '');
 const sourceFiles = () => readdirSync(resolve(ROOT, 'src')).filter((f) => f.endsWith('.js')).sort().map((f) => 'src/' + f);
 const roofSourceFiles = () => ROOF_DIRS.flatMap((dir) => readdirSync(resolve(ROOT, dir)).filter((f) => f.endsWith('.js')).sort().map((f) => dir + '/' + f));
-const isRoof = (file) => file.startsWith('rooftops/');
+const isRoof = (file) => file.startsWith('rooftops/') || file.startsWith('src/rooftops/');
 
 /**
  * The PIECES table as data, read as text (it imports three.js): `pieces` is
