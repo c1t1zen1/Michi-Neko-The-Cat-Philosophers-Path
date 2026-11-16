@@ -632,7 +632,7 @@ Every Roof Road module (`rooftops/js/*.js`, `rooftops/js/pieces/*.js`) is classi
 | [src/cat.js:buildMaterials(](../src/cat.js#L80) | Material setup for the inventoried cat; not another object. |
 | [src/countryside.js:createRiverUniforms(](../src/countryside.js#L1616) | Shader parameter state for the inventoried river/paddies, not another visible asset. |
 | [src/npc.js:createNameTag(](../src/npc.js#L212) | DOM character label; interface is outside the visible world-asset inventory. |
-| [src/main.js:buildJournalUI(](../src/main.js#L1838) | DOM journal interface; journal text rewards are not physical inventory objects. |
+| [src/main.js:buildJournalUI(](../src/main.js#L1840) | DOM journal interface; journal text rewards are not physical inventory objects. |
 | [src/menus.js:buildSettings(](../src/menus.js#L140) | DOM settings interface, outside the world-asset scope. |
 | [src/postfx.js:buildKernel(](../src/postfx.js#L176) | AO sampling-kernel data, not a second visual asset. |
 | [rooftops/js/build.js:export function buildWorld(](../rooftops/js/build.js#L169) | Roof Road assembly facade; every piece type, the ground, skyline and pickups are inventoried separately. |
@@ -649,9 +649,9 @@ Narrative-only characters and journal/progression rewards are recorded separatel
 
 | Nonvisual entry | Source | Reason |
 |---|---|---|
-| Bokuchi, the forest spirit | [src/main.js](../src/main.js#L1987) | Named in Kuro’s dialogue; no separate Bokuchi actor or mesh is constructed. |
+| Bokuchi, the forest spirit | [src/main.js](../src/main.js#L1989) | Named in Kuro’s dialogue; no separate Bokuchi actor or mesh is constructed. |
 | Mist Charm | [src/context_actions.js](../src/context_actions.js#L690) | Journal/progression reward from touching the altar; no collectible mesh. |
-| Bokuchi’s Blessing | [src/main.js](../src/main.js#L2058) | Journal/progression reward for the offering-bell quest; no separate item mesh. |
+| Bokuchi’s Blessing | [src/main.js](../src/main.js#L2060) | Journal/progression reward for the offering-bell quest; no separate item mesh. |
 | The valley became home | [src/context_actions.js](../src/context_actions.js#L762) | Journal memory from a quiet moment; no physical item. |
 
 Optional media and dormant code are recorded without claiming that a download succeeded or an unused builder is part of the current playable scene. The Roof Road rows describe its own prototype page, which the game does not load yet; its run keeps its reachability checks (`node tools/rooftop_test.mjs`) and its numeric golden (`node tools/rooftop_golden.mjs`).

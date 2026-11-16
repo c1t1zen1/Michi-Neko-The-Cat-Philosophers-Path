@@ -89,7 +89,9 @@ export class RooftopPocket {
       assets: this.assets
     });
     this.scene.fog = this.root.fog;            // Sky sets the fog on what it was given
-    this.world = buildWorld(level, { reduceMotion: this.reduceMotion, lowPower: this.lowPower, assets: this.assets });
+    // Kept: buildWorld reads opts.reduceMotion every frame (the street people), so setReduceMotion() updates it here.
+    this._worldOpts = { reduceMotion: this.reduceMotion, lowPower: this.lowPower, assets: this.assets };
+    this.world = buildWorld(level, this._worldOpts);
     this.root.add(this.world.root);
     this.atmosphere = new RooftopAtmosphere(this.root, level, { reduceMotion: this.reduceMotion, lowPower: this.lowPower, assets: this.assets });
 
@@ -198,6 +200,8 @@ export class RooftopPocket {
     p.mesh.rotation.set(0, 0, 0);
     p.cat.group.rotation.z = 0;
     this.view.cat = p.cat;
+    // The comfort setting as the game holds it now (a change made while the pocket was building).
+    this.setReduceMotion(g.reducedMotion);
     catRimUniforms.uRimStrength.value = 0.35;
     if (p.cat.setLookTarget) p.cat.setLookTarget(null);
   }
@@ -306,6 +310,32 @@ export class RooftopPocket {
   }
 
   setQuality(q) { if (this.ready) this.applyQuality(q); }
+
+  /* ---------------- comfort ---------------- */
+
+  /**
+   * Reduce motion, live. The pocket is built once and kept after the cat
+   * leaves, so a later change (Game.applyComfort(), and attach() on every
+   * entry) has to reach it. Read again every frame, so updated here: the run
+   * view's camera easing (RunView.reduceMotion), the sky's cloud drift and sun
+   * flicker (Sky.reduceMotion), the atmosphere's clock, petals and impact
+   * bursts (RooftopAtmosphere.reduceMotion and its ImpactFX), the street
+   * people's pace (buildWorld's opts, this._worldOpts). Build-time only, kept
+   * as built until the page reloads: the float's tassel and musician sway
+   * (build.js motionScale, a constant taken when the world was built).
+   */
+  setReduceMotion(on) {
+    on = !!on;
+    if (!this.view || on === this.reduceMotion) return;
+    this.reduceMotion = on;
+    this.view.reduceMotion = on;
+    this.sky.reduceMotion = on;
+    this._worldOpts.reduceMotion = on;
+    const a = this.atmosphere;
+    a.reduceMotion = on;
+    if (a.impacts) a.impacts.reduceMotion = on;
+    a.setLowPower(a.lowPower);          // re-derives the petals' visibility (hidden on a trimmed tier with reduce motion)
+  }
 
   /* ---------------- per frame ---------------- */
 

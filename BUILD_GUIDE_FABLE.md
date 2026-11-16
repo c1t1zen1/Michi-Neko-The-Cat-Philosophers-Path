@@ -781,6 +781,10 @@ Integrator-only. `[ ]` open, `[~]` claimed, `[x]` merged into
 - Handoff: the only patch is the `rooftops/js/runview.js` finale framing (frame the pair's midpoint). It is applied, or not, as a separate Integrator decision with sandbox and pocket proof (note below). The `build.js` distant-city band stays `far` (no patch).
 - Reviewer minors carried forward: no test asserts the city part name (`asset:roof-distant-city/city`) or the far instance count; R52 at s = 350 (modular 202 vs classic 199–203) is noise-level, so re-measure it once in the solo window.
 
+### Board notes (post-G-R Integrator batch, 2026-11-16)
+
+- **Pocket reduce-motion, live** (G-R review minor: `pocket.js` read `g.reducedMotion` once in `init()`, and the pocket is kept after exit, so a later change never reached the roofs). Fixed: `RooftopPocket.setReduceMotion(on)` updates everything the run reads per frame (the run view's camera easing, the sky's cloud drift and sun flicker, the atmosphere's clock, petals and impact bursts, the street people through the kept `buildWorld` opts). `Game.applyComfort()` calls it (one guarded line in `src/main.js`), and `attach()` resyncs on every entry. Build-time only, as built until reload: the float's tassel and musician sway (`build.js` `motionScale`). New test `tools/rooftop_pocket_test.mjs` (the real pocket in the real game): built with reduce motion off, turned on in the pocket, turned off while away, re-entered, and set without `applyComfort`; the atmosphere clock runs at 0.22 × / 1 ×. Classic and modular 12/0. It failed 7 of 12 on the old code. Classic unaffected: footprint and `--systems` goldens EQUAL, rooftop golden classic EQUAL (routing 41/41), `rooftop_manager_test` 81/0, `rooftop_test` 40/0, classic boot clean.
+
 ### Suggested allocation for three workers
 
 | Step | Worker A | Worker B | Worker C | Integrator |

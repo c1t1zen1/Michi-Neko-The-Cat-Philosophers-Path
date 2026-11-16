@@ -932,6 +932,8 @@ class Game {
     body.classList.toggle('reduce-motion', reduced);
     document.documentElement.style.setProperty('--ui-scale', String(THREE.MathUtils.clamp((Number(v.uiScale) || 100) / 100, 0.8, 1.5)));
     this.gradePass.uniforms.uGrain.value = v.grain && !reduced ? 0.028 : 0;
+    // The Roof Road pocket is kept after the first visit: it reads this live (src/rooftops/pocket.js).
+    if (this.rooftops && this.rooftops.pocket && this.rooftops.pocket.setReduceMotion) this.rooftops.pocket.setReduceMotion(reduced);
   }
 
   applyQuality() {
