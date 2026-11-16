@@ -88,6 +88,7 @@ export class RunView {
     this.tmpV = new THREE.Vector3();
     this.tmpL = new THREE.Vector3();
     this.tmpImpact = new THREE.Vector3();
+    this.tmpP = new THREE.Vector3();
   }
 
   _hook(name) { return this.hooks[name] || NOOP; }
@@ -455,17 +456,43 @@ export class RunView {
 
     if (finale) {
       // Pull back behind the cat and turn toward the hills and the fires.
-      // Three-quarter from behind, low, so the cat sits against the fires and
-      // the shingi pole stays off to one side.
+      // Three-quarter from behind, so the cat sits against the fires and the
+      // shingi pole stays off to one side; 1.1 m above the perch, so Michi
+      // shows whole over the near ridge.
       const k = smooth(0, 4.5, finale.t);
-      const c = catRoot.position;
-      const want = this.tmpV.set(c.x - 5.2, c.y + 0.7, c.z + 3.6);
+      const m = catRoot.position;
+      const want = this.tmpV.set(m.x - 5.2, m.y + 1.1, m.z + 3.6);
       camera.position.lerp(want, 1 - Math.exp(-(reduceMotion ? 1.2 : 2.2) * dt * (0.3 + k)));
       // The new downtown endpoint faces a different bearing. Aim at the real
-      // hill fires; a portrait panorama needs a wider horizontal field as well.
+      // hill fires (a little below them, so the roofs and the cats come up the
+      // frame); a portrait panorama needs a wider horizontal field as well.
       const look = this.tmpL.set(0, 0, 0);
       for (const fire of this.sky.fires) look.add(fire.center);
-      look.multiplyScalar(1 / this.sky.fires.length); look.y -= 20;
+      look.multiplyScalar(1 / this.sky.fires.length); look.y -= 45;
+      // Frame the pair, not Michi alone: as the finale settles, turn half-way
+      // from the fires toward Michi and Chidori's midpoint (Michi alone when
+      // Chidori is far off), at most 13°, but never so far that a fire leaves
+      // the frame (a narrow portrait screen keeps the fires and turns less).
+      // (Moving the camera instead walks it into the float's pole and deck.)
+      const guide = guideRoot.position;
+      const pair = this.tmpP.copy(m).lerp(guide, 0.5 * (1 - smooth(3.5, 6, m.distanceTo(guide))));
+      const cx = camera.position.x, cz = camera.position.z;
+      const toFires = Math.atan2(look.x - cx, look.z - cz);
+      const off = (x, z) => {
+        let a = Math.atan2(x - cx, z - cz) - toFires;
+        while (a > Math.PI) a -= Math.PI * 2;
+        while (a < -Math.PI) a += Math.PI * 2;
+        return a;
+      };
+      const half = Math.atan(0.85 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * camera.aspect);
+      let lo = -Math.PI, hi = Math.PI;
+      for (const fire of this.sky.fires) {
+        const a = off(fire.center.x, fire.center.z);
+        lo = Math.max(lo, a - half); hi = Math.min(hi, a + half);
+      }
+      const turn = lo <= hi ? clamp(0.5 * k * clamp(off(pair.x, pair.z), -0.45, 0.45), lo, hi) : 0;
+      const yaw = toFires + turn, reach = Math.hypot(look.x - cx, look.z - cz);
+      look.set(cx + Math.sin(yaw) * reach, look.y, cz + Math.cos(yaw) * reach);
       camera.lookAt(look);
       const finaleFov = camera.aspect < 0.85 ? 96 : 50;
       camera.fov = damp(camera.fov, finaleFov, 1.5, dt);
