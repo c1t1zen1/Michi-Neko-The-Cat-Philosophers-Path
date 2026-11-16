@@ -494,6 +494,14 @@
     body.summit-mode .npc-nametag,
     body.summit-mode #prompt { display: none !important; }
 
+    /* The Roof Road (rooftop-mode, src/rooftops/manager.js): the valley's
+       guidance yields to the run; toasts stay, they carry the mouths' titles. */
+    body.rooftop-mode #scroll-wrapper,
+    body.rooftop-mode #compass,
+    body.rooftop-mode #edge-arrow,
+    body.rooftop-mode .npc-nametag,
+    body.rooftop-mode #prompt { display: none !important; }
+
     /* Scenic view is the fully clean composition. Menus, recovery overlays,
        photo-mode feedback, and the visual vignette deliberately remain. */
     body.scenic-view #scroll-wrapper,
@@ -636,6 +644,52 @@
       #summit-transition.fallback, #summit-transition.quick { animation: none; }
       .summit-plate { transform: none; }
     }
+    /* ============ Roof Road noren veil (屋根道) ============ */
+    /* The way into the old city and back: an indigo noren with a 洛 mark drops
+       across the screen (.show), then parts sideways (.out); .hidden at rest.
+       Driven by src/rooftops/manager.js. A sibling of #summit-transition, which
+       it never touches. The panels wait just above the screen, so .show slides. */
+    #rooftop-transition {
+      position: absolute; inset: 0; z-index: 561;
+      pointer-events: none; overflow: hidden;
+      visibility: hidden;
+    }
+    #rooftop-transition.show { visibility: visible; }
+    #rooftop-transition .noren-panel {
+      position: absolute; top: 0; bottom: 0; width: 50.5%;
+      background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0 2px, rgba(0, 0, 0, 0.05) 2px 5px),
+        linear-gradient(180deg, #1b2c46 0%, #223652 58%, #18263d 100%);
+      box-shadow: inset 0 -18px 28px rgba(0, 0, 0, 0.35);
+      transform: translateY(-104%);
+      transition: transform 0.85s cubic-bezier(0.3, 0.7, 0.2, 1);
+    }
+    #rooftop-transition .noren-left { left: 0; border-right: 2px solid #142238; }
+    #rooftop-transition .noren-right { right: 0; border-left: 2px solid #142238; transition-delay: 0.06s; }
+    #rooftop-transition.show .noren-panel { transform: translateY(0); }
+    #rooftop-transition.out .noren-left { transform: translateX(-104%); transition-delay: 0s; }
+    #rooftop-transition.out .noren-right { transform: translateX(104%); transition-delay: 0s; }
+    #rooftop-transition .noren-mark {
+      position: absolute; left: 50%; top: 40%; z-index: 2;
+      width: 116px; height: 116px; margin: -58px 0 0 -58px;
+      border: 5px solid #ece6d6; border-radius: 50%; box-sizing: border-box;
+      color: #ece6d6; text-align: center;
+      font: 700 62px/104px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+      opacity: 0; transition: opacity 0.45s ease 0.5s;
+    }
+    #rooftop-transition .noren-sub {
+      position: absolute; left: 0; right: 0; top: calc(40% + 76px); z-index: 2;
+      color: #ece6d6; text-align: center; font-size: 12px; letter-spacing: 6px;
+      opacity: 0; transition: opacity 0.45s ease 0.6s;
+    }
+    #rooftop-transition.show .noren-mark { opacity: 0.94; }
+    #rooftop-transition.show .noren-sub { opacity: 0.8; }
+    #rooftop-transition.out .noren-mark,
+    #rooftop-transition.out .noren-sub { opacity: 0; transition: opacity 0.25s ease; }
+    @media (prefers-reduced-motion: reduce) {
+      #rooftop-transition .noren-panel, #rooftop-transition .noren-mark,
+      #rooftop-transition .noren-sub { transition: none; }
+    }
 
     /* ============ Entry screen ============ */
     /* This stays HTML/CSS-only until the player enters, so a slow module
@@ -829,6 +883,15 @@
       <div class="summit-plate-sub">THE MOUNTAIN TOP</div>
     </div>
   </div>
+  <!-- Roof Road noren veil (屋根道): the way through the Odoi into the old
+       city and back. src/rooftops/manager.js adds .show / .out / .hidden.
+       A sibling of the summit veil, never inside it. -->
+  <div id="rooftop-transition" class="hidden" aria-hidden="true">
+    <div class="noren-panel noren-left"></div>
+    <div class="noren-panel noren-right"></div>
+    <div class="noren-mark">洛</div>
+    <div class="noren-sub">ROOF ROAD · 屋根道</div>
+  </div>
   <!-- Photo mode -->
   <div id="photo-hint" class="hidden">📷 Photo Mode — drag: orbit · wheel: zoom · Enter: capture · P / Esc: exit</div>
   <div id="photo-flash"></div>
