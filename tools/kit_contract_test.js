@@ -189,8 +189,11 @@ async function checkAsset(rt, def, tier, list, tag = '') {
   const inst2 = rt.build(def.id, sampleLayout(def, tier), classic);
   const h2 = isAssetInstance(inst2) ? hashInstance(inst2) : null;
   check('two builds with the same seed are identical (AAA-8)', h1 === h2, `${h1} vs ${h2}`);
-  const warmMs = isAssetInstance(inst2) ? inst2.buildMs : inst.buildMs;
-  check(`warm build ≤ ${budget.buildMs} ms (AAA-7)`, warmMs <= budget.buildMs, `${warmMs.toFixed(1)} ms (cold ${inst.buildMs.toFixed(1)} ms)`);
+  // R85b: the warm build is the median of 3 (inst2 is the first; two more, each built, measured and disposed)
+  const warmReads = [isAssetInstance(inst2) ? inst2.buildMs : inst.buildMs];
+  for (let i = 0; i < 2; i++) { const w = rt.build(def.id, sampleLayout(def, tier), classic); warmReads.push(isAssetInstance(w) ? w.buildMs : inst.buildMs); if (isAssetInstance(w)) w.dispose(); }
+  const warmMs = [...warmReads].sort((a, b) => a - b)[1];
+  check(`warm build (median of 3) ≤ ${budget.buildMs} ms (AAA-7)`, warmMs <= budget.buildMs, `${warmMs.toFixed(1)} ms (reads ${warmReads.map((x) => x.toFixed(1)).join(' / ')}; cold ${inst.buildMs.toFixed(1)} ms)`);
 
   if (layout.footprint) {
     const same = deepEqual(inst.footprint, layout.footprint);
@@ -245,7 +248,7 @@ async function checkAsset(rt, def, tier, list, tag = '') {
 
 // A throwaway asset for the self-test: never registered in the game. Knobs
 // make it fail one check at a time.
-const knobs = { badName: false, floating: false, overBudget: false, overBudgetInstanced: false, overBudgetInstancedGeometry: false, nondeterministic: false, mathRandom: false, leak: false, leakMaterial: false, leakTexture: false, dropParam: false, footprintDrift: false, orphan: false };
+const knobs = { badName: false, floating: false, overBudget: false, overBudgetInstanced: false, overBudgetInstancedGeometry: false, nondeterministic: false, slowBuild: false, mathRandom: false, leak: false, leakMaterial: false, leakTexture: false, dropParam: false, footprintDrift: false, orphan: false };
 let fixtureBuilds = 0;
 const FIXTURE_FOOTPRINT = { colliders: [{ min: [-0.3, 0, -0.3], max: [0.3, 1.5, 0.3] }], exclusions: [[-0.5, -0.5, 1, 1]], anchors: { hook: { x: 0, y: 1.4, z: 0 } } };
 const fixtureDef = defineAsset({
@@ -254,6 +257,7 @@ const fixtureDef = defineAsset({
   sample: { x: 0, z: 0, index: 0, footprint: FIXTURE_FOOTPRINT },
   build(ctx, layout, params) {
     fixtureBuilds++;
+    if (knobs.slowBuild) { const t0 = performance.now(); while (performance.now() - t0 < 12) { /* fixed ~2x the 6 ms hero budget */ } }
     const T = ctx.THREE, km = ctx.kitMaterials;
     const group = new T.Group();
     const stone = km.stone(), wood = km.wood();
@@ -301,6 +305,7 @@ const SELFTEST_CASES = [
   ['overBudgetInstanced', 'overBudgetInstanced', /triangles ≤/, null],                    // InstancedMesh: triangles × count
   ['overBudgetInstancedGeometry', 'overBudgetInstancedGeometry', /triangles ≤/, null],    // InstancedBufferGeometry: × instanceCount
   ['nondeterministic', 'nondeterministic', /identical \(AAA-8\)/, null],
+  ['slowBuild', 'slowBuild', /warm build \(median of 3\)/, null],                         // every build burns ~2x its budget
   ['mathRandom', 'mathRandom', /no Math\.random/, /no Math\.random|identical \(AAA-8\)/],   // random geometry also breaks the hash
   ['leak', 'leak', /dispose leaves no geometry/, null],
   ['leakMaterial', 'leakMaterial', /dispose frees every private material/, /dispose frees every private material|dispose leaves no texture/],   // its map leaks with it
