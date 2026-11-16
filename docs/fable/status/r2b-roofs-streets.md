@@ -27,3 +27,11 @@ roof-alley-routes, roof-street and roof-ground (ribbon/painted texture surfaces)
 
 ## After merging integration a549e78 (route fix, new baseline)
 rooftop_golden classic EQUAL; swap of the 7 ids: 185 pieces changed (the level now has fewer houses), no platform/wall/ceiling/light entries. rooftop_test 40/40 (swap does not touch it: pure level code); companion 7 passed. qa auto, advanceForReview(450) twice: classic and modular both reach the finale at s=1673.0817, finale=true (a single 450 call reaches s=1495.33 on both). Contract with the budgets.js exceptions of the handoff: 0 failed; without: 12 budget failures.
+
+## Fix round 1
+- Budgets: BUDGET_EXCEPTIONS now live in src/kit/budgets.js on this branch (roof-machiya, roof-kura, roof-kido) with measured classic vs modular numbers in each `why`. Re-measured at uptime 1-min load 1.5: machiya warm hero build 11.0 ms (allowance 12 kept, load recorded); contract 14 assets / 837 checks / 0 failed. Classic (golden, largest real records): house 413 meshes / 8892 tris vs modular 26 / 8021; kura 17 / 520 vs 6 / 374; kido 11 / 152 vs 4 / 152. Materials are the page ctx.MAT set (same as classic).
+- R52 draw calls: wide pieces (> 12 m) are now emitted one mesh per material per 32 m world cell (computed from layout x, z, ry), so the Roof Road merge buckets them like classic. uptime load 1.5. classic/modular: s=14 159/151, s=125 165/163, s=233 192/190, s=700 137/134. Modular <= classic at all four. Triangles 153653/149669, 162275/157750, 158309/155038, 127641/124304.
+- Roof clip check: for all 185 swapped pieces the golden bounds top and bottom (y) equal classic exactly (max |dy| 0.000); the largest horizontal delta is 0.059 m (house dressing). The roof geometry is the classic code, so eaves, ridge caps and pitch sit exactly where classic sits relative to the level platforms; no clip introduced.
+- Known gap: the decorateHouse bicycle (two wheels and a frame beside some shop fronts) is not ported; AAA-1 gap, no gameplay effect.
+- kura-near-dusk re-framed (camera further back and higher): classic and modular now differ.
+- Re-run: rooftop_golden classic EQUAL; swap 185 piece entries only; rooftop_test 40/40; qa auto twice 450 s: both reach the finale at s=1673.0817; cadJS npm test 16/16 (+ one 15/15 suite); kit_check 528 OK; verify 83/0; labs_check OK.

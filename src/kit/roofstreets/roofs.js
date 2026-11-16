@@ -138,7 +138,7 @@ function dressHouse(u, pc) {
 /* ------------------------------------------------------------ buildings --- */
 
 export function buildMachiya(ctx, layout) {
-  const pc = layout.piece, tier = ctx.tier, u = new Multi(ctx), sm = (pc.s0 + pc.s1) / 2;
+  const pc = layout.piece, tier = ctx.tier, u = new Multi(ctx, layout), sm = (pc.s0 + pc.s1) / 2;
   const x0 = pc.s0 - sm, x1 = pc.s1 - sm, zF = pc.dFront, zB = pc.dFront - pc.depth, look = pc.look;
   const far = pc.row === 'far';
   const wall = far && look > 0.55 ? 'bengara' : (look > 0.7 ? 'plasterWarm' : 'plaster');
@@ -187,7 +187,7 @@ export function buildMachiya(ctx, layout) {
 }
 
 export function buildKura(ctx, layout) {
-  const pc = layout.piece, u = new Multi(ctx), sm = (pc.s0 + pc.s1) / 2;
+  const pc = layout.piece, u = new Multi(ctx, layout), sm = (pc.s0 + pc.s1) / 2;
   const x0 = pc.s0 - sm, x1 = pc.s1 - sm, w = x1 - x0, zF = pc.dFront, zB = zF - pc.depth, zm = (zF + zB) / 2;
   u.box(w, pc.foot, pc.depth, { m: 'plaster', y: pc.foot / 2, z: zm });
   u.box(w + 0.05, 1.6, pc.depth + 0.05, { m: 'namako', y: 0.8, z: zm });
@@ -201,7 +201,7 @@ export function buildKura(ctx, layout) {
 }
 
 export function buildKido(ctx, layout) {
-  const pc = layout.piece, u = new Multi(ctx), hw = (pc.s1 - pc.s0) / 2;
+  const pc = layout.piece, u = new Multi(ctx, layout), hw = (pc.s1 - pc.s0) / 2;
   for (const x of [-hw + 0.15, hw - 0.15]) u.box(0.18, 2.2, 0.18, { m: 'timber', x, y: 1.1, z: pc.d });
   u.box(hw * 2, 0.16, 0.2, { m: 'timber', y: 2.1, z: pc.d });
   u.slope('roof', { x: 0, y: 2.15, z: pc.d + 0.55 }, 0.1, 0.55, hw * 2 + 0.3, 0);
@@ -214,20 +214,20 @@ export function buildKido(ctx, layout) {
 }
 
 export function buildSteps(ctx, layout) {
-  const pc = layout.piece, u = new Multi(ctx);
+  const pc = layout.piece, u = new Multi(ctx, layout);
   u.box(pc.s1 - pc.s0, 0.3, 4.0, { m: 'stone', y: pc.y - 0.15, z: pc.d });
   return finish(u, 'steps');
 }
 
 export function buildKomayose(ctx, layout) {
-  const pc = layout.piece, u = new Multi(ctx), w = pc.s1 - pc.s0, step = ctx.tier === 'hero' ? 0.22 : ctx.tier === 'mid' ? 0.44 : 0.88;
+  const pc = layout.piece, u = new Multi(ctx, layout), w = pc.s1 - pc.s0, step = ctx.tier === 'hero' ? 0.22 : ctx.tier === 'mid' ? 0.44 : 0.88;
   u.box(w, 0.1, 0.16, { m: 'timberMed', y: pc.y - 0.05, z: pc.d });
   for (let x = -w / 2 + 0.08; x <= w / 2 - 0.07; x += step) u.box(0.08, pc.y - 0.1, 0.08, { m: 'timberMed', x, y: (pc.y - 0.1) / 2, z: pc.d });
   return finish(u, 'komayose');
 }
 
 export function buildInuyarai(ctx, layout) {
-  const pc = layout.piece, u = new Multi(ctx), w = pc.s1 - pc.s0;
+  const pc = layout.piece, u = new Multi(ctx, layout), w = pc.s1 - pc.s0;
   const geo = new THREE.CylinderGeometry(0.9, 0.9, w, ctx.tier === 'far' ? 4 : 12, 1, true, 0, Math.PI / 2);
   geo.rotateZ(Math.PI / 2);
   u.add(geo, { m: 'inuyarai', z: pc.d - 0.4 });
@@ -235,7 +235,7 @@ export function buildInuyarai(ctx, layout) {
 }
 
 export function buildTsuboniwa(ctx, layout) {
-  const pc = layout.piece, u = new Multi(ctx), sm = (pc.s0 + pc.s1) / 2, k = hash1(sm);
+  const pc = layout.piece, u = new Multi(ctx, layout), sm = (pc.s0 + pc.s1) / 2, k = hash1(sm);
   u.cyl(0.07, 2.2, { m: 'bark', axis: 'y', seg: 6, y: 1.1, z: pc.d - 0.8 });
   const n = ctx.tier === 'far' ? 3 : 7;
   for (let i = 0; i < n; i++)

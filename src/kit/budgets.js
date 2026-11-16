@@ -49,6 +49,19 @@ export const KIT_LIMITS = Object.freeze({
  * fields it names and must cite why. Added by the owning lane in its PR.
  */
 export const BUDGET_EXCEPTIONS = Object.freeze({
+  // Roof Road buildings (r2b-roofs-streets): measured with kit_contract_test --family roofstreets, uptime 1-min load 1.5 (R54: < 3)
+  'roof-machiya': {
+    hero: { meshes: 58, materials: 28, buildMs: 12 }, mid: { meshes: 40, materials: 21 }, far: { meshes: 16, materials: 7 },
+    why: 'contract sample = the 67 m near-row house with deck, futon, vines, byobu, lanterns and kaisho on (3 batch cells, one mesh per material per cell so the Roof Road merge keeps classic draw counts): modular 58/40/16 meshes, 28/21/7 materials hero/mid/far, warm build 11.0 ms (load 1.5). Classic builds the same record as 413 meshes / 8892 tris (golden, largest real house); modular 26 meshes / 8021 tris. Materials are the page ctx.MAT set, the same the classic house uses'
+  },
+  'roof-kura': {
+    mid: { materials: 6 }, far: { meshes: 5, materials: 5 },
+    why: 'plaster, namako, timber, dark, roof, ridge: the six materials of the classic kura. Classic 17 meshes / 520 tris, modular 6 meshes / 374 tris (golden, 5 real kura)'
+  },
+  'roof-kido': {
+    far: { meshes: 4, materials: 4 },
+    why: 'timber, roof, ridge, timberMed: the four materials of the classic kido. Classic 11 meshes / 152 tris, modular 4 meshes / 152 tris (golden)'
+  },
   // Phase 5 r3b (roofcanal part b), R52. Hero tier = the classic piece's own MAT materials (ctx.MAT, so 0 new merged materials,
   // 0 added merged draws); mid and far are remapped to the standard caps. Measured on the real runs, rooftop_golden digests of the
   // largest piece of each type, classic vs `?swap=<id>:modular` (hero tier), uptime load 2.4-4.3, 2026-11-15:

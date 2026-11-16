@@ -2,7 +2,7 @@
 
 ## 1. Integrator actions
 - Run `node tools/kit_index.mjs` (index not committed).
-- Apply this BUDGET_EXCEPTIONS patch to `src/kit/budgets.js` (hot file; without it `kit_contract_test --family roofstreets` reports 13 budget failures: machiya meshes/materials/buildMs, kura/kido mid-far materials and meshes). Measured with the contract sample, uptime load 3-5:
+- BUDGET_EXCEPTIONS are now committed in src/kit/budgets.js (fix round 1); nothing to apply.
 ```diff
 diff --git a/src/kit/budgets.js b/src/kit/budgets.js
 index e671b06..e5ece8d 100644

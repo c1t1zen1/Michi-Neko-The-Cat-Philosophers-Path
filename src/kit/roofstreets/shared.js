@@ -39,19 +39,36 @@ const partKey = (k) => k.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase()).replace
 const TAU = Math.PI * 2;
 
 export class Multi {
-  constructor(ctx) { this.ctx = ctx; this.bags = new Map(); this.mats = new Map(); }
-  _bag(m) {
-    if (!this.bags.has(m)) { this.bags.set(m, new Bag()); this.mats.set(m, material(this.ctx, m)); }
-    return this.bags.get(m);
+  constructor(ctx, layout = null) { this.ctx = ctx; this.layout = layout; const pc = layout && layout.piece; this.split = !!pc && pc.s1 - pc.s0 > 12; this.bags = new Map(); this.mats = new Map(); }
+  /**
+   * The bag for material `m` in the 32 m world cell of local point (x, z): the Roof Road's own
+   * mergeByMaterial buckets a mesh by its centre's cell, so a wide building must hand it one
+   * mesh per cell (as classic's many boxes do) to merge into the same number of batches.
+   */
+  _bag(m, x = 0, z = 0) {
+    if (!this.mats.has(m)) this.mats.set(m, material(this.ctx, m));
+    const L = this.layout || { x: 0, z: 0, ry: 0 };
+    if (!this.split) x = z = 0;   // a short piece keeps one cell (its origin), so its parts stay one connected mesh set
+    const c = Math.cos(L.ry || 0), sn = Math.sin(L.ry || 0);
+    const wx = (L.x || 0) + x * c + z * sn, wz = (L.z || 0) - x * sn + z * c;
+    const key = `${m}@${Math.floor(wx / 32)}@${Math.floor(wz / 32)}`;
+    if (!this.bags.has(key)) this.bags.set(key, new Bag());
+    return this.bags.get(key);
   }
-  add(geo, o) { const { m, ...rest } = o; this._bag(m).add(geo, rest); return this; }
+  add(geo, o) {
+    const { m, x = 0, y = 0, z = 0, ...rest } = o;
+    if (!geo.boundingBox) geo.computeBoundingBox();
+    const bc = geo.boundingBox.getCenter(new THREE.Vector3());
+    this._bag(m, x + bc.x * (rest.sx ?? 1), z + bc.z * (rest.sz ?? 1)).add(geo, { x, y, z, ...rest });
+    return this;
+  }
   /** Box as the classic box(): world-scale UVs unless the material is a `panel`. */
   box(w, h, d, o) {
     const { m, x = 0, y = 0, z = 0, ...rest } = o;
     const g = new THREE.BoxGeometry(w, h, d);
     this._bag(m);
     if (!(this.mats.get(m).userData && this.mats.get(m).userData.panel)) worldScaleBoxUVs(g, 1);
-    this._bag(m).add(g, { x, y, z, ...rest });
+    this._bag(m, x, z).add(g, { x, y, z, ...rest });
     return this;
   }
   /** Cylinder as the classic cyl(): paper lanterns are the lathe barrel with dark caps. */
@@ -68,12 +85,12 @@ export class Multi {
     const pos = { x, y, z };
     if (paper) {
       const prof = [[-0.5, 0.7], [-0.42, 0.94], [-0.25, 1], [0.25, 1], [0.42, 0.94], [0.5, 0.7]].map(([yy, w]) => new THREE.Vector2(r * w, len * yy));
-      this._bag(m).add(place(new THREE.LatheGeometry(prof, seg)), { ...pos, ...rest });
+      this._bag(m, x, z).add(place(new THREE.LatheGeometry(prof, seg)), { ...pos, ...rest });
       for (const sgn of [-1, 1]) {
         const c = rot(sgn * len * 0.5);
         this.add(place(new THREE.CylinderGeometry(r * 0.74, r * 0.74, len * 0.065, seg)), { m: 'dark', x: x + c.x, y: y + c.y, z: z + c.z, ...rest });
       }
-    } else this._bag(m).add(place(new THREE.CylinderGeometry(r, r, len, seg)), { ...pos, ...rest });
+    } else this._bag(m, x, z).add(place(new THREE.CylinderGeometry(r, r, len, seg)), { ...pos, ...rest });
     return this;
   }
   /** Tiled slope: `eave` is the low edge's midpoint; see common.js slope(). */
@@ -102,11 +119,14 @@ export class Multi {
 export function finish(multi, name, extra = {}) {
   const group = new THREE.Group(), parts = {};
   for (const [key, bag] of multi.bags) {
-    const mesh = bag.mesh(multi.mats.get(key), `${name}_${partKey(key)}`);
+    const [m, cx, cz] = key.split('@');
+    const cell = (v) => (+v < 0 ? 'n' : 'p') + Math.abs(+v);
+    const part = `${name}_${partKey(m)}_${cell(cx)}_${cell(cz)}`;
+    const mesh = bag.mesh(multi.mats.get(m), part);
     if (!mesh) continue;
     mesh.castShadow = mesh.receiveShadow = true;
     group.add(mesh);
-    parts[`${name}_${partKey(key)}`] = mesh;
+    parts[part] = mesh;
   }
   return { group, parts, sockets: {}, live: [], ...extra };
 }
