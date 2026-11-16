@@ -1,12 +1,17 @@
 // Roof Road festival family (Phase 5, lane r4-festival): the pieces of mouths 6-7
 // and the skyline. Ids are the inventory ids (group Roof Road). See stalls.js,
-// floats.js. Not promoted here (deferred with reasons in the handoff):
-// roof-distant-city (an instanced sea of ~7000 roofs: the per-asset triangle
-// budget counts every instance), roof-sky / roof-hills / roof-okuribi
-// (sky.js, not routed through assets.build), roof-atmosphere (atmosphere.js).
+// floats.js (part a), hills.js, sky.js, fires.js, city.js, atmosphere.js (part b: the sky, hills, the five
+// Okuribi fires, the distant city and the ambient layers; sky/hills/fires/atmosphere are routed from Sky and
+// RooftopAtmosphere, R76).
 import { defineAsset } from '../contract.js?v=20261114a';
 import { buildYatai, buildRack, buildTsuiji, buildGate } from './stalls.js?v=20261114a';
 import { buildHoko, buildYama, buildSkylinePagoda } from './floats.js?v=20261114a';
+
+import { hillsAsset } from './hills.js?v=20261114a';
+import { skyAsset } from './sky.js?v=20261114a';
+import { okuribiAsset } from './fires.js?v=20261114a';
+import { cityAsset } from './city.js?v=20261114a';
+import { atmosphereAsset } from './atmosphere.js?v=20261114a';
 
 const TIERS = ['hero', 'mid', 'far'];
 const base = { x: 0, y: 0, z: 0, ry: 0, index: 0, band: 'near' };
@@ -48,5 +53,6 @@ export const assets = [
     params: { height: { type: 'number', default: 27, min: 12, max: 40, step: 1, label: 'Height (m per scale unit)' } },
     sample: { ...base, type: 'skyline-pagoda', band: 'far', scale: 1.35 },
     build: buildSkylinePagoda
-  })
+  }),
+  hillsAsset, skyAsset, okuribiAsset, cityAsset, atmosphereAsset
 ];
