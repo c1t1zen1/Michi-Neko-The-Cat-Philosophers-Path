@@ -88,15 +88,16 @@
    "title": "Michi at the Moon Pool at night",
    "hour": 21.3,
    "cam": [
-    -16.9,
-    0.8,
-    -22.9,
-    -20.2,
+    -24.2,
+    0.9,
+    -24.6,
+    -19.6,
     0.5,
-    -27.6,
-    60
+    -27.0,
+    58
    ],
-   "eval": "(()=>{const c=game.player;c.mesh.position.set(-18.0,0,-25.0);c.heading=Math.PI*1.25;c.yaw=c.heading;c.yawPrev=c.heading;c.mesh.rotation.y=c.heading;})()"
+   "eval": "(()=>{const c=game.player;c.mesh.position.set(-22.4,0,-26.2);c.heading=Math.PI*0.4;c.yaw=c.heading;c.yawPrev=c.heading;c.mesh.rotation.y=c.heading;})()",
+   "note": "Camera south-west of the pool. Framings from the north-east showed hard-edged white leaf cut-outs and a red lantern bloom that exist in both asset sets (docs/fable/handoff/h1-hero.md)"
   },
   {
    "id": "06-lantern-glade",
@@ -178,8 +179,8 @@
    "finale": true,
    "settle": 2500,
    "eval": "roofRoad.skipFinale()",
-   "note": "skipFinale() lights all five fires; the result panel is hidden and the camera tilted down 0.055 rad with fov x0.92 to crop the top of the sky (the star sprites are square, recorded for z-final)",
-   "after": "(()=>{const v=roofRoad.runView;v.updateCamera=()=>{};const c=v.camera;c.fov*=0.92;c.updateProjectionMatrix();c.rotateX(-0.055);c.updateMatrixWorld(true);document.querySelectorAll('#card,#finale').forEach((e)=>{e.style.display='none'})})()"
+   "note": "skipFinale() lights all five fires; the result panel is hidden and the camera is tilted down 0.24 rad so only a thin strip of sky shows (the square star sprites, in classic too, are cropped out; the moon is cropped out with them; recorded for z-final)",
+   "after": "(()=>{const v=roofRoad.runView;v.updateCamera=()=>{};const c=v.camera;c.rotateX(-0.24);c.updateMatrixWorld(true);document.querySelectorAll('#card,#finale').forEach((e)=>{e.style.display='none'})})()"
   },
   {
    "id": "13-parts-toro",
