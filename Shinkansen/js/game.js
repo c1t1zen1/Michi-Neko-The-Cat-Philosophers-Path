@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {AOPass,GradeOutputShader} from '../../src/postfx.js';
 import {loadCatModule,loadSkyModule} from '../../labs/shared/game.js';
 import {loadKit} from './assets.js';
 import {loadSceneryModules} from './scenery.js';
@@ -113,8 +118,7 @@ function render(dt){
   if(route.tunnel>.5)scene.fog.color.setHex(0x555750);
   world.update(paused||finishing?0:dt,journeyTime,route,motor,{gentle,postcards});
   updateCamera(dt,route);
-  renderer.toneMappingExposure=inside?.96:route.tunnel>.5?1.15:1.05;
-  renderer.render(scene,camera);
+  composer.render();
   if(started)ui.render(journeyTime,route,motor,postcards,interaction(motor,journeyTime,postcards,world.npcs),world);
   audio.update(dt,route,inside,paused||finishing);
 }
@@ -132,13 +136,24 @@ function frame(now){
   if(++frameCount>180&&dt>.039)slowFrames++;
   if(slowFrames>200&&renderer.getPixelRatio()>1){renderer.setPixelRatio(1);resize();slowFrames=0;}
 }
-function resize(){if(!renderer)return;renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();cameraSnap=true;}
+function resize(){if(!renderer)return;renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();cameraSnap=true;composer.setSize(innerWidth,innerHeight);}
 async function boot(){
   if(location.protocol==='file:')throw Error('Serve the repository root over HTTP: python3 -m http.server 8000. Then open http://localhost:8000/Shinkansen/');
-  renderer=new THREE.WebGLRenderer({canvas:$('scene'),antialias:!low,powerPreference:low?'low-power':'high-performance'});
+  renderer=new THREE.WebGLRenderer({canvas:$('scene'),antialias:false,powerPreference:low?'low-power':'high-performance'});
   renderer.setPixelRatio(Math.min(devicePixelRatio,low?1.25:1.75));renderer.outputColorSpace=THREE.SRGBColorSpace;
-  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.shadowMap.enabled=!low&&Q.get('shadows')!=='0';renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-  scene=new THREE.Scene();scene.background=new THREE.Color(0xc6d8ce);camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.08,1600);resize();
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;
+  renderer.shadowMap.enabled=!low&&Q.get('shadows')!=='0';renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  scene=new THREE.Scene();scene.background=new THREE.Color(0xc6d8ce);camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.08,1600);
+  // Multisampled HDR target with depth attachment for the post chain (AO, bloom, grade).
+  const rtSize=renderer.getDrawingBufferSize(new THREE.Vector2());
+  const renderTarget=new THREE.WebGLRenderTarget(rtSize.width,rtSize.height,{samples:low?0:4,type:THREE.HalfFloatType,depthTexture:new THREE.DepthTexture(rtSize.width,rtSize.height)});
+  const composer=new EffectComposer(renderer,renderTarget);
+  composer.renderTarget2.depthTexture=new THREE.DepthTexture(rtSize.width,rtSize.height);
+  composer.addPass(new RenderPass(scene,camera));
+  composer.addPass(new AOPass(camera,rtSize.width,rtSize.height,{scale:0.5,samples:low?8:14}));
+  composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth/2,window.innerHeight/2),0.38,0.85,0.82));
+  composer.addPass(new ShaderPass(GradeOutputShader));
+  resize();
   ui.loading('Opening the travelling rooms…');
   const [kit,catModule,skyModule,scenery]=await Promise.all([loadKit(),loadCatModule(),loadSkyModule(),loadSceneryModules()]);
   sky=new skyModule.Sky(scene);sky.dayTime=9.3;sky.cycleSpeed=0;sky.weatherPool=['clear'];
@@ -148,8 +163,8 @@ async function boot(){
     sunset:{...sky.palettes.sunset,top:new THREE.Color(0x6e8198),mid:new THREE.Color(0xc6aea6),horizon:new THREE.Color(0xe4c6a2),warm:new THREE.Color(0xa07c68),sun:new THREE.Color(0xffdfb1),fog:new THREE.Color(0xbfb5aa),cloud:new THREE.Color(0xf1d9c4)}
   }};
   for(const c of sky.clouds)c.userData.trainBaseZ=c.position.z;
-  if(sky.sun.shadow){sky.sun.shadow.mapSize.set(low?512:1024,low?512:1024);sky.sun.shadow.camera.left=-18;sky.sun.shadow.camera.right=18;sky.sun.shadow.camera.top=18;sky.sun.shadow.camera.bottom=-18;}
-  const pmrem=new THREE.PMREMGenerator(renderer),env=pmrem.fromScene(new RoomEnvironment(),.04);scene.environment=env.texture;pmrem.dispose();
+  if(sky.sun.shadow){sky.sun.shadow.mapSize.set(low?1024:2048,low?1024:2048);sky.sun.shadow.camera.left=-18;sky.sun.shadow.camera.right=18;sky.sun.shadow.camera.top=18;sky.sun.shadow.camera.bottom=-18;}
+  sky.attachRenderer(renderer);
   ui.loading('Painting the windows, tea fields, and faraway hills…');
   world=new World(scene,kit,{low,scenery,sky});
   ui.loading('Michi is finding his paws…');await new Promise(r=>setTimeout(r,30));

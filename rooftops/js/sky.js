@@ -99,7 +99,7 @@ export class Sky {
     this.sun = new THREE.DirectionalLight(0xffffff, 2.5);
     this.sun.castShadow = !!opts.shadows;
     if (this.sun.castShadow) {
-      this.sun.shadow.mapSize.set(1536, 1536);
+      this.sun.shadow.mapSize.set(2048, 2048);
       const c = this.sun.shadow.camera;
       c.left = -16; c.right = 16; c.top = 16; c.bottom = -16; c.near = 1; c.far = 120;
       this.sun.shadow.bias = -0.0005;
@@ -114,6 +114,31 @@ export class Sky {
     const kitFires = this._route('roof-okuribi', {}, () => this.buildFires());
     if (kitFires) { this.fires = kitFires.fires; this.scene.add(kitFires.group); }
     this.setPhase(0);
+  }
+
+  /**
+   * Bake the sky dome into a PMREM environment map so metal, lacquer and
+   * water reflect the actual sky gradient instead of a flat ambient term.
+   */
+  attachRenderer(renderer) {
+    this.pmrem = new THREE.PMREMGenerator(renderer);
+    this.pmrem.compileEquirectangularShader();
+    this.envScene = new THREE.Scene();
+    // Use the same dome shader as the visible sky, but at the current phase.
+    const envDome = new THREE.Mesh(
+      new THREE.SphereGeometry(200, 24, 16),
+      this.dome.material
+    );
+    this.envScene.add(envDome);
+    this.refreshEnvironment();
+  }
+
+  refreshEnvironment() {
+    if (!this.pmrem || !this.envScene) return;
+    const target = this.pmrem.fromScene(this.envScene, 0.04);
+    if (this.envTarget) this.envTarget.dispose();
+    this.envTarget = target;
+    this.scene.environment = target.texture;
   }
 
   /** Classic dome (moved out of the constructor unchanged). */

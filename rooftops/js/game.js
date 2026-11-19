@@ -7,6 +7,11 @@
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { AOPass, GradeOutputShader } from '../../src/postfx.js';
 import { buildLevel, mouthAt } from './level.js';
 import { Runner, PHYS, platTop } from './physics.js';
 import { Autopilot } from './autopilot.js';
@@ -33,18 +38,41 @@ const damp = (cur, target, rate, dt) => cur + (target - cur) * (1 - Math.exp(-ra
 /* ---------------- renderer, scene, camera ---------------- */
 
 const canvas = $('gl');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: lowPower ? 'low-power' : 'high-performance', preserveDrawingBuffer: flag('shot') === '1' });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: lowPower ? 'low-power' : 'high-performance', preserveDrawingBuffer: flag('shot') === '1' });
 const basePixelRatio = Math.min(devicePixelRatio || 1, lowPower ? 1.15 : 1.5);
 renderer.setPixelRatio(basePixelRatio);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.3;
 const shadows = flag('shadows') === '1' || (!lowPower && flag('shadows') !== '0');
 renderer.shadowMap.enabled = shadows;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(34, 16 / 9, 0.1, 2000);
-scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+
+// Multisampled HDR target with depth attachment for the post chain (AO, bloom, grade).
+const rtSize = renderer.getDrawingBufferSize(new THREE.Vector2());
+const renderTarget = new THREE.WebGLRenderTarget(rtSize.width, rtSize.height, {
+  samples: lowPower ? 0 : 4,
+  type: THREE.HalfFloatType,
+  depthTexture: new THREE.DepthTexture(rtSize.width, rtSize.height)
+});
+const composer = new EffectComposer(renderer, renderTarget);
+composer.renderTarget2.depthTexture = new THREE.DepthTexture(rtSize.width, rtSize.height);
+composer.addPass(new RenderPass(scene, camera));
+const aoPass = new AOPass(camera, rtSize.width, rtSize.height, {
+  scale: 0.5,
+  samples: lowPower ? 8 : 14
+});
+composer.addPass(aoPass);
+const bloom = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2),
+  0.38, 0.85, 0.82
+);
+composer.addPass(bloom);
+const gradePass = new ShaderPass(GradeOutputShader);
+composer.addPass(gradePass);
 
 const level = buildLevel();
 const rail = level.rail;
@@ -56,6 +84,7 @@ const runner = new Runner(level);
 const assets = new AssetRuntime({ THREE, assetSet: 'classic', search: location.search, quality: lowPower ? 'low' : 'high', families: (f) => f.startsWith('roof') });
 await assets.preload();
 const sky = new Sky(scene, renderer, { shadows, reduceMotion, lowPower, assets, center: new THREE.Vector3(level.center.x, 0, level.center.z) });
+sky.attachRenderer(renderer);
 const world = buildWorld(level, { reduceMotion, lowPower, assets });
 scene.add(world.root);
 const atmosphere = new RooftopAtmosphere(scene, level, { reduceMotion, lowPower, assets });
@@ -616,7 +645,7 @@ function tick(now, draw = true) {
 
   if (isPaused || contextLost) {
     view.acc = 0;
-    if (!contextLost) { updateCamera(0); if (draw) renderer.render(scene, camera); }
+    if (!contextLost) { updateCamera(0); if (draw) composer.render(); }
     return;
   }
 
@@ -659,7 +688,7 @@ function tick(now, draw = true) {
     fpsT = 0; fpsN = 0;
   }
 
-  if (draw) renderer.render(scene, camera);
+  if (draw) composer.render();
 }
 
 /** The page's canvas and lens, before the view frames the camera. */
@@ -700,9 +729,9 @@ async function start() {
   // complete scene. Nothing advances or accepts held input under the cover.
   lastNow = performance.now(); tick(lastNow, false);
   await renderer.compileAsync(scene, camera);
-  renderer.render(scene, camera);
+  composer.render();
   await new Promise(requestAnimationFrame);
-  renderer.render(scene, camera);
+  composer.render();
   keys.clear(); resetTouch(); press.jump = press.down = press.jumpUp = false;
   view.acc = 0; lastNow = performance.now(); stageReady = true;
   document.body.classList.remove('loading');
@@ -744,7 +773,7 @@ window.roofRoad = {
   renderNow(frames = 1) {
     const count = clamp(Math.floor(frames) || 1, 1, 600);
     for (let i = 0; i < count; i++) updateCamera(1 / 60);
-    renderer.render(scene, camera);
+    composer.render();
   },
   /** Jump to the end of the finale: all five fires burning, the card up. */
   skipFinale() { view.skipFinale(); }
@@ -758,7 +787,7 @@ if (flag('qa') === '1') {
       tick(lastNow+clamp(Number(ms)||0,0,100),false);
       states.push({y:runner.y,vy:runner.vy,grounded:runner.grounded});
     }
-    lastNow=performance.now();view.acc=0;renderer.render(scene,camera);return states;
+    lastNow=performance.now();view.acc=0;composer.render();return states;
   };
   roofRoad.advanceForReview = seconds => {
     const n = Math.ceil(clamp(Number(seconds) || 0, 0, 450) * 60);
@@ -770,7 +799,7 @@ if (flag('qa') === '1') {
     }
     // The accelerated review clock must never leak into the next real RAF.
     lastNow = performance.now(); view.acc = 0;
-    renderer.render(scene, camera);
+    composer.render();
     return { samples, cameraFailures, moods: [...moods], s: runner.s, finale: !!view.finale, catReady: stageReady };
   };
 }
