@@ -20,7 +20,7 @@ const Q=new URLSearchParams(location.search),$=id=>document.getElementById(id);
 const low=Q.get('quality')==='low'||(Q.get('quality')!=='high'&&(matchMedia('(pointer:coarse)').matches||navigator.hardwareConcurrency<=4));
 const SAVE_KEY=Q.has('qa')||Q.has('shot')?'michi.shinkansen.review.v1':'michi.shinkansen.v1';
 let started=false,paused=false,arrived=false,finishing=false,journeyTime=0,lastSave=0,accumulator=0,heading=Math.PI,boardingTime=0;
-let motor=new CatMotor(),postcards=new Set(),world,cat,sky,renderer,camera,scene,input;
+let motor=new CatMotor(),postcards=new Set(),world,cat,sky,renderer,camera,scene,input,composer;
 let gentle=matchMedia('(prefers-reduced-motion:reduce)').matches;
 let saved=null;
 try{const raw=JSON.parse(localStorage.getItem(SAVE_KEY));if(raw?.version===1&&Number.isFinite(raw.time)&&raw.time>=0&&raw.time<=DURATION&&raw.motor&&Number.isFinite(raw.motor.s))saved=raw;}catch{}
@@ -147,7 +147,7 @@ async function boot(){
   // Multisampled HDR target with depth attachment for the post chain (AO, bloom, grade).
   const rtSize=renderer.getDrawingBufferSize(new THREE.Vector2());
   const renderTarget=new THREE.WebGLRenderTarget(rtSize.width,rtSize.height,{samples:low?0:4,type:THREE.HalfFloatType,depthTexture:new THREE.DepthTexture(rtSize.width,rtSize.height)});
-  const composer=new EffectComposer(renderer,renderTarget);
+  composer=new EffectComposer(renderer,renderTarget);
   composer.renderTarget2.depthTexture=new THREE.DepthTexture(rtSize.width,rtSize.height);
   composer.addPass(new RenderPass(scene,camera));
   composer.addPass(new AOPass(camera,rtSize.width,rtSize.height,{scale:0.5,samples:low?8:14}));

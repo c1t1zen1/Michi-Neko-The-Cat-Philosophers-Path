@@ -696,6 +696,7 @@ function syncViewport() {
   const w = canvas.clientWidth, h = canvas.clientHeight;
   if (canvas.width !== Math.floor(w * renderer.getPixelRatio()) || canvas.height !== Math.floor(h * renderer.getPixelRatio())) {
     renderer.setSize(w, h, false);
+    composer.setSize(w, h);
   }
   camera.aspect = w / Math.max(1, h);
 }
