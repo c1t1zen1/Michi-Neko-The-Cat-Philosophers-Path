@@ -11,3 +11,4 @@ node_modules/
 # Python bytecode (social-video build scripts)
 __pycache__/
 *.pyc
+Skretch/.DS_Store
