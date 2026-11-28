@@ -21,8 +21,5 @@ jobs:
           extra=()
           # tags like v0.2.0-alpha or v1.0.0-rc.1 are published as pre-releases
           [[ "$TAG" == *-* ]] && extra+=(--prerelease)
-          gh release create "$TAG" --verify-tag --generate-notes \
-            --title "Michi-Neko $TAG" \
-            --notes-start-tag "" "${extra[@]}" 2>/dev/null \
-          || gh release create "$TAG" --verify-tag --generate-notes --title "Michi-Neko $TAG" "${extra[@]}"
+          gh release create "$TAG" --verify-tag --generate-notes --title "Michi-Neko $TAG" "${extra[@]}"
           echo "🚀 Released [$TAG](https://github.com/$GH_REPO/releases/tag/$TAG)" >> "$GITHUB_STEP_SUMMARY"
