@@ -1,0 +1,33 @@
+title: "[Idea] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Got an idea for the valley? 🐾 Check the [roadmap thread](https://github.com/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path/discussions/67) and [FUTURE_QUESTS.md](https://github.com/c1t1zen1/Michi-Neko-The-Cat-Philosophers-Path/blob/main/FUTURE_QUESTS.md) first. The guiding rule is *deepen Kyoto first.*
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of idea is it?
+      options:
+        - A quest or story beat
+        - A new place to explore
+        - A cat, villager or creature
+        - A cat verb or movement
+        - Music, sound or weather
+        - Photo mode, journal or UI
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Describe it
+      description: What would Michi see, do or feel? Sketches, photos of real Kyoto places and references are very welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where in the valley?
+      placeholder: e.g. the tea house garden, the Odoi bank, the Roof Road's third mouth
