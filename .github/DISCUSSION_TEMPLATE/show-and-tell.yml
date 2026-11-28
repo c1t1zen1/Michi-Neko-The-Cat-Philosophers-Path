@@ -1,0 +1,22 @@
+title: "[Show] "
+body:
+  - type: textarea
+    id: shot
+    attributes:
+      label: Share your moment
+      description: Drop in photo-mode shots (press P in game), journal pages, or something you built in cadJS or dawCAT.
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where was this?
+      placeholder: Moon Pool at night, in the rain
+  - type: dropdown
+    id: device
+    attributes:
+      label: Played on
+      options:
+        - Desktop
+        - Phone
+        - Tablet
