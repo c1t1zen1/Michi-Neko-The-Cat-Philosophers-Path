@@ -25,6 +25,7 @@ jobs:
           - { name: "Syntax: game ES modules", run: "node tools/check_syntax.mjs" }
           - { name: "Static wiring + summit", run: "node tools/verify.mjs" }
           - { name: "Kit contract", run: "node tools/kit_check.mjs && node --test tools/kit_test.mjs" }
+          - { name: "Labs: syntax, tags, registry, coverage", run: "node tools/labs_check.mjs" }
           - { name: "dawCAT audio studio", run: "cd dawCAT && npm test" }
           - { name: "cadJS CAD workspace", run: "cd cadJS && npm test" }
           - { name: "Asset catalog", run: "cd catalog && npm test" }
