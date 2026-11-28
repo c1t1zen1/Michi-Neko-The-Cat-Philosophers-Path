@@ -1,0 +1,28 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publish GitHub release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release with generated notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          extra=()
+          # tags like v0.2.0-alpha or v1.0.0-rc.1 are published as pre-releases
+          [[ "$TAG" == *-* ]] && extra+=(--prerelease)
+          gh release create "$TAG" --verify-tag --generate-notes \
+            --title "Michi-Neko $TAG" \
+            --notes-start-tag "" "${extra[@]}" 2>/dev/null \
+          || gh release create "$TAG" --verify-tag --generate-notes --title "Michi-Neko $TAG" "${extra[@]}"
+          echo "🚀 Released [$TAG](https://github.com/$GH_REPO/releases/tag/$TAG)" >> "$GITHUB_STEP_SUMMARY"
