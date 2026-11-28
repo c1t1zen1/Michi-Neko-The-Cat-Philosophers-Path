@@ -1,0 +1,16 @@
+# Categories for GitHub's automatically generated release notes.
+changelog:
+  exclude:
+    labels: ["skip-changelog"]
+    authors: ["dependabot"]
+  categories:
+    - title: "🐾 New in the valley"
+      labels: ["enhancement", "feature"]
+    - title: "🐛 Fixes"
+      labels: ["bug", "fix"]
+    - title: "📚 Docs"
+      labels: ["documentation"]
+    - title: "🔧 Tooling & CI"
+      labels: ["ci", "dependencies"]
+    - title: "🎨 Everything else"
+      labels: ["*"]
