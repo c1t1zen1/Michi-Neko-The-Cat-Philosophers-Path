@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.suite.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - { name: "Syntax: game ES modules", run: "node tools/check_syntax.mjs" }
+          - { name: "Static wiring + summit", run: "node tools/verify.mjs" }
+          - { name: "Kit contract", run: "node tools/kit_check.mjs && node --test tools/kit_test.mjs" }
+          - { name: "dawCAT audio studio", run: "cd dawCAT && npm test" }
+          - { name: "cadJS CAD workspace", run: "cd cadJS && npm test" }
+          - { name: "Asset catalog", run: "cd catalog && npm test" }
+          - { name: "Skretch review board", run: "cd Skretch && npm test" }
+          - { name: "Roof Road", run: "cd rooftops && npm test" }
+          - { name: "Shinkansen", run: "cd Shinkansen && npm test" }
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Run ${{ matrix.suite.name }}
+        run: ${{ matrix.suite.run }}
+      - name: Job summary
+        if: always()
+        run: |
+          echo "### ${{ job.status == 'success' && '✅' || '❌' }} ${{ matrix.suite.name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '`${{ matrix.suite.run }}` on Node 24' >> "$GITHUB_STEP_SUMMARY"
