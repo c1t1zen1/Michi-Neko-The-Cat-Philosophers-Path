@@ -45,3 +45,9 @@ jobs:
         run: |
           echo "### ${{ job.status == 'success' && '✅' || '❌' }} ${{ matrix.suite.name }}" >> "$GITHUB_STEP_SUMMARY"
           echo '`${{ matrix.suite.run }}` on Node 24' >> "$GITHUB_STEP_SUMMARY"
+
+  site:
+    name: Site links
+    uses: c1t1zen1/.github/.github/workflows/static-site-check.yml@main
+    with:
+      path: .
